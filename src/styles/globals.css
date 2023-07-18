@@ -52,3 +52,41 @@ body {
 .brutalborder {
   border: 2px solid #000000;
 }
+
+/* replace cta-btn id with rainbow border in html if not CTA at some point @konrad */
+#cta-btn {
+  border: 5px solid black;
+  padding: 1rem;
+  transition: box-shadow 1s ease-in-out, border-radius 1s ease-in-out;
+  box-shadow: 0.5rem 0.5rem 0 0px #000;
+}
+
+#cta-btn:hover {
+  /* animation: disco 1s infinite; */
+  /* background-color: #000; */
+  transform: ease-in-out 2s;
+  border-radius: 2rem;
+  box-shadow: 0 0 0 0.5rem #ff90e8, 0 0 0 1rem #23a094, 0 0 0 1.5rem #f1f333,
+    0 0 0 2rem #90a8ed;
+  /* normal shadow */
+  /* 0.5rem 0.5rem 0 0 #ff90e8,
+  1rem 1rem 0 0 #23a094,
+  1.5rem 1.5rem 0 0 #F1F333,
+  2rem 2rem 0 0 #90A8ED, */
+}
+
+#cta-btn:active {
+  animation: disco 0.5s infinite;
+}
+
+/* Chrome, Safari, Edge, Opera */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}

@@ -1,85 +1,39 @@
 "use client";
-import UAuth from "@uauth/js";
-
-import * as UAuthWeb3Modal from "@uauth/web3modal";
-import UAuthSPA from "@uauth/js";
-import WalletConnectProvider from "@walletconnect/web3-provider";
-import Web3Modal from "web3modal";
-import { useEffect, useState } from "react";
-import Core from "web3modal";
-
-import image from "@/assets/peanutman-logo.svg";
-import smiley from "@/assets/black-smiling-face.png";
-import * as global_components from "@/components/global";
 import Link from "next/link";
+import { useWeb3Modal } from "@/context/Web3ModalContext";
+import { useState } from "react";
 
+import * as global_components from "@/components/global";
+import * as utils from "@/utils";
+import peanut_logo from "@/assets/peanutman-logo.svg";
+import smiley from "@/assets/black-smiling-face.png";
+import { useRouter } from "next/navigation";
 export function Header() {
-  const [web3modal, setWeb3modal] = useState<Core>();
-  const uauth = new UAuth({
-    clientID: "8691d8bc-ea54-4941-8156-17298153e7fb",
-    //redirectUri: window.location.origin,
-    redirectUri: "http://localhost:3000",
-    scope: "openid wallet profile",
-  });
-
-  const providerOptions = {
-    walletconnect: {
-      package: WalletConnectProvider,
-      options: {
-        // test key - don't copy as your mileage may vary
-        infuraId: "4478656478ab4945a1b013fb1d8f20fd",
-        rpc: {
-          137: "https://polygon-rpc.com/",
-          80001: "https://rpc-mumbai.maticvigil.com/",
-          10: "https://mainnet.optimism.io/",
-          42161: "https://arb1.arbitrum.io/rpc",
-        },
-      },
-    },
-
-    "custom-uauth": {
-      display: UAuthWeb3Modal.display,
-      connector: UAuthWeb3Modal.connector,
-      package: UAuthSPA,
-      options: uauth,
-    },
-
-    //add formatic
-  };
-
-  //put in a useEffect because of SSR in nextJS
-  useEffect(() => {
-    const web3modal = new Web3Modal({ providerOptions });
-    setWeb3modal(web3modal);
-  }, []);
+  const [showModal, setShowModal] = useState(false);
+  const { connect, disconnect, isConnected, address, chainId } = useWeb3Modal();
+  const router = useRouter();
 
   const onConnect = async () => {
-    if (web3modal) {
-      try {
-        const provider = await web3modal.connect();
-
-        console.log(provider);
-      } catch (error) {
-        console.log(error);
-      }
-    }
+    connect();
   };
 
-  const onDisconnect = () => {};
+  const onDisconnect = () => {
+    disconnect();
+  };
 
   return (
     <div>
-      <nav className="relative flex flex-wrap justify-between bg-black max-h-20 mr-2">
+      <nav className="relative flex flex-wrap justify-between bg-black max-h-20 mr-4">
         <div className="w-full relative flex justify-between lg:w-auto lg:justify-start items-center ">
           <Link
             className="flex items-center h-full font-bold text-2xl uppercase cursor-pointer hover:bg-white hover:text-black px-2 no-underline text-white"
             href="/"
           >
-            <img src={image.src} alt="logo" className="h-10" />
+            <img src={peanut_logo.src} alt="logo" className="h-10" />
             <span className="hidden lg:inline lg:px-6">peanut protocol</span>
           </Link>
           <Link
-            className="flex h-full font-bold items-center  px-8  uppercase text-base cursor-pointer hover:bg-white hover:text-black no-underline text-white"
+            className="flex h-full font-bold items-center px-8 uppercase text-base cursor-pointer hover:bg-white hover:text-black no-underline text-white"
             href={"/about"}
           >
             <span className="">about</span>
@@ -102,21 +56,68 @@ export function Header() {
               <button
                 id="connectButton"
                 className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert"
-                onClick={onConnect}
+                onClick={
+                  isConnected
+                    ? () => {
+                        setShowModal(true);
+                      }
+                    : onConnect
+                }
               >
-                Connect
+                {isConnected ? utils.shortenAddress(address ?? "") : "Connect"}
               </button>
             </li>
           </ul>
         </div>
       </nav>
-      <global_components.MarqueeSdk backgroundColor="bg-fuchsia">
+      <global_components.MarqueeWrapper
+        backgroundColor="bg-fuchsia"
+        onClick={() => {
+          window.open(
+            "https://peanutprotocol.notion.site/Send-Tokens-via-Link-Peanut-Link-SDK-1-0-9a89ea726b754a1c9f7e012125a01a85"
+          );
+        }}
+      >
         <h1 className="italic text-center uppercase"> new sdk</h1>
         {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
         <img src={smiley.src} alt="logo" className="h-8" />
         <h1 className="italic text-center uppercase">click here </h1>
         <img src={smiley.src} alt="logo" className="h-8" />
-      </global_components.MarqueeSdk>
+      </global_components.MarqueeWrapper>
+      <global_components.ModalWrapper
+        headerText={"Account Data"}
+        onClose={() => {
+          setShowModal(false);
+        }}
+        isOpen={showModal}
+      >
+        {/* content */}
+        <div className="mt-4">
+          <div className="flex justify-between items-center">
+            <p className="font-bold">Address</p>
+            <p id="selected-account">{utils.shortenAddress(address ?? "")}</p>
+          </div>
+          <div className="flex justify-between items-center">
+            <p className="font-bold">Balance</p>
+            <p id="selected-account-balance">{}</p>
+          </div>
+          <div className="flex justify-between items-center">
+            <p className="font-bold">Network</p>
+            <p id="selected-network">{chainId}</p>
+            {/* make const file with chainIds and names of chains */}
+          </div>
+        </div>
+        {/* footer */}
+        <div className="flex justify-center mt-4">
+          <button
+            id="disconnectButton"
+            className="text-center brutalborder cursor-pointer block p-2 px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert"
+            onClick={onDisconnect}
+          >
+            Disconnect
+          </button>
+        </div>
+      </global_components.ModalWrapper>
     </div>
   );
 }
