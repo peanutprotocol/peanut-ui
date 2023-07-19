@@ -1,13 +1,23 @@
-import { createConfig, configureChains, mainnet, WagmiConfig } from "wagmi";
-import { publicProvider } from "wagmi/providers/public";
+import { configureChains, createConfig } from "wagmi";
+import {
+  EthereumClient,
+  w3mConnectors,
+  w3mProvider,
+} from "@web3modal/ethereum";
 
-const { chains, publicClient, webSocketPublicClient } = configureChains(
-  [mainnet],
-  [publicProvider()]
-);
+import * as consts from "@/consts";
 
-const config = createConfig({
-  autoConnect: true,
+const { publicClient } = configureChains(consts.chains, [
+  w3mProvider({ projectId: process.env.WC_PROJECT_ID ?? "" }),
+]);
+
+export const wagmiConfig = createConfig({
+  autoConnect: false, //TODO: look into hydration error when true
+  connectors: w3mConnectors({
+    projectId: process.env.WC_PROJECT_ID ?? "",
+    chains: consts.chains,
+  }), //TODO: look into wc styling
   publicClient,
-  webSocketPublicClient,
 });
+
+export const ethereumClient = new EthereumClient(wagmiConfig, consts.chains);

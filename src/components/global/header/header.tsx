@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useWeb3Modal } from "@/context/Web3ModalContext";
-import { useEffect, useState } from "react";
+import { useWeb3Modal } from "@web3modal/react";
+import { useAccount } from "wagmi";
 
 import * as global_components from "@/components/global";
 import * as utils from "@/utils";
@@ -9,16 +9,9 @@ import peanut_logo from "@/assets/peanutman-logo.svg";
 import smiley from "@/assets/black-smiling-face.png";
 
 export function Header() {
-  const [showModal, setShowModal] = useState(false);
-  const { connect, disconnect, isConnected, address, chainId } = useWeb3Modal();
+  const { address, isConnected } = useAccount();
 
-  const onConnect = async () => {
-    await connect();
-  };
-
-  const onDisconnect = () => {
-    disconnect();
-  };
+  const { open } = useWeb3Modal();
 
   return (
     <div>
@@ -61,13 +54,7 @@ export function Header() {
               <button
                 id="connectButton"
                 className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert"
-                onClick={
-                  isConnected
-                    ? () => {
-                        setShowModal(true);
-                      }
-                    : onConnect
-                }
+                onClick={open}
               >
                 {isConnected ? utils.shortenAddress(address ?? "") : "Connect"}
               </button>
@@ -89,40 +76,6 @@ export function Header() {
         <h1 className="italic text-center uppercase">click here </h1>
         <img src={smiley.src} alt="logo" className="h-8" />
       </global_components.MarqueeWrapper>
-      <global_components.ModalWrapper
-        headerText={"Account Data"}
-        onClose={() => {
-          setShowModal(false);
-        }}
-        isOpen={showModal}
-      >
-        {/* content */}
-        <div className="mt-4">
-          <div className="flex justify-between items-center">
-            <p className="font-bold">Address</p>
-            <p id="selected-account">{utils.shortenAddress(address ?? "")}</p>
-          </div>
-          <div className="flex justify-between items-center">
-            <p className="font-bold">Balance</p>
-            <p id="selected-account-balance">{}</p>
-          </div>
-          <div className="flex justify-between items-center">
-            <p className="font-bold">Network</p>
-            <p id="selected-network">{chainId}</p>
-            {/* make const file with chainIds and names of chains */}
-          </div>
-        </div>
-        {/* footer */}
-        <div className="flex justify-center mt-4">
-          <button
-            id="disconnectButton"
-            className="text-center brutalborder cursor-pointer block p-2 px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert"
-            onClick={onDisconnect}
-          >
-            Disconnect
-          </button>
-        </div>
-      </global_components.ModalWrapper>
     </div>
   );
 }

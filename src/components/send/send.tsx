@@ -16,14 +16,12 @@ export function Send() {
     }));
   };
 
-  const sendForm = useForm<_consts.ISendFormData>({
-    mode: "onChange",
-    defaultValues: {
-      chainId: 1,
-      amount: 0,
-      token: "eth",
-    },
-  });
+  const handleOnCustom = (screen: _consts.SendScreens) => {
+    setSendScreen(() => ({
+      screen: screen,
+      idx: _consts.SEND_SCREEN_FLOW.indexOf(screen),
+    }));
+  };
 
   return (
     <div>

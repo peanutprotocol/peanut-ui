@@ -1,3 +1,13 @@
+import {
+  gnosis,
+  mainnet,
+  arbitrum,
+  polygon,
+  bsc,
+  goerli,
+  scrollTestnet,
+} from "@wagmi/chains";
+
 export interface IChain {
   name: string;
   chainId: number;
@@ -7,6 +17,10 @@ export const CHAIN_MAP = [
   {
     name: "Ethereum",
     chainId: 1,
+  },
+  {
+    name: "Goerli",
+    chainId: 5,
   },
   {
     name: "Binance Smart Chain",
@@ -28,9 +42,19 @@ export const CHAIN_MAP = [
     name: "Gnosis",
     chainId: 100,
   },
-  //   534352: {
-  //     name: "Scroll",
-  //     chainId: 534352,
-  //   },
-  //Add filecoin and eth testnet (dont know which one)
+  {
+    name: "Scroll",
+    chainId: 534353,
+  },
+  //Add filecoin
+];
+
+export const chains = [
+  mainnet,
+  arbitrum,
+  polygon,
+  bsc,
+  goerli,
+  gnosis,
+  scrollTestnet,
 ];

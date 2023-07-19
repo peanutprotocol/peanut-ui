@@ -1,10 +1,10 @@
 "use client";
-import providerOptions from "@/config/UAuth.config";
-import { Web3ModalProvider } from "@/context/Web3ModalContext";
 import "@/styles/globals.css";
-import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import * as UAuthWeb3Modal from "@uauth/web3modal";
+import { Web3Modal } from "@web3modal/react";
+import { WagmiConfig } from "wagmi";
+
+import * as config from "@/config";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,13 +22,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <Web3ModalProvider
-          cacheProvider={true}
-          providerOptions={providerOptions}
-          onNewWeb3Modal={UAuthWeb3Modal.registerWeb3Modal}
-        >
-          {children}
-        </Web3ModalProvider>
+        <WagmiConfig config={config.wagmiConfig}>{children}</WagmiConfig>
+        <Web3Modal
+          projectId={process.env.WC_PROJECT_ID ?? ""}
+          ethereumClient={config.ethereumClient}
+        />
       </body>
     </html>
   );

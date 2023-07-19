@@ -26,9 +26,3 @@ export const SEND_SCREEN_MAP: {
   INITIAL: { comp: views.SendInitialView },
   SUCCESS: { comp: views.SendSuccessView },
 };
-
-export interface ISendFormData {
-  chainId: number;
-  token: string;
-  amount: number;
-}

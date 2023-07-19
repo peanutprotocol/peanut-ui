@@ -1,1 +1,1 @@
-export * from "./UAuth.config";
+export * from "./wagmi.config";

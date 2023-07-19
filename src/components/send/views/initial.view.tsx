@@ -1,14 +1,55 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useWeb3Modal } from "@web3modal/react";
 
-import { useWeb3Modal } from "@/context/Web3ModalContext";
 import * as consts from "@/consts";
-
 import * as _consts from "../send.consts";
+import { useAccount, useBalance } from "wagmi";
+import { useForm } from "react-hook-form";
+import * as socketTech from "@socket.tech/socket-v2-sdk";
+
+interface ISendFormData {
+  chainId: number;
+  token: string;
+  amount: number;
+}
 
 export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
   const [denomination, setDenomination] = useState("USD");
-  const { isConnected, connect } = useWeb3Modal();
+  const { open } = useWeb3Modal();
+  const { isConnected, address } = useAccount();
+
+  const sendForm = useForm<ISendFormData>({
+    mode: "onChange",
+    defaultValues: {
+      chainId: 1,
+      amount: 0,
+      token: "eth",
+    },
+  });
+
+  const socket = new socketTech.Socket({
+    apiKey: "", // add api key here
+    defaultQuotePreferences: {
+      singleTxOnly: true,
+    },
+  });
+
+  useEffect(() => {
+    if (address) {
+      loadUserBalances(address);
+    }
+  }, [address]);
+  const loadUserBalances = async (address: string) => {
+    const userBalancesResponse = await socketTech.Balances.getBalances({
+      userAddress: address,
+    });
+
+    if (userBalancesResponse.success) {
+      console.log(userBalancesResponse.result);
+    } else {
+    }
+  };
 
   return (
     <div className="flex flex-col items-center center-xy py-6 px-4 w-1/2 lg:w-<1>/2 brutalborder bg-white mx-auto mt-5 text-black">
@@ -111,7 +152,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
                     onNextScreen();
                   }
                 : () => {
-                    connect();
+                    open();
                   }
             }
           >
