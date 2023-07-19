@@ -21,7 +21,7 @@ export function MarqueeWrapper({
       onClick={onClick}
     >
       <Marquee autoFill speed={30}>
-        <div className="flex flex-row items-center gap-2 mr-1">{children}</div>
+        <div className="flex flex-row items-center">{children}</div>
       </Marquee>
     </div>
   );

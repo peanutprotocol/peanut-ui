@@ -29,9 +29,10 @@ export default function RootLayout({
         <Web3Modal
           projectId={process.env.WC_PROJECT_ID ?? ""}
           ethereumClient={config.ethereumClient}
-          themeMode="light"
+          themeMode="dark"
           themeVariables={{
-            "--w3m-accent-color": "#000000",
+            "--w3m-accent-color": "#F1F333", // accent color of the wc modal (text and logo ie) change to whatever you think looks good
+            "--w3m-background-color": "#F1F333", //top color of the wc modal, change to whatever you think looks good
           }}
         />
       </body>

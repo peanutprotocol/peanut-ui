@@ -70,11 +70,15 @@ export function Header() {
           );
         }}
       >
-        <h1 className="italic text-center uppercase"> new sdk</h1>
-        {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
-        <img src={smiley.src} alt="logo" className="h-8" />
-        <h1 className="italic text-center uppercase">click here </h1>
-        <img src={smiley.src} alt="logo" className="h-8" />
+        {" "}
+        <>
+          {" "}
+          <h1 className="italic text-center uppercase mr-2">new sdk</h1>
+          {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
+          <img src={smiley.src} alt="logo" className="h-8 mr-1" />
+          <h1 className="italic text-center uppercase mr-2">click here</h1>
+          <img src={smiley.src} alt="logo" className="h-8 mr-1" />
+        </>
       </global_components.MarqueeWrapper>
     </div>
   );
