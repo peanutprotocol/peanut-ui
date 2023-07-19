@@ -7,6 +7,9 @@ import * as _consts from "../send.consts";
 
 export function SendSuccessView({ onNextScreen }: _consts.ISendScreenProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
+
+  const link = "test";
 
   return (
     <div className="flex flex-col items-center center-xy pt-1 pb-8 px-4 w-1/2 lg:w-<1>/2 brutalborder bg-white mx-auto mt-5 text-black">
@@ -21,35 +24,35 @@ export function SendSuccessView({ onNextScreen }: _consts.ISendScreenProps) {
             id="myInput"
             className="p-2 w-11/12 bg-black text-white flex items-center text-lg"
           >
-            todo: link and copy function
+            {link}
           </div>
 
-          <div className="tooltip block p-2">
-            <button className="text-base font-bold border-none bg-white">
-              <span className="tooltiptext inline" id="myTooltip">
-                COPY
-                <img src={clipboard_svg.src} className="h-6 " alt="clipboard" />
-              </span>
-            </button>
-          </div>
-          <div className="block border-l-2 border-black p-2 lg:hidden">
-            <button className="ml-2 fill-black inline-block ">
-              <div className="text-base font-bold "> SHARE</div>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth="1.5"
-                stroke="currentColor"
-                className="w-6 h-6 mx-auto"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M7.217 10.907a2.25 2.25 0 100 2.186m0-2.186c.18.324.283.696.283 1.093s-.103.77-.283 1.093m0-2.186l9.566-5.314m-9.566 7.5l9.566 5.314m0 0a2.25 2.25 0 103.935 2.186 2.25 2.25 0 00-3.935-2.186zm0-12.814a2.25 2.25 0 103.933-2.185 2.25 2.25 0 00-3.933 2.185z"
-                />
-              </svg>
-            </button>
+          <div
+            className="tooltip h-14 w-16 block p-2 cursor-pointer"
+            onClick={() => {
+              navigator.clipboard.writeText(link);
+              setIsCopied(true);
+            }}
+          >
+            {isCopied ? (
+              <div className="flex text-base font-bold border-none bg-white cursor-pointer h-full items-center">
+                <span className="tooltiptext inline " id="myTooltip">
+                  {" "}
+                  copied!{" "}
+                </span>
+              </div>
+            ) : (
+              <button className="text-base font-bold border-none bg-white cursor-pointer">
+                <span className="tooltiptext inline" id="myTooltip">
+                  COPY
+                  <img
+                    src={clipboard_svg.src}
+                    className="h-6 "
+                    alt="clipboard"
+                  />
+                </span>
+              </button>
+            )}
           </div>
         </div>
         <div

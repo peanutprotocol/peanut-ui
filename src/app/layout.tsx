@@ -29,6 +29,10 @@ export default function RootLayout({
         <Web3Modal
           projectId={process.env.WC_PROJECT_ID ?? ""}
           ethereumClient={config.ethereumClient}
+          themeMode="light"
+          themeVariables={{
+            "--w3m-accent-color": "#000000",
+          }}
         />
       </body>
     </html>
