@@ -1,20 +1,19 @@
 "use client";
 import Link from "next/link";
 import { useWeb3Modal } from "@/context/Web3ModalContext";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import * as global_components from "@/components/global";
 import * as utils from "@/utils";
 import peanut_logo from "@/assets/peanutman-logo.svg";
 import smiley from "@/assets/black-smiling-face.png";
-import { useRouter } from "next/navigation";
+
 export function Header() {
   const [showModal, setShowModal] = useState(false);
   const { connect, disconnect, isConnected, address, chainId } = useWeb3Modal();
-  const router = useRouter();
 
   const onConnect = async () => {
-    connect();
+    await connect();
   };
 
   const onDisconnect = () => {
@@ -38,19 +37,25 @@ export function Header() {
           >
             <span className="">about</span>
           </Link>
-          <Link
+          <div
             className="flex h-full font-bold items-center  px-8 uppercase text-base cursor-pointer hover:bg-white hover:text-black no-underline text-white"
-            href={"/docs"}
+            onClick={() => {
+              window.open(
+                "https://peanutprotocol.notion.site/Peanut-Protocol-5776ec3a97de4e5d972ae3f6ba7f4f04"
+              );
+            }}
           >
             <span className="">docs</span>
-          </Link>
+          </div>
         </div>
         <div className="lg:flex flex-grow items-center ">
           <ul className="flex flex-col gap-5 lg:flex-row list-none lg:ml-auto">
             <li className="nav-item">
-              <button className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert">
-                Dashboard
-              </button>
+              <Link href={"/dashboard"} className="no-underline">
+                <button className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert">
+                  Dashboard
+                </button>
+              </Link>
             </li>
             <li className="nav-item">
               <button

@@ -4,10 +4,13 @@ import * as views from "./views";
 // I always like to use consts files like these, makes it very readable and easy to change
 
 export type SendScreens = "INITIAL" | "SUCCESS";
-
 export interface ISendScreenState {
   screen: SendScreens;
   idx: number;
+}
+
+export interface ISendScreenProps {
+  onNextScreen: () => void;
 }
 
 export const INIT_VIEW: ISendScreenState = {

@@ -4,7 +4,7 @@ import WalletConnectProvider from "@walletconnect/web3-provider";
 import { IProviderOptions } from "web3modal";
 
 export const uauthOptions: UAuthWeb3Modal.IUAuthOptions = {
-  clientID: "8691d8bc-ea54-4941-8156-17298153e7fb", // move to env
+  clientID: process.env.CLIENT_ID ?? "",
   redirectUri: "http://localhost:3000",
   //redirectUri: window.location.origin,
 
@@ -23,7 +23,7 @@ const providerOptions: IProviderOptions = {
     package: WalletConnectProvider,
     options: {
       // test key - don't copy as your mileage may vary
-      infuraId: "4478656478ab4945a1b013fb1d8f20fd", // move to env
+      infuraId: process.env.INFURA_ID ?? "",
       rpc: {
         137: "https://polygon-rpc.com/",
         80001: "https://rpc-mumbai.maticvigil.com/",

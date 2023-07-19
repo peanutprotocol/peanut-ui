@@ -6,7 +6,7 @@ import * as consts from "@/consts";
 
 import * as _consts from "../send.consts";
 
-export function SendInitialView() {
+export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
   const [denomination, setDenomination] = useState("USD");
   const { isConnected, connect } = useWeb3Modal();
 
@@ -108,7 +108,7 @@ export function SendInitialView() {
             onClick={
               isConnected
                 ? () => {
-                    console.log("next");
+                    onNextScreen();
                   }
                 : () => {
                     connect();

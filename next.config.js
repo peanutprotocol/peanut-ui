@@ -1,4 +1,9 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {};
+const nextConfig = {
+  env: {
+    CLIENT_ID: process.env.CLIENT_ID,
+    INFURA_ID: process.env.INFURA_ID,
+  },
+};
 
 module.exports = nextConfig;
