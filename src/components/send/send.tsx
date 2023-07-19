@@ -27,6 +27,7 @@ export function Send() {
     <div>
       {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
         onNextScreen: handleOnNext,
+        onCustomScreen: handleOnCustom,
       } as _consts.ISendScreenProps)}
     </div>
   );

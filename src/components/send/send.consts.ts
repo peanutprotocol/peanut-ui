@@ -11,6 +11,7 @@ export interface ISendScreenState {
 
 export interface ISendScreenProps {
   onNextScreen: () => void;
+  onCustomScreen: (screen: SendScreens) => void;
 }
 
 export const INIT_VIEW: ISendScreenState = {

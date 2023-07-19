@@ -2,10 +2,11 @@ import { useState } from "react";
 
 import clipboard_svg from "@/assets/clipboard.svg";
 import dropdown_svg from "@/assets/dropdown.svg";
+import QRCode from "react-qr-code";
 
 import * as _consts from "../send.consts";
 
-export function SendSuccessView({ onNextScreen }: _consts.ISendScreenProps) {
+export function SendSuccessView({ onCustomScreen }: _consts.ISendScreenProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
@@ -76,9 +77,21 @@ export function SendSuccessView({ onNextScreen }: _consts.ISendScreenProps) {
         </div>
         {isDropdownOpen && (
           <div>
-            <div className="mx-auto mt-8 mb-12 h-42 w-42">
-              <div className="mx-auto mt-8 mb-12 h-42 w-42">
-                <img alt="QR code" className="mx-auto" />
+            <div className="mx-auto mt-4 mb-6 h-42 w-42">
+              <div
+                style={{
+                  height: "auto",
+                  margin: "0 auto",
+                  maxWidth: 192,
+                  width: "100%",
+                }}
+              >
+                <QRCode
+                  size={256}
+                  style={{ height: "auto", maxWidth: "100%", width: "100%" }}
+                  value={"https://www.npmjs.com/package/react-qr-code"}
+                  viewBox={`0 0 256 256`}
+                />
               </div>
             </div>
             <p className="tx-sm">
@@ -92,13 +105,29 @@ export function SendSuccessView({ onNextScreen }: _consts.ISendScreenProps) {
         </p> whats this? */}
           </div>
         )}
+
+        <p className="mt-4 text-m" id="to_address-description">
+          {" "}
+          Want to do it again? click{" "}
+          <a
+            onClick={() => {
+              onCustomScreen("INITIAL");
+            }}
+            target="_blank"
+            className="underline text-black cursor-pointer"
+          >
+            here
+          </a>{" "}
+          to go back home!
+        </p>
+
         <p className="mt-4 text-xs" id="to_address-description">
           {" "}
           Thoughts? Feedback? Use cases? Memes? Hit us up on{" "}
           <a
             href="https://discord.gg/BX9Ak7AW28"
             target="_blank"
-            className="underline text-black"
+            className="underline text-black cursor-pointer"
           >
             Discord
           </a>

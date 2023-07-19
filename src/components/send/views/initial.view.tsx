@@ -44,7 +44,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
     setTimeout(() => {
       onNextScreen();
       setIsLoading(false);
-    }, 5000);
+    }, 7500);
 
     // const signer = {
     //   ...walletClient,
@@ -86,7 +86,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
           <div className="flex gap-2 w-3/5">
             <div className="relative w-full lg:max-w-sm">
               <select
-                className="w-full p-2.5 text-black bg-white border rounded-md shadow-sm outline-none focus:border-black"
+                className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
                 {...sendForm.register("chainId")}
               >
                 {consts.CHAIN_MAP.map((chain) =>
@@ -108,7 +108,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
             </div>
             <div className="relative w-full lg:max-w-sm">
               <select
-                className="w-full p-2.5 text-black bg-white border rounded-md shadow-sm outline-none focus:border-black"
+                className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
                 {...sendForm.register("token")}
               >
                 {userBalances.length > 0 ? (
