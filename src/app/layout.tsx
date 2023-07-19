@@ -5,6 +5,7 @@ import { Web3Modal } from "@web3modal/react";
 import { WagmiConfig } from "wagmi";
 
 import * as config from "@/config";
+import { Store } from "@/store/store";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -22,7 +23,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <WagmiConfig config={config.wagmiConfig}>{children}</WagmiConfig>
+        <WagmiConfig config={config.wagmiConfig}>
+          <Store>{children}</Store>
+        </WagmiConfig>
         <Web3Modal
           projectId={process.env.WC_PROJECT_ID ?? ""}
           ethereumClient={config.ethereumClient}
