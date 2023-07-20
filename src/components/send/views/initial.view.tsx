@@ -3,14 +3,17 @@ import { useEffect, useState } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
-import * as consts from "@/consts";
-import * as _consts from "../send.consts";
 import { useAccount } from "wagmi";
 import { useForm } from "react-hook-form";
+import axios from "axios";
 
 const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
+import * as consts from "@/consts";
+import * as _consts from "../send.consts";
+
+const COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3";
 
 interface ISendFormData {
   chainId: number;
@@ -26,6 +29,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
   const [userBalances] = useAtom(store.userBalancesAtom);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined);
 
   const sendForm = useForm<ISendFormData>({
     mode: "onChange",
@@ -76,10 +80,10 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
         position: "bottom-right",
       }
     );
-    // setTimeout(() => {
-    //   onNextScreen();
-    //   setIsLoading(false);
-    // }, 7500);
+    setTimeout(() => {
+      onNextScreen();
+      setIsLoading(false);
+    }, 7500);
 
     // const signer = {
     //   ...walletClient,
@@ -98,8 +102,37 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
     // });
   };
 
+  //start of implementation to fetch token price to show the user the amount in USD
+  //Most of the public available free api's get rate limited quiclky unless you pay for an api key.
+  const updateTokenPrice = async () => {
+    try {
+      console.log(
+        userBalances
+          .find((balance) => balance.symbol === formwatch.token)
+          ?.name.toLowerCase()
+      );
+      const response = await axios.get(
+        `${COINGECKO_API_BASE_URL}/simple/price`,
+        {
+          params: {
+            ids:
+              userBalances
+                .find((balance) => balance.symbol === formwatch.token)
+                ?.name.toLowerCase() ?? "",
+            vs_currencies: "usd", // You can change the currency here if needed
+          },
+        }
+      );
+
+      const price = response.data[formwatch.token];
+      console.log(price);
+    } catch (error) {
+      console.log("error in updateTokenPrice", error);
+    }
+  };
+
+  //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
   useEffect(() => {
-    //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
     if (userBalances.length > 0) {
       sendForm.setValue("token", userBalances[0].symbol);
       sendForm.setValue("chainId", userBalances[0].chainId);
@@ -120,7 +153,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
   }, [formwatch.chainId]);
 
   return (
-    <div className="flex flex-col items-center center-xy py-6 px-4 w-1/2 lg:w-<1>/2 brutalborder bg-white mx-auto mt-5 text-black">
+    <>
       <div className="mt-6 text-center  w-full flex flex-col gap-5 ">
         <h2 className="title-font text-3xl lg:text-5xl bold m-0">
           Send crypto with a link
@@ -139,7 +172,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
       </div>
       <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
         <div className="flex w-full flex-col gap-5 items-center">
-          <div className="flex gap-2 w-3/5">
+          <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
             <div className="relative w-full lg:max-w-sm">
               <select
                 className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
@@ -185,9 +218,9 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
               </select>
             </div>
           </div>
-          <div className="relative w-3/4 ">
-            <div className="absolute inset-y-0 right-0 flex items-center ">
-              <span className="cursor-pointertext-lg px-2 ">
+          <div className="relative w-full px-2 sm:w-3/4 ">
+            <div className="absolute box-border inset-y-0 right-4 flex items-center ">
+              <span className="cursor-pointertext-lg px- ">
                 <button
                   type="button"
                   className={
@@ -233,7 +266,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
           </div>
           <button
             type={isConnected ? "submit" : "button"}
-            className="block w-4/5 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
+            className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
             id="cta-btn"
             onClick={!isConnected ? open : undefined}
           >
@@ -274,6 +307,6 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
           !
         </h4>
       </div>
-    </div>
+    </>
   );
 }

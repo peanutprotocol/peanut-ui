@@ -1,6 +1,5 @@
 import { createElement, useState } from "react";
-import { useForm } from "react-hook-form";
-
+import * as global_components from "@/components/global";
 import * as _consts from "./send.consts";
 
 export function Send() {
@@ -24,11 +23,11 @@ export function Send() {
   };
 
   return (
-    <div>
+    <global_components.CardWrapper>
       {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
         onNextScreen: handleOnNext,
         onCustomScreen: handleOnCustom,
       } as _consts.ISendScreenProps)}
-    </div>
+    </global_components.CardWrapper>
   );
 }

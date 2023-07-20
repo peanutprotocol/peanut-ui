@@ -3,3 +3,4 @@ export * from "./header";
 export * from "./pageWrapper";
 export * from "./marqueeWrapper";
 export * from "./modalWrapper";
+export * from "./cardWrapper";

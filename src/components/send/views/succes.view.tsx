@@ -1,8 +1,8 @@
 import { useState } from "react";
+import QRCode from "react-qr-code";
 
 import clipboard_svg from "@/assets/clipboard.svg";
 import dropdown_svg from "@/assets/dropdown.svg";
-import QRCode from "react-qr-code";
 
 import * as _consts from "../send.consts";
 

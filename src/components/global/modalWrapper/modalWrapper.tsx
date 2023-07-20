@@ -1,5 +1,4 @@
 import closeIcon from "@/assets/icons8-close.svg";
-
 interface IModalWrapperProps {
   children: React.ReactNode;
   headerText: string;
@@ -32,6 +31,7 @@ export function ModalWrapper({
                 className="h-6 cursor-pointer -mt-10"
               />
             </div>
+            {/* content */}
             {children}
           </div>
         </div>
