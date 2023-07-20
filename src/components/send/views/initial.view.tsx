@@ -1,8 +1,8 @@
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
-
+import toast from "react-hot-toast";
 import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 import { useAccount } from "wagmi";
@@ -39,12 +39,47 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
   const formwatch = sendForm.watch();
 
   const createLink = async (sendFormData: ISendFormData) => {
-    setIsLoading(true);
+    //check that the token and chainid are defined
+    if (sendFormData.chainId == null || sendFormData.token == null) {
+      toast("please select a chain and token", {
+        position: "bottom-right",
+      });
+    }
 
-    setTimeout(() => {
-      onNextScreen();
-      setIsLoading(false);
-    }, 7500);
+    console.log("sendFormData", sendFormData);
+    //check if the amount is less than or equal to zero
+    if (sendFormData.amount <= 0) {
+      toast("please put an amount that is greater than zero", {
+        position: "bottom-right",
+      });
+    }
+
+    //check that the user has enough funds
+    const balance = userBalances.find(
+      (balance) => balance.symbol === sendFormData.token
+    )?.amount;
+    if (balance && sendFormData.amount > balance) {
+      toast("you don't have enough funds", {
+        position: "bottom-right",
+      });
+    }
+
+    setIsLoading(true);
+    toast(
+      "Sending " +
+        sendFormData.amount +
+        " " +
+        sendFormData.token +
+        " on chain with id" +
+        sendFormData.chainId,
+      {
+        position: "bottom-right",
+      }
+    );
+    // setTimeout(() => {
+    //   onNextScreen();
+    //   setIsLoading(false);
+    // }, 7500);
 
     // const signer = {
     //   ...walletClient,
@@ -62,6 +97,27 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
     //   tokenType: 0,
     // });
   };
+
+  useEffect(() => {
+    //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
+    if (userBalances.length > 0) {
+      sendForm.setValue("token", userBalances[0].symbol);
+      sendForm.setValue("chainId", userBalances[0].chainId);
+    }
+  }, [userBalances]);
+
+  useEffect(() => {
+    if (formwatch.chainId) {
+      //if the user changes the chain, make sure to set the default token to the first one (which will be selected by default in the dropdown)
+      sendForm.setValue(
+        "token",
+        userBalances.find(
+          (balance) =>
+            balance.chainId.toString() === formwatch.chainId.toString()
+        )?.symbol ?? ""
+      );
+    }
+  }, [formwatch.chainId]);
 
   return (
     <div className="flex flex-col items-center center-xy py-6 px-4 w-1/2 lg:w-<1>/2 brutalborder bg-white mx-auto mt-5 text-black">
@@ -165,8 +221,6 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
               </span>
             </div>
             <input
-              required
-              id="amount"
               type="number"
               step="any"
               min="0"
@@ -181,7 +235,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
             type={isConnected ? "submit" : "button"}
             className="block w-4/5 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
             id="cta-btn"
-            onClick={!isConnected ? open : () => {}}
+            onClick={!isConnected ? open : undefined}
           >
             {isLoading ? (
               <div role="status">
