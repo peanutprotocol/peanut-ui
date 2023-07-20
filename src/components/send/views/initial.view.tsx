@@ -13,6 +13,8 @@ import * as store from "@/store";
 import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 
+import peanutman_presenting from "@/assets/peanutman-presenting.svg";
+
 const COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3";
 
 interface ISendFormData {
@@ -319,6 +321,11 @@ export function SendInitialView({
           !
         </h4>
       </div>
+      <img
+        src={peanutman_presenting.src}
+        className="w-1/3 scale-100 absolute -bottom-48 -left-12"
+        id="peanutman-presenting"
+      />
     </>
   );
 }
