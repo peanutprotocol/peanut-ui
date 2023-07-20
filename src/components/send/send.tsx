@@ -6,6 +6,8 @@ export function Send() {
   const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(
     _consts.INIT_VIEW
   );
+  const [claimLink, setClaimLink] = useState<string>("");
+  const [txReceipt, setTxReceipt] = useState<string>("");
 
   const handleOnNext = () => {
     const newIdx = sendScreen.idx + 1;
@@ -27,6 +29,10 @@ export function Send() {
       {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
         onNextScreen: handleOnNext,
         onCustomScreen: handleOnCustom,
+        claimLink,
+        setClaimLink,
+        txReceipt,
+        setTxReceipt,
       } as _consts.ISendScreenProps)}
     </global_components.CardWrapper>
   );

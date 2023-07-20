@@ -16,7 +16,7 @@ export const wagmiConfig = createConfig({
   connectors: w3mConnectors({
     projectId: process.env.WC_PROJECT_ID ?? "",
     chains: consts.chains,
-  }), //TODO: look into wc styling
+  }),
   publicClient,
 });
 

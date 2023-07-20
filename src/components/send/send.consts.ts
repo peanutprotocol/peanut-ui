@@ -12,6 +12,11 @@ export interface ISendScreenState {
 export interface ISendScreenProps {
   onNextScreen: () => void;
   onCustomScreen: (screen: SendScreens) => void;
+
+  claimLink: string;
+  setClaimLink: (claimLink: string) => void;
+  txReceipt: string;
+  setTxReceipt: (txReceipt: string) => void;
 }
 
 export const INIT_VIEW: ISendScreenState = {

@@ -21,7 +21,11 @@ interface ISendFormData {
   amount: number;
 }
 
-export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
+export function SendInitialView({
+  onNextScreen,
+  setClaimLink,
+  setTxReceipt,
+}: _consts.ISendScreenProps) {
   const [denomination, setDenomination] = useState("USD");
   const { open } = useWeb3Modal();
   const { isConnected } = useAccount();
@@ -48,6 +52,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
       toast("please select a chain and token", {
         position: "bottom-right",
       });
+      return;
     }
 
     console.log("sendFormData", sendFormData);
@@ -56,6 +61,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
       toast("please put an amount that is greater than zero", {
         position: "bottom-right",
       });
+      return;
     }
 
     //check that the user has enough funds
@@ -66,6 +72,7 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
       toast("you don't have enough funds", {
         position: "bottom-right",
       });
+      return;
     }
 
     setIsLoading(true);
@@ -85,6 +92,11 @@ export function SendInitialView({ onNextScreen }: _consts.ISendScreenProps) {
       setIsLoading(false);
     }, 7500);
 
+    //Make sure to set the claimlink and txReceipt (might have to change the types in the const file)
+    setClaimLink(
+      "https://peanut.to/dummylink1234567890987654321234567890987654321"
+    );
+    setTxReceipt("https://peanut.to/");
     // const signer = {
     //   ...walletClient,
     //   address: address,
