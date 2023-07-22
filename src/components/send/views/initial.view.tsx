@@ -89,6 +89,8 @@ export function SendInitialView({
       });
     } catch (error) {
       setIsLoading(false);
+
+      throw error;
     }
 
     // toast(
