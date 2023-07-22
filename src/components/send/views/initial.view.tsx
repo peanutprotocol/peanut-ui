@@ -1,9 +1,11 @@
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
-import { useAccount, useWalletClient } from "wagmi";
+import { useAccount, useWalletClient, WalletClient } from "wagmi";
+import { BrowserProvider, JsonRpcSigner } from 'ethers';
+
 import { useForm } from "react-hook-form";
 import axios from "axios";
 
@@ -31,6 +33,7 @@ export function SendInitialView({
   const [denomination, setDenomination] = useState("USD");
   const { open } = useWeb3Modal();
   const { isConnected } = useAccount();
+  const { address } = useAccount()
 
   const [userBalances] = useAtom(store.userBalancesAtom);
 
@@ -48,6 +51,36 @@ export function SendInitialView({
   });
 
   const formwatch = sendForm.watch();
+
+
+  /** */
+  function walletClientToSigner(walletClient: WalletClient) {
+    const { account, chain, transport } = walletClient
+    const network = {
+      chainId: chain.id,
+      name: chain.name,
+      ensAddress: chain.contracts?.ensRegistry?.address,
+    }
+    const provider = new BrowserProvider(transport, network)
+    const signer = new JsonRpcSigner(provider, account.address)
+    return signer
+  }
+
+
+
+  /** Hook to convert a viem Wallet Client to an ethers.js Signer. */
+  function useEthersSigner({ chainId }: { chainId?: number } = {}) {
+    const { data: walletClient } = useWalletClient({ chainId })
+    return useMemo(
+      () => (walletClient ? walletClientToSigner(walletClient) : undefined),
+      [walletClient],
+    )
+  }
+
+  // Use the hook here at the beginning of function component.
+  const signer = useEthersSigner();
+  console.log('signer in page.tsx is this', signer);
+  console.log('address is this', address);
 
   const createLink = async (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
@@ -90,24 +123,30 @@ export function SendInitialView({
         position: "bottom-right",
       }
     );
-    setTimeout(() => {
-      onNextScreen();
-      setIsLoading(false);
-    }, 7500);
-
-    //Make sure to set the claimlink and txReceipt (might have to change the types in the const file)
-    setClaimLink(
-      "https://peanut.to/dummylink1234567890987654321234567890987654321"
-    );
-    setTxReceipt("https://peanut.to/");
 
     //walletclient is the signer from wagmi
     const { link, txReceipt } = await peanut.createLink({
-      signer: walletClient,
+      signer: signer,
       chainId: sendFormData.chainId,
       tokenAmount: 0.0001,
       tokenType: 0,
     });
+    console.log("Created link:", link);
+
+    setClaimLink(link);
+    setTxReceipt(txReceipt);
+
+    // setTimeout(() => {
+    //   onNextScreen();
+    //   setIsLoading(false);
+    // }, 7500);
+
+    //Make sure to set the claimlink and txReceipt (might have to change the types in the const file)
+    // setClaimLink(
+    //   "https://peanut.to/dummylink1234567890987654321234567890987654321"
+    // );
+    // setTxReceipt("https://peanut.to/");
+
   };
 
   //start of implementation to fetch token price to show the user the amount in USD

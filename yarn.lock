@@ -4255,7 +4255,7 @@ ethers@^5.6.5:
     "@ethersproject/web" "5.7.1"
     "@ethersproject/wordlists" "5.7.0"
 
-"ethersv6@npm:ethers@^6.0.0":
+ethers@^6.6.4, "ethersv6@npm:ethers@^6.0.0":
   version "6.6.4"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-6.6.4.tgz#f03a86effcd55e82aed96a2fb9a56a9febd3e3d5"
   integrity sha512-r3myN2hEnydmu23iiIj5kjWnCh5JNzlqrE/z+Kw5UqH173F+JOWzU6qkFB4HVC50epgxzKSL2Hq1oNXA877vwQ==
