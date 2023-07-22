@@ -58,7 +58,6 @@ export function SendInitialView({
       return;
     }
 
-    console.log("sendFormData", sendFormData);
     //check if the amount is less than or equal to zero
     if (sendFormData.amount <= 0) {
       toast("please put an amount that is greater than zero", {
@@ -79,27 +78,6 @@ export function SendInitialView({
     }
 
     setIsLoading(true);
-    toast(
-      "Sending " +
-        sendFormData.amount +
-        " " +
-        sendFormData.token +
-        " on chain with id" +
-        sendFormData.chainId,
-      {
-        position: "bottom-right",
-      }
-    );
-    setTimeout(() => {
-      onNextScreen();
-      setIsLoading(false);
-    }, 7500);
-
-    //Make sure to set the claimlink and txReceipt (might have to change the types in the const file)
-    setClaimLink(
-      "https://peanut.to/dummylink1234567890987654321234567890987654321"
-    );
-    setTxReceipt("https://peanut.to/");
 
     //walletclient is the signer from wagmi
     const { link, txReceipt } = await peanut.createLink({
@@ -108,6 +86,29 @@ export function SendInitialView({
       tokenAmount: 0.0001,
       tokenType: 0,
     });
+
+    // toast(
+    //   "Sending " +
+    //     sendFormData.amount +
+    //     " " +
+    //     sendFormData.token +
+    //     " on chain with id" +
+    //     sendFormData.chainId,
+    //   {
+    //     position: "bottom-right",
+    //   }
+    // );
+
+    // setTimeout(() => {
+    //   onNextScreen();
+    //   setIsLoading(false);
+    // }, 7500);
+
+    //Make sure to set the claimlink and txReceipt (might have to change the types in the const file)
+    // setClaimLink(
+    //   "https://peanut.to/dummylink1234567890987654321234567890987654321"
+    // );
+    // setTxReceipt("https://peanut.to/");
   };
 
   //start of implementation to fetch token price to show the user the amount in USD
