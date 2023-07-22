@@ -79,13 +79,17 @@ export function SendInitialView({
 
     setIsLoading(true);
 
-    //walletclient is the signer from wagmi
-    const { link, txReceipt } = await peanut.createLink({
-      signer: walletClient,
-      chainId: sendFormData.chainId,
-      tokenAmount: 0.0001,
-      tokenType: 0,
-    });
+    try {
+      //walletclient is the signer from wagmi
+      const { link, txReceipt } = await peanut.createLink({
+        signer: walletClient,
+        chainId: sendFormData.chainId,
+        tokenAmount: 0.0001,
+        tokenType: 0,
+      });
+    } catch (error) {
+      setIsLoading(false);
+    }
 
     // toast(
     //   "Sending " +
