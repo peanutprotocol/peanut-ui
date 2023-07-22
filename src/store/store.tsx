@@ -33,6 +33,7 @@ export function Store({ children }: { children: React.ReactNode }) {
     if (userBalancesResponse.success) {
       setUserBalances(userBalancesResponse.result);
     } else {
+      setUserBalances([]);
     }
   };
 

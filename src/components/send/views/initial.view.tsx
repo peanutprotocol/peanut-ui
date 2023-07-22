@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
-import { useAccount } from "wagmi";
+import { useAccount, useWalletClient } from "wagmi";
 import { useForm } from "react-hook-form";
 import axios from "axios";
 
@@ -36,6 +36,7 @@ export function SendInitialView({
 
   const [isLoading, setIsLoading] = useState(false);
   const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined);
+  const walletClient = useWalletClient();
 
   const sendForm = useForm<ISendFormData>({
     mode: "onChange",
@@ -99,21 +100,14 @@ export function SendInitialView({
       "https://peanut.to/dummylink1234567890987654321234567890987654321"
     );
     setTxReceipt("https://peanut.to/");
-    // const signer = {
-    //   ...walletClient,
-    //   address: address,
-    //   getAddress: () => {
-    //     return address;
-    //   },
-    //   provider: provider,
-    //   getFeeData: () => {},
-    // };
-    // const { link, txReceipt } = await peanut.createLink({
-    //   signer: signer,
-    //   chainId: sendFormData.chainId,
-    //   tokenAmount: 0.0001,
-    //   tokenType: 0,
-    // });
+
+    //walletclient is the signer from wagmi
+    const { link, txReceipt } = await peanut.createLink({
+      signer: walletClient,
+      chainId: sendFormData.chainId,
+      tokenAmount: 0.0001,
+      tokenType: 0,
+    });
   };
 
   //start of implementation to fetch token price to show the user the amount in USD
