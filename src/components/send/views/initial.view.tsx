@@ -4,7 +4,7 @@ import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
 import { useAccount, useWalletClient, WalletClient } from "wagmi";
-import { BrowserProvider, JsonRpcSigner } from 'ethers';
+import { BrowserProvider, JsonRpcSigner } from "ethers";
 
 import { useForm } from "react-hook-form";
 import axios from "axios";
@@ -33,7 +33,7 @@ export function SendInitialView({
   const [denomination, setDenomination] = useState("USD");
   const { open } = useWeb3Modal();
   const { isConnected } = useAccount();
-  const { address } = useAccount()
+  const { address } = useAccount();
 
   const [userBalances] = useAtom(store.userBalancesAtom);
 
@@ -52,35 +52,32 @@ export function SendInitialView({
 
   const formwatch = sendForm.watch();
 
-
   /** */
   function walletClientToSigner(walletClient: WalletClient) {
-    const { account, chain, transport } = walletClient
+    const { account, chain, transport } = walletClient;
     const network = {
       chainId: chain.id,
       name: chain.name,
       ensAddress: chain.contracts?.ensRegistry?.address,
-    }
-    const provider = new BrowserProvider(transport, network)
-    const signer = new JsonRpcSigner(provider, account.address)
-    return signer
+    };
+    const provider = new BrowserProvider(transport, network);
+    const signer = new JsonRpcSigner(provider, account.address);
+    return signer;
   }
-
-
 
   /** Hook to convert a viem Wallet Client to an ethers.js Signer. */
   function useEthersSigner({ chainId }: { chainId?: number } = {}) {
-    const { data: walletClient } = useWalletClient({ chainId })
+    const { data: walletClient } = useWalletClient({ chainId });
     return useMemo(
       () => (walletClient ? walletClientToSigner(walletClient) : undefined),
-      [walletClient],
-    )
+      [walletClient]
+    );
   }
 
   // Use the hook here at the beginning of function component.
   const signer = useEthersSigner();
-  console.log('signer in page.tsx is this', signer);
-  console.log('address is this', address);
+  console.log("signer in page.tsx is this", signer);
+  console.log("address is this", address);
 
   const createLink = async (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
@@ -146,7 +143,6 @@ export function SendInitialView({
     //   "https://peanut.to/dummylink1234567890987654321234567890987654321"
     // );
     // setTxReceipt("https://peanut.to/");
-
   };
 
   //start of implementation to fetch token price to show the user the amount in USD
