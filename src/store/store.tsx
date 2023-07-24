@@ -1,46 +1,31 @@
 "use client";
 import { atom, useSetAtom } from "jotai";
-import { WalletClient, useAccount, useWalletClient } from "wagmi";
-import { useEffect, useMemo } from "react";
+import { useAccount } from "wagmi";
+import { useEffect } from "react";
 
-import { BrowserProvider, ethers } from "ethers";
+import { JsonRpcProvider, ethers } from "ethers";
 
 import * as interfaces from "@/interfaces";
 import * as socketTech from "@socket.tech/socket-v2-sdk";
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([]);
 
-export function walletClientToSigner(walletClient: WalletClient) {
-  const { account, chain, transport } = walletClient;
-  const network = {
-    chainId: chain.id,
-    name: chain.name,
-    ensAddress: chain.contracts?.ensRegistry?.address,
-  };
-  const provider = new BrowserProvider(transport, network);
-  return provider;
-}
-
-/** Hook to convert a viem Wallet Client to an ethers.js Signer. */
-export function useEthersSigner({ chainId }: { chainId?: number } = {}) {
-  const { data: walletClient } = useWalletClient({ chainId });
-  return useMemo(
-    () => (walletClient ? walletClientToSigner(walletClient) : undefined),
-    [walletClient]
-  );
-}
-
 export function Store({ children }: { children: React.ReactNode }) {
-  const provider = useEthersSigner({ chainId: 5 });
+  const provider = new ethers.JsonRpcProvider(
+    process.env.INFURA_GOERLI_PROVIDER_URL ?? ""
+  );
 
   const setUserBalances = useSetAtom(userBalancesAtom);
 
   const { address, isDisconnected } = useAccount();
 
   useEffect(() => {
+    setUserBalances([]);
     if (address) {
       //This will fetch all balances for the supported chains by socket.tech (https://docs.socket.tech/socket-liquidity-layer/socketll-overview/chains-dexs-bridges)
       loadUserBalances(address);
+      loadUserBalancesGoerli(provider, address ?? "");
+
       //This will fetch all balances for the goerli testnet
     }
   }, [address]);
@@ -51,20 +36,12 @@ export function Store({ children }: { children: React.ReactNode }) {
     }
   }, [isDisconnected]);
 
-  useEffect(() => {
-    if (provider && address) {
-      //This will fetch all balances for the goerli testnet but make sure the provider is set
-      loadUserBalancesGoerli(provider, address ?? "");
-    }
-  }, [provider]);
-
   const loadUserBalancesGoerli = async (
-    provider: BrowserProvider,
+    provider: JsonRpcProvider,
     address: string
   ) => {
     try {
       const balance = await provider?.getBalance(address);
-      console.log("balance: ", balance);
       const xx: interfaces.IUserBalance = {
         chainId: 5,
         symbol: "GoerliETH",
@@ -90,8 +67,6 @@ export function Store({ children }: { children: React.ReactNode }) {
       const userBalancesResponse = await socketTech.Balances.getBalances({
         userAddress: address,
       });
-
-      console.log("userBalancesResponse: ", userBalancesResponse);
 
       if (userBalancesResponse.success) {
         setUserBalances((prev) => {
