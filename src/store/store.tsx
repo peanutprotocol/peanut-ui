@@ -26,14 +26,18 @@ export function Store({ children }: { children: React.ReactNode }) {
   }, [isDisconnected]);
 
   const loadUserBalances = async (address: string) => {
-    const userBalancesResponse = await socketTech.Balances.getBalances({
-      userAddress: address,
-    });
+    try {
+      const userBalancesResponse = await socketTech.Balances.getBalances({
+        userAddress: address,
+      });
 
-    if (userBalancesResponse.success) {
-      setUserBalances(userBalancesResponse.result);
-    } else {
-      setUserBalances([]);
+      if (userBalancesResponse.success) {
+        setUserBalances(userBalancesResponse.result);
+      } else {
+        setUserBalances([]);
+      }
+    } catch (error) {
+      console.log("error loading userBalances, ", error);
     }
   };
 
