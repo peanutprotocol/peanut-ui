@@ -38,8 +38,6 @@ export function SendInitialView({
   const [userBalances] = useAtom(store.userBalancesAtom);
 
   const [isLoading, setIsLoading] = useState(false);
-  const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined);
-  const walletClient = useWalletClient();
 
   const sendForm = useForm<ISendFormData>({
     mode: "onChange",
@@ -76,8 +74,6 @@ export function SendInitialView({
 
   // Use the hook here at the beginning of function component.
   const signer = useEthersSigner();
-  console.log("signer in page.tsx is this", signer);
-  console.log("address is this", address);
 
   const createLink = async (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
@@ -88,7 +84,6 @@ export function SendInitialView({
       return;
     }
 
-    console.log("sendFormData", sendFormData);
     //check if the amount is less than or equal to zero
     if (sendFormData.amount <= 0) {
       toast("please put an amount that is greater than zero", {
@@ -109,40 +104,45 @@ export function SendInitialView({
     }
 
     setIsLoading(true);
-    toast(
-      "Sending " +
+
+    const tokenAddress = userBalances.find(
+      (balance) =>
+        balance.chainId == sendFormData.chainId &&
+        balance.symbol == sendFormData.token
+    )?.address;
+
+    console.log(
+      "sending " +
         sendFormData.amount +
         " " +
         sendFormData.token +
-        " on chain with id" +
-        sendFormData.chainId,
-      {
-        position: "bottom-right",
-      }
+        " on chain with id " +
+        sendFormData.chainId +
+        " with token address: " +
+        tokenAddress
     );
 
-    //walletclient is the signer from wagmi
-    const { link, txReceipt } = await peanut.createLink({
-      signer: signer,
-      chainId: sendFormData.chainId,
-      tokenAmount: 0.0001,
-      tokenType: 0,
-    });
-    console.log("Created link:", link);
+    try {
+      const { link, txReceipt } = await peanut.createLink({
+        signer: signer,
+        chainId: sendFormData.chainId,
+        tokenAddress: tokenAddress,
+        tokenAmount: Number(sendFormData.amount),
+        tokenType: 0,
+      });
+      console.log("Created link:", link);
 
-    setClaimLink(link);
-    setTxReceipt(txReceipt);
+      setClaimLink(link);
+      setTxReceipt(txReceipt);
 
-    // setTimeout(() => {
-    //   onNextScreen();
-    //   setIsLoading(false);
-    // }, 7500);
-
-    //Make sure to set the claimlink and txReceipt (might have to change the types in the const file)
-    // setClaimLink(
-    //   "https://peanut.to/dummylink1234567890987654321234567890987654321"
-    // );
-    // setTxReceipt("https://peanut.to/");
+      setTimeout(() => {
+        onNextScreen();
+        setIsLoading(false);
+      }, 7500);
+    } catch (error) {
+      setIsLoading(false);
+      console.log("user rejected request in wallet");
+    }
   };
 
   //start of implementation to fetch token price to show the user the amount in USD
