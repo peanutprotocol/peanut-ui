@@ -143,6 +143,7 @@ export function SendInitialView({
       setIsLoading(false);
       console.log("user rejected request in wallet");
     }
+
   };
 
   //start of implementation to fetch token price to show the user the amount in USD
