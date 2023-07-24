@@ -13,6 +13,9 @@ export interface IChain {
   chainId: number;
 }
 
+/* 
+
+*/
 export const CHAIN_MAP = [
   {
     name: "Ethereum",
@@ -43,6 +46,7 @@ export const CHAIN_MAP = [
     chainId: 100,
   },
   {
+    //not via socket.tech
     name: "Scroll",
     chainId: 534353,
   },
