@@ -1,23 +1,20 @@
 import Link from "next/link";
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
-import { useAccount, useWalletClient, WalletClient } from "wagmi";
+import { useAccount, useNetwork, WalletClient } from "wagmi";
+import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
-
 import { useForm } from "react-hook-form";
-import axios from "axios";
-
 const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
 import * as consts from "@/consts";
 import * as _consts from "../send.consts";
+import * as utils from "@/utils";
 
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
-
-const COINGECKO_API_BASE_URL = "https://api.coingecko.com/api/v3";
 
 interface ISendFormData {
   chainId: number;
@@ -30,10 +27,10 @@ export function SendInitialView({
   setClaimLink,
   setTxReceipt,
 }: _consts.ISendScreenProps) {
-  const [denomination, setDenomination] = useState("USD");
   const { open } = useWeb3Modal();
   const { isConnected } = useAccount();
-  const { address } = useAccount();
+  const { chain: currentChain } = useNetwork();
+  const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
 
   const [userBalances] = useAtom(store.userBalancesAtom);
 
@@ -47,10 +44,8 @@ export function SendInitialView({
       token: "eth",
     },
   });
-
   const formwatch = sendForm.watch();
 
-  /** */
   function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient;
     const network = {
@@ -63,25 +58,25 @@ export function SendInitialView({
     return signer;
   }
 
-  /** Hook to convert a viem Wallet Client to an ethers.js Signer. */
-  function useEthersSigner({ chainId }: { chainId?: number } = {}) {
-    const { data: walletClient } = useWalletClient({ chainId });
-    return useMemo(
-      () => (walletClient ? walletClientToSigner(walletClient) : undefined),
-      [walletClient]
-    );
-  }
+  const getWalletClientAndUpdateSigner = async ({
+    chainId,
+  }: {
+    chainId: number;
+  }) => {
+    const walletClient = await getWalletClient({ chainId: Number(chainId) });
+    if (walletClient) {
+      const signer = walletClientToSigner(walletClient);
+      setSigner(signer);
+    }
+  };
 
-  // Use the hook here at the beginning of function component.
-  const signer = useEthersSigner();
-
-  const createLink = async (sendFormData: ISendFormData) => {
+  const checkForm = (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
     if (sendFormData.chainId == null || sendFormData.token == null) {
       toast("please select a chain and token", {
         position: "bottom-right",
       });
-      return;
+      return { succes: "false" };
     }
 
     //check if the amount is less than or equal to zero
@@ -89,7 +84,7 @@ export function SendInitialView({
       toast("please put an amount that is greater than zero", {
         position: "bottom-right",
       });
-      return;
+      return { succes: "false" };
     }
 
     //check that the user has enough funds
@@ -100,80 +95,92 @@ export function SendInitialView({
       toast("you don't have enough funds", {
         position: "bottom-right",
       });
-      return;
+      return { succes: "false" };
     }
 
-    setIsLoading(true);
-
-    const tokenAddress = userBalances.find(
-      (balance) =>
-        balance.chainId == sendFormData.chainId &&
-        balance.symbol == sendFormData.token
-    )?.address;
-
-    console.log(
-      "sending " +
-        sendFormData.amount +
-        " " +
-        sendFormData.token +
-        " on chain with id " +
-        sendFormData.chainId +
-        " with token address: " +
-        tokenAddress
-    );
-
-    try {
-      const { link, txReceipt } = await peanut.createLink({
-        signer: signer,
-        chainId: sendFormData.chainId,
-        tokenAddress: tokenAddress,
-        tokenAmount: Number(sendFormData.amount),
-        tokenType: 0,
+    if (!signer) {
+      toast("signer undefined, please refresh", {
+        position: "bottom-right",
       });
-      console.log("Created link:", link);
-
-      setClaimLink(link);
-      setTxReceipt(txReceipt);
-
-      setTimeout(() => {
-        onNextScreen();
-        setIsLoading(false);
-      }, 7500);
-    } catch (error) {
-      setIsLoading(false);
-      console.log("user rejected request in wallet");
+      return { succes: "false" };
     }
 
+    return { succes: "true" };
   };
 
-  //start of implementation to fetch token price to show the user the amount in USD
-  //Most of the public available free api's get rate limited quiclky unless you pay for an api key.
-  const updateTokenPrice = async () => {
-    try {
+  const createLink = useCallback(
+    async (sendFormData: ISendFormData) => {
+      if (checkForm(sendFormData).succes === "false") {
+        return;
+      }
+      setIsLoading(true);
+
+      const tokenAddress = userBalances.find(
+        (balance) =>
+          balance.chainId == sendFormData.chainId &&
+          balance.symbol == sendFormData.token
+      )?.address;
+
       console.log(
-        userBalances
-          .find((balance) => balance.symbol === formwatch.token)
-          ?.name.toLowerCase()
-      );
-      const response = await axios.get(
-        `${COINGECKO_API_BASE_URL}/simple/price`,
-        {
-          params: {
-            ids:
-              userBalances
-                .find((balance) => balance.symbol === formwatch.token)
-                ?.name.toLowerCase() ?? "",
-            vs_currencies: "usd", // You can change the currency here if needed
-          },
-        }
+        "sending " +
+          sendFormData.amount +
+          " " +
+          sendFormData.token +
+          " on chain with id " +
+          sendFormData.chainId +
+          " with token address: " +
+          tokenAddress
       );
 
-      const price = response.data[formwatch.token];
-      console.log(price);
-    } catch (error) {
-      console.log("error in updateTokenPrice", error);
-    }
-  };
+      try {
+        if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
+          toast(
+            "please allow the switch to the correct network in your wallet",
+            {
+              position: "bottom-right",
+            }
+          );
+
+          await utils
+            .waitForPromise(
+              switchNetwork({ chainId: Number(sendFormData.chainId) })
+            )
+            .catch((error) => {
+              toast("something went wrong while switching networks", {
+                position: "bottom-right",
+              });
+
+              console.error(error);
+              return;
+            });
+        }
+
+        const { link, txReceipt } = await peanut.createLink({
+          signer: signer,
+          chainId: sendFormData.chainId,
+          tokenAddress: tokenAddress,
+          tokenAmount: Number(sendFormData.amount),
+          tokenType: 0,
+        });
+        console.log("Created link:", link);
+
+        utils.saveToLocalStorage("link", link);
+
+        setClaimLink(link);
+        setTxReceipt(txReceipt);
+
+        onNextScreen();
+      } catch (error) {
+        toast("Something failed while creating your link. Please try again", {
+          position: "bottom-right",
+        });
+        console.error(error);
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    [signer, currentChain, userBalances, onNextScreen]
+  );
 
   //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
   useEffect(() => {
@@ -185,7 +192,7 @@ export function SendInitialView({
 
   useEffect(() => {
     if (formwatch.chainId) {
-      //if the user changes the chain, make sure to set the default token to the first one (which will be selected by default in the dropdown)
+      //if the user changes the chain, make sure to set the default token to the first one (which will be selected by default in the dropdown) and update the signer to the new chain
       sendForm.setValue(
         "token",
         userBalances.find(
@@ -193,6 +200,7 @@ export function SendInitialView({
             balance.chainId.toString() === formwatch.chainId.toString()
         )?.symbol ?? ""
       );
+      getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
     }
   }, [formwatch.chainId]);
 
@@ -268,6 +276,16 @@ export function SendInitialView({
                 <button
                   type="button"
                   className={
+                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 bg-black text-white color-white"
+                  }
+                >
+                  {formwatch.token}
+                </button>
+              </span>
+              {/* <span className="cursor-pointertext-lg px- ">
+                <button
+                  type="button"
+                  className={
                     (denomination == "USD"
                       ? "bg-black text-white color-white"
                       : "font-normal bg-white ") +
@@ -295,7 +313,7 @@ export function SendInitialView({
                 >
                   Token
                 </button>
-              </span>
+              </span> */}
             </div>
             <input
               type="number"
