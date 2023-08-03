@@ -15,8 +15,10 @@ export interface ISendScreenProps {
 
   claimLink: string;
   setClaimLink: (claimLink: string) => void;
-  txReceipt: string;
+  txReceipt: any;
   setTxReceipt: (txReceipt: string) => void;
+  chainId: number;
+  setChainId: (chainId: number) => void;
 }
 
 export const INIT_VIEW: ISendScreenState = {

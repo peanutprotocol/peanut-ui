@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 
 import clipboard_svg from "@/assets/clipboard.svg";
 import dropdown_svg from "@/assets/dropdown.svg";
 
+import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 import peanutman_cheering from "@/assets/peanutman-cheering.svg";
 
@@ -11,9 +12,18 @@ export function SendSuccessView({
   onCustomScreen,
   claimLink,
   txReceipt,
+  chainId,
 }: _consts.ISendScreenProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+
+  const explorerUrlWithTx = useMemo(
+    () =>
+      consts.CHAIN_MAP.find(
+        (chain) => chain.chainId == chainId && chain.explorerUrl
+      )!.explorerUrl + txReceipt?.hash,
+    [txReceipt, chainId]
+  );
 
   return (
     <>
@@ -95,7 +105,10 @@ export function SendSuccessView({
               </div>
             </div>
             <p className="tx-sm">
-              <a target="_blank" className="text-sm text-center underline ">
+              <a
+                target={explorerUrlWithTx ?? ""}
+                className="text-sm text-center underline cursor-pointer "
+              >
                 Your transaction hash
               </a>
             </p>

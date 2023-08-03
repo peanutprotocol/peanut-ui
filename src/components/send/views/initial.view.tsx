@@ -7,6 +7,8 @@ import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
 import { useForm } from "react-hook-form";
+import axios from "axios";
+
 const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
@@ -26,6 +28,7 @@ export function SendInitialView({
   onNextScreen,
   setClaimLink,
   setTxReceipt,
+  setChainId,
 }: _consts.ISendScreenProps) {
   const { open } = useWeb3Modal();
   const { isConnected } = useAccount();
@@ -45,6 +48,9 @@ export function SendInitialView({
     },
   });
   const formwatch = sendForm.watch();
+  const [selectedTokenPrice, setSelectedTokenPrice] = useState<
+    Number | undefined
+  >(0);
 
   function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient;
@@ -168,6 +174,7 @@ export function SendInitialView({
 
         setClaimLink(link);
         setTxReceipt(txReceipt);
+        setChainId(sendFormData.chainId);
 
         onNextScreen();
       } catch (error) {
@@ -182,9 +189,34 @@ export function SendInitialView({
     [signer, currentChain, userBalances, onNextScreen]
   );
 
+  async function getTokenPrice(
+    tokenAddress: string,
+    chainId: number
+  ): Promise<Number | undefined> {
+    const apiUrl = `https://api.socket.tech/v2/token-price?tokenAddress=${tokenAddress}&chainId=${chainId}`;
+
+    try {
+      const response = await axios.get(apiUrl, {
+        headers: {
+          accept: "application/json",
+          "API-KEY": process.env.SOCKET_API_KEY,
+        },
+      });
+
+      if (response.status === 200) {
+        return Number(response.data.result.tokenPrice);
+      } else {
+        return undefined;
+      }
+    } catch (error) {
+      return undefined;
+    }
+  }
+
   //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
   useEffect(() => {
     if (userBalances.length > 0) {
+      console.log("userBalances", userBalances);
       sendForm.setValue("token", userBalances[0].symbol);
       sendForm.setValue("chainId", userBalances[0].chainId);
     }
@@ -203,6 +235,21 @@ export function SendInitialView({
       getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
     }
   }, [formwatch.chainId]);
+
+  useEffect(() => {
+    if (formwatch.token) {
+      getTokenPrice(
+        userBalances.find(
+          (balance) => balance.symbol.toString() === formwatch.token.toString()
+        )?.address ?? "",
+        formwatch.chainId
+      ).then((price) => {
+        console.log(price);
+
+        setSelectedTokenPrice(price);
+      });
+    }
+  }, [formwatch.token]);
 
   return (
     <>
@@ -325,6 +372,18 @@ export function SendInitialView({
               aria-describedby="price-currency"
               {...sendForm.register("amount")}
             />
+          </div>
+
+          <div className="relative w-full px-2 sm:w-3/4">
+            {Number(selectedTokenPrice) > 0 &&
+              Number(selectedTokenPrice) * formwatch.amount > 0 && (
+                <span>
+                  {Math.floor(
+                    Number(selectedTokenPrice) * formwatch.amount * 1000
+                  ) / 1000}{" "}
+                  USD
+                </span>
+              )}
           </div>
           <button
             type={isConnected ? "submit" : "button"}
