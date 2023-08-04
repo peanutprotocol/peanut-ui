@@ -7,6 +7,9 @@ import dropdown_svg from "@/assets/dropdown.svg";
 import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 import peanutman_cheering from "@/assets/peanutman-cheering.svg";
+import { useAtom } from "jotai";
+import * as store from "@/store/store";
+import Link from "next/link";
 
 export function SendSuccessView({
   onCustomScreen,
@@ -17,11 +20,10 @@ export function SendSuccessView({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
+
   const explorerUrlWithTx = useMemo(
-    () =>
-      consts.CHAIN_MAP.find(
-        (chain) => chain.chainId == chainId && chain.explorerUrl
-      )!.explorerUrl + txReceipt?.hash,
+    () => chainDetails[chainId]?.explorers[0].url + "/tx/" + txReceipt?.hash,
     [txReceipt, chainId]
   );
 
@@ -105,12 +107,12 @@ export function SendSuccessView({
               </div>
             </div>
             <p className="tx-sm">
-              <a
-                target={explorerUrlWithTx ?? ""}
-                className="text-sm text-center underline cursor-pointer "
+              <Link
+                href={explorerUrlWithTx ?? ""}
+                className="text-sm text-center text-black underline cursor-pointer "
               >
                 Your transaction hash
-              </a>
+              </Link>
             </p>
 
             {/* <p className="mt-4">

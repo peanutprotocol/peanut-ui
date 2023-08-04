@@ -36,6 +36,7 @@ export function SendInitialView({
   const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
 
   const [userBalances] = useAtom(store.userBalancesAtom);
+  const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -161,12 +162,26 @@ export function SendInitialView({
             });
         }
 
+        const tokenType =
+          chainDetails[
+            sendFormData.chainId
+          ].nativeCurrency.symbol.toLowerCase() ===
+          userBalances
+            .find(
+              (balance) =>
+                balance.chainId == sendFormData.chainId &&
+                balance.symbol == sendFormData.token
+            )
+            ?.symbol.toLowerCase()
+            ? 0
+            : 1;
+
         const { link, txReceipt } = await peanut.createLink({
           signer: signer,
           chainId: sendFormData.chainId,
           tokenAddress: tokenAddress,
           tokenAmount: Number(sendFormData.amount),
-          tokenType: 0,
+          tokenType: tokenType,
         });
         console.log("Created link:", link);
 
@@ -195,6 +210,14 @@ export function SendInitialView({
   ): Promise<Number | undefined> {
     const apiUrl = `https://api.socket.tech/v2/token-price?tokenAddress=${tokenAddress}&chainId=${chainId}`;
 
+    //simple check to not get the balance of goerli, not supported by socket.tech
+    if (
+      tokenAddress === "0xdD69DB25F6D620A7baD3023c5d32761D353D3De9" &&
+      chainId === 5
+    ) {
+      return undefined;
+    }
+
     try {
       const response = await axios.get(apiUrl, {
         headers: {
@@ -216,7 +239,6 @@ export function SendInitialView({
   //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
   useEffect(() => {
     if (userBalances.length > 0) {
-      console.log("userBalances", userBalances);
       sendForm.setValue("token", userBalances[0].symbol);
       sendForm.setValue("chainId", userBalances[0].chainId);
     }
@@ -244,8 +266,6 @@ export function SendInitialView({
         )?.address ?? "",
         formwatch.chainId
       ).then((price) => {
-        console.log(price);
-
         setSelectedTokenPrice(price);
       });
     }
@@ -277,18 +297,24 @@ export function SendInitialView({
                 className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
                 {...sendForm.register("chainId")}
               >
-                {consts.CHAIN_MAP.map((chain) =>
+                {Object.keys(chainDetails).map((key) =>
                   userBalances.length > 0 ? (
                     userBalances.some(
-                      (balance) => balance.chainId === chain.chainId
+                      (balance) => balance.chainId === chainDetails[key].chainId
                     ) ? (
-                      <option key={chain.name} value={chain.chainId}>
-                        {chain.name}
+                      <option
+                        key={chainDetails[key].name}
+                        value={chainDetails[key].chainId}
+                      >
+                        {chainDetails[key].name}
                       </option>
                     ) : null
                   ) : (
-                    <option key={chain.name} value={chain.chainId}>
-                      {chain.name}
+                    <option
+                      key={chainDetails[key].name}
+                      value={chainDetails[key].chainId}
+                    >
+                      {chainDetails[key].name}
                     </option>
                   )
                 )}
@@ -378,6 +404,7 @@ export function SendInitialView({
             {Number(selectedTokenPrice) > 0 &&
               Number(selectedTokenPrice) * formwatch.amount > 0 && (
                 <span>
+                  ~
                   {Math.floor(
                     Number(selectedTokenPrice) * formwatch.amount * 1000
                   ) / 1000}{" "}

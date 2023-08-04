@@ -2,6 +2,7 @@
 import { atom, useSetAtom } from "jotai";
 import { useAccount } from "wagmi";
 import { useEffect } from "react";
+const peanut = require("@squirrel-labs/peanut-sdk");
 
 import { JsonRpcProvider, ethers } from "ethers";
 
@@ -10,12 +11,16 @@ import * as socketTech from "@socket.tech/socket-v2-sdk";
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([]);
 
+export const defaultChainDetailsAtom = atom<any>({});
+//Todo: make interface for chain details
+
 export function Store({ children }: { children: React.ReactNode }) {
   const provider = new ethers.JsonRpcProvider(
     process.env.INFURA_GOERLI_PROVIDER_URL ?? ""
   );
 
   const setUserBalances = useSetAtom(userBalancesAtom);
+  const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom);
 
   const { address, isDisconnected } = useAccount();
 
@@ -35,6 +40,16 @@ export function Store({ children }: { children: React.ReactNode }) {
       setUserBalances([]);
     }
   }, [isDisconnected]);
+
+  useEffect(() => {
+    fetchChainDetails();
+  }, [peanut]);
+
+  const fetchChainDetails = async () => {
+    if (peanut) {
+      setDefaultChainDetails(peanut.default.CHAIN_DETAILS);
+    }
+  };
 
   const loadUserBalancesGoerli = async (
     provider: JsonRpcProvider,

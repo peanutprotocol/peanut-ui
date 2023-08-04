@@ -12,7 +12,6 @@ export interface ISendScreenState {
 export interface ISendScreenProps {
   onNextScreen: () => void;
   onCustomScreen: (screen: SendScreens) => void;
-
   claimLink: string;
   setClaimLink: (claimLink: string) => void;
   txReceipt: any;
