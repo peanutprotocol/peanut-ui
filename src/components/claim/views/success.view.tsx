@@ -1,0 +1,86 @@
+import { useState } from "react";
+
+import dropdown_svg from "@/assets/dropdown.svg";
+
+export function ClaimSuccessView() {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  return (
+    <>
+      <h2 className="title-font text-3xl md:text-5xl font-black mb-0">
+        Congratulations!
+      </h2>
+      <p className="mt-3 text-lg break-words mb-0 text-center">
+        You have successfully claimed your funds.
+      </p>
+      <div
+        className="cursor-pointer flex justify-center items-center mt-2"
+        onClick={() => {
+          setIsDropdownOpen(!isDropdownOpen);
+        }}
+      >
+        <div className="cursor-pointer text-sm bg-white border-none  ">
+          Check Transaction{" "}
+        </div>
+        <img
+          style={{
+            transform: isDropdownOpen ? "scaleY(-1)" : "none",
+            transition: "transform 0.3s ease-in-out",
+          }}
+          src={dropdown_svg.src}
+          alt=""
+          className={"h-6 "}
+        />
+      </div>
+      {isDropdownOpen && (
+        <div
+          className="sm:p-0 m-2 text-base text-center flex flex-col justify-center items-center gap-2"
+          x-cloak
+          x-show="moreInfo"
+        >
+          <p className="m-0">
+            <a
+              target="_blank"
+              className="text-center text-sm underline font-bold break-all cursor-pointer"
+            >
+              hash
+            </a>
+          </p>
+          <p className="m-0">
+            <small>
+              Click the confirmation above and check <b>Internal Txs</b>. It
+              might be slow.
+            </small>
+          </p>
+          <p className="m-0">
+            <small>
+              If you don't see the funds in your wallet, make sure you are on
+              the right chain.
+            </small>
+          </p>
+        </div>
+      )}
+      <button
+        className="block w-full mt-4 mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
+        id="cta-btn"
+        onClick={() => {}}
+      >
+        Send Crypto
+      </button>
+      <p className="mt-4 text-xs text-center">
+        Thoughts? Feedback? Use cases? Memes? Hit us up on{" "}
+        <a
+          href="https://discord.gg/BX9Ak7AW28"
+          target="_blank"
+          className="underline text-black cursor-pointer"
+        >
+          Discord
+        </a>
+        !
+      </p>
+    </>
+  );
+}
+
+//todo: make global comps out of button style and thought... text
+//todo: add peanutman
