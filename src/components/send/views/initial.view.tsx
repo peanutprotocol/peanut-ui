@@ -226,7 +226,7 @@ export function SendInitialView({
         const { link, txReceipt } = await peanut.createLink({
           signer: signer,
           chainId: sendFormData.chainId,
-          tokenAddress: tokenAddress ?? undefined,
+          tokenAddress: tokenAddress ?? null,
           tokenAmount: Number(sendFormData.amount),
           tokenType: tokenType,
         });
