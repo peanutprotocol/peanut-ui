@@ -18,12 +18,10 @@ export function waitForPromise<T>(
 
     promise
       .then((result) => {
-        console.log(result);
         clearTimeout(timeoutId);
         resolve(result);
       })
       .catch((error) => {
-        console.log(error);
         clearTimeout(timeoutId);
         reject(error);
       });

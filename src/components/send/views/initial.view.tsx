@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
@@ -13,8 +13,11 @@ const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
 import * as consts from "@/consts";
+import * as interfaces from "@/interfaces";
 import * as _consts from "../send.consts";
 import * as utils from "@/utils";
+
+import tokenDetails from "@/consts/tokenDetails.json";
 
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
 
@@ -37,6 +40,9 @@ export function SendInitialView({
 
   const [userBalances] = useAtom(store.userBalancesAtom);
   const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
+  const [supportedChainsSocketTech] = useAtom(
+    store.supportedChainsSocketTechAtom
+  );
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -52,6 +58,27 @@ export function SendInitialView({
   const [selectedTokenPrice, setSelectedTokenPrice] = useState<
     Number | undefined
   >(0);
+
+  const tokenList = useMemo(
+    () =>
+      supportedChainsSocketTech?.some(
+        (chain) => chain.chainId == formwatch.chainId
+      )
+        ? userBalances.some((balance) => balance.chainId == formwatch.chainId)
+          ? userBalances.map((balance) => {
+              return Number(balance.chainId) == Number(formwatch.chainId)
+                ? balance
+                : undefined;
+            })
+          : tokenDetails.find(
+              (token) =>
+                token.chainId.toString() == formwatch.chainId.toString()
+            )?.tokens
+        : tokenDetails.find(
+            (token) => token.chainId.toString() == formwatch.chainId.toString()
+          )?.tokens,
+    [formwatch.chainId, userBalances, supportedChainsSocketTech]
+  );
 
   function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient;
@@ -94,22 +121,31 @@ export function SendInitialView({
       return { succes: "false" };
     }
 
-    //check that the user has enough funds
-    const balance = userBalances.find(
-      (balance) => balance.symbol === sendFormData.token
-    )?.amount;
-    if (balance && sendFormData.amount > balance) {
-      toast("you don't have enough funds", {
-        position: "bottom-right",
-      });
-      return { succes: "false" };
-    }
+    //check if the token is in the userBalances
+    if (
+      userBalances.some(
+        (balance) =>
+          balance.symbol == sendFormData.token &&
+          balance.chainId == sendFormData.chainId
+      )
+    ) {
+      //check that the user has enough funds
+      const balance = userBalances.find(
+        (balance) => balance.symbol === sendFormData.token
+      )?.amount;
+      if (balance && sendFormData.amount > balance) {
+        toast("you don't have enough funds", {
+          position: "bottom-right",
+        });
+        return { succes: "false" };
+      }
 
-    if (!signer) {
-      toast("signer undefined, please refresh", {
-        position: "bottom-right",
-      });
-      return { succes: "false" };
+      if (!signer) {
+        toast("signer undefined, please refresh", {
+          position: "bottom-right",
+        });
+        return { succes: "false" };
+      }
     }
 
     return { succes: "true" };
@@ -122,11 +158,30 @@ export function SendInitialView({
       }
       setIsLoading(true);
 
-      const tokenAddress = userBalances.find(
-        (balance) =>
-          balance.chainId == sendFormData.chainId &&
-          balance.symbol == sendFormData.token
-      )?.address;
+      let tokenAddress: string = "";
+      if (
+        userBalances.some(
+          (balance) =>
+            balance.symbol == sendFormData.token &&
+            balance.chainId == sendFormData.chainId
+        )
+      ) {
+        tokenAddress =
+          userBalances.find(
+            (balance) =>
+              balance.chainId == sendFormData.chainId &&
+              balance.symbol == sendFormData.token
+          )?.address ?? "";
+      } else {
+        tokenAddress =
+          tokenDetails
+            .find(
+              (detail) =>
+                detail.chainId.toString() == sendFormData.chainId.toString()
+            )
+            ?.tokens.find((token) => token.symbol == sendFormData.token)
+            ?.address ?? "";
+      }
 
       console.log(
         "sending " +
@@ -163,23 +218,15 @@ export function SendInitialView({
         }
 
         const tokenType =
-          chainDetails[
-            sendFormData.chainId
-          ].nativeCurrency.symbol.toLowerCase() ===
-          userBalances
-            .find(
-              (balance) =>
-                balance.chainId == sendFormData.chainId &&
-                balance.symbol == sendFormData.token
-            )
-            ?.symbol.toLowerCase()
+          chainDetails.find((detail) => detail.chainId == sendFormData.chainId)
+            ?.nativeCurrency.symbol == sendFormData.token
             ? 0
             : 1;
 
         const { link, txReceipt } = await peanut.createLink({
           signer: signer,
           chainId: sendFormData.chainId,
-          tokenAddress: tokenAddress,
+          tokenAddress: tokenAddress ?? undefined,
           tokenAmount: Number(sendFormData.amount),
           tokenType: tokenType,
         });
@@ -210,14 +257,6 @@ export function SendInitialView({
   ): Promise<Number | undefined> {
     const apiUrl = `https://api.socket.tech/v2/token-price?tokenAddress=${tokenAddress}&chainId=${chainId}`;
 
-    //simple check to not get the balance of goerli, not supported by socket.tech
-    if (
-      tokenAddress === "0xdD69DB25F6D620A7baD3023c5d32761D353D3De9" &&
-      chainId === 5
-    ) {
-      return undefined;
-    }
-
     try {
       const response = await axios.get(apiUrl, {
         headers: {
@@ -232,6 +271,7 @@ export function SendInitialView({
         return undefined;
       }
     } catch (error) {
+      console.error("error loading supportedChainsSocketTech, ", error);
       return undefined;
     }
   }
@@ -258,18 +298,18 @@ export function SendInitialView({
     }
   }, [formwatch.chainId]);
 
-  useEffect(() => {
-    if (formwatch.token) {
-      getTokenPrice(
-        userBalances.find(
-          (balance) => balance.symbol.toString() === formwatch.token.toString()
-        )?.address ?? "",
-        formwatch.chainId
-      ).then((price) => {
-        setSelectedTokenPrice(price);
-      });
-    }
-  }, [formwatch.token]);
+  // useEffect(() => {
+  //   if (formwatch.token) {
+  //     getTokenPrice(
+  //       userBalances.find(
+  //         (balance) => balance.symbol.toString() === formwatch.token.toString()
+  //       )?.address ?? "",
+  //       formwatch.chainId
+  //     ).then((price) => {
+  //       setSelectedTokenPrice(price);
+  //     });
+  //   }
+  // }, [formwatch.token]);
 
   return (
     <>
@@ -297,27 +337,11 @@ export function SendInitialView({
                 className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
                 {...sendForm.register("chainId")}
               >
-                {Object.keys(chainDetails).map((key) =>
-                  userBalances.length > 0 ? (
-                    userBalances.some(
-                      (balance) => balance.chainId === chainDetails[key].chainId
-                    ) ? (
-                      <option
-                        key={chainDetails[key].name}
-                        value={chainDetails[key].chainId}
-                      >
-                        {chainDetails[key].name}
-                      </option>
-                    ) : null
-                  ) : (
-                    <option
-                      key={chainDetails[key].name}
-                      value={chainDetails[key].chainId}
-                    >
-                      {chainDetails[key].name}
-                    </option>
-                  )
-                )}
+                {chainDetails.map((chain) => (
+                  <option key={chain.name} value={chain.chainId}>
+                    {chain.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div className="relative w-full lg:max-w-sm">
@@ -325,21 +349,25 @@ export function SendInitialView({
                 className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
                 {...sendForm.register("token")}
               >
-                {userBalances.length > 0 ? (
-                  userBalances.map((balance) =>
-                    balance.chainId.toString() ===
-                    formwatch.chainId.toString() ? (
-                      <option key={balance.symbol} value={balance.symbol}>
-                        {balance.symbol} -{" "}
-                        {Math.round(balance.amount * 10000) / 10000}
-                      </option>
-                    ) : null
-                  )
-                ) : (
-                  <option key={"ETH"} value={"ETH"}>
-                    {"ETH"}
-                  </option>
-                )}
+                {tokenList &&
+                  tokenList.map(
+                    (token) =>
+                      token && (
+                        <option
+                          key={
+                            token.hasOwnProperty("address")
+                              ? token.address
+                              : token.symbol
+                          }
+                          value={token.symbol}
+                        >
+                          {token.symbol}
+
+                          {token.hasOwnProperty("amount") && //@ts-ignore
+                            " - " + Math.round(token.amount * 10000) / 10000}
+                        </option>
+                      )
+                  )}
               </select>
             </div>
           </div>
@@ -349,7 +377,7 @@ export function SendInitialView({
                 <button
                   type="button"
                   className={
-                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 bg-black text-white color-white"
+                    "relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 bg-black text-white color-white"
                   }
                 >
                   {formwatch.token}
@@ -400,7 +428,7 @@ export function SendInitialView({
             />
           </div>
 
-          <div className="relative w-full px-2 sm:w-3/4">
+          {/* <div className="relative w-full px-2 sm:w-3/4">
             {Number(selectedTokenPrice) > 0 &&
               Number(selectedTokenPrice) * formwatch.amount > 0 && (
                 <span>
@@ -411,7 +439,7 @@ export function SendInitialView({
                   USD
                 </span>
               )}
-          </div>
+          </div> */}
           <button
             type={isConnected ? "submit" : "button"}
             className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"

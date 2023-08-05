@@ -20,7 +20,10 @@ import {
   neonDevnet,
 } from "@wagmi/chains";
 
-//rinkeby, lukso, zetachain
+//rinkeby, lukso, zetachain not supported by wagmi
+// goerli, scroll, bsctestnet, optigoerli, polygonzkevmtstnet, mantletestnet, gnosisChiado, avalancheFuji, celoalfajores, polygonmumbai, filecoincalibration and neondevnet are not supported by socket.tech
+
+// avalancheFuji, bsctestnet, celo-alfajores, goerli, polygon mumbai,
 
 export const chains = [
   mainnet,
