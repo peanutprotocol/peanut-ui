@@ -151,7 +151,7 @@ export function SendSuccessView({
       </div>
       <img
         src={peanutman_cheering.src}
-        className="w-1/3 scale-100 absolute -bottom-24 -left-12"
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32"
         id="peanutman-presenting"
       />
     </>

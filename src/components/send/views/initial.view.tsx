@@ -393,6 +393,18 @@ export function SendInitialView({
                           }
                           value={token.symbol}
                         >
+                          {/* <img
+                            src={
+                              tokenDetails
+                                .find(
+                                  (tokenDetail) =>
+                                    Number(tokenDetail.chainId) == token.chainId
+                                )
+                                ?.tokens.find(
+                                  (_token) => _token.symbol == token.symbol
+                                )?.logoURI
+                            }
+                          /> */}
                           {token.symbol}
 
                           {token.hasOwnProperty("amount") && //@ts-ignore
@@ -405,11 +417,11 @@ export function SendInitialView({
           </div>
           <div className="relative w-full px-2 sm:w-3/4 ">
             <div className="absolute box-border inset-y-0 right-4 flex items-center ">
-              <span className="cursor-pointertext-lg px- ">
+              <span className="cursor-pointertext-lg h-1/2 flex align-center ">
                 <button
                   type="button"
                   className={
-                    "relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 bg-black text-white color-white"
+                    "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-black text-white color-white h-full min-w-75 justify-center"
                   }
                 >
                   {formwatch.token}
@@ -517,7 +529,7 @@ export function SendInitialView({
       </div>
       <img
         src={peanutman_presenting.src}
-        className="w-1/3 scale-100 absolute -bottom-48 -left-12"
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32"
         id="peanutman-presenting"
       />
     </>

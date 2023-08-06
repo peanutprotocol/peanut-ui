@@ -17,6 +17,11 @@ module.exports = {
         wiggle: "wiggle 1s ease-in-out infinite",
         "spin-slow": "spin 3s linear infinite",
       },
+      minWidth: {
+        25: "25px",
+        50: "50px",
+        75: "75px",
+      },
     },
     colors: {
       transparent: "transparent",
