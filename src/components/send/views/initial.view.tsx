@@ -229,6 +229,7 @@ export function SendInitialView({
           tokenAddress: tokenAddress ?? null,
           tokenAmount: Number(sendFormData.amount),
           tokenType: tokenType,
+          // TODO: have to add the tokenDecimals here
         });
         console.log("Created link:", link);
 
