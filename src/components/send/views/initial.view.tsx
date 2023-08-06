@@ -268,6 +268,7 @@ export function SendInitialView({
           tokenAmount: Number(sendFormData.amount),
           tokenType: tokenType,
           tokenDecimals: tokenDecimals,
+          verbose: true,
         });
         console.log("Created link:", link);
         utils.saveToLocalStorage("link", link);
