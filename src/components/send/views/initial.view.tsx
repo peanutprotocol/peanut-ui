@@ -16,6 +16,7 @@ import * as consts from "@/consts";
 import * as interfaces from "@/interfaces";
 import * as _consts from "../send.consts";
 import * as utils from "@/utils";
+import * as hooks from "@/hooks";
 
 import tokenDetails from "@/consts/tokenDetails.json";
 
@@ -45,6 +46,9 @@ export function SendInitialView({
   );
 
   const [isLoading, setIsLoading] = useState(false);
+  const [enableConfirmation, setEnableConfirmation] = useState(false);
+
+  hooks.useConfirmRefresh(enableConfirmation);
 
   const sendForm = useForm<ISendFormData>({
     mode: "onChange",
@@ -151,14 +155,10 @@ export function SendInitialView({
     return { succes: "true" };
   };
 
-  const createLink = useCallback(
-    async (sendFormData: ISendFormData) => {
-      if (checkForm(sendFormData).succes === "false") {
-        return;
-      }
-      setIsLoading(true);
-
+  const getTokenDetails = useCallback(
+    (sendFormData: ISendFormData) => {
       let tokenAddress: string = "";
+      let tokenDecimals: number = 18;
       if (
         userBalances.some(
           (balance) =>
@@ -172,6 +172,12 @@ export function SendInitialView({
               balance.chainId == sendFormData.chainId &&
               balance.symbol == sendFormData.token
           )?.address ?? "";
+        tokenDecimals =
+          userBalances.find(
+            (balance) =>
+              balance.chainId == sendFormData.chainId &&
+              balance.symbol == sendFormData.token
+          )?.decimals ?? 18;
       } else {
         tokenAddress =
           tokenDetails
@@ -181,7 +187,39 @@ export function SendInitialView({
             )
             ?.tokens.find((token) => token.symbol == sendFormData.token)
             ?.address ?? "";
+
+        tokenDecimals =
+          tokenDetails
+            .find(
+              (detail) =>
+                detail.chainId.toString() == sendFormData.chainId.toString()
+            )
+            ?.tokens.find((token) => token.symbol == sendFormData.token)
+            ?.decimals ?? 18;
       }
+
+      const tokenType =
+        chainDetails.find((detail) => detail.chainId == sendFormData.chainId)
+          ?.nativeCurrency.symbol == sendFormData.token
+          ? 0
+          : 1;
+
+      return { tokenAddress, tokenDecimals, tokenType };
+    },
+    [userBalances, tokenDetails, chainDetails]
+  );
+
+  const createLink = useCallback(
+    async (sendFormData: ISendFormData) => {
+      setEnableConfirmation(true);
+
+      if (checkForm(sendFormData).succes === "false") {
+        return;
+      }
+      setIsLoading(true);
+
+      const { tokenAddress, tokenDecimals, tokenType } =
+        getTokenDetails(sendFormData);
 
       console.log(
         "sending " +
@@ -191,13 +229,18 @@ export function SendInitialView({
           " on chain with id " +
           sendFormData.chainId +
           " with token address: " +
-          tokenAddress
+          tokenAddress +
+          " with tokenType: " +
+          tokenType +
+          " with tokenDecimals: " +
+          tokenDecimals
       );
 
       try {
+        //check if the user is on the correct chain
         if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
           toast(
-            "please allow the switch to the correct network in your wallet",
+            "Please allow the switch to the correct network in your wallet",
             {
               position: "bottom-right",
             }
@@ -208,20 +251,15 @@ export function SendInitialView({
               switchNetwork({ chainId: Number(sendFormData.chainId) })
             )
             .catch((error) => {
-              toast("something went wrong while switching networks", {
+              toast("Something went wrong while switching networks", {
                 position: "bottom-right",
               });
-
-              console.error(error);
               return;
             });
         }
 
-        const tokenType =
-          chainDetails.find((detail) => detail.chainId == sendFormData.chainId)
-            ?.nativeCurrency.symbol == sendFormData.token
-            ? 0
-            : 1;
+        //when the user tries to refresh, show an alert
+        setEnableConfirmation(true);
 
         const { link, txReceipt } = await peanut.createLink({
           signer: signer,
@@ -229,10 +267,9 @@ export function SendInitialView({
           tokenAddress: tokenAddress ?? null,
           tokenAmount: Number(sendFormData.amount),
           tokenType: tokenType,
-          // TODO: have to add the tokenDecimals here
+          tokenDecimals: tokenDecimals,
         });
         console.log("Created link:", link);
-
         utils.saveToLocalStorage("link", link);
 
         setClaimLink(link);
@@ -247,6 +284,7 @@ export function SendInitialView({
         console.error(error);
       } finally {
         setIsLoading(false);
+        setEnableConfirmation(false);
       }
     },
     [signer, currentChain, userBalances, onNextScreen]
@@ -276,14 +314,6 @@ export function SendInitialView({
       return undefined;
     }
   }
-
-  //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
-  useEffect(() => {
-    if (userBalances.length > 0) {
-      sendForm.setValue("token", userBalances[0].symbol);
-      sendForm.setValue("chainId", userBalances[0].chainId);
-    }
-  }, [userBalances]);
 
   useEffect(() => {
     if (formwatch.chainId) {

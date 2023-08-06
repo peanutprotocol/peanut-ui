@@ -12,7 +12,7 @@ const { publicClient } = configureChains(consts.chains, [
 ]);
 
 export const wagmiConfig = createConfig({
-  autoConnect: false, //TODO: look into hydration error when true
+  autoConnect: true,
   connectors: w3mConnectors({
     projectId: process.env.WC_PROJECT_ID ?? "",
     chains: consts.chains,
