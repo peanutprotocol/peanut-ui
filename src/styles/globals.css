@@ -62,6 +62,10 @@ body {
   border: 2px solid #000000;
 }
 
+.brutalborder-bottom {
+  border-bottom-style: solid;
+}
+
 /* replace cta-btn id with rainbow border in html if not CTA at some point @konrad */
 #cta-btn {
   border: 5px solid black;

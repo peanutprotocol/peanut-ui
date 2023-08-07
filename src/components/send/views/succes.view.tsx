@@ -4,12 +4,10 @@ import QRCode from "react-qr-code";
 import clipboard_svg from "@/assets/clipboard.svg";
 import dropdown_svg from "@/assets/dropdown.svg";
 
-import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 import peanutman_cheering from "@/assets/peanutman-cheering.svg";
 import { useAtom } from "jotai";
 import * as store from "@/store/store";
-import Link from "next/link";
 
 export function SendSuccessView({
   onCustomScreen,

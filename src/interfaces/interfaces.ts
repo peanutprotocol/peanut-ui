@@ -48,3 +48,9 @@ export interface IPeanutChainDetails {
     standard: string;
   }[];
 }
+
+export interface ILocalStorageItem {
+  address: string;
+  hash: string;
+  link: string;
+}

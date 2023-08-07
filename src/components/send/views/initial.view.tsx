@@ -37,7 +37,7 @@ export function SendInitialView({
   setChainId,
 }: _consts.ISendScreenProps) {
   const { open } = useWeb3Modal();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { chain: currentChain } = useNetwork();
   const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
   const [tokenList, setTokenList] = useState<ITokenListItem[]>([]);
@@ -258,7 +258,7 @@ export function SendInitialView({
           verbose: true,
         });
         console.log("Created link:", link);
-        utils.saveToLocalStorage("link", link);
+        utils.saveToLocalStorage(address + " - " + txReceipt.hash, link);
 
         setClaimLink(link);
         setTxReceipt(txReceipt);
@@ -281,7 +281,7 @@ export function SendInitialView({
         setEnableConfirmation(false);
       }
     },
-    [signer, currentChain, userBalances, onNextScreen, isLoading]
+    [signer, currentChain, userBalances, onNextScreen, isLoading, address]
   );
 
   useEffect(() => {
