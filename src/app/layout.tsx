@@ -6,6 +6,7 @@ import { WagmiConfig } from "wagmi";
 
 import * as config from "@/config";
 import { Store } from "@/store/store";
+import { useState, useEffect } from "react";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -14,12 +15,21 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [ready, setReady] = useState(false);
+
+  //this useEffect is needed to prevent hydration error when autoConnect in wagmiConfig is true
+  useEffect(() => {
+    setReady(true);
+  }, []);
+
   return (
     <html lang="en">
       <body className={inter.className}>
-        <WagmiConfig config={config.wagmiConfig}>
-          <Store>{children}</Store>
-        </WagmiConfig>
+        {ready && (
+          <WagmiConfig config={config.wagmiConfig}>
+            <Store>{children}</Store>
+          </WagmiConfig>
+        )}
         <Web3Modal
           projectId={process.env.WC_PROJECT_ID ?? ""}
           ethereumClient={config.ethereumClient}
