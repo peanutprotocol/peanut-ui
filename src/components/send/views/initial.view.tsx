@@ -6,8 +6,10 @@ import toast from "react-hot-toast";
 import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
+import Select from "react-select";
+import { useIsFirstRender } from "usehooks-ts";
 
 const peanut = require("@squirrel-labs/peanut-sdk");
 
@@ -38,7 +40,8 @@ export function SendInitialView({
   const { isConnected } = useAccount();
   const { chain: currentChain } = useNetwork();
   const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
-
+  const [tokenList, setTokenList] = useState<ITokenListItem[]>([]);
+  const [formHasBeenTouched, setFormHasBeenTouched] = useState(false);
   const [userBalances] = useAtom(store.userBalancesAtom);
   const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
   const [supportedChainsSocketTech] = useAtom(
@@ -55,34 +58,18 @@ export function SendInitialView({
     defaultValues: {
       chainId: 1,
       amount: 0,
-      token: "eth",
+      token: "",
     },
   });
   const formwatch = sendForm.watch();
-  const [selectedTokenPrice, setSelectedTokenPrice] = useState<
-    Number | undefined
-  >(0);
-
-  const tokenList = useMemo(
-    () =>
-      supportedChainsSocketTech?.some(
-        (chain) => chain.chainId == formwatch.chainId
-      )
-        ? userBalances.some((balance) => balance.chainId == formwatch.chainId)
-          ? userBalances.map((balance) => {
-              return Number(balance.chainId) == Number(formwatch.chainId)
-                ? balance
-                : undefined;
-            })
-          : tokenDetails.find(
-              (token) =>
-                token.chainId.toString() == formwatch.chainId.toString()
-            )?.tokens
-        : tokenDetails.find(
-            (token) => token.chainId.toString() == formwatch.chainId.toString()
-          )?.tokens,
-    [formwatch.chainId, userBalances, supportedChainsSocketTech]
-  );
+  interface ITokenListItem {
+    symbol: string;
+    amount: number;
+    chainId: number;
+    address: string;
+    decimals: number;
+    logo: string;
+  }
 
   function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient;
@@ -110,8 +97,8 @@ export function SendInitialView({
 
   const checkForm = (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
-    if (sendFormData.chainId == null || sendFormData.token == null) {
-      toast("please select a chain and token", {
+    if (sendFormData.chainId == null || sendFormData.token == "") {
+      toast("Please select a chain and token", {
         position: "bottom-right",
       });
       return { succes: "false" };
@@ -119,7 +106,7 @@ export function SendInitialView({
 
     //check if the amount is less than or equal to zero
     if (sendFormData.amount <= 0) {
-      toast("please put an amount that is greater than zero", {
+      toast("Please put an amount that is greater than zero", {
         position: "bottom-right",
       });
       return { succes: "false" };
@@ -138,20 +125,19 @@ export function SendInitialView({
         (balance) => balance.symbol === sendFormData.token
       )?.amount;
       if (balance && sendFormData.amount > balance) {
-        toast("you don't have enough funds", {
+        toast("You don't have enough funds", {
           position: "bottom-right",
         });
         return { succes: "false" };
       }
 
       if (!signer) {
-        toast("signer undefined, please refresh", {
+        toast("Signer undefined, please refresh", {
           position: "bottom-right",
         });
         return { succes: "false" };
       }
     }
-
     return { succes: "true" };
   };
 
@@ -211,12 +197,13 @@ export function SendInitialView({
 
   const createLink = useCallback(
     async (sendFormData: ISendFormData) => {
-      setEnableConfirmation(true);
-
+      if (isLoading) return;
       if (checkForm(sendFormData).succes === "false") {
         return;
       }
+
       setIsLoading(true);
+      setEnableConfirmation(true);
 
       const { tokenAddress, tokenDecimals, tokenType } =
         getTokenDetails(sendFormData);
@@ -278,70 +265,130 @@ export function SendInitialView({
         setChainId(sendFormData.chainId);
 
         onNextScreen();
-      } catch (error) {
-        toast("Something failed while creating your link. Please try again", {
-          position: "bottom-right",
-        });
-        console.error(error);
+      } catch (error: any) {
+        if (error.toString().includes("insufficient funds")) {
+          toast("You don't have enough funds", {
+            position: "bottom-right",
+          });
+        } else {
+          toast("Something failed while creating your link. Please try again", {
+            position: "bottom-right",
+          });
+          console.error(error);
+        }
       } finally {
         setIsLoading(false);
         setEnableConfirmation(false);
       }
     },
-    [signer, currentChain, userBalances, onNextScreen]
+    [signer, currentChain, userBalances, onNextScreen, isLoading]
   );
 
-  async function getTokenPrice(
-    tokenAddress: string,
-    chainId: number
-  ): Promise<Number | undefined> {
-    const apiUrl = `https://api.socket.tech/v2/token-price?tokenAddress=${tokenAddress}&chainId=${chainId}`;
-
-    try {
-      const response = await axios.get(apiUrl, {
-        headers: {
-          accept: "application/json",
-          "API-KEY": process.env.SOCKET_API_KEY,
-        },
-      });
-
-      if (response.status === 200) {
-        return Number(response.data.result.tokenPrice);
-      } else {
-        return undefined;
-      }
-    } catch (error) {
-      console.error("error loading supportedChainsSocketTech, ", error);
-      return undefined;
+  useEffect(() => {
+    if (
+      supportedChainsSocketTech?.some(
+        (chain) => chain.chainId == formwatch.chainId
+      )
+    ) {
+      userBalances.some((balance) => balance.chainId == formwatch.chainId)
+        ? setTokenList(
+            userBalances
+              .filter((balance) => balance.chainId == formwatch.chainId)
+              .map((balance) => {
+                return {
+                  symbol: balance.symbol,
+                  chainId: balance.chainId,
+                  amount: balance.amount,
+                  address: balance.address,
+                  decimals: balance.decimals,
+                  logo: "",
+                };
+              })
+          )
+        : setTokenList(
+            tokenDetails
+              .filter(
+                (detail) =>
+                  detail.chainId.toString() == formwatch.chainId.toString()
+              )[0]
+              .tokens.map((token) => {
+                return {
+                  symbol: token.symbol,
+                  amount: 0,
+                  chainId: formwatch.chainId,
+                  address: token.address,
+                  decimals: token.decimals,
+                  logo: token.logoURI ?? "",
+                };
+              })
+          );
+    } else {
+      setTokenList(
+        tokenDetails
+          .filter(
+            (detail) =>
+              detail.chainId.toString() == formwatch.chainId.toString()
+          )[0]
+          .tokens.map((token) => {
+            return {
+              symbol: token.symbol,
+              amount: 0,
+              chainId: formwatch.chainId,
+              address: token.address,
+              decimals: token.decimals,
+              logo: token.logoURI ?? "",
+            };
+          })
+      );
     }
-  }
+  }, [formwatch.chainId, userBalances, supportedChainsSocketTech]);
+
+  const customChainOption = ({
+    value,
+    label,
+    logoUri,
+  }: {
+    value: number;
+    label: string;
+    logoUri: string;
+  }) => (
+    <div>
+      {/* <img src={logoUri} className="w-6 h-6 inline-block mr-2" /> */}
+      <span>{label}</span>
+    </div>
+  );
+
+  const customTokenOption = ({
+    value,
+    label,
+    logoUri,
+    amount,
+  }: {
+    value: string;
+    label: string;
+    logoUri: string;
+    amount: number;
+  }) => (
+    <div className="flex flex-row gap-2 align-center ">
+      {/* <img src={logoUri ?? ""} /> */}
+      {value}
+
+      {amount > 0 && " - " + Math.round(amount * 10000) / 10000}
+    </div>
+  );
+
+  useEffect(() => {
+    if (currentChain && !formHasBeenTouched) {
+      sendForm.setValue("chainId", currentChain.id);
+    }
+  }, [currentChain]);
 
   useEffect(() => {
     if (formwatch.chainId) {
-      //if the user changes the chain, make sure to set the default token to the first one (which will be selected by default in the dropdown) and update the signer to the new chain
-      sendForm.setValue(
-        "token",
-        userBalances.find(
-          (balance) =>
-            balance.chainId.toString() === formwatch.chainId.toString()
-        )?.symbol ?? ""
-      );
+      sendForm.setValue("token", "");
       getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
     }
-  }, [formwatch.chainId]);
-
-  // useEffect(() => {
-  //   if (formwatch.token) {
-  //     getTokenPrice(
-  //       userBalances.find(
-  //         (balance) => balance.symbol.toString() === formwatch.token.toString()
-  //       )?.address ?? "",
-  //       formwatch.chainId
-  //     ).then((price) => {
-  //       setSelectedTokenPrice(price);
-  //     });
-  //   }
-  // }, [formwatch.token]);
+  }, [formwatch.chainId, isConnected]);
 
   return (
     <>
@@ -365,54 +412,90 @@ export function SendInitialView({
         <div className="flex w-full flex-col gap-5 items-center">
           <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
             <div className="relative w-full lg:max-w-sm">
-              <select
-                className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
-                {...sendForm.register("chainId")}
-              >
-                {chainDetails.map((chain) => (
-                  <option key={chain.name} value={chain.chainId}>
-                    {chain.name}
-                  </option>
-                ))}
-              </select>
+              <Select
+                value={{
+                  value: formwatch.chainId,
+                  label:
+                    chainDetails.find(
+                      (chain) => chain.chainId == formwatch.chainId
+                    )?.name ?? "",
+                  logoUri: "",
+                }}
+                placeholder="Select chain..."
+                styles={{
+                  control: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                    borderColor: "black !important",
+                    borderWidth: "2px",
+                  }),
+                }}
+                theme={(theme) => ({
+                  ...theme,
+                  colors: {
+                    ...theme.colors,
+                    primary25: "#23A092",
+                    primary: "black",
+                  },
+                })}
+                options={chainDetails.map((detail) => {
+                  return {
+                    value: detail.chainId,
+                    label: detail.name,
+                    logoUri: detail.hasOwnProperty("icon")
+                      ? detail.icon[0].url
+                      : "",
+                  };
+                })}
+                formatOptionLabel={customChainOption}
+                onChange={(option) => {
+                  setFormHasBeenTouched(true);
+                  if (option && option.value)
+                    sendForm.setValue("chainId", option.value);
+                }}
+              />
             </div>
             <div className="relative w-full lg:max-w-sm">
-              <select
-                className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
-                {...sendForm.register("token")}
-              >
-                {tokenList &&
-                  tokenList.map(
-                    (token) =>
-                      token && (
-                        <option
-                          key={
-                            token.hasOwnProperty("address")
-                              ? token.address
-                              : token.symbol
-                          }
-                          value={token.symbol}
-                        >
-                          {/* <img
-                            src={
-                              tokenDetails
-                                .find(
-                                  (tokenDetail) =>
-                                    Number(tokenDetail.chainId) == token.chainId
-                                )
-                                ?.tokens.find(
-                                  (_token) => _token.symbol == token.symbol
-                                )?.logoURI
-                            }
-                          /> */}
-                          {token.symbol}
-
-                          {token.hasOwnProperty("amount") && //@ts-ignore
-                            " - " + Math.round(token.amount * 10000) / 10000}
-                        </option>
-                      )
-                  )}
-              </select>
+              <Select
+                value={{
+                  value: formwatch.token,
+                  label: formwatch.token,
+                  logoUri: "",
+                  amount: 0,
+                }}
+                placeholder="Select token..."
+                styles={{
+                  control: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                    borderColor: "black !important",
+                    borderWidth: "2px",
+                  }),
+                }}
+                theme={(theme) => ({
+                  ...theme,
+                  colors: {
+                    ...theme.colors,
+                    primary25: "#23A092",
+                    primary: "black",
+                  },
+                })}
+                options={tokenList?.map((token) => {
+                  //@ts-ignore
+                  return {
+                    value: token.symbol,
+                    label: token.symbol,
+                    logoUri: token.logo,
+                    amount: token.amount,
+                  };
+                })}
+                formatOptionLabel={customTokenOption}
+                onChange={(option) => {
+                  setFormHasBeenTouched(true);
+                  if (option && option.value)
+                    sendForm.setValue("token", option.value);
+                }}
+              />
             </div>
           </div>
           <div className="relative w-full px-2 sm:w-3/4 ">
@@ -427,38 +510,6 @@ export function SendInitialView({
                   {formwatch.token}
                 </button>
               </span>
-              {/* <span className="cursor-pointertext-lg px- ">
-                <button
-                  type="button"
-                  className={
-                    (denomination == "USD"
-                      ? "bg-black text-white color-white"
-                      : "font-normal bg-white ") +
-                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4"
-                  }
-                  onClick={() => {
-                    setDenomination("USD");
-                  }}
-                >
-                  $
-                </button>
-              </span>
-              <span className="cursor-pointer text-lg pl-2 ">
-                <button
-                  type="button"
-                  className={
-                    (denomination == "TOKEN"
-                      ? "font-black bg-black text-white color-white"
-                      : "font-normal bg-white ") +
-                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 "
-                  }
-                  onClick={() => {
-                    setDenomination("TOKEN");
-                  }}
-                >
-                  Token
-                </button>
-              </span> */}
             </div>
             <input
               type="number"
@@ -468,27 +519,22 @@ export function SendInitialView({
               className="no-spin block w-full py-4 px-2 brutalborder   placeholder:text-lg placeholder:text-black placeholder:font-bold font-bold text-lg outline-none appearance-none "
               placeholder="0.00"
               aria-describedby="price-currency"
-              {...sendForm.register("amount")}
+              {...(sendForm.register("amount"),
+              {
+                onChange: (e) => {
+                  sendForm.setValue("amount", Number(e.target.value));
+                  setFormHasBeenTouched(true);
+                },
+              })}
             />
           </div>
 
-          {/* <div className="relative w-full px-2 sm:w-3/4">
-            {Number(selectedTokenPrice) > 0 &&
-              Number(selectedTokenPrice) * formwatch.amount > 0 && (
-                <span>
-                  ~
-                  {Math.floor(
-                    Number(selectedTokenPrice) * formwatch.amount * 1000
-                  ) / 1000}{" "}
-                  USD
-                </span>
-              )}
-          </div> */}
           <button
             type={isConnected ? "submit" : "button"}
             className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
             id="cta-btn"
             onClick={!isConnected ? open : undefined}
+            disabled={isLoading ? true : false}
           >
             {isLoading ? (
               <div role="status">
@@ -529,7 +575,7 @@ export function SendInitialView({
       </div>
       <img
         src={peanutman_presenting.src}
-        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32"
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
         id="peanutman-presenting"
       />
     </>
