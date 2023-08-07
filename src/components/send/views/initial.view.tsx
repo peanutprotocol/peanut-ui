@@ -47,6 +47,7 @@ export function SendInitialView({
   const [supportedChainsSocketTech] = useAtom(
     store.supportedChainsSocketTechAtom
   );
+  const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined);
 
   const [isLoading, setIsLoading] = useState(false);
   const [enableConfirmation, setEnableConfirmation] = useState(false);
@@ -132,6 +133,7 @@ export function SendInitialView({
       }
 
       if (!signer) {
+        getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId });
         toast("Signer undefined, please refresh", {
           position: "bottom-right",
         });
@@ -384,9 +386,14 @@ export function SendInitialView({
   }, [currentChain]);
 
   useEffect(() => {
-    if (formwatch.chainId) {
+    if (formwatch.chainId != prevChainId) {
+      setPrevChainId(formwatch.chainId);
       sendForm.setValue("token", "");
-      getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
+
+      //wait for the wallet to connect
+      setTimeout(() => {
+        getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
+      }, 2000);
     }
   }, [formwatch.chainId, isConnected]);
 

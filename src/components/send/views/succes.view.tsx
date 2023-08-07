@@ -60,10 +60,10 @@ export function SendSuccessView({
             ) : (
               <button className="text-base font-bold border-none bg-white cursor-pointer h-full gap-2 p-0 ">
                 <span
-                  className="tooltiptext inline flex items-center leading-0 gap-2 "
+                  className="tooltiptext inline flex items-center leading-0 gap-2 text-black"
                   id="myTooltip"
                 >
-                  <label>COPY</label>
+                  <label className="text-black">COPY</label>
                   <img
                     src={clipboard_svg.src}
                     className="h-6 "
