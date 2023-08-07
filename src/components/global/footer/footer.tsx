@@ -13,7 +13,7 @@ export function Footer() {
           smiles
         </div>
         {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
-        <img src={smiley.src} alt="logo" className="h-8 mr-1" />
+        <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
       </global_components.MarqueeWrapper>
       <footer>
         <div className="my-4 tracking-widest w-full font-bold brutalborder flex flex-col space-y-4">
