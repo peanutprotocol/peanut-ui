@@ -9,11 +9,21 @@ export interface IClaimScreenState {
   idx: number;
 }
 
+export interface IClaimDetails {
+  tokenAddress: string;
+  amount: number;
+  decimals: number;
+  chainId: number;
+}
+
 export interface IClaimScreenProps {
   onNextScreen: () => void;
   onCustomScreen: (screen: ClaimScreens) => void;
   claimLink: string;
   setClaimLink: (claimLink: string) => void;
+  claimDetails: IClaimDetails;
+  txHash: string;
+  setTxHash: (txHash: string) => void;
 }
 
 export const INIT_VIEW: IClaimScreenState = {

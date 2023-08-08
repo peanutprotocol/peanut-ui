@@ -10,6 +10,13 @@ export function Claim({ link }: { link: string }) {
     _consts.INIT_VIEW
   );
   const [claimLink, setClaimLink] = useState<string>("");
+  const [claimDetails, setClaimDetails] = useState<_consts.IClaimDetails>({
+    amount: 0,
+    tokenAddress: "",
+    chainId: 0,
+    decimals: 0,
+  });
+  const [txHash, setTxHash] = useState<string>("");
 
   const handleOnNext = () => {
     const newIdx = claimScreen.idx + 1;
@@ -26,9 +33,23 @@ export function Claim({ link }: { link: string }) {
     }));
   };
 
-  const checkLink = (link: string) => {};
+  const checkLink = (link: string) => {
+    if (link.startsWith("c=")) {
+      //fetch details
+      setClaimDetails({
+        amount: 1000000,
+        tokenAddress: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+        chainId: 137,
+        decimals: 6,
+      });
+      setClaimLink(link);
+      setLinkState("CLAIM");
+    }
+  };
 
   useEffect(() => {
+    console.log("link changed");
+    console.log(link);
     if (link) {
       checkLink(link);
     }
@@ -65,6 +86,9 @@ export function Claim({ link }: { link: string }) {
           onCustomScreen: handleOnCustom,
           claimLink,
           setClaimLink,
+          claimDetails,
+          txHash,
+          setTxHash,
         } as _consts.IClaimScreenProps)}
     </global_components.CardWrapper>
   );

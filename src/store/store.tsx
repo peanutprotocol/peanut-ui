@@ -66,7 +66,6 @@ export function Store({ children }: { children: React.ReactNode }) {
 
   const getPeanutChainDetails = async () => {
     if (peanut) {
-      console.log(peanut.default.CHAIN_DETAILS);
       //simple filter to remove the chains that arent supported by wagmi
       const chainsToExclude = [4, 42, 7001];
       const chainDetailsArray = Object.keys(peanut.default.CHAIN_DETAILS).map(

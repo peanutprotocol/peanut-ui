@@ -79,3 +79,15 @@ export const getAllLinksFromLocalStorage = ({
     console.error("Error getting data from localStorage:", error);
   }
 };
+
+export function formatAmountWithDecimals({
+  amount,
+  decimals,
+}: {
+  amount: number;
+  decimals: number;
+}) {
+  const divider = 10 ** decimals;
+  const formattedAmount = amount / divider;
+  return formattedAmount;
+}

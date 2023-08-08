@@ -1,10 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useAtom } from "jotai";
+
+import * as _consts from "../claim.consts";
+import * as store from "@/store/";
 
 import dropdown_svg from "@/assets/dropdown.svg";
 import peanutman_cheering from "@/assets/peanutman-cheering.svg";
 
-export function ClaimSuccessView() {
+export function ClaimSuccessView({
+  txHash,
+  claimDetails,
+}: _consts.IClaimScreenProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
+
+  const explorerUrlWithTx = useMemo(
+    () =>
+      chainDetails.find((detail) => detail.chainId === claimDetails.chainId)
+        ?.explorers[0].url +
+      "/tx/" +
+      txHash,
+    [txHash, chainDetails]
+  );
 
   return (
     <>
@@ -41,10 +58,10 @@ export function ClaimSuccessView() {
         >
           <p className="m-0">
             <a
-              target="_blank"
-              className="text-center text-sm underline font-bold break-all cursor-pointer"
+              href={explorerUrlWithTx ?? ""}
+              className="text-center text-sm underline font-bold break-all text-black cursor-pointer"
             >
-              hash
+              {txHash}
             </a>
           </p>
           <p className="m-0">

@@ -1,34 +1,129 @@
 import { useWeb3Modal } from "@web3modal/react";
-import { useState } from "react";
-import { useAccount } from "wagmi";
+import { useEffect, useState } from "react";
+import { WalletClient, useAccount, useNetwork } from "wagmi";
+import { useAtom } from "jotai";
+import { getWalletClient, switchNetwork } from "@wagmi/core";
+const peanut = require("@squirrel-labs/peanut-sdk");
+import toast from "react-hot-toast";
 
 import * as global_components from "@/components/global";
 import * as _consts from "../claim.consts";
+import * as utils from "@/utils";
+import * as store from "@/store";
 
 import dropdown_svg from "@/assets/dropdown.svg";
+import tokenDetails from "@/consts/tokenDetails.json";
 
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
+import { BrowserProvider, JsonRpcSigner } from "ethers";
 
 export function ClaimView({
   onNextScreen,
+  claimDetails,
   claimLink,
+  setTxHash,
 }: _consts.IClaimScreenProps) {
   const { isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
+  const { chain: currentChain } = useNetwork();
 
-  const claim = () => {};
+  const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
+
+  function walletClientToSigner(walletClient: WalletClient) {
+    const { account, chain, transport } = walletClient;
+    const network = {
+      chainId: chain.id,
+      name: chain.name,
+      ensAddress: chain.contracts?.ensRegistry?.address,
+    };
+    const provider = new BrowserProvider(transport, network);
+    const signer = new JsonRpcSigner(provider, account.address);
+    return signer;
+  }
+
+  const getWalletClientAndUpdateSigner = async ({
+    chainId,
+  }: {
+    chainId: number;
+  }) => {
+    const walletClient = await getWalletClient({ chainId: Number(chainId) });
+    console.log(walletClient);
+    if (walletClient) {
+      const signer = walletClientToSigner(walletClient);
+      setSigner(signer);
+    }
+  };
+
+  const claim = async () => {
+    if (!signer) {
+      await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
+    }
+    //check if the user is on the correct chain
+    if (currentChain?.id.toString() !== claimDetails.chainId.toString()) {
+      toast("Please allow the switch to the correct network in your wallet", {
+        position: "bottom-right",
+      });
+
+      await utils
+        .waitForPromise(
+          switchNetwork({ chainId: Number(claimDetails.chainId) })
+        )
+        .catch((error) => {
+          toast("Something went wrong while switching networks", {
+            position: "bottom-right",
+          });
+          return;
+        });
+    }
+    if (claimLink) {
+      console.log("claiming link: https://peanut.to/claim?" + claimLink);
+      const claimTx = await peanut.claimLink({
+        signer,
+        link: "https://peanut.to/claim?" + claimLink,
+      });
+      console.log(claimTx);
+      setTxHash(claimTx.hash ?? "");
+      onNextScreen();
+    }
+  };
+
+  useEffect(() => {
+    if (isConnected) {
+      //wait for the wallet to connect
+      setTimeout(() => {
+        getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
+      }, 1000);
+    }
+  }, [isConnected]);
 
   return (
     <>
-      <h2 className="my-2 text-3xl lg:text-6xl mb-0">Claim 000 XXX</h2>
-      <h3 className="text-md sm:text-lg lg:text-xl mb-8 text-center">CHAIN</h3>
+      <h2 className="my-2 text-3xl lg:text-6xl mb-0 font-black">
+        Claim{" "}
+        {utils.formatAmountWithDecimals({
+          amount: claimDetails.amount,
+          decimals: claimDetails.decimals,
+        })}{" "}
+        {
+          tokenDetails
+            .find((detail) => Number(detail.chainId) == claimDetails.chainId)
+            ?.tokens.find((token) => token.address == claimDetails.tokenAddress)
+            ?.symbol
+        }
+      </h2>
+      <h3 className="text-md sm:text-lg lg:text-xl mb-8 text-center">
+        {chainDetails &&
+          chainDetails.find((chain) => chain.chainId == claimDetails.chainId)
+            ?.name}
+      </h3>
       <button
         type={isConnected ? "submit" : "button"}
         className="block w-full mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
         id="cta-btn"
-        onClick={!isConnected ? open : onNextScreen}
+        onClick={!isConnected ? open : claim}
       >
         {isLoading ? (
           <div role="status">

@@ -6,10 +6,8 @@ import toast from "react-hot-toast";
 import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { Controller, useForm } from "react-hook-form";
-import axios from "axios";
+import { useForm } from "react-hook-form";
 import Select from "react-select";
-import { useIsFirstRender } from "usehooks-ts";
 
 const peanut = require("@squirrel-labs/peanut-sdk");
 
