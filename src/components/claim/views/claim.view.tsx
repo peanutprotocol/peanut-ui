@@ -3,14 +3,22 @@ import { useState } from "react";
 import { useAccount } from "wagmi";
 
 import * as global_components from "@/components/global";
+import * as _consts from "../claim.consts";
 
 import dropdown_svg from "@/assets/dropdown.svg";
 
-export function ClaimView() {
+import peanutman_presenting from "@/assets/peanutman-presenting.svg";
+
+export function ClaimView({
+  onNextScreen,
+  claimLink,
+}: _consts.IClaimScreenProps) {
   const { isConnected } = useAccount();
   const { open } = useWeb3Modal();
   const [isLoading, setIsLoading] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const claim = () => {};
 
   return (
     <>
@@ -20,7 +28,7 @@ export function ClaimView() {
         type={isConnected ? "submit" : "button"}
         className="block w-full mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
         id="cta-btn"
-        onClick={!isConnected ? open : undefined}
+        onClick={!isConnected ? open : onNextScreen}
       >
         {isLoading ? (
           <div role="status">
@@ -123,8 +131,11 @@ export function ClaimView() {
         </a>
         !
       </p>
+      <img
+        src={peanutman_presenting.src}
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-32 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
+        id="peanutman-presenting"
+      />
     </>
   );
 }
-
-//todo: add penautman

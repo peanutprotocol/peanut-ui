@@ -1,4 +1,13 @@
+import peanutman_sad from "@/assets/peanutman-sad.svg";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 export function ClaimLinkNotFoundView() {
+  const router = useRouter();
+
+  useEffect(() => {
+    router.prefetch("/");
+  }, []);
   return (
     <>
       <h2 className="title-font text-2xl md:text-3xl font-black mb-0 text-center">
@@ -12,7 +21,9 @@ export function ClaimLinkNotFoundView() {
       <button
         className="block w-full mt-4 mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
         id="cta-btn"
-        onClick={() => {}}
+        onClick={() => {
+          router.push("/");
+        }}
       >
         Send Crypto
       </button>
@@ -28,6 +39,11 @@ export function ClaimLinkNotFoundView() {
         </a>
         !
       </p>
+      <img
+        src={peanutman_sad.src}
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-32 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
+        id="peanutman-presenting"
+      />
     </>
   );
 }

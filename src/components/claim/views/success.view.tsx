@@ -1,6 +1,7 @@
 import { useState } from "react";
 
 import dropdown_svg from "@/assets/dropdown.svg";
+import peanutman_cheering from "@/assets/peanutman-cheering.svg";
 
 export function ClaimSuccessView() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -78,6 +79,11 @@ export function ClaimSuccessView() {
         </a>
         !
       </p>
+      <img
+        src={peanutman_cheering.src}
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-32 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
+        id="peanutman-presenting"
+      />
     </>
   );
 }
