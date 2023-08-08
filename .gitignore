@@ -37,3 +37,10 @@ next-env.d.ts
 
 # .env
 .env
+
+# local files
+playground/
+
+# yarn and npm lockfiles
+package-lock.json
+yarn.lock

@@ -8,6 +8,7 @@ export function Send() {
   );
   const [claimLink, setClaimLink] = useState<string>("");
   const [txReceipt, setTxReceipt] = useState<string>("");
+  const [chainId, setChainId] = useState<number>(0);
 
   const handleOnNext = () => {
     const newIdx = sendScreen.idx + 1;
@@ -33,6 +34,8 @@ export function Send() {
         setClaimLink,
         txReceipt,
         setTxReceipt,
+        chainId,
+        setChainId,
       } as _consts.ISendScreenProps)}
     </global_components.CardWrapper>
   );

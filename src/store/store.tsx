@@ -1,14 +1,24 @@
 "use client";
-import { atom, useSetAtom } from "jotai";
+import { atom, useAtom, useSetAtom } from "jotai";
 import { useAccount } from "wagmi";
 import { useEffect } from "react";
+const peanut = require("@squirrel-labs/peanut-sdk");
 
 import { JsonRpcProvider, ethers } from "ethers";
 
 import * as interfaces from "@/interfaces";
 import * as socketTech from "@socket.tech/socket-v2-sdk";
+import axios from "axios";
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([]);
+
+export const defaultChainDetailsAtom = atom<interfaces.IPeanutChainDetails[]>(
+  []
+);
+
+export const supportedChainsSocketTechAtom = atom<
+  socketTech.ChainDetails[] | undefined
+>(undefined);
 
 export function Store({ children }: { children: React.ReactNode }) {
   const provider = new ethers.JsonRpcProvider(
@@ -16,6 +26,10 @@ export function Store({ children }: { children: React.ReactNode }) {
   );
 
   const setUserBalances = useSetAtom(userBalancesAtom);
+  const [x, setDefaultChainDetails] = useAtom(defaultChainDetailsAtom);
+  const setSupportedChainsSocketTech = useSetAtom(
+    supportedChainsSocketTechAtom
+  );
 
   const { address, isDisconnected } = useAccount();
 
@@ -24,9 +38,6 @@ export function Store({ children }: { children: React.ReactNode }) {
     if (address) {
       //This will fetch all balances for the supported chains by socket.tech (https://docs.socket.tech/socket-liquidity-layer/socketll-overview/chains-dexs-bridges)
       loadUserBalances(address);
-      loadUserBalancesGoerli(provider, address ?? "");
-
-      //This will fetch all balances for the goerli testnet
     }
   }, [address]);
 
@@ -36,29 +47,36 @@ export function Store({ children }: { children: React.ReactNode }) {
     }
   }, [isDisconnected]);
 
-  const loadUserBalancesGoerli = async (
-    provider: JsonRpcProvider,
-    address: string
-  ) => {
+  useEffect(() => {
+    getSupportedChainsSocketTech();
+    getPeanutChainDetails();
+  }, []);
+
+  const getSupportedChainsSocketTech = async () => {
     try {
-      const balance = await provider?.getBalance(address);
-      const xx: interfaces.IUserBalance = {
-        chainId: 5,
-        symbol: "GoerliETH",
-        name: "GoerliETH",
-        address: "0xdD69DB25F6D620A7baD3023c5d32761D353D3De9",
-        decimals: 18,
-        amount: Number(ethers.formatEther(balance)),
-        price: 0,
-        currency: "GoerliETH",
-      };
-      if (balance > 0) {
-        setUserBalances((prev) => {
-          return [...prev, xx];
-        });
+      const supportedChainsResponse =
+        await socketTech.Supported.getAllSupportedChains();
+      if (supportedChainsResponse.success) {
+        setSupportedChainsSocketTech(supportedChainsResponse.result);
       }
     } catch (error) {
-      console.error("error loading userBalances, ", error);
+      console.error("error loading supportedChainsSocketTech, ", error);
+    }
+  };
+
+  const getPeanutChainDetails = async () => {
+    if (peanut) {
+      console.log(peanut.default.CHAIN_DETAILS);
+      //simple filter to remove the chains that arent supported by wagmi
+      const chainsToExclude = [4, 42, 7001];
+      const chainDetailsArray = Object.keys(peanut.default.CHAIN_DETAILS).map(
+        (key) => peanut.default.CHAIN_DETAILS[key]
+      );
+      const filteredChainDetailsArray = chainDetailsArray.filter(
+        (chain) => !chainsToExclude.includes(chain.chainId)
+      );
+
+      setDefaultChainDetails(filteredChainDetailsArray);
     }
   };
 

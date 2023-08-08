@@ -1,20 +1,26 @@
 import Link from "next/link";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
 import toast from "react-hot-toast";
 import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
+import Select from "react-select";
+import { useIsFirstRender } from "usehooks-ts";
 
 const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
 import * as consts from "@/consts";
+import * as interfaces from "@/interfaces";
 import * as _consts from "../send.consts";
 import * as utils from "@/utils";
+import * as hooks from "@/hooks";
+
+import tokenDetails from "@/consts/tokenDetails.json";
 
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
 
@@ -31,26 +37,40 @@ export function SendInitialView({
   setChainId,
 }: _consts.ISendScreenProps) {
   const { open } = useWeb3Modal();
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { chain: currentChain } = useNetwork();
   const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
-
+  const [tokenList, setTokenList] = useState<ITokenListItem[]>([]);
+  const [formHasBeenTouched, setFormHasBeenTouched] = useState(false);
   const [userBalances] = useAtom(store.userBalancesAtom);
+  const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
+  const [supportedChainsSocketTech] = useAtom(
+    store.supportedChainsSocketTechAtom
+  );
+  const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [enableConfirmation, setEnableConfirmation] = useState(false);
+
+  hooks.useConfirmRefresh(enableConfirmation);
 
   const sendForm = useForm<ISendFormData>({
     mode: "onChange",
     defaultValues: {
       chainId: 1,
       amount: 0,
-      token: "eth",
+      token: "",
     },
   });
   const formwatch = sendForm.watch();
-  const [selectedTokenPrice, setSelectedTokenPrice] = useState<
-    Number | undefined
-  >(0);
+  interface ITokenListItem {
+    symbol: string;
+    amount: number;
+    chainId: number;
+    address: string;
+    decimals: number;
+    logo: string;
+  }
 
   function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient;
@@ -78,8 +98,8 @@ export function SendInitialView({
 
   const checkForm = (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
-    if (sendFormData.chainId == null || sendFormData.token == null) {
-      toast("please select a chain and token", {
+    if (sendFormData.chainId == null || sendFormData.token == "") {
+      toast("Please select a chain and token", {
         position: "bottom-right",
       });
       return { succes: "false" };
@@ -87,45 +107,108 @@ export function SendInitialView({
 
     //check if the amount is less than or equal to zero
     if (sendFormData.amount <= 0) {
-      toast("please put an amount that is greater than zero", {
+      toast("Please put an amount that is greater than zero", {
         position: "bottom-right",
       });
       return { succes: "false" };
     }
 
-    //check that the user has enough funds
-    const balance = userBalances.find(
-      (balance) => balance.symbol === sendFormData.token
-    )?.amount;
-    if (balance && sendFormData.amount > balance) {
-      toast("you don't have enough funds", {
-        position: "bottom-right",
-      });
-      return { succes: "false" };
-    }
+    //check if the token is in the userBalances
+    if (
+      userBalances.some(
+        (balance) =>
+          balance.symbol == sendFormData.token &&
+          balance.chainId == sendFormData.chainId
+      )
+    ) {
+      //check that the user has enough funds
+      const balance = userBalances.find(
+        (balance) => balance.symbol === sendFormData.token
+      )?.amount;
+      if (balance && sendFormData.amount > balance) {
+        toast("You don't have enough funds", {
+          position: "bottom-right",
+        });
+        return { succes: "false" };
+      }
 
-    if (!signer) {
-      toast("signer undefined, please refresh", {
-        position: "bottom-right",
-      });
-      return { succes: "false" };
+      if (!signer) {
+        getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId });
+        toast("Signer undefined, please refresh", {
+          position: "bottom-right",
+        });
+        return { succes: "false" };
+      }
     }
-
     return { succes: "true" };
   };
 
+  const getTokenDetails = useCallback(
+    (sendFormData: ISendFormData) => {
+      let tokenAddress: string = "";
+      let tokenDecimals: number = 18;
+      if (
+        userBalances.some(
+          (balance) =>
+            balance.symbol == sendFormData.token &&
+            balance.chainId == sendFormData.chainId
+        )
+      ) {
+        tokenAddress =
+          userBalances.find(
+            (balance) =>
+              balance.chainId == sendFormData.chainId &&
+              balance.symbol == sendFormData.token
+          )?.address ?? "";
+        tokenDecimals =
+          userBalances.find(
+            (balance) =>
+              balance.chainId == sendFormData.chainId &&
+              balance.symbol == sendFormData.token
+          )?.decimals ?? 18;
+      } else {
+        tokenAddress =
+          tokenDetails
+            .find(
+              (detail) =>
+                detail.chainId.toString() == sendFormData.chainId.toString()
+            )
+            ?.tokens.find((token) => token.symbol == sendFormData.token)
+            ?.address ?? "";
+
+        tokenDecimals =
+          tokenDetails
+            .find(
+              (detail) =>
+                detail.chainId.toString() == sendFormData.chainId.toString()
+            )
+            ?.tokens.find((token) => token.symbol == sendFormData.token)
+            ?.decimals ?? 18;
+      }
+
+      const tokenType =
+        chainDetails.find((detail) => detail.chainId == sendFormData.chainId)
+          ?.nativeCurrency.symbol == sendFormData.token
+          ? 0
+          : 1;
+
+      return { tokenAddress, tokenDecimals, tokenType };
+    },
+    [userBalances, tokenDetails, chainDetails]
+  );
+
   const createLink = useCallback(
     async (sendFormData: ISendFormData) => {
+      if (isLoading) return;
       if (checkForm(sendFormData).succes === "false") {
         return;
       }
-      setIsLoading(true);
 
-      const tokenAddress = userBalances.find(
-        (balance) =>
-          balance.chainId == sendFormData.chainId &&
-          balance.symbol == sendFormData.token
-      )?.address;
+      setIsLoading(true);
+      setEnableConfirmation(true);
+
+      const { tokenAddress, tokenDecimals, tokenType } =
+        getTokenDetails(sendFormData);
 
       console.log(
         "sending " +
@@ -135,13 +218,18 @@ export function SendInitialView({
           " on chain with id " +
           sendFormData.chainId +
           " with token address: " +
-          tokenAddress
+          tokenAddress +
+          " with tokenType: " +
+          tokenType +
+          " with tokenDecimals: " +
+          tokenDecimals
       );
 
       try {
+        //check if the user is on the correct chain
         if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
           toast(
-            "please allow the switch to the correct network in your wallet",
+            "Please allow the switch to the correct network in your wallet",
             {
               position: "bottom-right",
             }
@@ -152,104 +240,162 @@ export function SendInitialView({
               switchNetwork({ chainId: Number(sendFormData.chainId) })
             )
             .catch((error) => {
-              toast("something went wrong while switching networks", {
+              toast("Something went wrong while switching networks", {
                 position: "bottom-right",
               });
-
-              console.error(error);
               return;
             });
         }
 
+        //when the user tries to refresh, show an alert
+        setEnableConfirmation(true);
+
         const { link, txReceipt } = await peanut.createLink({
           signer: signer,
           chainId: sendFormData.chainId,
-          tokenAddress: tokenAddress,
+          tokenAddress: tokenAddress ?? null,
           tokenAmount: Number(sendFormData.amount),
-          tokenType: 0,
+          tokenType: tokenType,
+          tokenDecimals: tokenDecimals,
+          verbose: true,
         });
         console.log("Created link:", link);
-
-        utils.saveToLocalStorage("link", link);
+        utils.saveToLocalStorage(address + " - " + txReceipt.hash, link);
 
         setClaimLink(link);
         setTxReceipt(txReceipt);
         setChainId(sendFormData.chainId);
 
         onNextScreen();
-      } catch (error) {
-        toast("Something failed while creating your link. Please try again", {
-          position: "bottom-right",
-        });
-        console.error(error);
+      } catch (error: any) {
+        if (error.toString().includes("insufficient funds")) {
+          toast("You don't have enough funds", {
+            position: "bottom-right",
+          });
+        } else {
+          toast("Something failed while creating your link. Please try again", {
+            position: "bottom-right",
+          });
+          console.error(error);
+        }
       } finally {
         setIsLoading(false);
+        setEnableConfirmation(false);
       }
     },
-    [signer, currentChain, userBalances, onNextScreen]
+    [signer, currentChain, userBalances, onNextScreen, isLoading, address]
   );
 
-  async function getTokenPrice(
-    tokenAddress: string,
-    chainId: number
-  ): Promise<Number | undefined> {
-    const apiUrl = `https://api.socket.tech/v2/token-price?tokenAddress=${tokenAddress}&chainId=${chainId}`;
-
-    try {
-      const response = await axios.get(apiUrl, {
-        headers: {
-          accept: "application/json",
-          "API-KEY": process.env.SOCKET_API_KEY,
-        },
-      });
-
-      if (response.status === 200) {
-        return Number(response.data.result.tokenPrice);
-      } else {
-        return undefined;
-      }
-    } catch (error) {
-      return undefined;
-    }
-  }
-
-  //if the userbalances have been updated, make sure to set the default token to the first one (which will be selected by default in the dropdown)
   useEffect(() => {
-    if (userBalances.length > 0) {
-      console.log("userBalances", userBalances);
-      sendForm.setValue("token", userBalances[0].symbol);
-      sendForm.setValue("chainId", userBalances[0].chainId);
-    }
-  }, [userBalances]);
-
-  useEffect(() => {
-    if (formwatch.chainId) {
-      //if the user changes the chain, make sure to set the default token to the first one (which will be selected by default in the dropdown) and update the signer to the new chain
-      sendForm.setValue(
-        "token",
-        userBalances.find(
-          (balance) =>
-            balance.chainId.toString() === formwatch.chainId.toString()
-        )?.symbol ?? ""
+    if (
+      supportedChainsSocketTech?.some(
+        (chain) => chain.chainId == formwatch.chainId
+      )
+    ) {
+      userBalances.some((balance) => balance.chainId == formwatch.chainId)
+        ? setTokenList(
+            userBalances
+              .filter((balance) => balance.chainId == formwatch.chainId)
+              .map((balance) => {
+                return {
+                  symbol: balance.symbol,
+                  chainId: balance.chainId,
+                  amount: balance.amount,
+                  address: balance.address,
+                  decimals: balance.decimals,
+                  logo: "",
+                };
+              })
+          )
+        : setTokenList(
+            tokenDetails
+              .filter(
+                (detail) =>
+                  detail.chainId.toString() == formwatch.chainId.toString()
+              )[0]
+              .tokens.map((token) => {
+                return {
+                  symbol: token.symbol,
+                  amount: 0,
+                  chainId: formwatch.chainId,
+                  address: token.address,
+                  decimals: token.decimals,
+                  logo: token.logoURI ?? "",
+                };
+              })
+          );
+    } else {
+      setTokenList(
+        tokenDetails
+          .filter(
+            (detail) =>
+              detail.chainId.toString() == formwatch.chainId.toString()
+          )[0]
+          .tokens.map((token) => {
+            return {
+              symbol: token.symbol,
+              amount: 0,
+              chainId: formwatch.chainId,
+              address: token.address,
+              decimals: token.decimals,
+              logo: token.logoURI ?? "",
+            };
+          })
       );
-      getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
     }
-  }, [formwatch.chainId]);
+  }, [formwatch.chainId, userBalances, supportedChainsSocketTech]);
+
+  const customChainOption = ({
+    value,
+    label,
+    logoUri,
+  }: {
+    value: number;
+    label: string;
+    logoUri: string;
+  }) => (
+    <div>
+      {/* <img src={logoUri} className="w-6 h-6 inline-block mr-2" /> */}
+      <span>{label}</span>
+    </div>
+  );
+
+  const customTokenOption = ({
+    value,
+    label,
+    logoUri,
+    amount,
+  }: {
+    value: string;
+    label: string;
+    logoUri: string;
+    amount: number;
+  }) => (
+    <div className="flex flex-row gap-2 align-center ">
+      {/* <img src={logoUri ?? ""} /> */}
+      {value}
+
+      {amount > 0 && " - " + Math.round(amount * 10000) / 10000}
+    </div>
+  );
 
   useEffect(() => {
-    if (formwatch.token) {
-      getTokenPrice(
-        userBalances.find(
-          (balance) => balance.symbol.toString() === formwatch.token.toString()
-        )?.address ?? "",
-        formwatch.chainId
-      ).then((price) => {
-        console.log(price);
-
-        setSelectedTokenPrice(price);
-      });
+    if (currentChain && !formHasBeenTouched) {
+      sendForm.setValue("chainId", currentChain.id);
     }
-  }, [formwatch.token]);
+  }, [currentChain]);
+
+  useEffect(() => {
+    if (formwatch.chainId != prevChainId) {
+      setPrevChainId(formwatch.chainId);
+      sendForm.setValue("token", "");
+
+      //wait for the wallet to connect
+      setTimeout(() => {
+        getWalletClientAndUpdateSigner({ chainId: formwatch.chainId });
+      }, 2000);
+    }
+  }, [formwatch.chainId, isConnected]);
 
   return (
     <>
@@ -273,94 +419,104 @@ export function SendInitialView({
         <div className="flex w-full flex-col gap-5 items-center">
           <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
             <div className="relative w-full lg:max-w-sm">
-              <select
-                className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
-                {...sendForm.register("chainId")}
-              >
-                {consts.CHAIN_MAP.map((chain) =>
-                  userBalances.length > 0 ? (
-                    userBalances.some(
-                      (balance) => balance.chainId === chain.chainId
-                    ) ? (
-                      <option key={chain.name} value={chain.chainId}>
-                        {chain.name}
-                      </option>
-                    ) : null
-                  ) : (
-                    <option key={chain.name} value={chain.chainId}>
-                      {chain.name}
-                    </option>
-                  )
-                )}
-              </select>
+              <Select
+                value={{
+                  value: formwatch.chainId,
+                  label:
+                    chainDetails.find(
+                      (chain) => chain.chainId == formwatch.chainId
+                    )?.name ?? "",
+                  logoUri: "",
+                }}
+                placeholder="Select chain..."
+                styles={{
+                  control: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                    borderColor: "black !important",
+                    borderWidth: "2px",
+                  }),
+                }}
+                theme={(theme) => ({
+                  ...theme,
+                  colors: {
+                    ...theme.colors,
+                    primary25: "#23A092",
+                    primary: "black",
+                  },
+                })}
+                options={chainDetails.map((detail) => {
+                  return {
+                    value: detail.chainId,
+                    label: detail.name,
+                    logoUri: detail.hasOwnProperty("icon")
+                      ? detail.icon[0].url
+                      : "",
+                  };
+                })}
+                formatOptionLabel={customChainOption}
+                onChange={(option) => {
+                  setFormHasBeenTouched(true);
+                  if (option && option.value)
+                    sendForm.setValue("chainId", option.value);
+                }}
+              />
             </div>
             <div className="relative w-full lg:max-w-sm">
-              <select
-                className="w-full h-10 p-2.5 text-black brutalborder rounded-md shadow-sm outline-none focus:border-black appearance-none"
-                {...sendForm.register("token")}
-              >
-                {userBalances.length > 0 ? (
-                  userBalances.map((balance) =>
-                    balance.chainId.toString() ===
-                    formwatch.chainId.toString() ? (
-                      <option key={balance.symbol} value={balance.symbol}>
-                        {balance.symbol} -{" "}
-                        {Math.round(balance.amount * 10000) / 10000}
-                      </option>
-                    ) : null
-                  )
-                ) : (
-                  <option key={"ETH"} value={"ETH"}>
-                    {"ETH"}
-                  </option>
-                )}
-              </select>
+              <Select
+                value={{
+                  value: formwatch.token,
+                  label: formwatch.token,
+                  logoUri: "",
+                  amount: 0,
+                }}
+                placeholder="Select token..."
+                styles={{
+                  control: (provided) => ({
+                    ...provided,
+                    backgroundColor: "white",
+                    borderColor: "black !important",
+                    borderWidth: "2px",
+                  }),
+                }}
+                theme={(theme) => ({
+                  ...theme,
+                  colors: {
+                    ...theme.colors,
+                    primary25: "#23A092",
+                    primary: "black",
+                  },
+                })}
+                options={tokenList?.map((token) => {
+                  //@ts-ignore
+                  return {
+                    value: token.symbol,
+                    label: token.symbol,
+                    logoUri: token.logo,
+                    amount: token.amount,
+                  };
+                })}
+                formatOptionLabel={customTokenOption}
+                onChange={(option) => {
+                  setFormHasBeenTouched(true);
+                  if (option && option.value)
+                    sendForm.setValue("token", option.value);
+                }}
+              />
             </div>
           </div>
           <div className="relative w-full px-2 sm:w-3/4 ">
             <div className="absolute box-border inset-y-0 right-4 flex items-center ">
-              <span className="cursor-pointertext-lg px- ">
+              <span className="cursor-pointertext-lg h-1/2 flex align-center ">
                 <button
                   type="button"
                   className={
-                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 bg-black text-white color-white"
+                    "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-black text-white color-white h-full min-w-75 justify-center"
                   }
                 >
                   {formwatch.token}
                 </button>
               </span>
-              {/* <span className="cursor-pointertext-lg px- ">
-                <button
-                  type="button"
-                  className={
-                    (denomination == "USD"
-                      ? "bg-black text-white color-white"
-                      : "font-normal bg-white ") +
-                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4"
-                  }
-                  onClick={() => {
-                    setDenomination("USD");
-                  }}
-                >
-                  $
-                </button>
-              </span>
-              <span className="cursor-pointer text-lg pl-2 ">
-                <button
-                  type="button"
-                  className={
-                    (denomination == "TOKEN"
-                      ? "font-black bg-black text-white color-white"
-                      : "font-normal bg-white ") +
-                    "cursor-pointer relative inline-flex items-center border-2 border-black p-1 px-2 sm:p-2 sm:px-4 "
-                  }
-                  onClick={() => {
-                    setDenomination("TOKEN");
-                  }}
-                >
-                  Token
-                </button>
-              </span> */}
             </div>
             <input
               type="number"
@@ -370,26 +526,22 @@ export function SendInitialView({
               className="no-spin block w-full py-4 px-2 brutalborder   placeholder:text-lg placeholder:text-black placeholder:font-bold font-bold text-lg outline-none appearance-none "
               placeholder="0.00"
               aria-describedby="price-currency"
-              {...sendForm.register("amount")}
+              {...(sendForm.register("amount"),
+              {
+                onChange: (e) => {
+                  sendForm.setValue("amount", Number(e.target.value));
+                  setFormHasBeenTouched(true);
+                },
+              })}
             />
           </div>
 
-          <div className="relative w-full px-2 sm:w-3/4">
-            {Number(selectedTokenPrice) > 0 &&
-              Number(selectedTokenPrice) * formwatch.amount > 0 && (
-                <span>
-                  {Math.floor(
-                    Number(selectedTokenPrice) * formwatch.amount * 1000
-                  ) / 1000}{" "}
-                  USD
-                </span>
-              )}
-          </div>
           <button
             type={isConnected ? "submit" : "button"}
             className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
             id="cta-btn"
             onClick={!isConnected ? open : undefined}
+            disabled={isLoading ? true : false}
           >
             {isLoading ? (
               <div role="status">
@@ -430,7 +582,7 @@ export function SendInitialView({
       </div>
       <img
         src={peanutman_presenting.src}
-        className="w-1/3 scale-100 absolute -bottom-48 -left-12"
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
         id="peanutman-presenting"
       />
     </>

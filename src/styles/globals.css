@@ -16,6 +16,15 @@
   }
 }
 
+html,
+body {
+  width: 100%;
+  height: 100%;
+  margin: 0px;
+  padding: 0px;
+  overflow-x: hidden;
+}
+
 body {
   color: rgb(var(--foreground-rgb));
   background: linear-gradient(
@@ -56,6 +65,9 @@ body {
 .brutalborder-left {
   border-left-style: solid;
 }
+.brutalborder-bottom {
+  border-bottom-style: solid;
+}
 
 /* replace cta-btn id with rainbow border in html if not CTA at some point @konrad */
 #cta-btn {
@@ -63,6 +75,7 @@ body {
   padding: 1rem;
   transition: box-shadow 1s ease-in-out, border-radius 1s ease-in-out;
   box-shadow: 0.5rem 0.5rem 0 0px #000;
+  color: #000;
 }
 
 #cta-btn:hover {

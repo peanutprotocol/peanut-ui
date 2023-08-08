@@ -4,9 +4,10 @@ import QRCode from "react-qr-code";
 import clipboard_svg from "@/assets/clipboard.svg";
 import dropdown_svg from "@/assets/dropdown.svg";
 
-import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 import peanutman_cheering from "@/assets/peanutman-cheering.svg";
+import { useAtom } from "jotai";
+import * as store from "@/store/store";
 
 export function SendSuccessView({
   onCustomScreen,
@@ -17,11 +18,14 @@ export function SendSuccessView({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
 
+  const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
+
   const explorerUrlWithTx = useMemo(
     () =>
-      consts.CHAIN_MAP.find(
-        (chain) => chain.chainId == chainId && chain.explorerUrl
-      )!.explorerUrl + txReceipt?.hash,
+      chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0]
+        .url +
+      "/tx/" +
+      txReceipt?.hash,
     [txReceipt, chainId]
   );
 
@@ -30,32 +34,36 @@ export function SendSuccessView({
       <div className="text-center w-full">
         <h2 className="title-font text-5xl font-black text-black">Yay!</h2>
         <p className="mt-2 text-lg self-center">
-          {/* Add the msg here */}
           Send this link to your friend so they can claim their funds.
         </p>
-        <div className="flex w-full mx-auto brutalborder mt-4">
-          <div className="p-2 w-[90%] overflow-hidden bg-black text-white flex items-center text-lg">
+        <div className="flex w-full brutalborder mt-4 py-2 bg-black text-white relative">
+          <div className="p-2 w-[90%] overflow-hidden overflow-ellipsis break-all whitespace-nowrap bg-black text-white flex items-center text-lg">
             {claimLink}
           </div>
-
           <div
-            className="tooltip h-14 w-16  block p-2 cursor-pointer"
+            className="absolute right-0 top-0 flex justify-center items-center bg-white text-black border-none h-full min-w-32 px-1 md:px-4 cursor-pointer"
             onClick={() => {
               navigator.clipboard.writeText(claimLink);
               setIsCopied(true);
             }}
           >
             {isCopied ? (
-              <div className="flex text-base font-bold border-none bg-white cursor-pointer h-full items-center">
-                <span className="tooltiptext inline " id="myTooltip">
+              <div className="flex text-base font-bold border-none bg-white cursor-pointer h-full items-center ">
+                <span
+                  className="tooltiptext inline w-full justify-center"
+                  id="myTooltip"
+                >
                   {" "}
                   copied!{" "}
                 </span>
               </div>
             ) : (
-              <button className="text-base font-bold border-none bg-white cursor-pointer">
-                <span className="tooltiptext inline" id="myTooltip">
-                  COPY
+              <button className="text-base font-bold border-none bg-white cursor-pointer h-full gap-2 p-0 ">
+                <span
+                  className="tooltiptext inline flex items-center leading-0 gap-2 text-black"
+                  id="myTooltip"
+                >
+                  <label className="text-black">COPY</label>
                   <img
                     src={clipboard_svg.src}
                     className="h-6 "
@@ -66,6 +74,7 @@ export function SendSuccessView({
             )}
           </div>
         </div>
+
         <div
           className="cursor-pointer flex justify-center items-center mt-2"
           onClick={() => {
@@ -106,8 +115,8 @@ export function SendSuccessView({
             </div>
             <p className="tx-sm">
               <a
-                target={explorerUrlWithTx ?? ""}
-                className="text-sm text-center underline cursor-pointer "
+                href={explorerUrlWithTx ?? ""}
+                className="text-sm text-center text-black underline cursor-pointer "
               >
                 Your transaction hash
               </a>
@@ -149,7 +158,7 @@ export function SendSuccessView({
       </div>
       <img
         src={peanutman_cheering.src}
-        className="w-1/3 scale-100 absolute -bottom-24 -left-12"
+        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-64 2xl:-left-72"
         id="peanutman-presenting"
       />
     </>
