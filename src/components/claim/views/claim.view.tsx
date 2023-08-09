@@ -16,6 +16,7 @@ import tokenDetails from "@/consts/tokenDetails.json";
 
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
 import { BrowserProvider, JsonRpcSigner } from "ethers";
+import { useForm } from "react-hook-form";
 
 export function ClaimView({
   onNextScreen,
@@ -31,6 +32,14 @@ export function ClaimView({
   const { chain: currentChain } = useNetwork();
 
   const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
+
+  const manualForm = useForm<{ address: string }>({
+    mode: "onChange",
+    reValidateMode: "onChange",
+    defaultValues: {
+      address: "",
+    },
+  });
 
   function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient;
@@ -50,7 +59,6 @@ export function ClaimView({
     chainId: number;
   }) => {
     const walletClient = await getWalletClient({ chainId: Number(chainId) });
-    console.log(walletClient);
     if (walletClient) {
       const signer = walletClientToSigner(walletClient);
       setSigner(signer);
@@ -58,35 +66,69 @@ export function ClaimView({
   };
 
   const claim = async () => {
-    if (!signer) {
-      await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
-    }
-    //check if the user is on the correct chain
-    if (currentChain?.id.toString() !== claimDetails.chainId.toString()) {
-      toast("Please allow the switch to the correct network in your wallet", {
+    try {
+      setIsLoading(true);
+      if (!signer) {
+        await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
+      }
+      //check if the user is on the correct chain
+      if (currentChain?.id.toString() !== claimDetails.chainId.toString()) {
+        toast("Please allow the switch to the correct network in your wallet", {
+          position: "bottom-right",
+        });
+
+        await utils
+          .waitForPromise(
+            switchNetwork({ chainId: Number(claimDetails.chainId) })
+          )
+          .catch((error) => {
+            toast("Something went wrong while switching networks", {
+              position: "bottom-right",
+            });
+            return;
+          });
+      }
+      if (claimLink) {
+        console.log("claiming link: https://peanut.to/claim?" + claimLink);
+        const claimTx = await peanut.claimLink({
+          signer,
+          link: "https://peanut.to/claim?" + claimLink,
+        });
+        console.log(claimTx);
+        setTxHash(claimTx.hash ?? "");
+        onNextScreen();
+      }
+    } catch (error) {
+      toast("Something went wrong while claiming", {
         position: "bottom-right",
       });
-
-      await utils
-        .waitForPromise(
-          switchNetwork({ chainId: Number(claimDetails.chainId) })
-        )
-        .catch((error) => {
-          toast("Something went wrong while switching networks", {
-            position: "bottom-right",
-          });
-          return;
-        });
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
-    if (claimLink) {
-      console.log("claiming link: https://peanut.to/claim?" + claimLink);
-      const claimTx = await peanut.claimLink({
-        signer,
-        link: "https://peanut.to/claim?" + claimLink,
+  };
+
+  const manualClaim = async (data: { address: string }) => {
+    try {
+      setIsLoading(true);
+      if (claimLink && data.address) {
+        console.log("claiming link: https://peanut.to/claim?" + claimLink);
+        const claimTx = await peanut.claimLinkGasless(
+          "https://peanut.to/claim?" + claimLink,
+          data.address,
+          process.env.PEANUT_API_KEY
+        );
+        console.log(claimTx);
+        setTxHash(claimTx.hash ?? "");
+        onNextScreen();
+      }
+    } catch (error) {
+      toast("Something went wrong while claiming", {
+        position: "bottom-right",
       });
-      console.log(claimTx);
-      setTxHash(claimTx.hash ?? "");
-      onNextScreen();
+      console.error(error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -179,18 +221,19 @@ export function ClaimView({
             </span>
           </label>
 
-          <div className="mt-4 flex flex-row w-11/12 sm:w-3/4 mx-auto brutalborder">
+          <form
+            className="mt-4 flex flex-row w-11/12 sm:w-3/4 mx-auto brutalborder"
+            onSubmit={manualForm.handleSubmit(manualClaim)}
+          >
             <input
               type="text"
               className="h-4 w-full px-9 p-4 placeholder:font-light placeholder:text-xs flex-grow border-none"
               placeholder="0x6B37..."
+              {...manualForm.register("address", {
+                required: true,
+              })}
             />
-            <div
-              className="tooltip h-4 w-1/8 block p-2 cursor-pointer brutalborder-left "
-              onClick={() => {
-                setIsLoading(true);
-              }}
-            >
+            <div className="tooltip h-4 w-1/8 block p-2 cursor-pointer brutalborder-left">
               {isLoading ? (
                 <div className="flex text-base font-bold border-none bg-white cursor-pointer h-full items-center">
                   <span className="tooltiptext inline " id="myTooltip">
@@ -198,14 +241,17 @@ export function ClaimView({
                   </span>
                 </div>
               ) : (
-                <button className="flex text-base font-bold border-none bg-white cursor-pointer h-full items-center">
+                <button
+                  className="flex text-base font-bold border-none bg-white cursor-pointer h-full items-center"
+                  type="submit"
+                >
                   <span className="tooltiptext inline" id="myTooltip">
                     Claim
                   </span>
                 </button>
               )}
             </div>
-          </div>
+          </form>
 
           <div className="flex flex-row h-4 items-center mx-auto mt-2 justify-center">
             <input type="checkbox" className="h-4 w-4" />

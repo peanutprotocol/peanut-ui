@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAtom } from "jotai";
 
 import * as _consts from "../claim.consts";
@@ -6,11 +6,14 @@ import * as store from "@/store/";
 
 import dropdown_svg from "@/assets/dropdown.svg";
 import peanutman_cheering from "@/assets/peanutman-cheering.svg";
+import { useRouter } from "next/navigation";
 
 export function ClaimSuccessView({
   txHash,
   claimDetails,
 }: _consts.IClaimScreenProps) {
+  const router = useRouter();
+
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
 
@@ -22,6 +25,10 @@ export function ClaimSuccessView({
       txHash,
     [txHash, chainDetails]
   );
+
+  useEffect(() => {
+    router.prefetch("/");
+  }, []);
 
   return (
     <>
@@ -51,11 +58,7 @@ export function ClaimSuccessView({
         />
       </div>
       {isDropdownOpen && (
-        <div
-          className="sm:p-0 m-2 text-base text-center flex flex-col justify-center items-center gap-2"
-          x-cloak
-          x-show="moreInfo"
-        >
+        <div className="sm:p-0 m-2 text-base text-center flex flex-col justify-center items-center gap-2">
           <p className="m-0">
             <a
               href={explorerUrlWithTx ?? ""}
@@ -81,7 +84,9 @@ export function ClaimSuccessView({
       <button
         className="block w-full mt-4 mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
         id="cta-btn"
-        onClick={() => {}}
+        onClick={() => {
+          router.push("/");
+        }}
       >
         Send Crypto
       </button>
