@@ -34,7 +34,14 @@ export function Dashboard() {
             <tbody>
               {localStorageData.map((item) => (
                 <tr key={item.hash}>
-                  <td className="brutalborder-bottom ">{item.link}</td>
+                  <td
+                    className="brutalborder-bottom h-8 overflow-hidden overflow-ellipsis break-all whitespace-nowrap cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(item.link);
+                    }}
+                  >
+                    {item.link}
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -42,6 +49,7 @@ export function Dashboard() {
         ) : (
           "Connect your wallet to view your deposits"
         )}
+        <div className="w-full">(Click to copy)</div>
       </div>
     </global_components.CardWrapper>
   );
