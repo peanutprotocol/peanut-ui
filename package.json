@@ -19,7 +19,7 @@
     "autoprefixer": "^10.4.14",
     "axios": "^1.4.0",
     "encoding": "^0.1.13",
-    "ethers": "^6.7.0",
+    "ethers": "5.7.2",
     "jotai": "^2.2.2",
     "lokijs": "^1.5.12",
     "next": "13.4.10",

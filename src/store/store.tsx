@@ -4,8 +4,6 @@ import { useAccount } from "wagmi";
 import { useEffect } from "react";
 const peanut = require("@squirrel-labs/peanut-sdk");
 
-import { JsonRpcProvider, ethers } from "ethers";
-
 import * as interfaces from "@/interfaces";
 import * as socketTech from "@socket.tech/socket-v2-sdk";
 import axios from "axios";
@@ -15,18 +13,18 @@ export const userBalancesAtom = atom<interfaces.IUserBalance[]>([]);
 export const defaultChainDetailsAtom = atom<interfaces.IPeanutChainDetails[]>(
   []
 );
+export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>(
+  []
+);
 
 export const supportedChainsSocketTechAtom = atom<
   socketTech.ChainDetails[] | undefined
 >(undefined);
 
 export function Store({ children }: { children: React.ReactNode }) {
-  const provider = new ethers.JsonRpcProvider(
-    process.env.INFURA_GOERLI_PROVIDER_URL ?? ""
-  );
-
   const setUserBalances = useSetAtom(userBalancesAtom);
-  const [x, setDefaultChainDetails] = useAtom(defaultChainDetailsAtom);
+  const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom);
+  const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom);
   const setSupportedChainsSocketTech = useSetAtom(
     supportedChainsSocketTechAtom
   );
@@ -49,7 +47,7 @@ export function Store({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     getSupportedChainsSocketTech();
-    getPeanutChainDetails();
+    getPeanutChainAndTokenDetails();
   }, []);
 
   const getSupportedChainsSocketTech = async () => {
@@ -64,18 +62,14 @@ export function Store({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const getPeanutChainDetails = async () => {
+  const getPeanutChainAndTokenDetails = async () => {
     if (peanut) {
-      //simple filter to remove the chains that arent supported by wagmi
-      const chainsToExclude = [4, 42, 7001];
       const chainDetailsArray = Object.keys(peanut.default.CHAIN_DETAILS).map(
         (key) => peanut.default.CHAIN_DETAILS[key]
       );
-      const filteredChainDetailsArray = chainDetailsArray.filter(
-        (chain) => !chainsToExclude.includes(chain.chainId)
-      );
-
-      setDefaultChainDetails(filteredChainDetailsArray);
+      const tokenDetailsArray = peanut.default.TOKEN_DETAILS;
+      setDefaultChainDetails(chainDetailsArray);
+      setDefaultTokenDetails(tokenDetailsArray);
     }
   };
 

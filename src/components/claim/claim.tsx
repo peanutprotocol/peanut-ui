@@ -2,8 +2,16 @@ import * as global_components from "@/components/global";
 import * as views from "./views";
 import * as _consts from "./claim.consts";
 import { createElement, useEffect, useState } from "react";
+import { ReadonlyURLSearchParams } from "next/navigation";
+import { getPublicClient, PublicClient } from "@wagmi/core";
+import { providers } from "ethers";
+import { HttpTransport } from "viem";
+import { useAccount } from "wagmi";
+const peanut = require("@squirrel-labs/peanut-sdk");
 
-export function Claim({ link }: { link: string }) {
+export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
+  const { address, isConnected } = useAccount();
+
   const [linkState, setLinkState] =
     useState<_consts.linkState>("ALREADY_CLAIMED");
   const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(
@@ -33,23 +41,60 @@ export function Claim({ link }: { link: string }) {
     }));
   };
 
-  const checkLink = (link: string) => {
-    if (link.startsWith("c=")) {
-      //fetch details
-      setClaimDetails({
-        amount: 1000000,
-        tokenAddress: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-        chainId: 137,
-        decimals: 6,
-      });
-      setClaimLink(link);
-      setLinkState("CLAIM");
-    }
+  function publicClientToProvider(publicClient: PublicClient) {
+    const { chain, transport } = publicClient;
+    const network = {
+      chainId: chain.id,
+      name: chain.name,
+      ensAddress: chain.contracts?.ensRegistry?.address,
+    };
+
+    if (transport.type === "fallback")
+      return new providers.FallbackProvider(
+        (transport.transports as ReturnType<HttpTransport>[]).map(
+          ({ value }) => new providers.JsonRpcProvider(value?.url, network)
+        )
+      );
+    return new providers.JsonRpcProvider(transport.url, network);
+  }
+
+  function getEthersProvider({ chainId }: { chainId?: number } = {}) {
+    const publicClient = getPublicClient({ chainId });
+    console.log("publicClient: ", publicClient);
+    return publicClientToProvider(publicClient);
+  }
+
+  const checkLink = async (link: ReadonlyURLSearchParams) => {
+    const linkChainId = link.get("c");
+    const readableLink = link.toString();
+    const provider = getEthersProvider({ chainId: Number(linkChainId) });
+
+    console.log(
+      "getting linkdetails of link: ",
+      readableLink,
+      " with provider: ",
+      provider
+    );
+    const linkDetails = await peanut.getLinkDetails(
+      provider,
+      "https://peanut.to/claim?" + claimLink
+    );
+
+    console.log(linkDetails);
+    // if (link.startsWith("c=")) {
+    //   //fetch details
+    //   setClaimDetails({
+    //     amount: 1000000,
+    //     tokenAddress: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
+    //     chainId: 137,
+    //     decimals: 6,
+    //   });
+    //   setClaimLink(link);
+    //   setLinkState("CLAIM");
+    // }
   };
 
   useEffect(() => {
-    console.log("link changed");
-    console.log(link);
     if (link) {
       checkLink(link);
     }

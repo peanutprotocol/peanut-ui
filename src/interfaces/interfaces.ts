@@ -49,6 +49,18 @@ export interface IPeanutChainDetails {
   }[];
 }
 
+export interface IPeanutTokenDetail {
+  chainId: string;
+  name: string;
+  tokens: {
+    address: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    logoURI: string;
+  }[];
+}
+
 export interface ILocalStorageItem {
   address: string;
   hash: string;

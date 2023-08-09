@@ -12,10 +12,9 @@ import * as utils from "@/utils";
 import * as store from "@/store";
 import * as consts from "@/consts";
 import dropdown_svg from "@/assets/dropdown.svg";
-import tokenDetails from "@/consts/tokenDetails.json";
 
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
+import { providers } from "ethers";
 import { useForm } from "react-hook-form";
 
 export function ClaimView({
@@ -29,12 +28,15 @@ export function ClaimView({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
   const { chain: currentChain } = useNetwork();
+  const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom);
 
   const [loadingStates, setLoadingStates] =
     useState<consts.LoadingStates>("idle");
   const isLoading = useMemo(() => loadingStates !== "idle", [loadingStates]);
 
-  const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
+  const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(
+    undefined
+  );
 
   const manualForm = useForm<{ address: string; addressExists: boolean }>({
     mode: "onChange",
@@ -52,8 +54,8 @@ export function ClaimView({
       name: chain.name,
       ensAddress: chain.contracts?.ensRegistry?.address,
     };
-    const provider = new BrowserProvider(transport, network);
-    const signer = new JsonRpcSigner(provider, account.address);
+    const provider = new providers.Web3Provider(transport, network);
+    const signer = provider.getSigner(account.address);
     return signer;
   }
 

@@ -6,10 +6,10 @@ import { useSearchParams } from "next/navigation";
 
 export default function ClaimPage() {
   const params = useSearchParams();
-
+  console.log(params.get("c"));
   return (
     <global_components.PageWrapper>
-      <components.Claim link={params.toString()} />
+      <components.Claim link={params} />
     </global_components.PageWrapper>
   );
 }
