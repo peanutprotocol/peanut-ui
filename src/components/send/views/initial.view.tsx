@@ -337,7 +337,7 @@ export function SendInitialView({
             (detail) =>
               detail.chainId.toString() == formwatch.chainId.toString()
           )[0]
-          .tokens.map((token) => {
+          ?.tokens.map((token) => {
             return {
               symbol: token.symbol,
               amount: 0,

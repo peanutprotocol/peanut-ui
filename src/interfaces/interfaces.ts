@@ -9,12 +9,6 @@ export interface IUserBalance {
   currency: string;
 }
 
-export interface ICoingeckoToken {
-  id: string;
-  symbol: string;
-  name: string;
-}
-
 export interface IPeanutChainDetails {
   name: string;
   chain: string;

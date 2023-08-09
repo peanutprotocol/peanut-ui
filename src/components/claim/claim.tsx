@@ -69,12 +69,13 @@ export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
     const readableLink = link.toString();
     const provider = getEthersProvider({ chainId: Number(linkChainId) });
 
-    console.log(
-      "getting linkdetails of link: ",
-      readableLink,
-      " with provider: ",
-      provider
-    );
+    console.log("peanut version: ", peanut.default.version);
+    // console.log(
+    //   "getting linkdetails of link: ",
+    //   readableLink,
+    //   " with provider: ",
+    //   provider
+    // );
     const linkDetails = await peanut.getLinkDetails(
       provider,
       "https://peanut.to/claim?" + claimLink

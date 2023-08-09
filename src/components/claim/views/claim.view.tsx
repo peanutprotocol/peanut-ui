@@ -5,6 +5,8 @@ import { useAtom } from "jotai";
 import { getWalletClient, switchNetwork } from "@wagmi/core";
 const peanut = require("@squirrel-labs/peanut-sdk");
 import toast from "react-hot-toast";
+import { providers } from "ethers";
+import { useForm } from "react-hook-form";
 
 import * as global_components from "@/components/global";
 import * as _consts from "../claim.consts";
@@ -12,10 +14,7 @@ import * as utils from "@/utils";
 import * as store from "@/store";
 import * as consts from "@/consts";
 import dropdown_svg from "@/assets/dropdown.svg";
-
 import peanutman_presenting from "@/assets/peanutman-presenting.svg";
-import { providers } from "ethers";
-import { useForm } from "react-hook-form";
 
 export function ClaimView({
   onNextScreen,

@@ -4,6 +4,7 @@ import { useAccount } from "wagmi";
 import * as global_components from "@/components/global";
 import * as utils from "@/utils";
 import * as interfaces from "@/interfaces";
+
 export function Dashboard() {
   const { address, isConnected } = useAccount();
   const [localStorageData, setLocalStorageData] = useState<

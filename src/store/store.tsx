@@ -1,12 +1,11 @@
 "use client";
-import { atom, useAtom, useSetAtom } from "jotai";
+import { atom, useSetAtom } from "jotai";
 import { useAccount } from "wagmi";
 import { useEffect } from "react";
 const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as interfaces from "@/interfaces";
 import * as socketTech from "@socket.tech/socket-v2-sdk";
-import axios from "axios";
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([]);
 
