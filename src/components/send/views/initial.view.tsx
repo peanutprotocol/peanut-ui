@@ -5,13 +5,17 @@ import { useAtom } from "jotai";
 import toast from "react-hot-toast";
 import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
-import { BrowserProvider, JsonRpcSigner } from "ethers";
+// import { BrowserProvider, JsonRpcSigner } from "ethers";
+import { providers } from "ethers";
 import { Controller, useForm } from "react-hook-form";
 import axios from "axios";
 import Select from "react-select";
 import { useIsFirstRender } from "usehooks-ts";
 
-const peanut = require("@squirrel-labs/peanut-sdk");
+import peanut from "@squirrel-labs/peanut-sdk";
+console.log(peanut);
+console.log(peanut.version);
+
 
 import * as store from "@/store";
 import * as consts from "@/consts";
@@ -39,7 +43,7 @@ export function SendInitialView({
   const { open } = useWeb3Modal();
   const { isConnected, address } = useAccount();
   const { chain: currentChain } = useNetwork();
-  const [signer, setSigner] = useState<JsonRpcSigner | undefined>(undefined);
+  const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(undefined);
   const [tokenList, setTokenList] = useState<ITokenListItem[]>([]);
   const [formHasBeenTouched, setFormHasBeenTouched] = useState(false);
   const [userBalances] = useAtom(store.userBalancesAtom);
@@ -79,8 +83,9 @@ export function SendInitialView({
       name: chain.name,
       ensAddress: chain.contracts?.ensRegistry?.address,
     };
-    const provider = new BrowserProvider(transport, network);
-    const signer = new JsonRpcSigner(provider, account.address);
+    const provider = new providers.Web3Provider(transport, network);
+    // const signer = new providers.JsonRpcSigner(provider, account.address);
+    const signer = provider.getSigner();
     return signer;
   }
 

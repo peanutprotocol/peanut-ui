@@ -4,7 +4,7 @@ import { useAccount } from "wagmi";
 import { useEffect } from "react";
 const peanut = require("@squirrel-labs/peanut-sdk");
 
-import { JsonRpcProvider, ethers } from "ethers";
+import {ethers } from "ethers";
 
 import * as interfaces from "@/interfaces";
 import * as socketTech from "@socket.tech/socket-v2-sdk";
@@ -21,7 +21,7 @@ export const supportedChainsSocketTechAtom = atom<
 >(undefined);
 
 export function Store({ children }: { children: React.ReactNode }) {
-  const provider = new ethers.JsonRpcProvider(
+  const provider = new ethers.providers.JsonRpcProvider(
     process.env.INFURA_GOERLI_PROVIDER_URL ?? ""
   );
 
