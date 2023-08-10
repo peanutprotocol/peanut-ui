@@ -11,7 +11,8 @@ npm install
 ```
 
 Secondly, copy the .env.example to .env and fill in the values:
-
+there are 3 .env values: 
+you can get both WalletConnect and Socket.tech from their docs, and reach out to us for the Peanut api key. 
 ```bash
 cp .env.example .env
 ```
