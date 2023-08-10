@@ -1716,9 +1716,9 @@
     superstruct "^0.14.2"
 
 "@squirrel-labs/peanut-sdk@*":
-  version "0.0.73"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.73.tgz#05f198c5ce982b534b3f8529ad3ceb8458f203be"
-  integrity sha512-uqtqPf4PCp9XUCCUCK6jRSXlhhsU/ohzi9gzjfli2hKLLKhsvGpnGNFAbvtp9je7BA703wqVEcW3uxwdApwoaw==
+  version "0.0.74"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.74.tgz#e10599cc4855ac2bfb8dc12edca44fb71a1b1492"
+  integrity sha512-XpqpGNhg6LIb5IyCjI0bpRPiyvDa3DFOziuNOzApAD10UVPGF/YemdMgPkBUMFESQ7S/Kuo+xyS/2oeRz43u6g==
   dependencies:
     ethersv5 "npm:ethers@^5"
     isomorphic-fetch "^3.0.0"
