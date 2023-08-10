@@ -60,3 +60,16 @@ export interface ILocalStorageItem {
   hash: string;
   link: string;
 }
+
+export interface ILinkDetails {
+  link: string;
+  chainId: number;
+  depositIndex: number;
+  contractVersion: string;
+  password: string;
+  tokenType: number;
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenName: string;
+  tokenAmount: string;
+}

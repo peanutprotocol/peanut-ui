@@ -1,5 +1,5 @@
 import * as views from "./views";
-
+import * as interfaces from "@/interfaces";
 export type linkState = "CLAIM" | "NOT_FOUND" | "ALREADY_CLAIMED" | "LOADING";
 
 export type ClaimScreens = "INITIAL" | "SUCCESS";
@@ -21,7 +21,7 @@ export interface IClaimScreenProps {
   onCustomScreen: (screen: ClaimScreens) => void;
   claimLink: string;
   setClaimLink: (claimLink: string) => void;
-  claimDetails: IClaimDetails;
+  claimDetails: interfaces.ILinkDetails;
   txHash: string;
   setTxHash: (txHash: string) => void;
 }

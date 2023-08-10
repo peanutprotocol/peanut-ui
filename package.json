@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@socket.tech/socket-v2-sdk": "^1.21.8",
-    "@squirrel-labs/peanut-sdk": "0.0.74",
+    "@squirrel-labs/peanut-sdk": "0.0.76",
     "@types/node": "20.4.2",
     "@types/react": "18.2.15",
     "@types/react-dom": "18.2.7",

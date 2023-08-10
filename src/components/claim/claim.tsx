@@ -1,6 +1,7 @@
 import * as global_components from "@/components/global";
 import * as views from "./views";
 import * as _consts from "./claim.consts";
+import * as interfaces from "@/interfaces";
 import { createElement, useEffect, useState } from "react";
 import { ReadonlyURLSearchParams } from "next/navigation";
 import { getPublicClient, PublicClient } from "@wagmi/core";
@@ -11,19 +12,14 @@ const peanut = require("@squirrel-labs/peanut-sdk");
 
 export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
   const { address, isConnected } = useAccount();
-
-  const [linkState, setLinkState] =
-    useState<_consts.linkState>("ALREADY_CLAIMED");
+  const [linkState, setLinkState] = useState<_consts.linkState>("LOADING");
   const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(
     _consts.INIT_VIEW
   );
   const [claimLink, setClaimLink] = useState<string>("");
-  const [claimDetails, setClaimDetails] = useState<_consts.IClaimDetails>({
-    amount: 0,
-    tokenAddress: "",
-    chainId: 0,
-    decimals: 0,
-  });
+  const [claimDetails, setClaimDetails] = useState<
+    interfaces.ILinkDetails | undefined
+  >(undefined);
   const [txHash, setTxHash] = useState<string>("");
 
   const handleOnNext = () => {
@@ -66,37 +62,25 @@ export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
 
   const checkLink = async (link: ReadonlyURLSearchParams) => {
     const linkChainId = link.get("c");
-    const readableLink = link.toString();
+    const _link = link.toString();
+    setClaimLink(_link);
     const provider = getEthersProvider({ chainId: Number(linkChainId) });
 
-    console.log("peanut version: ", peanut.default.version);
-    // console.log(
-    //   "getting linkdetails of link: ",
-    //   readableLink,
-    //   " with provider: ",
-    //   provider
-    // );
-    const linkDetails = await peanut.getLinkDetails(
-      provider,
-      "https://peanut.to/claim?" + claimLink
-    );
-    // const x = await peanut.getLinkDetails({
-    //   signerOrProvider: provider,
-    //   link: "https://peanut.to/claim?" + claimLink,
-    // });
+    try {
+      const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(
+        provider,
+        "https://peanut.to/claim?" + _link
+      );
 
-    console.log(linkDetails);
-    // if (link.startsWith("c=")) {
-    //   //fetch details
-    //   setClaimDetails({
-    //     amount: 1000000,
-    //     tokenAddress: "0x2791bca1f2de4661ed88a30c99a7a9449aa84174",
-    //     chainId: 137,
-    //     decimals: 6,
-    //   });
-    //   setClaimLink(link);
-    //   setLinkState("CLAIM");
-    // }
+      if (Number(linkDetails.tokenAmount) <= 0) {
+        setLinkState("ALREADY_CLAIMED");
+      } else {
+        setClaimDetails(linkDetails);
+        setLinkState("CLAIM");
+      }
+    } catch (error) {
+      setLinkState("NOT_FOUND");
+    }
   };
 
   useEffect(() => {

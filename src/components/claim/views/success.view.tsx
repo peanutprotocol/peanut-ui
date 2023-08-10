@@ -59,14 +59,12 @@ export function ClaimSuccessView({
       </div>
       {isDropdownOpen && (
         <div className="sm:p-0 m-2 text-base text-center flex flex-col justify-center items-center gap-2">
-          <p className="m-0">
-            <a
-              href={explorerUrlWithTx ?? ""}
-              className="text-center text-sm underline font-bold break-all text-black cursor-pointer"
-            >
-              {txHash}
-            </a>
-          </p>
+          <a
+            href={explorerUrlWithTx ?? ""}
+            className="text-center text-sm underline font-bold break-all text-black cursor-pointer "
+          >
+            {txHash}
+          </a>
           <p className="m-0">
             <small>
               Click the confirmation above and check <b>Internal Txs</b>. It

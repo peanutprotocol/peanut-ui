@@ -73,6 +73,7 @@ export function ClaimView({
   const claim = async () => {
     try {
       setLoadingStates("checking signer...");
+      console.log(signer);
       if (!signer) {
         await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
       }
@@ -97,6 +98,7 @@ export function ClaimView({
         await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
         setLoadingStates("loading...");
       }
+      console.log(claimLink);
       if (claimLink) {
         setLoadingStates("executing transaction...");
         console.log("claiming link: https://peanut.to/claim?" + claimLink);
@@ -105,7 +107,7 @@ export function ClaimView({
           link: "https://peanut.to/claim?" + claimLink,
         });
         console.log(claimTx);
-        setTxHash(claimTx.hash ?? "");
+        setTxHash(claimTx.hash ?? claimTx.transactionHash);
         onNextScreen();
       }
     } catch (error) {
@@ -172,17 +174,7 @@ export function ClaimView({
   return (
     <>
       <h2 className="my-2 text-3xl lg:text-6xl mb-0 font-black">
-        Claim{" "}
-        {utils.formatAmountWithDecimals({
-          amount: claimDetails.amount,
-          decimals: claimDetails.decimals,
-        })}{" "}
-        {
-          tokenDetails
-            .find((detail) => Number(detail.chainId) == claimDetails.chainId)
-            ?.tokens.find((token) => token.address == claimDetails.tokenAddress)
-            ?.symbol
-        }
+        Claim {claimDetails.tokenAmount} {claimDetails.tokenSymbol}
       </h2>
       <h3 className="text-md sm:text-lg lg:text-xl mb-8 text-center">
         {chainDetails &&
