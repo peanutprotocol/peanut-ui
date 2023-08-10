@@ -80,6 +80,10 @@ export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
       provider,
       "https://peanut.to/claim?" + claimLink
     );
+    // const x = await peanut.getLinkDetails({
+    //   signerOrProvider: provider,
+    //   link: "https://peanut.to/claim?" + claimLink,
+    // });
 
     console.log(linkDetails);
     // if (link.startsWith("c=")) {
