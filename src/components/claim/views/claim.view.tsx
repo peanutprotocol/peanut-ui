@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { WalletClient, useAccount, useNetwork } from "wagmi";
 import { useAtom } from "jotai";
 import { getWalletClient, switchNetwork } from "@wagmi/core";
-const peanut = require("@squirrel-labs/peanut-sdk");
+import peanut from "@squirrel-labs/peanut-sdk";
 import toast from "react-hot-toast";
 import { providers } from "ethers";
 import { useForm } from "react-hook-form";

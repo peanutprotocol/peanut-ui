@@ -10,9 +10,6 @@ import { useForm } from "react-hook-form";
 import Select from "react-select";
 
 import peanut from "@squirrel-labs/peanut-sdk";
-console.log(peanut);
-console.log(peanut.version);
-
 
 import * as store from "@/store";
 import * as consts from "@/consts";

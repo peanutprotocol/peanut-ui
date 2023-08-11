@@ -8,7 +8,7 @@ import { getPublicClient, PublicClient } from "@wagmi/core";
 import { providers } from "ethers";
 import { HttpTransport } from "viem";
 import { useAccount } from "wagmi";
-const peanut = require("@squirrel-labs/peanut-sdk");
+import peanut from "@squirrel-labs/peanut-sdk";
 
 export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
   const { address, isConnected } = useAccount();
