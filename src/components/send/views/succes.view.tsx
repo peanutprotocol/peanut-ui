@@ -1,13 +1,12 @@
 import { useMemo, useState } from "react";
 import QRCode from "react-qr-code";
 
-import clipboard_svg from "@/assets/clipboard.svg";
 import dropdown_svg from "@/assets/dropdown.svg";
 
 import * as _consts from "../send.consts";
-import peanutman_cheering from "@/assets/peanutman-cheering.svg";
 import { useAtom } from "jotai";
 import * as store from "@/store/store";
+import * as global_components from "@/components/global";
 
 export function SendSuccessView({
   onCustomScreen,
@@ -31,12 +30,12 @@ export function SendSuccessView({
 
   return (
     <>
-      <div className="text-center w-full">
+      <div className="text-center w-full flex flex-col items-center ">
         <h2 className="title-font text-5xl font-black text-black">Yay!</h2>
         <p className="mt-2 text-lg self-center">
           Send this link to your friend so they can claim their funds.
         </p>
-        <div className="flex w-full brutalborder mt-4 py-2 bg-black text-white relative">
+        <div className="flex w-4/5 items-center brutalborder mt-4 py-2 bg-black text-white relative ">
           <div className="p-2 w-[90%] overflow-hidden overflow-ellipsis break-all whitespace-nowrap bg-black text-white flex items-center text-lg">
             {claimLink}
           </div>
@@ -64,11 +63,6 @@ export function SendSuccessView({
                   id="myTooltip"
                 >
                   <label className="text-black">COPY</label>
-                  <img
-                    src={clipboard_svg.src}
-                    className="h-6 "
-                    alt="clipboard"
-                  />
                 </span>
               </button>
             )}
@@ -156,11 +150,8 @@ export function SendSuccessView({
           !
         </p>
       </div>
-      <img
-        src={peanutman_cheering.src}
-        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-64 2xl:-left-72"
-        id="peanutman-presenting"
-      />
+
+      <global_components.PeanutMan type="presenting" />
     </>
   );
 }

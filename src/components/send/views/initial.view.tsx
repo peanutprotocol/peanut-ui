@@ -16,9 +16,7 @@ import * as consts from "@/consts";
 import * as _consts from "../send.consts";
 import * as utils from "@/utils";
 import * as hooks from "@/hooks";
-
-import peanutman_presenting from "@/assets/peanutman-presenting.svg";
-
+import * as global_components from "@/components/global";
 interface ISendFormData {
   chainId: number;
   token: string;
@@ -247,7 +245,7 @@ export function SendInitialView({
               });
               return;
             });
-          setLoadingStates("processing network switch...");
+          setLoadingStates("switching network...");
           await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
           setLoadingStates("loading...");
         }
@@ -293,63 +291,83 @@ export function SendInitialView({
   );
 
   useEffect(() => {
-    if (
-      supportedChainsSocketTech?.some(
-        (chain) => chain.chainId == formwatch.chainId
-      )
-    ) {
-      userBalances.some((balance) => balance.chainId == formwatch.chainId)
-        ? setTokenList(
-            userBalances
-              .filter((balance) => balance.chainId == formwatch.chainId)
-              .map((balance) => {
-                return {
-                  symbol: balance.symbol,
-                  chainId: balance.chainId,
-                  amount: balance.amount,
-                  address: balance.address,
-                  decimals: balance.decimals,
-                  logo: "",
-                };
-              })
-          )
-        : setTokenList(
-            tokenDetails
-              .filter(
-                (detail) =>
-                  detail.chainId.toString() == formwatch.chainId.toString()
-              )[0]
-              .tokens.map((token) => {
-                return {
-                  symbol: token.symbol,
-                  amount: 0,
-                  chainId: formwatch.chainId,
-                  address: token.address,
-                  decimals: token.decimals,
-                  logo: token.logoURI ?? "",
-                };
-              })
-          );
-    } else {
-      setTokenList(
-        tokenDetails
-          .filter(
-            (detail) =>
-              detail.chainId.toString() == formwatch.chainId.toString()
-          )[0]
-          ?.tokens.map((token) => {
-            return {
-              symbol: token.symbol,
-              amount: 0,
-              chainId: formwatch.chainId,
-              address: token.address,
-              decimals: token.decimals,
-              logo: token.logoURI ?? "",
-            };
-          })
-      );
-    }
+    userBalances.some((balance) => balance.chainId == formwatch.chainId)
+      ? setTokenList(
+          userBalances
+            .filter((balance) => balance.chainId == formwatch.chainId)
+            .map((balance) => {
+              return {
+                symbol: balance.symbol,
+                chainId: balance.chainId,
+                amount: balance.amount,
+                address: balance.address,
+                decimals: balance.decimals,
+                logo: "",
+              };
+            })
+        )
+      : setTokenList([]);
   }, [formwatch.chainId, userBalances, supportedChainsSocketTech]);
+
+  // use this useEffect if you want to populate the tokendropdown with a lot of tokens. This is not recommended bc heavy af
+  // useEffect(() => {
+  //   if (
+  //     supportedChainsSocketTech?.some(
+  //       (chain) => chain.chainId == formwatch.chainId
+  //     )
+  //   ) {
+  //     userBalances.some((balance) => balance.chainId == formwatch.chainId)
+  //       ? setTokenList(
+  //           userBalances
+  //             .filter((balance) => balance.chainId == formwatch.chainId)
+  //             .map((balance) => {
+  //               return {
+  //                 symbol: balance.symbol,
+  //                 chainId: balance.chainId,
+  //                 amount: balance.amount,
+  //                 address: balance.address,
+  //                 decimals: balance.decimals,
+  //                 logo: "",
+  //               };
+  //             })
+  //         )
+  //       : setTokenList(
+  //           tokenDetails
+  //             .filter(
+  //               (detail) =>
+  //                 detail.chainId.toString() == formwatch.chainId.toString()
+  //             )[0]
+  //             .tokens.map((token) => {
+  //               return {
+  //                 symbol: token.symbol,
+  //                 amount: 0,
+  //                 chainId: formwatch.chainId,
+  //                 address: token.address,
+  //                 decimals: token.decimals,
+  //                 logo: token.logoURI ?? "",
+  //               };
+  //             })
+  //         );
+  //   } else {
+  //     setTokenList(
+  //       tokenDetails
+  //         .filter(
+  //           (detail) =>
+  //             detail.chainId.toString() == formwatch.chainId.toString()
+  //         )[0]
+  //         ?.tokens.map((token) => {
+  //           return {
+  //             symbol: token.symbol,
+  //             amount: 0,
+  //             chainId: formwatch.chainId,
+  //             address: token.address,
+  //             decimals: token.decimals,
+  //             logo: token.logoURI ?? "",
+  //           };
+  //         })
+  //     );
+  //   }
+  // }, [formwatch.chainId, userBalances, supportedChainsSocketTech]);
 
   const customChainOption = ({
     value,
@@ -426,6 +444,7 @@ export function SendInitialView({
           <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
             <div className="relative w-full lg:max-w-sm">
               <Select
+                noOptionsMessage={() => "no chains found"}
                 value={{
                   value: formwatch.chainId,
                   label:
@@ -468,6 +487,7 @@ export function SendInitialView({
             </div>
             <div className="relative w-full lg:max-w-sm">
               <Select
+                noOptionsMessage={() => "No tokens found"}
                 value={{
                   value: formwatch.token,
                   label: formwatch.token,
@@ -507,18 +527,21 @@ export function SendInitialView({
             </div>
           </div>
           <div className="relative w-full px-2 sm:w-3/4 ">
-            <div className="absolute box-border inset-y-0 right-4 flex items-center ">
-              <span className="cursor-pointertext-lg h-1/2 flex align-center ">
-                <button
-                  type="button"
-                  className={
-                    "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-black text-white color-white h-full min-w-75 justify-center"
-                  }
-                >
-                  {formwatch.token}
-                </button>
-              </span>
-            </div>
+            {formwatch.token && (
+              <div className="absolute box-border inset-y-0 right-4 flex items-center ">
+                <span className="cursor-pointertext-lg h-1/2 flex align-center ">
+                  <button
+                    type="button"
+                    className={
+                      "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-black text-white color-white h-full min-w-75 justify-center"
+                    }
+                  >
+                    {formwatch.token}
+                  </button>
+                </span>
+              </div>
+            )}
+
             <input
               type="number"
               step="any"
@@ -561,11 +584,8 @@ export function SendInitialView({
           !
         </h4>
       </div>
-      <img
-        src={peanutman_presenting.src}
-        className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
-        id="peanutman-presenting"
-      />
+
+      <global_components.PeanutMan type="presenting" />
     </>
   );
 }

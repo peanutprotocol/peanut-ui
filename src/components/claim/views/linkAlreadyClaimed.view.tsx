@@ -1,7 +1,6 @@
-import peanutman_sad from "@/assets/peanutman-sad.svg";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-
+import * as global_components from "@/components/global";
 export function ClaimLinkAlreadyClaimedView() {
   const router = useRouter();
 
@@ -40,13 +39,8 @@ export function ClaimLinkAlreadyClaimedView() {
         </a>
         !
       </p>
-      <img
-        src={peanutman_sad.src}
-        className="w-1/3 scale-100 absolute z-index-100 -bottom-32 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
-        id="peanutman-presenting"
-      />
+
+      <global_components.PeanutMan type="sad" />
     </>
   );
 }
-
-//todo: add peanutman

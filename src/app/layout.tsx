@@ -35,8 +35,11 @@ export default function RootLayout({
           ethereumClient={config.ethereumClient}
           themeMode="dark"
           themeVariables={{
-            "--w3m-accent-color": "#F1F333", // accent color of the wc modal (text and logo ie) change to whatever you think looks good
-            "--w3m-background-color": "#F1F333", //top color of the wc modal, change to whatever you think looks good
+            "--w3m-accent-color": "white",
+            "--w3m-background-color": "white",
+            "--w3m-accent-fill-color": "black",
+            "--w3m-container-border-radius": "0px",
+            "--w3m-background-border-radius": "0px",
           }}
         />
       </body>

@@ -14,7 +14,6 @@ import * as utils from "@/utils";
 import * as store from "@/store";
 import * as consts from "@/consts";
 import dropdown_svg from "@/assets/dropdown.svg";
-import peanutman_presenting from "@/assets/peanutman-presenting.svg";
 
 export function ClaimView({
   onNextScreen,
@@ -93,7 +92,7 @@ export function ClaimView({
             });
             return;
           });
-        setLoadingStates("processing network switch...");
+        setLoadingStates("switching network...");
         await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
         setLoadingStates("loading...");
       }
@@ -270,11 +269,8 @@ export function ClaimView({
         </a>
         !
       </p>
-      <img
-        src={peanutman_presenting.src}
-        className="w-1/3 scale-100 absolute z-index-100 -bottom-32 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
-        id="peanutman-presenting"
-      />
+
+      <global_components.PeanutMan type="presenting" />
     </>
   );
 }

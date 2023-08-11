@@ -3,6 +3,6 @@ export type LoadingStates =
   | "loading..."
   | "executing transaction..."
   | "allow network switch..."
-  | "processing network switch..."
+  | "switching network..."
   | "checking signer..."
   | "checking inputs...";

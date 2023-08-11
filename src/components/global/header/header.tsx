@@ -9,7 +9,7 @@ import * as utils from "@/utils";
 import peanut_logo from "@/assets/peanutman-logo.svg";
 import smiley from "@/assets/smiley.svg";
 
-export function Header() {
+export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
   const { address, isConnected } = useAccount();
 
   const { open } = useWeb3Modal();
@@ -57,26 +57,27 @@ export function Header() {
           </button>
         </div>
       </nav>
-      <global_components.MarqueeWrapper
-        backgroundColor="bg-fuchsia"
-        onClick={() => {
-          window.open(
-            "https://peanutprotocol.notion.site/Send-Tokens-via-Link-Peanut-Link-SDK-1-0-9a89ea726b754a1c9f7e012125a01a85"
-          );
-        }}
-      >
-        <>
-          <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2">
-            new sdk
-          </div>
-          {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
-          <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-          <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2">
-            click here
-          </div>
-          <img src={smiley.src} alt="logo" className="h-5 mr-1 md:h-8" />
-        </>
-      </global_components.MarqueeWrapper>
+      {showMarquee && (
+        <global_components.MarqueeWrapper
+          backgroundColor="bg-fuchsia"
+          onClick={() => {
+            window.open(
+              "https://peanutprotocol.notion.site/Send-Tokens-via-Link-Peanut-Link-SDK-1-0-9a89ea726b754a1c9f7e012125a01a85"
+            );
+          }}
+        >
+          <>
+            <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2">
+              new sdk
+            </div>
+            <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+            <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2">
+              click here
+            </div>
+            <img src={smiley.src} alt="logo" className="h-5 mr-1 md:h-8" />
+          </>
+        </global_components.MarqueeWrapper>
+      )}
     </div>
   );
 }
