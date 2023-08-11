@@ -2,8 +2,7 @@
 import { atom, useSetAtom } from "jotai";
 import { useAccount } from "wagmi";
 import { useEffect } from "react";
-import peanut from "@squirrel-labs/peanut-sdk";
-
+const peanut = require("@squirrel-labs/peanut-sdk");
 import * as interfaces from "@/interfaces";
 import * as socketTech from "@socket.tech/socket-v2-sdk";
 

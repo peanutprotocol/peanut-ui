@@ -9,7 +9,7 @@ import { providers } from "ethers";
 import { useForm } from "react-hook-form";
 import Select from "react-select";
 
-import peanut from "@squirrel-labs/peanut-sdk";
+const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
 import * as consts from "@/consts";
