@@ -9,12 +9,6 @@ export interface IUserBalance {
   currency: string;
 }
 
-export interface ICoingeckoToken {
-  id: string;
-  symbol: string;
-  name: string;
-}
-
 export interface IPeanutChainDetails {
   name: string;
   chain: string;
@@ -49,8 +43,33 @@ export interface IPeanutChainDetails {
   }[];
 }
 
+export interface IPeanutTokenDetail {
+  chainId: string;
+  name: string;
+  tokens: {
+    address: string;
+    name: string;
+    symbol: string;
+    decimals: number;
+    logoURI: string;
+  }[];
+}
+
 export interface ILocalStorageItem {
   address: string;
   hash: string;
   link: string;
+}
+
+export interface ILinkDetails {
+  link: string;
+  chainId: number;
+  depositIndex: number;
+  contractVersion: string;
+  password: string;
+  tokenType: number;
+  tokenAddress: string;
+  tokenSymbol: string;
+  tokenName: string;
+  tokenAmount: string;
 }

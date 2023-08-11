@@ -1,7 +1,13 @@
 "use client";
-
 import * as global_components from "@/components/global";
+import * as components from "@/components";
+import { useSearchParams } from "next/navigation";
 
 export default function ClaimPage() {
-  return <global_components.PageWrapper>xx</global_components.PageWrapper>;
+  const params = useSearchParams();
+  return (
+    <global_components.PageWrapper>
+      <components.Claim link={params} />
+    </global_components.PageWrapper>
+  );
 }

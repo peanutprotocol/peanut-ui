@@ -1,5 +1,3 @@
-// useConfirmRefresh.ts
-
 import { useEffect } from "react";
 
 export const useConfirmRefresh = (enable: boolean) => {

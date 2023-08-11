@@ -40,17 +40,6 @@ export const saveToLocalStorage = (key: string, data: any) => {
   }
 };
 
-export const getFromLocalStorage = (key: string) => {
-  try {
-    // Retrieve the data from localStorage and parse it back to its original form
-    const serializedData = localStorage.getItem(key);
-    return serializedData ? JSON.parse(serializedData) : null;
-  } catch (error) {
-    console.error("Error getting data from localStorage:", error);
-    return null;
-  }
-};
-
 export const getAllLinksFromLocalStorage = ({
   address,
 }: {
@@ -79,3 +68,23 @@ export const getAllLinksFromLocalStorage = ({
     console.error("Error getting data from localStorage:", error);
   }
 };
+
+export function formatAmountWithDecimals({
+  amount,
+  decimals,
+}: {
+  amount: number;
+  decimals: number;
+}) {
+  const divider = 10 ** decimals;
+  const formattedAmount = amount / divider;
+  return formattedAmount;
+}
+
+export function formatAmount(amount: number) {
+  return amount.toFixed(2);
+}
+
+export function formatTokenAmount(amount: number) {
+  return amount.toFixed(4);
+}

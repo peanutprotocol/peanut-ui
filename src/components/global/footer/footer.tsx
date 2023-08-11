@@ -1,5 +1,5 @@
 import Link from "next/link";
-import smiley from "@/assets/black-smiling-face.png";
+import smiley from "@/assets/smiley.svg";
 
 import * as global_components from "@/components/global";
 // You can find all social and other links in this const file.
@@ -9,7 +9,7 @@ export function Footer() {
   return (
     <div>
       <global_components.MarqueeWrapper backgroundColor="bg-black">
-        <div className="italic text-center uppercase mr-2 text-base md:text-4xl md:py-4 py-2 ">
+        <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2 ">
           smiles
         </div>
         {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
