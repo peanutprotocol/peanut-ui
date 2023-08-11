@@ -441,16 +441,14 @@ export function SendInitialView({
                     backgroundColor: "white",
                     borderColor: "black !important",
                     borderWidth: "2px",
+                    borderRadius: "0px",
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isFocused ? "black" : "white",
+                    color: state.isFocused ? "white" : "black",
                   }),
                 }}
-                theme={(theme) => ({
-                  ...theme,
-                  colors: {
-                    ...theme.colors,
-                    primary25: "#23A092",
-                    primary: "black",
-                  },
-                })}
                 options={chainDetails.map((detail) => {
                   return {
                     value: detail.chainId,
@@ -483,18 +481,15 @@ export function SendInitialView({
                     backgroundColor: "white",
                     borderColor: "black !important",
                     borderWidth: "2px",
+                    borderRadius: "0px",
+                  }),
+                  option: (provided, state) => ({
+                    ...provided,
+                    backgroundColor: state.isFocused ? "black" : "white",
+                    color: state.isFocused ? "white" : "black",
                   }),
                 }}
-                theme={(theme) => ({
-                  ...theme,
-                  colors: {
-                    ...theme.colors,
-                    primary25: "#23A092",
-                    primary: "black",
-                  },
-                })}
                 options={tokenList?.map((token) => {
-                  //@ts-ignore
                   return {
                     value: token.symbol,
                     label: token.symbol,
@@ -529,7 +524,7 @@ export function SendInitialView({
               step="any"
               min="0"
               autoComplete="off"
-              className="no-spin block w-full py-4 px-2 brutalborder   placeholder:text-lg placeholder:text-black placeholder:font-bold font-bold text-lg outline-none appearance-none "
+              className="no-spin block w-full py-4 px-2 brutalborder pl-4 placeholder:text-lg placeholder:text-black placeholder:font-bold font-bold text-lg outline-none appearance-none "
               placeholder="0.00"
               aria-describedby="price-currency"
               {...(sendForm.register("amount"),

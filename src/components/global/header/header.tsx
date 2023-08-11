@@ -7,7 +7,7 @@ import * as global_components from "@/components/global";
 import * as utils from "@/utils";
 
 import peanut_logo from "@/assets/peanutman-logo.svg";
-import smiley from "@/assets/black-smiling-face.png";
+import smiley from "@/assets/smiley.svg";
 
 export function Header() {
   const { address, isConnected } = useAccount();
@@ -66,12 +66,12 @@ export function Header() {
         }}
       >
         <>
-          <div className="italic text-center uppercase mr-2 text-base md:text-4xl md:py-4 py-2">
+          <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2">
             new sdk
           </div>
           {/* replaced the smiley emoticon with an actual svg, this makes it the same on every device (android, ios, mac, windows ...) */}
           <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-          <div className="italic text-center uppercase mr-2 text-base md:text-4xl md:py-4 py-2">
+          <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2">
             click here
           </div>
           <img src={smiley.src} alt="logo" className="h-5 mr-1 md:h-8" />

@@ -56,7 +56,6 @@ export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
 
   function getEthersProvider({ chainId }: { chainId?: number } = {}) {
     const publicClient = getPublicClient({ chainId });
-    console.log("publicClient: ", publicClient);
     return publicClientToProvider(publicClient);
   }
 

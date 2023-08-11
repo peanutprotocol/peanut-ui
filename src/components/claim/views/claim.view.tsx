@@ -73,7 +73,6 @@ export function ClaimView({
   const claim = async () => {
     try {
       setLoadingStates("checking signer...");
-      console.log(signer);
       if (!signer) {
         await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
       }
@@ -98,7 +97,6 @@ export function ClaimView({
         await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
         setLoadingStates("loading...");
       }
-      console.log(claimLink);
       if (claimLink) {
         setLoadingStates("executing transaction...");
         console.log("claiming link: https://peanut.to/claim?" + claimLink);
@@ -106,7 +104,6 @@ export function ClaimView({
           signer,
           link: "https://peanut.to/claim?" + claimLink,
         });
-        console.log(claimTx);
         setTxHash(claimTx.hash ?? claimTx.transactionHash);
         onNextScreen();
       }
@@ -125,7 +122,6 @@ export function ClaimView({
     addressExists: boolean;
   }) => {
     try {
-      console.log(data.addressExists);
       if (!data.addressExists) {
         toast(
           "Please check the box to confirm that the address exists on the chain",
@@ -143,7 +139,6 @@ export function ClaimView({
           data.address,
           process.env.PEANUT_API_KEY
         );
-        console.log(claimTx);
         if (claimTx.includes("status: 500")) {
           throw new Error(
             "Something went wrong while claiming, HTTP error status 500"
@@ -174,9 +169,10 @@ export function ClaimView({
   return (
     <>
       <h2 className="my-2 text-3xl lg:text-6xl mb-0 font-black">
-        Claim {claimDetails.tokenAmount} {claimDetails.tokenSymbol}
+        Claim {utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{" "}
+        {claimDetails.tokenSymbol}
       </h2>
-      <h3 className="text-md sm:text-lg lg:text-xl mb-8 text-center">
+      <h3 className="text-md sm:text-lg lg:text-xl mb-8 text-center font-black ">
         {chainDetails &&
           chainDetails.find((chain) => chain.chainId == claimDetails.chainId)
             ?.name}
@@ -225,7 +221,7 @@ export function ClaimView({
             <div className="mt-4 flex flex-row w-11/12 sm:w-3/4 mx-auto brutalborder">
               <input
                 type="text"
-                className="h-4 w-full px-9 p-4 placeholder:font-light placeholder:text-xs flex-grow border-none"
+                className="h-4 w-full px-4 p-4 placeholder:font-light placeholder:text-xs flex-grow border-none"
                 placeholder="0x6B37..."
                 {...manualForm.register("address", {
                   required: true,

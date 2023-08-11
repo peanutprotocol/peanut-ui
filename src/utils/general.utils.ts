@@ -80,3 +80,11 @@ export function formatAmountWithDecimals({
   const formattedAmount = amount / divider;
   return formattedAmount;
 }
+
+export function formatAmount(amount: number) {
+  return amount.toFixed(2);
+}
+
+export function formatTokenAmount(amount: number) {
+  return amount.toFixed(4);
+}
