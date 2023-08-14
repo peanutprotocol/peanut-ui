@@ -8,7 +8,7 @@ export function About() {
   return (
     <div>
       <div className="bg-lightblue flex-grow">
-        <div className="brutalborder brutalshadow bg-white w-5/6 mx-auto mb-32 ">
+        <div className="brutalborder brutalshadow bg-white w-5/6 mx-auto sm:mb-16 mb-8 mt-8 sm:mt-16 ">
           <h2 className="text-black font-black text-xl lg:text-4xl px-4 mx-auto text-center">
             <p>WE MAKE TRANSFERS MAGIC </p>
           </h2>

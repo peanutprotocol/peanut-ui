@@ -24,6 +24,7 @@ export default function RootLayout({
 
   return (
     <html lang="en">
+      <title>Peanut Protocol</title>
       <body className={inter.className}>
         {ready && (
           <WagmiConfig config={config.wagmiConfig}>

@@ -37,6 +37,6 @@ export const LINKS = [
   },
   {
     name: "Jobs",
-    url: "https://www.notion.so/peanutprotocol/Work-with-Us-b351de56d92e405e962f0027b3a60f52?pvs=4",
+    url: "/jobs",
   },
 ];

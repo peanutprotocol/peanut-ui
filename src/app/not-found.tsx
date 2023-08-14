@@ -15,32 +15,36 @@ export default function NotFound() {
     <div className={inter.className}>
       <WagmiConfig config={config.wagmiConfig}>
         <global_components.PageWrapper bgColor="bg-red">
-          <div className="flex relative flex-col px-16 md:px-32 mt-64  justify-center h-full items-start font-light italic gap-2 md:gap-0">
-            <h4 className="leading-none m-0 text-sm sm:text-base md:text-lg lg:text-xl">
-              Hey there! Sorrrry.
-            </h4>
-            <h1 className="leading-none m-0 text-2xl md:text-4xl lg:text-6xl xl:text-8xl font-bold truncate">
-              404: Not Found.
-            </h1>
-            <button
-              className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-4 mb-4 font-black text-2xl cursor-pointer bg-white"
-              id="cta-btn"
-            >
-              Try Beta
-            </button>
-            <div className="text-sm lg:text-lg">
-              Hit us up on{" "}
-              <Link className="text-white" href={""}>
-                Discord
-              </Link>
-              !
+          <div className="flex flex-col sm:flex-row gap-2 px-16 md:px-32">
+            <div className="flex relative flex-col justify-center h-full items-start font-light italic gap-2 md:gap-0">
+              <h4 className="leading-none m-0 text-sm sm:text-base md:text-lg lg:text-xl">
+                Hey there! This is how we treat ur data.
+              </h4>
+              <h1 className="leading-none m-0 text-2xl md:text-4xl lg:text-6xl xl:text-8xl font-bold truncate">
+                404: Not Found.
+              </h1>
+              <button
+                className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-4 mb-4 font-black text-2xl cursor-pointer bg-white"
+                id="cta-btn"
+              >
+                Try Beta
+              </button>
+              <div className="text-sm lg:text-lg">
+                Hit us up on{" "}
+                <Link className="text-white" href={""}>
+                  Discord
+                </Link>
+                !
+              </div>
             </div>
-            <img
-              src={peanutman_sad.src}
-              // className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
-              className="w-1/2 sm:w-2/5 scale-100 absolute z-index-100 -bottom-64 left-0 sm:left-auto sm:right-16 sm:-bottom-32 -top-32 "
-              id="peanutman-presenting"
-            />
+            <div className="h-full">
+              <img
+                src={peanutman_sad.src}
+                // className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
+                className="sm:w-full scale-100 z-index-100 w-2/3 mt-16 "
+                id="peanutman-presenting"
+              />
+            </div>
           </div>
         </global_components.PageWrapper>
       </WagmiConfig>

@@ -14,7 +14,9 @@ export function PageWrapper({
   return (
     <div className="min-h-screen flex flex-col scrollbar-hide">
       <global_components.Header showMarquee={showMarquee} />
-      <div className={" min-h-screen sm:pt-24 pt-8 " + bgColor}>{children}</div>
+      <div className={" min-h-screen flex flex-col justify-center  " + bgColor}>
+        {children}
+      </div>
       <global_components.Footer showMarquee={showMarquee} />
       <Toaster />
     </div>
