@@ -5,17 +5,17 @@ import * as global_components from "@/components/global";
 // You can find all social and other links in this const file.
 import * as _consts from "./footer.consts";
 
-export function Footer({ showMarquee = true }: { showMarquee?: boolean }) {
+export function Footer({ showMarquee = false }: { showMarquee?: boolean }) {
   return (
     <div>
-      {showMarquee && (
+      {/* {showMarquee && (
         <global_components.MarqueeWrapper backgroundColor="bg-black">
           <div className="italic text-center uppercase mr-2 font-black tracking-wide md:text-4xl md:py-4 py-2 ">
             smiles
           </div>
           <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
         </global_components.MarqueeWrapper>
-      )}
+      )} */}
 
       <footer>
         <div className="my-4 tracking-widest w-full font-bold brutalborder flex flex-col space-y-4">

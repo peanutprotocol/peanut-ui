@@ -199,32 +199,32 @@ export function SendInitialView({
   const createLink = useCallback(
     async (sendFormData: ISendFormData) => {
       if (isLoading) return;
-      setLoadingStates("checking inputs...");
-
-      if (checkForm(sendFormData).succes === "false") {
-        return;
-      }
-      setEnableConfirmation(true);
-
-      const { tokenAddress, tokenDecimals, tokenType } =
-        getTokenDetails(sendFormData);
-
-      console.log(
-        "sending " +
-          sendFormData.amount +
-          " " +
-          sendFormData.token +
-          " on chain with id " +
-          sendFormData.chainId +
-          " with token address: " +
-          tokenAddress +
-          " with tokenType: " +
-          tokenType +
-          " with tokenDecimals: " +
-          tokenDecimals
-      );
-
       try {
+        setLoadingStates("checking inputs...");
+
+        if (checkForm(sendFormData).succes === "false") {
+          return;
+        }
+        setEnableConfirmation(true);
+
+        const { tokenAddress, tokenDecimals, tokenType } =
+          getTokenDetails(sendFormData);
+
+        console.log(
+          "sending " +
+            sendFormData.amount +
+            " " +
+            sendFormData.token +
+            " on chain with id " +
+            sendFormData.chainId +
+            " with token address: " +
+            tokenAddress +
+            " with tokenType: " +
+            tokenType +
+            " with tokenDecimals: " +
+            tokenDecimals
+        );
+
         setLoadingStates("allow network switch...");
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
@@ -246,7 +246,7 @@ export function SendInitialView({
               return;
             });
           setLoadingStates("switching network...");
-          await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
+          await new Promise((resolve) => setTimeout(resolve, 4000)); // wait a sec after switching chain before making other deeplink
           setLoadingStates("loading...");
         }
 
@@ -483,6 +483,7 @@ export function SendInitialView({
                   if (option && option.value)
                     sendForm.setValue("chainId", option.value);
                 }}
+                isSearchable={false}
               />
             </div>
             <div className="relative w-full lg:max-w-sm">
@@ -523,6 +524,7 @@ export function SendInitialView({
                   if (option && option.value)
                     sendForm.setValue("token", option.value);
                 }}
+                isSearchable={false}
               />
             </div>
           </div>
