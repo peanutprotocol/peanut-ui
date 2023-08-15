@@ -40,7 +40,7 @@ export function Send() {
         } as _consts.ISendScreenProps)}
       </global_components.CardWrapper>
       {sendScreen == _consts.INIT_VIEW && (
-        <global_components.CardWrapper>
+        <global_components.CardWrapper mb=" mb-8">
           <div className="mt-2 text-center text-black">
             <h2 className="title-font text-3xl lg:text-5xl font-black text-black">
               Integrate Peanut Protocol
