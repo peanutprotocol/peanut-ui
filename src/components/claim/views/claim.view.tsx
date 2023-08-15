@@ -21,7 +21,7 @@ export function ClaimView({
   claimLink,
   setTxHash,
 }: _consts.IClaimScreenProps) {
-  const { isConnected } = useAccount();
+  const { isConnected, address } = useAccount();
   const { open } = useWeb3Modal();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
@@ -71,41 +71,52 @@ export function ClaimView({
 
   const claim = async () => {
     try {
-      setLoadingStates("checking signer...");
-      if (!signer) {
-        await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
-      }
-      //check if the user is on the correct chain
-      if (currentChain?.id.toString() !== claimDetails.chainId.toString()) {
-        setLoadingStates("allow network switch...");
-        toast("Please allow the switch to the correct network in your wallet", {
-          position: "bottom-right",
-        });
-
-        await utils
-          .waitForPromise(
-            switchNetwork({ chainId: Number(claimDetails.chainId) })
-          )
-          .catch((error) => {
-            toast("Something went wrong while switching networks", {
-              position: "bottom-right",
-            });
-            return;
-          });
-        setLoadingStates("switching network...");
-        await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
-        setLoadingStates("loading...");
-      }
-      if (claimLink) {
+      if (claimLink && address) {
         setLoadingStates("executing transaction...");
         console.log("claiming link: https://peanut.to/claim?" + claimLink);
-        const claimTx = await peanut.claimLink({
-          signer,
-          link: "https://peanut.to/claim?" + claimLink,
-        });
-        setTxHash(claimTx.hash ?? claimTx.transactionHash);
+        const claimTx = await peanut.claimLinkGasless(
+          "https://peanut.to/claim?" + claimLink,
+          address,
+          process.env.PEANUT_API_KEY
+        );
+        setTxHash(claimTx.tx_hash ?? "");
         onNextScreen();
       }
+      // setLoadingStates("checking signer...");
+      // if (!signer) {
+      //   await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
+      // }
+      // //check if the user is on the correct chain
+      // if (currentChain?.id.toString() !== claimDetails.chainId.toString()) {
+      //   setLoadingStates("allow network switch...");
+      //   toast("Please allow the switch to the correct network in your wallet", {
+      //     position: "bottom-right",
+      //   });
+
+      //   await utils
+      //     .waitForPromise(
+      //       switchNetwork({ chainId: Number(claimDetails.chainId) })
+      //     )
+      //     .catch((error) => {
+      //       toast("Something went wrong while switching networks", {
+      //         position: "bottom-right",
+      //       });
+      //       return;
+      //     });
+      //   setLoadingStates("switching network...");
+      //   await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
+      //   setLoadingStates("loading...");
+      // }
+      // if (claimLink) {
+      //   setLoadingStates("executing transaction...");
+      //   console.log("claiming link: https://peanut.to/claim?" + claimLink);
+      //   const claimTx = await peanut.claimLink({
+      //     signer,
+      //     link: "https://peanut.to/claim?" + claimLink,
+      //   });
+      //   setTxHash(claimTx.hash ?? claimTx.transactionHash);
+      //   onNextScreen();
+      // }
     } catch (error) {
       toast("Something went wrong while claiming", {
         position: "bottom-right",
@@ -138,11 +149,7 @@ export function ClaimView({
           data.address,
           process.env.PEANUT_API_KEY
         );
-        if (claimTx.includes("status: 500")) {
-          throw new Error(
-            "Something went wrong while claiming, HTTP error status 500"
-          );
-        }
+
         setTxHash(claimTx.hash ?? "");
         onNextScreen();
       }
