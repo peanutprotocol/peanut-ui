@@ -30,7 +30,7 @@ export function PeanutMan({ type }: { type: string }) {
   return (
     <img
       src={peanutmanSvg.src}
-      className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
+      className="w-2/3 sm:w-1/2 scale-100 absolute z-index-100 -bottom-40 -left-32 sm:-bottom-48 sm:-left-32 md:-bottom-56 md:-left-48 2xl:-bottom-80 2xl:-left-80 2xl:-mb-24 2xl:-ml-32"
     />
   );
 }
