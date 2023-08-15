@@ -79,7 +79,10 @@ export function ClaimView({
           address,
           process.env.PEANUT_API_KEY
         );
-        setTxHash(claimTx.tx_hash ?? "");
+        console.log(claimTx);
+        setTxHash(
+          claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? ""
+        );
         onNextScreen();
       }
       // setLoadingStates("checking signer...");

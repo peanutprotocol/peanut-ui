@@ -39,41 +39,43 @@ export function Send() {
           setChainId,
         } as _consts.ISendScreenProps)}
       </global_components.CardWrapper>
-      <global_components.CardWrapper>
-        <div className="mt-2 text-center text-black">
-          <h2 className="title-font text-3xl lg:text-5xl font-black text-black">
-            Integrate Peanut Protocol
-          </h2>
+      {sendScreen == _consts.INIT_VIEW && (
+        <global_components.CardWrapper>
+          <div className="mt-2 text-center text-black">
+            <h2 className="title-font text-3xl lg:text-5xl font-black text-black">
+              Integrate Peanut Protocol
+            </h2>
 
-          <h3 className="text-lg lg:text-2xl mt-2 font-bold text-black">
-            transfer magic✨ in your own app
-          </h3>
+            <h3 className="text-lg lg:text-2xl mt-2 font-bold text-black">
+              transfer magic✨ in your own app
+            </h3>
 
-          <div className="text-base pb-8 w-11/12 lg:w-2/3 mx-auto">
-            Want the peanut magic in your own dApp? Just install our{" "}
-            <a
-              href="https://www.npmjs.com/package/@squirrel-labs/peanut-sdk"
-              className="underline text-black"
-            >
-              npm
-            </a>{" "}
-            library, and with 2 lines of code, you can create token links to
-            send any type of tokens or NFTs!
+            <div className="text-base pb-8 w-11/12 lg:w-2/3 mx-auto">
+              Want the peanut magic in your own dApp? Just install our{" "}
+              <a
+                href="https://www.npmjs.com/package/@squirrel-labs/peanut-sdk"
+                className="underline text-black"
+              >
+                npm
+              </a>{" "}
+              library, and with 2 lines of code, you can create token links to
+              send any type of tokens or NFTs!
+            </div>
+            <img src={code_snippet.src} className="w-11/12 lg:w-2/3 mx-auto" />
+
+            <div className="text-base pt-8 w-11/12 lg:w-2/3 mx-auto">
+              Read more{" "}
+              <a
+                href="https://peanutprotocol.notion.site/Developer-Documentation-b2b0720b7ca64410b468328f8fc02690"
+                target="_blank"
+                className="underline text-black"
+              >
+                here
+              </a>
+            </div>
           </div>
-          <img src={code_snippet.src} className="w-11/12 lg:w-2/3 mx-auto" />
-
-          <div className="text-base pt-8 w-11/12 lg:w-2/3 mx-auto">
-            Read more{" "}
-            <a
-              href="https://peanutprotocol.notion.site/Developer-Documentation-b2b0720b7ca64410b468328f8fc02690"
-              target="_blank"
-              className="underline text-black"
-            >
-              here
-            </a>
-          </div>
-        </div>
-      </global_components.CardWrapper>
+        </global_components.CardWrapper>
+      )}
     </>
   );
 }
