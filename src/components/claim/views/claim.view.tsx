@@ -153,7 +153,9 @@ export function ClaimView({
           process.env.PEANUT_API_KEY
         );
 
-        setTxHash(claimTx.hash ?? "");
+        setTxHash(
+          claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? ""
+        );
         onNextScreen();
       }
     } catch (error) {
@@ -177,7 +179,7 @@ export function ClaimView({
 
   return (
     <>
-      <h2 className="my-2 text-3xl lg:text-6xl mb-0 font-black">
+      <h2 className="my-2 text-3xl lg:text-6xl mb-0 font-black text-center ">
         Claim {utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{" "}
         {claimDetails.tokenSymbol}
       </h2>
