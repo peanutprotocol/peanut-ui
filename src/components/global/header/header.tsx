@@ -50,7 +50,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
           </Link>
           <button
             id="connectButton"
-            className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert h-full"
+            className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 bg-white text-black font-bold text-sm lg:text-lg hover:invert h-full md:mr-4"
             onClick={open}
           >
             {isConnected ? utils.shortenAddress(address ?? "") : "Connect"}
