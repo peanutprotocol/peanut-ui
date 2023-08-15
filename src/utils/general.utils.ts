@@ -86,5 +86,9 @@ export function formatAmount(amount: number) {
 }
 
 export function formatTokenAmount(amount: number) {
-  return amount.toFixed(4);
+  const formattedAmount = amount.toLocaleString("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 4,
+  });
+  return formattedAmount;
 }
