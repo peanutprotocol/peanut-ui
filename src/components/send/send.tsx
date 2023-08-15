@@ -40,7 +40,7 @@ export function Send() {
         } as _consts.ISendScreenProps)}
       </global_components.CardWrapper>
       <global_components.CardWrapper>
-        <div className="mt-6 text-center text-black">
+        <div className="mt-2 text-center text-black">
           <h2 className="title-font text-3xl lg:text-5xl font-black text-black">
             Integrate Peanut Protocol
           </h2>
@@ -49,7 +49,7 @@ export function Send() {
             transfer magic✨ in your own app
           </h3>
 
-          <div className="text-base p-5 px-6 w-11/12 lg:w-2/3 mx-auto">
+          <div className="text-base pb-8 w-11/12 lg:w-2/3 mx-auto">
             Want the peanut magic in your own dApp? Just install our{" "}
             <a
               href="https://www.npmjs.com/package/@squirrel-labs/peanut-sdk"
@@ -62,7 +62,7 @@ export function Send() {
           </div>
           <img src={code_snippet.src} className="w-11/12 lg:w-2/3 mx-auto" />
 
-          <div className="text-base p-5 px-6 w-11/12 lg:w-2/3 mx-auto">
+          <div className="text-base pt-8 w-11/12 lg:w-2/3 mx-auto">
             Read more{" "}
             <a
               href="https://peanutprotocol.notion.site/Developer-Documentation-b2b0720b7ca64410b468328f8fc02690"
