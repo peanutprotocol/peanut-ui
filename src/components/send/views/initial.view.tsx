@@ -483,6 +483,7 @@ export function SendInitialView({
                   if (option && option.value)
                     sendForm.setValue("chainId", option.value);
                 }}
+                isSearchable={false}
               />
             </div>
             <div className="relative w-full lg:max-w-sm">
@@ -523,6 +524,7 @@ export function SendInitialView({
                   if (option && option.value)
                     sendForm.setValue("token", option.value);
                 }}
+                isSearchable={false}
               />
             </div>
           </div>
