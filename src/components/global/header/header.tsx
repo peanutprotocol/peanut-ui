@@ -22,7 +22,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
             className="flex items-center h-full font-bold text-2xl uppercase cursor-pointer hover:bg-white hover:text-black no-underline text-white pl-2 py-2"
             href="/"
           >
-            <img src={peanut_logo.src} alt="logo" className="h-10" />
+            <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
             <span className="hidden lg:inline lg:px-6">peanut protocol</span>
           </Link>
           <Link
@@ -32,7 +32,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
             <span className="">about</span>
           </Link>
           <div
-            className="flex h-full font-bold items-center uppercase text-base cursor-pointer hover:bg-white hover:text-black no-underline text-white lg:px-8 py-2 invisible sm:visible"
+            className="h-full font-bold items-center uppercase text-base cursor-pointer hover:bg-white hover:text-black no-underline text-white lg:px-8 py-2 hidden sm:flex"
             onClick={() => {
               window.open(
                 "https://peanutprotocol.notion.site/Peanut-Protocol-5776ec3a97de4e5d972ae3f6ba7f4f04"

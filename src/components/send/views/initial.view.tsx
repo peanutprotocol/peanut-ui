@@ -246,7 +246,7 @@ export function SendInitialView({
               return;
             });
           setLoadingStates("switching network...");
-          await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
+          await new Promise((resolve) => setTimeout(resolve, 3000)); // wait a sec after switching chain before making other deeplink
           setLoadingStates("loading...");
         }
 
