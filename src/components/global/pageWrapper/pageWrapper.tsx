@@ -1,5 +1,3 @@
-import { Toaster } from "react-hot-toast";
-
 import * as global_components from "@/components/global";
 
 export function PageWrapper({
@@ -18,7 +16,6 @@ export function PageWrapper({
         {children}
       </div>
       <global_components.Footer showMarquee={showMarquee} />
-      <Toaster />
     </div>
   );
 }

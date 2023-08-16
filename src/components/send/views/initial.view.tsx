@@ -2,7 +2,6 @@ import Link from "next/link";
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
-import toast from "react-hot-toast";
 import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { providers } from "ethers";
@@ -44,7 +43,10 @@ export function SendInitialView({
   );
   const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom);
   const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined);
-
+  const [errorState, setErrorState] = useState<{
+    showError: boolean;
+    errorMessage: string;
+  }>({ showError: false, errorMessage: "" });
   const [loadingStates, setLoadingStates] =
     useState<consts.LoadingStates>("idle");
   const isLoading = useMemo(() => loadingStates !== "idle", [loadingStates]);
@@ -98,16 +100,18 @@ export function SendInitialView({
   const checkForm = (sendFormData: ISendFormData) => {
     //check that the token and chainid are defined
     if (sendFormData.chainId == null || sendFormData.token == "") {
-      toast("Please select a chain and token", {
-        position: "bottom-right",
+      setErrorState({
+        showError: true,
+        errorMessage: "Please select a chain and token",
       });
       return { succes: "false" };
     }
 
     //check if the amount is less than or equal to zero
     if (sendFormData.amount <= 0) {
-      toast("Please put an amount that is greater than zero", {
-        position: "bottom-right",
+      setErrorState({
+        showError: true,
+        errorMessage: "Please put an amount that is greater than zero",
       });
       return { succes: "false" };
     }
@@ -125,16 +129,18 @@ export function SendInitialView({
         (balance) => balance.symbol === sendFormData.token
       )?.amount;
       if (balance && sendFormData.amount > balance) {
-        toast("You don't have enough funds", {
-          position: "bottom-right",
+        setErrorState({
+          showError: true,
+          errorMessage: "You don't have enough funds",
         });
         return { succes: "false" };
       }
 
       if (!signer) {
         getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId });
-        toast("Signer undefined, please refresh", {
-          position: "bottom-right",
+        setErrorState({
+          showError: true,
+          errorMessage: "Signer undefined, please refresh",
         });
         return { succes: "false" };
       }
@@ -198,6 +204,7 @@ export function SendInitialView({
 
   const createLink = useCallback(
     async (sendFormData: ISendFormData) => {
+      setErrorState({ showError: false, errorMessage: "" });
       if (isLoading) return;
       try {
         setLoadingStates("checking inputs...");
@@ -228,20 +235,14 @@ export function SendInitialView({
         setLoadingStates("allow network switch...");
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
-          toast(
-            "Please allow the switch to the correct network in your wallet",
-            {
-              position: "bottom-right",
-            }
-          );
-
           await utils
             .waitForPromise(
               switchNetwork({ chainId: Number(sendFormData.chainId) })
             )
             .catch((error) => {
-              toast("Something went wrong while switching networks", {
-                position: "bottom-right",
+              setErrorState({
+                showError: true,
+                errorMessage: "Something went wrong while switching networks",
               });
               return;
             });
@@ -273,12 +274,15 @@ export function SendInitialView({
         onNextScreen();
       } catch (error: any) {
         if (error.toString().includes("insufficient funds")) {
-          toast("You don't have enough funds", {
-            position: "bottom-right",
+          setErrorState({
+            showError: true,
+            errorMessage: "You don't have enough funds",
           });
         } else {
-          toast("Something failed while creating your link. Please try again", {
-            position: "bottom-right",
+          setErrorState({
+            showError: true,
+            errorMessage:
+              "Something failed while creating your link. Please try again",
           });
           console.error(error);
         }
@@ -562,19 +566,34 @@ export function SendInitialView({
             />
           </div>
 
-          <button
-            type={isConnected ? "submit" : "button"}
-            className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
-            id="cta-btn"
-            onClick={!isConnected ? open : undefined}
-            disabled={isLoading ? true : false}
+          <div
+            className={
+              errorState.showError
+                ? "w-full flex flex-col items-center gap-10 my-8 mx-auto mb-0 "
+                : "w-full flex flex-col items-center my-8 mx-auto mb-14 "
+            }
           >
-            {isLoading
-              ? loadingStates
-              : isConnected
-              ? "Send"
-              : "Connect Wallet"}
-          </button>
+            <button
+              type={isConnected ? "submit" : "button"}
+              className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5  font-black text-2xl cursor-pointer bg-white"
+              id="cta-btn"
+              onClick={!isConnected ? open : undefined}
+              disabled={isLoading ? true : false}
+            >
+              {isLoading
+                ? loadingStates
+                : isConnected
+                ? "Send"
+                : "Connect Wallet"}
+            </button>
+            {errorState.showError && (
+              <div className="text-center">
+                <label className="text-red font-bold ">
+                  {errorState.errorMessage}
+                </label>
+              </div>
+            )}
+          </div>
         </div>
       </form>
       <div>
@@ -587,7 +606,7 @@ export function SendInitialView({
         </h4>
       </div>
 
-      <global_components.PeanutMan type="presenting" />
+      <global_components.PeanutMan type={"presenting"} />
     </>
   );
 }

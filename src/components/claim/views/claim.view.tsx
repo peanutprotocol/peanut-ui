@@ -4,7 +4,6 @@ import { WalletClient, useAccount, useNetwork } from "wagmi";
 import { useAtom } from "jotai";
 import { getWalletClient, switchNetwork } from "@wagmi/core";
 const peanut = require("@squirrel-labs/peanut-sdk");
-import toast from "react-hot-toast";
 import { providers } from "ethers";
 import { useForm } from "react-hook-form";
 
@@ -31,7 +30,10 @@ export function ClaimView({
   const [loadingStates, setLoadingStates] =
     useState<consts.LoadingStates>("idle");
   const isLoading = useMemo(() => loadingStates !== "idle", [loadingStates]);
-
+  const [errorState, setErrorState] = useState<{
+    showError: boolean;
+    errorMessage: string;
+  }>({ showError: false, errorMessage: "" });
   const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(
     undefined
   );
@@ -121,8 +123,9 @@ export function ClaimView({
       //   onNextScreen();
       // }
     } catch (error) {
-      toast("Something went wrong while claiming", {
-        position: "bottom-right",
+      setErrorState({
+        showError: true,
+        errorMessage: "Something went wrong while claiming",
       });
       console.error(error);
     } finally {
@@ -136,12 +139,11 @@ export function ClaimView({
   }) => {
     try {
       if (!data.addressExists) {
-        toast(
-          "Please check the box to confirm that the address exists on the chain",
-          {
-            position: "bottom-right",
-          }
-        );
+        setErrorState({
+          showError: true,
+          errorMessage:
+            "Please check the box to confirm that the address exists on the chain",
+        });
         return;
       }
       setLoadingStates("executing transaction...");
@@ -159,8 +161,9 @@ export function ClaimView({
         onNextScreen();
       }
     } catch (error) {
-      toast("Something went wrong while claiming", {
-        position: "bottom-right",
+      setErrorState({
+        showError: true,
+        errorMessage: "Something went wrong while claiming",
       });
       console.error(error);
     } finally {
@@ -190,7 +193,7 @@ export function ClaimView({
       </h3>
       <button
         type={isConnected ? "submit" : "button"}
-        className="block w-full mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
+        className="block w-full mb-6 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
         id="cta-btn"
         onClick={!isConnected ? open : claim}
         disabled={isLoading}
@@ -217,7 +220,7 @@ export function ClaimView({
         />
       </div>
       {isDropdownOpen && (
-        <global_components.CardWrapper>
+        <global_components.CardWrapper mb="mb-0">
           <label className="block text-xs font-medium text-center">
             If you can't connect, you can also write your address below <br />{" "}
             <span className="italic">
@@ -269,6 +272,13 @@ export function ClaimView({
             </div>
           </form>
         </global_components.CardWrapper>
+      )}
+      {errorState.showError && (
+        <div className="text-center">
+          <label className="text-red font-bold ">
+            {errorState.errorMessage}
+          </label>
+        </div>
       )}
       <p className="mt-4 text-xs text-center">
         Thoughts? Feedback? Use cases? Memes? Hit us up on{" "}
