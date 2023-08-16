@@ -7,8 +7,8 @@ import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { providers } from "ethers";
 import { useForm } from "react-hook-form";
-import Select from "react-select";
-
+import dropdown_svg from "@/assets/dropdown.svg";
+import peanutman_logo from "@/assets/peanutman-logo.svg";
 const peanut = require("@squirrel-labs/peanut-sdk");
 
 import * as store from "@/store";
@@ -44,6 +44,7 @@ export function SendInitialView({
   );
   const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom);
   const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined);
+  const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false);
 
   const [loadingStates, setLoadingStates] =
     useState<consts.LoadingStates>("idle");
@@ -434,14 +435,14 @@ export function SendInitialView({
           Peanut Protocol Demo
         </h3>
 
-        <div className="text-base p-5 px-6 w-11/12 lg:w-2/3 mx-auto m-0">
+        <div className="text-base w-11/12 lg:w-2/3 flex text-center w-full pb-6 mx-auto">
           Choose the chain, set the amount, confirm the transaction. You'll get
           a trustless payment link. Send it to whomever you want.
         </div>
       </div>
       <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
         <div className="flex w-full flex-col gap-5 items-center">
-          <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
+          {/* <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
             <div className="relative w-full lg:max-w-sm">
               <Select
                 noOptionsMessage={() => "no chains found"}
@@ -527,22 +528,31 @@ export function SendInitialView({
                 isSearchable={false}
               />
             </div>
-          </div>
+          </div> */}
           <div className="relative w-full px-2 sm:w-3/4 ">
-            {formwatch.token && (
-              <div className="absolute box-border inset-y-0 right-4 flex items-center ">
-                <span className="cursor-pointertext-lg h-1/2 flex align-center ">
-                  <button
-                    type="button"
-                    className={
-                      "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-black text-white color-white h-full min-w-75 justify-center"
-                    }
-                  >
-                    {formwatch.token}
-                  </button>
-                </span>
-              </div>
-            )}
+            <div className="absolute box-border inset-y-0 right-4 flex items-center ">
+              <button
+                type="button"
+                className={
+                  "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-white text-black color-white h-1/2 min-w-75 justify-center"
+                }
+                onClick={() => setIsTokenSelectorOpen(!isTokenSelectorOpen)}
+              >
+                {chainDetails.find(
+                  (chain) => chain.chainId == formwatch.chainId
+                )?.name ?? "Chain"}{" "}
+                {" | "} {formwatch.token.length > 0 ? formwatch.token : "Token"}{" "}
+                <img
+                  style={{
+                    transform: isTokenSelectorOpen ? "scaleY(-1)" : "none",
+                    transition: "transform 0.3s ease-in-out",
+                  }}
+                  src={dropdown_svg.src}
+                  alt=""
+                  className={"h-6 "}
+                />
+              </button>
+            </div>
 
             <input
               type="number"
@@ -588,6 +598,30 @@ export function SendInitialView({
       </div>
 
       <global_components.PeanutMan type="presenting" />
+      {isTokenSelectorOpen && (
+        <div className="absolute brutalborder bg-white h-1/2 w-1/2 p-4 ">
+          <div className="w-full flex flex-wrap ">
+            {chainDetails.map(
+              (chain) =>
+                chain.chainId ==
+                  userBalances.find(
+                    (balance) => balance.chainId == chain.chainId
+                  )?.chainId && (
+                  <div className="flex flex-row gap-2 align-center w-max ">
+                    <img src={peanutman_logo.src} className="h-6" />
+                    <label>
+                      {/* {userBalances.filter((balance) => balance.chainId == chain.chainId)} */}
+                    </label>
+                  </div>
+                )
+            )}
+          </div>
+          <div>
+            <input placeholder="Search" />
+          </div>
+          <div></div>
+        </div>
+      )}
     </>
   );
 }
