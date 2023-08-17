@@ -1,1 +1,1 @@
-export * from "./marqueeWrapper";
+export * from './marqueeWrapper'

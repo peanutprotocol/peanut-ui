@@ -1,46 +1,38 @@
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
-import * as global_components from "@/components/global";
+import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import * as global_components from '@/components/global'
 
 export function ClaimLinkNotFoundView() {
-  const router = useRouter();
+    const router = useRouter()
 
-  useEffect(() => {
-    router.prefetch("/");
-  }, []);
-  return (
-    <>
-      <h2 className="title-font text-2xl md:text-3xl font-black mb-0 text-center">
-        Hey there! Sorrrry.
-      </h2>
+    useEffect(() => {
+        router.prefetch('/')
+    }, [])
+    return (
+        <>
+            <h2 className="title-font mb-0 text-center text-2xl font-black md:text-3xl">Hey there! Sorrrry.</h2>
 
-      <h3 className="text-center">
-        Deposit not found. Are you sure your claiming link is correct?
-      </h3>
+            <h3 className="text-center">Deposit not found. Are you sure your claiming link is correct?</h3>
 
-      <button
-        className="block w-full mt-4 mb-4 px-2 sm:w-2/5 lg:w-1/2 p-5 mx-auto font-black text-2xl cursor-pointer bg-white"
-        id="cta-btn"
-        onClick={() => {
-          router.push("/");
-        }}
-      >
-        Send Crypto
-      </button>
+            <button
+                className="mx-auto mb-4 mt-4 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                id="cta-btn"
+                onClick={() => {
+                    router.push('/')
+                }}
+            >
+                Send Crypto
+            </button>
 
-      <p className="mt-4 text-xs text-center">
-        Thoughts? Feedback? Use cases? Memes? Hit us up on{" "}
-        <a
-          href="https://discord.gg/BX9Ak7AW28"
-          target="_blank"
-          className="underline text-black cursor-pointer"
-        >
-          Discord
-        </a>
-        !
-      </p>
+            <p className="mt-4 text-center text-xs">
+                Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
+                <a href="https://discord.gg/BX9Ak7AW28" target="_blank" className="cursor-pointer text-black underline">
+                    Discord
+                </a>
+                !
+            </p>
 
-      <global_components.PeanutMan type="sad" />
-    </>
-  );
+            <global_components.PeanutMan type="sad" />
+        </>
+    )
 }

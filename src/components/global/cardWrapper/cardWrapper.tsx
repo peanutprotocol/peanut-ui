@@ -1,19 +1,13 @@
-export function CardWrapper({
-  children,
-  mb = " mb-48",
-}: {
-  children: React.ReactNode;
-  mb?: string;
-}) {
-  return (
-    <div
-      className={
-        "flex flex-col items-center center-xy py-6 px-4 w-10/12 lg:w-2/3 xl:w-1/2 brutalborder bg-white mx-auto mt-5 text-black relative " +
-        mb
-      }
-    >
-      {" "}
-      {children}
-    </div>
-  );
+export function CardWrapper({ children, mb = ' mb-48' }: { children: React.ReactNode; mb?: string }) {
+    return (
+        <div
+            className={
+                'center-xy brutalborder relative mx-auto mt-5 flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black lg:w-2/3 xl:w-1/2 ' +
+                mb
+            }
+        >
+            {' '}
+            {children}
+        </div>
+    )
 }
