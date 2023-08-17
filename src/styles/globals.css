@@ -80,6 +80,15 @@ body {
   font-weight: 900;
 }
 
+#cta-div {
+  border: 5px solid black;
+  padding: 1rem;
+  transition: box-shadow 1s ease-in-out, border-radius 1s ease-in-out;
+  box-shadow: 0.5rem 0.5rem 0 0px #000;
+  color: #000;
+  font-weight: 900;
+}
+
 #cta-btn:hover {
   /* animation: disco 1s infinite; */
   /* background-color: #000; */

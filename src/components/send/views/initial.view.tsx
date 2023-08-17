@@ -422,114 +422,42 @@ export function SendInitialView({
     }
   }, [formwatch.chainId, isConnected]);
 
+  const [text, setText] = useState("");
+  const [textFontSize, setTextFontSize] = useState("text-6xl");
+
+  const textHandler = (text: string) => {
+    if (text.length <= 4) {
+      setTextFontSize("text-6xl");
+    } else if (text.length > 18) {
+      setTextFontSize("text-sm");
+    } else if (text.length > 14) {
+      setTextFontSize("text-md");
+    } else if (text.length > 11) {
+      setTextFontSize("text-lg");
+    } else if (text.length > 8) {
+      setTextFontSize("text-2xl");
+    } else if (text.length > 6) {
+      setTextFontSize("text-4xl");
+    } else if (text.length > 4) {
+      setTextFontSize("text-5xl");
+    }
+
+    setText(text);
+  };
+
   return (
     <>
-      <div className="mt-6 text-center  w-full flex flex-col gap-5 ">
-        <h2 className="title-font text-3xl lg:text-5xl bold m-0">
+      <div className="mt-6 mb-3 sm:mb-6 text-center  w-full flex flex-col gap-5 ">
+        <h2 className="title-font text-2xl lg:text-4xl bold m-0">
           Send crypto with a link
           <span className="text-teal font-bold text-lg lg:text-2xl ml-2">
             BETA
           </span>
         </h2>
-        <h3 className="text-lg lg:text-2xl font-bold m-0">
-          Peanut Protocol Demo
-        </h3>
-
-        <div className="text-base w-11/12 lg:w-2/3 flex text-center w-full pb-6 mx-auto">
-          Choose the chain, set the amount, confirm the transaction. You'll get
-          a trustless payment link. Send it to whomever you want.
-        </div>
       </div>
       <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
-        <div className="flex w-full flex-col gap-5 items-center">
-          {/* <div className="flex gap-2 w-full px-2 sm:w-3/4 lg:w-3/5">
-            <div className="relative w-full lg:max-w-sm">
-              <Select
-                noOptionsMessage={() => "no chains found"}
-                value={{
-                  value: formwatch.chainId,
-                  label:
-                    chainDetails.find(
-                      (chain) => chain.chainId == formwatch.chainId
-                    )?.name ?? "",
-                  logoUri: "",
-                }}
-                placeholder="Select chain..."
-                styles={{
-                  control: (provided) => ({
-                    ...provided,
-                    backgroundColor: "white",
-                    borderColor: "black !important",
-                    borderWidth: "2px",
-                    borderRadius: "0px",
-                  }),
-                  option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isFocused ? "black" : "white",
-                    color: state.isFocused ? "white" : "black",
-                  }),
-                }}
-                options={chainDetails.map((detail) => {
-                  return {
-                    value: detail.chainId,
-                    label: detail.name,
-                    logoUri: detail.hasOwnProperty("icon")
-                      ? detail.icon[0].url
-                      : "",
-                  };
-                })}
-                formatOptionLabel={customChainOption}
-                onChange={(option) => {
-                  setFormHasBeenTouched(true);
-                  if (option && option.value)
-                    sendForm.setValue("chainId", option.value);
-                }}
-                isSearchable={false}
-              />
-            </div>
-            <div className="relative w-full lg:max-w-sm">
-              <Select
-                noOptionsMessage={() => "No tokens found"}
-                value={{
-                  value: formwatch.token,
-                  label: formwatch.token,
-                  logoUri: "",
-                  amount: 0,
-                }}
-                placeholder="Select token..."
-                styles={{
-                  control: (provided) => ({
-                    ...provided,
-                    backgroundColor: "white",
-                    borderColor: "black !important",
-                    borderWidth: "2px",
-                    borderRadius: "0px",
-                  }),
-                  option: (provided, state) => ({
-                    ...provided,
-                    backgroundColor: state.isFocused ? "black" : "white",
-                    color: state.isFocused ? "white" : "black",
-                  }),
-                }}
-                options={tokenList?.map((token) => {
-                  return {
-                    value: token.symbol,
-                    label: token.symbol,
-                    logoUri: token.logo,
-                    amount: token.amount,
-                  };
-                })}
-                formatOptionLabel={customTokenOption}
-                onChange={(option) => {
-                  setFormHasBeenTouched(true);
-                  if (option && option.value)
-                    sendForm.setValue("token", option.value);
-                }}
-                isSearchable={false}
-              />
-            </div>
-          </div> */}
-          <div className="relative w-full px-2 sm:w-3/4 ">
+        <div className="flex w-full flex-col gap-0 sm:gap-5 items-center">
+          {/* <div className="relative w-full px-2 sm:w-3/4 ">
             <div className="absolute box-border inset-y-0 right-4 flex items-center ">
               <button
                 type="button"
@@ -570,11 +498,70 @@ export function SendInitialView({
                 },
               })}
             />
+          </div> */}
+          <div className="sm:w-3/4 gap-6 items-center p-4 justify-center hidden sm:flex flex-row">
+            <div className="flex flex-col gap-0 justify-end pt-2 ">
+              <div className="flex items-center h-16">
+                <label className="font-bold text-6xl">$</label>
+                <div className="w-full max-w-[160px] ">
+                  <input
+                    className={
+                      "w-full no-spin block border-none placeholder:text-black placeholder:font-black font-black tracking-wide outline-none appearance-none " +
+                      textFontSize
+                    }
+                    placeholder="0.00"
+                    onChange={(e) => {
+                      textHandler(e.target.value);
+                    }}
+                  />
+                </div>
+              </div>
+
+              <label className="text-sm font-bold pr-2 w-max self-center">
+                70.845 MATIC
+              </label>
+            </div>
+            <div
+              className="min-w-124 w-max border-solid border-4 flex flex-col !py-1 !px-8 gap-2 h-max"
+              id="cta-div"
+            >
+              <label className="font-bold text-sm">Polygon</label>{" "}
+              <label className="font-bold text-xl">MATIC</label>
+            </div>
+          </div>
+          <div className="w-full gap-6 items-center p-4 justify-center flex flex-col sm:hidden ">
+            <div
+              className="min-w-124 flex w-3/5 border-solid border-4 flex flex-col !py-1 !px-8 gap-2 h-max"
+              id="cta-div"
+            >
+              <label className="font-bold text-sm">Polygon</label>{" "}
+              <label className="font-bold text-xl">MATIC</label>
+            </div>
+            <div className="flex flex-col gap-0 justify-end pt-2 ">
+              <div className="flex items-center max-w-[280px] border border-gray-400 rounded px-2 self-end">
+                <span className={"font-bold " + textFontSize}>$</span>
+                <input
+                  type="number"
+                  className={
+                    "no-spin block w-full border-none placeholder:text-black placeholder:font-black font-black tracking-wide outline-none appearance-none " +
+                    textFontSize
+                  }
+                  placeholder="0.00"
+                  onChange={(e) => {
+                    textHandler(e.target.value);
+                  }}
+                />
+              </div>
+
+              <label className="text-sm font-bold pr-2 w-max ml-4">
+                70.845 MATIC
+              </label>
+            </div>
           </div>
 
           <button
             type={isConnected ? "submit" : "button"}
-            className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
+            className="block w-4/5 px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
             id="cta-btn"
             onClick={!isConnected ? open : undefined}
             disabled={isLoading ? true : false}
