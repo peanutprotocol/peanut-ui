@@ -534,8 +534,8 @@ export function SendInitialView({
               className="min-w-124 flex w-3/5 border-solid border-4 flex flex-col !py-1 !px-8 gap-2 h-max"
               id="cta-div"
             >
-              <label className="font-bold text-sm">Polygon</label>{" "}
-              <label className="font-bold text-xl">MATIC</label>
+              <label className="font-bold text-sm self-center">Polygon</label>{" "}
+              <label className="font-bold text-xl self-center">MATIC</label>
             </div>
             <div className="flex flex-col gap-0 justify-end pt-2 brutalborder">
               <div className="flex items-center max-w-[280px] border border-gray-400 rounded px-2 self-end ">
