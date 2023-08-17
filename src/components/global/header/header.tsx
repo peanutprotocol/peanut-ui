@@ -16,10 +16,10 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
 
   return (
     <div>
-      <nav className="relative flex flex-wrap justify-between bg-black max-h-20 mx-1 my-2">
-        <div className="flex items-center flex-grow gap-0 sm:gap-4">
+      <nav className="relative flex flex-wrap justify-between bg-black max-h-20 my-2">
+        <div className="flex items-center flex-grow">
           <Link
-            className="flex items-center h-full font-bold text-2xl uppercase cursor-pointer hover:bg-white hover:text-black no-underline text-white p-1 py-2"
+            className="flex items-center h-full font-bold text-2xl ml-1 uppercase cursor-pointer hover:bg-white hover:text-black no-underline text-white p-1 py-2"
             href="/"
           >
             <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
@@ -42,7 +42,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
             <span className="">docs</span>
           </div>
         </div>
-        <div className="flex gap-1 h-full self-center sm:gap-4">
+        <div className="flex gap-1 h-full mr-1 self-center sm:gap-4">
           <Link href={"/dashboard"} className="no-underline">
             <button className="text-center brutalborder cursor-pointer block p-1 sm:py-2 sm:px-4 md:h-max bg-white text-black font-bold text-sm lg:text-lg hover:invert h-full">
               Dashboard
