@@ -10,6 +10,7 @@ import { useForm } from "react-hook-form";
 import dropdown_svg from "@/assets/dropdown.svg";
 import peanutman_logo from "@/assets/peanutman-logo.svg";
 const peanut = require("@squirrel-labs/peanut-sdk");
+import { isMobile } from "react-device-detect";
 
 import * as store from "@/store";
 import * as consts from "@/consts";
@@ -426,20 +427,40 @@ export function SendInitialView({
   const [textFontSize, setTextFontSize] = useState("text-6xl");
 
   const textHandler = (text: string) => {
-    if (text.length <= 4) {
-      setTextFontSize("text-6xl");
-    } else if (text.length > 17) {
-      setTextFontSize("text-sm");
-    } else if (text.length > 13) {
-      setTextFontSize("text-md");
-    } else if (text.length > 10) {
-      setTextFontSize("text-lg");
-    } else if (text.length > 7) {
-      setTextFontSize("text-2xl");
-    } else if (text.length > 5) {
-      setTextFontSize("text-4xl");
-    } else if (text.length > 4) {
-      setTextFontSize("text-5xl");
+    if (isMobile) {
+      console.log(isMobile);
+      if (text.length <= 4) {
+        setTextFontSize("text-6xl");
+      } else if (text.length > 21) {
+        setTextFontSize("text-sm");
+      } else if (text.length > 19) {
+        setTextFontSize("text-md");
+      } else if (text.length > 17) {
+        setTextFontSize("text-lg");
+      } else if (text.length > 12) {
+        setTextFontSize("text-2xl");
+      } else if (text.length > 8) {
+        setTextFontSize("text-4xl");
+      } else if (text.length > 6) {
+        setTextFontSize("text-5xl");
+      }
+    } else {
+      console.log(isMobile);
+      if (text.length <= 4) {
+        setTextFontSize("text-6xl");
+      } else if (text.length > 17) {
+        setTextFontSize("text-sm");
+      } else if (text.length > 13) {
+        setTextFontSize("text-md");
+      } else if (text.length > 10) {
+        setTextFontSize("text-lg");
+      } else if (text.length > 7) {
+        setTextFontSize("text-2xl");
+      } else if (text.length > 5) {
+        setTextFontSize("text-4xl");
+      } else if (text.length > 4) {
+        setTextFontSize("text-5xl");
+      }
     }
 
     setText(text);
