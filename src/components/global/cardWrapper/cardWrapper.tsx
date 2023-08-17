@@ -2,10 +2,12 @@ export function CardWrapper({
   children,
   mb = " mb-48 ",
   mt = " mt-5 ",
+  shadow = false,
 }: {
   children: React.ReactNode;
   mb?: string;
   mt?: string;
+  shadow?: boolean;
 }) {
   return (
     <div
@@ -14,6 +16,7 @@ export function CardWrapper({
         mb +
         mt
       }
+      id={shadow ? "cta-div" : ""}
     >
       {" "}
       {children}
