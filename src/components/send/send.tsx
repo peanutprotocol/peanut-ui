@@ -27,7 +27,7 @@ export function Send() {
 
   return (
     <>
-      <global_components.CardWrapper>
+      <global_components.CardWrapper mt=" mt-16 ">
         {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
           onNextScreen: handleOnNext,
           onCustomScreen: handleOnCustom,

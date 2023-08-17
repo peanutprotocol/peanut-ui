@@ -428,15 +428,15 @@ export function SendInitialView({
   const textHandler = (text: string) => {
     if (text.length <= 4) {
       setTextFontSize("text-6xl");
-    } else if (text.length > 18) {
+    } else if (text.length > 17) {
       setTextFontSize("text-sm");
-    } else if (text.length > 14) {
+    } else if (text.length > 13) {
       setTextFontSize("text-md");
-    } else if (text.length > 11) {
+    } else if (text.length > 10) {
       setTextFontSize("text-lg");
-    } else if (text.length > 8) {
+    } else if (text.length > 7) {
       setTextFontSize("text-2xl");
-    } else if (text.length > 6) {
+    } else if (text.length > 5) {
       setTextFontSize("text-4xl");
     } else if (text.length > 4) {
       setTextFontSize("text-5xl");
@@ -457,52 +457,10 @@ export function SendInitialView({
       </div>
       <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
         <div className="flex w-full flex-col gap-0 sm:gap-5 items-center">
-          {/* <div className="relative w-full px-2 sm:w-3/4 ">
-            <div className="absolute box-border inset-y-0 right-4 flex items-center ">
-              <button
-                type="button"
-                className={
-                  "relative inline-flex items-center border-2 border-black p-1  sm:p-2  bg-white text-black color-white h-1/2 min-w-75 justify-center"
-                }
-                onClick={() => setIsTokenSelectorOpen(!isTokenSelectorOpen)}
-              >
-                {chainDetails.find(
-                  (chain) => chain.chainId == formwatch.chainId
-                )?.name ?? "Chain"}{" "}
-                {" | "} {formwatch.token.length > 0 ? formwatch.token : "Token"}{" "}
-                <img
-                  style={{
-                    transform: isTokenSelectorOpen ? "scaleY(-1)" : "none",
-                    transition: "transform 0.3s ease-in-out",
-                  }}
-                  src={dropdown_svg.src}
-                  alt=""
-                  className={"h-6 "}
-                />
-              </button>
-            </div>
-
-            <input
-              type="number"
-              step="any"
-              min="0"
-              autoComplete="off"
-              className="no-spin block w-full py-4 px-2 brutalborder pl-4 placeholder:text-lg placeholder:text-black placeholder:font-bold font-bold text-lg outline-none appearance-none "
-              placeholder="0.00"
-              aria-describedby="price-currency"
-              {...(sendForm.register("amount"),
-              {
-                onChange: (e) => {
-                  sendForm.setValue("amount", Number(e.target.value));
-                  setFormHasBeenTouched(true);
-                },
-              })}
-            />
-          </div> */}
           <div className="sm:w-3/4 gap-6 items-center p-4 justify-center hidden sm:flex flex-row">
             <div className="flex flex-col gap-0 justify-end pt-2 ">
               <div className="flex items-center h-16">
-                <label className="font-bold text-6xl">$</label>
+                <label className={"font-bold " + textFontSize}>$</label>
                 <div className="w-full max-w-[160px] ">
                   <input
                     className={
@@ -537,7 +495,7 @@ export function SendInitialView({
               <label className="font-bold text-sm self-center">Polygon</label>{" "}
               <label className="font-bold text-xl self-center">MATIC</label>
             </div>
-            <div className="flex flex-col gap-0 justify-end pt-2 brutalborder">
+            <div className="flex flex-col gap-0 justify-end pt-2">
               <div className="flex items-center max-w-[280px] border border-gray-400 rounded px-2 self-end ">
                 <span className={"font-bold " + textFontSize}>$</span>
                 <input
