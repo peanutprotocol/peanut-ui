@@ -537,10 +537,11 @@ export function SendInitialView({
               <label className="font-bold text-sm">Polygon</label>{" "}
               <label className="font-bold text-xl">MATIC</label>
             </div>
-            <div className="flex flex-col gap-0 justify-end pt-2 ">
-              <div className="flex items-center max-w-[280px] border border-gray-400 rounded px-2 self-end">
+            <div className="flex flex-col gap-0 justify-end pt-2">
+              <div className="flex items-center max-w-[280px] border border-gray-400 rounded px-2 self-end ">
                 <span className={"font-bold " + textFontSize}>$</span>
                 <input
+                  autoFocus
                   type="number"
                   className={
                     "no-spin block w-full border-none placeholder:text-black placeholder:font-black font-black tracking-wide outline-none appearance-none " +
