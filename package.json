@@ -6,11 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "pretty": "prettier --write ."
   },
   "dependencies": {
-    "@squirrel-labs/peanut-sdk": "*",
     "@socket.tech/socket-v2-sdk": "^1.21.8",
+    "@squirrel-labs/peanut-sdk": "*",
     "@types/node": "20.4.2",
     "@types/react": "18.2.15",
     "@types/react-dom": "18.2.7",
@@ -40,6 +41,8 @@
     "web3modal": "^1.9.12"
   },
   "devDependencies": {
-    "parcel": "^2.9.3"
+    "parcel": "^2.9.3",
+    "prettier": "^3.0.2",
+    "prettier-plugin-tailwindcss": "^0.5.3"
   }
 }
