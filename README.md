@@ -1,6 +1,6 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
-live: https://staging.peanut.to
+[peanut.to](https://peanut.to) | [staging.peanut.to](https://staging.peanut.to)
 
 ## Getting Started
 
