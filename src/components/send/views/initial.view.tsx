@@ -8,7 +8,8 @@ import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 import Select from 'react-select'
 
-const peanut = require('@squirrel-labs/peanut-sdk')
+import peanut from '@squirrel-labs/peanut-sdk'
+console.log('Peanut-sdk version: ', peanut.VERSION)
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -223,7 +224,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 const { link, txReceipt } = await peanut.createLink({
                     signer: signer,
                     chainId: sendFormData.chainId,
-                    tokenAddress: tokenAddress ?? null,
+                    tokenAddress: tokenAddress.length <= 0 ? null : tokenAddress,
                     tokenAmount: Number(sendFormData.amount),
                     tokenType: tokenType,
                     tokenDecimals: tokenDecimals,
