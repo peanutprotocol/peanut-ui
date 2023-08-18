@@ -58,11 +58,11 @@ export function Claim({ link }: { link: string }) {
     const checkLink = async (link: string) => {
         console.log(link)
 
-        const [baseUrl, fragment] = link.split('#');
+        const [baseUrl, fragment] = link.split('#')
         console.log('baseUrl', baseUrl)
         console.log('fragment', fragment)
-        const urlSearchParams = new URLSearchParams(fragment);
-        const linkChainId = urlSearchParams.get('c');
+        const urlSearchParams = new URLSearchParams(fragment)
+        const linkChainId = urlSearchParams.get('c')
         // const linkChainId = link.get('c')
         // get the chain id from the link (params are after #)
         // const urlSearchParams = new URLSearchParams(link);
@@ -78,16 +78,12 @@ export function Claim({ link }: { link: string }) {
         const provider = getEthersProvider({ chainId: Number(linkChainId) })
         console.log('provider', provider)
         console.log('linkChainId', linkChainId)
-    
+
         try {
             console.log('getting link details')
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(
-                provider,
-                pageUrl,
-                true
-            )
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
             console.log('linkDetails', linkDetails)
-    
+
             if (Number(linkDetails.tokenAmount) <= 0) {
                 setLinkState('ALREADY_CLAIMED')
             } else {

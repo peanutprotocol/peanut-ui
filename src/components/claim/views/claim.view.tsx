@@ -64,11 +64,7 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
             if (claimLink && address) {
                 setLoadingStates('executing transaction...')
                 console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless(
-                    claimLink,
-                    address,
-                    process.env.PEANUT_API_KEY
-                )
+                const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
                 onNextScreen()
@@ -131,11 +127,7 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
             setLoadingStates('executing transaction...')
             if (claimLink && data.address) {
                 console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless(
-                    claimLink,
-                    data.address,
-                    process.env.PEANUT_API_KEY
-                )
+                const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
 
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
                 onNextScreen()

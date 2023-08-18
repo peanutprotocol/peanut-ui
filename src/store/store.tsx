@@ -56,9 +56,7 @@ export function Store({ children }: { children: React.ReactNode }) {
 
     const getPeanutChainAndTokenDetails = async () => {
         if (peanut) {
-            const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map(
-                (key) => peanut.CHAIN_DETAILS[key]
-            )
+            const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map((key) => peanut.CHAIN_DETAILS[key])
             const tokenDetailsArray = peanut.TOKEN_DETAILS
             setDefaultChainDetails(chainDetailsArray)
             setDefaultTokenDetails(tokenDetailsArray)
