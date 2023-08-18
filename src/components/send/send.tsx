@@ -46,10 +46,6 @@ export function Send() {
               Integrate Peanut Protocol
             </h2>
 
-            <h3 className="text-lg lg:text-2xl mt-2 font-bold text-black">
-              transfer magic✨ in your own app
-            </h3>
-
             <div className="text-base pb-8 w-11/12 lg:w-2/3 mx-auto">
               Want the peanut magic in your own dApp? Just install our{" "}
               <a

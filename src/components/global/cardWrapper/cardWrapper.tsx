@@ -2,7 +2,7 @@ export function CardWrapper({
   children,
   mb = " mb-48 ",
   mt = " mt-5 ",
-  shadow = false,
+  shadow = true,
 }: {
   children: React.ReactNode;
   mb?: string;

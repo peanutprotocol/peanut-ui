@@ -62,6 +62,10 @@ body {
   border: 2px solid #000000;
 }
 
+.softborder {
+  border: 1px solid #000000;
+}
+
 .brutalborder-left {
   border-left-style: solid;
 }
