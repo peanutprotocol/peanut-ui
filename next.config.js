@@ -6,6 +6,7 @@ const nextConfig = {
         PEANUT_API_KEY: process.env.PEANUT_API_KEY,
         OPTI_GOERLI_RPC_URL: process.env.OPTI_GOERLI_RPC_URL,
         GOERLI_RPC_URL: process.env.GOERLI_RPC_URL,
+        GA_KEY: process.env.GA_KEY,
     },
 }
 
