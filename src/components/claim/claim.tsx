@@ -64,7 +64,7 @@ export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
         try {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(
                 provider,
-                'https://peanut.to/claim?' + _link
+                'https://peanut.to/claim#?' + _link
             )
 
             if (Number(linkDetails.tokenAmount) <= 0) {
