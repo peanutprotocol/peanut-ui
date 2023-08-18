@@ -1,2 +1,2 @@
-export * from "./initial.view";
-export * from "./succes.view";
+export * from './initial.view'
+export * from './succes.view'

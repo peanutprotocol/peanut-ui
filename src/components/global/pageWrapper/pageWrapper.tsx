@@ -1,24 +1,19 @@
-import { Toaster } from "react-hot-toast";
-
-import * as global_components from "@/components/global";
+import * as global_components from '@/components/global'
 
 export function PageWrapper({
-  children,
-  bgColor = "bg-teal",
-  showMarquee = true,
+    children,
+    bgColor = 'bg-teal',
+    showMarquee = true,
 }: {
-  children: React.ReactNode;
-  bgColor?: string;
-  showMarquee?: boolean;
+    children: React.ReactNode
+    bgColor?: string
+    showMarquee?: boolean
 }) {
-  return (
-    <div className="min-h-screen flex flex-col scrollbar-hide">
-      <global_components.Header showMarquee={showMarquee} />
-      <div className={" min-h-screen flex flex-col justify-center  " + bgColor}>
-        {children}
-      </div>
-      <global_components.Footer showMarquee={showMarquee} />
-      <Toaster />
-    </div>
-  );
+    return (
+        <div className="scrollbar-hide flex min-h-screen flex-col">
+            <global_components.Header showMarquee={showMarquee} />
+            <div className={' flex min-h-screen flex-col justify-center  ' + bgColor}>{children}</div>
+            <global_components.Footer showMarquee={showMarquee} />
+        </div>
+    )
 }

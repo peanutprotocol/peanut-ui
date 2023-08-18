@@ -1,29 +1,27 @@
-import { createElement, useState } from "react";
-import * as global_components from "@/components/global";
-import * as _consts from "./send.consts";
-import code_snippet from "@/assets/code_snippet.png";
+import { createElement, useState } from 'react'
+import * as global_components from '@/components/global'
+import * as _consts from './send.consts'
+import code_snippet from '@/assets/code_snippet.png'
 export function Send() {
-  const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(
-    _consts.INIT_VIEW
-  );
-  const [claimLink, setClaimLink] = useState<string>("");
-  const [txReceipt, setTxReceipt] = useState<string>("");
-  const [chainId, setChainId] = useState<number>(0);
+    const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
+    const [claimLink, setClaimLink] = useState<string>('')
+    const [txReceipt, setTxReceipt] = useState<string>('')
+    const [chainId, setChainId] = useState<number>(0)
 
-  const handleOnNext = () => {
-    const newIdx = sendScreen.idx + 1;
-    setSendScreen(() => ({
-      screen: _consts.SEND_SCREEN_FLOW[newIdx],
-      idx: newIdx,
-    }));
-  };
+    const handleOnNext = () => {
+        const newIdx = sendScreen.idx + 1
+        setSendScreen(() => ({
+            screen: _consts.SEND_SCREEN_FLOW[newIdx],
+            idx: newIdx,
+        }))
+    }
 
-  const handleOnCustom = (screen: _consts.SendScreens) => {
-    setSendScreen(() => ({
-      screen: screen,
-      idx: _consts.SEND_SCREEN_FLOW.indexOf(screen),
-    }));
-  };
+    const handleOnCustom = (screen: _consts.SendScreens) => {
+        setSendScreen(() => ({
+            screen: screen,
+            idx: _consts.SEND_SCREEN_FLOW.indexOf(screen),
+        }))
+    }
 
   return (
     <>
@@ -59,19 +57,19 @@ export function Send() {
             </div>
             <img src={code_snippet.src} className="w-11/12 lg:w-2/3 mx-auto" />
 
-            <div className="text-base pt-8 w-11/12 lg:w-2/3 mx-auto">
-              Read more{" "}
-              <a
-                href="https://peanutprotocol.notion.site/Developer-Documentation-b2b0720b7ca64410b468328f8fc02690"
-                target="_blank"
-                className="underline text-black"
-              >
-                here
-              </a>
-            </div>
-          </div>
-        </global_components.CardWrapper>
-      )}
-    </>
-  );
+                        <div className="mx-auto w-11/12 pt-8 text-base lg:w-2/3">
+                            Read more{' '}
+                            <a
+                                href="https://peanutprotocol.notion.site/Developer-Documentation-b2b0720b7ca64410b468328f8fc02690"
+                                target="_blank"
+                                className="text-black underline"
+                            >
+                                here
+                            </a>
+                        </div>
+                    </div>
+                </global_components.CardWrapper>
+            )}
+        </>
+    )
 }
