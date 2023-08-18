@@ -2,7 +2,6 @@ import Link from "next/link";
 import { useEffect, useState, useCallback, useMemo, Fragment } from "react";
 import { useWeb3Modal } from "@web3modal/react";
 import { useAtom } from "jotai";
-import toast from "react-hot-toast";
 import { useAccount, useNetwork, WalletClient } from "wagmi";
 import { switchNetwork, getWalletClient } from "@wagmi/core";
 import { providers } from "ethers";
@@ -19,19 +18,7 @@ import * as _utils from "../send.utils";
 import * as hooks from "@/hooks";
 import * as global_components from "@/components/global";
 import axios from "axios";
-interface ISendFormData {
-    chainId: number
-    token: string
-    amount: number
-}
-interface ITokenListItem {
-  symbol: string;
-  amount: number;
-  chainId: number;
-  address: string;
-  decimals: number;
-  logo: string;
-}
+
 
 export function SendInitialView({
   onNextScreen,
@@ -48,7 +35,7 @@ export function SendInitialView({
   const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(
     undefined
   );
-  const [tokenList, setTokenList] = useState<ITokenListItem[]>([]);
+  const [tokenList, setTokenList] = useState<_consts.ITokenListItem[]>([]);
   const [formHasBeenTouched, setFormHasBeenTouched] = useState(false);
   const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined);
   const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false);
@@ -56,7 +43,10 @@ export function SendInitialView({
   const [textFontSize, setTextFontSize] = useState("text-6xl");
   const [loadingStates, setLoadingStates] =
     useState<consts.LoadingStates>("idle");
-
+  const [errorState, setErrorState] = useState<{
+    showError: boolean;
+    errorMessage: string;
+  }>({ showError: false, errorMessage: "" });
   //global states
   const [userBalances] = useAtom(store.userBalancesAtom);
   const [chainDetails] = useAtom(store.defaultChainDetailsAtom);
@@ -70,7 +60,7 @@ export function SendInitialView({
   hooks.useConfirmRefresh(enableConfirmation);
 
   //form and modalform states
-  const sendForm = useForm<ISendFormData>({
+  const sendForm = useForm<_consts.ISendFormData>({
     mode: "onChange",
     defaultValues: {
       chainId: 1,
@@ -86,6 +76,7 @@ export function SendInitialView({
     chainId: formwatch.chainId,
     token: formwatch.token,
   });
+
   const getWalletClientAndUpdateSigner = async ({
     chainId,
   }: {
@@ -97,180 +88,156 @@ export function SendInitialView({
       setSigner(signer);
     }
   };
-  const checkForm = (sendFormData: ISendFormData) => {
+
+  const checkForm = (sendFormData: _consts.ISendFormData) => {
     //check that the token and chainid are defined
     if (sendFormData.chainId == null || sendFormData.token == "") {
-      toast("Please select a chain and token", {
-        position: "bottom-right",
+      setErrorState({
+        showError: true,
+        errorMessage: "Please select a chain and token",
       });
       return { succes: "false" };
     }
 
-    const getWalletClientAndUpdateSigner = async ({ chainId }: { chainId: number }) => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (walletClient) {
-            const signer = walletClientToSigner(walletClient)
-            setSigner(signer)
-        }
+    //check if the amount is less than or equal to zero
+    if (sendFormData.amount <= 0) {
+
+      setErrorState({
+        showError: true,
+        errorMessage: "Please put an amount that is greater than zero",
+      });
+      return { succes: "false" };
     }
 
-    const checkForm = (sendFormData: ISendFormData) => {
-        //check that the token and chainid are defined
-        if (sendFormData.chainId == null || sendFormData.token == '') {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please select a chain and token',
-            })
-            return { succes: 'false' }
-        }
-
-        //check if the amount is less than or equal to zero
-        if (sendFormData.amount <= 0) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please put an amount that is greater than zero',
-            })
-            return { succes: 'false' }
-        }
-
-        //check if the token is in the userBalances
-        if (
-            userBalances.some(
-                (balance) => balance.symbol == sendFormData.token && balance.chainId == sendFormData.chainId
-            )
-        ) {
-            //check that the user has enough funds
-            const balance = userBalances.find((balance) => balance.symbol === sendFormData.token)?.amount
-            if (balance && sendFormData.amount > balance) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: "You don't have enough funds",
-                })
-                return { succes: 'false' }
-            }
-
-        tokenDecimals =
-          tokenDetails
-            .find(
-              (detail) =>
-                detail.chainId.toString() == sendFormData.chainId.toString()
-            )
-            ?.tokens.find((token) => token.symbol == sendFormData.token)
-            ?.decimals ?? 18;
+    //check if the token is in the userBalances
+    if (
+      userBalances.some(
+        (balance) =>
+          balance.symbol == sendFormData.token &&
+          balance.chainId == sendFormData.chainId
+      )
+    ) {
+      //check that the user has enough funds
+      const balance = userBalances.find(
+        (balance) => balance.symbol === sendFormData.token
+      )?.amount;
+      if (balance && sendFormData.amount > balance) {
+        setErrorState({
+          showError: true,
+          errorMessage: "You don't have enough funds",
+        });
+        
+        return { succes: "false" };
       }
-      const tokenType =
-        chainDetails.find((detail) => detail.chainId == sendFormData.chainId)
-          ?.nativeCurrency.symbol == sendFormData.token
-          ? 0
-          : 1;
 
-                tokenDecimals =
-                    tokenDetails
-                        .find((detail) => detail.chainId.toString() == sendFormData.chainId.toString())
-                        ?.tokens.find((token) => token.symbol == sendFormData.token)?.decimals ?? 18
-            }
-
-            const tokenType =
-                chainDetails.find((detail) => detail.chainId == sendFormData.chainId)?.nativeCurrency.symbol ==
-                sendFormData.token
-                    ? 0
-                    : 1
-
-            return { tokenAddress, tokenDecimals, tokenType }
-        },
-        [userBalances, tokenDetails, chainDetails]
-    )
-
-    const createLink = useCallback(
-        async (sendFormData: ISendFormData) => {
-            setErrorState({ showError: false, errorMessage: '' })
-            if (isLoading) return
-            try {
-                setLoadingStates('checking inputs...')
-
-                if (checkForm(sendFormData).succes === 'false') {
-                    return
-                }
-                setEnableConfirmation(true)
-
-                const { tokenAddress, tokenDecimals, tokenType } = getTokenDetails(sendFormData)
-
-                console.log(
-                    'sending ' +
-                        sendFormData.amount +
-                        ' ' +
-                        sendFormData.token +
-                        ' on chain with id ' +
-                        sendFormData.chainId +
-                        ' with token address: ' +
-                        tokenAddress +
-                        ' with tokenType: ' +
-                        tokenType +
-                        ' with tokenDecimals: ' +
-                        tokenDecimals
-                )
-
-                setLoadingStates('allow network switch...')
-                //check if the user is on the correct chain
-                if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
-                    await utils
-                        .waitForPromise(switchNetwork({ chainId: Number(sendFormData.chainId) }))
-                        .catch((error) => {
-                            setErrorState({
-                                showError: true,
-                                errorMessage: 'Something went wrong while switching networks',
-                            })
-                            return
-                        })
-                    setLoadingStates('switching network...')
-                    await new Promise((resolve) => setTimeout(resolve, 4000)) // wait a sec after switching chain before making other deeplink
-                    setLoadingStates('loading...')
-                }
-
-                //when the user tries to refresh, show an alert
-                setEnableConfirmation(true)
-                setLoadingStates('executing transaction...')
-
-                const { link, txReceipt } = await peanut.createLink({
-                    signer: signer,
-                    chainId: sendFormData.chainId,
-                    tokenAddress: tokenAddress ?? null,
-                    tokenAmount: Number(sendFormData.amount),
-                    tokenType: tokenType,
-                    tokenDecimals: tokenDecimals,
-                    verbose: true,
-                })
-                console.log('Created link:', link)
-                utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
-
-                setClaimLink(link)
-                setTxReceipt(txReceipt)
-                setChainId(sendFormData.chainId)
-
-  const getTokenPrice = async (tokenSymbol: string, chainId: number) => {
-    const tokenAddress = tokenList.find(
-      (token) => token.symbol == tokenSymbol
-    )?.address;
-
-    try {
-      const response = await axios.get(
-        "https://api.socket.tech/v2/token-price",
-        {
-          params: {
-            tokenAddress: tokenAddress,
-            chainId: chainId,
-          },
-          headers: {
-            accept: "application/json",
-            "API-KEY": process.env.SOCKET_API_KEY,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.log("error fetching token price for token " + tokenSymbol);
+      if (!signer) {
+        getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId });
+        setErrorState({
+          showError: true,
+          errorMessage: "Signer undefined, please refresh",
+        });
+       
+        return { succes: "false" };
+      }
     }
+    return { succes: "true" };
   };
+
+  const createLink = useCallback(
+    async (sendFormData: _consts.ISendFormData) => {
+      if (isLoading) return;
+      try {
+        setLoadingStates("checking inputs...");
+
+        if (checkForm(sendFormData).succes === "false") {
+          return;
+        }
+        setEnableConfirmation(true);
+
+        const { tokenAddress, tokenDecimals, tokenType } =
+          _utils.getTokenDetails(sendFormData, userBalances, tokenDetails, chainDetails);
+
+        console.log(
+          "sending " +
+            sendFormData.amount +
+            " " +
+            sendFormData.token +
+            " on chain with id " +
+            sendFormData.chainId +
+            " with token address: " +
+            tokenAddress +
+            " with tokenType: " +
+            tokenType +
+            " with tokenDecimals: " +
+            tokenDecimals
+        );
+
+        setLoadingStates("allow network switch...");
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
+          
+
+          await utils
+            .waitForPromise(
+              switchNetwork({ chainId: Number(sendFormData.chainId) })
+            )
+            .catch((error) => {
+              setErrorState({
+                showError: true,
+                errorMessage: "Something went wrong while switching networks",
+              });
+              return;
+            });
+          setLoadingStates("switching network...");
+          await new Promise((resolve) => setTimeout(resolve, 4000)); // wait a sec after switching chain before making other deeplink
+          setLoadingStates("loading...");
+        }
+
+        //when the user tries to refresh, show an alert
+        setEnableConfirmation(true);
+        setLoadingStates("executing transaction...");
+
+        const { link, txReceipt } = await peanut.createLink({
+          signer: signer,
+          chainId: sendFormData.chainId,
+          tokenAddress: tokenAddress ?? null,
+          tokenAmount: Number(sendFormData.amount),
+          tokenType: tokenType,
+          tokenDecimals: tokenDecimals,
+          verbose: true,
+        });
+        console.log("Created link:", link);
+        utils.saveToLocalStorage(address + " - " + txReceipt.hash, link);
+
+        setClaimLink(link);
+        setTxReceipt(txReceipt);
+        setChainId(sendFormData.chainId);
+
+        onNextScreen();
+      } catch (error: any) {
+        if (error.toString().includes("insufficient funds")) {
+
+          setErrorState({
+            showError: true,
+            errorMessage: "You don't have enough funds",
+          });
+        } else {
+
+          setErrorState({
+            showError: true,
+            errorMessage: "Something failed while creating your link. Please try again",
+          });
+          console.error(error);
+        }
+      } finally {
+        setLoadingStates("idle");
+        setEnableConfirmation(false);
+      }
+    },
+    [signer, currentChain, userBalances, onNextScreen, isLoading, address]
+  );
+
+  
 
   useEffect(() => {
     userBalances.some((balance) => balance.chainId == formwatch.chainId)
@@ -343,7 +310,10 @@ export function SendInitialView({
 
   useEffect(() => {
     if (modalState.token && modalState.chainId) {
-      const tokenPrice = getTokenPrice(modalState.token, modalState.chainId);
+      const tokenAddress = tokenList.find(
+        (token) => token.symbol == modalState.token
+      )?.address ?? '';
+      const tokenPrice = _utils.getTokenPrice(tokenAddress, modalState.chainId);
     }
   }, [modalState.token]);
 
@@ -440,19 +410,34 @@ export function SendInitialView({
             </div>
           </div>
 
-          <button
-            type={isConnected ? "submit" : "button"}
-            className="block w-4/5 px-2 sm:w-2/5 lg:w-1/2 p-5 my-8 mb-4 mx-auto font-black text-2xl cursor-pointer bg-white"
-            id="cta-btn"
-            onClick={!isConnected ? open : undefined}
-            disabled={isLoading ? true : false}
+          <div
+            className={
+              errorState.showError
+                ? "w-full flex flex-col items-center gap-10 my-8 mx-auto mb-0 "
+                : "w-full flex flex-col items-center my-8 mx-auto mb-14 "
+            }
           >
-            {isLoading
-              ? loadingStates
-              : isConnected
-              ? "Send"
-              : "Connect Wallet"}
-          </button>
+            <button
+              type={isConnected ? "submit" : "button"}
+              className="block w-full px-2 sm:w-2/5 lg:w-1/2 p-5  font-black text-2xl cursor-pointer bg-white"
+              id="cta-btn"
+              onClick={!isConnected ? open : undefined}
+              disabled={isLoading ? true : false}
+            >
+              {isLoading
+                ? loadingStates
+                : isConnected
+                ? "Send"
+                : "Connect Wallet"}
+            </button>
+            {errorState.showError && (
+              <div className="text-center">
+                <label className="text-red font-bold ">
+                  {errorState.errorMessage}
+                </label>
+              </div>
+            )}
+          </div>
         </div>
       </form>
 
@@ -463,7 +448,6 @@ export function SendInitialView({
           className="relative z-10"
           onClose={() => {
             sendForm.setValue("token", modalState.token);
-            console.log(modalState.token);
             sendForm.setValue("chainId", modalState.chainId);
             setIsTokenSelectorOpen(false);
           }}

@@ -45,6 +45,8 @@
     "web3modal": "^1.9.12"
   },
   "devDependencies": {
-    "parcel": "^2.9.3"
+    "parcel": "^2.9.3",
+    "prettier-plugin-tailwindcss": "^0.5.3",
+    "prettier": "^3.0.2"
   }
 }

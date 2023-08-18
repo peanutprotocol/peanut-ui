@@ -1,7 +1,10 @@
 import { providers } from "ethers";
 import { isMobile } from "react-device-detect";
 import { WalletClient } from "wagmi";
-import { getWalletClient } from "@wagmi/core";
+import { useCallback } from "react";
+import { ISendFormData } from "./send.consts";
+import * as interfaces from "@/interfaces";
+import axios from "axios";
 
 export const textHandler = (text: string) => {
   if (isMobile) {
@@ -50,3 +53,77 @@ export function walletClientToSigner(walletClient: WalletClient) {
   const signer = provider.getSigner(account.address);
   return signer;
 }
+
+export const getTokenDetails =
+    (sendFormData: ISendFormData, userBalances: interfaces.IUserBalance[], tokenDetails: interfaces.IPeanutTokenDetail[], chainDetails: interfaces.IPeanutChainDetails[]) => {
+      let tokenAddress: string = "";
+      let tokenDecimals: number = 18;
+      if (
+        userBalances.some(
+          (balance) =>
+            balance.symbol == sendFormData.token &&
+            balance.chainId == sendFormData.chainId
+        )
+      ) {
+        tokenAddress =
+          userBalances.find(
+            (balance) =>
+              balance.chainId == sendFormData.chainId &&
+              balance.symbol == sendFormData.token
+          )?.address ?? "";
+        tokenDecimals =
+          userBalances.find(
+            (balance) =>
+              balance.chainId == sendFormData.chainId &&
+              balance.symbol == sendFormData.token
+          )?.decimals ?? 18;
+      } else {
+        tokenAddress =
+          tokenDetails
+            .find(
+              (detail) =>
+                detail.chainId.toString() == sendFormData.chainId.toString()
+            )
+            ?.tokens.find((token) => token.symbol == sendFormData.token)
+            ?.address ?? "";
+
+        tokenDecimals =
+          tokenDetails
+            .find(
+              (detail) =>
+                detail.chainId.toString() == sendFormData.chainId.toString()
+            )
+            ?.tokens.find((token) => token.symbol == sendFormData.token)
+            ?.decimals ?? 18;
+      }
+      const tokenType =
+        chainDetails.find((detail) => detail.chainId == sendFormData.chainId)
+          ?.nativeCurrency.symbol == sendFormData.token
+          ? 0
+          : 1;
+
+      return { tokenAddress, tokenDecimals, tokenType };
+    }
+  
+export const getTokenPrice = async (tokenAddress: string, chainId: number) => {
+
+
+    try {
+      const response = await axios.get(
+        "https://api.socket.tech/v2/token-price",
+        {
+          params: {
+            tokenAddress: tokenAddress,
+            chainId: chainId,
+          },
+          headers: {
+            accept: "application/json",
+            "API-KEY": process.env.SOCKET_API_KEY,
+          },
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.log("error fetching token price for token " + tokenAddress);
+    }
+  };
