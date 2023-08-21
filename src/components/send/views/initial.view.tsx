@@ -662,7 +662,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[380px] ">
+                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
                                     <div className="mb-8 flex items-center justify-center sm:hidden">
                                         <svg width="128" height="6">
                                             <rect width="128" height="6" />
@@ -684,7 +684,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               <div
                                                                   key={chain.chainId}
                                                                   className={
-                                                                      'brutalborder flex h-full w-1/5 cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                      'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                                       (modalState.chainId == chain.chainId
                                                                           ? 'bg-black text-white'
                                                                           : '')
@@ -705,7 +705,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                       <div
                                                           key={chain.chainId}
                                                           className={
-                                                              'brutalborder flex h-full w-1/5 cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                              'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                               (modalState.chainId == chain.chainId
                                                                   ? 'bg-black text-white'
                                                                   : '')
