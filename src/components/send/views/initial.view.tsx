@@ -487,10 +487,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             {isConnected ? (
                                 chainAmountShown > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
-                                        <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                        <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
                                             {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                         </label>{' '}
-                                        <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                        <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                             {formwatch.token}
                                         </label>
                                     </div>
@@ -501,10 +501,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 )
                             ) : (
                                 <div className="flex cursor-pointer flex-col items-center justify-center">
-                                    <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                    <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
                                         {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
-                                    <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                    <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                         {formwatch.token}
                                     </label>
                                 </div>
@@ -684,7 +684,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               <div
                                                                   key={chain.chainId}
                                                                   className={
-                                                                      'brutalborder sm:w-1/8 flex h-full w-1/5 cursor-pointer flex-row gap-2 px-2 py-1 ' +
+                                                                      'brutalborder flex h-full w-1/5 cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                                       (modalState.chainId == chain.chainId
                                                                           ? 'bg-black text-white'
                                                                           : '')
@@ -705,7 +705,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                       <div
                                                           key={chain.chainId}
                                                           className={
-                                                              'align-center brutalborder flex w-max cursor-pointer flex-row gap-2 px-2 py-1 ' +
+                                                              'brutalborder flex h-full w-1/5 cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                               (modalState.chainId == chain.chainId
                                                                   ? 'bg-black text-white'
                                                                   : '')
