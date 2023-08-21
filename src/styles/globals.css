@@ -42,6 +42,22 @@ body {
     scrollbar-width: none; /* Firefox */
 }
 
+/* BRUTAL SCROLLBAR */
+
+.brutalscroll::-webkit-scrollbar-track {
+    border-left: 2px solid black;
+    background-color: #fff;
+}
+
+.brutalscroll::-webkit-scrollbar {
+    width: 20px;
+    background-color: #fff;
+}
+
+.brutalscroll::-webkit-scrollbar-thumb {
+    background-color: #000000;
+}
+
 @font-face {
     font-family: 'Montserrat';
     font-style: normal;

@@ -18,6 +18,7 @@ import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
+import { isMobile } from 'react-device-detect'
 
 const disconnectedTokenList: _consts.ITokenListItem[] = [
     {
@@ -52,6 +53,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     }>({ showError: false, errorMessage: '' })
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
+    const [unfoldChains, setUnfoldChains] = useState(false)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -61,7 +63,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
+    const chainAmountShown = useMemo(() => {
+        return isConnected
+            ? chainDetails.filter(
+                  (chain) => chain.chainId == userBalances.find((balance) => balance.chainId == chain.chainId)?.chainId
+              ).length
+            : chainDetails.length
+    }, [isConnected, isDisconnected, chainDetails, userBalances])
     hooks.useConfirmRefresh(enableConfirmation)
+
+    useEffect(() => {}, [chainAmountShown])
 
     //form and modalform states
     const sendForm = useForm<_consts.ISendFormData>({
@@ -263,6 +274,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         [signer, currentChain, userBalances, onNextScreen, isLoading, address, inputDenomination, tokenPrice]
     )
 
+    //update the errormessage when the walletAddress has been changed
+    useEffect(() => {
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
+    }, [address])
+
     //update the tokenlist when the user changes the chain or when the userBalances change
     useEffect(() => {
         if (isConnected) {
@@ -304,7 +323,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     //update the chain to the current chain when the user changes the chain
     //TODO: add formhasbeenTouched functionality
     useEffect(() => {
-        if (currentChain && !formHasBeenTouched) {
+        if (currentChain && !formHasBeenTouched && chainDetails.some((chain) => chain.chainId == currentChain.id)) {
             sendForm.setValue('chainId', currentChain.id)
         }
     }, [currentChain])
@@ -399,7 +418,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
-                    <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
+                    <div className="hidden cursor-pointer flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 pt-2 ">
                             <div className="flex h-16 items-center">
                                 <label className={'font-bold ' + textFontSize}>
@@ -453,28 +472,63 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             </div>
                         </div>
                         <div
-                            className="flex h-max w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
-                            onClick={() => setIsTokenSelectorOpen(true)}
+                            className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            onClick={() => {
+                                console
+                                if (isConnected && chainAmountShown <= 0) {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: 'No funds available',
+                                    })
+                                } else {
+                                    setIsTokenSelectorOpen(true)
+                                }
+                            }}
                         >
-                            <label className="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
-                            </label>{' '}
-                            <label className="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                {formwatch.token}
-                            </label>
+                            {isConnected && chainAmountShown > 0 ? (
+                                <div className="flex flex-col items-center justify-center">
+                                    <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                        {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                    </label>{' '}
+                                    <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                        {formwatch.token}
+                                    </label>
+                                </div>
+                            ) : (
+                                <label className="flex h-full items-center justify-center text-sm font-bold">
+                                    No funds available
+                                </label>
+                            )}
                         </div>
                     </div>
-                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
+                    <div className="flex w-full cursor-pointer flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
-                            className=" flex h-max w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
-                            onClick={() => setIsTokenSelectorOpen(true)}
+                            className=" flex h-[58px] w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            onClick={() => {
+                                if (isConnected && chainAmountShown <= 0) {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: 'No funds available',
+                                    })
+                                } else {
+                                    setIsTokenSelectorOpen(true)
+                                }
+                            }}
                         >
-                            <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
-                            </label>{' '}
-                            <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                {formwatch.token}
-                            </label>
+                            {isConnected && chainAmountShown > 0 ? (
+                                <div className="flex flex-col items-center justify-center">
+                                    <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                        {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                    </label>{' '}
+                                    <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                        {formwatch.token}
+                                    </label>
+                                </div>
+                            ) : (
+                                <label className="flex h-full items-center justify-center text-sm font-bold">
+                                    No funds available
+                                </label>
+                            )}
                         </div>
                         <div className="flex flex-col justify-end gap-0 pt-2">
                             <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
@@ -556,7 +610,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
-                    className="relative z-10"
+                    className="relative z-10 "
                     onClose={() => {
                         sendForm.setValue('token', modalState.token)
                         sendForm.setValue('chainId', modalState.chainId)
@@ -576,7 +630,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     </Transition.Child>
 
                     <div className="fixed inset-0 z-10 overflow-y-auto">
-                        <div className="flex min-h-full items-end justify-center text-center sm:items-center ">
+                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
                             <Transition.Child
                                 as={Fragment}
                                 enter="ease-out duration-300"
@@ -586,14 +640,18 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] transform overflow-hidden rounded-lg rounded-none bg-white pb-4 pt-5 text-left text-black shadow-xl transition-all	sm:my-8 sm:w-full sm:max-w-sm">
+                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pb-4 pt-5 text-left text-black shadow-xl transition-all sm:my-8 sm:min-h-[380px] sm:w-auto sm:min-w-[380px] ">
                                     <div className="mb-8 flex items-center justify-center sm:hidden">
                                         <svg width="128" height="6">
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
                                     <div className="mb-8 ml-4 mr-4 sm:mb-2">
-                                        <div className="flex w-full flex-wrap gap-2 text-black   ">
+                                        <div
+                                            className={`flex max-h-10 w-full flex-wrap gap-2 overflow-hidden text-black ${
+                                                unfoldChains ? 'max-h-[none]' : ''
+                                            }`}
+                                        >
                                             {isConnected
                                                 ? chainDetails.map(
                                                       (chain) =>
@@ -604,7 +662,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               <div
                                                                   key={chain.chainId}
                                                                   className={
-                                                                      'align-center brutalborder flex w-max cursor-pointer flex-row gap-2 px-2 py-1 ' +
+                                                                      'brutalborder flex h-full w-max cursor-pointer flex-row gap-2 px-2 py-1 ' +
                                                                       (modalState.chainId == chain.chainId
                                                                           ? 'bg-black text-white'
                                                                           : '')
@@ -642,6 +700,31 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                       </div>
                                                   ))}
                                         </div>
+                                        {isMobile
+                                            ? chainAmountShown > 3 && (
+                                                  <div className="flex w-full justify-end">
+                                                      <label
+                                                          className="mt-2"
+                                                          onClick={() => {
+                                                              setUnfoldChains(!unfoldChains)
+                                                          }}
+                                                      >
+                                                          {unfoldChains ? 'fold...' : 'unfold...'}
+                                                      </label>
+                                                  </div>
+                                              )
+                                            : chainAmountShown > 5 && (
+                                                  <div className="flex w-full justify-end">
+                                                      <label
+                                                          className="mt-2"
+                                                          onClick={() => {
+                                                              setUnfoldChains(!unfoldChains)
+                                                          }}
+                                                      >
+                                                          {unfoldChains ? 'fold...' : 'unfold...'}
+                                                      </label>
+                                                  </div>
+                                              )}
                                     </div>
 
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">
@@ -666,7 +749,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         />
                                     </div>
 
-                                    <div className="min-h-32 mb-8 flex max-h-64 flex-col overflow-scroll  sm:mt-2 ">
+                                    <div className="min-h-32 brutalscroll mb-8 flex max-h-64 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
