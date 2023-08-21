@@ -725,10 +725,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               })
                                                           }}
                                                       >
-                                                          <img
-                                                              src={peanutman_logo.src}
-                                                              className="h-6 cursor-pointer"
-                                                          />
+                                                          {chain.icon.format == 'ipfs' ? (
+                                                              <MediaRenderer src={chain.icon.url} alt="A Blue Circle" />
+                                                          ) : (
+                                                              <img
+                                                                  src={chain.icon.url}
+                                                                  className="h-6 cursor-pointer"
+                                                              />
+                                                          )}
                                                           <label className="flex cursor-pointer items-center">
                                                               {chain.shortName.toUpperCase()}
                                                           </label>
