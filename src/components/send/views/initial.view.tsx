@@ -20,17 +20,6 @@ import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import { isMobile } from 'react-device-detect'
 
-const disconnectedTokenList: _consts.ITokenListItem[] = [
-    {
-        address: '',
-        amount: 0,
-        chainId: 1,
-        decimals: 18,
-        logo: '',
-        symbol: 'ETH',
-    },
-]
-
 export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
@@ -297,6 +286,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                   address: balance.address,
                                   decimals: balance.decimals,
                                   logo: balance.logoURI,
+                                  name: balance.name,
                               }
                           })
                   )
@@ -314,6 +304,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             address: '',
                             decimals: 18,
                             logo: '',
+                            name: chain.nativeCurrency.name,
                         },
                     ])
             })
@@ -364,6 +355,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                   address: balance.address,
                                   decimals: balance.decimals,
                                   logo: balance.logoURI,
+                                  name: balance.name,
                               }
                           })
                   )
@@ -385,6 +377,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             address: '',
                             decimals: 18,
                             logo: '',
+                            name: chain.nativeCurrency.name,
                         },
                     ])
             })
@@ -472,7 +465,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             </div>
                         </div>
                         <div
-                            className="flex h-[58px] w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
                                 if (isConnected && chainAmountShown <= 0) {
                                     setErrorState({
@@ -513,7 +506,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
-                            className=" flex h-[58px] w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
                                 if (isConnected && chainAmountShown <= 0) {
                                     setErrorState({
@@ -697,7 +690,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                                   }}
                                                               >
                                                                   <img src={peanutman_logo.src} className="h-6" />
-                                                                  <label>{chain.shortName}</label>
+                                                                  <label>{chain.shortName.toUpperCase()}</label>
                                                               </div>
                                                           )
                                                   )
@@ -718,7 +711,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                           }}
                                                       >
                                                           <img src={peanutman_logo.src} className="h-6" />
-                                                          <label>{chain.shortName}</label>
+                                                          <label>{chain.shortName.toUpperCase()}</label>
                                                       </div>
                                                   ))}
                                         </div>
@@ -817,7 +810,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                   >
                                                       <div className="flex items-center gap-2 ">
                                                           <img src={token.logo} className="h-6" loading="eager" />
-                                                          <div>{token.symbol}</div>
+                                                          <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
                                                           <div>{utils.formatTokenAmount(token.amount)}</div>{' '}

@@ -15,6 +15,7 @@ export interface ITokenListItem {
     address: string
     decimals: number
     logo: string
+    name: string
 }
 
 export type SendScreens = 'INITIAL' | 'SUCCESS'
