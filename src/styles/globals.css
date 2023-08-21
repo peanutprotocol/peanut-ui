@@ -57,7 +57,7 @@ body {
 }
 
 .softborder {
-  border: 1px solid #000000;
+    border: 1px solid #000000;
 }
 
 .brutalborder-left {
@@ -81,12 +81,14 @@ body {
 }
 
 #cta-div {
-  border: 5px solid black;
-  padding: 1rem;
-  transition: box-shadow 1s ease-in-out, border-radius 1s ease-in-out;
-  box-shadow: 0.5rem 0.5rem 0 0px #000;
-  color: #000;
-  font-weight: 900;
+    border: 5px solid black;
+    padding: 1rem;
+    transition:
+        box-shadow 1s ease-in-out,
+        border-radius 1s ease-in-out;
+    box-shadow: 0.5rem 0.5rem 0 0px #000;
+    color: #000;
+    font-weight: 900;
 }
 
 #cta-btn:hover {

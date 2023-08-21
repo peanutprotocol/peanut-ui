@@ -23,39 +23,39 @@ export function Send() {
         }))
     }
 
-  return (
-    <>
-      <global_components.CardWrapper mt=" mt-16 " shadow>
-        {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
-          onNextScreen: handleOnNext,
-          onCustomScreen: handleOnCustom,
-          claimLink,
-          setClaimLink,
-          txReceipt,
-          setTxReceipt,
-          chainId,
-          setChainId,
-        } as _consts.ISendScreenProps)}
-      </global_components.CardWrapper>
-      {sendScreen == _consts.INIT_VIEW && (
-        <global_components.CardWrapper mb=" mb-8">
-          <div className="mt-2 text-center text-black">
-            <h2 className="title-font text-3xl lg:text-5xl font-black text-black">
-              Integrate Peanut Protocol
-            </h2>
+    return (
+        <>
+            <global_components.CardWrapper mt=" mt-16 " shadow>
+                {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
+                    onNextScreen: handleOnNext,
+                    onCustomScreen: handleOnCustom,
+                    claimLink,
+                    setClaimLink,
+                    txReceipt,
+                    setTxReceipt,
+                    chainId,
+                    setChainId,
+                } as _consts.ISendScreenProps)}
+            </global_components.CardWrapper>
+            {sendScreen == _consts.INIT_VIEW && (
+                <global_components.CardWrapper mb=" mb-8">
+                    <div className="mt-2 text-center text-black">
+                        <h2 className="title-font text-3xl font-black text-black lg:text-5xl">
+                            Integrate Peanut Protocol
+                        </h2>
 
-            <div className="text-base pb-8 w-11/12 lg:w-2/3 mx-auto">
-              Want the peanut magic in your own dApp? Just install our{" "}
-              <a
-                href="https://www.npmjs.com/package/@squirrel-labs/peanut-sdk"
-                className="underline text-black"
-              >
-                npm
-              </a>{" "}
-              library, and with 2 lines of code, you can create token links to
-              send any type of tokens or NFTs!
-            </div>
-            <img src={code_snippet.src} className="w-11/12 lg:w-2/3 mx-auto" />
+                        <div className="mx-auto w-11/12 pb-8 text-base lg:w-2/3">
+                            Want the peanut magic in your own dApp? Just install our{' '}
+                            <a
+                                href="https://www.npmjs.com/package/@squirrel-labs/peanut-sdk"
+                                className="text-black underline"
+                            >
+                                npm
+                            </a>{' '}
+                            library, and with 2 lines of code, you can create token links to send any type of tokens or
+                            NFTs!
+                        </div>
+                        <img src={code_snippet.src} className="mx-auto w-11/12 lg:w-2/3" />
 
                         <div className="mx-auto w-11/12 pt-8 text-base lg:w-2/3">
                             Read more{' '}
