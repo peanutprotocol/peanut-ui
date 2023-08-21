@@ -418,7 +418,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
-                    <div className="hidden cursor-pointer flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
+                    <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 pt-2 ">
                             <div className="flex h-16 items-center">
                                 <label className={'font-bold ' + textFontSize}>
@@ -472,9 +472,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             </div>
                         </div>
                         <div
-                            className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            className="flex h-[58px] w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
-                                console
                                 if (isConnected && chainAmountShown <= 0) {
                                     setErrorState({
                                         showError: true,
@@ -485,8 +484,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 }
                             }}
                         >
-                            {isConnected && chainAmountShown > 0 ? (
-                                <div className="flex flex-col items-center justify-center">
+                            {isConnected ? (
+                                chainAmountShown > 0 ? (
+                                    <div className="flex cursor-pointer flex-col items-center justify-center">
+                                        <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                            {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                        </label>{' '}
+                                        <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                            {formwatch.token}
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="flex h-full items-center justify-center text-sm font-bold">
+                                        No funds available
+                                    </label>
+                                )
+                            ) : (
+                                <div className="flex cursor-pointer flex-col items-center justify-center">
                                     <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
                                         {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
@@ -494,14 +508,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         {formwatch.token}
                                     </label>
                                 </div>
-                            ) : (
-                                <label className="flex h-full items-center justify-center text-sm font-bold">
-                                    No funds available
-                                </label>
                             )}
                         </div>
                     </div>
-                    <div className="flex w-full cursor-pointer flex-col items-center justify-center gap-6 p-4 sm:hidden ">
+                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
                             className=" flex h-[58px] w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
@@ -515,8 +525,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 }
                             }}
                         >
-                            {isConnected && chainAmountShown > 0 ? (
-                                <div className="flex flex-col items-center justify-center">
+                            {isConnected ? (
+                                chainAmountShown > 0 ? (
+                                    <div className="flex cursor-pointer flex-col items-center justify-center">
+                                        <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                            {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                        </label>{' '}
+                                        <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                            {formwatch.token}
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <label className="flex h-full items-center justify-center text-sm font-bold">
+                                        No funds available
+                                    </label>
+                                )
+                            ) : (
+                                <div className="flex cursor-pointer flex-col items-center justify-center">
                                     <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
                                         {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
@@ -524,10 +549,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         {formwatch.token}
                                     </label>
                                 </div>
-                            ) : (
-                                <label className="flex h-full items-center justify-center text-sm font-bold">
-                                    No funds available
-                                </label>
                             )}
                         </div>
                         <div className="flex flex-col justify-end gap-0 pt-2">
@@ -615,6 +636,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         sendForm.setValue('token', modalState.token)
                         sendForm.setValue('chainId', modalState.chainId)
                         setIsTokenSelectorOpen(false)
+                        setUnfoldChains(false)
                     }}
                 >
                     <Transition.Child
@@ -640,7 +662,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pb-4 pt-5 text-left text-black shadow-xl transition-all sm:my-8 sm:min-h-[380px] sm:w-auto sm:min-w-[380px] ">
+                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[380px] ">
                                     <div className="mb-8 flex items-center justify-center sm:hidden">
                                         <svg width="128" height="6">
                                             <rect width="128" height="6" />
@@ -662,7 +684,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               <div
                                                                   key={chain.chainId}
                                                                   className={
-                                                                      'brutalborder flex h-full w-max cursor-pointer flex-row gap-2 px-2 py-1 ' +
+                                                                      'brutalborder sm:w-1/8 flex h-full w-1/5 cursor-pointer flex-row gap-2 px-2 py-1 ' +
                                                                       (modalState.chainId == chain.chainId
                                                                           ? 'bg-black text-white'
                                                                           : '')
@@ -701,7 +723,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                   ))}
                                         </div>
                                         {isMobile
-                                            ? chainAmountShown > 3 && (
+                                            ? chainAmountShown > 4 && (
                                                   <div className="flex w-full justify-end">
                                                       <label
                                                           className="mt-2"
@@ -713,7 +735,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                       </label>
                                                   </div>
                                               )
-                                            : chainAmountShown > 5 && (
+                                            : chainAmountShown > 3 && (
                                                   <div className="flex w-full justify-end">
                                                       <label
                                                           className="mt-2"
@@ -749,7 +771,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         />
                                     </div>
 
-                                    <div className="min-h-32 brutalscroll mb-8 flex max-h-64 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
+                                    <div className="min-h-32 brutalscroll flex max-h-64 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
