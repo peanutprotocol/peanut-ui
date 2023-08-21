@@ -68,10 +68,10 @@ export function Store({ children }: { children: React.ReactNode }) {
 
     const loadUserBalances = async (address: string) => {
         try {
-            const userBalancesResponse= await socketTech.Balances.getBalances({
+            const userBalancesResponse = await socketTech.Balances.getBalances({
                 userAddress: address,
             })
-            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result.map((balances)=>{
+            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result.map((balances) => {
                 return {
                     chainId: balances.chainId,
                     symbol: balances.symbol,
@@ -86,7 +86,6 @@ export function Store({ children }: { children: React.ReactNode }) {
                 }
             })
             if (userBalancesResponse.success) {
-
                 setUserBalances((prev) => {
                     return [...prev, ...updatedBalances]
                 })
@@ -118,7 +117,8 @@ export function Store({ children }: { children: React.ReactNode }) {
                 amount: Number(goerliBalanceEth),
                 price: 0,
                 currency: 'GoerliETH',
-                logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+                logoURI:
+                    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
             }
             const optiBalanceObject: interfaces.IUserBalance = {
                 chainId: 420,
@@ -129,7 +129,8 @@ export function Store({ children }: { children: React.ReactNode }) {
                 amount: Number(optiBalanceEth),
                 price: 0,
                 currency: 'GoerliETH',
-                logoURI: 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+                logoURI:
+                    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
             }
 
             if (Number(goerliBalanceEth) > 0) {

@@ -19,6 +19,17 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 
+const disconnectedTokenList: _consts.ITokenListItem[] = [
+    {
+        address: '',
+        amount: 0,
+        chainId: 1,
+        decimals: 18,
+        logo: '',
+        symbol: 'ETH',
+    },
+]
+
 export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
@@ -28,6 +39,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     //local states
     const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(undefined)
     const [tokenList, setTokenList] = useState<_consts.ITokenListItem[]>([])
+    const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
     const [formHasBeenTouched, setFormHasBeenTouched] = useState(false)
     const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
@@ -124,7 +136,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         ) {
             //check that the user has enough funds
             const balance = userBalances.find((balance) => balance.symbol === sendFormData.token)?.amount
-            if (balance && sendFormData.amount > balance) {
+            const tokenAmount =
+                inputDenomination == 'USD' ? (tokenPrice ? sendFormData.amount / tokenPrice : 0) : sendFormData.amount
+
+            if (balance && tokenAmount > balance) {
                 setErrorState({
                     showError: true,
                     errorMessage: "You don't have enough funds",
@@ -151,6 +166,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             if (isLoading) return
             try {
                 setLoadingStates('checking inputs...')
+                setErrorState({
+                    showError: false,
+                    errorMessage: '',
+                })
+                const tokenAmount =
+                    inputDenomination == 'USD'
+                        ? tokenPrice
+                            ? sendFormData.amount / tokenPrice
+                            : 0
+                        : sendFormData.amount
 
                 if (checkForm(sendFormData).succes === 'false') {
                     return
@@ -166,7 +191,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
                 console.log(
                     'sending ' +
-                        sendFormData.amount +
+                        tokenAmount +
                         ' ' +
                         sendFormData.token +
                         ' on chain with id ' +
@@ -204,7 +229,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     signer: signer,
                     chainId: sendFormData.chainId,
                     tokenAddress: tokenAddress ?? null,
-                    tokenAmount: Number(sendFormData.amount),
+                    tokenAmount: tokenAmount,
                     tokenType: tokenType,
                     tokenDecimals: tokenDecimals,
                     verbose: true,
@@ -235,7 +260,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 setEnableConfirmation(false)
             }
         },
-        [signer, currentChain, userBalances, onNextScreen, isLoading, address]
+        [signer, currentChain, userBalances, onNextScreen, isLoading, address, inputDenomination, tokenPrice]
     )
 
     //update the tokenlist when the user changes the chain or when the userBalances change
@@ -257,36 +282,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                           })
                   )
                 : setTokenList([])
+        } else {
+            setTokenList([])
+            chainDetails.map((chain) => {
+                chain.chainId == formwatch.chainId &&
+                    setTokenList((prev) => [
+                        ...prev,
+                        {
+                            symbol: chain.nativeCurrency.symbol,
+                            chainId: chain.chainId,
+                            amount: 0,
+                            address: '',
+                            decimals: 18,
+                            logo: '',
+                        },
+                    ])
+            })
         }
     }, [formwatch.chainId, userBalances, supportedChainsSocketTech, isConnected])
-
-    // useEffect(() => {
-    //     if (!isConnected) {
-    //         console.log('hierzo')
-
-    //         chainDetails.map((chain) => {
-    //             console.log({
-    //                 symbol: chain.nativeCurrency.symbol,
-    //                 chainId: chain.chainId,
-    //                 amount: 0,
-    //                 address: '',
-    //                 decimals: 18,
-    //                 logo: '',
-    //             })
-    //             setTokenList((prev) => [
-    //                 ...prev,
-    //                 {
-    //                     symbol: chain.nativeCurrency.symbol,
-    //                     chainId: chain.chainId,
-    //                     amount: 0,
-    //                     address: '',
-    //                     decimals: 18,
-    //                     logo: '',
-    //                 },
-    //             ])
-    //         })
-    //     }
-    // }, [isConnected])
 
     //update the chain to the current chain when the user changes the chain
     //TODO: add formhasbeenTouched functionality
@@ -315,11 +328,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //when the chain has changed in the modal, set the tokenlist to the tokens of the chain and set the token to the first token of the chain
     useEffect(() => {
-        setModalState({
-            chainId: modalState.chainId,
-            token: userBalances.find((token) => token.chainId == modalState.chainId)?.symbol ?? '',
-        })
         if (isConnected) {
+            setModalState({
+                chainId: modalState.chainId,
+                token: userBalances.find((token) => token.chainId == modalState.chainId)?.symbol ?? '',
+            })
             userBalances.some((balance) => balance.chainId == modalState.chainId)
                 ? setTokenList(
                       userBalances
@@ -336,6 +349,26 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                           })
                   )
                 : setTokenList([])
+        } else {
+            setTokenList([])
+            setModalState({
+                chainId: modalState.chainId,
+                token: chainDetails.find((chain) => chain.chainId == modalState.chainId)?.nativeCurrency.symbol ?? '',
+            })
+            chainDetails.map((chain) => {
+                chain.chainId == modalState.chainId &&
+                    setTokenList((prev) => [
+                        ...prev,
+                        {
+                            symbol: chain.nativeCurrency.symbol,
+                            chainId: chain.chainId,
+                            amount: 0,
+                            address: '',
+                            decimals: 18,
+                            logo: '',
+                        },
+                    ])
+            })
         }
     }, [modalState.chainId])
 
@@ -344,7 +377,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         if (modalState.token && modalState.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == modalState.token)?.address ?? ''
             fetchTokenPrice(tokenAddress, modalState.chainId)
-            // const tokenAmount = formwatch.amount * tokenPrice.;
         }
     }, [modalState.token])
 
@@ -370,7 +402,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 pt-2 ">
                             <div className="flex h-16 items-center">
-                                {inputDenomination == 'USD' && <label className={'font-bold ' + textFontSize}>$</label>}
+                                <label className={'font-bold ' + textFontSize}>
+                                    {inputDenomination == 'USD' ? '$' : ' '}
+                                </label>
                                 <div className="w-full max-w-[160px] ">
                                     <input
                                         className={
@@ -386,6 +420,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                             },
                                         })}
                                         type="number"
+                                        step="any"
+                                        min="0"
+                                        autoComplete="off"
                                     />
                                 </div>
                             </div>
@@ -417,23 +454,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         </div>
                         <div
                             className="flex h-max w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
-                            id="cta-div"
                             onClick={() => setIsTokenSelectorOpen(true)}
                         >
                             <label className="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                {' '}
                                 {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                             </label>{' '}
                             <label className="overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                {' '}
                                 {formwatch.token}
                             </label>
                         </div>
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
-                            className=" w-124 flex flex h-max flex-col gap-2 border-4 border-solid !px-8 !py-1"
-                            id="cta-div"
+                            className=" flex h-max w-[136px] flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => setIsTokenSelectorOpen(true)}
                         >
                             <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
@@ -445,22 +478,52 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         </div>
                         <div className="flex flex-col justify-end gap-0 pt-2">
                             <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
-                                <span className={'font-bold ' + textFontSize}>$</span>
+                                <label className={'font-bold ' + textFontSize}>
+                                    {inputDenomination == 'USD' ? '$' : ' '}
+                                </label>
+
                                 <input
-                                    autoFocus
                                     type="number"
                                     className={
                                         'no-spin block w-full appearance-none border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
                                         textFontSize
                                     }
                                     placeholder="0.00"
-                                    onChange={(e) => {
-                                        setTextFontSize(_utils.textHandler(e.target.value))
-                                    }}
+                                    {...sendForm.register('amount', {
+                                        required: true,
+                                        onChange: (e) => {
+                                            setTextFontSize(_utils.textHandler(e.target.value))
+                                            sendForm.setValue('amount', e.target.value)
+                                        },
+                                    })}
+                                    step="any"
+                                    min="0"
+                                    autoComplete="off"
                                 />
                             </div>
 
-                            <label className="ml-4 w-max pr-2 text-sm font-bold">{tokenPrice && tokenPrice}</label>
+                            {tokenPrice ? (
+                                <div>
+                                    <img
+                                        onClick={() => {
+                                            setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
+                                        }}
+                                        src={switch_svg.src}
+                                        className="h-4 cursor-pointer"
+                                    />
+                                    <label className="ml-4 w-max pr-2 text-sm font-bold">
+                                        {tokenPrice && formwatch.amount && formwatch.amount > 0
+                                            ? inputDenomination == 'USD'
+                                                ? utils.formatTokenAmount(formwatch.amount / tokenPrice) +
+                                                  ' ' +
+                                                  formwatch.token
+                                                : '$ ' + utils.formatTokenAmount(formwatch.amount * tokenPrice)
+                                            : '0.00 ...'}
+                                    </label>
+                                </div>
+                            ) : (
+                                <div className="h-5"></div>
+                            )}
                         </div>
                     </div>
 
@@ -524,7 +587,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
                                 <Dialog.Panel className="brutalborder relative min-h-[240px] transform overflow-hidden rounded-lg rounded-none bg-white pb-4 pt-5 text-left text-black shadow-xl transition-all	sm:my-8 sm:w-full sm:max-w-sm">
-                                    <div className="mb-8 flex items-center justify-center">
+                                    <div className="mb-8 flex items-center justify-center sm:hidden">
                                         <svg width="128" height="6">
                                             <rect width="128" height="6" />
                                         </svg>
@@ -585,34 +648,78 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         <input
                                             placeholder="Search"
                                             className="brutalborder w-full px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal"
+                                            onKeyUp={(e) => {
+                                                //@ts-ignore
+                                                const searchValue = e.target.value
+                                                if (searchValue == '') {
+                                                    setFilteredTokenList(undefined)
+                                                } else {
+                                                    setFilteredTokenList(
+                                                        tokenList.filter((token) =>
+                                                            token.symbol
+                                                                .toLowerCase()
+                                                                .includes(searchValue.toLowerCase())
+                                                        )
+                                                    )
+                                                }
+                                            }}
                                         />
                                     </div>
 
                                     <div className="min-h-32 mb-8 flex max-h-64 flex-col overflow-scroll  sm:mt-2 ">
-                                        {tokenList.map((token) => (
-                                            <div
-                                                key={token.symbol}
-                                                className={
-                                                    'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
-                                                    (modalState.token == token.symbol ? ' bg-black text-white' : '')
-                                                }
-                                                onClick={() => {
-                                                    setModalState({
-                                                        chainId: modalState.chainId,
-                                                        token: token.symbol,
-                                                    })
-                                                }}
-                                            >
-                                                <div className="flex items-center gap-2 ">
-                                                    <img src={token.logo} className="h-6" alt="..." loading="eager" />
-                                                    <div>{token.symbol}</div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <div>{utils.formatTokenAmount(token.amount)}</div>{' '}
-                                                    <div>{token.symbol}</div>
-                                                </div>
-                                            </div>
-                                        ))}
+                                        {filteredTokenList
+                                            ? filteredTokenList.map((token) => (
+                                                  <div
+                                                      key={token.symbol}
+                                                      className={
+                                                          'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
+                                                          (modalState.token == token.symbol
+                                                              ? ' bg-black text-white'
+                                                              : '')
+                                                      }
+                                                      onClick={() => {
+                                                          setModalState({
+                                                              chainId: modalState.chainId,
+                                                              token: token.symbol,
+                                                          })
+                                                      }}
+                                                  >
+                                                      <div className="flex items-center gap-2 ">
+                                                          <img src={token.logo} className="h-6" loading="eager" />
+                                                          <div>{token.symbol}</div>
+                                                      </div>
+                                                      <div className="flex items-center gap-2">
+                                                          <div>{utils.formatTokenAmount(token.amount)}</div>{' '}
+                                                          <div>{token.symbol}</div>
+                                                      </div>
+                                                  </div>
+                                              ))
+                                            : tokenList.map((token) => (
+                                                  <div
+                                                      key={token.symbol}
+                                                      className={
+                                                          'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
+                                                          (modalState.token == token.symbol
+                                                              ? ' bg-black text-white'
+                                                              : '')
+                                                      }
+                                                      onClick={() => {
+                                                          setModalState({
+                                                              chainId: modalState.chainId,
+                                                              token: token.symbol,
+                                                          })
+                                                      }}
+                                                  >
+                                                      <div className="flex items-center gap-2 ">
+                                                          <img src={token.logo} className="h-6" loading="eager" />
+                                                          <div>{token.symbol}</div>
+                                                      </div>
+                                                      <div className="flex items-center gap-2">
+                                                          <div>{utils.formatTokenAmount(token.amount)}</div>{' '}
+                                                          <div>{token.symbol}</div>
+                                                      </div>
+                                                  </div>
+                                              ))}
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>
