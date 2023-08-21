@@ -15,10 +15,9 @@ export interface IPeanutChainDetails {
     chain: string
     icon: {
         url: string
-        width: number
-        height: number
+
         format: string
-    }[]
+    }
     rpc: string[]
     features: {
         name: string

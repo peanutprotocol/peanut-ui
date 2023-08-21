@@ -9,6 +9,7 @@ import peanutman_logo from '@/assets/peanutman-logo.svg'
 const peanut = require('@squirrel-labs/peanut-sdk')
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
+import { MediaRenderer } from '@thirdweb-dev/react'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -683,14 +684,28 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                                           : '')
                                                                   }
                                                                   onClick={() => {
+                                                                      console.log(chain.icon)
                                                                       setModalState({
                                                                           chainId: chain.chainId,
                                                                           token: modalState.token,
                                                                       })
                                                                   }}
                                                               >
-                                                                  <img src={peanutman_logo.src} className="h-6" />
-                                                                  <label>{chain.shortName.toUpperCase()}</label>
+                                                                  {chain.icon.format == 'ipfs' ? (
+                                                                      <MediaRenderer
+                                                                          src={chain.icon.url}
+                                                                          alt="A Blue Circle"
+                                                                      />
+                                                                  ) : (
+                                                                      <img
+                                                                          src={chain.icon.url}
+                                                                          className="h-6 cursor-pointer"
+                                                                      />
+                                                                  )}
+
+                                                                  <label className="flex cursor-pointer items-center">
+                                                                      {chain.shortName.toUpperCase()}
+                                                                  </label>
                                                               </div>
                                                           )
                                                   )
@@ -710,8 +725,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               })
                                                           }}
                                                       >
-                                                          <img src={peanutman_logo.src} className="h-6" />
-                                                          <label>{chain.shortName.toUpperCase()}</label>
+                                                          <img
+                                                              src={peanutman_logo.src}
+                                                              className="h-6 cursor-pointer"
+                                                          />
+                                                          <label className="flex cursor-pointer items-center">
+                                                              {chain.shortName.toUpperCase()}
+                                                          </label>
                                                       </div>
                                                   ))}
                                         </div>
