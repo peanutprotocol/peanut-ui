@@ -96,7 +96,7 @@ export function About() {
                                 </a>{' '}
                                 |{' '}
                                 <a className="text-black underline" href="https://kkonrad.com/">
-                                    www
+                                    www 
                                 </a>
                             </p>
                         </div>
