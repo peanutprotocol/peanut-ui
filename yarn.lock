@@ -1761,13 +1761,14 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@*":
-  version "0.0.82"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.82.tgz#6a8dfa6b6161161c09f19002f9ec6e491f757f73"
-  integrity sha512-d3kF6DV5MSmKFAUW/L3vmtAyuyKL47RqMn9K90KHHsxVDefaBhQTs9M4PfnSz2DG/WVXSIaO8kXJl7NeknN3yQ==
+"@squirrel-labs/peanut-sdk@0.0.76":
+  version "0.0.76"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.76.tgz#c4e8bb92a5eca9abaca13e182f12d60ffe615ef6"
+  integrity sha512-GO6cNmASV1YizXWwRqYvJ0NAmADKsNTtmNb7qQh7C2n+JnQ6926ZW+jK9L8MhX4aYC73FATO4Vs3SviBPMyspQ==
   dependencies:
     ethersv5 "npm:ethers@^5"
     isomorphic-fetch "^3.0.0"
+    registry.npmjs.org "^1.0.1"
 
 "@stablelib/aead@^1.0.1":
   version "1.0.1"
@@ -6182,6 +6183,11 @@ regenerator-runtime@^0.14.0:
   version "0.14.0"
   resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.14.0.tgz#5e19d68eb12d486f797e15a3c6a918f7cec5eb45"
   integrity sha512-srw17NI0TUWHuGa5CFGGmhfNIeja30WMBfbslPNhf6JrqQlLN5gcrvig1oqPxiVaXb0oW0XRKtH6Nngs5lKCIA==
+
+registry.npmjs.org@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/registry.npmjs.org/-/registry.npmjs.org-1.0.1.tgz#0149847896c5b8631a23fef81380afa5a652feae"
+  integrity sha512-uOultrkuUDeGYYi/GJGmEIavWeyKsmff0mSnpeKPOAu5omOjlUpmNkLlMoGZYnCyz/QyDMJMpzo8t2gcWF8Ozg==
 
 request@^2.79.0:
   version "2.88.2"
