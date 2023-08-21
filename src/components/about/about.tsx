@@ -126,7 +126,7 @@ export function About() {
                                     dm us
                                 </a>{' '}
                                 |{' '}
-                                <a className="text-black underline" href="https://peanut.to/jobs">
+                                <a className="text-black underline" href="/jobs">
                                     jobs
                                 </a>
                             </p>

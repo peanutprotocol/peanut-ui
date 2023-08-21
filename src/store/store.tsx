@@ -2,7 +2,7 @@
 import { atom, useAtom, useSetAtom } from 'jotai'
 import { useAccount } from 'wagmi'
 import { useEffect } from 'react'
-const peanut = require('@squirrel-labs/peanut-sdk')
+import peanut from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
 import * as socketTech from '@socket.tech/socket-v2-sdk'
 import { ethers } from 'ethers'
@@ -57,10 +57,8 @@ export function Store({ children }: { children: React.ReactNode }) {
 
     const getPeanutChainAndTokenDetails = async () => {
         if (peanut) {
-            const chainDetailsArray = Object.keys(peanut.default.CHAIN_DETAILS).map(
-                (key) => peanut.default.CHAIN_DETAILS[key]
-            )
-            const tokenDetailsArray = peanut.default.TOKEN_DETAILS
+            const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map((key) => peanut.CHAIN_DETAILS[key])
+            const tokenDetailsArray = peanut.TOKEN_DETAILS
             setDefaultChainDetails(chainDetailsArray)
             setDefaultTokenDetails(tokenDetailsArray)
         }
@@ -110,9 +108,9 @@ export function Store({ children }: { children: React.ReactNode }) {
 
             const goerliBalanceObject: interfaces.IUserBalance = {
                 chainId: 5,
-                symbol: 'GoerliETH',
+                symbol: 'ETH',
                 name: 'GoerliETH',
-                address: '0xdD69DB25F6D620A7baD3023c5d32761D353D3De9',
+                address: '',
                 decimals: 18,
                 amount: Number(goerliBalanceEth),
                 price: 0,
@@ -122,7 +120,7 @@ export function Store({ children }: { children: React.ReactNode }) {
             }
             const optiBalanceObject: interfaces.IUserBalance = {
                 chainId: 420,
-                symbol: 'GoerliETH',
+                symbol: 'ETH',
                 name: 'GoerliETH',
                 address: '',
                 decimals: 18,

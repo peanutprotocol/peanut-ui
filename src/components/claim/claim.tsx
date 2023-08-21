@@ -8,9 +8,9 @@ import { getPublicClient, PublicClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { HttpTransport } from 'viem'
 import { useAccount } from 'wagmi'
-const peanut = require('@squirrel-labs/peanut-sdk')
+import peanut from '@squirrel-labs/peanut-sdk'
 
-export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
+export function Claim({ link }: { link: string }) {
     const { address, isConnected } = useAccount()
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
@@ -55,17 +55,34 @@ export function Claim({ link }: { link: ReadonlyURLSearchParams }) {
         return publicClientToProvider(publicClient)
     }
 
-    const checkLink = async (link: ReadonlyURLSearchParams) => {
-        const linkChainId = link.get('c')
+    const checkLink = async (link: string) => {
+        console.log(link)
+
+        const [baseUrl, fragment] = link.split('#')
+        console.log('baseUrl', baseUrl)
+        console.log('fragment', fragment)
+        const urlSearchParams = new URLSearchParams(fragment)
+        const linkChainId = urlSearchParams.get('c')
+        // const linkChainId = link.get('c')
+        // get the chain id from the link (params are after #)
+        // const urlSearchParams = new URLSearchParams(link);
+        // const linkChainId = urlSearchParams.get('c');
+        console.log('linkChainId', linkChainId)
+
         const _link = link.toString()
-        setClaimLink(_link)
+        // TODO: @borcherd I changed this so it includes the full link
+        const pageUrl = window.location.href
+        setClaimLink(pageUrl)
+        console.log('completeLink', pageUrl)
+
         const provider = getEthersProvider({ chainId: Number(linkChainId) })
+        console.log('provider', provider)
+        console.log('linkChainId', linkChainId)
 
         try {
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(
-                provider,
-                'https://peanut.to/claim?' + _link
-            )
+            console.log('getting link details')
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
+            console.log('linkDetails', linkDetails)
 
             if (Number(linkDetails.tokenAmount) <= 0) {
                 setLinkState('ALREADY_CLAIMED')

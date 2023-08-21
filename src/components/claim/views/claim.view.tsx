@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { WalletClient, useAccount, useNetwork } from 'wagmi'
 import { useAtom } from 'jotai'
 import { getWalletClient, switchNetwork } from '@wagmi/core'
-const peanut = require('@squirrel-labs/peanut-sdk')
+import peanut from '@squirrel-labs/peanut-sdk'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 
@@ -63,12 +63,8 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
         try {
             if (claimLink && address) {
                 setLoadingStates('executing transaction...')
-                console.log('claiming link: https://peanut.to/claim?' + claimLink)
-                const claimTx = await peanut.claimLinkGasless(
-                    'https://peanut.to/claim?' + claimLink,
-                    address,
-                    process.env.PEANUT_API_KEY
-                )
+                console.log('claiming link:' + claimLink)
+                const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
                 onNextScreen()
@@ -100,10 +96,10 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
             // }
             // if (claimLink) {
             //   setLoadingStates("executing transaction...");
-            //   console.log("claiming link: https://peanut.to/claim?" + claimLink);
+            //   console.log("claiming link:" + claimLink);
             //   const claimTx = await peanut.claimLink({
             //     signer,
-            //     link: "https://peanut.to/claim?" + claimLink,
+            //     link: " + claimLink,
             //   });
             //   setTxHash(claimTx.hash ?? claimTx.transactionHash);
             //   onNextScreen();
@@ -130,12 +126,8 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
             }
             setLoadingStates('executing transaction...')
             if (claimLink && data.address) {
-                console.log('claiming link: https://peanut.to/claim?' + claimLink)
-                const claimTx = await peanut.claimLinkGasless(
-                    'https://peanut.to/claim?' + claimLink,
-                    data.address,
-                    process.env.PEANUT_API_KEY
-                )
+                console.log('claiming link:' + claimLink)
+                const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
 
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
                 onNextScreen()
