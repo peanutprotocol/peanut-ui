@@ -7,6 +7,7 @@ export interface IUserBalance {
     price: number
     amount: number
     currency: string
+    logoURI: string
 }
 
 export interface IPeanutChainDetails {

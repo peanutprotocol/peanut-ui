@@ -105,25 +105,3 @@ export const getTokenDetails =
       return { tokenAddress, tokenDecimals, tokenType };
     }
   
-export const getTokenPrice = async (tokenAddress: string, chainId: number) => {
-
-
-    try {
-      const response = await axios.get(
-        "https://api.socket.tech/v2/token-price",
-        {
-          params: {
-            tokenAddress: tokenAddress,
-            chainId: chainId,
-          },
-          headers: {
-            accept: "application/json",
-            "API-KEY": process.env.SOCKET_API_KEY,
-          },
-        }
-      );
-      return response.data;
-    } catch (error) {
-      console.log("error fetching token price for token " + tokenAddress);
-    }
-  };
