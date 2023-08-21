@@ -145,6 +145,12 @@ export function Store({ children }: { children: React.ReactNode }) {
             console.error('Error:', error)
         }
     }
+    const loadUserBalanceUsingRpc = async (chainDetail: interfaces.IPeanutChainDetails, address: string) => {
+        const provider = new ethers.providers.JsonRpcProvider(chainDetail.rpc[0])
+
+        try {
+        } catch (error) {}
+    }
 
     return <>{children}</>
 }
