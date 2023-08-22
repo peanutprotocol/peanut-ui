@@ -662,6 +662,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         setFormHasBeenTouched(true)
                         setIsTokenSelectorOpen(false)
                         setUnfoldChains(false)
+                        setFilteredTokenList(undefined)
                     }}
                 >
                     <Transition.Child
@@ -775,9 +776,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                 } else {
                                                     setFilteredTokenList(
                                                         tokenList.filter((token) =>
-                                                            token.symbol
-                                                                .toLowerCase()
-                                                                .includes(searchValue.toLowerCase())
+                                                            token.name.toLowerCase().includes(searchValue.toLowerCase())
                                                         )
                                                     )
                                                 }
@@ -806,7 +805,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                   >
                                                       <div className="flex items-center gap-2 ">
                                                           <img src={token.logo} className="h-6" loading="eager" />
-                                                          <div>{token.symbol}</div>
+                                                          <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
                                                           <div>
