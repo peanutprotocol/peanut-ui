@@ -8,6 +8,7 @@ const nextConfig = {
         GOERLI_RPC_URL: process.env.GOERLI_RPC_URL,
         GA_KEY: process.env.GA_KEY,
     },
+    productionBrowserSourceMaps: true,
 }
 
 module.exports = nextConfig

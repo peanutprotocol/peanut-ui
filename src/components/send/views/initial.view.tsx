@@ -5,10 +5,12 @@ import { useAccount, useNetwork } from 'wagmi'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
-const peanut = require('@squirrel-labs/peanut-sdk')
+// const peanut = require('@squirrel-labs/peanut-sdk')
+import peanut from '@squirrel-labs/peanut-sdk'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { MediaRenderer } from '@thirdweb-dev/react'
+import dropdown_svg from '@/assets/dropdown.svg'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -44,6 +46,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [selectorIsLoading, setSelectorIsLoading] = useState(true)
+    const [changeToken, setChangeToken] = useState(true)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -289,7 +292,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     }, [address])
 
     //update the chain to the current chain when the user changes the chain
-    //TODO: add formhasbeenTouched functionality
     useEffect(() => {
         if (currentChain && !formHasBeenTouched && chainsToShow.some((chain) => chain.chainId == currentChain.id)) {
             sendForm.setValue('chainId', currentChain.id)
@@ -298,14 +300,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //update the token to the first available token when the user changes the chain
     useEffect(() => {
-        if (tokenList && !isTokenSelectorOpen) {
+        if (tokenList && !isTokenSelectorOpen && changeToken) {
+            console.log('setting token to ', tokenList.find((token) => token.chainId == formwatch.chainId)?.symbol)
             sendForm.setValue('token', tokenList.find((token) => token.chainId == formwatch.chainId)?.symbol ?? '')
         }
         setTimeout(() => {
             if (tokenList.length > 0) {
                 setSelectorIsLoading(false)
             }
-        }, 500)
+        }, 1000)
     }, [tokenList])
 
     //update the signer when the user changes the chain
@@ -317,126 +320,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             }, 2000)
         }
     }, [formwatch.chainId, isConnected])
-
-    // // when the chain has changed in the modal, set the tokenlist to the tokens of the chain and set the token to the first token of the chain
-    // useEffect(() => {
-    //     if (isConnected) {
-    //         setModalState({
-    //             chainId: modalState.chainId,
-    //             token: userBalances.find((token) => token.chainId == modalState.chainId)?.symbol ?? '',
-    //         })
-    //         userBalances.some((balance) => balance.chainId == modalState.chainId)
-    //             ? setTokenList(
-    //                   userBalances
-    //                       .filter((balance) => balance.chainId == modalState.chainId)
-    //                       .map((balance) => {
-    //                           return {
-    //                               symbol: balance.symbol,
-    //                               chainId: balance.chainId,
-    //                               amount: balance.amount,
-    //                               address: balance.address,
-    //                               decimals: balance.decimals,
-    //                               logo: balance.logoURI,
-    //                               name: balance.name,
-    //                           }
-    //                       })
-    //               )
-    //             : setTokenList(
-    //                   tokenDetails
-    //                       .find((tokendetail) => tokendetail.chainId == modalState.chainId.toString())
-    //                       ?.tokens.map((token) => {
-    //                           return {
-    //                               symbol: token.symbol,
-    //                               chainId: formwatch.chainId,
-    //                               amount: 0,
-    //                               address: token.address,
-    //                               decimals: token.decimals,
-    //                               logo: token.logoURI,
-    //                               name: token.name,
-    //                           }
-    //                       }) ?? []
-    //               )
-    //         setTokenList([])
-    //         setModalState({
-    //             chainId: modalState.chainId,
-    //             token: chainsToShow.find((chain) => chain.chainId == modalState.chainId)?.nativeCurrency.symbol ?? '',
-    //         })
-    //         chainsToShow.map((chain) => {
-    //             chain.chainId == modalState.chainId &&
-    //                 setTokenList((prev) => [
-    //                     ...prev,
-    //                     {
-    //                         symbol: chain.nativeCurrency.symbol,
-    //                         chainId: chain.chainId,
-    //                         amount: 0,
-    //                         address: '',
-    //                         decimals: 18,
-    //                         logo: '',
-    //                         name: chain.nativeCurrency.name,
-    //                     },
-    //                 ])
-    //         })
-    //     }
-    // }, [modalState.chainId])
-
-    useEffect(() => {
-        console.log(tokenList)
-    }, [tokenList])
-
-    // //update the tokenlist when the user changes the chain or when the userBalances change
-    // useEffect(() => {
-    //     if (isConnected) {
-    //         console.log('setting tokenlist 2 ', formwatch.chainId)
-    //         userBalances.some((balance) => balance.chainId == formwatch.chainId)
-    //             ? setTokenList(
-    //                   userBalances
-    //                       .filter((balance) => balance.chainId == formwatch.chainId)
-    //                       .map((balance) => {
-    //                           return {
-    //                               symbol: balance.symbol,
-    //                               chainId: balance.chainId,
-    //                               amount: balance.amount,
-    //                               address: balance.address,
-    //                               decimals: balance.decimals,
-    //                               logo: balance.logoURI,
-    //                               name: balance.name,
-    //                           }
-    //                       })
-    //               )
-    //             : setTokenList(
-    //                   tokenDetails
-    //                       .find((tokendetail) => tokendetail.chainId == formwatch.chainId.toString())
-    //                       ?.tokens.map((token) => {
-    //                           return {
-    //                               symbol: token.symbol,
-    //                               chainId: formwatch.chainId,
-    //                               amount: 0,
-    //                               address: token.address,
-    //                               decimals: token.decimals,
-    //                               logo: token.logoURI,
-    //                               name: token.name,
-    //                           }
-    //                       }) ?? []
-    //               )
-    //     } else {
-    //         setTokenList([])
-    //         chainsToShow.map((chain) => {
-    //             chain.chainId == formwatch.chainId &&
-    //                 setTokenList((prev) => [
-    //                     ...prev,
-    //                     {
-    //                         symbol: chain.nativeCurrency.symbol,
-    //                         chainId: chain.chainId,
-    //                         amount: 0,
-    //                         address: '',
-    //                         decimals: 18,
-    //                         logo: '',
-    //                         name: chain.nativeCurrency.name,
-    //                     },
-    //                 ])
-    //         })
-    //     }
-    // }, [formwatch.chainId, userBalances, supportedChainsSocketTech, isConnected])
 
     useEffect(() => {
         if (isConnected) {
@@ -491,12 +374,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [modalState.chainId, isConnected, formwatch.chainId, userBalances, supportedChainsSocketTech, chainsToShow])
 
-    // useEffect(() => {
-    //     console.log('tokenlist', tokenList)
-    // }, [tokenList])
-
     //when the token has changed in the modal, fetch the tokenprice and display it
-
     useEffect(() => {
         if (modalState.token && modalState.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == modalState.token)?.address ?? ''
@@ -540,6 +418,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                             required: true,
                                             onChange: (e) => {
                                                 setTextFontSize(_utils.textHandler(e.target.value))
+                                                setFormHasBeenTouched(true)
                                                 sendForm.setValue('amount', e.target.value)
                                             },
                                         })}
@@ -590,7 +469,25 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             }}
                         >
                             {selectorIsLoading ? (
-                                <label className="flex h-full items-center justify-center text-sm font-bold">...</label>
+                                <div className="flex h-full w-full items-center justify-center">
+                                    <svg
+                                        aria-hidden="true"
+                                        className="inline h-6 w-6 animate-spin fill-white text-black dark:text-black"
+                                        viewBox="0 0 100 101"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                            fill="currentColor"
+                                        />
+                                        <path
+                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                            fill="currentFill"
+                                        />
+                                    </svg>
+                                    <span className="sr-only">Loading...</span>
+                                </div>
                             ) : isConnected ? (
                                 chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
@@ -633,7 +530,25 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             }}
                         >
                             {selectorIsLoading ? (
-                                <label className="flex h-full items-center justify-center text-sm font-bold">...</label>
+                                <div className="flex h-full w-full items-center justify-center">
+                                    <svg
+                                        aria-hidden="true"
+                                        className="inline h-6 w-6 animate-spin fill-white text-black dark:text-black"
+                                        viewBox="0 0 100 101"
+                                        fill="none"
+                                        xmlns="http://www.w3.org/2000/svg"
+                                    >
+                                        <path
+                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
+                                            fill="currentColor"
+                                        />
+                                        <path
+                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
+                                            fill="currentFill"
+                                        />
+                                    </svg>
+                                    <span className="sr-only">Loading...</span>
+                                </div>
                             ) : isConnected ? (
                                 chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
@@ -744,6 +659,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     onClose={() => {
                         sendForm.setValue('token', modalState.token)
                         sendForm.setValue('chainId', modalState.chainId)
+                        setFormHasBeenTouched(true)
                         setIsTokenSelectorOpen(false)
                         setUnfoldChains(false)
                     }}
@@ -797,6 +713,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                             chainId: chain.chainId,
                                                             token: modalState.token,
                                                         })
+                                                        setChangeToken(true)
                                                     }}
                                                 >
                                                     {chain.icon.format == 'ipfs' ? (
@@ -813,27 +730,35 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         </div>
                                         {isMobile
                                             ? chainsToShow.length > 4 && (
-                                                  <div className="flex w-full justify-end">
-                                                      <label
-                                                          className="mt-2"
+                                                  <div className="flex w-full cursor-pointer justify-start">
+                                                      <img
+                                                          style={{
+                                                              transform: unfoldChains ? 'scaleY(-1)' : 'none',
+                                                              transition: 'transform 0.3s ease-in-out',
+                                                          }}
+                                                          src={dropdown_svg.src}
+                                                          alt=""
+                                                          className={'h-6 '}
                                                           onClick={() => {
                                                               setUnfoldChains(!unfoldChains)
                                                           }}
-                                                      >
-                                                          {unfoldChains ? 'fold...' : 'unfold...'}
-                                                      </label>
+                                                      />
                                                   </div>
                                               )
                                             : chainsToShow.length > 3 && (
-                                                  <div className="flex w-full justify-end">
-                                                      <label
-                                                          className="mt-2"
+                                                  <div className="flex w-full cursor-pointer justify-start">
+                                                      <img
+                                                          style={{
+                                                              transform: unfoldChains ? 'scaleY(-1)' : 'none',
+                                                              transition: 'transform 0.3s ease-in-out',
+                                                          }}
+                                                          src={dropdown_svg.src}
+                                                          alt=""
+                                                          className={'h-6 '}
                                                           onClick={() => {
                                                               setUnfoldChains(!unfoldChains)
                                                           }}
-                                                      >
-                                                          {unfoldChains ? 'fold...' : 'unfold...'}
-                                                      </label>
+                                                      />
                                                   </div>
                                               )}
                                     </div>
@@ -876,6 +801,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               chainId: modalState.chainId,
                                                               token: token.symbol,
                                                           })
+                                                          setChangeToken(false)
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
@@ -905,6 +831,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               chainId: modalState.chainId,
                                                               token: token.symbol,
                                                           })
+                                                          setChangeToken(false)
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
