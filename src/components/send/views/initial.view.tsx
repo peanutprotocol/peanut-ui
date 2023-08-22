@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
+import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
 import { useWeb3Modal } from '@web3modal/react'
 import { useAtom } from 'jotai'
 import { useAccount, useNetwork } from 'wagmi'
@@ -78,7 +78,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         mode: 'onChange',
         defaultValues: {
             chainId: 1,
-            amount: 0,
+            amount: null,
             token: '',
         },
     })
@@ -130,7 +130,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
 
         //check if the amount is less than or equal to zero
-        if (sendFormData.amount <= 0) {
+        if (sendFormData.amount && sendFormData.amount <= 0) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
@@ -147,9 +147,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             //check that the user has enough funds
             const balance = userBalances.find((balance) => balance.symbol === sendFormData.token)?.amount
             const tokenAmount =
-                inputDenomination == 'USD' ? (tokenPrice ? sendFormData.amount / tokenPrice : 0) : sendFormData.amount
+                inputDenomination == 'USD'
+                    ? tokenPrice
+                        ? sendFormData.amount && sendFormData.amount / tokenPrice
+                        : 0
+                    : sendFormData.amount
 
-            if (balance && tokenAmount > balance) {
+            if (balance && tokenAmount && tokenAmount > balance) {
                 setErrorState({
                     showError: true,
                     errorMessage: "You don't have enough funds",
@@ -183,7 +187,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 const tokenAmount =
                     inputDenomination == 'USD'
                         ? tokenPrice
-                            ? sendFormData.amount / tokenPrice
+                            ? sendFormData.amount && sendFormData.amount / tokenPrice
                             : 0
                         : sendFormData.amount
 
@@ -243,6 +247,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     tokenType: tokenType,
                     tokenDecimals: tokenDecimals,
                     verbose: true,
+                    baseUrl: window.location.origin,
                 })
                 console.log('Created link:', link)
                 utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
@@ -274,8 +279,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     )
 
     useEffect(() => {
-        if (chainsToShow.length > 0) {
+        if (chainsToShow.length > 0 && !formHasBeenTouched) {
             sendForm.setValue('chainId', chainsToShow[0].chainId)
+            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
             setModalState({
                 chainId: chainsToShow[0].chainId,
                 token: modalState.token,
@@ -294,14 +300,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     //update the chain to the current chain when the user changes the chain
     useEffect(() => {
         if (currentChain && !formHasBeenTouched && chainsToShow.some((chain) => chain.chainId == currentChain.id)) {
+            sendForm.setValue(
+                'token',
+                chainsToShow.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
+            )
             sendForm.setValue('chainId', currentChain.id)
         }
+        setSelectorIsLoading(true)
+        setTimeout(() => {
+            setSelectorIsLoading(false)
+        }, 1000)
     }, [currentChain])
 
     //update the token to the first available token when the user changes the chain
     useEffect(() => {
         if (tokenList && !isTokenSelectorOpen && changeToken) {
-            console.log('setting token to ', tokenList.find((token) => token.chainId == formwatch.chainId)?.symbol)
             sendForm.setValue('token', tokenList.find((token) => token.chainId == formwatch.chainId)?.symbol ?? '')
         }
         setTimeout(() => {
@@ -410,7 +423,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 <div className="w-full max-w-[160px] ">
                                     <input
                                         className={
-                                            'no-spin block w-full appearance-none border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
+                                            'no-spin custom-cursor block w-full appearance-none border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
                                             textFontSize
                                         }
                                         placeholder="0.00"
@@ -426,6 +439,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         step="any"
                                         min="0"
                                         autoComplete="off"
+                                        onFocus={(e) => e.target.select()}
+                                        autoFocus
                                     />
                                 </div>
                             </div>
@@ -598,6 +613,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                     step="any"
                                     min="0"
                                     autoComplete="off"
+                                    onFocus={(e) => e.target.select()}
+                                    autoFocus
                                 />
                             </div>
 

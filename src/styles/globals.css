@@ -105,6 +105,7 @@ body {
     box-shadow: 0.5rem 0.5rem 0 0px #000;
     color: #000;
     font-weight: 900;
+    left: -2.5px;
 }
 
 #cta-btn:hover {
@@ -155,6 +156,10 @@ select {
 
 input {
     box-sizing: border-box;
+}
+
+.custom-cursor {
+    border-left: 3px solid black; /* Adjust thickness and color as needed */
 }
 
 @layer base {
