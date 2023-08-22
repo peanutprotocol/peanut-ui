@@ -5,7 +5,6 @@ import { useAccount, useNetwork } from 'wagmi'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
-import peanutman_logo from '@/assets/peanutman-logo.svg'
 const peanut = require('@squirrel-labs/peanut-sdk')
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
@@ -24,7 +23,7 @@ import { isMobile } from 'react-device-detect'
 export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
-    const { isConnected, address, isDisconnected } = useAccount()
+    const { isConnected, address } = useAccount()
     const { chain: currentChain } = useNetwork()
 
     //local states
@@ -44,6 +43,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
+    const [selectorIsLoading, setSelectorIsLoading] = useState(true)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -53,16 +53,22 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
-    const chainAmountShown = useMemo(() => {
-        return isConnected
-            ? chainDetails.filter(
-                  (chain) => chain.chainId == userBalances.find((balance) => balance.chainId == chain.chainId)?.chainId
-              ).length
-            : chainDetails.length
-    }, [isConnected, isDisconnected, chainDetails, userBalances])
-    hooks.useConfirmRefresh(enableConfirmation)
+    const chainsToShow = useMemo(() => {
+        if (isConnected) {
+            const filteredChains = chainDetails.filter(
+                (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
+            )
+            return filteredChains.concat(
+                chainDetails.filter(
+                    (item1) => !supportedChainsSocketTech.some((item2) => item2.chainId === item1.chainId)
+                )
+            )
+        } else {
+            return chainDetails
+        }
+    }, [isConnected, chainDetails, userBalances, supportedChainsSocketTech])
 
-    useEffect(() => {}, [chainAmountShown])
+    hooks.useConfirmRefresh(enableConfirmation)
 
     //form and modalform states
     const sendForm = useForm<_consts.ISendFormData>({
@@ -187,7 +193,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     sendFormData,
                     userBalances,
                     tokenDetails,
-                    chainDetails
+                    chainsToShow
                 )
 
                 console.log(
@@ -264,6 +270,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         [signer, currentChain, userBalances, onNextScreen, isLoading, address, inputDenomination, tokenPrice]
     )
 
+    useEffect(() => {
+        if (chainsToShow.length > 0) {
+            sendForm.setValue('chainId', chainsToShow[0].chainId)
+            setModalState({
+                chainId: chainsToShow[0].chainId,
+                token: modalState.token,
+            })
+        }
+    }, [chainsToShow])
+
     //update the errormessage when the walletAddress has been changed
     useEffect(() => {
         setErrorState({
@@ -272,50 +288,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         })
     }, [address])
 
-    //update the tokenlist when the user changes the chain or when the userBalances change
-    useEffect(() => {
-        if (isConnected) {
-            userBalances.some((balance) => balance.chainId == formwatch.chainId)
-                ? setTokenList(
-                      userBalances
-                          .filter((balance) => balance.chainId == formwatch.chainId)
-                          .map((balance) => {
-                              return {
-                                  symbol: balance.symbol,
-                                  chainId: balance.chainId,
-                                  amount: balance.amount,
-                                  address: balance.address,
-                                  decimals: balance.decimals,
-                                  logo: balance.logoURI,
-                                  name: balance.name,
-                              }
-                          })
-                  )
-                : setTokenList([])
-        } else {
-            setTokenList([])
-            chainDetails.map((chain) => {
-                chain.chainId == formwatch.chainId &&
-                    setTokenList((prev) => [
-                        ...prev,
-                        {
-                            symbol: chain.nativeCurrency.symbol,
-                            chainId: chain.chainId,
-                            amount: 0,
-                            address: '',
-                            decimals: 18,
-                            logo: '',
-                            name: chain.nativeCurrency.name,
-                        },
-                    ])
-            })
-        }
-    }, [formwatch.chainId, userBalances, supportedChainsSocketTech, isConnected])
-
     //update the chain to the current chain when the user changes the chain
     //TODO: add formhasbeenTouched functionality
     useEffect(() => {
-        if (currentChain && !formHasBeenTouched && chainDetails.some((chain) => chain.chainId == currentChain.id)) {
+        if (currentChain && !formHasBeenTouched && chainsToShow.some((chain) => chain.chainId == currentChain.id)) {
             sendForm.setValue('chainId', currentChain.id)
         }
     }, [currentChain])
@@ -325,6 +301,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         if (tokenList && !isTokenSelectorOpen) {
             sendForm.setValue('token', tokenList.find((token) => token.chainId == formwatch.chainId)?.symbol ?? '')
         }
+        setTimeout(() => {
+            if (tokenList.length > 0) {
+                setSelectorIsLoading(false)
+            }
+        }, 500)
     }, [tokenList])
 
     //update the signer when the user changes the chain
@@ -337,13 +318,128 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [formwatch.chainId, isConnected])
 
-    //when the chain has changed in the modal, set the tokenlist to the tokens of the chain and set the token to the first token of the chain
+    // // when the chain has changed in the modal, set the tokenlist to the tokens of the chain and set the token to the first token of the chain
+    // useEffect(() => {
+    //     if (isConnected) {
+    //         setModalState({
+    //             chainId: modalState.chainId,
+    //             token: userBalances.find((token) => token.chainId == modalState.chainId)?.symbol ?? '',
+    //         })
+    //         userBalances.some((balance) => balance.chainId == modalState.chainId)
+    //             ? setTokenList(
+    //                   userBalances
+    //                       .filter((balance) => balance.chainId == modalState.chainId)
+    //                       .map((balance) => {
+    //                           return {
+    //                               symbol: balance.symbol,
+    //                               chainId: balance.chainId,
+    //                               amount: balance.amount,
+    //                               address: balance.address,
+    //                               decimals: balance.decimals,
+    //                               logo: balance.logoURI,
+    //                               name: balance.name,
+    //                           }
+    //                       })
+    //               )
+    //             : setTokenList(
+    //                   tokenDetails
+    //                       .find((tokendetail) => tokendetail.chainId == modalState.chainId.toString())
+    //                       ?.tokens.map((token) => {
+    //                           return {
+    //                               symbol: token.symbol,
+    //                               chainId: formwatch.chainId,
+    //                               amount: 0,
+    //                               address: token.address,
+    //                               decimals: token.decimals,
+    //                               logo: token.logoURI,
+    //                               name: token.name,
+    //                           }
+    //                       }) ?? []
+    //               )
+    //         setTokenList([])
+    //         setModalState({
+    //             chainId: modalState.chainId,
+    //             token: chainsToShow.find((chain) => chain.chainId == modalState.chainId)?.nativeCurrency.symbol ?? '',
+    //         })
+    //         chainsToShow.map((chain) => {
+    //             chain.chainId == modalState.chainId &&
+    //                 setTokenList((prev) => [
+    //                     ...prev,
+    //                     {
+    //                         symbol: chain.nativeCurrency.symbol,
+    //                         chainId: chain.chainId,
+    //                         amount: 0,
+    //                         address: '',
+    //                         decimals: 18,
+    //                         logo: '',
+    //                         name: chain.nativeCurrency.name,
+    //                     },
+    //                 ])
+    //         })
+    //     }
+    // }, [modalState.chainId])
+
+    useEffect(() => {
+        console.log(tokenList)
+    }, [tokenList])
+
+    // //update the tokenlist when the user changes the chain or when the userBalances change
+    // useEffect(() => {
+    //     if (isConnected) {
+    //         console.log('setting tokenlist 2 ', formwatch.chainId)
+    //         userBalances.some((balance) => balance.chainId == formwatch.chainId)
+    //             ? setTokenList(
+    //                   userBalances
+    //                       .filter((balance) => balance.chainId == formwatch.chainId)
+    //                       .map((balance) => {
+    //                           return {
+    //                               symbol: balance.symbol,
+    //                               chainId: balance.chainId,
+    //                               amount: balance.amount,
+    //                               address: balance.address,
+    //                               decimals: balance.decimals,
+    //                               logo: balance.logoURI,
+    //                               name: balance.name,
+    //                           }
+    //                       })
+    //               )
+    //             : setTokenList(
+    //                   tokenDetails
+    //                       .find((tokendetail) => tokendetail.chainId == formwatch.chainId.toString())
+    //                       ?.tokens.map((token) => {
+    //                           return {
+    //                               symbol: token.symbol,
+    //                               chainId: formwatch.chainId,
+    //                               amount: 0,
+    //                               address: token.address,
+    //                               decimals: token.decimals,
+    //                               logo: token.logoURI,
+    //                               name: token.name,
+    //                           }
+    //                       }) ?? []
+    //               )
+    //     } else {
+    //         setTokenList([])
+    //         chainsToShow.map((chain) => {
+    //             chain.chainId == formwatch.chainId &&
+    //                 setTokenList((prev) => [
+    //                     ...prev,
+    //                     {
+    //                         symbol: chain.nativeCurrency.symbol,
+    //                         chainId: chain.chainId,
+    //                         amount: 0,
+    //                         address: '',
+    //                         decimals: 18,
+    //                         logo: '',
+    //                         name: chain.nativeCurrency.name,
+    //                     },
+    //                 ])
+    //         })
+    //     }
+    // }, [formwatch.chainId, userBalances, supportedChainsSocketTech, isConnected])
+
     useEffect(() => {
         if (isConnected) {
-            setModalState({
-                chainId: modalState.chainId,
-                token: userBalances.find((token) => token.chainId == modalState.chainId)?.symbol ?? '',
-            })
             userBalances.some((balance) => balance.chainId == modalState.chainId)
                 ? setTokenList(
                       userBalances
@@ -360,14 +456,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                               }
                           })
                   )
-                : setTokenList([])
+                : setTokenList(
+                      tokenDetails
+                          .find((tokendetail) => tokendetail.chainId == modalState.chainId.toString())
+                          ?.tokens.map((token) => {
+                              return {
+                                  symbol: token.symbol,
+                                  chainId: modalState.chainId,
+                                  amount: 0,
+                                  address: token.address,
+                                  decimals: token.decimals,
+                                  logo: token.logoURI,
+                                  name: token.name,
+                              }
+                          }) ?? []
+                  )
         } else {
             setTokenList([])
-            setModalState({
-                chainId: modalState.chainId,
-                token: chainDetails.find((chain) => chain.chainId == modalState.chainId)?.nativeCurrency.symbol ?? '',
-            })
-            chainDetails.map((chain) => {
+            chainsToShow.map((chain) => {
                 chain.chainId == modalState.chainId &&
                     setTokenList((prev) => [
                         ...prev,
@@ -383,9 +489,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     ])
             })
         }
-    }, [modalState.chainId])
+    }, [modalState.chainId, isConnected, formwatch.chainId, userBalances, supportedChainsSocketTech, chainsToShow])
+
+    // useEffect(() => {
+    //     console.log('tokenlist', tokenList)
+    // }, [tokenList])
 
     //when the token has changed in the modal, fetch the tokenprice and display it
+
     useEffect(() => {
         if (modalState.token && modalState.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == modalState.token)?.address ?? ''
@@ -468,7 +579,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         <div
                             className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
-                                if (isConnected && chainAmountShown <= 0) {
+                                if (isConnected && chainsToShow.length <= 0) {
                                     setErrorState({
                                         showError: true,
                                         errorMessage: 'No funds available',
@@ -478,11 +589,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 }
                             }}
                         >
-                            {isConnected ? (
-                                chainAmountShown > 0 ? (
+                            {selectorIsLoading ? (
+                                <label className="flex h-full items-center justify-center text-sm font-bold">...</label>
+                            ) : isConnected ? (
+                                chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
                                         <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                            {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                            {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                         </label>{' '}
                                         <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                             {formwatch.token}
@@ -496,7 +609,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             ) : (
                                 <div className="flex cursor-pointer flex-col items-center justify-center">
                                     <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                        {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                        {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
                                     <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                         {formwatch.token}
@@ -509,7 +622,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         <div
                             className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
-                                if (isConnected && chainAmountShown <= 0) {
+                                if (isConnected && chainsToShow.length <= 0) {
                                     setErrorState({
                                         showError: true,
                                         errorMessage: 'No funds available',
@@ -519,11 +632,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 }
                             }}
                         >
-                            {isConnected ? (
-                                chainAmountShown > 0 ? (
+                            {selectorIsLoading ? (
+                                <label className="flex h-full items-center justify-center text-sm font-bold">...</label>
+                            ) : isConnected ? (
+                                chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
                                         <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                            {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                            {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                         </label>{' '}
                                         <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                             {formwatch.token}
@@ -537,7 +652,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             ) : (
                                 <div className="flex cursor-pointer flex-col items-center justify-center">
                                     <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                        {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                        {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
                                     <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                         {formwatch.token}
@@ -668,79 +783,36 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                 unfoldChains ? 'max-h-[none]' : ''
                                             }`}
                                         >
-                                            {isConnected
-                                                ? chainDetails.map(
-                                                      (chain) =>
-                                                          chain.chainId ==
-                                                              userBalances.find(
-                                                                  (balance) => balance.chainId == chain.chainId
-                                                              )?.chainId && (
-                                                              <div
-                                                                  key={chain.chainId}
-                                                                  className={
-                                                                      'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                                      (modalState.chainId == chain.chainId
-                                                                          ? 'bg-black text-white'
-                                                                          : '')
-                                                                  }
-                                                                  onClick={() => {
-                                                                      console.log(chain.icon)
-                                                                      setModalState({
-                                                                          chainId: chain.chainId,
-                                                                          token: modalState.token,
-                                                                      })
-                                                                  }}
-                                                              >
-                                                                  {chain.icon.format == 'ipfs' ? (
-                                                                      <MediaRenderer
-                                                                          src={chain.icon.url}
-                                                                          alt="A Blue Circle"
-                                                                      />
-                                                                  ) : (
-                                                                      <img
-                                                                          src={chain.icon.url}
-                                                                          className="h-6 cursor-pointer"
-                                                                      />
-                                                                  )}
+                                            {chainsToShow.map((chain) => (
+                                                <div
+                                                    key={chain.chainId}
+                                                    className={
+                                                        'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                        (modalState.chainId == chain.chainId
+                                                            ? 'bg-black text-white'
+                                                            : '')
+                                                    }
+                                                    onClick={() => {
+                                                        setModalState({
+                                                            chainId: chain.chainId,
+                                                            token: modalState.token,
+                                                        })
+                                                    }}
+                                                >
+                                                    {chain.icon.format == 'ipfs' ? (
+                                                        <MediaRenderer src={chain.icon.url} alt="A Blue Circle" />
+                                                    ) : (
+                                                        <img src={chain.icon.url} className="h-6 cursor-pointer" />
+                                                    )}
 
-                                                                  <label className="flex cursor-pointer items-center">
-                                                                      {chain.shortName.toUpperCase()}
-                                                                  </label>
-                                                              </div>
-                                                          )
-                                                  )
-                                                : chainDetails.map((chain) => (
-                                                      <div
-                                                          key={chain.chainId}
-                                                          className={
-                                                              'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                              (modalState.chainId == chain.chainId
-                                                                  ? 'bg-black text-white'
-                                                                  : '')
-                                                          }
-                                                          onClick={() => {
-                                                              setModalState({
-                                                                  chainId: chain.chainId,
-                                                                  token: modalState.token,
-                                                              })
-                                                          }}
-                                                      >
-                                                          {chain.icon.format == 'ipfs' ? (
-                                                              <MediaRenderer src={chain.icon.url} alt="A Blue Circle" />
-                                                          ) : (
-                                                              <img
-                                                                  src={chain.icon.url}
-                                                                  className="h-6 cursor-pointer"
-                                                              />
-                                                          )}
-                                                          <label className="flex cursor-pointer items-center">
-                                                              {chain.shortName.toUpperCase()}
-                                                          </label>
-                                                      </div>
-                                                  ))}
+                                                    <label className="flex cursor-pointer items-center">
+                                                        {chain.shortName.toUpperCase()}
+                                                    </label>
+                                                </div>
+                                            ))}
                                         </div>
                                         {isMobile
-                                            ? chainAmountShown > 4 && (
+                                            ? chainsToShow.length > 4 && (
                                                   <div className="flex w-full justify-end">
                                                       <label
                                                           className="mt-2"
@@ -752,7 +824,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                       </label>
                                                   </div>
                                               )
-                                            : chainAmountShown > 3 && (
+                                            : chainsToShow.length > 3 && (
                                                   <div className="flex w-full justify-end">
                                                       <label
                                                           className="mt-2"
@@ -811,7 +883,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                           <div>{token.symbol}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
-                                                          <div>{utils.formatTokenAmount(token.amount)}</div>{' '}
+                                                          <div>
+                                                              {token.amount > 0 &&
+                                                                  utils.formatTokenAmount(token.amount)}
+                                                          </div>{' '}
                                                           <div>{token.symbol}</div>
                                                       </div>
                                                   </div>
@@ -837,7 +912,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                           <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
-                                                          <div>{utils.formatTokenAmount(token.amount)}</div>{' '}
+                                                          <div>
+                                                              {token.amount > 0 &&
+                                                                  utils.formatTokenAmount(token.amount)}
+                                                          </div>{' '}
                                                           <div>{token.symbol}</div>
                                                       </div>
                                                   </div>

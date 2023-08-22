@@ -14,7 +14,7 @@ export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
 export const defaultChainDetailsAtom = atom<interfaces.IPeanutChainDetails[]>([])
 export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 
-export const supportedChainsSocketTechAtom = atom<socketTech.ChainDetails[] | undefined>(undefined)
+export const supportedChainsSocketTechAtom = atom<socketTech.ChainDetails[]>([])
 
 export function Store({ children }: { children: React.ReactNode }) {
     const [userBalances, setUserBalances] = useAtom(userBalancesAtom)
@@ -29,7 +29,7 @@ export function Store({ children }: { children: React.ReactNode }) {
         if (userAddr) {
             //This will fetch all balances for the supported chains by socket.tech (https://docs.socket.tech/socket-liquidity-layer/socketll-overview/chains-dexs-bridges)
             loadUserBalances(userAddr)
-            loadGoerliUserBalances(userAddr)
+            // loadGoerliUserBalances(userAddr)
         }
     }, [userAddr])
 
@@ -59,6 +59,7 @@ export function Store({ children }: { children: React.ReactNode }) {
         if (peanut) {
             const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map((key) => peanut.CHAIN_DETAILS[key])
             const tokenDetailsArray = peanut.TOKEN_DETAILS
+            console.log('tokendet', chainDetailsArray)
             setDefaultChainDetails(chainDetailsArray)
             setDefaultTokenDetails(tokenDetailsArray)
         }
@@ -95,62 +96,62 @@ export function Store({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const loadGoerliUserBalances = async (address: string) => {
-        const optiGoerli = new ethers.providers.JsonRpcProvider(process.env.OPTI_GOERLI_RPC_URL)
-        const goerli = new ethers.providers.JsonRpcProvider(process.env.GOERLI_RPC_URL)
+    // const loadGoerliUserBalances = async (address: string) => {
+    //     const optiGoerli = new ethers.providers.JsonRpcProvider(process.env.OPTI_GOERLI_RPC_URL)
+    //     const goerli = new ethers.providers.JsonRpcProvider(process.env.GOERLI_RPC_URL)
 
-        try {
-            const optiBalanceWei = await optiGoerli.getBalance(address)
-            const goerliBalanceWei = await goerli.getBalance(address)
+    //     try {
+    //         const optiBalanceWei = await optiGoerli.getBalance(address)
+    //         const goerliBalanceWei = await goerli.getBalance(address)
 
-            const optiBalanceEth = ethers.utils.formatEther(optiBalanceWei)
-            const goerliBalanceEth = ethers.utils.formatEther(goerliBalanceWei)
+    //         const optiBalanceEth = ethers.utils.formatEther(optiBalanceWei)
+    //         const goerliBalanceEth = ethers.utils.formatEther(goerliBalanceWei)
 
-            const goerliBalanceObject: interfaces.IUserBalance = {
-                chainId: 5,
-                symbol: 'ETH',
-                name: 'GoerliETH',
-                address: '',
-                decimals: 18,
-                amount: Number(goerliBalanceEth),
-                price: 0,
-                currency: 'GoerliETH',
-                logoURI:
-                    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
-            }
-            const optiBalanceObject: interfaces.IUserBalance = {
-                chainId: 420,
-                symbol: 'ETH',
-                name: 'GoerliETH',
-                address: '',
-                decimals: 18,
-                amount: Number(optiBalanceEth),
-                price: 0,
-                currency: 'GoerliETH',
-                logoURI:
-                    'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
-            }
+    //         const goerliBalanceObject: interfaces.IUserBalance = {
+    //             chainId: 5,
+    //             symbol: 'ETH',
+    //             name: 'GoerliETH',
+    //             address: '',
+    //             decimals: 18,
+    //             amount: Number(goerliBalanceEth),
+    //             price: 0,
+    //             currency: 'GoerliETH',
+    //             logoURI:
+    //                 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+    //         }
+    //         const optiBalanceObject: interfaces.IUserBalance = {
+    //             chainId: 420,
+    //             symbol: 'ETH',
+    //             name: 'GoerliETH',
+    //             address: '',
+    //             decimals: 18,
+    //             amount: Number(optiBalanceEth),
+    //             price: 0,
+    //             currency: 'GoerliETH',
+    //             logoURI:
+    //                 'https://raw.githubusercontent.com/trustwallet/assets/master/blockchains/ethereum/info/logo.png',
+    //         }
 
-            if (Number(goerliBalanceEth) > 0) {
-                setUserBalances((prev) => {
-                    return [...prev, goerliBalanceObject]
-                })
-            }
-            if (Number(optiBalanceEth) > 0) {
-                setUserBalances((prev) => {
-                    return [...prev, optiBalanceObject]
-                })
-            }
-        } catch (error) {
-            console.error('Error:', error)
-        }
-    }
-    const loadUserBalanceUsingRpc = async (chainDetail: interfaces.IPeanutChainDetails, address: string) => {
-        const provider = new ethers.providers.JsonRpcProvider(chainDetail.rpc[0])
+    //         if (Number(goerliBalanceEth) > 0) {
+    //             setUserBalances((prev) => {
+    //                 return [...prev, goerliBalanceObject]
+    //             })
+    //         }
+    //         if (Number(optiBalanceEth) > 0) {
+    //             setUserBalances((prev) => {
+    //                 return [...prev, optiBalanceObject]
+    //             })
+    //         }
+    //     } catch (error) {
+    //         console.error('Error:', error)
+    //     }
+    // }
+    // const loadUserBalanceUsingRpc = async (chainDetail: interfaces.IPeanutChainDetails, address: string) => {
+    //     const provider = new ethers.providers.JsonRpcProvider(chainDetail.rpc[0])
 
-        try {
-        } catch (error) {}
-    }
+    //     try {
+    //     } catch (error) {}
+    // }
 
     return <>{children}</>
 }
