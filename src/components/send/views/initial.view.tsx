@@ -391,6 +391,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [formwatch.token])
 
+    const closeFunction = () => {
+        sendForm.setValue('token', modalState.token)
+        sendForm.setValue('chainId', modalState.chainId)
+        setFormHasBeenTouched(true)
+        setIsTokenSelectorOpen(false)
+        setUnfoldChains(false)
+        setFilteredTokenList(undefined)
+    }
+
     return (
         <>
             <div className="mb-3 mt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
@@ -653,18 +662,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
             <global_components.PeanutMan type="presenting" />
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
-                <Dialog
-                    as="div"
-                    className="relative z-10 "
-                    onClose={() => {
-                        sendForm.setValue('token', modalState.token)
-                        sendForm.setValue('chainId', modalState.chainId)
-                        setFormHasBeenTouched(true)
-                        setIsTokenSelectorOpen(false)
-                        setUnfoldChains(false)
-                        setFilteredTokenList(undefined)
-                    }}
-                >
+                <Dialog as="div" className="relative z-10 " onClose={closeFunction}>
                     <Transition.Child
                         as={Fragment}
                         enter="ease-out duration-300"
@@ -801,6 +799,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               token: token.symbol,
                                                           })
                                                           setChangeToken(false)
+                                                          closeFunction()
+                                                          setIsTokenSelectorOpen(false)
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
@@ -831,6 +831,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                               token: token.symbol,
                                                           })
                                                           setChangeToken(false)
+                                                          closeFunction()
+                                                          setIsTokenSelectorOpen(false)
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
