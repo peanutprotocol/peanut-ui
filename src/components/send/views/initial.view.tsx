@@ -112,6 +112,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 },
             })
             setTokenPrice(response.data.result.tokenPrice)
+            return Number(response.data.result.tokenPrice)
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
@@ -178,16 +179,29 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             if (isLoading) return
+
+            //if the price is undefined, fetch the token price again
+            var price: number | undefined = undefined
+            if (!tokenPrice) {
+                price = await fetchTokenPrice(
+                    tokenList.find((token) => token.symbol == modalState.token)?.address ?? '',
+                    modalState.chainId
+                )
+            }
+
             try {
                 setLoadingStates('checking inputs...')
                 setErrorState({
                     showError: false,
                     errorMessage: '',
                 })
+
                 const tokenAmount =
                     inputDenomination == 'USD'
                         ? tokenPrice
                             ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
+                            : price
+                            ? sendFormData.amount && Number(sendFormData.amount) / price
                             : 0
                         : sendFormData.amount
 
