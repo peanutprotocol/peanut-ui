@@ -94,6 +94,7 @@ body {
     box-shadow: 0.5rem 0.5rem 0 0px #000;
     color: #000;
     font-weight: 900;
+    left: -2.5px;
 }
 
 #cta-div {
