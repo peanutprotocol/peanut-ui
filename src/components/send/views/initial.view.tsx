@@ -262,7 +262,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     tokenDecimals: tokenDecimals,
                     verbose: true,
                     baseUrl: window.location.origin + '/claim',
-                    trackId: "ui",
+                    trackId: 'ui',
                 })
                 console.log('Created link:', link)
                 utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
