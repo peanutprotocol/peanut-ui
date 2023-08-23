@@ -11,7 +11,7 @@
     "dependencies": {
         "@headlessui/react": "^1.7.17",
         "@socket.tech/socket-v2-sdk": "^1.21.8",
-        "@squirrel-labs/peanut-sdk": "0.0.84",
+        "@squirrel-labs/peanut-sdk": "0.0.85",
         "@thirdweb-dev/react": "^3.14.35",
         "@types/node": "20.4.2",
         "@types/react": "18.2.15",
