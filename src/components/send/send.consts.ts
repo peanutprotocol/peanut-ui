@@ -3,6 +3,21 @@ import * as views from './views'
 
 // I always like to use consts files like these, makes it very readable and easy to change
 
+export interface ISendFormData {
+    chainId: number
+    token: string
+    amount: string | null
+}
+export interface ITokenListItem {
+    symbol: string
+    amount: number
+    chainId: number
+    address: string
+    decimals: number
+    logo: string
+    name: string
+}
+
 export type SendScreens = 'INITIAL' | 'SUCCESS'
 export interface ISendScreenState {
     screen: SendScreens

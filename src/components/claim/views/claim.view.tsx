@@ -187,7 +187,7 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
                 />
             </div>
             {isDropdownOpen && (
-                <global_components.CardWrapper mb="mb-0">
+                <global_components.CardWrapper mb="mb-4">
                     <label className="block text-center text-xs font-medium">
                         If you can't connect, you can also write your address below <br />{' '}
                         <span className="italic">⚠️ WARNING: if you enter a wrong address, funds will get lost!!</span>

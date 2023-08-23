@@ -42,6 +42,22 @@ body {
     scrollbar-width: none; /* Firefox */
 }
 
+/* BRUTAL SCROLLBAR */
+
+.brutalscroll::-webkit-scrollbar-track {
+    border-left: 2px solid black;
+    background-color: #fff;
+}
+
+.brutalscroll::-webkit-scrollbar {
+    width: 20px;
+    background-color: #fff;
+}
+
+.brutalscroll::-webkit-scrollbar-thumb {
+    background-color: #000000;
+}
+
 @font-face {
     font-family: 'Montserrat';
     font-style: normal;
@@ -54,6 +70,10 @@ body {
 
 .brutalborder {
     border: 2px solid #000000;
+}
+
+.softborder {
+    border: 1px solid #000000;
 }
 
 .brutalborder-left {
@@ -74,6 +94,19 @@ body {
     box-shadow: 0.5rem 0.5rem 0 0px #000;
     color: #000;
     font-weight: 900;
+    left: -2.5px;
+}
+
+#cta-div {
+    border: 5px solid black;
+    padding: 1rem;
+    transition:
+        box-shadow 1s ease-in-out,
+        border-radius 1s ease-in-out;
+    box-shadow: 0.5rem 0.5rem 0 0px #000;
+    color: #000;
+    font-weight: 900;
+    left: -2.5px;
 }
 
 #cta-btn:hover {
@@ -124,6 +157,15 @@ select {
 
 input {
     box-sizing: border-box;
+}
+
+input {
+    caret-color: #000000;
+    caret-shape: block;
+}
+
+.custom-cursor {
+    border-left: 3px solid black; /* Adjust thickness and color as needed */
 }
 
 @layer base {

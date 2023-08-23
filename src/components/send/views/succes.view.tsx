@@ -44,12 +44,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                             </div>
                         ) : (
                             <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold ">
-                                <span
-                                    className="tooltiptext leading-0 inline flex items-center gap-2 text-black"
-                                    id="myTooltip"
-                                >
-                                    <label className="text-black">COPY</label>
-                                </span>
+                                <label className="cursor-pointer text-black">COPY</label>
                             </button>
                         )}
                     </div>
