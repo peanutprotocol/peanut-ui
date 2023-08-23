@@ -6,7 +6,7 @@ import * as views from './views'
 export interface ISendFormData {
     chainId: number
     token: string
-    amount: number | null
+    amount: string | null
 }
 export interface ITokenListItem {
     symbol: string

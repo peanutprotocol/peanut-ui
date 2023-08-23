@@ -77,3 +77,11 @@ export function formatTokenAmount(amount: number) {
     })
     return formattedAmount
 }
+
+export const formatAmountWithoutComma = (input: string) => {
+    const numericValue = input.replace(/,/g, '.')
+    const regex = new RegExp(`^[0-9]*\\.?[0-9]*$`)
+    if (numericValue === '' || regex.test(numericValue)) {
+        return numericValue
+    } else return ''
+}

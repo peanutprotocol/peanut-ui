@@ -158,6 +158,11 @@ input {
     box-sizing: border-box;
 }
 
+input {
+    caret-color: #000000;
+    caret-shape: block;
+}
+
 .custom-cursor {
     border-left: 3px solid black; /* Adjust thickness and color as needed */
 }

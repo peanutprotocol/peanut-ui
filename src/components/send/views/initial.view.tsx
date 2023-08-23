@@ -130,7 +130,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
 
         //check if the amount is less than or equal to zero
-        if (sendFormData.amount && sendFormData.amount <= 0) {
+        if (sendFormData.amount && Number(sendFormData.amount) <= 0) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
@@ -149,11 +149,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             const tokenAmount =
                 inputDenomination == 'USD'
                     ? tokenPrice
-                        ? sendFormData.amount && sendFormData.amount / tokenPrice
+                        ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
                         : 0
                     : sendFormData.amount
 
-            if (balance && tokenAmount && tokenAmount > balance) {
+            if (balance && tokenAmount && Number(tokenAmount) > balance) {
                 setErrorState({
                     showError: true,
                     errorMessage: "You don't have enough funds",
@@ -187,7 +187,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 const tokenAmount =
                     inputDenomination == 'USD'
                         ? tokenPrice
-                            ? sendFormData.amount && sendFormData.amount / tokenPrice
+                            ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
                             : 0
                         : sendFormData.amount
 
@@ -404,6 +404,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [formwatch.token])
 
+    useEffect(() => {
+        console.log(formwatch.amount?.length)
+    }, [formwatch.amount])
+
     return (
         <>
             <div className="mb-3 mt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
@@ -417,25 +421,25 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 pt-2 ">
                             <div className="flex h-16 items-center">
-                                <label className={'font-bold ' + textFontSize}>
+                                <label className={'h-full font-bold ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
                                 </label>
                                 <div className="w-full max-w-[160px] ">
                                     <input
                                         className={
-                                            'no-spin custom-cursor block w-full appearance-none border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
+                                            'w-full border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
                                             textFontSize
                                         }
                                         placeholder="0.00"
-                                        {...sendForm.register('amount', {
-                                            required: true,
-                                            onChange: (e) => {
-                                                setTextFontSize(_utils.textHandler(e.target.value))
-                                                setFormHasBeenTouched(true)
+                                        onChange={(e) => {
+                                            setTextFontSize(_utils.textHandler(e.target.value))
+                                            setFormHasBeenTouched(true)
+                                            if (e.target.value != '') {
                                                 sendForm.setValue('amount', e.target.value)
-                                            },
-                                        })}
+                                            }
+                                        }}
                                         type="number"
+                                        inputMode="decimal"
                                         step="any"
                                         min="0"
                                         autoComplete="off"
@@ -456,12 +460,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                             className="h-4 cursor-pointer"
                                         />
                                         <label className="ml-4 w-max pr-2 text-sm font-bold">
-                                            {tokenPrice && formwatch.amount && formwatch.amount > 0
+                                            {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
                                                 ? inputDenomination == 'USD'
-                                                    ? utils.formatTokenAmount(formwatch.amount / tokenPrice) +
+                                                    ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
                                                       ' ' +
                                                       formwatch.token
-                                                    : '$ ' + utils.formatTokenAmount(formwatch.amount * tokenPrice)
+                                                    : '$ ' +
+                                                      utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : '0.00 ...'}
                                         </label>
                                     </div>
@@ -592,34 +597,35 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         </div>
                         <div className="flex flex-col justify-end gap-0 pt-2">
                             <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
-                                <label className={'font-bold ' + textFontSize}>
+                                <label className={'h-full font-bold ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
                                 </label>
 
                                 <input
-                                    type="number"
                                     className={
-                                        'no-spin block w-full appearance-none border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
+                                        'no-spin block w-full appearance-none border-none p-0 font-black  outline-none placeholder:font-black placeholder:text-black ' +
                                         textFontSize
                                     }
                                     placeholder="0.00"
-                                    {...sendForm.register('amount', {
-                                        required: true,
-                                        onChange: (e) => {
-                                            setTextFontSize(_utils.textHandler(e.target.value))
-                                            sendForm.setValue('amount', e.target.value)
-                                        },
-                                    })}
+                                    inputMode="decimal"
                                     step="any"
                                     min="0"
                                     autoComplete="off"
                                     onFocus={(e) => e.target.select()}
                                     autoFocus
+                                    onChange={(e) => {
+                                        const value = utils.formatAmountWithoutComma(e.target.value)
+                                        setFormHasBeenTouched(true)
+                                        setTextFontSize(_utils.textHandler(value))
+                                        sendForm.setValue('amount', value)
+                                    }}
+                                    pattern="[0-9]*[.,]?[0-9]*"
+                                    size={formwatch.amount ? formwatch.amount.length : 4}
                                 />
                             </div>
 
                             {tokenPrice ? (
-                                <div>
+                                <div className="flex w-full items-center justify-center">
                                     <img
                                         onClick={() => {
                                             setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
@@ -628,12 +634,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         className="h-4 cursor-pointer"
                                     />
                                     <label className="ml-4 w-max pr-2 text-sm font-bold">
-                                        {tokenPrice && formwatch.amount && formwatch.amount > 0
+                                        {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
                                             ? inputDenomination == 'USD'
-                                                ? utils.formatTokenAmount(formwatch.amount / tokenPrice) +
+                                                ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
                                                   ' ' +
                                                   formwatch.token
-                                                : '$ ' + utils.formatTokenAmount(formwatch.amount * tokenPrice)
+                                                : '$ ' + utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                             : '0.00 ...'}
                                     </label>
                                 </div>

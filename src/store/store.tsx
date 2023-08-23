@@ -59,7 +59,6 @@ export function Store({ children }: { children: React.ReactNode }) {
         if (peanut) {
             const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map((key) => peanut.CHAIN_DETAILS[key])
             const tokenDetailsArray = peanut.TOKEN_DETAILS
-            console.log('tokendet', chainDetailsArray)
             setDefaultChainDetails(chainDetailsArray)
             setDefaultTokenDetails(tokenDetailsArray)
         }
