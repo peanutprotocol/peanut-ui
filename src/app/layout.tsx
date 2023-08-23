@@ -7,7 +7,7 @@ import { WagmiConfig } from 'wagmi'
 import * as config from '@/config'
 import { Store } from '@/store/store'
 import { useState, useEffect } from 'react'
-import ReactGA from "react-ga4";
+import ReactGA from 'react-ga4'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -17,7 +17,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     //this useEffect is needed to prevent hydration error when autoConnect in wagmiConfig is true
     useEffect(() => {
         setReady(true)
-        ReactGA.initialize(process.env.GA_KEY ?? "");
+        ReactGA.initialize(process.env.GA_KEY ?? '')
     }, [])
 
     return (

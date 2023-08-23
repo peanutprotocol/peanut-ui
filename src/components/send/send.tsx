@@ -25,7 +25,7 @@ export function Send() {
 
     return (
         <>
-            <global_components.CardWrapper>
+            <global_components.CardWrapper mt=" mt-16 " shadow>
                 {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
                     onNextScreen: handleOnNext,
                     onCustomScreen: handleOnCustom,
@@ -43,10 +43,6 @@ export function Send() {
                         <h2 className="title-font text-3xl font-black text-black lg:text-5xl">
                             Integrate Peanut Protocol
                         </h2>
-
-                        <h3 className="mt-2 text-lg font-bold text-black lg:text-2xl">
-                            transfer magic✨ in your own app
-                        </h3>
 
                         <div className="mx-auto w-11/12 pb-8 text-base lg:w-2/3">
                             Want the peanut magic in your own dApp? Just install our{' '}
