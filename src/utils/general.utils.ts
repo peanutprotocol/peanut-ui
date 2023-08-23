@@ -35,14 +35,64 @@ export const saveToLocalStorage = (key: string, data: any) => {
     }
 }
 
+// use this functions to save multiple links into localStorage
+// for e.g. importing a backup file
+export const saveLinksToLocalStorage = ({ address, links}: { address: string, links:{hash: string, link: string }[]}) => {
+    const allLinks = getAllLinksFromLocalStorage({ address });
+
+    links.forEach((saveLink) => {
+        // avoid duplicates during import
+        if(!allLinks.find((item) => item.link === saveLink.link))
+
+        allLinks.push({
+            hash: saveLink.hash,
+            link: saveLink.link,
+        });
+    })
+
+    saveToLocalStorage(address, allLinks);
+}
+
+// save link to localStorage in new format
+// "address":[{hash, link}]
+export const saveLinkToLocalStorage = ({ address, hash, link }: { address: string, hash: string, link: string }) => {
+    const allLinks = getAllLinksFromLocalStorage({ address });
+
+    allLinks.push({
+        hash, link
+    });
+
+    saveToLocalStorage(address, allLinks);
+}
+
 export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
+        if(localStorage.getItem(address) === null) {
+            localStorage.setItem(address, JSON.stringify([]))
+        }
+
         const localStorageData: interfaces.ILocalStorageItem[] = []
 
+        const allLinks = JSON.parse(localStorage.getItem(address) || "[]")
+
+        allLinks.forEach((item) => localStorageData.push({ address: address, hash: item.hash, link: item.link}))
+
+        return localStorageData
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error, localStorage.getItem(address))
+    }
+}
+
+// to keep all previously created links
+// we need to call that function to re-save old links into new format
+// possible to remove it later (created at 24 Aug 2023)
+export const migrateAllLinksFromLocalStorageV2 = ({ address }: { address: string }) => {
+    try {
+        const linksV2 = getAllLinksFromLocalStorage({ address });
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i)
 
-            if (key !== null && key?.includes(address)) {
+            if (key !== null && key?.includes(`${address} -`)) {
                 const value = localStorage.getItem(key)
                 if (value !== null) {
                     const x = {
@@ -50,13 +100,14 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
                         hash: key.split('-')[1].trim(),
                         link: value.replaceAll('"', ''),
                     }
-                    localStorageData.push(x)
+                    if(!linksV2.find((item) => item.link === x.link)) {
+                        saveLinkToLocalStorage({ address: x.address, hash: x.hash, link: x.link});
+                    }
                 }
             }
         }
-        return localStorageData
     } catch (error) {
-        console.error('Error getting data from localStorage:', error)
+        console.error('Error migrating to localstorage v2', error)
     }
 }
 

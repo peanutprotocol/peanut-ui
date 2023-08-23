@@ -264,7 +264,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     baseUrl: window.location.origin + '/claim',
                 })
                 console.log('Created link:', link)
-                utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
+                utils.saveLinkToLocalStorage({ address, hash: txReceipt.transactionHash, link});
 
                 setClaimLink(link)
                 setTxReceipt(txReceipt)
