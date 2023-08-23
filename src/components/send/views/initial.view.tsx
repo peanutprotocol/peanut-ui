@@ -416,8 +416,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
                     <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 pt-2 ">
-                            <div className="flex h-16 items-center">
-                                <label className={'h-full font-bold ' + textFontSize}>
+                            <div className="flex h-16 items-center justify-center">
+                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
                                 </label>
                                 <div className="w-full max-w-[160px] ">
@@ -592,7 +592,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         </div>
                         <div className="flex flex-col justify-end gap-0 pt-2">
                             <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
-                                <label className={'h-full font-bold ' + textFontSize}>
+                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
                                 </label>
 
