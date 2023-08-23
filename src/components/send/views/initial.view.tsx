@@ -404,10 +404,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [formwatch.token])
 
-    useEffect(() => {
-        console.log(formwatch.amount?.length)
-    }, [formwatch.amount])
-
     return (
         <>
             <div className="mb-3 mt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
@@ -432,11 +428,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         }
                                         placeholder="0.00"
                                         onChange={(e) => {
-                                            setTextFontSize(_utils.textHandler(e.target.value))
+                                            const value = utils.formatAmountWithoutComma(e.target.value)
+                                            setTextFontSize(_utils.textHandler(value))
                                             setFormHasBeenTouched(true)
-                                            if (e.target.value != '') {
-                                                sendForm.setValue('amount', e.target.value)
-                                            }
+                                            sendForm.setValue('amount', value)
                                         }}
                                         type="number"
                                         inputMode="decimal"
@@ -607,6 +602,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         textFontSize
                                     }
                                     placeholder="0.00"
+                                    type="number"
                                     inputMode="decimal"
                                     step="any"
                                     min="0"
