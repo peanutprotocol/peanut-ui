@@ -247,7 +247,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     tokenType: tokenType,
                     tokenDecimals: tokenDecimals,
                     verbose: true,
-                    baseUrl: window.location.origin,
+                    baseUrl: window.location.origin + '/claim',
                 })
                 console.log('Created link:', link)
                 utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
@@ -602,7 +602,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         textFontSize
                                     }
                                     placeholder="0.00"
-                                    type="number"
                                     inputMode="decimal"
                                     step="any"
                                     min="0"
