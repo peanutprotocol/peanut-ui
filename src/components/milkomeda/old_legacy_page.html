@@ -1,0 +1,457 @@
+<!-- HERO -->
+<section class="lg:divide-y" id="hero">
+    <div class="relative mx-auto">
+        <div class="lg:grid lg:grid-flow-col-dense lg:grid-cols-2">
+            <!-- left column -->
+            <div class="sm:px-6 lg:mx-0 lg:max-w-none pt-32 pb-16 lg:px-0 bg-yellow border-black border-2 text-center">
+                <h1 class="my-8 text-5xl font-black w-3/4 mx-auto">
+                    It starts with a link
+                </h1>
+                <p class="m-4 p-2 w-2/3 text-2xl mx-auto">
+                    With Peanut, you can get anyone to use your web3 product. Send tokens with links or QR codes to
+                    onboard new users. It's that easy.
+                </p>
+
+                <div class="flex justify-center p-2 mt-8 space-x-4">
+                    <button id="cta-btn" type="submit" onclick="window.location.href='/campaigns'"
+                        class="block md:w-3/5 lg:w-1/3 p-5 font-black text-2xl mb-2 bg-white">
+                        Start Getting Users
+                    </button>
+
+                    <a href="https://t.me/peanutprotocol" target="_blank">
+                        <button class="p-5 text-2xl font-black hover:underline">
+                            Talk to an expert →
+                        </button>
+                    </a>
+                </div>
+            </div>
+
+            <!-- right column -->
+            <div
+                class="center-xy bg-fuchsia border-black border-2 py-3 lg:pt-32 lg:pb-16 lg:border-l-0 overflow-hidden relative h-96 lg:h-full">
+                <img src="{{ url_for('static', filename='media/peanutman-cheering.svg') }}"
+                    class="absolute top-10 hover:rotate-12 duration-200" />
+
+                <div>
+                </div>
+            </div>
+
+
+
+        </div>
+    </div>
+</section>
+
+
+<!-- LOGO section  -->
+<section id="logos" class="justify-evenly bg-white">
+    <div role="list"
+        class="flex items-center gap-4 gap-y-1 sm:gap-y-4 mx-auto justify-between px-8 lg:w-1/3 md:1/2 py-3">
+
+        <div class="text-center">
+            <span class="text-xl font-bold">Trusted by</span>
+            </a>
+        </div>
+
+        <div class="text-center border-2 border-transparent hover:border-black">
+            <a href="https://scroll.io" target="_blank">
+                <img src="{{ url_for('static', filename='media/partners/scroll.png') }}" alt="logo scroll"
+                    class="saturate-0 hover:saturate-100 hover:opacity-100 mx-auto h-8 ">
+            </a>
+        </div>
+
+        <div class="text-center border-2 border-transparent hover:border-black">
+            <a href="https://ambire.com/" target="_blank">
+                <img src="{{ url_for('static', filename='media/partners/ambire-logo-black.svg') }}" alt="logo ambire"
+                    class="saturate-0 hover:saturate-100 hover:opacity-100 mx-auto bg-white h-8 ">
+            </a>
+        </div>
+
+        <div class="text-center border-2 border-transparent hover:border-black">
+            <a href="https://givepraise.xyz" target="_blank">
+                <img src="{{ url_for('static', filename='media/partners/icon_praise_round.png') }}"
+                    alt="logo givepraise" class="saturate-0 hover:saturate-100 hover:opacity-100 mx-auto bg-white h-8 ">
+            </a>
+        </div>
+
+        <div class="text-center border-2 border-transparent hover:border-black">
+            <a href="https://eco.org" target="_blank">
+                <img src="{{ url_for('static', filename='media/partners/eco-long.svg') }}" alt="logo eco"
+                    class="saturate-0 hover:saturate-100 hover:opacity-100 mx-auto bg-white h-8">
+            </a>
+        </div>
+    </div>
+</section>
+
+
+
+
+<!--  USES CASES -->
+<section id="features">
+    <div role="list" class="grid grid-cols-1 gap-0 sm:grid-cols-2 lg:grid-cols-3 ">
+        <!-- QR Codes / URLs -->
+
+        <div class="bg-teal border-2 border-black lg:border-r-0 p-12 px-16 flex flex-col" id="QR">
+
+            <h3 class="text-5xl font-black">QR Codes / URLs</h3>
+            <p class="block mt-1 text-2xl leading-loose">
+                Reward prospective and existing community members with tokens. Just send them a URL or display a QR
+                code on any medium you like. You'll be able to see who and how many have been claimed.
+            </p>
+
+            <div class="flex-grow"></div> <!-- Add this div for vertical spacing -->
+
+            <div class="center-xy flex justify-around flex-end  my-6">
+                <a href="/campaigns">
+                    <button class="hover:bg-white brutalborder p-4 px-4 brutalshadow text-2xl font-black">
+                        Start Now
+                    </button>
+                </a>
+
+                <a href="https://twitter.com/AmbireWallet/status/1641088818114641920" target="_blank" hidden>
+                    <button class="p-5 text-2xl font-normal hover:underline  ml-4">
+                        Case Study →
+                    </button>
+                </a>
+            </div>
+
+        </div>
+
+        <!-- email -->
+        <div class="bg-red border-2 border-black lg:border-r-0 p-12 px-16 flex flex-col " id="QR">
+
+            <h3 class="text-5xl font-black">Email</h3>
+            <p class="block mt-1 text-2xl leading-loose">
+                Got an email list? Send tokens to your audience and convert them easily to users. Simply grab a
+                CSV and plug the links to your next mergmail newsletter.
+            </p>
+
+            <div class="flex-grow"></div> <!-- Add this div for vertical spacing -->
+
+            <div class="center-xy flex justify-around flex-end  my-6">
+                <a href="/campaigns">
+                    <button class="hover:bg-white brutalborder p-4 px-4 brutalshadow text-2xl font-black">
+                        Start Now
+                    </button>
+                </a>
+
+                <a href="https://twitter.com/AmbireWallet/status/1641088818114641920" target="_blank" hidden>
+                    <button class="p-5 text-2xl font-normal hover:underline  ml-4">
+                        Testimonial →
+                    </button>
+                </a>
+            </div>
+        </div>
+
+
+
+
+        <!-- physical -->
+        <div class="bg-lightblue border-2 border-black p-12 px-16 flex flex-col" id="physical">
+
+            <h3 class="text-5xl font-black">Get Physical</h3>
+            <p class="block mt-1 text-2xl leading-loose">
+                Are you planning an IRL event? Boost the conversion of swag and booths 20X. Get users on the
+                spot, just put stickers on your swag or flyers. Become irresistable.
+            </p>
+
+            <div class="flex-grow"></div> <!-- Add this div for vertical spacing -->
+
+            <div class="center-xy flex justify-around flex-end  my-6">
+                <a href="/campaigns">
+                    <button class="hover:bg-white brutalborder p-4 px-4 brutalshadow text-2xl font-black">
+                        Start Now
+                    </button>
+                </a>
+
+                <a href="https://twitter.com/AmbireWallet/status/1641088818114641920" target="_blank">
+                    <button class="p-5 text-2xl font-normal hover:underline  ml-4">
+                        Testimonial →
+                    </button>
+                </a>
+            </div>
+
+        </div>
+    </div>
+</section>
+
+<!-- MARQUEE SECTION -->
+<section class="w-full h-full " id="marquee">
+    <div class="marquee mx-auto bg-black text-white text-3xl font-black italic tracking-widest">
+        <div class="marquee2">
+            <!-- must be two spans with same text. should be fixed with but doesn't fit w design. @konrad replace with js marquee later -->
+            <span>
+                <div>
+                    <h1>
+                        GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET
+                        USERS ☻ GET USERS ☻
+                        GET USERS ☻
+                        GET USERS ☻ GET USERS
+                        ☻
+                    </h1>
+                </div>
+            </span>
+            <span>
+                <div>
+                    <h1>GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET USERS ☻ GET
+                        USERS ☻ GET USERS ☻
+                        GET USERS ☻
+                        GET USERS ☻
+                        GET USERS ☻</h1>
+                </div>
+            </span>
+        </div>
+    </div>
+</section>
+
+<!-- explainer section -->
+<section class="lg:divide-y" id="explainer">
+    <div class="relative mx-auto border-black">
+        <div class="lg:grid lg:grid-flow-col-dense lg:grid-cols-2">
+
+            <!-- left column -->
+            <div
+                class="center-xy bg-fuchsia border-black border-2 py-3 lg:pt-32 lg:pb-16 lg:border-l-0 overflow-hidden relative">
+                <img src="{{ url_for('static', filename='media/peanutman-cheering.svg') }}"
+                    class="absolute scale-75 -bottom-5 rotate-180" />
+
+                <div>
+                </div>
+            </div>
+
+            <!-- right column -->
+            <div class="sm:px-6 lg:mx-0 lg:max-w-none lg:py-16 lg:px-0 bg-yellow brutalborder text-center">
+                <div class="text-center">
+                    <ul class="text-left inline-block text-xl p-8 lg:px-32 lg:leading-loose">
+                        <p class="font-black text-3xl"> Your Voice </p>
+                        <li> Customize token and claim page to match your branding with logo and colors. Or even
+                            better, have the users claim the tokens on your own page! </li>
+                        <p class="font-black text-3xl"> Noob-friendly </p>
+                        <li> Guided wallet setup for first-time crypto users, no advance address needed!</li>
+                        </li>
+                        <p class="font-black text-3xl"> Analytics </p>
+                        <li> Understand how your campaign went and who your community is. </li>
+                        <p class="font-black text-3xl"> Non-custodial </p>
+                        <li> This is run on Peanut Protocol which is non-custodial and composable (see our <a
+                                href="https://peanutprotocol.notion.site/Send-Crypto-via-Link-SDK-9a89ea726b754a1c9f7e012125a01a85"
+                                class="text-bold underline" target="_blank">SDK</a>) </li>
+                    </ul>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</section>
+</div>
+
+
+
+
+<!-- CUSTOMISE Section -->
+<section class="w-full h-full bg-white py-12">
+    <div class="flex items-center center-xy w-11/12 lg:w-3/5 bg-white mx-auto">
+        <div class="text-center">
+            <h2 class="title-font text-3xl lg:text-7xl font-black text-black">Make your own</h2>
+            </h2>
+
+            <div class="text-3xl p-5 px-6 w-11/12 lg:w-2/3 mx-auto">
+                Do you want a custom onboarding flow? Collect email addresses? Make users download a specific app or
+                claim with a specific wallet? We've got your covered.
+            </div>
+
+            <a href="https://t.me/peanutprotocol" target="_blank">
+                <button class="p-5 text-2xl font-black hover:underline">
+                    Talk to an expert →
+                </button>
+            </a>
+
+        </div>
+    </div>
+</section>
+
+<!-- Ambire Tweet -->
+<div class="hidden">
+    <blockquote class="twitter-tweet">
+        <p lang="en" dir="ltr">WE&#39;LL ONBOARD THE NEXT BILLION USERS TO WEB3 WITH....PEANUTS?!? 😮😮😮<br><br>Let us
+            tell you the story of how we convinced 50 web3 power users to switch to Ambire Wallet with <a
+                href="https://twitter.com/PeanutProtocol?ref_src=twsrc%5Etfw">@peanutprotocol</a> payment links and 🥜
+            at <a href="https://twitter.com/EthereumDenver?ref_src=twsrc%5Etfw">@EthereumDenver</a> <br><br>Read along
+            👇<br>1/5 <a href="https://t.co/1KwidA8hDR">pic.twitter.com/1KwidA8hDR</a></p>&mdash; Ambire Wallet
+        (@AmbireWallet) <a href="https://twitter.com/AmbireWallet/status/1641088818114641920?ref_src=twsrc%5Etfw">March
+            29, 2023</a>
+    </blockquote>
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+</div>
+
+<!-- MARQUEE SECTION -->
+<section class="w-full h-full " id="marquee">
+    <div class="marquee mx-auto bg-black text-white text-3xl font-black italic tracking-widest">
+        <div class="marquee2">
+            <!-- must be two spans with same text. should be fixed with but doesn't fit w design. @konrad replace with js marquee later -->
+            <span>
+                <div>
+                    <h1>
+                        SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻
+                        SMILES ☻ SMILES
+                        ☻
+                    </h1>
+                </div>
+            </span>
+            <span>
+                <div>
+                    <h1>SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻ SMILES ☻
+                        SMILES ☻
+                        SMILES ☻</h1>
+                </div>
+            </span>
+        </div>
+    </div>
+</section>
+
+
+
+<!-- TESTIMONIALS -->
+<section id="testimonials" class="justify-center bg-white sm:py-2 sm:px-2">
+    <div role="list" class="grid gap-0 sm:gap-y-4 grid-cols-2 lg:grid-cols-4">
+
+        <!-- tiles -->
+        <div class="bg-yellow brutalborder p-2 m-2 text-center " id="frens">
+            <img src="{{ url_for('static', filename='media/people/orest.jpg') }}" alt="picture of bearded man"
+                class="w-1/2 mx-auto bg-white rounded-full rainbow-border p-1">
+            <h1 class="mt-2 text-base lg:text-lg font-black mx-auto italic py-2">
+                How did this not exist before?! Great UX! </h1>
+            <p class="uppercase mb-4 font-black text-base ">Orest Tarasiuk <span class="text-xs"> <br> Scroll.io </span>
+            </p>
+        </div>
+
+        <div class="bg-fuchsia brutalborder p-2 m-2 text-center " id="frens">
+            <img src="{{ url_for('static', filename='media/people/mydas.jpg') }}" alt="picture of rasta NFT"
+                class="w-1/2 mx-auto bg-white rounded-full rainbow-border p-1">
+            <h1 class="mt-2 text-base lg:text-lg font-black mx-auto italic py-2">
+                Love this! Will help in mass crypto adoption. </h1>
+            <p class="uppercase mb-4 font-black text-base ">Mydas.eth <span class="text-xs"> <br> University of Nicosia
+                </span></p>
+        </div>
+
+        <div class="bg-lightblue brutalborder p-2 m-2 text-center " id="frens">
+            <img src="{{ url_for('static', filename='media/people/Steven.jpg') }}" alt="picture of smiling man"
+                class="w-1/2 mx-auto bg-white rounded-full rainbow-border p-1">
+            <h1 class="mt-2 text-base lg:text-lg font-black mx-auto italic py-2">
+                Very buttery experience! </h1>
+            <p class="uppercase mb-4 font-black text-base ">Steven Robinson <span class="text-xs"> <br> Arkn Ventures
+                </span>
+            </p>
+        </div>
+
+        <div class="bg-red brutalborder p-2 m-2 text-center " id="frens">
+            <img src="{{ url_for('static', filename='media/people/sbf.jpeg') }}" alt="picture of pixel art SBF"
+                class="w-1/2 mx-auto bg-white rounded-full rainbow-border p-1">
+            <h1 class="mt-2 text-base lg:text-lg font-black mx-auto italic py-2">
+                I have a peanut allergy. Help! </h1>
+            <p class="uppercase mb-4 font-black text-base ">CEx CEO <span class="text-xs"> <br> Probably FTX </span></p>
+        </div>
+
+    </div>
+</section>
+
+<!-- hidden -->
+<div class="hidden">
+    <!-- MARQUEE SECTION -->
+    <section class="w-full h-full " id="marquee">
+        <div class="marquee mx-auto bg-black text-white text-3xl font-black italic tracking-widest">
+            <div class="marquee2">
+                <!-- must be two spans with same text. should be fixed with but doesn't fit w design. @konrad replace with js marquee later -->
+                <span>
+                    <div>
+                        <h1>FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻
+                            FRENS ☻ FRENS ☻</h1>
+                    </div>
+                </span>
+                <span>
+                    <div>
+                        <h1>FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻ FRENS ☻
+                            FRENS ☻ FRENS ☻</h1>
+                    </div>
+                </span>
+            </div>
+        </div>
+    </section>
+
+    <!-- LOGO SECTION -->
+    <section id="logos" class="justify-center bg-white my-2 py-8">
+        <div role="list" class="items-center flex flex-wrap gap-4 gap-y-1 sm:gap-y-4 mx-4 justify-center">
+
+
+            <div class="p-2 text-center border-2 border-transparent">
+                <a href="https://scroll.io" target="_blank">
+                    <img src="{{ url_for('static', filename='media/partners/scroll.png') }}" alt="logo scroll"
+                        class="mx-auto bg-white h-14 sm:h-20 p-3 ">
+                </a>
+            </div>
+
+
+            <div class="p-2 text-center border-2 border-transparent hover:border-black">
+                <a href="https://ambire.com/" target="_blank">
+                    <img src="{{ url_for('static', filename='media/partners/ambire-logo-black.svg') }}"
+                        alt="logo ambire" class="mx-auto bg-white h-14 sm:h-20 p-2 ">
+                </a>
+            </div>
+
+
+
+            <div class="p-2 text-center border-2 border-transparent hover:border-black ">
+                <a href="https://hiro.cash/" target="_blank">
+                    <img src="{{ url_for('static', filename='media/partners/hiro.png') }}" alt="logo hiro"
+                        class="mx-auto bg-white h-14 sm:h-20 p-2 ">
+                </a>
+            </div>
+
+
+            <div class="p-2 text-center border-2 border-transparent hover:border-black ">
+                <a href="https://givepraise.xyz" target="_blank">
+                    <img src="{{ url_for('static', filename='media/partners/icon_praise_round.png') }}"
+                        alt="logo givepraise" class="mx-auto bg-white h-14 sm:h-20 p-2 ">
+                </a>
+            </div>
+
+            <div class="p-2 text-center border-2 border-transparent hover:border-black ">
+                <a href="https://eco.org" target="_blank">
+                    <img src="{{ url_for('static', filename='media/partners/eco-long.svg') }}" alt="logo eco"
+                        class="mx-auto bg-white h-14 sm:h-20 p-4 ">
+                </a>
+            </div>
+
+
+
+        </div>
+
+
+    </section>
+
+    <!-- marquee -->
+    <a href="https://peanutprotocol.notion.site/Send-Crypto-via-Link-SDK-9a89ea726b754a1c9f7e012125a01a85"
+        target="_blank">
+        <section class="w-full h-full cursor-pointer bg-black" id="marquee">
+            <div class="marquee mx-auto bg-fuchsia text-white text-3xl font-black italic tracking-widest">
+                <div class="marquee2">
+                    <!-- must be two spans with same text. should be fixed with but doesn't fit w design. @konrad replace with js marquee later -->
+                    <span>
+                        <div>
+                            <h1>NEW SDK ☻ CLICK HERE ☻ NEW SDK ☻ CLICK HERE ☻ NEW SDK ☻ CLICK HERE ☻ NEW SDK ☻ CLICK
+                                HERE ☻
+                                NEW SDK ☻ CLICK HERE ☻</h1>
+                        </div>
+                    </span>
+                    <span>
+                        <div>
+                            <h1>NEW SDK ☻ CLICK HERE ☻ NEW SDK ☻ CLICK HERE ☻ NEW SDK ☻ CLICK HERE ☻ NEW SDK ☻ CLICK
+                                HERE ☻
+                                NEW SDK ☻ CLICK HERE ☻</h1>
+                        </div>
+                    </span>
+                </div>
+            </div>
+        </section>
+    </a>
+</div>

@@ -10,10 +10,7 @@ export function About() {
             <div className="flex-grow bg-lightblue">
                 <div className="brutalborder brutalshadow mx-auto mb-8 mt-8 w-5/6 bg-white sm:mb-16 sm:mt-16 ">
                     <h2 className="mx-auto px-4 text-center text-xl font-black text-black lg:text-4xl">
-                        <p>
-                            Peanut Protocol. Bring currency back to cryptocurrency. Build a world where value flows
-                            freely through buttery smooth transactions.{' '}
-                        </p>
+                        <p>Peanut Protocol. Bring currency back to cryptocurrency. Build a world where value flows freely through buttery smooth transactions. </p>
                     </h2>
                 </div>
             </div>
@@ -43,8 +40,8 @@ export function About() {
                             <h1 className="mx-auto mt-8 w-3/4 text-2xl font-black uppercase">Hugo Montenegro</h1>
                             <p className="mb-4 text-sm font-black uppercase">Tech Nut</p>
                             <p>
-                                Did ML and worked with NLP. Studied CS at Harvard. Interested in decentralized systems
-                                and their incentives.
+                                Did ML and worked with NLP. Studied CS at Harvard. Interested in decentralized
+                                systems and their incentives. 
                             </p>
                             <p>
                                 He's also very tall and, yes, he likes to play basketball. He's currently doing a keto
@@ -99,7 +96,7 @@ export function About() {
                                 </a>{' '}
                                 |{' '}
                                 <a className="text-black underline" href="https://kkonrad.com/">
-                                    www
+                                    www 
                                 </a>
                             </p>
                         </div>
