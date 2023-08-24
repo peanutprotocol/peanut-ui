@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
+import { getPublicClient, PublicClient } from '@wagmi/core'
+
 import { useAtom } from 'jotai'
 import { useRouter } from 'next/navigation'
 import peanut from '@squirrel-labs/peanut-sdk'
@@ -7,34 +9,16 @@ import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import * as store from '@/store'
-
-const x = [
-    {
-        address: '0xB6f42695E43712B091F398fe61562F0FDF44c973',
-        hash: '0x89d89ecfcb21cfbe0f7f8494a7d5c57e1f7da3277d32ad4b7ef625af01d471e41',
-        link: 'https://peanut.to/claim?c=137&v=v3&i=1474&p=9hRitgdKmqM7iXrf&t=sdk\n\n',
-    },
-    {
-        address: '0xB6f42695E43712B091F398fe61562F0FDF44c973',
-        hash: 'sdfzeesfqsf',
-        link: 'xxxxxxdfsqdfqsesfqsdf',
-    },
-    {
-        address: '0xB6f42695E43712B091F398fe61562F0FDF44c973',
-        hash: 'undefined',
-        link: 'https://peanut.to/claim#?c=200101&v=v3&i=0&p=LmU7oQXLIW5VTH49&t=sdk',
-    },
-    {
-        address: '0xB6f42695E43712B091F398fe61562F0FDF44c973',
-        hash: '0x89d89ecfcb21cfbe0f7f8494a7d5c57e1f7da3277d32ad4b7ef625af01d471e4',
-        link: 'https://peanut.to/claim?c=137&v=v3&i=1474&p=9hRitgdKmqM7iXrf&t=sdk\n\n',
-    },
-]
+import { providers } from 'ethers'
+import { HttpTransport } from 'viem'
+import { CSVLink } from 'react-csv'
+import { isMobile } from 'react-device-detect'
 
 interface IDashboardItemProps {
     hash: string
     chainId: number
     amount: string
+    token: string
     date: string
     claimed: boolean
     link: string
@@ -46,6 +30,52 @@ export function Dashboard() {
     const router = useRouter()
     const [localStorageData, setLocalStorageData] = useState<interfaces.ILocalStorageItem[]>([])
     const [dashboardData, setDashboardData] = useState<IDashboardItemProps[]>([])
+    const [isLoading, setIsLoading] = useState<boolean>(true)
+
+    function publicClientToProvider(publicClient: PublicClient) {
+        const { chain, transport } = publicClient
+        const network = {
+            chainId: chain.id,
+            name: chain.name,
+            ensAddress: chain.contracts?.ensRegistry?.address,
+        }
+
+        if (transport.type === 'fallback')
+            return new providers.FallbackProvider(
+                (transport.transports as ReturnType<HttpTransport>[]).map(
+                    ({ value }) => new providers.JsonRpcProvider(value?.url, network)
+                )
+            )
+        return new providers.JsonRpcProvider(transport.url, network)
+    }
+
+    function getEthersProvider({ chainId }: { chainId?: number } = {}) {
+        const publicClient = getPublicClient({ chainId })
+        return publicClientToProvider(publicClient)
+    }
+
+    const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
+        localStorageData.forEach(async (item) => {
+            const provider = getEthersProvider({ chainId: Number(Number(item.link.match(/c=(\d+)/)?.[1])) })
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, item.link, true)
+            const x: IDashboardItemProps = {
+                hash: item.hash,
+                chainId: Number(item.link.match(/c=(\d+)/)?.[1]),
+                amount: linkDetails.tokenAmount,
+                token: linkDetails.tokenSymbol,
+                date:
+                    linkDetails.depositDate == null
+                        ? 'Unavailable'
+                        : new Date(linkDetails.depositDate).toLocaleString(),
+                claimed: Number(linkDetails.tokenAmount) <= 0,
+                link: item.link,
+            }
+
+            setDashboardData((prev) => [...prev, x])
+        })
+
+        setIsLoading(false)
+    }
 
     useEffect(() => {
         if (address) {
@@ -58,33 +88,27 @@ export function Dashboard() {
     }, [address])
 
     useEffect(() => {
-        setDashboardData([])
-        if (localStorageData.length > 0) {
-            localStorageData.forEach((item) => {
-                const x: IDashboardItemProps = {
-                    hash: item.hash,
-                    chainId: Number(item.link.match(/c=(\d+)/)?.[1]),
-                    amount: '0',
-                    date: '0',
-                    claimed: true,
-                    link: item.link,
-                }
-
-                setDashboardData((prev) => [...prev, x])
-            })
+        if (localStorageData.length > 0 && dashboardData.length === 0) {
+            fetchLinkDetails(localStorageData)
         }
     }, [localStorageData])
 
-    useEffect(() => {
-        console.log(dashboardData)
-    }, [dashboardData])
-
     return (
         <global_components.CardWrapper>
-            <div className="flex flex-col gap-2">
-                <div className="align-center flex w-full justify-between">
+            <div className="flex w-full flex-col gap-2">
+                <div className="align-center flex w-full flex-col justify-between sm:flex-row ">
                     <div className="text-center text-xl font-bold">A list of all the links you have created.</div>
-                    <div className="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+                    <div className="mt-4 flex justify-between sm:ml-16 sm:mt-0 sm:flex-none ">
+                        {isConnected && localStorageData.length > 0 && (
+                            <CSVLink
+                                className="brutalborder inline-flex cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm font-medium text-white no-underline hover:bg-white hover:text-black sm:w-auto"
+                                data={dashboardData}
+                                filename={'links.csv'}
+                            >
+                                DOWNLOAD CSV
+                            </CSVLink>
+                        )}
+
                         <button
                             type="button"
                             className="brutalborder inline-flex cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm font-medium text-white hover:bg-white hover:text-black sm:w-auto"
@@ -106,53 +130,121 @@ export function Dashboard() {
                     </div>
                 </div>
                 {isConnected ? (
-                    <table className=" w-full table-fixed border-separate border-spacing-y-4 border-2 border-white ">
-                        <thead className="bg-black text-white ">
-                            <tr>
-                                <th className="w-1/4 py-2">Chain</th>
-                                <th className="w-1/4 py-2">Amount</th>
-                                <th className="w-1/4 py-2">Date</th>
-                                <th className="w-1/4 py-2">Claimed</th>
-                                <th className="w-1/4 py-2">Copy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {dashboardData.map((item) => (
-                                <tr key={item.hash ?? Math.random()}>
-                                    <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all">
-                                        {
-                                            chainDetails.find(
-                                                (chain) => chain.chainId.toString() === item.chainId.toString()
-                                            )?.name
-                                        }
-                                    </td>
-                                    <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all">
-                                        {item.amount}
-                                    </td>
-                                    <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all">
-                                        {item.date}
-                                    </td>
-                                    <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all">
-                                        <input
-                                            type={'checkbox'}
-                                            className='className="h-4 text-indigo-600 focus:ring-indigo-600" w-4 rounded border-gray-300'
-                                            checked={item.claimed}
-                                        />
-                                    </td>
-                                    <td
-                                        className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all"
-                                        onClick={() => {
-                                            navigator.clipboard.writeText(item.link)
-                                        }}
-                                    >
-                                        Copy
-                                    </td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                    localStorageData.length > 0 ? (
+                        isMobile ? (
+                            <table className="w-full min-w-full table-auto border-spacing-y-4">
+                                <thead className="bg-black text-white">
+                                    <tr>
+                                        <th scope="col" className="px-1 py-3.5 pl-3 text-left font-semibold">
+                                            Chain
+                                        </th>
+                                        <th scope="col" className="px-1 py-3.5 text-left font-semibold">
+                                            Amount
+                                        </th>
+                                        <th scope="col" className="relative px-1 py-3.5">
+                                            <span className="sr-only">Copy</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {dashboardData.map((item) => (
+                                        <tr key={item.hash ?? Math.random()}>
+                                            <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                {
+                                                    chainDetails.find(
+                                                        (chain) => chain.chainId.toString() === item.chainId.toString()
+                                                    )?.name
+                                                }
+                                            </td>
+
+                                            <td className="brutalborder-bottom h-8  cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                {Number(item.amount) > 0 ? item.amount : 'Claimed'}{' '}
+                                                {Number(item.amount) > 0 && item.token}
+                                            </td>
+                                            <td
+                                                className="brutalborder-bottom h-8 cursor-pointer px-1"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(item.link)
+                                                }}
+                                            >
+                                                Copy
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        ) : (
+                            <table className=" w-full min-w-full table-auto border-spacing-y-4  ">
+                                <thead className="bg-black text-white ">
+                                    <tr>
+                                        <th scope="col" className="px-1 py-3.5 pl-3 text-left font-semibold ">
+                                            Chain
+                                        </th>
+                                        <th scope="col" className="px-1 py-3.5 text-left font-semibold ">
+                                            Amount
+                                        </th>
+                                        <th scope="col" className="px-1 py-3.5 text-left font-semibold ">
+                                            Token
+                                        </th>
+                                        <th scope="col" className="px-1 py-3.5 text-left font-semibold ">
+                                            Date
+                                        </th>
+
+                                        <th scope="col" className="relative px-1 py-3.5 ">
+                                            <span className="sr-only">Copy</span>
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-200 bg-white">
+                                    {dashboardData.map((item) => (
+                                        <tr key={item.hash ?? Math.random()}>
+                                            <td className="brutalborder-bottom  h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                {
+                                                    chainDetails.find(
+                                                        (chain) => chain.chainId.toString() === item.chainId.toString()
+                                                    )?.name
+                                                }
+                                            </td>
+                                            <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                {Number(item.amount) > 0 ? item.amount : 'Claimed'}
+                                            </td>
+                                            <td className="brutalborder-bottom h-8  cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                {item.token}
+                                            </td>
+                                            <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                {item.date}
+                                            </td>
+
+                                            <td
+                                                className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1"
+                                                onClick={() => {
+                                                    navigator.clipboard.writeText(item.link)
+                                                }}
+                                            >
+                                                Copy
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        )
+                    ) : (
+                        <div>
+                            {' '}
+                            You have not created any links yet. Click{' '}
+                            <span
+                                className="cursor-pointer underline"
+                                onClick={() => {
+                                    router.push('/')
+                                }}
+                            >
+                                here
+                            </span>{' '}
+                            to make your first one!
+                        </div>
+                    )
                 ) : (
-                    'Connect your wallet to view your deposits'
+                    <div>Connect your wallet to view your links.</div>
                 )}
             </div>
         </global_components.CardWrapper>
