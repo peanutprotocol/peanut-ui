@@ -20,23 +20,24 @@ export function Milkomeda() {
                         {/* left column */}
                         <div className="sm:px-6 lg:mx-0 lg:max-w-none py-16 lg:px-0 bg-yellow brutalborder text-center">
                             <h1 className="my-8 text-5xl font-black w-3/4 mx-auto">
-                                Join the Raffle
+                                Join the Raffle!
                             </h1>
                             <p className="m-4 p-2 w-3/4 text-xl mx-auto">
 
-                                Yay! We are on Milkomeda. Welcome Peanut Protocol to the Milkomeda community by joining the raffle. Here is how it works:
+                                Yay! We ar nowe on Milkomeda. Send mAda easily. 
+                                Welcome Peanut Protocol to the Milkomeda community by joining the raffle. Here is how:
 
                                 <ul className='text-base text-left '>
-                                    <li>Every Peanut tx that uses some mAda is a ticket to a raffle.</li>
+                                    <li>Every <a href="/" target='_blank'>Peanut</a> tx that uses some mAda is a ticket to a raffle.</li>
                                     <li>There will be 3 prizes of 100 USDC each.</li>
                                     <li>The raffle will be drawn on Sep 1st.</li>
-                                    <li>Follow <a href="https://twitter.com/PeanutProtocol" target='_blank'>@PeanutProtocol</a> to get live updates.</li>
+                                    <li>Join our <a href="https://discord.com/channels/972435984954302464/1144240875464036392" target='_blank'>Milkomeda Discord channel</a> to get live updates.</li>
                                 </ul>
                             </p>
 
 
                             <div className="flex justify-center p-2 mt-8 space-x-4">
-                                <a href="/send" id="cta-btn" className="block md:w-3/5 lg:w-1/3 p-5 font-black text-2xl mb-2 bg-white">
+                                <a href="/" id="cta-btn" className="block md:w-3/5 lg:w-1/3 p-5 font-black text-2xl mb-2 bg-white">
                                     Join Raffle
                                 </a>
 
