@@ -7,6 +7,7 @@ export interface IUserBalance {
     price: number
     amount: number
     currency: string
+    logoURI: string
 }
 
 export interface IPeanutChainDetails {
@@ -14,10 +15,9 @@ export interface IPeanutChainDetails {
     chain: string
     icon: {
         url: string
-        width: number
-        height: number
+
         format: string
-    }[]
+    }
     rpc: string[]
     features: {
         name: string

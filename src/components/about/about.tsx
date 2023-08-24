@@ -10,18 +10,21 @@ export function About() {
             <div className="flex-grow bg-lightblue">
                 <div className="brutalborder brutalshadow mx-auto mb-8 mt-8 w-5/6 bg-white sm:mb-16 sm:mt-16 ">
                     <h2 className="mx-auto px-4 text-center text-xl font-black text-black lg:text-4xl">
-                        <p>WE MAKE TRANSFERS MAGIC </p>
+                        <p>
+                            Peanut Protocol. Bring currency back to cryptocurrency. Build a world where value flows
+                            freely through buttery smooth transactions.{' '}
+                        </p>
                     </h2>
                 </div>
             </div>
             <global_components.MarqueeWrapper backgroundColor="bg-black">
                 <>
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
-                        Hugo
+                        GO
                     </div>
                     <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
-                        Konrad
+                        NUTS
                     </div>
                     <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
                 </>
@@ -40,9 +43,8 @@ export function About() {
                             <h1 className="mx-auto mt-8 w-3/4 text-2xl font-black uppercase">Hugo Montenegro</h1>
                             <p className="mb-4 text-sm font-black uppercase">Tech Nut</p>
                             <p>
-                                Did ML and worked with NLP. Studied CS at Harvard. Main interests lie in decentralized
-                                systems and how incentives affect them. Also in AI and allied with our AI overlords, and
-                                increasing healthspan.
+                                Did ML and worked with NLP. Studied CS at Harvard. Interested in decentralized systems
+                                and their incentives.
                             </p>
                             <p>
                                 He's also very tall and, yes, he likes to play basketball. He's currently doing a keto
@@ -83,8 +85,7 @@ export function About() {
 
                             <p>
                                 {' '}
-                                Likes to climb and then ski untouched mountains. At night you can find him your local
-                                juke joints swing & blues dancing.
+                                Likes to climb and then ski untouched mountains. Very short, does not play basketball.
                             </p>
                         </div>
                         <div className="center-xy flex-end my-6 flex justify-around gap-12">
@@ -97,7 +98,7 @@ export function About() {
                                     Lens
                                 </a>{' '}
                                 |{' '}
-                                <a className="text-black underline" href="https://konradurban.com/">
+                                <a className="text-black underline" href="https://kkonrad.com/">
                                     www
                                 </a>
                             </p>
@@ -122,7 +123,7 @@ export function About() {
 
                         <div className="center-xy flex-end my-6 flex justify-around gap-12 font-black">
                             <p className="mt-4 text-sm font-black uppercase">
-                                <a className="text-black underline" href="https://www.twitter.com/PeanutProtocol">
+                                <a className="text-black underline" href="https://www.peanut.to/jobs">
                                     dm us
                                 </a>{' '}
                                 |{' '}
