@@ -168,6 +168,10 @@ input {
     border-left: 3px solid black; /* Adjust thickness and color as needed */
 }
 
+.text-overflow-ellipsis {
+    text-overflow: ellipsis;
+}
+
 @layer base {
     h1 {
         font-weight: 900;

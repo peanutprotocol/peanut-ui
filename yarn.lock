@@ -2320,10 +2320,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.0.85":
-  version "0.0.85"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.85.tgz#4b51412d4c7f2efc9f1d0090665b52b0e7e5f74f"
-  integrity sha512-AoW89q3IwzBTGstliMscjr1bSyIJZcuk/4uthLs22KTD8H71pNAh8YgVKUcNbjA+SYe4umYgM7KNb73brVsNxw==
+"@squirrel-labs/peanut-sdk@0.0.86":
+  version "0.0.86"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.86.tgz#65fca2a37d42275de0e7780db66d22b51893b353"
+  integrity sha512-dEqaDffZ8DCbQ0SUeXsdUWLukprz1QiI+HlBx0RrfB7ORRLE10cN5ksDQ6QeapP7JW+LVbgdszRGduT2aPtFvA==
   dependencies:
     ethersv5 "npm:ethers@^5"
     isomorphic-fetch "^3.0.0"
@@ -2829,6 +2829,13 @@
   version "15.7.5"
   resolved "https://registry.yarnpkg.com/@types/prop-types/-/prop-types-15.7.5.tgz#5f19d2b85a98e9558036f6a3cacc8819420f05cf"
   integrity sha512-JCB8C6SnDoQf0cNycqd/35A7MjcnK+ZTqE7judS6o7utxUCg6imJg3QK2qzHKszlTjcj2cn+NwMB2i96ubpj7w==
+
+"@types/react-csv@^1.1.3":
+  version "1.1.3"
+  resolved "https://registry.yarnpkg.com/@types/react-csv/-/react-csv-1.1.3.tgz#b93a33314d71e8e3c5c41b20d19a2912c6e642c8"
+  integrity sha512-dkEdyRvRpygSnNg4cyzYWSUjukIQ5lAtXJwc7BqyUfzww/Cv2dcAFGYd+sWTFpGiDNZMVPp6vVPLcAPvJID8Kg==
+  dependencies:
+    "@types/react" "*"
 
 "@types/react-dom@18.2.7":
   version "18.2.7"
@@ -7094,6 +7101,11 @@ rc@^1.2.7:
     ini "~1.3.0"
     minimist "^1.2.0"
     strip-json-comments "~2.0.1"
+
+react-csv@^2.2.2:
+  version "2.2.2"
+  resolved "https://registry.yarnpkg.com/react-csv/-/react-csv-2.2.2.tgz#5bbf0d72a846412221a14880f294da9d6def9bfb"
+  integrity sha512-RG5hOcZKZFigIGE8LxIEV/OgS1vigFQT4EkaHeKgyuCbUAu9Nbd/1RYq++bJcJJ9VOqO/n9TZRADsXNDR4VEpw==
 
 react-device-detect@^2.2.3:
   version "2.2.3"
