@@ -10,7 +10,7 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { MediaRenderer } from '@thirdweb-dev/react'
-import dropdown_svg from '@/assets/dropdown.svg'
+import { isMobile } from 'react-device-detect'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -20,7 +20,7 @@ import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
-import { isMobile } from 'react-device-detect'
+import dropdown_svg from '@/assets/dropdown.svg'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -47,6 +47,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [selectorIsLoading, setSelectorIsLoading] = useState(true)
     const [changeToken, setChangeToken] = useState(true)
+    const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -80,6 +81,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             chainId: 1,
             amount: null,
             token: '',
+            bulkAmount: undefined,
         },
     })
     const formwatch = sendForm.watch()
@@ -154,25 +156,53 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         : 0
                     : sendFormData.amount
 
-            if (balance && tokenAmount && Number(tokenAmount) > balance) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: "You don't have enough funds",
-                })
+            const tokenAmount2 =
+                advancedDropdownOpen &&
+                tokenAmount &&
+                sendFormData.bulkAmount &&
+                Number(tokenAmount) * sendFormData.bulkAmount
 
-                return { succes: 'false' }
-            }
+            if (tokenAmount2) {
+                if (balance && tokenAmount2 && Number(tokenAmount2) > balance) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: "You don't have enough funds",
+                    })
 
-            if (!signer) {
-                getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Signer undefined, please refresh',
-                })
+                    return { succes: 'false' }
+                }
+            } else {
+                if (balance && tokenAmount && Number(tokenAmount) > balance) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: "You don't have enough funds",
+                    })
 
-                return { succes: 'false' }
+                    return { succes: 'false' }
+                }
             }
         }
+
+        if (!signer) {
+            getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
+            setErrorState({
+                showError: true,
+                errorMessage: 'Signer undefined, please refresh',
+            })
+
+            return { succes: 'false' }
+        }
+
+        //check if the bulkAmount is less than or equal to zero when bulk is selected
+        if (sendFormData.bulkAmount && sendFormData.bulkAmount <= 0 && advancedDropdownOpen) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'If you want to bulk send, please input an amount of links you want to have created',
+            })
+
+            return { succes: 'false' }
+        }
+
         return { succes: 'true' }
     }
 
@@ -218,7 +248,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 )
 
                 console.log(
-                    'sending ' +
+                    (advancedDropdownOpen ? 'bulk ' : 'solo ') +
+                        'sending ' +
                         tokenAmount +
                         ' ' +
                         sendFormData.token +
@@ -253,25 +284,50 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 setEnableConfirmation(true)
                 setLoadingStates('executing transaction...')
 
-                const { link, txReceipt } = await peanut.createLink({
-                    signer: signer,
-                    chainId: sendFormData.chainId,
-                    tokenAddress: tokenAddress ?? null,
-                    tokenAmount: tokenAmount,
-                    tokenType: tokenType,
-                    tokenDecimals: tokenDecimals,
-                    verbose: true,
-                    baseUrl: window.location.origin + '/claim',
-                    trackId: 'ui',
-                })
-                console.log('Created link:', link)
-                utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
-
-                setClaimLink(link)
-                setTxReceipt(txReceipt)
-                setChainId(sendFormData.chainId)
-
-                onNextScreen()
+                if (advancedDropdownOpen) {
+                    // const { links, txReceipts } = await peanut.createLinks({
+                    //     signer: signer,
+                    //     chainId: sendFormData.chainId,
+                    //     tokenAmount: tokenAmount,
+                    //     numberOfLinks: sendFormData.bulkAmount,
+                    //     tokenType: tokenType,
+                    //     tokenDecimals: tokenDecimals,
+                    //     verbose: true,
+                    //     baseUrl: window.location.origin + '/claim',
+                    //     trackId: 'ui',
+                    //     tokenAddress: tokenAddress ?? null,
+                    // })
+                    const links: [] = []
+                    const txReceipt: [] = []
+                    console.log('Created links:', links)
+                    console.log('Transaction receipts:', txReceipt)
+                    links.forEach((link, index) => {
+                        //@ts-ignore
+                        utils.saveToLocalStorage(address + ' - ' + txReceipt[index].hash, link)
+                    })
+                    setClaimLink(links)
+                    setTxReceipt(txReceipt)
+                    setChainId(sendFormData.chainId)
+                    onNextScreen()
+                } else {
+                    const { link, txReceipt } = await peanut.createLink({
+                        signer: signer,
+                        chainId: sendFormData.chainId,
+                        tokenAddress: tokenAddress ?? null,
+                        tokenAmount: tokenAmount,
+                        tokenType: tokenType,
+                        tokenDecimals: tokenDecimals,
+                        verbose: true,
+                        baseUrl: window.location.origin + '/claim',
+                        trackId: 'ui',
+                    })
+                    console.log('Created link:', link)
+                    utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
+                    setClaimLink(link)
+                    setTxReceipt(txReceipt)
+                    setChainId(sendFormData.chainId)
+                    onNextScreen()
+                }
             } catch (error: any) {
                 if (error.toString().includes('insufficient funds')) {
                     setErrorState({
@@ -290,7 +346,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 setEnableConfirmation(false)
             }
         },
-        [signer, currentChain, userBalances, onNextScreen, isLoading, address, inputDenomination, tokenPrice]
+        [
+            signer,
+            currentChain,
+            userBalances,
+            onNextScreen,
+            isLoading,
+            address,
+            inputDenomination,
+            tokenPrice,
+            advancedDropdownOpen,
+        ]
     )
 
     useEffect(() => {
@@ -409,15 +475,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             fetchTokenPrice(tokenAddress, modalState.chainId)
         }
     }, [modalState.token])
-
-    useEffect(() => {
-        if (formwatch.token) {
-            setModalState({
-                chainId: modalState.chainId,
-                token: formwatch.token,
-            })
-        }
-    }, [formwatch.token])
 
     return (
         <>
@@ -658,12 +715,81 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             )}
                         </div>
                     </div>
+                    <div
+                        className="flex cursor-pointer items-center justify-center "
+                        onClick={() => {
+                            setAdvancedDropdownOpen(!advancedDropdownOpen)
+                        }}
+                    >
+                        <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
+                        <img
+                            style={{
+                                transform: advancedDropdownOpen ? 'scaleY(-1)' : 'none',
+                                transition: 'transform 0.3s ease-in-out',
+                            }}
+                            src={dropdown_svg.src}
+                            alt=""
+                            className={'h-6 '}
+                        />
+                    </div>
+                    {advancedDropdownOpen && (
+                        <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
+                            <div className="relative w-full px-2 sm:w-3/4">
+                                <div className="absolute inset-y-0 right-4 box-border flex items-center ">
+                                    <span className="cursor-pointertext-lg align-center flex h-1/2 ">
+                                        <button
+                                            type="button"
+                                            className={
+                                                'relative inline-flex items-center border-none bg-white font-black'
+                                            }
+                                        >
+                                            Links
+                                        </button>
+                                    </span>
+                                </div>
 
+                                <input
+                                    type="number"
+                                    step="any"
+                                    min="0"
+                                    autoComplete="off"
+                                    className="no-spin brutalborder block w-full appearance-none px-2 py-4 pl-4 text-lg font-bold outline-none placeholder:text-lg placeholder:font-bold placeholder:text-black "
+                                    placeholder="0"
+                                    aria-describedby="price-currency"
+                                    onChange={(e) => {
+                                        sendForm.setValue('bulkAmount', Number(e.target.value))
+                                        setFormHasBeenTouched(true)
+                                    }}
+                                    value={formwatch.bulkAmount ?? undefined}
+                                />
+                            </div>
+                            {formwatch.amount && formwatch.token && formwatch.bulkAmount ? (
+                                <div>
+                                    <div className="flex text-center text-base">
+                                        {' '}
+                                        You will be sending {formwatch.bulkAmount} links. The total value will be{' '}
+                                        {inputDenomination == 'USD'
+                                            ? utils.formatTokenAmount(
+                                                  Number(
+                                                      tokenPrice &&
+                                                          formwatch.amount &&
+                                                          (Number(formwatch.amount) / tokenPrice) * formwatch.bulkAmount
+                                                  )
+                                              )
+                                            : formwatch.bulkAmount * Number(formwatch.amount)}{' '}
+                                        {formwatch.token}
+                                    </div>
+                                </div>
+                            ) : (
+                                ''
+                            )}
+                        </div>
+                    )}
                     <div
                         className={
                             errorState.showError
-                                ? 'mx-auto my-8 mb-0 flex w-full flex-col items-center gap-10 '
-                                : 'mx-auto my-8 mb-14 flex w-full flex-col items-center '
+                                ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
+                                : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
                         }
                     >
                         <button
@@ -673,7 +799,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             onClick={!isConnected ? open : undefined}
                             disabled={isLoading ? true : false}
                         >
-                            {isLoading ? loadingStates : isConnected ? 'Send' : 'Connect Wallet'}
+                            {isLoading
+                                ? loadingStates
+                                : advancedDropdownOpen
+                                ? 'Bulk Send'
+                                : isConnected
+                                ? 'Send'
+                                : 'Connect Wallet'}
                         </button>
                         {errorState.showError && (
                             <div className="text-center">

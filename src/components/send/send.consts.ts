@@ -7,6 +7,7 @@ export interface ISendFormData {
     chainId: number
     token: string
     amount: string | null
+    bulkAmount: number | undefined
 }
 export interface ITokenListItem {
     symbol: string
@@ -27,10 +28,10 @@ export interface ISendScreenState {
 export interface ISendScreenProps {
     onNextScreen: () => void
     onCustomScreen: (screen: SendScreens) => void
-    claimLink: string
-    setClaimLink: (claimLink: string) => void
-    txReceipt: any
-    setTxReceipt: (txReceipt: string) => void
+    claimLink: string | string[]
+    setClaimLink: (claimLink: string | string[]) => void
+    txReceipt: any | string[]
+    setTxReceipt: (txReceipt: string | string[]) => void
     chainId: number
     setChainId: (chainId: number) => void
 }

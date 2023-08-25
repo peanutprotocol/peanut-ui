@@ -24,49 +24,54 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
             <div className="flex w-full flex-col items-center text-center ">
                 <h2 className="title-font text-5xl font-black text-black">Yay!</h2>
                 <p className="mt-2 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
-                <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-2 text-white ">
-                    <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white">
-                        {claimLink}
+                {typeof claimLink === 'string' && (
+                    <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-2 text-white ">
+                        <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white">
+                            {claimLink}
+                        </div>
+                        <div
+                            className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                            onClick={() => {
+                                navigator.clipboard.writeText(claimLink)
+                                setIsCopied(true)
+                            }}
+                        >
+                            {isCopied ? (
+                                <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold ">
+                                    <span className="tooltiptext inline w-full justify-center" id="myTooltip">
+                                        {' '}
+                                        copied!{' '}
+                                    </span>
+                                </div>
+                            ) : (
+                                <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold ">
+                                    <label className="cursor-pointer text-black">COPY</label>
+                                </button>
+                            )}
+                        </div>
                     </div>
+                )}
+
+                {typeof claimLink === 'string' && (
                     <div
-                        className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                        className="mt-2 flex cursor-pointer items-center justify-center"
                         onClick={() => {
-                            navigator.clipboard.writeText(claimLink)
-                            setIsCopied(true)
+                            setIsDropdownOpen(!isDropdownOpen)
                         }}
                     >
-                        {isCopied ? (
-                            <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold ">
-                                <span className="tooltiptext inline w-full justify-center" id="myTooltip">
-                                    {' '}
-                                    copied!{' '}
-                                </span>
-                            </div>
-                        ) : (
-                            <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold ">
-                                <label className="cursor-pointer text-black">COPY</label>
-                            </button>
-                        )}
+                        <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
+                        <img
+                            style={{
+                                transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                                transition: 'transform 0.3s ease-in-out',
+                            }}
+                            src={dropdown_svg.src}
+                            alt=""
+                            className={'h-6 '}
+                        />
                     </div>
-                </div>
+                )}
 
-                <div
-                    className="mt-2 flex cursor-pointer items-center justify-center"
-                    onClick={() => {
-                        setIsDropdownOpen(!isDropdownOpen)
-                    }}
-                >
-                    <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
-                    <img
-                        style={{
-                            transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
-                            transition: 'transform 0.3s ease-in-out',
-                        }}
-                        src={dropdown_svg.src}
-                        alt=""
-                        className={'h-6 '}
-                    />
-                </div>
                 {isDropdownOpen && (
                     <div>
                         <div className="h-42 w-42 mx-auto mb-6 mt-4">
@@ -81,7 +86,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                                 <QRCode
                                     size={256}
                                     style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                    value={claimLink}
+                                    value={typeof claimLink === 'string' ? claimLink : ''}
                                     viewBox={`0 0 256 256`}
                                 />
                             </div>
@@ -94,10 +99,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                                 Your transaction hash
                             </a>
                         </p>
-
-                        {/* <p className="mt-4">
-          If you input an email address, we'll send them the link there too!
-        </p> whats this? */}
                     </div>
                 )}
 
