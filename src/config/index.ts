@@ -1,2 +1,2 @@
-export * from "./wagmi.config";
-export * from "./socketTech.config";
+export * from './wagmi.config'
+export * from './socketTech.config'

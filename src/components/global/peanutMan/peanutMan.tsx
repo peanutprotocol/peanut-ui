@@ -1,41 +1,41 @@
-import peanutman_sad from "@/assets/peanutman-sad.svg";
-import peanutman_presenting from "@/assets/peanutman-presenting.svg";
-import peanutman_cheering from "@/assets/peanutman-cheering.svg";
-import { useEffect, useState } from "react";
+import peanutman_sad from '@/assets/peanutman-sad.svg'
+import peanutman_presenting from '@/assets/peanutman-presenting.svg'
+import peanutman_cheering from '@/assets/peanutman-cheering.svg'
+import { useEffect, useState } from 'react'
 
 export function PeanutMan({ type }: { type: string }) {
-  const [peanutmanSvg, setSvg] = useState(peanutman_presenting);
+    const [peanutmanSvg, setSvg] = useState(peanutman_presenting)
 
-  useEffect(() => {
-    switch (type) {
-      case "cheering": {
-        setSvg(peanutman_cheering);
-        break;
-      }
-      case "sad": {
-        setSvg(peanutman_sad);
-        break;
-      }
-      case "presenting": {
-        setSvg(peanutman_presenting);
-        break;
-      }
-      default: {
-        setSvg(peanutman_cheering);
-        break;
-      }
-    }
-  }, [type]);
+    useEffect(() => {
+        switch (type) {
+            case 'cheering': {
+                setSvg(peanutman_cheering)
+                break
+            }
+            case 'sad': {
+                setSvg(peanutman_sad)
+                break
+            }
+            case 'presenting': {
+                setSvg(peanutman_presenting)
+                break
+            }
+            default: {
+                setSvg(peanutman_cheering)
+                break
+            }
+        }
+    }, [type])
 
-  return (
-    <img
-      src={peanutmanSvg.src}
-      className="w-2/3 sm:w-1/2 scale-100 absolute z-index-100 -bottom-40 -left-32 sm:-bottom-48 sm:-left-32 md:-bottom-56 md:-left-48 2xl:-bottom-80 2xl:-left-80 2xl:-mb-24 2xl:-ml-32"
-    />
-  );
+    return (
+        <img
+            src={peanutmanSvg.src}
+            className="z-index-100 absolute -bottom-40 -left-32 hidden w-2/3 scale-100 sm:-bottom-48 sm:-left-32 sm:w-1/2 md:-bottom-56 md:-left-48 md:block 2xl:-bottom-80 2xl:-left-80 2xl:-mb-4 2xl:-ml-8"
+        />
+    )
 }
 {
-  /* 
+    /* 
 
     <img
               src={peanutman_sad.src}

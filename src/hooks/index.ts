@@ -1,1 +1,1 @@
-export * from "./useConfirmRefresh";
+export * from './useConfirmRefresh'

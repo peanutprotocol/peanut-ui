@@ -1,1 +1,1 @@
-export * from "./cardWrapper";
+export * from './cardWrapper'

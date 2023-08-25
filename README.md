@@ -1,5 +1,7 @@
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
+[peanut.to](https://peanut.to) | [staging.peanut.to](https://staging.peanut.to)
+
 ## Getting Started
 
 First install the dependencies (location: root folder):
@@ -11,8 +13,9 @@ npm install
 ```
 
 Secondly, copy the .env.example to .env and fill in the values:
-there are 3 .env values: 
-you can get both WalletConnect and Socket.tech from their docs, and reach out to us for the Peanut api key. 
+there are 4 .env values:
+you can get WalletConnect, Socket.tech and GA (google analytics) from their docs, and reach out to us for the Peanut api key.
+
 ```bash
 cp .env.example .env
 ```
