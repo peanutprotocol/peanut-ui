@@ -30,6 +30,7 @@ export const saveToLocalStorage = (key: string, data: any) => {
         // Convert the data to a string before storing it in localStorage
         const serializedData = JSON.stringify(data)
         localStorage.setItem(key, serializedData)
+        console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
         console.error('Error saving to localStorage:', error)
     }
@@ -48,6 +49,7 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
                     const x = {
                         address: key.split('-')[0].trim(),
                         hash: key.split('-')[1].trim(),
+                        idx: key.split('-')[2]?.trim() ?? '',
                         link: value.replaceAll('"', ''),
                     }
                     localStorageData.push(x)

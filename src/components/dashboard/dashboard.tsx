@@ -151,7 +151,7 @@ export function Dashboard() {
                                 </thead>
                                 <tbody>
                                     {dashboardData.map((item) => (
-                                        <tr key={item.hash ?? Math.random()}>
+                                        <tr key={Math.random()}>
                                             <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
                                                 {
                                                     chainDetails.find(
@@ -161,7 +161,9 @@ export function Dashboard() {
                                             </td>
 
                                             <td className="brutalborder-bottom h-8  cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
-                                                {Number(item.amount) > 0 ? item.amount : 'Claimed'}{' '}
+                                                {Number(item.amount) > 0
+                                                    ? utils.formatTokenAmount(Number(item.amount))
+                                                    : 'Claimed'}{' '}
                                                 {Number(item.amount) > 0 && item.token}
                                             </td>
                                             <td
@@ -229,7 +231,9 @@ export function Dashboard() {
                                                 }
                                             </td>
                                             <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
-                                                {Number(item.amount) > 0 ? item.amount : 'Claimed'}
+                                                {Number(item.amount) > 0
+                                                    ? utils.formatTokenAmount(Number(item.amount))
+                                                    : 'Claimed'}{' '}
                                             </td>
                                             <td className="brutalborder-bottom h-8  cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
                                                 {item.token}
