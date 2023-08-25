@@ -7,7 +7,7 @@ import peanutman_happy from '@/assets/peanutman-happy.svg'
 
 export function Milkomeda() {
     return (
-        <div className="mt-16 flex h-full min-h-[80vh] flex-col  ">
+        <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
             {/* columns */}
             <section className="text-black  lg:divide-y" id="hero">
                 <div className="relative mx-auto">
