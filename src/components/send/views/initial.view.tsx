@@ -141,6 +141,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             return { succes: 'false' }
         }
 
+        if (!Number.isInteger(sendFormData.bulkAmount)) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Please define a non-decimal number of links',
+            })
+            return { succes: 'false' }
+        }
+
         //check if the token is in the userBalances
         if (
             userBalances.some(
@@ -187,7 +195,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
                 showError: true,
-                errorMessage: 'Signer undefined, please refresh',
+                errorMessage: 'Signer undefined, please try again',
             })
 
             return { succes: 'false' }
@@ -235,7 +243,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             : 0
                         : sendFormData.amount
 
+                const tokenAmount2 =
+                    advancedDropdownOpen &&
+                    tokenAmount &&
+                    sendFormData.bulkAmount &&
+                    Number(tokenAmount) * sendFormData.bulkAmount
+
+                console.log(tokenAmount2)
+
                 if (checkForm(sendFormData).succes === 'false') {
+                    console.log()
                     return
                 }
                 setEnableConfirmation(true)
@@ -250,7 +267,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 console.log(
                     (advancedDropdownOpen ? 'bulk ' : 'solo ') +
                         'sending ' +
-                        tokenAmount +
+                        (tokenAmount2 ? tokenAmount2 : tokenAmount) +
                         ' ' +
                         sendFormData.token +
                         ' on chain with id ' +
@@ -285,26 +302,38 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 setLoadingStates('executing transaction...')
 
                 if (advancedDropdownOpen) {
-                    // const { links, txReceipts } = await peanut.createLinks({
-                    //     signer: signer,
-                    //     chainId: sendFormData.chainId,
-                    //     tokenAmount: tokenAmount,
-                    //     numberOfLinks: sendFormData.bulkAmount,
-                    //     tokenType: tokenType,
-                    //     tokenDecimals: tokenDecimals,
-                    //     verbose: true,
-                    //     baseUrl: window.location.origin + '/claim',
-                    //     trackId: 'ui',
-                    //     tokenAddress: tokenAddress ?? null,
-                    // })
-                    const links: [] = []
-                    const txReceipt: [] = []
+                    const { links, txReceipt } = await peanut.createLinks({
+                        signer: signer,
+                        chainId: sendFormData.chainId,
+                        tokenAmount: tokenAmount,
+                        numberOfLinks: sendFormData.bulkAmount,
+                        tokenType: tokenType,
+                        tokenDecimals: tokenDecimals,
+                        verbose: true,
+                        baseUrl: window.location.origin + '/claim',
+                        trackId: 'ui',
+                        tokenAddress: tokenAddress ?? null,
+                    })
+
                     console.log('Created links:', links)
                     console.log('Transaction receipts:', txReceipt)
+                    //@ts-ignore
                     links.forEach((link, index) => {
                         //@ts-ignore
-                        utils.saveToLocalStorage(address + ' - ' + txReceipt[index].hash, link)
+                        utils.saveToLocalStorage(address + ' - ' + txReceipt.transactionHash + ' - ' + index, link)
                     })
+                    // setClaimLink([
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=73&p=pCPss4a0WiRgbiDo&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=74&p=2ldLR8WHSR4ivkPs&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=75&p=o5BmA0Xoe5AKzXm1&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=76&p=5825iSMUmio1SMSs&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=77&p=xMhU49Y4YCFEHDAZ&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=78&p=hfn0ziQZtgiIj2bI&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=79&p=ngfZ7Npk497O9Ood&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=80&p=Z5q412r2w7POlzW1&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=81&p=4YF9JCQyLahbw8rA&t=ui',
+                    //     'http://localhost:3000/claim#?c=5&v=v4&i=82&p=ZbOBBU3mS44E8pVV&t=ui',
+                    // ])
                     setClaimLink(links)
                     setTxReceipt(txReceipt)
                     setChainId(sendFormData.chainId)
@@ -760,7 +789,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         sendForm.setValue('bulkAmount', Number(e.target.value))
                                         setFormHasBeenTouched(true)
                                     }}
-                                    value={formwatch.bulkAmount ?? undefined}
                                 />
                             </div>
                             {formwatch.amount && formwatch.token && formwatch.bulkAmount ? (
@@ -776,7 +804,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                           (Number(formwatch.amount) / tokenPrice) * formwatch.bulkAmount
                                                   )
                                               )
-                                            : formwatch.bulkAmount * Number(formwatch.amount)}{' '}
+                                            : utils.formatTokenAmount(
+                                                  formwatch.bulkAmount * Number(formwatch.amount)
+                                              )}{' '}
                                         {formwatch.token}
                                     </div>
                                 </div>
@@ -794,7 +824,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     >
                         <button
                             type={isConnected ? 'submit' : 'button'}
-                            className="block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                            className="mt-2 block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                             id="cta-btn"
                             onClick={!isConnected ? open : undefined}
                             disabled={isLoading ? true : false}

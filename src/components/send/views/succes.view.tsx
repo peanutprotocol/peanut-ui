@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import QRCode from 'react-qr-code'
 
 import dropdown_svg from '@/assets/dropdown.svg'
@@ -8,10 +8,24 @@ import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
 
+const linkss = [
+    'http://localhost:3000/claim#?c=5&v=v4&i=73&p=pCPss4a0WiRgbiDo&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=74&p=2ldLR8WHSR4ivkPs&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=75&p=o5BmA0Xoe5AKzXm1&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=76&p=5825iSMUmio1SMSs&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=77&p=xMhU49Y4YCFEHDAZ&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=78&p=hfn0ziQZtgiIj2bI&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=79&p=ngfZ7Npk497O9Ood&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=80&p=Z5q412r2w7POlzW1&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=81&p=4YF9JCQyLahbw8rA&t=ui',
+    'http://localhost:3000/claim#?c=5&v=v4&i=82&p=ZbOBBU3mS44E8pVV&t=ui',
+]
+
 export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId }: _consts.ISendScreenProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
-
+    const [copiedLink, setCopiedLink] = useState<string[]>()
+    const [copiedAll, setCopiedAll] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     const explorerUrlWithTx = useMemo(
@@ -19,12 +33,27 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
         [txReceipt, chainId]
     )
 
+    useEffect(() => {
+        if (copiedAll) {
+            setTimeout(() => {
+                setCopiedAll(false)
+            }, 3000)
+        }
+    })
+
     return (
         <>
             <div className="flex w-full flex-col items-center text-center ">
                 <h2 className="title-font text-5xl font-black text-black">Yay!</h2>
-                <p className="mt-2 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
-                {typeof claimLink === 'string' && (
+                {typeof claimLink === 'string' ? (
+                    <p className="mt-2 self-center text-lg">
+                        Send this link to your friend so they can claim their funds.
+                    </p>
+                ) : (
+                    <p className="mt-2 self-center text-lg">Here are the links you created.</p>
+                )}
+
+                {typeof claimLink === 'string' ? (
                     <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-2 text-white ">
                         <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white">
                             {claimLink}
@@ -50,9 +79,42 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                             )}
                         </div>
                     </div>
+                ) : (
+                    <ul className="brutalscroll max-h-[240px] w-4/5 flex-col items-center justify-center overflow-x-hidden overflow-y-scroll p-2">
+                        {claimLink.map((link, index) => (
+                            <li
+                                className="brutalborder relative mb-4 flex w-full items-center bg-black py-2 text-white"
+                                key={index}
+                            >
+                                <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white">
+                                    {link}
+                                </div>
+
+                                <div
+                                    className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                    onClick={() => {
+                                        navigator.clipboard.writeText(link)
+                                        setCopiedLink([link])
+                                    }}
+                                >
+                                    {copiedLink?.includes(link) ? (
+                                        <div className="flex h-full items-center border-none bg-white text-base font-bold">
+                                            <span className="tooltiptext inline w-full justify-center" id="myTooltip">
+                                                Copied!
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold">
+                                            <label className="cursor-pointer text-black">COPY</label>
+                                        </button>
+                                    )}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
                 )}
 
-                {typeof claimLink === 'string' && (
+                {typeof claimLink === 'string' ? (
                     <div
                         className="mt-2 flex cursor-pointer items-center justify-center"
                         onClick={() => {
@@ -70,6 +132,22 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                             className={'h-6 '}
                         />
                     </div>
+                ) : !copiedAll ? (
+                    <div className="text-m border-none bg-white ">
+                        Click{' '}
+                        <span
+                            className="cursor-pointer text-black underline"
+                            onClick={() => {
+                                navigator.clipboard.writeText(claimLink.join('\n'))
+                                setCopiedAll(true)
+                            }}
+                        >
+                            here
+                        </span>{' '}
+                        to copy all links{' '}
+                    </div>
+                ) : (
+                    <div className="text-m border-none bg-white ">Copied all links to clipboard!</div>
                 )}
 
                 {isDropdownOpen && (
