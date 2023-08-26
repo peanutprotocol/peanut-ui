@@ -21,8 +21,14 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import { isMobile } from 'react-device-detect'
+import { useSearchParams } from 'next/navigation'
+import { useBranding } from "../hooks";
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
+
+    const searchParams = useSearchParams();
+    const branding = useBranding(searchParams);
+
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -264,7 +270,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     baseUrl: window.location.origin + '/claim',
                 })
                 console.log('Created link:', link)
-                utils.saveLinkToLocalStorage({ address, hash: txReceipt.transactionHash, link});
+                // @todo: rename to "saveLinkToLocalStorage" if new localStorage will be merged https://github.com/ProphetFund/peanut-ui/pull/15
+                utils.saveToLocalStorage({ address, hash: txReceipt.transactionHash, link});
 
                 setClaimLink(link)
                 setTxReceipt(txReceipt)
@@ -419,9 +426,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     }, [formwatch.token])
 
     return (
-        <>
-            <div className="mb-3 mt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
-                <h2 className="title-font bold m-0 text-2xl lg:text-4xl">
+        <div style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
+            <div className="mb-3 pt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
+                <h2 className="title-font bold m-0 text-2xl lg:text-4xl" style={{color: branding.titleTextColor}}>
                     Send crypto with a link
                     <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
                 </h2>
@@ -429,17 +436,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
                     <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
-                        <div className="flex flex-col justify-end gap-0 pt-2 ">
+                        <div className="flex flex-col justify-end gap-0 ">
                             <div className="flex h-16 items-center justify-center">
-                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
+                                <label className={'flex h-full items-center font-bold mr-1 ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
                                 </label>
                                 <div className="w-full max-w-[160px] ">
                                     <input
                                         className={
-                                            'w-full border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
-                                            textFontSize
+                                            'caret-current  w-full border-none font-black tracking-wide outline-none placeholder:font-black ' +
+                                            textFontSize + ' ' +
+                                            branding.placeholderTheme
                                         }
+                                        style={{backgroundColor: 'transparent', color: branding.amountTextColor}}
                                         placeholder="0.00"
                                         onChange={(e) => {
                                             const value = utils.formatAmountWithoutComma(e.target.value)
@@ -460,14 +469,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
                             <div>
                                 {tokenPrice ? (
-                                    <div>
-                                        <img
-                                            onClick={() => {
+                                    <div className="flex w-full items-center justify-center absolute">
+                                        <svg onClick={() => {
                                                 setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
                                             }}
-                                            src={switch_svg.src}
                                             className="h-4 cursor-pointer"
-                                        />
+                                            width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M10 6L7 3M7 3L4 6M7 3V17M14 18L17 21M17 21L20 18M17 21V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
                                         <label className="ml-4 w-max pr-2 text-sm font-bold">
                                             {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
                                                 ? inputDenomination == 'USD'
@@ -480,12 +489,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         </label>
                                     </div>
                                 ) : (
-                                    <div className="h-5"></div>
+                                    null
                                 )}
                             </div>
                         </div>
                         <div
                             className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            style={{borderColor: branding.boxTextColor, backgroundColor: branding.boxBackgroundColor, color: branding.boxTextColor}}
                             onClick={() => {
                                 if (isConnected && chainsToShow.length <= 0) {
                                     setErrorState({
@@ -547,6 +557,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
                             className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            style={{borderColor: branding.boxTextColor, backgroundColor: branding.boxBackgroundColor, color: branding.boxTextColor}}
                             onClick={() => {
                                 if (isConnected && chainsToShow.length <= 0) {
                                     setErrorState({
@@ -604,7 +615,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-col justify-end gap-0 pt-2">
+                        <div className="flex flex-col justify-end gap-0">
                             <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
                                 <label className={'flex h-full items-center font-bold ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
@@ -612,9 +623,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
                                 <input
                                     className={
-                                        'no-spin block w-full appearance-none border-none p-0 font-black  outline-none placeholder:font-black placeholder:text-black ' +
-                                        textFontSize
+                                        'text-center caret-current no-spin block w-full appearance-none border-none p-0 font-black  outline-none placeholder:font-black ' +
+                                        textFontSize + ' ' +
+                                        branding.placeholderTheme
                                     }
+                                    style={{backgroundColor: 'transparent', color: branding.amountTextColor}}
                                     placeholder="0.00"
                                     inputMode="decimal"
                                     step="any"
@@ -634,14 +647,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             </div>
 
                             {tokenPrice ? (
-                                <div className="flex w-full items-center justify-center">
-                                    <img
-                                        onClick={() => {
+                                <div className="flex w-full items-center justify-center absolute">
+                                    <svg onClick={() => {
                                             setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
                                         }}
-                                        src={switch_svg.src}
                                         className="h-4 cursor-pointer"
-                                    />
+                                        width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M10 6L7 3M7 3L4 6M7 3V17M14 18L17 21M17 21L20 18M17 21V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    </svg>
                                     <label className="ml-4 w-max pr-2 text-sm font-bold">
                                         {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
                                             ? inputDenomination == 'USD'
@@ -653,7 +666,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                     </label>
                                 </div>
                             ) : (
-                                <div className="h-5"></div>
+                                null
                             )}
                         </div>
                     </div>
@@ -669,6 +682,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             type={isConnected ? 'submit' : 'button'}
                             className="block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                             id="cta-btn"
+                            style={{backgroundColor: branding.buttonBackgroundColor, color: branding.buttonTextColor, borderColor: branding.buttonTextColor}}
                             onClick={!isConnected ? open : undefined}
                             disabled={isLoading ? true : false}
                         >
@@ -683,7 +697,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 </div>
             </form>
 
-            <global_components.PeanutMan type="presenting" />
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
@@ -898,6 +911,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     </div>
                 </Dialog>
             </Transition.Root>
-        </>
+        </div>
     )
 }
