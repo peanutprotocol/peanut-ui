@@ -833,7 +833,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
-                                                      key={token.symbol}
+                                                      key={token.address}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (modalState.token == token.symbol
@@ -870,7 +870,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                               ))
                                             : tokenList.map((token) => (
                                                   <div
-                                                      key={token.symbol}
+                                                      key={token.address}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (modalState.token == token.symbol
