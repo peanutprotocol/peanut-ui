@@ -9,6 +9,7 @@ import * as store from '@/store/store'
 import * as global_components from '@/components/global'
 import { useSearchParams } from 'next/navigation'
 import {useBranding} from "../hooks";
+import peanut48 from '@/assets/peanut-48.png'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId }: _consts.ISendScreenProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -27,9 +28,12 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
     return (
         <>
             <div className="flex w-full flex-col items-center text-center" style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
-                <h2 className="title-font text-5xl font-black text-black" style={{color: branding.titleTextColor}}>Yay!</h2>
-                <p className="mt-2 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
-                <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-2 text-white" style={{borderColor: branding.boxTextColor, backgroundColor: branding.boxBackgroundColor}}>
+                <div style={{fontSize: 10}} className="text-xs p-0.5 text-center">
+                    <span>Powered by</span><img className="w-3 mx-1 align-middle" src={peanut48.src} alt="logo"/><span>Peanut</span>
+                </div>
+                <h2 className="hidden widget:block title-font text-5xl font-black text-black" style={{color: branding.titleTextColor}}>Yay!</h2>
+                <p className="mt-1 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
+                <div className="hidden widget:flex brutalborder relative mt-4 flex w-4/5 items-center bg-black py-2 text-white" style={{borderColor: branding.boxTextColor, backgroundColor: branding.boxBackgroundColor}}>
                     <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white border-1" style={{backgroundColor: branding.boxBackgroundColor, color: branding.boxTextColor}}>
                         {claimLink}
                     </div>
@@ -54,9 +58,48 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                         )}
                     </div>
                 </div>
+                <div className="block widget:hidden">
+                    <div className="h-42 w-42 mx-auto mt-1 p-2 bg-white">
+                        <div
+                            style={{
+                                height: 'auto',
+                                margin: '0 auto',
+                                maxWidth: 192,
+                                width: '100%',
+                            }}
+                        >
+                            <QRCode
+                                size={120}
+                                style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
+                                value={claimLink}
+                                viewBox={`0 0 256 256`}
+                            />
+                        </div>
+                    </div>
+                    <p className="tx-sm widget:hidden" onClick={() => {
+                            navigator.clipboard.writeText(claimLink)
+                            setIsCopied(true)
+                        }}>
+                        {isCopied ? (
+                            <span>copied!</span>
+                        ) : (
+                            <label className="cursor-pointer underline">copy link</label>
+                        )}
+                    </p>
+                    <p className="tx-sm hidden widget:inline-block">
+                        <a
+                            href={explorerUrlWithTx ?? ''}
+                            className="cursor-pointer text-center text-sm underline "
+                            style={{color: branding.textColor}}
+                        >
+                            Your transaction hash
+                        </a>
+                    </p>
+                </div>
+
 
                 <div
-                    className="mt-2 flex cursor-pointer items-center justify-center"
+                    className="hidden widget:flex mt-2 flex cursor-pointer items-center justify-center"
                     onClick={() => {
                         setIsDropdownOpen(!isDropdownOpen)
                     }}
@@ -103,9 +146,9 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                     </div>
                 )}
 
-                <p className="text-m mt-4" id="to_address-description">
+                <p className="text-m mt-2 widget:mt-4" id="to_address-description">
                     {' '}
-                    Want to do it again? click{' '}
+                    Want to do it again? <br/>
                     <a
                         onClick={() => {
                             onCustomScreen('INITIAL')
@@ -113,23 +156,8 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                         target="_blank"
                         className="cursor-pointer underline"
                     >
-                        here
-                    </a>{' '}
-                    to go back home!
-                </p>
-
-                <p className="mt-4 text-xs" id="to_address-description">
-                    {' '}
-                    Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
-                    <a
-                        href="https://discord.gg/BX9Ak7AW28"
-                        target="_blank"
-                        className="cursor-pointer underline"
-                        style={{color: branding.textColor}}
-                    >
-                        Discord
+                        click here
                     </a>
-                    !
                 </p>
             </div>
 
