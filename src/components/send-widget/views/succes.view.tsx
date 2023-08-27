@@ -32,7 +32,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                     <span>Powered by</span><img className="w-3 mx-1 align-middle" src={peanut48.src} alt="logo"/><span>Peanut</span>
                 </div>
                 {/*<h2 className="hidden sm:block title-font text-5xl font-black text-black my-4" style={{color: branding.titleTextColor}}>Yay!</h2>*/}
-                <p className="mt-1 widget:mt-3 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
+                <p className="mt-1 px-2 widget:my-4 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
 
                 {!isDropdownOpen ? (
                     <>
@@ -134,7 +134,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                     </p>
                 </div>
 
-                <p className="text-m mt-2 widget:mt-4" id="to_address-description">
+                <p className="text-m mt-2 widget:mt-6" id="to_address-description">
                     {' '}
                     Want to do it again? <br/>
                     <a

@@ -437,7 +437,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             <div style={{fontSize: 10}} className="text-xs p-0.5 text-center">
                 <span>Powered by</span><img className="w-3 mx-1 align-middle" src={peanut48.src} alt="logo"/><span>Peanut</span>
             </div>
-            <div className="mb-1 mt-0.5 flex w-full  flex-col gap-5 text-center">
+            <div className="mb-1 mt-0.5 flex w-full  widget:my-4 flex-col gap-5 text-center">
                 <h2 className="title-font bold m-0 text-2xl lg:text-4xl" style={{color: branding.titleTextColor}}>
                     Send crypto with a link
                     <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
@@ -445,7 +445,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 widget:gap-5">
-                    <div className="hidden flex-row items-center justify-center p-2 widget:flex sm:w-3/4">
+                    <div className="hidden flex-row items-center justify-center p-2 widget:my-6 widget:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 ">
                             <div className="flex h-16 items-center justify-center">
                                 <label className={'flex h-full items-center font-bold mr-1 ' + textFontSize}>
@@ -685,7 +685,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         className={
                             errorState.showError
                                 ? 'mx-auto mb-0 flex w-full flex-col items-center gap-4 '
-                                : 'mx-auto mb-14 flex w-full flex-col items-center '
+                                : 'mx-auto mb-4 flex w-full flex-col items-center '
                         }
                     >
                         <button
