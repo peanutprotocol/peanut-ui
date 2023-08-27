@@ -24,7 +24,7 @@ export function SendWidget() {
     }
 
     return (
-        <div>
+        <div className="h-full">
             {
                 createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
                     onNextScreen: handleOnNext,

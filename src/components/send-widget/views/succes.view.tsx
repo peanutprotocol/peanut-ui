@@ -27,12 +27,12 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
 
     return (
         <>
-            <div className="flex w-full flex-col items-center text-center" style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
+            <div className="flex w-full h-full flex-col items-center text-center" style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
                 <div style={{fontSize: 10}} className="text-xs p-0.5 text-center">
                     <span>Powered by</span><img className="w-3 mx-1 align-middle" src={peanut48.src} alt="logo"/><span>Peanut</span>
                 </div>
                 {/*<h2 className="hidden sm:block title-font text-5xl font-black text-black my-4" style={{color: branding.titleTextColor}}>Yay!</h2>*/}
-                <p className="mt-1 px-2 widget:my-4 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
+                <p className="mt-1 px-2 mb-0 widget:my-4 self-center text-lg">Send this link to your friend so they can claim their funds.</p>
 
                 {!isDropdownOpen ? (
                     <>

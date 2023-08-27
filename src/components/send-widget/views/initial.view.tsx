@@ -433,7 +433,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
 
     return (
-        <div style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
+        <div className="h-full" style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
             <div style={{fontSize: 10}} className="text-xs p-0.5 text-center">
                 <span>Powered by</span><img className="w-3 mx-1 align-middle" src={peanut48.src} alt="logo"/><span>Peanut</span>
             </div>

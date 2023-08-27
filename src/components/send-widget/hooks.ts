@@ -1,14 +1,14 @@
 export function useBranding(searchParams) {
 
     // Defaults
-    const TEXT_COLOR = "red"
-    const BG_COLOR = "#000"
-    const TITLE_TEXT_COLOR = "purple"
-    const AMOUNT_TEXT_COLOR = "orange"
-    const BOX_TEXT_COLOR = "red"
-    const BOX_BACKGROUND_COLOR = "blue"
-    const BUTTON_BACKGROUND_COLOR = "yellow"
-    const BUTTON_TEXT_COLOR = "green"
+    const TEXT_COLOR = "#000"
+    const BG_COLOR = "#fff"
+    const TITLE_TEXT_COLOR = "#000"
+    const AMOUNT_TEXT_COLOR = "#000"
+    const BOX_TEXT_COLOR = "#000"
+    const BOX_BACKGROUND_COLOR = "#fff"
+    const BUTTON_BACKGROUND_COLOR = "#fff"
+    const BUTTON_TEXT_COLOR = "#000"
     const AMOUNT_PLACEHOLDER_THEME = "light" // light or dark
 
     function getColor(searchKey, defaultValue) {
