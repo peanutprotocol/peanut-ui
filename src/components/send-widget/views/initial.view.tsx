@@ -11,6 +11,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { MediaRenderer } from '@thirdweb-dev/react'
 import dropdown_svg from '@/assets/dropdown.svg'
+import peanut48 from '@/assets/peanut-48.png'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -425,17 +426,26 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [formwatch.token])
 
+    const isButtonDefaultState = !isLoading && isConnected;
+    const buttonDefaultStateTextClass = 'text-2xl';
+    const buttonCustomStateTextClass = 'text-base';
+    const buttonTextClass = isButtonDefaultState ? buttonDefaultStateTextClass : buttonCustomStateTextClass
+
+
     return (
         <div style={{backgroundColor: branding.backgroundColor, color: branding.textColor}}>
-            <div className="mb-3 pt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
+            <div style={{fontSize: 10}} className="text-xs p-0.5 text-center">
+                <span>Powered by</span><img className="w-3 mx-1 align-middle" src={peanut48.src} alt="logo"/><span>Peanut</span>
+            </div>
+            <div className="mb-1 mt-0.5 flex w-full  flex-col gap-5 text-center">
                 <h2 className="title-font bold m-0 text-2xl lg:text-4xl" style={{color: branding.titleTextColor}}>
                     Send crypto with a link
                     <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
                 </h2>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
-                <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
-                    <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
+                <div className="flex w-full flex-col items-center gap-0 widget:gap-5">
+                    <div className="hidden flex-row items-center justify-center p-2 widget:flex sm:w-3/4">
                         <div className="flex flex-col justify-end gap-0 ">
                             <div className="flex h-16 items-center justify-center">
                                 <label className={'flex h-full items-center font-bold mr-1 ' + textFontSize}>
@@ -534,7 +544,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                             {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                         </label>{' '}
                                         <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                            {formwatch.token}
+                                            {formwatch.token || 'select token'}
                                         </label>
                                     </div>
                                 ) : (
@@ -548,15 +558,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
                                     <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                        {formwatch.token}
+                                        {formwatch.token || 'select token'}
                                     </label>
                                 </div>
                             )}
                         </div>
                     </div>
-                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
+                    <div className="flex w-full flex-col items-center justify-center p-0.5 widget:hidden ">
                         <div
-                            className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            className="w-[calc(100%-1rem)] flex cursor-pointer flex-col gap-2 border-2 py-1 border-solid mx-2"
                             style={{borderColor: branding.boxTextColor, backgroundColor: branding.boxBackgroundColor, color: branding.boxTextColor}}
                             onClick={() => {
                                 if (isConnected && chainsToShow.length <= 0) {
@@ -596,7 +606,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                             {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                         </label>{' '}
                                         <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                            {formwatch.token}
+                                            {formwatch.token || 'select token'}
                                         </label>
                                     </div>
                                 ) : (
@@ -610,13 +620,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
                                     <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                        {formwatch.token}
+                                        {formwatch.token || 'select token'}
                                     </label>
                                 </div>
                             )}
                         </div>
                         <div className="flex flex-col justify-end gap-0">
-                            <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
+                            <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 py-3 ">
                                 <label className={'flex h-full items-center font-bold ' + textFontSize}>
                                     {inputDenomination == 'USD' ? '$' : ' '}
                                 </label>
@@ -674,14 +684,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     <div
                         className={
                             errorState.showError
-                                ? 'mx-auto my-8 mb-0 flex w-full flex-col items-center gap-10 '
-                                : 'mx-auto my-8 mb-14 flex w-full flex-col items-center '
+                                ? 'mx-auto mb-0 flex w-full flex-col items-center gap-4 '
+                                : 'mx-auto mb-14 flex w-full flex-col items-center '
                         }
                     >
                         <button
                             type={isConnected ? 'submit' : 'button'}
-                            className="block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
-                            id="cta-btn"
+                            className={`w-[calc(100%-1rem)] block cursor-pointer bg-white !p-1 !py-3  ${buttonTextClass} font-black widget:w-2/5 lg:w-1/2 !border-2 !border-solid mx-2`}
+                            id="cta-btn-widget"
                             style={{backgroundColor: branding.buttonBackgroundColor, color: branding.buttonTextColor, borderColor: branding.buttonTextColor}}
                             onClick={!isConnected ? open : undefined}
                             disabled={isLoading ? true : false}

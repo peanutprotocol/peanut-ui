@@ -126,6 +126,28 @@ body {
   2rem 2rem 0 0 #90A8ED, */
 }
 
+#cta-btn-widget {
+    border: 5px solid black;
+    padding: 1rem;
+    transition:
+        box-shadow 1s ease-in-out,
+        border-radius 1s ease-in-out;
+    box-shadow: 0.5rem 0.5rem 0 0px #000;
+    color: #000;
+    font-weight: 900;
+    left: -2.5px;
+}
+
+#cta-btn-widget:hover {
+    transform: ease-in-out 2s;
+    border-radius: 2rem;
+    box-shadow:
+        0 0 0 0.25rem #ff90e8,
+        0 0 0 0.5rem #23a094,
+        0 0 0 0.75rem #f1f333,
+        0 0 0 1rem #90a8ed;
+}
+
 #cta-btn:active {
     animation: disco 0.5s infinite;
 }
