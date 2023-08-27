@@ -25,10 +25,10 @@ import { isMobile } from 'react-device-detect'
 import { useSearchParams } from 'next/navigation'
 import { useBranding } from "../hooks";
 
-export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
+export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId, branding }: _consts.ISendScreenProps) {
 
     const searchParams = useSearchParams();
-    const branding = useBranding(searchParams);
+    branding = branding ? branding : useBranding(searchParams);
 
     //hooks
     const { open } = useWeb3Modal()

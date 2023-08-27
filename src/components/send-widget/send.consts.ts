@@ -24,6 +24,19 @@ export interface ISendScreenState {
     idx: number
 }
 
+export interface IBranding {
+    textColor: string,
+    backgroundColor: string,
+    titleTextColor: string,
+    amountTextColor: string,
+    boxBackgroundColor: string,
+    boxTextColor: string,
+    buttonBackgroundColor: string,
+    buttonTextColor: string,
+    placeholderTheme: string,
+
+}
+
 export interface ISendScreenProps {
     onNextScreen: () => void
     onCustomScreen: (screen: SendScreens) => void
@@ -32,7 +45,8 @@ export interface ISendScreenProps {
     txReceipt: any
     setTxReceipt: (txReceipt: string) => void
     chainId: number
-    setChainId: (chainId: number) => void
+    setChainId: (chainId: number) => void,
+    branding?: IBranding,
 }
 
 export const INIT_VIEW: ISendScreenState = {

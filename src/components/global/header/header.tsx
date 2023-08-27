@@ -31,6 +31,12 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     >
                         <span className="">about</span>
                     </Link>
+                    <Link
+                        className=" hidden h-full cursor-pointer items-center p-1 px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black sm:flex lg:px-8"
+                        href={'/customize-widget'}
+                    >
+                        <span className="">widget</span>
+                    </Link>
                     <div
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                         onClick={() => {
