@@ -113,7 +113,7 @@ export function WidgetCustomizer() {
                     <ChromePicker color={branding[colorPickerKey]} onChange={handleChange}/>
                 </div>
             </div>
-            <div className="flex flex-col w-full justify-center align-center mt-6">
+            <div className="flex flex-col w-full items-center justify-center align-center mt-6">
                 <div>Copy-paste HTML code below:</div>
                 <textarea onChange="" className="mt-2 w-1/2 h-48" value={`<iframe width="200" height="380" src="${generateSrc()}" />`}>
                 </textarea>
