@@ -81,7 +81,8 @@ export function Claim({ link }: { link: string }) {
 
         try {
             console.log('getting link details')
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
+            // const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(null, pageUrl, true)
             console.log('linkDetails', linkDetails)
 
             if (Number(linkDetails.tokenAmount) <= 0) {
@@ -91,6 +92,7 @@ export function Claim({ link }: { link: string }) {
                 setLinkState('CLAIM')
             }
         } catch (error) {
+            console.log('Error: ', error)
             setLinkState('NOT_FOUND')
         }
     }
