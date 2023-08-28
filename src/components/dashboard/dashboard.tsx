@@ -35,47 +35,57 @@ export function Dashboard() {
     const [copiedLink, setCopiedLink] = useState<string[]>()
 
     function publicClientToProvider(publicClient: PublicClient) {
-        const { chain, transport } = publicClient
-        const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-        }
+        try {
+            const { chain, transport } = publicClient
+            const network = {
+                chainId: chain.id,
+                name: chain.name,
+                ensAddress: chain.contracts?.ensRegistry?.address,
+            }
 
-        if (transport.type === 'fallback')
-            return new providers.FallbackProvider(
-                (transport.transports as ReturnType<HttpTransport>[]).map(
-                    ({ value }) => new providers.JsonRpcProvider(value?.url, network)
-                )
-            )
-        return new providers.JsonRpcProvider(transport.url, network)
+            if (transport.type === 'fallback') {
+                return null
+            }
+            return new providers.JsonRpcProvider(transport.url, network)
+        } catch (error) {}
     }
 
     function getEthersProvider({ chainId }: { chainId?: number } = {}) {
-        const publicClient = getPublicClient({ chainId })
-        return publicClientToProvider(publicClient)
+        try {
+            const publicClient = getPublicClient({ chainId })
+            return publicClientToProvider(publicClient)
+        } catch (error) {
+            console.log(error)
+        }
     }
 
     const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
-        localStorageData.forEach(async (item) => {
-            const provider = getEthersProvider({ chainId: Number(Number(item.link.match(/c=(\d+)/)?.[1])) })
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, item.link, true)
-            const x: IDashboardItemProps = {
-                hash: item.hash,
-                chainId: Number(item.link.match(/c=(\d+)/)?.[1]),
-                amount: linkDetails.tokenAmount,
-                token: linkDetails.tokenSymbol,
-                date:
-                    linkDetails.depositDate == null
-                        ? 'Unavailable'
-                        : new Date(linkDetails.depositDate).toLocaleString(),
-                claimed: Number(linkDetails.tokenAmount) <= 0,
-                link: item.link,
-                copied: false,
-            }
+        try {
+            localStorageData.forEach(async (item) => {
+                const provider = getEthersProvider({ chainId: Number(Number(item.link.match(/c=(\d+)/)?.[1])) })
+                peanut
+                    .getLinkDetails(provider, item.link, true)
+                    .then((res: any) => {
+                        const x: IDashboardItemProps = {
+                            hash: item.idx ? item.hash + item.idx : item.hash,
+                            chainId: Number(item.link.match(/c=(\d+)/)?.[1]),
+                            amount: res.tokenAmount,
+                            token: res.tokenSymbol,
+                            date: res.depositDate == null ? 'Unavailable' : new Date(res.depositDate).toLocaleString(),
+                            claimed: Number(res.tokenAmount) <= 0,
+                            link: item.link,
+                            copied: false,
+                        }
 
-            setDashboardData((prev) => [...prev, x])
-        })
+                        setDashboardData((prev) => [...prev, x])
+                    })
+                    .catch((error: any) => {
+                        console.error(error)
+                    })
+            })
+        } catch (error) {
+            console.log(error)
+        }
 
         setIsLoading(false)
     }
@@ -135,7 +145,7 @@ export function Dashboard() {
                 {isConnected ? (
                     localStorageData.length > 0 ? (
                         isMobile ? (
-                            <table className="w-full min-w-full table-auto border-spacing-y-4">
+                            <table className="w-full min-w-full table-auto border-spacing-y-4 ">
                                 <thead className="bg-black text-white">
                                     <tr>
                                         <th scope="col" className="px-1 py-3.5 pl-3 text-left font-semibold">
@@ -149,7 +159,7 @@ export function Dashboard() {
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody>
+                                <tbody className=" flex max-h-[240px] flex-col items-center justify-between overflow-y-scroll ">
                                     {dashboardData.map((item) => (
                                         <tr key={Math.random()}>
                                             <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
@@ -177,15 +187,10 @@ export function Dashboard() {
                                                     fill="none"
                                                     viewBox="0 0 24 24"
                                                     x-show="!linkCopied"
-                                                    stroke-width="1.5"
                                                     stroke="currentColor"
                                                     className="inline h-5 w-5"
                                                 >
-                                                    <path
-                                                        stroke-linecap="round"
-                                                        stroke-linejoin="round"
-                                                        d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75"
-                                                    />
+                                                    <path d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 01-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 011.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 00-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 01-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 00-3.375-3.375h-1.5a1.125 1.125 0 01-1.125-1.125v-1.5a3.375 3.375 0 00-3.375-3.375H9.75" />
                                                 </svg>
                                             </td>
                                         </tr>
@@ -193,7 +198,7 @@ export function Dashboard() {
                                 </tbody>
                             </table>
                         ) : (
-                            <table className=" w-full min-w-full table-auto border-spacing-y-4  ">
+                            <table className="w-full border-spacing-y-4">
                                 <thead className="bg-black text-white ">
                                     <tr>
                                         <th scope="col" className="px-1 py-3.5 pl-3 text-left font-semibold ">
@@ -220,7 +225,7 @@ export function Dashboard() {
                                             key={item.hash ?? Math.random()}
                                             onClick={() => {
                                                 navigator.clipboard.writeText(item.link)
-                                                setCopiedLink((prev) => [...(prev ?? []), item.hash])
+                                                setCopiedLink([item.link])
                                             }}
                                         >
                                             <td className="brutalborder-bottom  h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
@@ -246,10 +251,10 @@ export function Dashboard() {
                                                 className="brutalborder-bottom h-8 w-[64px] cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1"
                                                 onClick={() => {
                                                     navigator.clipboard.writeText(item.link)
-                                                    setCopiedLink((prev) => [...(prev ?? []), item.hash])
+                                                    setCopiedLink([item.link])
                                                 }}
                                             >
-                                                {copiedLink?.includes(item.hash) ? 'Copied' : 'Copy'}
+                                                {copiedLink?.includes(item.link) ? 'Copied' : 'Copy'}
                                             </td>
                                         </tr>
                                     ))}

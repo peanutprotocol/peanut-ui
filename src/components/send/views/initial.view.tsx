@@ -249,8 +249,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     sendFormData.bulkAmount &&
                     Number(tokenAmount) * sendFormData.bulkAmount
 
-                console.log(tokenAmount2)
-
                 if (checkForm(sendFormData).succes === 'false') {
                     console.log()
                     return
@@ -322,18 +320,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         //@ts-ignore
                         utils.saveToLocalStorage(address + ' - ' + txReceipt.transactionHash + ' - ' + index, link)
                     })
-                    // setClaimLink([
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=73&p=pCPss4a0WiRgbiDo&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=74&p=2ldLR8WHSR4ivkPs&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=75&p=o5BmA0Xoe5AKzXm1&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=76&p=5825iSMUmio1SMSs&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=77&p=xMhU49Y4YCFEHDAZ&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=78&p=hfn0ziQZtgiIj2bI&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=79&p=ngfZ7Npk497O9Ood&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=80&p=Z5q412r2w7POlzW1&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=81&p=4YF9JCQyLahbw8rA&t=ui',
-                    //     'http://localhost:3000/claim#?c=5&v=v4&i=82&p=ZbOBBU3mS44E8pVV&t=ui',
-                    // ])
+
                     setClaimLink(links)
                     setTxReceipt(txReceipt)
                     setChainId(sendFormData.chainId)
@@ -358,10 +345,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     onNextScreen()
                 }
             } catch (error: any) {
+                console.error(error)
                 if (error.toString().includes('insufficient funds')) {
                     setErrorState({
                         showError: true,
                         errorMessage: "You don't have enough funds",
+                    })
+                } else if (error.toString().includes('not deployed on chain')) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Bulk is not able on this chain, please try another chain',
                     })
                 } else {
                     setErrorState({

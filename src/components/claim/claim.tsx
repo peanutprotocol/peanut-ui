@@ -41,12 +41,9 @@ export function Claim({ link }: { link: string }) {
             ensAddress: chain.contracts?.ensRegistry?.address,
         }
 
-        if (transport.type === 'fallback')
-            return new providers.FallbackProvider(
-                (transport.transports as ReturnType<HttpTransport>[]).map(
-                    ({ value }) => new providers.JsonRpcProvider(value?.url, network)
-                )
-            )
+        if (transport.type === 'fallback') {
+            return null
+        }
         return new providers.JsonRpcProvider(transport.url, network)
     }
 
@@ -81,8 +78,7 @@ export function Claim({ link }: { link: string }) {
 
         try {
             console.log('getting link details')
-            // const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(null, pageUrl, true)
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
             console.log('linkDetails', linkDetails)
 
             if (Number(linkDetails.tokenAmount) <= 0) {
