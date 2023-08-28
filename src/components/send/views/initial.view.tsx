@@ -741,6 +741,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         className="flex cursor-pointer items-center justify-center "
                         onClick={() => {
                             setAdvancedDropdownOpen(!advancedDropdownOpen)
+                            if (advancedDropdownOpen) {
+                                sendForm.setValue('bulkAmount', 0)
+                            }
                         }}
                     >
                         <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
