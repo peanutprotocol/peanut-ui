@@ -69,20 +69,38 @@ export function Store({ children }: { children: React.ReactNode }) {
             const userBalancesResponse = await socketTech.Balances.getBalances({
                 userAddress: address,
             })
-            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result.map((balances) => {
-                return {
-                    chainId: balances.chainId,
-                    symbol: balances.symbol,
-                    name: balances.name,
-                    address: balances.address,
-                    decimals: balances.decimals,
-                    amount: Number(balances.amount),
-                    price: 0,
-                    currency: balances.currency,
-                    //@ts-ignore
-                    logoURI: balances.logoURI,
-                }
-            })
+
+            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result
+                .map((balances) => {
+                    return {
+                        chainId: balances.chainId,
+                        symbol: balances.symbol,
+                        name: balances.name,
+                        address: balances.address,
+                        decimals: balances.decimals,
+                        amount: Number(balances.amount),
+                        price: 0,
+                        currency: balances.currency,
+                        //@ts-ignore
+                        logoURI: balances.logoURI,
+                    }
+                })
+                .sort((a: interfaces.IUserBalance, b: interfaces.IUserBalance) => {
+                    if (a.chainId === b.chainId) {
+                        // If the address is the native currency, move it to the top
+                        if (a.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return -1
+                        if (b.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return 1
+
+                        // If 'chainId' is the same, sort by 'amount'
+                        return b.amount - a.amount
+                    } else {
+                        // Else sort by 'chainId'
+                        return a.chainId - b.chainId
+                    }
+                })
+
+            2
+
             if (userBalancesResponse.success) {
                 setUserBalances((prev) => {
                     return [...prev, ...updatedBalances]
