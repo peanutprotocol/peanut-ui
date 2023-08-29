@@ -440,37 +440,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         })
     }, [address])
 
-    useEffect(() => {
-        console.log('chainstoshow useEffect')
-        if (chainsToShow.length > 0 && !formHasBeenTouched) {
-            sendForm.setValue('chainId', chainsToShow[0].chainId)
-            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
-        }
-    }, [chainsToShow])
-
-    //update the chain to the current chain when the user changes the chain
-    useEffect(() => {
-        console.log('currentchain useEffect')
-        if (currentChain && !formHasBeenTouched && chainDetails.some((chain) => chain.chainId == currentChain.id)) {
-            sendForm.setValue(
-                'token',
-                chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
-            )
-            sendForm.setValue('chainId', currentChain.id)
-        }
-    }, [currentChain])
-
-    //update the token to the first available token when the user changes the chain
-    useEffect(() => {
-        console.log('token useEffect')
-        if (tokenList && !isTokenSelectorOpen && changeToken) {
-            sendForm.setValue('token', tokenList.find((token) => token.chainId == formwatch.chainId)?.symbol ?? '')
-        }
-    }, [tokenList])
-
     //update the signer when the user changes the chain
     useEffect(() => {
-        console.log('formwatch.chainid isconnected useEffect')
+        console.log('chainId changed')
         if (formwatch.chainId != prevChainId) {
             setPrevChainId(formwatch.chainId)
             setTimeout(() => {
@@ -481,12 +453,34 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
-        console.log('token useEffect')
         if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
+            console.log('fetching token price for token ' + tokenAddress)
+
             if (tokenAddress) fetchTokenPrice(tokenAddress, formwatch.chainId)
         }
     }, [formwatch.token])
+
+    useEffect(() => {
+        //update the chain and token when the user changes the chain in the wallet
+        if (
+            currentChain &&
+            currentChain?.id != formwatch.chainId &&
+            !formHasBeenTouched &&
+            chainDetails.some((chain) => chain.chainId == currentChain.id)
+        ) {
+            console.log('switching chain bc of currentchain')
+            sendForm.setValue(
+                'token',
+                chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
+            )
+            sendForm.setValue('chainId', currentChain.id)
+        } else if (chainsToShow.length > 0 && !formHasBeenTouched) {
+            console.log('chainstoshow useEffect')
+            sendForm.setValue('chainId', chainsToShow[0].chainId)
+            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
+        }
+    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
     return (
         <>
@@ -814,11 +808,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         >
                             {isLoading
                                 ? loadingStates
+                                : !isConnected
+                                ? 'Connect Wallet'
                                 : advancedDropdownOpen
                                 ? 'Bulk Send'
-                                : isConnected
-                                ? 'Send'
-                                : 'Connect Wallet'}
+                                : 'Send'}
                         </button>
                         {errorState.showError && (
                             <div className="text-center">
