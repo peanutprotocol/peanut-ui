@@ -141,7 +141,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             return { succes: 'false' }
         }
 
-        if (!Number.isInteger(sendFormData.bulkAmount)) {
+        if (advancedDropdownOpen && !Number.isInteger(sendFormData.bulkAmount)) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please define a non-decimal number of links',
@@ -288,6 +288,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 showError: true,
                                 errorMessage: 'Something went wrong while switching networks',
                             })
+                            setLoadingStates('idle')
                             return
                         })
                     setLoadingStates('switching network...')
