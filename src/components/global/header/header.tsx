@@ -8,6 +8,7 @@ import * as utils from '@/utils'
 
 import peanut_logo from '@/assets/peanutman-logo.svg'
 import smiley from '@/assets/smiley.svg'
+import { useRouter } from 'next/navigation'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
@@ -18,13 +19,15 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
         <div>
             <nav className="relative my-2 flex max-h-20 flex-wrap justify-between bg-black">
                 <div className="flex flex-grow items-center">
-                    <Link
+                    <div
                         className="ml-1 flex h-full cursor-pointer items-center p-1 py-2 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
-                        href="/"
+                        onClick={() => {
+                            window.location.reload()
+                        }}
                     >
                         <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
                         <span className="hidden lg:inline lg:px-6">peanut protocol</span>
-                    </Link>
+                    </div>
 
                     <div
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
