@@ -25,12 +25,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
                         <span className="hidden lg:inline lg:px-6">peanut protocol</span>
                     </Link>
-                    <Link
-                        className=" hidden h-full cursor-pointer items-center p-1 px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black sm:flex lg:px-8"
-                        href={'/about'}
-                    >
-                        <span className="">about</span>
-                    </Link>
+
                     <div
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                         onClick={() => {

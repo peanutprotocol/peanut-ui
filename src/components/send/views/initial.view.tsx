@@ -29,11 +29,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const { chain: currentChain } = useNetwork()
 
     //local states
-    const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(undefined)
     // const [tokenList, setTokenList] = useState<_consts.ITokenListItem[]>([])
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
     const [formHasBeenTouched, setFormHasBeenTouched] = useState(false)
-    const [prevChainId, setPrevChainId] = useState<number | undefined>(undefined)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
     const [enableConfirmation, setEnableConfirmation] = useState(false)
     const [textFontSize, setTextFontSize] = useState('text-6xl')
@@ -45,8 +43,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('TOKEN')
     const [unfoldChains, setUnfoldChains] = useState(false)
-    const [selectorIsLoading, setSelectorIsLoading] = useState(false)
-    const [changeToken, setChangeToken] = useState(true)
     const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
 
     //global states
@@ -54,10 +50,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [supportedChainsSocketTech] = useAtom(store.supportedChainsSocketTechAtom)
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
-
-    //memo
-    const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
-
     hooks.useConfirmRefresh(enableConfirmation)
 
     //form and modalform states
@@ -71,14 +63,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         },
     })
     const formwatch = sendForm.watch()
-    // const [modalState, setModalState] = useState<{
-    //     chainId: number
-    //     token: string
-    // }>({
-    //     chainId: formwatch.chainId,
-    //     token: formwatch.token,
-    // })
 
+    //memo
+    const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
         if (isConnected) {
             const filteredChains = chainDetails.filter(
@@ -148,7 +135,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         const walletClient = await getWalletClient({ chainId: Number(chainId) })
         if (walletClient) {
             const signer = _utils.walletClientToSigner(walletClient)
-            setSigner(signer)
+            return signer
         }
     }
 
@@ -173,7 +160,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }
 
-    const checkForm = (sendFormData: _consts.ISendFormData) => {
+    const checkForm = (sendFormData: _consts.ISendFormData, signer: providers.JsonRpcSigner | undefined) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
@@ -267,6 +254,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
+            const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
+
             if (isLoading) return
 
             //if the price is undefined, fetch the token price again
@@ -300,8 +289,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     sendFormData.bulkAmount &&
                     Number(tokenAmount) * sendFormData.bulkAmount
 
-                if (checkForm(sendFormData).succes === 'false') {
-                    console.log()
+                if (checkForm(sendFormData, signer).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -421,7 +409,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             }
         },
         [
-            signer,
             currentChain,
             userBalances,
             onNextScreen,
@@ -440,16 +427,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             errorMessage: '',
         })
     }, [address])
-
-    //update the signer when the user changes the chain
-    useEffect(() => {
-        if (formwatch.chainId != prevChainId) {
-            setPrevChainId(formwatch.chainId)
-            setTimeout(() => {
-                getWalletClientAndUpdateSigner({ chainId: formwatch.chainId })
-            }, 750)
-        }
-    }, [formwatch.chainId, isConnected])
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
@@ -564,27 +541,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 }
                             }}
                         >
-                            {selectorIsLoading ? (
-                                <div className="flex h-full w-full items-center justify-center">
-                                    <svg
-                                        aria-hidden="true"
-                                        className="inline h-6 w-6 animate-spin fill-white text-black dark:text-black"
-                                        viewBox="0 0 100 101"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                            fill="currentColor"
-                                        />
-                                        <path
-                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                            fill="currentFill"
-                                        />
-                                    </svg>
-                                    <span className="sr-only">Loading...</span>
-                                </div>
-                            ) : isConnected ? (
+                            {isConnected ? (
                                 chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
                                         <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
@@ -625,27 +582,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 }
                             }}
                         >
-                            {selectorIsLoading ? (
-                                <div className="flex h-full w-full items-center justify-center">
-                                    <svg
-                                        aria-hidden="true"
-                                        className="inline h-6 w-6 animate-spin fill-white text-black dark:text-black"
-                                        viewBox="0 0 100 101"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                    >
-                                        <path
-                                            d="M100 50.5908C100 78.2051 77.6142 100.591 50 100.591C22.3858 100.591 0 78.2051 0 50.5908C0 22.9766 22.3858 0.59082 50 0.59082C77.6142 0.59082 100 22.9766 100 50.5908ZM9.08144 50.5908C9.08144 73.1895 27.4013 91.5094 50 91.5094C72.5987 91.5094 90.9186 73.1895 90.9186 50.5908C90.9186 27.9921 72.5987 9.67226 50 9.67226C27.4013 9.67226 9.08144 27.9921 9.08144 50.5908Z"
-                                            fill="currentColor"
-                                        />
-                                        <path
-                                            d="M93.9676 39.0409C96.393 38.4038 97.8624 35.9116 97.0079 33.5539C95.2932 28.8227 92.871 24.3692 89.8167 20.348C85.8452 15.1192 80.8826 10.7238 75.2124 7.41289C69.5422 4.10194 63.2754 1.94025 56.7698 1.05124C51.7666 0.367541 46.6976 0.446843 41.7345 1.27873C39.2613 1.69328 37.813 4.19778 38.4501 6.62326C39.0873 9.04874 41.5694 10.4717 44.0505 10.1071C47.8511 9.54855 51.7191 9.52689 55.5402 10.0491C60.8642 10.7766 65.9928 12.5457 70.6331 15.2552C75.2735 17.9648 79.3347 21.5619 82.5849 25.841C84.9175 28.9121 86.7997 32.2913 88.1811 35.8758C89.083 38.2158 91.5421 39.6781 93.9676 39.0409Z"
-                                            fill="currentFill"
-                                        />
-                                    </svg>
-                                    <span className="sr-only">Loading...</span>
-                                </div>
-                            ) : isConnected ? (
+                            {isConnected ? (
                                 chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
                                         <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
@@ -751,7 +688,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                         <button
                                             type="button"
                                             className={
-                                                'relative inline-flex items-center border-none bg-white font-black'
+                                                'relative inline-flex items-center border-none bg-white font-black text-black'
                                             }
                                         >
                                             Links

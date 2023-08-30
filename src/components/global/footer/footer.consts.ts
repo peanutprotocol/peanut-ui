@@ -19,10 +19,7 @@ export const LINKS = [
         name: 'Docs',
         url: 'https://peanutprotocol.notion.site/Peanut-Protocol-5776ec3a97de4e5d972ae3f6ba7f4f04',
     },
-    {
-        name: 'About',
-        url: '/about',
-    },
+
     {
         name: 'Blog',
         url: '/blog',
