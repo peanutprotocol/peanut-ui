@@ -41,12 +41,9 @@ export function Claim({ link }: { link: string }) {
             ensAddress: chain.contracts?.ensRegistry?.address,
         }
 
-        if (transport.type === 'fallback')
-            return new providers.FallbackProvider(
-                (transport.transports as ReturnType<HttpTransport>[]).map(
-                    ({ value }) => new providers.JsonRpcProvider(value?.url, network)
-                )
-            )
+        if (transport.type === 'fallback') {
+            return null
+        }
         return new providers.JsonRpcProvider(transport.url, network)
     }
 
@@ -91,6 +88,7 @@ export function Claim({ link }: { link: string }) {
                 setLinkState('CLAIM')
             }
         } catch (error) {
+            console.log('Error: ', error)
             setLinkState('NOT_FOUND')
         }
     }

@@ -7,6 +7,7 @@ const nextConfig = {
         GA_KEY: process.env.GA_KEY,
     },
     productionBrowserSourceMaps: true,
+    swcMinify: true,
 }
 
 module.exports = nextConfig

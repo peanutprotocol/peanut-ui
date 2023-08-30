@@ -58,6 +58,7 @@ export interface IPeanutTokenDetail {
 export interface ILocalStorageItem {
     address: string
     hash: string
+    idx?: string
     link: string
 }
 
@@ -72,4 +73,5 @@ export interface ILinkDetails {
     tokenSymbol: string
     tokenName: string
     tokenAmount: string
+    depositDate: string
 }
