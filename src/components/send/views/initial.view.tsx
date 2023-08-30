@@ -442,7 +442,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //update the signer when the user changes the chain
     useEffect(() => {
-        console.log('chainId changed')
         if (formwatch.chainId != prevChainId) {
             setPrevChainId(formwatch.chainId)
             setTimeout(() => {
@@ -453,13 +452,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
-        if (formwatch.token && formwatch.chainId) {
+        if (!isConnected) setTokenPrice(undefined)
+        else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
-            console.log('fetching token price for token ' + tokenAddress)
-
-            if (tokenAddress) fetchTokenPrice(tokenAddress, formwatch.chainId)
+            // console.log('fetching token price for token ' + tokenAddress + ' on chain with id ' + formwatch.chainId + '...')
+            if (tokenAddress) {
+                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                    fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
+                } else {
+                    fetchTokenPrice(tokenAddress, formwatch.chainId)
+                }
+            }
         }
-    }, [formwatch.token])
+    }, [formwatch.token, formwatch.chainId, isConnected])
 
     useEffect(() => {
         //update the chain and token when the user changes the chain in the wallet
@@ -469,14 +474,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             !formHasBeenTouched &&
             chainDetails.some((chain) => chain.chainId == currentChain.id)
         ) {
-            console.log('switching chain bc of currentchain')
             sendForm.setValue(
                 'token',
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id)
         } else if (chainsToShow.length > 0 && !formHasBeenTouched) {
-            console.log('chainstoshow useEffect')
             sendForm.setValue('chainId', chainsToShow[0].chainId)
             sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
         }
@@ -645,7 +648,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                 chainsToShow.length > 0 ? (
                                     <div className="flex cursor-pointer flex-col items-center justify-center">
                                         <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                            {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                            {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                         </label>{' '}
                                         <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                             {formwatch.token}
@@ -659,7 +662,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             ) : (
                                 <div className="flex cursor-pointer flex-col items-center justify-center">
                                     <label className="self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                        {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                        {chainDetails.find((chain) => chain.chainId == formwatch.chainId)?.name}
                                     </label>{' '}
                                     <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                         {formwatch.token}
