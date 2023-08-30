@@ -54,8 +54,8 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                 )}
 
                 {typeof claimLink === 'string' ? (
-                    <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-2 text-white ">
-                        <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white">
+                    <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-1 text-white ">
+                        <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
                             {claimLink}
                         </div>
                         <div
@@ -80,13 +80,13 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                         </div>
                     </div>
                 ) : (
-                    <ul className="brutalscroll max-h-[240px] w-4/5 flex-col items-center justify-center overflow-x-hidden overflow-y-scroll p-2">
+                    <ul className="brutalscroll max-h-[360px] w-4/5 flex-col items-center justify-center overflow-x-hidden overflow-y-scroll p-2">
                         {claimLink.map((link, index) => (
                             <li
-                                className="brutalborder relative mb-4 flex w-full items-center bg-black py-2 text-white"
+                                className="brutalborder relative mb-4 flex w-full items-center bg-black py-1 text-white"
                                 key={index}
                             >
-                                <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg text-white">
+                                <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
                                     {link}
                                 </div>
 

@@ -520,7 +520,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                       formwatch.token
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
-                                                : '0.00 '}
+                                                : inputDenomination == 'USD'
+                                                ? '0.00'
+                                                : '$0.00'}
                                         </label>
                                     </div>
                                 ) : (
