@@ -268,7 +268,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             }
 
             try {
-                setLoadingStates('checking inputs...')
+                setLoadingStates('checking inputs')
                 setErrorState({
                     showError: false,
                     errorMessage: '',
@@ -317,7 +317,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         tokenDecimals
                 )
 
-                setLoadingStates('allow network switch...')
+                setLoadingStates('allow network switch')
                 //check if the user is on the correct chain
                 if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
                     await utils
@@ -330,14 +330,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             setLoadingStates('idle')
                             return
                         })
-                    setLoadingStates('switching network...')
+                    setLoadingStates('switching network')
                     await new Promise((resolve) => setTimeout(resolve, 4000)) // wait a sec after switching chain before making other deeplink
-                    setLoadingStates('loading...')
+                    setLoadingStates('loading')
                 }
 
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
-                setLoadingStates('executing transaction...')
+                setLoadingStates('executing transaction')
 
                 if (advancedDropdownOpen) {
                     const { links, txReceipt } = await peanut.createLinks({
@@ -749,13 +749,20 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             onClick={!isConnected ? open : undefined}
                             disabled={isLoading ? true : false}
                         >
-                            {isLoading
-                                ? loadingStates
-                                : !isConnected
-                                ? 'Connect Wallet'
-                                : advancedDropdownOpen
-                                ? 'Bulk Send'
-                                : 'Send'}
+                            {isLoading ? (
+                                <div className="flex justify-center gap-1">
+                                    <label>{loadingStates} </label>
+                                    <div className="flex h-full w-[26px] justify-start pb-1">
+                                        <div className="loading" />
+                                    </div>
+                                </div>
+                            ) : !isConnected ? (
+                                'Connect Wallet'
+                            ) : advancedDropdownOpen ? (
+                                'Bulk Send'
+                            ) : (
+                                'Send'
+                            )}
                         </button>
                         {errorState.showError && (
                             <div className="text-center">
