@@ -354,7 +354,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                     })
 
                     console.log('Created links:', links)
-                    console.log('Transaction receipts:', txReceipt)
+                    console.log('Transaction receipt:', txReceipt)
                     //@ts-ignore
                     links.forEach((link, index) => {
                         //@ts-ignore
@@ -377,8 +377,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         baseUrl: window.location.origin + '/claim',
                         trackId: 'ui',
                     })
-                    console.log('Created link:', link)
-                    utils.saveToLocalStorage(address + ' - ' + txReceipt.hash, link)
+                    console.log('Created links:', link)
+                    console.log('Transaction receipt:', txReceipt)
+                    utils.saveToLocalStorage(address + ' - ' + txReceipt.transactionHash ?? Math.random(), link)
                     setClaimLink(link)
                     setTxReceipt(txReceipt)
                     setChainId(sendFormData.chainId)
