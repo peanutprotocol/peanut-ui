@@ -29,7 +29,10 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     const explorerUrlWithTx = useMemo(
-        () => chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url + '/tx/' + txReceipt?.hash,
+        () =>
+            chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url +
+            '/tx/' +
+            txReceipt?.transactionHash,
         [txReceipt, chainId]
     )
 

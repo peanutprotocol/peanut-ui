@@ -19,8 +19,6 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const { chain: currentChain } = useNetwork()
-    const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -62,48 +60,13 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
     const claim = async () => {
         try {
             if (claimLink && address) {
-                setLoadingStates('executing transaction...')
+                setLoadingStates('executing transaction')
                 console.log('claiming link:' + claimLink)
                 const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
                 onNextScreen()
             }
-            // setLoadingStates("checking signer...");
-            // if (!signer) {
-            //   await getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId });
-            // }
-            // //check if the user is on the correct chain
-            // if (currentChain?.id.toString() !== claimDetails.chainId.toString()) {
-            //   setLoadingStates("allow network switch...");
-            //   toast("Please allow the switch to the correct network in your wallet", {
-            //     position: "bottom-right",
-            //   });
-
-            //   await utils
-            //     .waitForPromise(
-            //       switchNetwork({ chainId: Number(claimDetails.chainId) })
-            //     )
-            //     .catch((error) => {
-            //       toast("Something went wrong while switching networks", {
-            //         position: "bottom-right",
-            //       });
-            //       return;
-            //     });
-            //   setLoadingStates("switching network...");
-            //   await new Promise((resolve) => setTimeout(resolve, 1500)); // wait a sec after switching chain before making other deeplink
-            //   setLoadingStates("loading...");
-            // }
-            // if (claimLink) {
-            //   setLoadingStates("executing transaction...");
-            //   console.log("claiming link:" + claimLink);
-            //   const claimTx = await peanut.claimLink({
-            //     signer,
-            //     link: " + claimLink,
-            //   });
-            //   setTxHash(claimTx.hash ?? claimTx.transactionHash);
-            //   onNextScreen();
-            // }
         } catch (error) {
             setErrorState({
                 showError: true,
@@ -124,7 +87,7 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
                 })
                 return
             }
-            setLoadingStates('executing transaction...')
+            setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 console.log('claiming link:' + claimLink)
                 const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
@@ -167,7 +130,18 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
                 onClick={!isConnected ? open : claim}
                 disabled={isLoading}
             >
-                {isLoading ? loadingStates : isConnected ? 'Claim' : 'Connect Wallet'}
+                {isLoading ? (
+                    <div className="flex justify-center gap-1">
+                        <label>{loadingStates} </label>
+                        <div className="flex h-full w-[26px] justify-start pb-1">
+                            <div className="loading" />
+                        </div>
+                    </div>
+                ) : isConnected ? (
+                    'Claim'
+                ) : (
+                    'Connect Wallet'
+                )}
             </button>
             <div
                 className="mt-2 flex cursor-pointer items-center justify-center"
