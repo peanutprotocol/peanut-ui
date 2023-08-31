@@ -5,9 +5,6 @@ import { useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
 import * as socketTech from '@socket.tech/socket-v2-sdk'
-import { ethers } from 'ethers'
-import { formatEther } from 'ethers/lib/utils'
-import axios from 'axios'
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
 

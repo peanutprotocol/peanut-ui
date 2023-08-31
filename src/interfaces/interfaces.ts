@@ -41,6 +41,7 @@ export interface IPeanutChainDetails {
         url: string
         standard: string
     }[]
+    mainnet: boolean
 }
 
 export interface IPeanutTokenDetail {
