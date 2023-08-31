@@ -26,6 +26,8 @@ export interface IClaimScreenProps {
     setTxHash: (txHash: string) => void
     claimType: 'CLAIM' | 'PROMO'
     setClaimType: (claimType: 'CLAIM' | 'PROMO') => void
+    tokenPrice: string
+    setTokenPrice: (tokenPrice: string) => void
 }
 
 export const INIT_VIEW: IClaimScreenState = {

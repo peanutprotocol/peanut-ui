@@ -16,6 +16,7 @@ module.exports = {
             animation: {
                 wiggle: 'wiggle 1s ease-in-out infinite',
                 'spin-slow': 'spin 3s linear infinite',
+                spin: 'spin 1.5s linear infinite',
             },
             minWidth: {
                 25: '25px',
