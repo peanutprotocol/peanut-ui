@@ -24,6 +24,8 @@ export interface IClaimScreenProps {
     claimDetails: interfaces.ILinkDetails
     txHash: string
     setTxHash: (txHash: string) => void
+    claimType: 'CLAIM' | 'PROMO'
+    setClaimType: (claimType: 'CLAIM' | 'PROMO') => void
 }
 
 export const INIT_VIEW: IClaimScreenState = {

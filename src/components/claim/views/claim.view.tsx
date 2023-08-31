@@ -14,7 +14,7 @@ import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
 
-export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: _consts.IClaimScreenProps) {
+export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash, claimType }: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -117,6 +117,11 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
 
     return (
         <>
+            {claimType == 'PROMO' && (
+                <h2 className="my-2 mb-4 text-center text-base font-black  ">
+                    Oh, you found a promo code! Enjoy your free money!
+                </h2>
+            )}
             <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
                 Claim {utils.formatTokenAmount(Number(claimDetails.tokenAmount))} {claimDetails.tokenSymbol}
             </h2>

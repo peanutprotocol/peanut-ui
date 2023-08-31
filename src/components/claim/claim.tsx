@@ -3,20 +3,17 @@ import * as views from './views'
 import * as _consts from './claim.consts'
 import * as interfaces from '@/interfaces'
 import { createElement, useEffect, useState } from 'react'
-import { ReadonlyURLSearchParams } from 'next/navigation'
 import { getPublicClient, PublicClient } from '@wagmi/core'
 import { providers } from 'ethers'
-import { HttpTransport } from 'viem'
-import { useAccount } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
 
 export function Claim({ link }: { link: string }) {
-    const { address, isConnected } = useAccount()
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string>('')
     const [claimDetails, setClaimDetails] = useState<interfaces.ILinkDetails | undefined>(undefined)
     const [txHash, setTxHash] = useState<string>('')
+    const [claimType, setClaimType] = useState<'CLAIM' | 'PROMO'>('CLAIM')
 
     const handleOnNext = () => {
         const newIdx = claimScreen.idx + 1
@@ -48,37 +45,53 @@ export function Claim({ link }: { link: string }) {
     }
 
     function getEthersProvider({ chainId }: { chainId?: number } = {}) {
-        const publicClient = getPublicClient({ chainId })
-        return publicClientToProvider(publicClient)
+        try {
+            const publicClient = getPublicClient({ chainId })
+            return publicClientToProvider(publicClient)
+        } catch (error) {
+            console.log(error)
+        }
+    }
+
+    const getLinktype = (link: string) => {
+        const [, fragment] = link.split('?')
+        const urlSearchParams = new URLSearchParams(fragment)
+        const linkChainId = urlSearchParams.get('promo')
+        const linkVersion = urlSearchParams.get('id')
+        if (linkChainId && linkVersion) {
+            setClaimType('PROMO')
+            return { type: 'promo' }
+        } else {
+            return { type: 'claim' }
+        }
     }
 
     const checkLink = async (link: string) => {
-        console.log(link)
+        const promoList: {
+            [key: string]: string
+        } = JSON.parse(process.env.PROMO_LIST ?? '')
+        const type = getLinktype(link)
+        var localLink
+        if (type.type === 'promo') {
+            localLink = promoList[link] ?? undefined
+        } else {
+            localLink = link
+        }
+        if (localLink === undefined) {
+            setLinkState('ALREADY_CLAIMED')
+            return
+        }
 
-        const [baseUrl, fragment] = link.split('#')
-        console.log('baseUrl', baseUrl)
-        console.log('fragment', fragment)
+        const [, fragment] = localLink.split('#')
         const urlSearchParams = new URLSearchParams(fragment)
         const linkChainId = urlSearchParams.get('c')
-        // const linkChainId = link.get('c')
-        // get the chain id from the link (params are after #)
-        // const urlSearchParams = new URLSearchParams(link);
-        // const linkChainId = urlSearchParams.get('c');
-        console.log('linkChainId', linkChainId)
-
-        const _link = link.toString()
-        // TODO: @borcherd I changed this so it includes the full link
-        const pageUrl = window.location.href
-        setClaimLink(pageUrl)
-        console.log('completeLink', pageUrl)
-
         const provider = getEthersProvider({ chainId: Number(linkChainId) })
-        console.log('provider', provider)
-        console.log('linkChainId', linkChainId)
+        const _link = localLink.toString()
+        setClaimLink(_link)
 
         try {
             console.log('getting link details')
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, pageUrl, true)
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, _link, true)
             console.log('linkDetails', linkDetails)
 
             if (Number(linkDetails.tokenAmount) <= 0) {
@@ -133,6 +146,8 @@ export function Claim({ link }: { link: string }) {
                     claimDetails,
                     txHash,
                     setTxHash,
+                    claimType,
+                    setClaimType,
                 } as _consts.IClaimScreenProps)}
         </global_components.CardWrapper>
     )
