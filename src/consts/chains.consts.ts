@@ -18,6 +18,8 @@ import {
     polygonMumbai,
     filecoinCalibration,
     neonDevnet,
+    sepolia,
+    taikoTestnetSepolia,
 } from '@wagmi/chains'
 import { Chain } from 'wagmi'
 

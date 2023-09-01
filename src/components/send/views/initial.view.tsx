@@ -11,6 +11,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { MediaRenderer } from '@thirdweb-dev/react'
 import { isMobile } from 'react-device-detect'
+import { Switch } from '@headlessui/react'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -44,6 +45,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('TOKEN')
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
+    const [showTestnets, setShowTestnets] = useState(false)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -420,6 +422,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             advancedDropdownOpen,
         ]
     )
+
+    function classNames(...classes: any) {
+        return classes.filter(Boolean).join(' ')
+    }
 
     //update the errormessage when the walletAddress has been changed
     useEffect(() => {
@@ -821,66 +827,125 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                                                 unfoldChains ? 'max-h-[none]' : ''
                                             }`}
                                         >
-                                            {chainsToShow.map((chain) => (
-                                                <div
-                                                    key={chain.chainId}
-                                                    className={
-                                                        'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                        (formwatch.chainId == chain.chainId
-                                                            ? 'bg-black text-white'
-                                                            : '')
-                                                    }
-                                                    onClick={() => {
-                                                        sendForm.setValue('chainId', chain.chainId)
-                                                        sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                        setFormHasBeenTouched(true)
-                                                    }}
-                                                >
-                                                    {chain.icon.format == 'ipfs' ? (
-                                                        <MediaRenderer src={chain.icon.url} alt="A Blue Circle" />
-                                                    ) : (
-                                                        <img src={chain.icon.url} className="h-6 cursor-pointer" />
-                                                    )}
+                                            {chainsToShow.map((chain) =>
+                                                !showTestnets ? (
+                                                    chain.mainnet && (
+                                                        <div
+                                                            key={chain.chainId}
+                                                            className={
+                                                                'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                (formwatch.chainId == chain.chainId
+                                                                    ? 'bg-black text-white'
+                                                                    : '')
+                                                            }
+                                                            onClick={() => {
+                                                                sendForm.setValue('chainId', chain.chainId)
+                                                                sendForm.setValue('token', chain.nativeCurrency.symbol)
+                                                                setFormHasBeenTouched(true)
+                                                            }}
+                                                        >
+                                                            {chain.icon.format == 'ipfs' ? (
+                                                                <MediaRenderer
+                                                                    src={chain.icon.url}
+                                                                    alt="A Blue Circle"
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={chain.icon.url}
+                                                                    className="h-6 cursor-pointer"
+                                                                />
+                                                            )}
 
-                                                    <label className="flex cursor-pointer items-center">
-                                                        {chain.shortName.toUpperCase()}
-                                                    </label>
-                                                </div>
-                                            ))}
+                                                            <label className="flex cursor-pointer items-center">
+                                                                {chain.shortName.toUpperCase()}
+                                                            </label>
+                                                        </div>
+                                                    )
+                                                ) : (
+                                                    <div
+                                                        key={chain.chainId}
+                                                        className={
+                                                            'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                            (formwatch.chainId == chain.chainId
+                                                                ? 'bg-black text-white'
+                                                                : '')
+                                                        }
+                                                        onClick={() => {
+                                                            sendForm.setValue('chainId', chain.chainId)
+                                                            sendForm.setValue('token', chain.nativeCurrency.symbol)
+                                                            setFormHasBeenTouched(true)
+                                                        }}
+                                                    >
+                                                        {chain.icon.format == 'ipfs' ? (
+                                                            <MediaRenderer src={chain.icon.url} alt="A Blue Circle" />
+                                                        ) : (
+                                                            <img src={chain.icon.url} className="h-6 cursor-pointer" />
+                                                        )}
+
+                                                        <label className="flex cursor-pointer items-center">
+                                                            {chain.shortName.toUpperCase()}
+                                                        </label>
+                                                    </div>
+                                                )
+                                            )}
                                         </div>
-                                        {isMobile
-                                            ? chainsToShow.length > 4 && (
-                                                  <div className="flex w-full cursor-pointer justify-start">
-                                                      <img
-                                                          style={{
-                                                              transform: unfoldChains ? 'scaleY(-1)' : 'none',
-                                                              transition: 'transform 0.3s ease-in-out',
-                                                          }}
-                                                          src={dropdown_svg.src}
-                                                          alt=""
-                                                          className={'h-6 '}
-                                                          onClick={() => {
-                                                              setUnfoldChains(!unfoldChains)
-                                                          }}
-                                                      />
-                                                  </div>
-                                              )
-                                            : chainsToShow.length > 3 && (
-                                                  <div className="flex w-full cursor-pointer justify-start">
-                                                      <img
-                                                          style={{
-                                                              transform: unfoldChains ? 'scaleY(-1)' : 'none',
-                                                              transition: 'transform 0.3s ease-in-out',
-                                                          }}
-                                                          src={dropdown_svg.src}
-                                                          alt=""
-                                                          className={'h-6 '}
-                                                          onClick={() => {
-                                                              setUnfoldChains(!unfoldChains)
-                                                          }}
-                                                      />
-                                                  </div>
-                                              )}
+                                        <div className="flex w-full justify-between">
+                                            {isMobile
+                                                ? chainsToShow.length > 4 && (
+                                                      <div className="cursor-pointer">
+                                                          <img
+                                                              style={{
+                                                                  transform: unfoldChains ? 'scaleY(-1)' : 'none',
+                                                                  transition: 'transform 0.3s ease-in-out',
+                                                              }}
+                                                              src={dropdown_svg.src}
+                                                              alt=""
+                                                              className={'h-6 '}
+                                                              onClick={() => {
+                                                                  setUnfoldChains(!unfoldChains)
+                                                              }}
+                                                          />
+                                                      </div>
+                                                  )
+                                                : chainsToShow.length > 3 && (
+                                                      <div className=" cursor-pointer ">
+                                                          <img
+                                                              style={{
+                                                                  transform: unfoldChains ? 'scaleY(-1)' : 'none',
+                                                                  transition: 'transform 0.3s ease-in-out',
+                                                              }}
+                                                              src={dropdown_svg.src}
+                                                              alt=""
+                                                              className={'h-6 '}
+                                                              onClick={() => {
+                                                                  setUnfoldChains(!unfoldChains)
+                                                              }}
+                                                          />
+                                                      </div>
+                                                  )}
+
+                                            <Switch.Group as="div" className="flex items-center p-0">
+                                                <Switch
+                                                    checked={showTestnets}
+                                                    onChange={setShowTestnets}
+                                                    className={classNames(
+                                                        showTestnets ? 'bg-teal' : 'bg-gray-200',
+                                                        'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-black p-0 transition-colors duration-200 ease-in-out '
+                                                    )}
+                                                >
+                                                    <span
+                                                        aria-hidden="true"
+                                                        className={classNames(
+                                                            showTestnets ? 'translate-x-5' : 'translate-x-0',
+                                                            'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-full border-2  border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                                        )}
+                                                    />
+                                                </Switch>
+                                                <Switch.Label as="span" className="ml-3">
+                                                    <span className="text-sm">show testnets</span>
+                                                </Switch.Label>
+                                            </Switch.Group>
+                                        </div>
                                     </div>
 
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">

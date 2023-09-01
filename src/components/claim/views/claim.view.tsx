@@ -1,8 +1,8 @@
 import { useWeb3Modal } from '@web3modal/react'
 import { useEffect, useMemo, useState } from 'react'
-import { WalletClient, useAccount, useNetwork } from 'wagmi'
+import { WalletClient, useAccount } from 'wagmi'
 import { useAtom } from 'jotai'
-import { getWalletClient, switchNetwork } from '@wagmi/core'
+import { getWalletClient } from '@wagmi/core'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
@@ -14,7 +14,14 @@ import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
 
-export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: _consts.IClaimScreenProps) {
+export function ClaimView({
+    onNextScreen,
+    claimDetails,
+    claimLink,
+    setTxHash,
+    claimType,
+    tokenPrice,
+}: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -26,7 +33,6 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(undefined)
 
     const manualForm = useForm<{ address: string; addressExists: boolean }>({
         mode: 'onChange',
@@ -37,31 +43,11 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
         },
     })
 
-    function walletClientToSigner(walletClient: WalletClient) {
-        const { account, chain, transport } = walletClient
-        const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-        }
-        const provider = new providers.Web3Provider(transport, network)
-        const signer = provider.getSigner(account.address)
-        return signer
-    }
-
-    const getWalletClientAndUpdateSigner = async ({ chainId }: { chainId: number }) => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (walletClient) {
-            const signer = walletClientToSigner(walletClient)
-            setSigner(signer)
-        }
-    }
-
     const claim = async () => {
         try {
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
-                console.log('claiming link:' + claimLink)
+
                 const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
@@ -106,19 +92,19 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
         }
     }
 
-    useEffect(() => {
-        if (isConnected) {
-            //wait for the wallet to connect
-            setTimeout(() => {
-                getWalletClientAndUpdateSigner({ chainId: claimDetails.chainId })
-            }, 1000)
-        }
-    }, [isConnected])
-
     return (
         <>
+            {claimType == 'PROMO' && (
+                <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
+                    Oh, you found a promo code! Enjoy your free money!
+                </h2>
+            )}
             <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                Claim {utils.formatTokenAmount(Number(claimDetails.tokenAmount))} {claimDetails.tokenSymbol}
+                Claim{' '}
+                {tokenPrice
+                    ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails.tokenAmount))
+                    : utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{' '}
+                {tokenPrice ? 'in ' + claimDetails.tokenSymbol : claimDetails.tokenSymbol}
             </h2>
             <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
                 {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
@@ -208,13 +194,6 @@ export function ClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: 
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
-            <p className="mt-4 text-center text-xs">
-                Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
-                <a href="https://discord.gg/BX9Ak7AW28" target="_blank" className="cursor-pointer text-black underline">
-                    Discord
-                </a>
-                !
-            </p>
 
             <global_components.PeanutMan type="presenting" />
         </>
