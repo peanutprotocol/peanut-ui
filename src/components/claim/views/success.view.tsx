@@ -49,6 +49,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
                 <div className="m-2 flex flex-col items-center justify-center gap-2 text-center text-base sm:p-0">
                     <a
                         href={explorerUrlWithTx ?? ''}
+                        target="_blank"
                         className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
                     >
                         {txHash}

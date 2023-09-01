@@ -175,6 +175,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
                         <p className="tx-sm">
                             <a
                                 href={explorerUrlWithTx ?? ''}
+                                target="_blank"
                                 className="cursor-pointer text-center text-sm text-black underline "
                             >
                                 Your transaction hash

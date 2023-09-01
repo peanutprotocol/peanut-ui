@@ -19,7 +19,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
             <nav className="relative my-2 flex max-h-20 flex-wrap justify-between bg-black">
                 <div className="flex flex-grow items-center">
                     <div
-                        className="ml-1 flex h-full cursor-pointer items-center p-1 py-2 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
+                        className="flex h-full cursor-pointer items-center p-1 py-2 pl-1 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
                         onClick={() => {
                             if (window.location.pathname == '/') window.location.reload()
                             else window.location.href = '/'

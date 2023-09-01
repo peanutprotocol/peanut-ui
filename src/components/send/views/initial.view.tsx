@@ -42,7 +42,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
-    const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('TOKEN')
+    const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)

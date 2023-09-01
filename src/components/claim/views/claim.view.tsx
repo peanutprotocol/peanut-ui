@@ -50,7 +50,7 @@ export function ClaimView({
 
                 const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
-                setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
+                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? '')
                 onNextScreen()
             }
         } catch (error) {
