@@ -10,9 +10,9 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import * as store from '@/store'
 import { providers } from 'ethers'
-import { HttpTransport } from 'viem'
 import { CSVLink } from 'react-csv'
 import { isMobile } from 'react-device-detect'
+import * as hooks from '@/hooks'
 
 interface IDashboardItemProps {
     hash: string
@@ -32,6 +32,7 @@ export function Dashboard() {
     const [localStorageData, setLocalStorageData] = useState<interfaces.ILocalStorageItem[]>([])
     const [dashboardData, setDashboardData] = useState<IDashboardItemProps[]>([])
     const [copiedLink, setCopiedLink] = useState<string[]>()
+    const gaEventTracker = hooks.useAnalyticsEventTracker('dashboard-component')
 
     function publicClientToProvider(publicClient: PublicClient) {
         try {
@@ -179,7 +180,9 @@ export function Dashboard() {
                                                     <td
                                                         className="brutalborder-bottom h-8 cursor-pointer px-1"
                                                         onClick={() => {
+                                                            gaEventTracker('link-copied', '')
                                                             navigator.clipboard.writeText(item.link)
+                                                            setCopiedLink([item.link])
                                                         }}
                                                     >
                                                         {Number(item.amount) > 0 ? (
@@ -232,6 +235,7 @@ export function Dashboard() {
                                                     onClick={() => {
                                                         navigator.clipboard.writeText(item.link)
                                                         setCopiedLink([item.link])
+                                                        gaEventTracker('link-copied', '')
                                                     }}
                                                     className="cursor-pointer"
                                                 >
@@ -260,6 +264,7 @@ export function Dashboard() {
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(item.link)
                                                             setCopiedLink([item.link])
+                                                            gaEventTracker('link-copied', '')
                                                         }}
                                                     >
                                                         {Number(item.amount) > 0

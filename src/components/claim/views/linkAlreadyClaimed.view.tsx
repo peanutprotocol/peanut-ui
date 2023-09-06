@@ -1,11 +1,15 @@
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 import * as global_components from '@/components/global'
+import * as hooks from '@/hooks'
+
 export function ClaimLinkAlreadyClaimedView() {
     const router = useRouter()
+    const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     useEffect(() => {
         router.prefetch('/')
+        gaEventTracker('peanut-claimed', 'link already claimed')
     }, [])
 
     return (

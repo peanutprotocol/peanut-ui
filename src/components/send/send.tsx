@@ -2,6 +2,7 @@ import { createElement, useState } from 'react'
 import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
 import code_snippet from '@/assets/code_snippet.png'
+
 export function Send() {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')

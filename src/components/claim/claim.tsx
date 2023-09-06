@@ -9,6 +9,7 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import ReactGA from 'react-ga4'
+import * as hooks from '@/hooks'
 
 export function Claim({ link }: { link: string }) {
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
@@ -18,10 +19,7 @@ export function Claim({ link }: { link: string }) {
     const [txHash, setTxHash] = useState<string>('')
     const [claimType, setClaimType] = useState<'CLAIM' | 'PROMO'>('CLAIM')
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
-
-    useEffect(() => {
-        ReactGA.send({ hitType: 'pageview', page: '/claim', title: 'Claim page' })
-    }, [])
+    const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     const handleOnNext = () => {
         const newIdx = claimScreen.idx + 1
@@ -68,18 +66,10 @@ export function Claim({ link }: { link: string }) {
         const linkVersion = urlSearchParams.get('id')
         if (linkChainId && linkVersion) {
             setClaimType('PROMO')
-            ReactGA.event({
-                category: 'Claim',
-                action: 'Promo claim',
-                label: fragment,
-            })
+            gaEventTracker('peanut-claim', 'Promo')
             return { type: 'promo' }
         } else {
-            ReactGA.event({
-                category: 'Claim',
-                action: 'Normal claim',
-                label: fragment,
-            })
+            gaEventTracker('peanut-claim', 'normal')
             return { type: 'claim' }
         }
     }

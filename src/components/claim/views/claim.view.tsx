@@ -1,10 +1,8 @@
 import { useWeb3Modal } from '@web3modal/react'
-import { useEffect, useMemo, useState } from 'react'
-import { WalletClient, useAccount } from 'wagmi'
+import { useMemo, useState } from 'react'
+import { useAccount } from 'wagmi'
 import { useAtom } from 'jotai'
-import { getWalletClient } from '@wagmi/core'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 
 import * as global_components from '@/components/global'
@@ -51,6 +49,7 @@ export function ClaimView({
                 const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
                 setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? '')
+
                 onNextScreen()
             }
         } catch (error) {
@@ -79,6 +78,7 @@ export function ClaimView({
                 const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
 
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
+
                 onNextScreen()
             }
         } catch (error) {
