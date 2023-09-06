@@ -1,11 +1,9 @@
 'use client'
 import '@/styles/globals.css'
 import { Inter } from 'next/font/google'
-import { Web3Modal } from '@web3modal/react'
 import { WagmiConfig } from 'wagmi'
 
 import * as config from '@/config'
-import * as hooks from '@/hooks'
 import { Store } from '@/store/store'
 import { useState, useEffect } from 'react'
 import ReactGA from 'react-ga4'
@@ -49,18 +47,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         <Store>{children}</Store>
                     </WagmiConfig>
                 )}
-                <Web3Modal
-                    projectId={process.env.WC_PROJECT_ID ?? ''}
-                    ethereumClient={config.ethereumClient}
-                    themeMode="dark"
-                    themeVariables={{
-                        '--w3m-accent-color': 'white',
-                        '--w3m-background-color': 'white',
-                        '--w3m-accent-fill-color': 'black',
-                        '--w3m-container-border-radius': '0px',
-                        '--w3m-background-border-radius': '0px',
-                    }}
-                />
             </body>
         </html>
     )

@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
-import { useWeb3Modal } from '@web3modal/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useNetwork } from 'wagmi'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
@@ -754,7 +754,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             type={isConnected ? 'submit' : 'button'}
                             className="mt-2 block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                             id="cta-btn"
-                            onClick={!isConnected ? open : undefined}
+                            onClick={() => {
+                                if (!isConnected) {
+                                    open()
+                                }
+                            }}
                             disabled={isLoading ? true : false}
                         >
                             {isLoading ? (
