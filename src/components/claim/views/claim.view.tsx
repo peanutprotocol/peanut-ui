@@ -161,6 +161,10 @@ export function ClaimView({
                                 placeholder="0x6B37..."
                                 {...manualForm.register('address', {
                                     required: true,
+                                    pattern: {
+                                        value: /^0x[a-fA-F0-9]{40}$/,
+                                        message: 'invalid address format',
+                                    },
                                 })}
                             />
                             <div className="tooltip w-1/8 brutalborder-left block h-4 cursor-pointer p-2">
@@ -182,6 +186,12 @@ export function ClaimView({
                                 )}
                             </div>
                         </div>
+                        {manualForm.formState.errors.address && (
+                            <div className="text-center">
+                                <label className="text-xs font-normal text-red ">invalid address format</label>
+                            </div>
+                        )}
+
                         <div className="mx-auto mt-2 flex h-4 flex-row items-center justify-center">
                             <input type="checkbox" className="h-4 w-4" {...manualForm.register('addressExists')} />
                             <label className="ml-2 text-xs font-medium">This address exists on CHAIN</label>
