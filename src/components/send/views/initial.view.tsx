@@ -231,7 +231,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             }
         }
 
-        console.log(signer)
         if (!signer) {
             getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
