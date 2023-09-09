@@ -4,12 +4,13 @@ import { useAtom } from 'jotai'
 import * as _consts from '../claim.consts'
 import * as store from '@/store/'
 import * as global_components from '@/components/global'
-
+import * as hooks from '@/hooks'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
 export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
     const router = useRouter()
+    const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -22,6 +23,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
 
     useEffect(() => {
         router.prefetch('/')
+        gaEventTracker('peanut-claimed', 'success')
     }, [])
 
     return (
@@ -49,6 +51,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
                 <div className="m-2 flex flex-col items-center justify-center gap-2 text-center text-base sm:p-0">
                     <a
                         href={explorerUrlWithTx ?? ''}
+                        target="_blank"
                         className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
                     >
                         {txHash}

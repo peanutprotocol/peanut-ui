@@ -1,10 +1,8 @@
 import { useWeb3Modal } from '@web3modal/react'
-import { useEffect, useMemo, useState } from 'react'
-import { WalletClient, useAccount } from 'wagmi'
+import { useMemo, useState } from 'react'
+import { useAccount } from 'wagmi'
 import { useAtom } from 'jotai'
-import { getWalletClient } from '@wagmi/core'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 
 import * as global_components from '@/components/global'
@@ -50,7 +48,8 @@ export function ClaimView({
 
                 const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
                 console.log(claimTx)
-                setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
+                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? '')
+
                 onNextScreen()
             }
         } catch (error) {
@@ -79,6 +78,7 @@ export function ClaimView({
                 const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
 
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
+
                 onNextScreen()
             }
         } catch (error) {
@@ -161,6 +161,10 @@ export function ClaimView({
                                 placeholder="0x6B37..."
                                 {...manualForm.register('address', {
                                     required: true,
+                                    pattern: {
+                                        value: /^0x[a-fA-F0-9]{40}$/,
+                                        message: 'invalid address format',
+                                    },
                                 })}
                             />
                             <div className="tooltip w-1/8 brutalborder-left block h-4 cursor-pointer p-2">
@@ -182,6 +186,12 @@ export function ClaimView({
                                 )}
                             </div>
                         </div>
+                        {manualForm.formState.errors.address && (
+                            <div className="text-center">
+                                <label className="text-xs font-normal text-red ">invalid address format</label>
+                            </div>
+                        )}
+
                         <div className="mx-auto mt-2 flex h-4 flex-row items-center justify-center">
                             <input type="checkbox" className="h-4 w-4" {...manualForm.register('addressExists')} />
                             <label className="ml-2 text-xs font-medium">This address exists on CHAIN</label>

@@ -5,6 +5,7 @@ import { Web3Modal } from '@web3modal/react'
 import { WagmiConfig } from 'wagmi'
 
 import * as config from '@/config'
+import * as hooks from '@/hooks'
 import { Store } from '@/store/store'
 import { useState, useEffect } from 'react'
 import ReactGA from 'react-ga4'

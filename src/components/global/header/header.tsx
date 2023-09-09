@@ -5,12 +5,14 @@ import { useAccount } from 'wagmi'
 
 import * as global_components from '@/components/global'
 import * as utils from '@/utils'
+import * as hooks from '@/hooks'
 
 import peanut_logo from '@/assets/peanutman-logo.svg'
 import smiley from '@/assets/smiley.svg'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
+    const gaEventTracker = hooks.useAnalyticsEventTracker('header')
 
     const { open } = useWeb3Modal()
 
@@ -19,7 +21,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
             <nav className="relative my-2 flex max-h-20 flex-wrap justify-between bg-black">
                 <div className="flex flex-grow items-center">
                     <div
-                        className="ml-1 flex h-full cursor-pointer items-center p-1 py-2 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
+                        className="flex h-full cursor-pointer items-center p-1 py-2 pl-1 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
                         onClick={() => {
                             if (window.location.pathname == '/') window.location.reload()
                             else window.location.href = '/'
@@ -32,6 +34,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     <div
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                         onClick={() => {
+                            gaEventTracker('peanut-click', 'docs-redirect')
                             window.open(
                                 'https://peanutprotocol.notion.site/Peanut-Protocol-5776ec3a97de4e5d972ae3f6ba7f4f04'
                             )

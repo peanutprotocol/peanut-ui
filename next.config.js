@@ -6,6 +6,7 @@ const nextConfig = {
         PEANUT_API_KEY: process.env.PEANUT_API_KEY,
         GA_KEY: process.env.GA_KEY,
         PROMO_LIST: process.env.PROMO_LIST,
+        SENTRY_DSN: process.env.SENTRY_DSN,
     },
     productionBrowserSourceMaps: true,
     swcMinify: true,

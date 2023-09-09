@@ -5,6 +5,7 @@ import { useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
 import * as socketTech from '@socket.tech/socket-v2-sdk'
+import * as hooks from '@/hooks'
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
 
@@ -14,10 +15,11 @@ export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 export const supportedChainsSocketTechAtom = atom<socketTech.ChainDetails[]>([])
 
 export function Store({ children }: { children: React.ReactNode }) {
-    const [userBalances, setUserBalances] = useAtom(userBalancesAtom)
+    const [, setUserBalances] = useAtom(userBalancesAtom)
     const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
     const setSupportedChainsSocketTech = useSetAtom(supportedChainsSocketTechAtom)
+    const gaEventTracker = hooks.useAnalyticsEventTracker('peanut-general')
 
     const { address: userAddr, isDisconnected } = useAccount()
 
@@ -27,6 +29,7 @@ export function Store({ children }: { children: React.ReactNode }) {
             //This will fetch all balances for the supported chains by socket.tech (https://docs.socket.tech/socket-liquidity-layer/socketll-overview/chains-dexs-bridges)
             loadUserBalances(userAddr)
             // loadGoerliUserBalances(userAddr)
+            gaEventTracker('peanut-wallet-connected', userAddr)
         }
     }, [userAddr])
 

@@ -1,16 +1,24 @@
 'use client'
 import '@/styles/globals.css'
-import * as global_components from '@/components/global'
+import { useEffect } from 'react'
 import { Inter } from 'next/font/google'
 import Link from 'next/link'
-import peanutman_sad from '@/assets/peanutman-sad.svg'
 import { Web3Modal } from '@web3modal/react'
 import { WagmiConfig } from 'wagmi'
+import peanutman_sad from '@/assets/peanutman-sad.svg'
+
 import * as config from '@/config'
+import * as global_components from '@/components/global'
+import * as hooks from '@/hooks'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export default function NotFound() {
+    const gaEventTracker = hooks.useAnalyticsEventTracker('404-page')
+
+    useEffect(() => {
+        gaEventTracker('peanut-opened', '404-not-found')
+    }, [])
     return (
         <div className={inter.className}>
             <WagmiConfig config={config.wagmiConfig}>
