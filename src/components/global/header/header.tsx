@@ -31,17 +31,12 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         <span className="hidden lg:inline lg:px-6">peanut protocol</span>
                     </div>
 
-                    <div
+                    <Link
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
-                        onClick={() => {
-                            gaEventTracker('peanut-click', 'docs-redirect')
-                            window.open(
-                                'https://peanutprotocol.notion.site/Peanut-Protocol-5776ec3a97de4e5d972ae3f6ba7f4f04'
-                            )
-                        }}
+                        href={'/docs'}
                     >
                         <span className="">docs</span>
-                    </div>
+                    </Link>
                 </div>
                 <div className="mr-1 flex h-full gap-1 self-center sm:gap-4">
                     <Link href={'/dashboard'} className="no-underline">
@@ -62,9 +57,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                 <global_components.MarqueeWrapper
                     backgroundColor="bg-fuchsia"
                     onClick={() => {
-                        window.open(
-                            'https://peanutprotocol.notion.site/Send-Tokens-via-Link-Peanut-Link-SDK-1-0-9a89ea726b754a1c9f7e012125a01a85'
-                        )
+                        window.open('https://peanutprotocol.gitbook.io/peanut-protocol-docs-1/overview/what-we-do')
                     }}
                 >
                     <>
