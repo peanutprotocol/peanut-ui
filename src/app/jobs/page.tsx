@@ -9,7 +9,7 @@ export default function JobsPage() {
     const gaEventTracker = hooks.useAnalyticsEventTracker('jobs-page')
 
     useEffect(() => {
-        gaEventTracker('peanut-opened', 'send')
+        gaEventTracker('peanut-opened', 'jobs')
     }, [])
     return (
         <global_components.PageWrapper bgColor="bg-yellow">
