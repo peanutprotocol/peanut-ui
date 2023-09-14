@@ -190,46 +190,46 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
 
         //check if the token is in the userBalances
-        if (
-            userBalances.some(
-                (balance) => balance.symbol == sendFormData.token && balance.chainId == sendFormData.chainId
-            )
-        ) {
-            //check that the user has enough funds
-            const balance = userBalances.find((balance) => balance.symbol === sendFormData.token)?.amount
-            const tokenAmount =
-                inputDenomination == 'USD'
-                    ? tokenPrice
-                        ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
-                        : 0
-                    : sendFormData.amount
+        // if (
+        //     userBalances.some(
+        //         (balance) => balance.symbol == sendFormData.token && balance.chainId == sendFormData.chainId
+        //     )
+        // ) {
+        //     //check that the user has enough funds
+        //     const balance = userBalances.find((balance) => balance.symbol === sendFormData.token)?.amount
+        //     const tokenAmount =
+        //         inputDenomination == 'USD'
+        //             ? tokenPrice
+        //                 ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
+        //                 : 0
+        //             : sendFormData.amount
 
-            const tokenAmount2 =
-                advancedDropdownOpen &&
-                tokenAmount &&
-                sendFormData.bulkAmount &&
-                Number(tokenAmount) * sendFormData.bulkAmount
+        //     const tokenAmount2 =
+        //         advancedDropdownOpen &&
+        //         tokenAmount &&
+        //         sendFormData.bulkAmount &&
+        //         Number(tokenAmount) * sendFormData.bulkAmount
 
-            if (tokenAmount2) {
-                if (balance && tokenAmount2 && Number(tokenAmount2) > balance) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: "You don't have enough funds",
-                    })
+        //     if (tokenAmount2) {
+        //         if (balance && tokenAmount2 && Number(tokenAmount2) > balance) {
+        //             setErrorState({
+        //                 showError: true,
+        //                 errorMessage: "You don't have enough funds",
+        //             })
 
-                    return { succes: 'false' }
-                }
-            } else {
-                if (balance && tokenAmount && Number(tokenAmount) > balance) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: "You don't have enough funds",
-                    })
+        //             return { succes: 'false' }
+        //         }
+        //     } else {
+        //         if (balance && tokenAmount && Number(tokenAmount) > balance) {
+        //             setErrorState({
+        //                 showError: true,
+        //                 errorMessage: "You don't have enough funds",
+        //             })
 
-                    return { succes: 'false' }
-                }
-            }
-        }
+        //             return { succes: 'false' }
+        //         }
+        //     }
+        // }
 
         if (!signer) {
             getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
