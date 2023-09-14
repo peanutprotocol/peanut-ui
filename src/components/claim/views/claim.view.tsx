@@ -1,6 +1,7 @@
 import { useWeb3Modal } from '@web3modal/react'
 import { useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
+import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
@@ -28,6 +29,10 @@ export function ClaimView({
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
+    const [manualErrorState, setManualErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
@@ -65,8 +70,19 @@ export function ClaimView({
 
     const manualClaim = async (data: { address: string; addressExists: boolean }) => {
         try {
+            setManualErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+            if (!ethers.utils.isAddress(data.address)) {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a valid address',
+                })
+                return
+            }
             if (!data.addressExists) {
-                setErrorState({
+                setManualErrorState({
                     showError: true,
                     errorMessage: 'Please check the box to confirm that the address exists on the chain',
                 })
@@ -159,13 +175,7 @@ export function ClaimView({
                                 type="text"
                                 className="h-4 w-full flex-grow border-none p-4 px-4 placeholder:text-xs placeholder:font-light"
                                 placeholder="0x6B37..."
-                                {...manualForm.register('address', {
-                                    required: true,
-                                    pattern: {
-                                        value: /^0x[a-fA-F0-9]{40}$/,
-                                        message: 'invalid address format',
-                                    },
-                                })}
+                                {...manualForm.register('address')}
                             />
                             <div className="tooltip w-1/8 brutalborder-left block h-4 cursor-pointer p-2">
                                 {isLoading ? (
@@ -186,9 +196,9 @@ export function ClaimView({
                                 )}
                             </div>
                         </div>
-                        {manualForm.formState.errors.address && (
+                        {manualErrorState.showError && (
                             <div className="text-center">
-                                <label className="text-xs font-normal text-red ">invalid address format</label>
+                                <label className="text-xs font-normal text-red ">{manualErrorState.errorMessage}</label>
                             </div>
                         )}
 
