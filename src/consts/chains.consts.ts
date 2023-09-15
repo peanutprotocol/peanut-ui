@@ -17,6 +17,7 @@ import {
     polygonMumbai,
     filecoinCalibration,
     neonDevnet,
+    scrollTestnet,
 } from '@wagmi/chains'
 import { Chain } from 'wagmi'
 
@@ -69,6 +70,16 @@ export const chains = [
     bscTestnet,
     optimismGoerli,
     avalancheFuji,
+    polygonZkEvmTestnet,
+    mantleTestnet,
+    gnosisChiado,
+    avalancheFuji,
     avalanche,
+    celoAlfajores,
     polygonMumbai,
+    filecoinCalibration,
+    neonDevnet,
+    milkomeda,
+    milkomedaTestnet,
+    scrollTestnet,
 ]
