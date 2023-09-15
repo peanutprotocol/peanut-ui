@@ -61,7 +61,7 @@ export function Send() {
                         <div className="mx-auto w-11/12 pt-8 text-base lg:w-2/3">
                             Read more{' '}
                             <a
-                                href="https://peanutprotocol.notion.site/Developer-Documentation-b2b0720b7ca64410b468328f8fc02690"
+                                href="https://peanutprotocol.gitbook.io/peanut-protocol-docs-1/overview/what-we-do"
                                 target="_blank"
                                 className="text-black underline"
                             >

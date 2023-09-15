@@ -9,7 +9,7 @@ export default function BlogPage() {
     const gaEventTracker = hooks.useAnalyticsEventTracker('blog-page')
 
     useEffect(() => {
-        gaEventTracker('peanut-opened', 'send')
+        gaEventTracker('peanut-opened', 'blog')
     }, [])
 
     return (
