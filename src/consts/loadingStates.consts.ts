@@ -1,8 +1,12 @@
 export type LoadingStates =
     | 'idle'
     | 'loading'
+    | 'preparing transaction'
+    | 'sign in wallet'
     | 'executing transaction'
     | 'allow network switch'
+    | 'creating link'
+    | 'creating links'
     | 'switching network'
     | 'checking signer'
     | 'checking inputs'

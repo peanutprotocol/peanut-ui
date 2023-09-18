@@ -114,13 +114,12 @@ export function Claim({ link }: { link: string }) {
         const [, fragment] = localLink.split('#')
         const urlSearchParams = new URLSearchParams(fragment)
         const linkChainId = urlSearchParams.get('c')
-        const provider = getEthersProvider({ chainId: Number(linkChainId) })
         const _link = localLink.toString()
         setClaimLink(_link)
 
         try {
             console.log('getting link details')
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, _link, true)
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: _link })
             console.log('linkDetails', linkDetails)
 
             if (Number(linkDetails.tokenAmount) <= 0) {

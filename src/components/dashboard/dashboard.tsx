@@ -34,29 +34,24 @@ export function Dashboard() {
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const gaEventTracker = hooks.useAnalyticsEventTracker('dashboard-component')
 
-    function publicClientToProvider(publicClient: PublicClient) {
-        try {
-            const { chain, transport } = publicClient
-            const network = {
-                chainId: chain.id,
-                name: chain.name,
-                ensAddress: chain.contracts?.ensRegistry?.address,
-            }
+    function publicClientToProvider(publicClient: PublicClient): providers.JsonRpcProvider {
+        const { chain, transport } = publicClient
+        const network = {
+            chainId: chain.id,
+            name: chain.name,
+            ensAddress: chain.contracts?.ensRegistry?.address,
+        }
 
-            if (transport.type === 'fallback') {
-                return null
-            }
-            return new providers.JsonRpcProvider(transport.url, network)
-        } catch (error) {}
+        if (transport.type === 'fallback') {
+            throw new Error('Fallback transport type is not supported.')
+        }
+
+        return new providers.JsonRpcProvider(transport.url, network)
     }
 
-    function getEthersProvider({ chainId }: { chainId?: number } = {}) {
-        try {
-            const publicClient = getPublicClient({ chainId })
-            return publicClientToProvider(publicClient)
-        } catch (error) {
-            console.log(error)
-        }
+    function getEthersProvider({ chainId }: { chainId?: number } = {}): providers.JsonRpcProvider {
+        const publicClient = getPublicClient({ chainId })
+        return publicClientToProvider(publicClient)
     }
 
     const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
@@ -64,7 +59,7 @@ export function Dashboard() {
             localStorageData.forEach(async (item) => {
                 const provider = getEthersProvider({ chainId: Number(Number(item.link.match(/c=(\d+)/)?.[1])) })
                 peanut
-                    .getLinkDetails(provider, item.link, true)
+                    .getLinkDetails({ provider, link: item.link })
                     .then((res: any) => {
                         const x: IDashboardItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,

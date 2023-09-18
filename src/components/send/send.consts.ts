@@ -30,8 +30,8 @@ export interface ISendScreenProps {
     onCustomScreen: (screen: SendScreens) => void
     claimLink: string | string[]
     setClaimLink: (claimLink: string | string[]) => void
-    txReceipt: any | string[]
-    setTxReceipt: (txReceipt: string | string[]) => void
+    txHash: string
+    setTxHash: (txHash: string) => void
     chainId: number
     setChainId: (chainId: number) => void
 }

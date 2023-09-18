@@ -51,7 +51,11 @@ export function ClaimView({
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
-                const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
+                const claimTx = await peanut.claimLinkGasless({
+                    link: claimLink,
+                    recipientAddress: address,
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                })
                 console.log(claimTx)
                 setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? '')
 
@@ -91,7 +95,11 @@ export function ClaimView({
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
+                const claimTx = await peanut.claimLinkGasless({
+                    link: claimLink,
+                    recipientAddress: data.address,
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                })
 
                 setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
 
