@@ -8,4 +8,13 @@ export const wagmiConfig = defaultWagmiConfig({
     appName: 'Web3Modal',
 })
 
-createWeb3Modal({ wagmiConfig, chains: consts.chains, projectId: process.env.WC_PROJECT_ID ?? '' })
+createWeb3Modal({
+    wagmiConfig,
+    chains: consts.chains,
+    projectId: process.env.WC_PROJECT_ID ?? '',
+    themeVariables: {
+        '--w3m-border-radius-master': '0px',
+        '--w3m-accent': 'white',
+        '--w3m-color-mix': 'white',
+    },
+})
