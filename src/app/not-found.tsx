@@ -3,7 +3,6 @@ import '@/styles/globals.css'
 import { useEffect } from 'react'
 import { Inter } from 'next/font/google'
 import Link from 'next/link'
-import { Web3Modal } from '@web3modal/react'
 import { WagmiConfig } from 'wagmi'
 import peanutman_sad from '@/assets/peanutman-sad.svg'
 
@@ -56,15 +55,6 @@ export default function NotFound() {
                     </div>
                 </global_components.PageWrapper>
             </WagmiConfig>
-            <Web3Modal
-                projectId={process.env.WC_PROJECT_ID ?? ''}
-                ethereumClient={config.ethereumClient}
-                themeMode="dark"
-                themeVariables={{
-                    '--w3m-accent-color': '#F1F333', // accent color of the wc modal (text and logo ie) change to whatever you think looks good
-                    '--w3m-background-color': '#F1F333', //top color of the wc modal, change to whatever you think looks good
-                }}
-            />
         </div>
     )
 }

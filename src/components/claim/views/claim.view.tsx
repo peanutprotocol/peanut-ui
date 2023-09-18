@@ -1,4 +1,4 @@
-import { useWeb3Modal } from '@web3modal/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
@@ -137,7 +137,9 @@ export function ClaimView({
                 type={isConnected ? 'submit' : 'button'}
                 className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
-                onClick={!isConnected ? open : claim}
+                onClick={() => {
+                    !isConnected ? open() : claim()
+                }}
                 disabled={isLoading}
             >
                 {isLoading ? (
