@@ -18,7 +18,7 @@ import {
     filecoinCalibration,
     neonDevnet,
     scrollTestnet,
-} from '@wagmi/chains'
+} from 'wagmi/chains'
 import { Chain } from 'wagmi'
 
 const milkomeda = {
