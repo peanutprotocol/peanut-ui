@@ -1,7 +1,13 @@
 import * as Sentry from '@sentry/nextjs'
+import { CaptureConsole } from '@sentry/integrations'
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
+    integrations: [
+        new CaptureConsole({
+            levels: ['error'],
+        }),
+    ],
     // Replay may only be enabled for the client-side
     // Set tracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
