@@ -57,7 +57,7 @@ export function ClaimView({
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                 })
                 console.log(claimTx)
-                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? '')
+                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
 
                 onNextScreen()
             }
@@ -101,7 +101,7 @@ export function ClaimView({
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                 })
 
-                setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
+                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
 
                 onNextScreen()
             }
