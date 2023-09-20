@@ -1,8 +1,13 @@
 import * as Sentry from '@sentry/nextjs'
+import { CaptureConsole } from '@sentry/integrations'
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
-
+    integrations: [
+        new CaptureConsole({
+            levels: ['error'],
+        }),
+    ],
     // Set tracesSampleRate to 1.0 to capture 100%
     // of transactions for performance monitoring.
     // We recommend adjusting this value in production

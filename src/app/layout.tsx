@@ -7,6 +7,9 @@ import * as config from '@/config'
 import { Store } from '@/store/store'
 import { useState, useEffect } from 'react'
 import ReactGA from 'react-ga4'
+import '../../sentry.client.config'
+import '../../sentry.server.config'
+import '../../sentry.edge.config'
 
 const inter = Inter({ subsets: ['latin'] })
 
