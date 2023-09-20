@@ -34,32 +34,12 @@ export function Dashboard() {
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const gaEventTracker = hooks.useAnalyticsEventTracker('dashboard-component')
 
-    function publicClientToProvider(publicClient: PublicClient): providers.JsonRpcProvider {
-        const { chain, transport } = publicClient
-        const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-        }
-
-        if (transport.type === 'fallback') {
-            throw new Error('Fallback transport type is not supported.')
-        }
-
-        return new providers.JsonRpcProvider(transport.url, network)
-    }
-
-    function getEthersProvider({ chainId }: { chainId?: number } = {}): providers.JsonRpcProvider {
-        const publicClient = getPublicClient({ chainId })
-        return publicClientToProvider(publicClient)
-    }
-
+    
     const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
         try {
             localStorageData.forEach(async (item) => {
-                const provider = getEthersProvider({ chainId: Number(Number(item.link.match(/c=(\d+)/)?.[1])) })
                 peanut
-                    .getLinkDetails({ provider, link: item.link })
+                    .getLinkDetails({  link: item.link })
                     .then((res: any) => {
                         const x: IDashboardItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
