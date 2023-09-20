@@ -322,7 +322,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 errorMessage: 'Something went wrong while switching networks',
                             })
                             setLoadingStates('idle')
-                            return
+                            throw error
                         })
                     setLoadingStates('switching network')
                     await new Promise((resolve) => setTimeout(resolve, 4000)) // wait a sec after switching chain before making other deeplink
@@ -509,12 +509,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         showError: true,
                         errorMessage: 'Bulk is not able on this chain, please try another chain',
                     })
+                } else if (error.toString().includes('User rejected the request')) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Please allow the network switch in the wallet',
+                    })
                 } else {
                     setErrorState({
                         showError: true,
                         errorMessage: 'Something failed while creating your link. Please try again',
                     })
-                    console.error(error)
                 }
             } finally {
                 setLoadingStates('idle')
