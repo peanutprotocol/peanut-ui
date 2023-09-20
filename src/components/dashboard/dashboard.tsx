@@ -34,12 +34,11 @@ export function Dashboard() {
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const gaEventTracker = hooks.useAnalyticsEventTracker('dashboard-component')
 
-    
     const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
         try {
             localStorageData.forEach(async (item) => {
                 peanut
-                    .getLinkDetails({  link: item.link })
+                    .getLinkDetails({ link: item.link })
                     .then((res: any) => {
                         const x: IDashboardItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
