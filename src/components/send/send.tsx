@@ -6,7 +6,7 @@ import code_snippet from '@/assets/code_snippet.png'
 export function Send() {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')
-    const [txReceipt, setTxReceipt] = useState<string | string[]>('')
+    const [txHash, setTxHash] = useState<string>('')
     const [chainId, setChainId] = useState<number>(0)
 
     const handleOnNext = () => {
@@ -32,8 +32,8 @@ export function Send() {
                     onCustomScreen: handleOnCustom,
                     claimLink,
                     setClaimLink,
-                    txReceipt,
-                    setTxReceipt,
+                    txHash,
+                    setTxHash,
                     chainId,
                     setChainId,
                 } as _consts.ISendScreenProps)}

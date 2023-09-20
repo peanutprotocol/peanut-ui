@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { useWeb3Modal } from '@web3modal/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 
 import * as global_components from '@/components/global'
@@ -47,7 +47,9 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     <button
                         id="connectButton"
                         className="brutalborder block h-full cursor-pointer bg-white p-1 text-center text-sm font-bold text-black hover:invert sm:px-4 sm:py-2 md:mr-4 lg:text-lg"
-                        onClick={open}
+                        onClick={() => {
+                            open()
+                        }}
                     >
                         {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
                     </button>

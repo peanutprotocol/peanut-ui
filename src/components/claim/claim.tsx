@@ -36,29 +36,6 @@ export function Claim({ link }: { link: string }) {
         }))
     }
 
-    function publicClientToProvider(publicClient: PublicClient) {
-        const { chain, transport } = publicClient
-        const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-        }
-
-        if (transport.type === 'fallback') {
-            return null
-        }
-        return new providers.JsonRpcProvider(transport.url, network)
-    }
-
-    function getEthersProvider({ chainId }: { chainId?: number } = {}) {
-        try {
-            const publicClient = getPublicClient({ chainId })
-            return publicClientToProvider(publicClient)
-        } catch (error) {
-            console.log(error)
-        }
-    }
-
     const getLinktype = (link: string) => {
         const [, fragment] = link.split('?')
         const urlSearchParams = new URLSearchParams(fragment)
@@ -114,13 +91,12 @@ export function Claim({ link }: { link: string }) {
         const [, fragment] = localLink.split('#')
         const urlSearchParams = new URLSearchParams(fragment)
         const linkChainId = urlSearchParams.get('c')
-        const provider = getEthersProvider({ chainId: Number(linkChainId) })
         const _link = localLink.toString()
         setClaimLink(_link)
 
         try {
             console.log('getting link details')
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails(provider, _link, true)
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: _link })
             console.log('linkDetails', linkDetails)
 
             if (Number(linkDetails.tokenAmount) <= 0) {
