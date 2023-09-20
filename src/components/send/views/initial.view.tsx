@@ -1,11 +1,10 @@
 import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
-import { useWeb3Modal } from '@web3modal/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useNetwork } from 'wagmi'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
-// const peanut = require('@squirrel-labs/peanut-sdk')
 import peanut from '@squirrel-labs/peanut-sdk'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
@@ -23,7 +22,7 @@ import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
 
-export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setChainId }: _consts.ISendScreenProps) {
+export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -133,12 +132,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const getWalletClientAndUpdateSigner = async ({ chainId }: { chainId: number }) => {
+    const getWalletClientAndUpdateSigner = async ({
+        chainId,
+    }: {
+        chainId: number
+    }): Promise<providers.JsonRpcSigner> => {
         const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (walletClient) {
-            const signer = _utils.walletClientToSigner(walletClient)
-            return signer
+        if (!walletClient) {
+            throw new Error('Failed to get wallet client')
         }
+        const signer = _utils.walletClientToSigner(walletClient)
+        return signer
     }
 
     const fetchTokenPrice = async (tokenAddress: string, chainId: number) => {
@@ -189,48 +193,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
             return { succes: 'false' }
         }
 
-        //check if the token is in the userBalances
-        // if (
-        //     userBalances.some(
-        //         (balance) => balance.symbol == sendFormData.token && balance.chainId == sendFormData.chainId
-        //     )
-        // ) {
-        //     //check that the user has enough funds
-        //     const balance = userBalances.find((balance) => balance.symbol === sendFormData.token)?.amount
-        //     const tokenAmount =
-        //         inputDenomination == 'USD'
-        //             ? tokenPrice
-        //                 ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
-        //                 : 0
-        //             : sendFormData.amount
-
-        //     const tokenAmount2 =
-        //         advancedDropdownOpen &&
-        //         tokenAmount &&
-        //         sendFormData.bulkAmount &&
-        //         Number(tokenAmount) * sendFormData.bulkAmount
-
-        //     if (tokenAmount2) {
-        //         if (balance && tokenAmount2 && Number(tokenAmount2) > balance) {
-        //             setErrorState({
-        //                 showError: true,
-        //                 errorMessage: "You don't have enough funds",
-        //             })
-
-        //             return { succes: 'false' }
-        //         }
-        //     } else {
-        //         if (balance && tokenAmount && Number(tokenAmount) > balance) {
-        //             setErrorState({
-        //                 showError: true,
-        //                 errorMessage: "You don't have enough funds",
-        //             })
-
-        //             return { succes: 'false' }
-        //         }
-        //     }
-        // }
-
         if (!signer) {
             getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
@@ -254,48 +216,77 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
         return { succes: 'true' }
     }
 
-    const createLink = useCallback(
-        async (sendFormData: _consts.ISendFormData) => {
-            const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
-
-            if (isLoading) return
-
-            //if the price is undefined, fetch the token price again
+    const calculateTokenAmount = async (
+        sendFormData: _consts.ISendFormData
+    ): Promise<{ tokenAmount: number; status: string }> => {
+        if (inputDenomination == 'USD') {
             var price: number | undefined = undefined
-            if (!tokenPrice) {
+            try {
                 price = await fetchTokenPrice(
                     tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
                     sendFormData.chainId
                 )
+            } catch (error) {
+                console.error(error)
+                setErrorState({
+                    showError: true,
+                    errorMessage:
+                        'Something went wrong while fetching the token price, please change input denomination',
+                })
+                return { tokenAmount: 0, status: 'ERROR' }
             }
 
+            if (price) {
+                if (advancedDropdownOpen) {
+                    return {
+                        tokenAmount: (Number(sendFormData.amount) * (sendFormData.bulkAmount ?? 0)) / price,
+                        status: 'SUCCESS',
+                    }
+                } else {
+                    return { tokenAmount: Number(sendFormData.amount) / price, status: 'SUCCESS' }
+                }
+            } else {
+                return { tokenAmount: 0, status: 'ERROR' }
+            }
+        } else {
+            return { tokenAmount: Number(sendFormData.amount) ?? 0, status: 'SUCCESS' }
+        }
+    }
+
+    const createLink = useCallback(
+        async (sendFormData: _consts.ISendFormData) => {
             try {
+                if (isLoading) return
                 setLoadingStates('checking inputs')
                 setErrorState({
                     showError: false,
                     errorMessage: '',
                 })
 
-                const tokenAmount =
-                    inputDenomination == 'USD'
-                        ? tokenPrice
-                            ? sendFormData.amount && Number(sendFormData.amount) / tokenPrice
-                            : price
-                            ? sendFormData.amount && Number(sendFormData.amount) / price
-                            : 0
-                        : sendFormData.amount
+                //Get the signer
+                const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
 
-                const tokenAmount2 =
-                    advancedDropdownOpen &&
-                    tokenAmount &&
-                    sendFormData.bulkAmount &&
-                    Number(tokenAmount) * sendFormData.bulkAmount
+                //Calculate the token amount
+                const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
+                if (status == 'ERROR') {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Something went wrong while calculating the token amount',
+                    })
+                    return
+                }
 
+                //check if the formdata is correct
                 if (checkForm(sendFormData, signer).succes === 'false') {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Please make sure all the inputs are correct',
+                    })
                     return
                 }
                 setEnableConfirmation(true)
 
+                //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
                     sendFormData,
                     userBalances,
@@ -306,7 +297,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                 console.log(
                     (advancedDropdownOpen ? 'bulk ' : 'solo ') +
                         'sending ' +
-                        (tokenAmount2 ? tokenAmount2 : tokenAmount) +
+                        tokenAmount +
                         ' ' +
                         sendFormData.token +
                         ' on chain with id ' +
@@ -319,9 +310,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                         tokenDecimals
                 )
 
-                setLoadingStates('allow network switch')
                 //check if the user is on the correct chain
                 if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
+                    setLoadingStates('allow network switch')
+
                     await utils
                         .waitForPromise(switchNetwork({ chainId: Number(sendFormData.chainId) }))
                         .catch((error) => {
@@ -339,51 +331,169 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
 
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
-                setLoadingStates('executing transaction')
 
                 if (advancedDropdownOpen) {
-                    const { links, txReceipt } = await peanut.createLinks({
-                        signer: signer,
+                    const passwords = Array.from({ length: sendFormData.bulkAmount ?? 1 }, () =>
+                        peanut.getRandomString(16)
+                    )
+                    const linkDetails = {
                         chainId: sendFormData.chainId,
                         tokenAmount: tokenAmount,
-                        numberOfLinks: sendFormData.bulkAmount,
                         tokenType: tokenType,
+                        tokenAddress: tokenAddress,
                         tokenDecimals: tokenDecimals,
-                        verbose: true,
                         baseUrl: window.location.origin + '/claim',
                         trackId: 'ui',
-                        tokenAddress: tokenAddress ?? null,
+                    }
+
+                    setLoadingStates('preparing transaction')
+                    const prepareTxsResponse = await peanut.prepareTxs({
+                        address: address ?? '',
+                        linkDetails,
+                        passwords: passwords,
+                        numberOfLinks: sendFormData.bulkAmount,
+                        provider: signer.provider ?? undefined,
+                    })
+                    if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                prepareTxsResponse.status.message ??
+                                'Something went wrong while preparing the transaction',
+                        })
+                        return
+                    }
+
+                    setLoadingStates('sign in wallet')
+                    const signedTxsResponse = await Promise.all(
+                        prepareTxsResponse.unsignedTxs.map((unsignedTx) =>
+                            peanut.signAndSubmitTx({
+                                structSigner: {
+                                    signer: signer,
+                                },
+                                unsignedTx,
+                            })
+                        )
+                    )
+
+                    setLoadingStates('executing transaction')
+                    await signedTxsResponse[signedTxsResponse.length - 1].tx.wait()
+                    if (signedTxsResponse.some((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                signedTxsResponse.find(
+                                    (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
+                                )?.status.message ?? 'Something went wrong while signing the transaction',
+                        })
+                        return
+                    }
+
+                    setLoadingStates('creating links')
+
+                    const getLinksFromTxResponse = await peanut.getLinksFromTx({
+                        linkDetails,
+                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                        passwords: passwords,
                     })
 
-                    console.log('Created links:', links)
-                    console.log('Transaction receipt:', txReceipt)
-                    //@ts-ignore
-                    links.forEach((link, index) => {
-                        //@ts-ignore
-                        utils.saveToLocalStorage(address + ' - ' + txReceipt.transactionHash + ' - ' + index, link)
+                    if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                getLinksFromTxResponse.status.message ??
+                                'Something went wrong while creating the links',
+                        })
+                        return
+                    }
+                    console.log('Created links:', getLinksFromTxResponse.links)
+                    console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                    getLinksFromTxResponse.links.forEach((link, index) => {
+                        utils.saveToLocalStorage(
+                            address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
+                            link
+                        )
                     })
-
-                    setClaimLink(links)
-                    setTxReceipt(txReceipt)
+                    setClaimLink(getLinksFromTxResponse.links)
+                    setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
                     setChainId(sendFormData.chainId)
                     onNextScreen()
                 } else {
-                    const { link, txReceipt } = await peanut.createLink({
-                        signer: signer,
+                    const passwords = [peanut.getRandomString(16)]
+                    const linkDetails = {
                         chainId: sendFormData.chainId,
-                        tokenAddress: tokenAddress ?? null,
                         tokenAmount: tokenAmount,
                         tokenType: tokenType,
+                        tokenAddress: tokenAddress,
                         tokenDecimals: tokenDecimals,
-                        verbose: true,
                         baseUrl: window.location.origin + '/claim',
                         trackId: 'ui',
+                    }
+
+                    setLoadingStates('preparing transaction')
+                    const prepareTxsResponse = await peanut.prepareTxs({
+                        address: address ?? '',
+                        linkDetails,
+                        passwords: passwords,
                     })
-                    console.log('Created links:', link)
-                    console.log('Transaction receipt:', txReceipt)
-                    utils.saveToLocalStorage(address + ' - ' + txReceipt.transactionHash ?? Math.random(), link)
-                    setClaimLink(link)
-                    setTxReceipt(txReceipt)
+                    if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                prepareTxsResponse.status.message ??
+                                'Something went wrong while preparing the transaction',
+                        })
+                        return
+                    }
+
+                    setLoadingStates('sign in wallet')
+                    const signedTxsResponse = await Promise.all(
+                        prepareTxsResponse.unsignedTxs.map((unsignedTx: any) =>
+                            peanut.signAndSubmitTx({
+                                structSigner: {
+                                    signer: signer,
+                                },
+                                unsignedTx,
+                            })
+                        )
+                    )
+
+                    setLoadingStates('executing transaction')
+                    await signedTxsResponse[signedTxsResponse.length - 1].tx.wait()
+                    if (signedTxsResponse.some((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                signedTxsResponse.find(
+                                    (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
+                                )?.status.message ?? 'Something went wrong while signing the transaction',
+                        })
+                        return
+                    }
+
+                    setLoadingStates('creating link')
+                    const getLinksFromTxResponse = await peanut.getLinksFromTx({
+                        linkDetails,
+                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                        passwords: passwords,
+                    })
+                    if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                getLinksFromTxResponse.status.message ?? 'Something went wrong while creating the link',
+                        })
+                        return
+                    }
+
+                    console.log('Created links:', getLinksFromTxResponse.links[0])
+                    console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                    utils.saveToLocalStorage(
+                        address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash ?? Math.random(),
+                        getLinksFromTxResponse.links[0]
+                    )
+                    setClaimLink(getLinksFromTxResponse.links[0])
+                    setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
                     setChainId(sendFormData.chainId)
                     onNextScreen()
                 }
@@ -753,7 +863,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxReceipt, setC
                             type={isConnected ? 'submit' : 'button'}
                             className="mt-2 block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                             id="cta-btn"
-                            onClick={!isConnected ? open : undefined}
+                            onClick={() => {
+                                if (!isConnected) {
+                                    open()
+                                }
+                            }}
                             disabled={isLoading ? true : false}
                         >
                             {isLoading ? (

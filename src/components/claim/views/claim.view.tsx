@@ -1,4 +1,4 @@
-import { useWeb3Modal } from '@web3modal/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
@@ -51,9 +51,13 @@ export function ClaimView({
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
-                const claimTx = await peanut.claimLinkGasless(claimLink, address, process.env.PEANUT_API_KEY)
+                const claimTx = await peanut.claimLinkGasless({
+                    link: claimLink,
+                    recipientAddress: address,
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                })
                 console.log(claimTx)
-                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? '')
+                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
 
                 onNextScreen()
             }
@@ -91,9 +95,13 @@ export function ClaimView({
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless(claimLink, data.address, process.env.PEANUT_API_KEY)
+                const claimTx = await peanut.claimLinkGasless({
+                    link: claimLink,
+                    recipientAddress: data.address,
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                })
 
-                setTxHash(claimTx.tx_hash ?? claimTx.transactionHash ?? claimTx.hash ?? '')
+                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
 
                 onNextScreen()
             }
@@ -129,7 +137,9 @@ export function ClaimView({
                 type={isConnected ? 'submit' : 'button'}
                 className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
-                onClick={!isConnected ? open : claim}
+                onClick={() => {
+                    !isConnected ? open() : claim()
+                }}
                 disabled={isLoading}
             >
                 {isLoading ? (

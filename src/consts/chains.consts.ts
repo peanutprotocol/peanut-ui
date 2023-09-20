@@ -5,7 +5,6 @@ import {
     polygon,
     bsc,
     goerli,
-    scrollTestnet,
     optimism,
     bscTestnet,
     optimismGoerli,
@@ -18,9 +17,8 @@ import {
     polygonMumbai,
     filecoinCalibration,
     neonDevnet,
-    sepolia,
-    taikoTestnetSepolia,
-} from '@wagmi/chains'
+    scrollTestnet,
+} from 'wagmi/chains'
 import { Chain } from 'wagmi'
 
 const milkomeda = {
@@ -68,10 +66,10 @@ export const chains = [
     bsc,
     goerli,
     gnosis,
-    scrollTestnet,
     optimism,
     bscTestnet,
     optimismGoerli,
+    avalancheFuji,
     polygonZkEvmTestnet,
     mantleTestnet,
     gnosisChiado,
@@ -83,6 +81,5 @@ export const chains = [
     neonDevnet,
     milkomeda,
     milkomedaTestnet,
+    scrollTestnet,
 ]
-
-//have a look to make this more modular

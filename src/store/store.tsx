@@ -9,7 +9,7 @@ import * as hooks from '@/hooks'
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
 
-export const defaultChainDetailsAtom = atom<interfaces.IPeanutChainDetails[]>([])
+export const defaultChainDetailsAtom = atom<any[]>([])
 export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 
 export const supportedChainsSocketTechAtom = atom<socketTech.ChainDetails[]>([])
@@ -57,7 +57,9 @@ export function Store({ children }: { children: React.ReactNode }) {
 
     const getPeanutChainAndTokenDetails = async () => {
         if (peanut) {
-            const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map((key) => peanut.CHAIN_DETAILS[key])
+            const chainDetailsArray = Object.keys(peanut.CHAIN_DETAILS).map(
+                (key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS]
+            )
             const tokenDetailsArray = peanut.TOKEN_DETAILS
             setDefaultChainDetails(chainDetailsArray)
             setDefaultTokenDetails(tokenDetailsArray)

@@ -21,7 +21,7 @@ const linkss = [
     'http://localhost:3000/claim#?c=5&v=v4&i=82&p=ZbOBBU3mS44E8pVV&t=ui',
 ]
 
-export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId }: _consts.ISendScreenProps) {
+export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
     const [copiedLink, setCopiedLink] = useState<string[]>()
@@ -29,11 +29,8 @@ export function SendSuccessView({ onCustomScreen, claimLink, txReceipt, chainId 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     const explorerUrlWithTx = useMemo(
-        () =>
-            chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url +
-            '/tx/' +
-            txReceipt?.transactionHash,
-        [txReceipt, chainId]
+        () => chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url + '/tx/' + txHash,
+        [txHash, chainId]
     )
 
     useEffect(() => {
