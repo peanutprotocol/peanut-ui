@@ -253,6 +253,22 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
+    function getLatestAddress(chainId: string, type: string): string {
+        const data = peanut.PEANUT_CONTRACTS
+        const chainData = data[chainId as unknown as keyof typeof data]
+
+        // Filter keys starting with "v" and sort them
+        const versions = Object.keys(chainData)
+            .filter((key) => key.startsWith(type == 'batch' ? 'Bv' : 'v'))
+            .sort((a, b) => parseInt(b.substring(1)) - parseInt(a.substring(1))) // Sort in descending order based on version number
+
+        console.log(versions)
+
+        const highestVersion = versions.sort((a, b) => parseInt(b.slice(1)) - parseInt(a.slice(1)))[0]
+
+        return highestVersion
+    }
+
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -333,8 +349,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setEnableConfirmation(true)
 
                 if (advancedDropdownOpen) {
-                    const passwords = Array.from({ length: sendFormData.bulkAmount ?? 1 }, () =>
-                        peanut.getRandomString(16)
+                    const passwords = await Promise.all(
+                        Array.from({ length: sendFormData.bulkAmount ?? 1 }, async () => peanut.getRandomString(16))
                     )
                     const linkDetails = {
                         chainId: sendFormData.chainId,
@@ -345,6 +361,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         baseUrl: window.location.origin + '/claim',
                         trackId: 'ui',
                     }
+                    const latestBatchContractVersion = getLatestAddress(sendFormData.chainId.toString(), 'batch')
 
                     setLoadingStates('preparing transaction')
                     const prepareTxsResponse = await peanut.prepareTxs({
@@ -353,15 +370,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         passwords: passwords,
                         numberOfLinks: sendFormData.bulkAmount,
                         provider: signer.provider ?? undefined,
+                        batcherContractVersion: latestBatchContractVersion,
                     })
                     if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                prepareTxsResponse.status.message ??
-                                'Something went wrong while preparing the transaction',
+                            errorMessage: 'Something went wrong while preparing the transaction',
                         })
-                        return
+                        throw new Error(prepareTxsResponse.status.extraInfo, { cause: 'preparing' })
                     }
 
                     setLoadingStates('sign in wallet')
@@ -381,12 +397,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     if (signedTxsResponse.some((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                signedTxsResponse.find(
-                                    (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
-                                )?.status.message ?? 'Something went wrong while signing the transaction',
+                            errorMessage: 'Something went wrong while signing the transaction',
                         })
-                        return
+                        throw new Error(
+                            signedTxsResponse.find(
+                                (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
+                            )?.status.extraInfo,
+                            { cause: 'signing' }
+                        )
                     }
 
                     setLoadingStates('creating links')
@@ -400,11 +418,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                getLinksFromTxResponse.status.message ??
-                                'Something went wrong while creating the links',
+                            errorMessage: 'Something went wrong while creating the links',
                         })
-                        return
+                        throw new Error(getLinksFromTxResponse.status.extraInfo, { cause: 'creating' })
                     }
                     console.log('Created links:', getLinksFromTxResponse.links)
                     console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
@@ -419,7 +435,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     setChainId(sendFormData.chainId)
                     onNextScreen()
                 } else {
-                    const passwords = [peanut.getRandomString(16)]
+                    const passwords = [await peanut.getRandomString(16)]
                     const linkDetails = {
                         chainId: sendFormData.chainId,
                         tokenAmount: tokenAmount,
@@ -429,21 +445,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         baseUrl: window.location.origin + '/claim',
                         trackId: 'ui',
                     }
+                    const latestContractVersion = getLatestAddress(sendFormData.chainId.toString(), 'single')
 
                     setLoadingStates('preparing transaction')
+
+                    console.log('latest contract version: ' + latestContractVersion)
                     const prepareTxsResponse = await peanut.prepareTxs({
                         address: address ?? '',
                         linkDetails,
                         passwords: passwords,
+                        provider: signer.provider ?? undefined,
+                        peanutContractVersion: latestContractVersion,
                     })
                     if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                prepareTxsResponse.status.message ??
-                                'Something went wrong while preparing the transaction',
+                            errorMessage: 'Something went wrong while preparing the transaction',
                         })
-                        return
+                        throw new Error(prepareTxsResponse.status.extraInfo, { cause: 'preparing' })
                     }
 
                     setLoadingStates('sign in wallet')
@@ -463,12 +482,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     if (signedTxsResponse.some((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                signedTxsResponse.find(
-                                    (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
-                                )?.status.message ?? 'Something went wrong while signing the transaction',
+                            errorMessage: 'Something went wrong while signing the transaction',
                         })
-                        return
+                        throw new Error(
+                            signedTxsResponse.find(
+                                (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
+                            )?.status.extraInfo,
+                            { cause: 'signing' }
+                        )
                     }
 
                     setLoadingStates('creating link')
@@ -480,10 +501,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                getLinksFromTxResponse.status.message ?? 'Something went wrong while creating the link',
+                            errorMessage: 'Something went wrong while creating the link',
                         })
-                        return
+                        throw new Error(getLinksFromTxResponse.status.extraInfo, { cause: 'creating' })
                     }
 
                     console.log('Created links:', getLinksFromTxResponse.links[0])
@@ -498,27 +518,31 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     onNextScreen()
                 }
             } catch (error: any) {
-                console.error(error)
-                if (error.toString().includes('insufficient funds')) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: "You don't have enough funds",
-                    })
-                } else if (error.toString().includes('not deployed on chain')) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Bulk is not able on this chain, please try another chain',
-                    })
-                } else if (error.toString().includes('User rejected the request')) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Please allow the network switch in the wallet',
-                    })
+                if (error.cause != 'preparing' && error.cause != 'signing' && error.cause != 'creating') {
+                    console.error(error)
+                    if (error.toString().includes('insufficient funds')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: "You don't have enough funds",
+                        })
+                    } else if (error.toString().includes('not deployed on chain')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Bulk is not able on this chain, please try another chain',
+                        })
+                    } else if (error.toString().includes('User rejected the request')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please allow the network switch in the wallet',
+                        })
+                    } else {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Something failed while creating your link. Please try again',
+                        })
+                    }
                 } else {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Something failed while creating your link. Please try again',
-                    })
+                    console.error('cause: ' + error.cause + ' message: ' + error.message)
                 }
             } finally {
                 setLoadingStates('idle')
