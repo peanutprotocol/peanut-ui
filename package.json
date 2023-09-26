@@ -42,7 +42,8 @@
         "viem": "^1.11.0",
         "wagmi": "^1.4.2",
         "web3": "^1.7.0",
-        "web3modal": "^1.9.12"
+        "web3modal": "^1.9.12",
+        "classnames": "^2.3.2"
     },
     "devDependencies": {
         "parcel": "^2.9.3",

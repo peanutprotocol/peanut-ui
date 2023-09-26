@@ -11,7 +11,9 @@ import * as _consts from '../claim.consts'
 import * as utils from '@/utils'
 import * as store from '@/store'
 import * as consts from '@/consts'
+import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
+import classNames from 'classnames'
 
 export function ClaimView({
     onNextScreen,
@@ -25,6 +27,8 @@ export function ClaimView({
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+
+    console.log(claimDetails)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -116,23 +120,108 @@ export function ClaimView({
         }
     }
 
+    const multiLinkDetails: interfaces.ILinkDetails[] = [
+        {
+            link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
+            chainId: 137,
+            depositIndex: 231,
+            contractVersion: 'v4',
+            password: '9X5d0JmWIbRdx8G4',
+            tokenType: 0,
+            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+            tokenSymbol: 'MATIC',
+            tokenName: 'MATIC',
+            tokenAmount: '0.1',
+            claimed: false,
+            depositDate: '2023-09-19T09:08:46.000Z',
+        },
+        {
+            link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
+            chainId: 137,
+            depositIndex: 231,
+            contractVersion: 'v4',
+            password: '9X5d0JmWIbRdx8G4',
+            tokenType: 0,
+            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+            tokenSymbol: 'MATIC',
+            tokenName: 'MATIC',
+            tokenAmount: '0.1',
+            claimed: false,
+            depositDate: '2023-09-19T09:08:46.000Z',
+        },
+        {
+            link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
+            chainId: 137,
+            depositIndex: 231,
+            contractVersion: 'v4',
+            password: '9X5d0JmWIbRdx8G4',
+            tokenType: 0,
+            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+            tokenSymbol: 'MATIC',
+            tokenName: 'MATIC',
+            tokenAmount: '0.1',
+            claimed: false,
+            depositDate: '2023-09-19T09:08:46.000Z',
+        },
+    ]
+
+    const [isChecked, setIsChecked] = useState(false)
+
     return (
         <>
-            {claimType == 'PROMO' && (
-                <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
-                    Oh, you found a promo code! Enjoy your free money!
-                </h2>
+            {false ? (
+                <>
+                    {' '}
+                    {claimType == 'PROMO' && (
+                        <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
+                            Oh, you found a promo code! Enjoy your free money!
+                        </h2>
+                    )}
+                    <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
+                        Claim{' '}
+                        {tokenPrice
+                            ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails.tokenAmount))
+                            : utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{' '}
+                        {tokenPrice ? 'in ' + claimDetails.tokenSymbol : claimDetails.tokenSymbol}
+                    </h2>
+                    <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
+                        {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
+                    </h3>
+                </>
+            ) : (
+                <>
+                    <h2 className="mb-0 mt-2 text-center text-2xl font-black lg:text-5xl ">
+                        You have found a multilink!
+                    </h2>
+                    <h3 className="text-md my-1 text-center font-black sm:text-lg lg:text-xl ">
+                        This link contains the following tokens:
+                    </h3>
+                    <label>
+                        <input type="checkbox" checked={isChecked} onClick={() => setIsChecked(!isChecked)} />
+                    </label>
+                    <div className="mb-6 mt-2 flex flex-col gap-2 ">
+                        {multiLinkDetails.map((link) => {
+                            return (
+                                <div className="flex items-center">
+                                    {/* <input
+                                        checked
+                                        id="checked-checkbox"
+                                        type="checkbox"
+                                        value=""
+                                        className="text-blue-600 focus:ring-blue-500 dark:focus:ring-blue-600 h-4 w-4 rounded border-gray-300 bg-gray-100 focus:ring-2 dark:border-gray-600 dark:bg-gray-700 dark:ring-offset-gray-800"
+                                    />
+                                    <label className="text-md my-1 text-center font-black sm:text-lg lg:text-xl">
+                                        {link.tokenAmount} {link.tokenSymbol} on{' '}
+                                        {chainDetails &&
+                                            chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
+                                    </label> */}
+                                </div>
+                            )
+                        })}
+                    </div>
+                </>
             )}
-            <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                Claim{' '}
-                {tokenPrice
-                    ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails.tokenAmount))
-                    : utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{' '}
-                {tokenPrice ? 'in ' + claimDetails.tokenSymbol : claimDetails.tokenSymbol}
-            </h2>
-            <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
-                {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
-            </h3>
+
             <button
                 type={isConnected ? 'submit' : 'button'}
                 className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"

@@ -75,4 +75,5 @@ export interface ILinkDetails {
     tokenName: string
     tokenAmount: string
     depositDate: string
+    claimed: boolean
 }
