@@ -45,7 +45,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         <>
             <div className="flex w-full flex-col items-center text-center ">
                 <h2 className="title-font text-5xl font-black text-black">Yay!</h2>
-                {typeof claimLink === 'string' ? (
+                {claimLink.length == 1 ? (
                     <p className="mt-2 self-center text-lg">
                         Send this link to your friend so they can claim their funds.
                     </p>
@@ -53,7 +53,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     <p className="mt-2 self-center text-lg">Here are the links you created.</p>
                 )}
 
-                {typeof claimLink === 'string' ? (
+                {claimLink.length == 1 ? (
                     <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-1 text-white ">
                         <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
                             {claimLink}
@@ -61,7 +61,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                         <div
                             className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
                             onClick={() => {
-                                navigator.clipboard.writeText(claimLink)
+                                navigator.clipboard.writeText(claimLink[0])
                                 setIsCopied(true)
                             }}
                         >
@@ -114,7 +114,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     </ul>
                 )}
 
-                {typeof claimLink === 'string' ? (
+                {claimLink.length == 1 ? (
                     <div
                         className="mt-2 flex cursor-pointer items-center justify-center"
                         onClick={() => {

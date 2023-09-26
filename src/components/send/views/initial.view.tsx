@@ -286,7 +286,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 throw error
             })
             setLoadingStates('switching network')
-            await new Promise((resolve) => setTimeout(resolve, 4000)) // wait a sec after switching chain before making other deeplink
+            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
             setLoadingStates('loading')
         }
     }
@@ -380,7 +380,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     linkDetails,
                     passwords: passwords,
                     numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
-                    provider: signer.provider ?? undefined,
                     batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
                     peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
@@ -402,7 +401,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         },
                         unsignedTx: tx,
                     })
-                    await new Promise((resolve) => setTimeout(resolve, 2000)) // wait 2 seconds
+                    isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
                     setLoadingStates('executing transaction')
                     await x.tx.wait()
@@ -426,7 +425,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     )
                 }
 
-                setLoadingStates('creating links')
+                setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
 
                 const getLinksFromTxResponse = await peanut.getLinksFromTx({
                     linkDetails,

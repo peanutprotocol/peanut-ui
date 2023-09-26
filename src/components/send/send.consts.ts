@@ -28,8 +28,8 @@ export interface ISendScreenState {
 export interface ISendScreenProps {
     onNextScreen: () => void
     onCustomScreen: (screen: SendScreens) => void
-    claimLink: string | string[]
-    setClaimLink: (claimLink: string | string[]) => void
+    claimLink: string[]
+    setClaimLink: (claimLink: string[]) => void
     txHash: string
     setTxHash: (txHash: string) => void
     chainId: number
