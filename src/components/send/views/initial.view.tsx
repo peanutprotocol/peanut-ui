@@ -23,6 +23,8 @@ import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
 
+peanut.toggleVerbose()
+
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
