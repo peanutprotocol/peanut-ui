@@ -352,7 +352,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setEnableConfirmation(true)
 
                 const passwords = await Promise.all(
-                    Array.from({ length: sendFormData.bulkAmount ?? 1 }, async () => peanut.getRandomString(16))
+                    Array.from({ length: advancedDropdownOpen ? sendFormData.bulkAmount ?? 1 : 1 }, async () =>
+                        peanut.getRandomString(16)
+                    )
                 )
 
                 const linkDetails = {
@@ -367,7 +369,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                 const latestContractVersion = getLatestAddress(
                     sendFormData.chainId.toString(),
-                    sendFormData.bulkAmount ? 'batch' : 'single'
+                    advancedDropdownOpen ? 'batch' : 'single'
                 )
 
                 setLoadingStates('preparing transaction')
@@ -375,10 +377,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     address: address ?? '',
                     linkDetails,
                     passwords: passwords,
-                    numberOfLinks: sendFormData.bulkAmount ? sendFormData.bulkAmount : undefined,
+                    numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
                     provider: signer.provider ?? undefined,
-                    batcherContractVersion: sendFormData.bulkAmount ? latestContractVersion : undefined,
-                    peanutContractVersion: sendFormData.bulkAmount ? undefined : latestContractVersion,
+                    batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
+                    peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
                 if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
                     setErrorState({
