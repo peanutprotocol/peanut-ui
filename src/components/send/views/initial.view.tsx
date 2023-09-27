@@ -21,6 +21,9 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
+import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
+
+peanut.toggleVerbose()
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -269,6 +272,25 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         return highestVersion
     }
 
+    const checkNetwork = async (chainId: number) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            setLoadingStates('allow network switch')
+
+            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Something went wrong while switching networks',
+                })
+                setLoadingStates('idle')
+                throw error
+            })
+            setLoadingStates('switching network')
+            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
+            setLoadingStates('loading')
+        }
+    }
+
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -326,197 +348,111 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         tokenDecimals
                 )
 
-                //check if the user is on the correct chain
-                if (currentChain?.id.toString() !== sendFormData.chainId.toString()) {
-                    setLoadingStates('allow network switch')
-
-                    await utils
-                        .waitForPromise(switchNetwork({ chainId: Number(sendFormData.chainId) }))
-                        .catch((error) => {
-                            setErrorState({
-                                showError: true,
-                                errorMessage: 'Something went wrong while switching networks',
-                            })
-                            setLoadingStates('idle')
-                            throw error
-                        })
-                    setLoadingStates('switching network')
-                    await new Promise((resolve) => setTimeout(resolve, 4000)) // wait a sec after switching chain before making other deeplink
-                    setLoadingStates('loading')
-                }
+                await checkNetwork(sendFormData.chainId)
 
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
 
-                if (advancedDropdownOpen) {
-                    const passwords = await Promise.all(
-                        Array.from({ length: sendFormData.bulkAmount ?? 1 }, async () => peanut.getRandomString(16))
+                const passwords = await Promise.all(
+                    Array.from({ length: advancedDropdownOpen ? sendFormData.bulkAmount ?? 1 : 1 }, async () =>
+                        peanut.getRandomString(16)
                     )
-                    const linkDetails = {
-                        chainId: sendFormData.chainId,
-                        tokenAmount: tokenAmount,
-                        tokenType: tokenType,
-                        tokenAddress: tokenAddress,
-                        tokenDecimals: tokenDecimals,
-                        baseUrl: window.location.origin + '/claim',
-                        trackId: 'ui',
-                    }
-                    const latestBatchContractVersion = getLatestAddress(sendFormData.chainId.toString(), 'batch')
+                )
 
-                    setLoadingStates('preparing transaction')
-                    const prepareTxsResponse = await peanut.prepareTxs({
-                        address: address ?? '',
-                        linkDetails,
-                        passwords: passwords,
-                        numberOfLinks: sendFormData.bulkAmount,
-                        provider: signer.provider ?? undefined,
-                        batcherContractVersion: latestBatchContractVersion,
-                    })
-                    if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Something went wrong while preparing the transaction',
-                        })
-                        throw new Error(prepareTxsResponse.status.extraInfo, { cause: 'preparing' })
-                    }
-
-                    setLoadingStates('sign in wallet')
-                    const signedTxsResponse = await Promise.all(
-                        prepareTxsResponse.unsignedTxs.map((unsignedTx) =>
-                            peanut.signAndSubmitTx({
-                                structSigner: {
-                                    signer: signer,
-                                },
-                                unsignedTx,
-                            })
-                        )
-                    )
-
-                    setLoadingStates('executing transaction')
-                    await signedTxsResponse[signedTxsResponse.length - 1].tx.wait()
-                    if (signedTxsResponse.some((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Something went wrong while signing the transaction',
-                        })
-                        throw new Error(
-                            signedTxsResponse.find(
-                                (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
-                            )?.status.extraInfo,
-                            { cause: 'signing' }
-                        )
-                    }
-
-                    setLoadingStates('creating links')
-
-                    const getLinksFromTxResponse = await peanut.getLinksFromTx({
-                        linkDetails,
-                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
-                        passwords: passwords,
-                    })
-
-                    if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Something went wrong while creating the links',
-                        })
-                        throw new Error(getLinksFromTxResponse.status.extraInfo, { cause: 'creating' })
-                    }
-                    console.log('Created links:', getLinksFromTxResponse.links)
-                    console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
-                    getLinksFromTxResponse.links.forEach((link, index) => {
-                        utils.saveToLocalStorage(
-                            address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
-                            link
-                        )
-                    })
-                    setClaimLink(getLinksFromTxResponse.links)
-                    setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
-                    setChainId(sendFormData.chainId)
-                    onNextScreen()
-                } else {
-                    const passwords = [await peanut.getRandomString(16)]
-                    const linkDetails = {
-                        chainId: sendFormData.chainId,
-                        tokenAmount: tokenAmount,
-                        tokenType: tokenType,
-                        tokenAddress: tokenAddress,
-                        tokenDecimals: tokenDecimals,
-                        baseUrl: window.location.origin + '/claim',
-                        trackId: 'ui',
-                    }
-                    const latestContractVersion = getLatestAddress(sendFormData.chainId.toString(), 'single')
-
-                    setLoadingStates('preparing transaction')
-
-                    console.log('latest contract version: ' + latestContractVersion)
-                    const prepareTxsResponse = await peanut.prepareTxs({
-                        address: address ?? '',
-                        linkDetails,
-                        passwords: passwords,
-                        provider: signer.provider ?? undefined,
-                        peanutContractVersion: latestContractVersion,
-                    })
-                    if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Something went wrong while preparing the transaction',
-                        })
-                        throw new Error(prepareTxsResponse.status.extraInfo, { cause: 'preparing' })
-                    }
-
-                    setLoadingStates('sign in wallet')
-                    const signedTxsResponse = await Promise.all(
-                        prepareTxsResponse.unsignedTxs.map((unsignedTx: any) =>
-                            peanut.signAndSubmitTx({
-                                structSigner: {
-                                    signer: signer,
-                                },
-                                unsignedTx,
-                            })
-                        )
-                    )
-
-                    setLoadingStates('executing transaction')
-                    await signedTxsResponse[signedTxsResponse.length - 1].tx.wait()
-                    if (signedTxsResponse.some((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Something went wrong while signing the transaction',
-                        })
-                        throw new Error(
-                            signedTxsResponse.find(
-                                (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS
-                            )?.status.extraInfo,
-                            { cause: 'signing' }
-                        )
-                    }
-
-                    setLoadingStates('creating link')
-                    const getLinksFromTxResponse = await peanut.getLinksFromTx({
-                        linkDetails,
-                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
-                        passwords: passwords,
-                    })
-                    if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Something went wrong while creating the link',
-                        })
-                        throw new Error(getLinksFromTxResponse.status.extraInfo, { cause: 'creating' })
-                    }
-
-                    console.log('Created links:', getLinksFromTxResponse.links[0])
-                    console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
-                    utils.saveToLocalStorage(
-                        address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash ?? Math.random(),
-                        getLinksFromTxResponse.links[0]
-                    )
-                    setClaimLink(getLinksFromTxResponse.links[0])
-                    setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
-                    setChainId(sendFormData.chainId)
-                    onNextScreen()
+                const linkDetails = {
+                    chainId: sendFormData.chainId,
+                    tokenAmount: tokenAmount,
+                    tokenType: tokenType,
+                    tokenAddress: tokenAddress,
+                    tokenDecimals: tokenDecimals,
+                    baseUrl: window.location.origin + '/claim',
+                    trackId: 'ui',
                 }
+
+                const latestContractVersion = getLatestAddress(
+                    sendFormData.chainId.toString(),
+                    advancedDropdownOpen ? 'batch' : 'single'
+                )
+
+                setLoadingStates('preparing transaction')
+                const prepareTxsResponse = await peanut.prepareTxs({
+                    address: address ?? '',
+                    linkDetails,
+                    passwords: passwords,
+                    numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
+                    batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
+                    peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
+                })
+                if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Something went wrong while preparing the transaction',
+                    })
+                    throw new Error(prepareTxsResponse.status.stack, { cause: 'preparing' })
+                }
+
+                const signedTxsResponse: ISignAndSubmitTxResponse[] = []
+
+                for (const tx of prepareTxsResponse.unsignedTxs) {
+                    setLoadingStates('sign in wallet')
+                    const x = await peanut.signAndSubmitTx({
+                        structSigner: {
+                            signer: signer,
+                        },
+                        unsignedTx: tx,
+                    })
+                    isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
+
+                    setLoadingStates('executing transaction')
+                    await x.tx.wait()
+                    signedTxsResponse.push(x)
+                }
+
+                if (
+                    signedTxsResponse.some(
+                        (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS || tx.tx == null
+                    )
+                ) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Something went wrong while signing the transaction',
+                    })
+
+                    throw new Error(
+                        signedTxsResponse.find((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)
+                            ?.status.stack,
+                        { cause: 'signing' }
+                    )
+                }
+
+                setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
+
+                const getLinksFromTxResponse = await peanut.getLinksFromTx({
+                    linkDetails,
+                    txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                    passwords: passwords,
+                })
+
+                if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Something went wrong while creating the links',
+                    })
+                    throw new Error(getLinksFromTxResponse.status.stack, { cause: 'creating' })
+                }
+
+                console.log('Created links:', getLinksFromTxResponse.links)
+                console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                getLinksFromTxResponse.links.forEach((link, index) => {
+                    utils.saveToLocalStorage(
+                        address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
+                        link
+                    )
+                })
+                setClaimLink(getLinksFromTxResponse.links)
+                setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                setChainId(sendFormData.chainId)
+                onNextScreen()
             } catch (error: any) {
                 if (error.cause != 'preparing' && error.cause != 'signing' && error.cause != 'creating') {
                     console.error(error)
