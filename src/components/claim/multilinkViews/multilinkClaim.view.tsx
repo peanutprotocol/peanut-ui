@@ -1,10 +1,11 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, Fragment } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
+import { Dialog, Transition } from '@headlessui/react'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -14,7 +15,53 @@ import * as consts from '@/consts'
 import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
-export function ClaimView({
+
+const multiLinkDetails: interfaces.ILinkDetails[] = [
+    {
+        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
+        chainId: 137,
+        depositIndex: 231,
+        contractVersion: 'v4',
+        password: '9X5d0JmWIbRdx8G4',
+        tokenType: 0,
+        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        tokenSymbol: 'MATIC',
+        tokenName: 'MATIC',
+        tokenAmount: '0.1',
+        claimed: false,
+        depositDate: '2023-09-19T09:08:46.000Z',
+    },
+    {
+        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
+        chainId: 137,
+        depositIndex: 231,
+        contractVersion: 'v4',
+        password: '9X5d0JmWIbRdx8G4',
+        tokenType: 0,
+        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        tokenSymbol: 'MATIC',
+        tokenName: 'MATIC',
+        tokenAmount: '0.1',
+        claimed: false,
+        depositDate: '2023-09-19T09:08:46.000Z',
+    },
+    {
+        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
+        chainId: 137,
+        depositIndex: 231,
+        contractVersion: 'v4',
+        password: '9X5d0JmWIbRdx8G4',
+        tokenType: 2,
+        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+        tokenSymbol: 'MATIC',
+        tokenName: 'MATIC',
+        tokenAmount: '1',
+        claimed: false,
+        depositDate: '2023-09-19T09:08:46.000Z',
+    },
+]
+
+export function MultilinkClaimView({
     onNextScreen,
     claimDetails,
     claimLink,
@@ -26,8 +73,8 @@ export function ClaimView({
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-
-    console.log(claimDetails)
+    const [isNftModalOpen, setIsNftModalOpen] = useState(false)
+    const [selectedNftIdx, setSelectedNftIdx] = useState<number>(0)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -50,168 +97,50 @@ export function ClaimView({
     })
 
     const claim = async () => {
-        try {
-            if (claimLink && address) {
-                setLoadingStates('executing transaction')
-
-                const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink,
-                    recipientAddress: address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
-                console.log(claimTx)
-                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
-
-                onNextScreen()
-            }
-        } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Something went wrong while claiming',
-            })
-            console.error(error)
-        } finally {
-            setLoadingStates('idle')
-        }
+        onNextScreen()
     }
 
-    const manualClaim = async (data: { address: string; addressExists: boolean }) => {
-        try {
-            setManualErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-            if (!ethers.utils.isAddress(data.address)) {
-                setManualErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a valid address',
-                })
-                return
-            }
-            if (!data.addressExists) {
-                setManualErrorState({
-                    showError: true,
-                    errorMessage: 'Please check the box to confirm that the address exists on the chain',
-                })
-                return
-            }
-            setLoadingStates('executing transaction')
-            if (claimLink && data.address) {
-                console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink,
-                    recipientAddress: data.address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
-
-                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
-
-                onNextScreen()
-            }
-        } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Something went wrong while claiming',
-            })
-            console.error(error)
-        } finally {
-            setLoadingStates('idle')
-        }
-    }
-
-    const multiLinkDetails: interfaces.ILinkDetails[] = [
-        {
-            link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-            chainId: 137,
-            depositIndex: 231,
-            contractVersion: 'v4',
-            password: '9X5d0JmWIbRdx8G4',
-            tokenType: 0,
-            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-            tokenSymbol: 'MATIC',
-            tokenName: 'MATIC',
-            tokenAmount: '0.1',
-            claimed: false,
-            depositDate: '2023-09-19T09:08:46.000Z',
-        },
-        {
-            link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-            chainId: 137,
-            depositIndex: 231,
-            contractVersion: 'v4',
-            password: '9X5d0JmWIbRdx8G4',
-            tokenType: 0,
-            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-            tokenSymbol: 'MATIC',
-            tokenName: 'MATIC',
-            tokenAmount: '0.1',
-            claimed: false,
-            depositDate: '2023-09-19T09:08:46.000Z',
-        },
-        {
-            link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-            chainId: 137,
-            depositIndex: 231,
-            contractVersion: 'v4',
-            password: '9X5d0JmWIbRdx8G4',
-            tokenType: 0,
-            tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-            tokenSymbol: 'MATIC',
-            tokenName: 'MATIC',
-            tokenAmount: '0.1',
-            claimed: false,
-            depositDate: '2023-09-19T09:08:46.000Z',
-        },
-    ]
-
-    const [isChecked, setIsChecked] = useState(false)
+    const manualClaim = async (data: { address: string; addressExists: boolean }) => {}
 
     return (
         <>
-            {false ? (
-                <>
-                    {' '}
-                    {claimType == 'PROMO' && (
-                        <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
-                            Oh, you found a promo code! Enjoy your free money!
-                        </h2>
-                    )}
-                    <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                        Claim{' '}
-                        {tokenPrice
-                            ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails.tokenAmount))
-                            : utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{' '}
-                        {tokenPrice ? 'in ' + claimDetails.tokenSymbol : claimDetails.tokenSymbol}
-                    </h2>
-                    <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
-                        {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
-                    </h3>
-                </>
-            ) : (
-                <>
-                    <h2 className="mb-0 mt-2 text-center text-2xl font-black lg:text-5xl ">
-                        You have found a multilink!
-                    </h2>
-                    <h3 className="text-md my-1 text-center font-black sm:text-lg lg:text-xl ">
-                        This link contains the following tokens:
-                    </h3>
+            <>
+                <h2 className="mb-0 mt-2 text-center text-3xl font-black lg:text-5xl ">You have found a multilink!</h2>
+                <h3 className="text-md my-1 text-center font-black sm:text-lg lg:text-xl ">
+                    This link contains the following tokens:
+                </h3>
 
-                    <div className="mb-6 mt-2 flex flex-col gap-2 ">
-                        {multiLinkDetails.map((link) => {
-                            return (
-                                <div className="flex items-center">
-                                    <img src={peanutman_logo.src} />
-                                    <label className="text-md my-1 text-center font-black sm:text-lg lg:text-xl">
+                <div className="mb-6 mt-2 flex flex-col gap-2 ">
+                    {multiLinkDetails.map((link, idx) => {
+                        return (
+                            <div className="flex items-center gap-2">
+                                <img src={peanutman_logo.src} className="h-6 w-6" />
+                                {link.tokenType == 2 ? (
+                                    <label
+                                        className={
+                                            'text-md my-1 cursor-pointer text-center font-black underline sm:text-lg lg:text-xl '
+                                        }
+                                        onClick={() => {
+                                            setSelectedNftIdx(idx)
+                                            setIsNftModalOpen(true)
+                                        }}
+                                    >
+                                        NFT on{' '}
+                                        {chainDetails &&
+                                            chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
+                                    </label>
+                                ) : (
+                                    <label className={'text-md my-1 text-center font-black sm:text-lg lg:text-xl '}>
                                         {link.tokenAmount} {link.tokenSymbol} on{' '}
                                         {chainDetails &&
-                                            chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
+                                            chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                     </label>
-                                </div>
-                            )
-                        })}
-                    </div>
-                </>
-            )}
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </>
 
             <button
                 type={isConnected ? 'submit' : 'button'}
@@ -306,6 +235,49 @@ export function ClaimView({
             )}
 
             <global_components.PeanutMan type="presenting" />
+
+            <Transition.Root show={isNftModalOpen} as={Fragment}>
+                <Dialog
+                    as="div"
+                    className="relative z-10 "
+                    onClose={() => {
+                        setIsNftModalOpen(false)
+                    }}
+                >
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0"
+                        enterTo="opacity-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
+                    </Transition.Child>
+
+                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            >
+                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
+                                    <div className="flex flex-col gap-4">
+                                        <div>{multiLinkDetails[selectedNftIdx].chainId}</div>
+                                        <img src={peanutman_logo.src} className="24 h-24" />
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
         </>
     )
 }

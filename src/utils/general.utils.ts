@@ -6,6 +6,12 @@ export const shortenAddress = (address: string) => {
 
     return firstBit + '..'
 }
+export const shortenHash = (address: string) => {
+    const firstBit = address.substring(0, 8)
+    const endingBit = address.substring(address.length - 6, address.length)
+
+    return firstBit + '...' + endingBit
+}
 
 export function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 30000): Promise<T> {
     return new Promise((resolve, reject) => {

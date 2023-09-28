@@ -2546,10 +2546,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.2.11":
-  version "0.2.11"
-  resolved "https://registry.npmjs.org/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.2.11.tgz"
-  integrity sha512-mSXykE8LjMYWTKqfrn75JJdyMhPHh/35540Osbrt6jDkE/OLjL7zfyAda28/18vr0unCjF9jX/kc+uHbfDFMHA==
+"@squirrel-labs/peanut-sdk@0.2.13":
+  version "0.2.13"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.2.13.tgz#0cba8ed6a031335b8b6aaab31ef2e4a119d3869d"
+  integrity sha512-U01hIfLwvlzY621TMDuUdHs+YS43tRchPyrOi9kbylmmk0czd0xdE+uNCfFRdcyIUNj8HJcUcv3lck9LP2T1Mg==
   dependencies:
     ethersv5 "npm:ethers@^5"
     isomorphic-fetch "^3.0.0"
@@ -4272,6 +4272,11 @@ class-is@^1.1.0:
   version "1.1.0"
   resolved "https://registry.npmjs.org/class-is/-/class-is-1.1.0.tgz"
   integrity sha512-rhjH9AG1fvabIDoGRVH587413LPjTZgmDF9fOFCbFJQV4yuocX1mHxxvXI4g3cGwbVY9wAYIoKlg1N79frJKQw==
+
+classnames@^2.3.2:
+  version "2.3.2"
+  resolved "https://registry.yarnpkg.com/classnames/-/classnames-2.3.2.tgz#351d813bf0137fcc6a76a16b88208d2560a0d924"
+  integrity sha512-CSbhY4cFEJRe6/GQzIk5qXZ4Jeg5pcsP7b5peFSDpffpe1cqjASH/n9UTjBwOp6XpMSTwQ8Za2K5V02ueA7Tmw==
 
 client-only@0.0.1, client-only@^0.0.1:
   version "0.0.1"
