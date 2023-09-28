@@ -16,51 +16,7 @@ import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
-const multiLinkDetails: interfaces.ILinkDetails[] = [
-    {
-        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-        chainId: 137,
-        depositIndex: 231,
-        contractVersion: 'v4',
-        password: '9X5d0JmWIbRdx8G4',
-        tokenType: 0,
-        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.1',
-        claimed: false,
-        depositDate: '2023-09-19T09:08:46.000Z',
-    },
-    {
-        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-        chainId: 137,
-        depositIndex: 231,
-        contractVersion: 'v4',
-        password: '9X5d0JmWIbRdx8G4',
-        tokenType: 0,
-        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.1',
-        claimed: false,
-        depositDate: '2023-09-19T09:08:46.000Z',
-    },
-    {
-        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-        chainId: 137,
-        depositIndex: 231,
-        contractVersion: 'v4',
-        password: '9X5d0JmWIbRdx8G4',
-        tokenType: 2,
-        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '1',
-        claimed: false,
-        depositDate: '2023-09-19T09:08:46.000Z',
-    },
-]
-export function multilinkAlreadyClaimedView() {
+export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: interfaces.ILinkDetails[] }) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -79,9 +35,9 @@ export function multilinkAlreadyClaimedView() {
                 </h3>
 
                 <div className="mb-6 mt-2 flex flex-col gap-2 ">
-                    {multiLinkDetails.map((link, idx) => {
+                    {claimDetails.map((link, idx) => {
                         return (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" key={idx}>
                                 <img src={peanutman_logo.src} className="h-6 w-6" />
                                 {link.tokenType == 2 ? (
                                     <label
@@ -99,7 +55,7 @@ export function multilinkAlreadyClaimedView() {
                                     </label>
                                 ) : (
                                     <label className={'text-md my-1 text-center font-black sm:text-lg lg:text-xl '}>
-                                        {link.tokenAmount} {link.tokenSymbol} on{' '}
+                                        {link.tokenSymbol} on{' '}
                                         {chainDetails &&
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                     </label>
@@ -122,49 +78,6 @@ export function multilinkAlreadyClaimedView() {
             </>
 
             <global_components.PeanutMan type="sad" />
-
-            <Transition.Root show={isNftModalOpen} as={Fragment}>
-                <Dialog
-                    as="div"
-                    className="relative z-10 "
-                    onClose={() => {
-                        setIsNftModalOpen(false)
-                    }}
-                >
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-300"
-                        enterFrom="opacity-0"
-                        enterTo="opacity-100"
-                        leave="ease-in duration-200"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                    >
-                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
-                    </Transition.Child>
-
-                    <div className="fixed inset-0 z-10 overflow-y-auto">
-                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                            >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex flex-col gap-4">
-                                        <div>{multiLinkDetails[selectedNftIdx].chainId}</div>
-                                        <img src={peanutman_logo.src} className="24 h-24" />
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition.Root>
         </>
     )
 }

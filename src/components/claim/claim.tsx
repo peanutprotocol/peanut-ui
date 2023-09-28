@@ -15,9 +15,9 @@ import * as hooks from '@/hooks'
 export function Claim({ link }: { link: string }) {
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
-    const [claimLink, setClaimLink] = useState<string>('')
-    const [claimDetails, setClaimDetails] = useState<interfaces.ILinkDetails | undefined>(undefined)
-    const [txHash, setTxHash] = useState<string>('')
+    const [claimLink, setClaimLink] = useState<string[]>([])
+    const [claimDetails, setClaimDetails] = useState<interfaces.ILinkDetails[]>([])
+    const [txHash, setTxHash] = useState<string[]>([])
     const [claimType, setClaimType] = useState<'CLAIM' | 'PROMO'>('CLAIM')
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
@@ -38,19 +38,15 @@ export function Claim({ link }: { link: string }) {
     }
 
     const getLinktype = (link: string) => {
-        const xxxx = 'c=42161&v=v4&i=26&p=HkRq6Uci5YQUHqcY&t=sdk'
-        const xxxxx = 'c=42161,420,5&v=v4&i=26,125,255&p=HkRq6Uci5YQUHqcY&t=sdk'
         const [, fragment] = link.split('?')
-        const urlSearchParams = new URLSearchParams(xxxx)
-        console.log(urlSearchParams)
+        const urlSearchParams = new URLSearchParams(fragment)
 
         const c = urlSearchParams.get('c')?.split(',').length
-        console.log(c)
         const i = urlSearchParams.get('i')?.split(',').length
-        console.log(i)
 
         if (c && i && c > 1 && i > 1) {
-            console.log('multilink')
+            gaEventTracker('peanut-claim', 'multilink')
+
             return { type: 'multilink' }
         } else {
             gaEventTracker('peanut-claim', 'normal')
@@ -90,6 +86,29 @@ export function Claim({ link }: { link: string }) {
         }
     }
 
+    function getLinksFromMultilink(link: string): string[] {
+        const url = new URL(link)
+        console.log(url)
+
+        const cParams = url.searchParams.get('c')?.split(',') || []
+        const iParams = url.searchParams.get('i')?.split(',') || []
+
+        if (cParams.length !== iParams.length && cParams.length !== 1) {
+            throw new Error('Mismatch in length of c and i parameters')
+        }
+
+        console.log(iParams)
+
+        const links = iParams.map((i, index) => {
+            const newUrl = new URL(url.toString()) // clone the original URL
+            newUrl.searchParams.set('c', cParams.length === 1 ? cParams[0] : cParams[index])
+            newUrl.searchParams.set('i', i)
+            return newUrl.toString()
+        })
+
+        return links
+    }
+
     const checkLink = async (link: string) => {
         const promoList: {
             [key: string]: string
@@ -106,15 +125,22 @@ export function Claim({ link }: { link: string }) {
             setLinkState('NOT_FOUND')
             return
         }
-        setClaimLink(localLink.toString())
 
         try {
+            console.log(getLinktype(link))
             if (getLinktype(link).type === 'multilink') {
-                console.log('getting multi link details')
-                const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
+                console.log('getting multi link details ' + link)
+                const links = await peanut.getLinksFromMultilink(link)
+                const linkDetails: interfaces.ILinkDetails[] = await Promise.all(
+                    links.map(async (link) => {
+                        console.log(link)
+                        return peanut.getLinkDetails({ link: link })
+                    })
+                )
                 console.log('linkDetails', linkDetails)
-
-                if (true) {
+                setClaimLink(links)
+                setClaimDetails(linkDetails)
+                if (linkDetails.every((link) => link.claimed)) {
                     // implement check for already claimed (amount)
                     setLinkState('MULTILINK_ALREADY_CLAIMED')
                 } else {
@@ -125,6 +151,8 @@ export function Claim({ link }: { link: string }) {
                 const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
                 console.log('linkDetails', linkDetails)
 
+                setClaimLink([localLink.toString()])
+
                 if (Number(linkDetails.tokenAmount) <= 0) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
@@ -133,7 +161,7 @@ export function Claim({ link }: { link: string }) {
                     } else {
                         await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    setClaimDetails(linkDetails)
+                    setClaimDetails([linkDetails])
                     setLinkState('CLAIM')
                 }
             }
@@ -146,27 +174,12 @@ export function Claim({ link }: { link: string }) {
     useEffect(() => {
         if (link) {
             checkLink(link)
-            // getLinktype('')
         }
     }, [link])
 
     return (
         <global_components.CardWrapper>
-            <multilinkViews.multilinkAlreadyClaimedView />
-            {/* {createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
-                onNextScreen: handleOnNext,
-                onCustomScreen: handleOnCustom,
-                claimLink,
-                setClaimLink,
-                claimDetails,
-                txHash,
-                setTxHash,
-                claimType,
-                setClaimType,
-                tokenPrice,
-                setTokenPrice,
-            } as _consts.IClaimScreenProps)} */}
-            {/* {linkState === 'LOADING' && (
+            {linkState === 'LOADING' && (
                 <div className="animate-spin">
                     <img src={peanutman_logo.src} alt="logo" className="h-6 sm:h-10" />
                     <span className="sr-only">Loading...</span>
@@ -202,7 +215,9 @@ export function Claim({ link }: { link: string }) {
                     tokenPrice,
                     setTokenPrice,
                 } as _consts.IClaimScreenProps)}
-            {linkState === 'MULTILINK_ALREADY_CLAIMED' && <multilinkViews.multilinkAlreadyClaimedView />} */}
+            {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
+                <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
+            )}
         </global_components.CardWrapper>
     )
 }

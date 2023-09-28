@@ -17,7 +17,9 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
 
     const explorerUrlWithTx = useMemo(
         () =>
-            chainDetails.find((detail) => detail.chainId === claimDetails.chainId)?.explorers[0].url + '/tx/' + txHash,
+            chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
+            '/tx/' +
+            txHash[0],
         [txHash, chainDetails]
     )
 
@@ -54,7 +56,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
                         target="_blank"
                         className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
                     >
-                        {txHash}
+                        {txHash[0]}
                     </a>
                     <p className="m-0">
                         <small>

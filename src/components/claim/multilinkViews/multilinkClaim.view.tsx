@@ -16,51 +16,6 @@ import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
-const multiLinkDetails: interfaces.ILinkDetails[] = [
-    {
-        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-        chainId: 137,
-        depositIndex: 231,
-        contractVersion: 'v4',
-        password: '9X5d0JmWIbRdx8G4',
-        tokenType: 0,
-        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.1',
-        claimed: false,
-        depositDate: '2023-09-19T09:08:46.000Z',
-    },
-    {
-        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-        chainId: 137,
-        depositIndex: 231,
-        contractVersion: 'v4',
-        password: '9X5d0JmWIbRdx8G4',
-        tokenType: 0,
-        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.1',
-        claimed: false,
-        depositDate: '2023-09-19T09:08:46.000Z',
-    },
-    {
-        link: 'http://localhost:3000/claim#?c=137&v=v4&i=231&p=9X5d0JmWIbRdx8G4&t=ui',
-        chainId: 137,
-        depositIndex: 231,
-        contractVersion: 'v4',
-        password: '9X5d0JmWIbRdx8G4',
-        tokenType: 2,
-        tokenAddress: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '1',
-        claimed: false,
-        depositDate: '2023-09-19T09:08:46.000Z',
-    },
-]
-
 export function MultilinkClaimView({
     onNextScreen,
     claimDetails,
@@ -97,7 +52,41 @@ export function MultilinkClaimView({
     })
 
     const claim = async () => {
-        onNextScreen()
+        try {
+            if (claimLink && address) {
+                setLoadingStates('executing transaction')
+
+                const claimTxs = []
+                for (const link of claimLink) {
+                    console.log(link)
+                    claimTxs.push(
+                        peanut.claimLinkGasless({
+                            link,
+                            recipientAddress: address,
+                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                        })
+                    )
+                }
+
+                console.log('submitted all tx')
+                const claimTx = await Promise.all(claimTxs)
+                console.log('awaited all tx')
+
+                console.log(claimTx)
+
+                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
+
+                onNextScreen()
+            }
+        } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Something went wrong while claiming',
+            })
+            console.error(error)
+        } finally {
+            setLoadingStates('idle')
+        }
     }
 
     const manualClaim = async (data: { address: string; addressExists: boolean }) => {}
@@ -111,9 +100,9 @@ export function MultilinkClaimView({
                 </h3>
 
                 <div className="mb-6 mt-2 flex flex-col gap-2 ">
-                    {multiLinkDetails.map((link, idx) => {
+                    {claimDetails.map((link, idx) => {
                         return (
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2" key={idx}>
                                 <img src={peanutman_logo.src} className="h-6 w-6" />
                                 {link.tokenType == 2 ? (
                                     <label
@@ -269,7 +258,7 @@ export function MultilinkClaimView({
                             >
                                 <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
                                     <div className="flex flex-col gap-4">
-                                        <div>{multiLinkDetails[selectedNftIdx].chainId}</div>
+                                        <div>{claimDetails[selectedNftIdx].chainId}</div>
                                         <img src={peanutman_logo.src} className="24 h-24" />
                                     </div>
                                 </Dialog.Panel>

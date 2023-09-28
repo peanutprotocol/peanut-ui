@@ -28,11 +28,11 @@ export interface IClaimDetails {
 export interface IClaimScreenProps {
     onNextScreen: () => void
     onCustomScreen: (screen: ClaimScreens) => void
-    claimLink: string
-    setClaimLink: (claimLink: string) => void
-    claimDetails: interfaces.ILinkDetails
-    txHash: string
-    setTxHash: (txHash: string) => void
+    claimLink: string[]
+    setClaimLink: (claimLink: string[]) => void
+    claimDetails: interfaces.ILinkDetails[]
+    txHash: string[]
+    setTxHash: (txHash: string[]) => void
     claimType: 'CLAIM' | 'PROMO'
     setClaimType: (claimType: 'CLAIM' | 'PROMO') => void
     tokenPrice: string

@@ -9,12 +9,6 @@ import * as utils from '@/utils'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
-const txHashes = [
-    { chainId: 137, hash: '0xcc1e86e3e043043d403c5d95c7938ff7d38cd0118143b4ad5c64b4623c2a1330' },
-    { chainId: 137, hash: '0xcc1e86e3e043043d403c5d95c7938ff7d38cd0118143b4ad5c64b4623c2a1330' },
-    { chainId: 137, hash: '0xcc1e86e3e043043d403c5d95c7938ff7d38cd0118143b4ad5c64b4623c2a1330' },
-]
-
 export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
@@ -22,11 +16,12 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
-    // const explorerUrlWithTx = useMemo(
-    //     () =>
-    //         chainDetails.find((detail) => detail.chainId === claimDetails.chainId)?.explorers[0].url + '/tx/' + txHash,
-    //     [txHash, chainDetails]
-    // )
+    const explorerUrlWithTx = useMemo(() => {
+        return txHash.map((hash, idx) => {
+            const chainDetail = chainDetails.find((cd) => cd.chainId === claimDetails[idx].chainId)
+            return chainDetail?.explorers[0].url + '/tx/' + hash
+        })
+    }, [chainDetails, claimDetails])
 
     useEffect(() => {
         router.prefetch('/')
@@ -56,22 +51,16 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
             </div>
             {isDropdownOpen && (
                 <div className="m-2 flex flex-col items-center justify-center gap-2 text-center text-base sm:p-0">
-                    {txHashes.map((txHash) => (
+                    {txHash.map((hash, idx) => (
                         <a
-                            href={''}
+                            href={explorerUrlWithTx[idx] ?? ''}
                             target="_blank"
                             className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
+                            key={hash}
                         >
-                            {utils.shortenHash(txHash.hash)}
+                            {utils.shortenHash(hash)}
                         </a>
                     ))}
-                    <a
-                        href={''}
-                        target="_blank"
-                        className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
-                    >
-                        {txHash}
-                    </a>
                 </div>
             )}
             {/* TODO: implement ethrome trackid */}
