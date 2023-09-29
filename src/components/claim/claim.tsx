@@ -41,12 +41,10 @@ export function Claim({ link }: { link: string }) {
         const [, fragment] = link.split('?')
         const urlSearchParams = new URLSearchParams(fragment)
 
-        const c = urlSearchParams.get('c')?.split(',').length
         const i = urlSearchParams.get('i')?.split(',').length
 
-        if (c && i && c > 1 && i > 1) {
+        if (i && i > 1) {
             gaEventTracker('peanut-claim', 'multilink')
-
             return { type: 'multilink' }
         } else {
             gaEventTracker('peanut-claim', 'normal')
@@ -84,29 +82,6 @@ export function Claim({ link }: { link: string }) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
         }
-    }
-
-    function getLinksFromMultilink(link: string): string[] {
-        const url = new URL(link)
-        console.log(url)
-
-        const cParams = url.searchParams.get('c')?.split(',') || []
-        const iParams = url.searchParams.get('i')?.split(',') || []
-
-        if (cParams.length !== iParams.length && cParams.length !== 1) {
-            throw new Error('Mismatch in length of c and i parameters')
-        }
-
-        console.log(iParams)
-
-        const links = iParams.map((i, index) => {
-            const newUrl = new URL(url.toString()) // clone the original URL
-            newUrl.searchParams.set('c', cParams.length === 1 ? cParams[0] : cParams[index])
-            newUrl.searchParams.set('i', i)
-            return newUrl.toString()
-        })
-
-        return links
     }
 
     const checkLink = async (link: string) => {

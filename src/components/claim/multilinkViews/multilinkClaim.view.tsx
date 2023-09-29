@@ -53,6 +53,10 @@ export function MultilinkClaimView({
 
     const claim = async () => {
         try {
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
@@ -89,7 +93,62 @@ export function MultilinkClaimView({
         }
     }
 
-    const manualClaim = async (data: { address: string; addressExists: boolean }) => {}
+    const manualClaim = async (data: { address: string; addressExists: boolean }) => {
+        try {
+            setManualErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+            if (!ethers.utils.isAddress(data.address)) {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a valid address',
+                })
+                return
+            }
+            if (!data.addressExists) {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'Please check the box to confirm that the address exists on the chain',
+                })
+                return
+            }
+            setLoadingStates('executing transaction')
+            if (claimLink && data.address) {
+                setLoadingStates('executing transaction')
+                console.log('claiming link:' + claimLink)
+                const claimTxs = []
+                for (const link of claimLink) {
+                    console.log(link)
+                    claimTxs.push(
+                        peanut.claimLinkGasless({
+                            link,
+                            recipientAddress: data.address,
+                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                        })
+                    )
+                }
+
+                console.log('submitted all tx')
+                const claimTx = await Promise.all(claimTxs)
+                console.log('awaited all tx')
+
+                console.log(claimTx)
+
+                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
+
+                onNextScreen()
+            }
+        } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Something went wrong while claiming',
+            })
+            console.error(error)
+        } finally {
+            setLoadingStates('idle')
+        }
+    }
 
     return (
         <>
@@ -103,11 +162,11 @@ export function MultilinkClaimView({
                     {claimDetails.map((link, idx) => {
                         return (
                             <div className="flex items-center gap-2" key={idx}>
-                                <img src={peanutman_logo.src} className="h-6 w-6" />
+                                <img src={peanutman_logo.src} className="h-5 w-5" />
                                 {link.tokenType == 2 ? (
                                     <label
                                         className={
-                                            'text-md my-1 cursor-pointer text-center font-black underline sm:text-lg lg:text-xl '
+                                            'text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg '
                                         }
                                         onClick={() => {
                                             setSelectedNftIdx(idx)
@@ -119,7 +178,7 @@ export function MultilinkClaimView({
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                     </label>
                                 ) : (
-                                    <label className={'text-md my-1 text-center font-black sm:text-lg lg:text-xl '}>
+                                    <label className={'text-md my-1 text-center font-black sm:text-base lg:text-lg '}>
                                         {link.tokenAmount} {link.tokenSymbol} on{' '}
                                         {chainDetails &&
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
@@ -224,49 +283,6 @@ export function MultilinkClaimView({
             )}
 
             <global_components.PeanutMan type="presenting" />
-
-            <Transition.Root show={isNftModalOpen} as={Fragment}>
-                <Dialog
-                    as="div"
-                    className="relative z-10 "
-                    onClose={() => {
-                        setIsNftModalOpen(false)
-                    }}
-                >
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-300"
-                        enterFrom="opacity-0"
-                        enterTo="opacity-100"
-                        leave="ease-in duration-200"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                    >
-                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
-                    </Transition.Child>
-
-                    <div className="fixed inset-0 z-10 overflow-y-auto">
-                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                            >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex flex-col gap-4">
-                                        <div>{claimDetails[selectedNftIdx].chainId}</div>
-                                        <img src={peanutman_logo.src} className="24 h-24" />
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition.Root>
         </>
     )
 }
