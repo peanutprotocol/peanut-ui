@@ -10,6 +10,7 @@ import ReactGA from 'react-ga4'
 import '../../sentry.client.config'
 import '../../sentry.server.config'
 import '../../sentry.edge.config'
+import 'react-tooltip/dist/react-tooltip.css'
 
 const inter = Inter({ subsets: ['latin'] })
 

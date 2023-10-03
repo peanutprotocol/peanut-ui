@@ -6,6 +6,7 @@ import { useAtom } from 'jotai'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
+import { Tooltip } from 'react-tooltip'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -163,22 +164,22 @@ export function MultilinkClaimView({
                         return (
                             <div className="flex items-center gap-2" key={idx}>
                                 <img src={peanutman_logo.src} className="h-5 w-5" />
-                                {link.tokenType == 2 ? (
-                                    <label
-                                        className={
-                                            'text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg '
-                                        }
-                                        onClick={() => {
-                                            setSelectedNftIdx(idx)
-                                            setIsNftModalOpen(true)
-                                        }}
-                                    >
-                                        NFT on{' '}
-                                        {chainDetails &&
-                                            chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
-                                    </label>
+                                {link.tokenType == 0 ? (
+                                    <>
+                                        <label
+                                            className="text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg "
+                                            data-tooltip-id="my-tooltip"
+                                        >
+                                            NFT on{' '}
+                                            {chainDetails &&
+                                                chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
+                                        </label>
+                                        <Tooltip id="my-tooltip" className="bg-black">
+                                            <img src={peanutman_logo.src} className="h-16 w-16" />
+                                        </Tooltip>
+                                    </>
                                 ) : (
-                                    <label className={'text-md my-1 text-center font-black sm:text-base lg:text-lg '}>
+                                    <label className="text-md my-1 text-center font-black sm:text-base lg:text-lg">
                                         {link.tokenAmount} {link.tokenSymbol} on{' '}
                                         {chainDetails &&
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
