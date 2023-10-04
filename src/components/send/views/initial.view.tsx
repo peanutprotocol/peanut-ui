@@ -23,6 +23,8 @@ import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
 
+peanut.toggleVerbose()
+
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
@@ -284,7 +286,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 throw error
             })
             setLoadingStates('switching network')
-            await new Promise((resolve) => setTimeout(resolve, 4000)) // wait a sec after switching chain before making other deeplink
+            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
             setLoadingStates('loading')
         }
     }
@@ -378,7 +380,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     linkDetails,
                     passwords: passwords,
                     numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
-                    provider: signer.provider ?? undefined,
                     batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
                     peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
@@ -387,22 +388,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         showError: true,
                         errorMessage: 'Something went wrong while preparing the transaction',
                     })
-                    console.log(prepareTxsResponse.status.extraInfo)
-                    throw new Error(prepareTxsResponse.status.extraInfo, { cause: 'preparing' })
+                    throw new Error(prepareTxsResponse.status.stack, { cause: 'preparing' })
                 }
 
-                setLoadingStates('sign in wallet')
                 const signedTxsResponse: ISignAndSubmitTxResponse[] = []
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
+                    setLoadingStates('sign in wallet')
                     const x = await peanut.signAndSubmitTx({
                         structSigner: {
                             signer: signer,
                         },
                         unsignedTx: tx,
                     })
+                    isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
-                    await new Promise((resolve) => setTimeout(resolve, 2000)) // wait 2 seconds
+                    setLoadingStates('executing transaction')
+                    await x.tx.wait()
                     signedTxsResponse.push(x)
                 }
 
@@ -415,16 +417,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         showError: true,
                         errorMessage: 'Something went wrong while signing the transaction',
                     })
+
                     throw new Error(
                         signedTxsResponse.find((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)
-                            ?.status.extraInfo,
+                            ?.status.stack,
                         { cause: 'signing' }
                     )
                 }
-                setLoadingStates('executing transaction')
-                await signedTxsResponse[signedTxsResponse.length - 1].tx.wait()
 
-                setLoadingStates('creating links')
+                setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
 
                 const getLinksFromTxResponse = await peanut.getLinksFromTx({
                     linkDetails,
@@ -437,7 +438,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         showError: true,
                         errorMessage: 'Something went wrong while creating the links',
                     })
-                    throw new Error(getLinksFromTxResponse.status.extraInfo, { cause: 'creating' })
+                    throw new Error(getLinksFromTxResponse.status.stack, { cause: 'creating' })
                 }
 
                 console.log('Created links:', getLinksFromTxResponse.links)

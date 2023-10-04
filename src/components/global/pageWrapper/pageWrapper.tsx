@@ -10,7 +10,7 @@ export function PageWrapper({
     showMarquee?: boolean
 }) {
     return (
-        <div className="scrollbar-hide flex min-h-screen flex-col">
+        <div className="scrollbar-hide flex min-h-screen flex-col bg-black">
             <global_components.Header showMarquee={showMarquee} />
             <div className={' flex min-h-screen flex-col justify-center  ' + bgColor}>{children}</div>
             <global_components.Footer showMarquee={showMarquee} />
