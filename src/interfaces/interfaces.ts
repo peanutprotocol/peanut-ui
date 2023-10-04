@@ -69,10 +69,14 @@ export interface ILinkDetails {
     depositIndex: number
     contractVersion: string
     password: string
-    tokenType: number
-    tokenAddress: string
-    tokenSymbol: string
-    tokenName: string
+    tokenType: any
+    tokenAddress: any
+    tokenSymbol: any
+    tokenName: any
     tokenAmount: string
-    depositDate: string
+    tokenId: number
+    claimed: boolean
+    depositDate: Date
+    tokenURI: any
+    metadata: any
 }

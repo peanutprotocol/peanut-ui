@@ -1,10 +1,12 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useMemo, useState } from 'react'
+import { useMemo, useState, Fragment } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
+import { Dialog, Transition } from '@headlessui/react'
+import { Tooltip } from 'react-tooltip'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -14,7 +16,8 @@ import * as consts from '@/consts'
 import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
-export function ClaimView({
+
+export function MultilinkClaimView({
     onNextScreen,
     claimDetails,
     claimLink,
@@ -26,8 +29,8 @@ export function ClaimView({
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-
-    console.log(claimDetails)
+    const [isNftModalOpen, setIsNftModalOpen] = useState(false)
+    const [selectedNftIdx, setSelectedNftIdx] = useState<number>(0)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -51,16 +54,32 @@ export function ClaimView({
 
     const claim = async () => {
         try {
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
-                const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink[0],
-                    recipientAddress: address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
+                const claimTxs = []
+                for (const link of claimLink) {
+                    console.log(link)
+                    claimTxs.push(
+                        peanut.claimLinkGasless({
+                            link,
+                            recipientAddress: address,
+                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                        })
+                    )
+                }
+
+                console.log('submitted all tx')
+                const claimTx = await Promise.all(claimTxs)
+                console.log('awaited all tx')
+
                 console.log(claimTx)
-                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+
+                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 
                 onNextScreen()
             }
@@ -97,14 +116,27 @@ export function ClaimView({
             }
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
+                setLoadingStates('executing transaction')
                 console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink[0],
-                    recipientAddress: data.address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
+                const claimTxs = []
+                for (const link of claimLink) {
+                    console.log(link)
+                    claimTxs.push(
+                        peanut.claimLinkGasless({
+                            link,
+                            recipientAddress: data.address,
+                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                        })
+                    )
+                }
 
-                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+                console.log('submitted all tx')
+                const claimTx = await Promise.all(claimTxs)
+                console.log('awaited all tx')
+
+                console.log(claimTx)
+
+                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 
                 onNextScreen()
             }
@@ -121,22 +153,47 @@ export function ClaimView({
 
     return (
         <>
-            {' '}
-            {claimType == 'PROMO' && (
-                <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
-                    Oh, you found a promo code! Enjoy your free money!
-                </h2>
-            )}
-            <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                Claim{' '}
-                {tokenPrice
-                    ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
-                    : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
-                {tokenPrice ? 'in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
-            </h2>
-            <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
-                {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
-            </h3>
+            <>
+                <h2 className="mb-0 mt-2 text-center text-3xl font-black lg:text-5xl ">You have found a multilink!</h2>
+                <h3 className="text-md my-1 text-center font-black sm:text-lg lg:text-xl ">
+                    This link contains the following tokens:
+                </h3>
+
+                <div className="mb-6 mt-2 flex flex-col gap-2 ">
+                    {claimDetails.map((link, idx) => {
+                        return (
+                            <div className="flex items-center gap-2" key={idx}>
+                                <img src={peanutman_logo.src} className="h-5 w-5" />
+                                {link.tokenType == 2 ? (
+                                    <>
+                                        <label
+                                            className="text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg "
+                                            data-tooltip-id="my-tooltip"
+                                            onClick={() => {
+                                                console.log('clicked')
+                                            }}
+                                        >
+                                            NFT on{' '}
+                                            {chainDetails &&
+                                                chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
+                                        </label>
+                                        <Tooltip id="my-tooltip" className="bg-black !opacity-100">
+                                            <img src={link.metadata?.image} className="h-24 w-24" />
+                                        </Tooltip>
+                                    </>
+                                ) : (
+                                    <label className="text-md my-1 text-center font-black sm:text-base lg:text-lg">
+                                        {link.tokenAmount} {link.tokenSymbol} on{' '}
+                                        {chainDetails &&
+                                            chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
+                                    </label>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </>
+
             <button
                 type={isConnected ? 'submit' : 'button'}
                 className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
@@ -228,6 +285,7 @@ export function ClaimView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
+
             <global_components.PeanutMan type="presenting" />
         </>
     )
