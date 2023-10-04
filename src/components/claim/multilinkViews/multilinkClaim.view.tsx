@@ -177,8 +177,8 @@ export function MultilinkClaimView({
                                             {chainDetails &&
                                                 chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                         </label>
-                                        <Tooltip id="my-tooltip" className="bg-black">
-                                            <img src={link.metadata?.image} className="h-16 w-16" />
+                                        <Tooltip id="my-tooltip" className="bg-black !opacity-100">
+                                            <img src={link.metadata?.image} className="h-24 w-24" />
                                         </Tooltip>
                                     </>
                                 ) : (
