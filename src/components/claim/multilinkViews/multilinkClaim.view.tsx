@@ -164,18 +164,21 @@ export function MultilinkClaimView({
                         return (
                             <div className="flex items-center gap-2" key={idx}>
                                 <img src={peanutman_logo.src} className="h-5 w-5" />
-                                {link.tokenType == 0 ? (
+                                {link.tokenType == 2 ? (
                                     <>
                                         <label
                                             className="text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg "
                                             data-tooltip-id="my-tooltip"
+                                            onClick={() => {
+                                                console.log('clicked')
+                                            }}
                                         >
                                             NFT on{' '}
                                             {chainDetails &&
                                                 chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                         </label>
                                         <Tooltip id="my-tooltip" className="bg-black">
-                                            <img src={peanutman_logo.src} className="h-16 w-16" />
+                                            <img src={link.metadata?.image} className="h-16 w-16" />
                                         </Tooltip>
                                     </>
                                 ) : (
