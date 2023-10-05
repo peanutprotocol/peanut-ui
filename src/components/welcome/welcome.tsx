@@ -125,8 +125,8 @@ export function Welcome() {
                     <div className="brutalborder flex flex-col border-2 border-black bg-red p-12 px-16 " id="app">
                         <h3 className="text-5xl font-black">Use App</h3>
                         <p className="mt-1 block text-2xl leading-loose">
-                            See how easy it can be to send tokens. Simply generate a link using the Peanut app and
-                            pop into a chat with your friend.
+                            See how easy it can be to send tokens. Simply generate a link using the Peanut app and pop
+                            into a chat with your friend.
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">

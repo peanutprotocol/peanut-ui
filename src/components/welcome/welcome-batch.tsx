@@ -223,7 +223,6 @@
 //                             specific app or claim with a specific wallet? We've got your covered.
 //                         </div>
 
-
 //                         <a href="https://t.me/peanutprotocol" target="_blank" rel="noopener noreferrer">
 //                             <button id="cta-btn" className="bg-white px-3 p-5 text-2xl font-black hover:underline cta">Talk to an expert →</button>
 //                         </a>
