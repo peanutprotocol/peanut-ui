@@ -52,15 +52,17 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 setLoadingStates('executing transaction')
 
                 const claimTxs = []
-                for (const link of claimLink) {
-                    console.log(link)
-                    claimTxs.push(
-                        peanut.claimLinkGasless({
-                            link,
-                            recipientAddress: address,
-                            APIKey: process.env.PEANUT_API_KEY ?? '',
-                        })
-                    )
+                for (const detail of claimDetails) {
+                    if (!detail.claimed) {
+                        console.log(detail)
+                        claimTxs.push(
+                            peanut.claimLinkGasless({
+                                link: detail.link,
+                                recipientAddress: address,
+                                APIKey: process.env.PEANUT_API_KEY ?? '',
+                            })
+                        )
+                    }
                 }
 
                 console.log('submitted all tx')
