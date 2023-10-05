@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+.outline-black {
+    outline: 2px solid black;
+    outline-offset: 0.5px;
+}
+
 :root {
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 214, 219, 220;
