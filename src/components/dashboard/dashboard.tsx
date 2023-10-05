@@ -69,7 +69,7 @@ export function Dashboard() {
             })
             data && setLocalStorageData(data)
         }
-        router.prefetch('/')
+        router.prefetch('/send')
     }, [address])
 
     useEffect(() => {
@@ -98,7 +98,7 @@ export function Dashboard() {
                             type="button"
                             className="brutalborder inline-flex cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm font-medium text-white hover:bg-white hover:text-black sm:w-auto"
                             onClick={() => {
-                                router.push('/')
+                                router.push('/send')
                             }}
                         >
                             CREATE
@@ -281,7 +281,7 @@ export function Dashboard() {
                             <span
                                 className="cursor-pointer underline"
                                 onClick={() => {
-                                    router.push('/')
+                                    router.push('/send')
                                 }}
                             >
                                 here

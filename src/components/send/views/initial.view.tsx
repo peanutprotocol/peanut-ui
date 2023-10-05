@@ -23,8 +23,6 @@ import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
 
-peanut.toggleVerbose()
-
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
@@ -872,6 +870,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setIsTokenSelectorOpen(false)
                         setUnfoldChains(false)
                         setFilteredTokenList(undefined)
+                        console.log()
                     }}
                 >
                     <Transition.Child
@@ -924,19 +923,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                                 sendForm.setValue('chainId', chain.chainId)
                                                                 sendForm.setValue('token', chain.nativeCurrency.symbol)
                                                                 setFormHasBeenTouched(true)
+                                                                console.log(chain.icon.url)
                                                             }}
                                                         >
-                                                            {chain.icon.format == 'ipfs' ? (
-                                                                <MediaRenderer
-                                                                    src={chain.icon.url}
-                                                                    alt="A Blue Circle"
-                                                                />
-                                                            ) : (
-                                                                <img
-                                                                    src={chain.icon.url}
-                                                                    className="h-6 cursor-pointer"
-                                                                />
-                                                            )}
+                                                            <img src={chain.icon.url} className="h-6 cursor-pointer" />
 
                                                             <label className="flex cursor-pointer items-center">
                                                                 {chain.name.toUpperCase()}

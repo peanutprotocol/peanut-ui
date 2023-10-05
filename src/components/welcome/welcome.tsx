@@ -1,36 +1,10 @@
 import * as global_components from '@/components/global'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
-
-// // Hero:
-// SEND TOKENS VIA LINKS
-
-// Forget chains and wallet addresses. Send tokens with a trustless payment link, no matter whether they have a wallet or not.
-
-// --
-// Use case 1: App
-// Use case  2: SDK integration
-// Use case  3: marketing campaigns
-
-// --
-// Features:
-// noncustodial
-// permissionless
-// brandable
-// noob-friendly
-
-// --
-// INTEGRATION
-// talk to an expert
-
-// --
-
-// testimonials
-
-// --
-
-// TRY APP NOW end of page CTA
-
+import orest_image from '@/assets/people/orest.jpg'
+import mydas_image from '@/assets/people/mydas.jpg'
+import steven_image from '@/assets/people/Steven.jpg'
+import sbf_image from '@/assets/people/sbf.jpeg'
 export function Welcome() {
     return (
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
@@ -56,7 +30,7 @@ export function Welcome() {
                                 </a>
 
                                 <a
-                                    href="https://peanut.to/docs"
+                                    href="https://docs.peanut.to"
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     className="p-5 text-2xl font-black text-black hover:underline"
@@ -105,7 +79,7 @@ export function Welcome() {
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="/docs">
+                            <a href="https://docs.peanut.to">
                                 <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
                                     Start Now
                                 </button>
@@ -130,7 +104,7 @@ export function Welcome() {
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="/">
+                            <a href="/send">
                                 <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
                                     Start Now
                                 </button>
@@ -149,7 +123,7 @@ export function Welcome() {
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="/campaigns">
+                            <a href="/send">
                                 <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
                                     Start Now
                                 </button>
@@ -236,8 +210,8 @@ export function Welcome() {
                                 <h2 className="text-4xl">Noob-friendly onboarding</h2>
                                 <p className="text-normal">
                                     Fully customizable guided wallet setup for first-time crypto users, no advance
-                                    address needed!
-                                    <a href="/docs" target="_blank" className="text-black">
+                                    address needed!{' '}
+                                    <a href="/docs" target="_blank" className="text-black underline ">
                                         Read more.
                                     </a>
                                 </p>
@@ -301,7 +275,7 @@ export function Welcome() {
                 <div role="list" className="grid grid-cols-2 gap-0 sm:gap-y-4 lg:grid-cols-4">
                     {[
                         {
-                            imageSrc: '/src/assets/people/orest.jpg',
+                            imageSrc: orest_image.src,
                             altText: 'picture of bearded man',
                             comment: 'How did this not exist before?! Great UX!',
                             name: 'Orest Tarasiuk',
@@ -309,7 +283,7 @@ export function Welcome() {
                             bgColorClass: 'bg-yellow',
                         },
                         {
-                            imageSrc: '/src/assets/people/mydas.jpg',
+                            imageSrc: mydas_image.src,
                             altText: 'picture of rasta NFT',
                             comment: 'Love this! Will help in mass crypto adoption.',
                             name: 'Mydas.eth',
@@ -317,7 +291,7 @@ export function Welcome() {
                             bgColorClass: 'bg-fuchsia',
                         },
                         {
-                            imageSrc: '/src/assets/people/Steven.jpg',
+                            imageSrc: steven_image.src,
                             altText: 'picture of smiling man',
                             comment: 'Very buttery experience!',
                             name: 'Steven Robinson',
@@ -325,7 +299,7 @@ export function Welcome() {
                             bgColorClass: 'bg-lightblue',
                         },
                         {
-                            imageSrc: '/src/assets/people/sbf.jpeg',
+                            imageSrc: sbf_image.src,
                             altText: 'picture of pixel art SBF',
                             comment: 'I have a peanut allergy. Help!',
                             name: 'CEx CEO',
@@ -339,6 +313,7 @@ export function Welcome() {
                             id="frens"
                         >
                             <img
+                                //@ts-ignore
                                 src={testimonial.imageSrc}
                                 alt={testimonial.altText}
                                 className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"

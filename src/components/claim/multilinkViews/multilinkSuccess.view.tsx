@@ -24,7 +24,7 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
     }, [chainDetails, claimDetails])
 
     useEffect(() => {
-        router.prefetch('/')
+        router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
     }, [])
 
@@ -81,7 +81,7 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
                     className="mx-auto mb-4 mt-4 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                     id="cta-btn"
                     onClick={() => {
-                        router.push('/')
+                        router.push('/send')
                     }}
                 >
                     Send Crypto

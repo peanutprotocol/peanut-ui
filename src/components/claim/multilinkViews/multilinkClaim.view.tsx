@@ -1,36 +1,26 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useMemo, useState, Fragment } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
-import { Dialog, Transition } from '@headlessui/react'
 import { Tooltip } from 'react-tooltip'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
-import * as utils from '@/utils'
 import * as store from '@/store'
 import * as consts from '@/consts'
-import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
+import axios from 'axios'
 
-export function MultilinkClaimView({
-    onNextScreen,
-    claimDetails,
-    claimLink,
-    setTxHash,
-    claimType,
-    tokenPrice,
-}: _consts.IClaimScreenProps) {
+export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [isNftModalOpen, setIsNftModalOpen] = useState(false)
-    const [selectedNftIdx, setSelectedNftIdx] = useState<number>(0)
+    const [ipfsArray, setIpfsArray] = useState<string[]>([])
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -151,6 +141,31 @@ export function MultilinkClaimView({
         }
     }
 
+    const fetchIpfsFile = async (url: string) => {
+        const ipfsHash = url.split('://')[1]
+        const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
+        const formattedResponse = 'https://ipfs.io/ipfs/' + response.data.image.split('://')[1]
+        const detail = claimDetails.find((detail) => detail.tokenURI == url)
+        const array = new Array<string>(claimDetails.length)
+        const index = claimDetails.findIndex((detail) => detail.tokenURI == url)
+        array[index] = formattedResponse
+
+        setIpfsArray(array)
+
+        if (detail) {
+            detail.metadata = formattedResponse
+        }
+    }
+
+    useEffect(() => {
+        const filteredNftDetails = claimDetails.filter((details) => details.tokenType == 2)
+        if (filteredNftDetails.length > 0) {
+            filteredNftDetails.map((detail) => {
+                fetchIpfsFile(detail.tokenURI)
+            })
+        }
+    }, [claimDetails])
+
     return (
         <>
             <>
@@ -170,7 +185,7 @@ export function MultilinkClaimView({
                                             className="text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg "
                                             data-tooltip-id="my-tooltip"
                                             onClick={() => {
-                                                console.log('clicked')
+                                                console.log(ipfsArray.at(idx))
                                             }}
                                         >
                                             NFT on{' '}
@@ -178,7 +193,11 @@ export function MultilinkClaimView({
                                                 chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                         </label>
                                         <Tooltip id="my-tooltip" className="bg-black !opacity-100">
-                                            <img src={link.metadata?.image} className="h-24 w-24" />
+                                            {ipfsArray.length > 1 ? (
+                                                <img src={ipfsArray.at(idx)} className="h-36 w-36" />
+                                            ) : (
+                                                ''
+                                            )}
                                         </Tooltip>
                                     </>
                                 ) : (

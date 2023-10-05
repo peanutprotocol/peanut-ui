@@ -102,7 +102,6 @@ export function Claim({ link }: { link: string }) {
         }
 
         try {
-            console.log(getLinktype(link))
             if (getLinktype(link).type === 'multilink') {
                 console.log('getting multi link details ' + link)
                 const links = await peanut.getLinksFromMultilink(link)
@@ -112,6 +111,15 @@ export function Claim({ link }: { link: string }) {
                         return peanut.getLinkDetails({ link: link })
                     })
                 )
+                // if (linkDetails.some((link) => link.tokenType == '2')) {
+                //     const filteredDetails = linkDetails.filter((link) => link.tokenType == '2')
+                //     filteredDetails.forEach(async (link) => {
+                //         const ipfsHash = link.tokenURI.split('://')[1]
+                //         const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
+                //         const formattedResponse = 'https://ipfs.io/ipfs/' + response.data.image.split('://')[1]
+                //         link.metadata = formattedResponse
+                //     })
+                // }
                 console.log('linkDetails', linkDetails)
                 setClaimLink(links)
                 setClaimDetails(linkDetails)

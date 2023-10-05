@@ -38,7 +38,7 @@ export function Send() {
                     setChainId,
                 } as _consts.ISendScreenProps)}
             </global_components.CardWrapper>
-            {sendScreen == _consts.INIT_VIEW && (
+            {/* {sendScreen == _consts.INIT_VIEW && (
                 <global_components.CardWrapper mb=" mb-8">
                     <div className="mt-2 text-center text-black">
                         <h2 className="title-font text-3xl font-black text-black lg:text-5xl">
@@ -70,7 +70,7 @@ export function Send() {
                         </div>
                     </div>
                 </global_components.CardWrapper>
-            )}
+            )} */}
         </>
     )
 }

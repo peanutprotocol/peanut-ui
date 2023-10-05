@@ -24,7 +24,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
     )
 
     useEffect(() => {
-        router.prefetch('/')
+        router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
     }, [])
 

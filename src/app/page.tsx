@@ -9,12 +9,12 @@ export default function Home() {
     const gaEventTracker = hooks.useAnalyticsEventTracker('landing-page')
 
     useEffect(() => {
-        gaEventTracker('peanut-opened', 'send')
+        gaEventTracker('peanut-opened', 'welcome')
     }, [])
 
     return (
         <global_components.PageWrapper>
-            <components.Send />
+            <components.Welcome />
         </global_components.PageWrapper>
     )
 }
