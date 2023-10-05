@@ -23,8 +23,6 @@ import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
 
-peanut.toggleVerbose()
-
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
@@ -546,11 +544,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     return (
         <>
-            <div className="mb-3 mt-6 flex w-full  flex-col gap-5 text-center sm:mb-6 ">
-                <h2 className="title-font bold m-0 text-2xl lg:text-4xl">
+            <div className="flex w-full flex-col items-center text-center  sm:mb-3">
+                <h2 className="title-font bold text-2xl lg:text-4xl">
                     Send crypto with a link
                     <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
                 </h2>
+                <div className="w-4/5 font-normal">
+                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. Send
+                    it to whomever you want.
+                </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
@@ -868,6 +870,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setIsTokenSelectorOpen(false)
                         setUnfoldChains(false)
                         setFilteredTokenList(undefined)
+                        console.log()
                     }}
                 >
                     <Transition.Child
@@ -920,22 +923,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                                 sendForm.setValue('chainId', chain.chainId)
                                                                 sendForm.setValue('token', chain.nativeCurrency.symbol)
                                                                 setFormHasBeenTouched(true)
+                                                                console.log(chain.icon.url)
                                                             }}
                                                         >
-                                                            {chain.icon.format == 'ipfs' ? (
-                                                                <MediaRenderer
-                                                                    src={chain.icon.url}
-                                                                    alt="A Blue Circle"
-                                                                />
-                                                            ) : (
-                                                                <img
-                                                                    src={chain.icon.url}
-                                                                    className="h-6 cursor-pointer"
-                                                                />
-                                                            )}
+                                                            <img src={chain.icon.url} className="h-6 cursor-pointer" />
 
                                                             <label className="flex cursor-pointer items-center">
-                                                                {chain.shortName.toUpperCase()}
+                                                                {chain.name.toUpperCase()}
                                                             </label>
                                                         </div>
                                                     )
@@ -961,7 +955,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         )}
 
                                                         <label className="flex cursor-pointer items-center">
-                                                            {chain.shortName.toUpperCase()}
+                                                            {chain.name.toUpperCase()}
                                                         </label>
                                                     </div>
                                                 )

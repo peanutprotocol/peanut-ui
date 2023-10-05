@@ -2,6 +2,11 @@
 @tailwind components;
 @tailwind utilities;
 
+.outline-black {
+    outline: 2px solid black;
+    outline-offset: 0.5px;
+}
+
 :root {
     --foreground-rgb: 0, 0, 0;
     --background-start-rgb: 214, 219, 220;
@@ -98,7 +103,7 @@ body {
 }
 
 #cta-div {
-    border: 5px solid black;
+    border: 2px solid black;
     padding: 1rem;
     transition:
         box-shadow 1s ease-in-out,

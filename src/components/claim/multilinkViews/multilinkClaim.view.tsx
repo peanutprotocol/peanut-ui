@@ -5,31 +5,22 @@ import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
+import { Tooltip } from 'react-tooltip'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
-import * as utils from '@/utils'
 import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
-import { Tooltip } from 'react-tooltip'
+import peanutman_logo from '@/assets/peanutman-logo.svg'
 import axios from 'axios'
-import { MediaRenderer } from '@thirdweb-dev/react'
 
-export function ClaimView({
-    onNextScreen,
-    claimDetails,
-    claimLink,
-    setTxHash,
-    claimType,
-    tokenPrice,
-}: _consts.IClaimScreenProps) {
+export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [IpfsMetadata, setIpfsMetadata] = useState('')
-    console.log(claimDetails)
+    const [ipfsArray, setIpfsArray] = useState<string[]>([])
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -53,16 +44,34 @@ export function ClaimView({
 
     const claim = async () => {
         try {
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
-                const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink[0],
-                    recipientAddress: address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
+                const claimTxs = []
+                for (const detail of claimDetails) {
+                    if (!detail.claimed) {
+                        console.log(detail)
+                        claimTxs.push(
+                            peanut.claimLinkGasless({
+                                link: detail.link,
+                                recipientAddress: address,
+                                APIKey: process.env.PEANUT_API_KEY ?? '',
+                            })
+                        )
+                    }
+                }
+
+                console.log('submitted all tx')
+                const claimTx = await Promise.all(claimTxs)
+                console.log('awaited all tx')
+
                 console.log(claimTx)
-                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+
+                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 
                 onNextScreen()
             }
@@ -76,18 +85,6 @@ export function ClaimView({
             setLoadingStates('idle')
         }
     }
-
-    const fetchIpfsFile = async (url: string) => {
-        const ipfsHash = url.split('://')[1]
-        const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
-        setIpfsMetadata('https://ipfs.io/ipfs/' + response.data.image.split('://')[1])
-    }
-
-    useEffect(() => {
-        if (claimDetails[0].tokenType == '2') {
-            fetchIpfsFile(claimDetails[0].tokenURI)
-        }
-    }, [])
 
     const manualClaim = async (data: { address: string; addressExists: boolean }) => {
         try {
@@ -111,14 +108,27 @@ export function ClaimView({
             }
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
+                setLoadingStates('executing transaction')
                 console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink[0],
-                    recipientAddress: data.address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
+                const claimTxs = []
+                for (const link of claimLink) {
+                    console.log(link)
+                    claimTxs.push(
+                        peanut.claimLinkGasless({
+                            link,
+                            recipientAddress: data.address,
+                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                        })
+                    )
+                }
 
-                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+                console.log('submitted all tx')
+                const claimTx = await Promise.all(claimTxs)
+                console.log('awaited all tx')
+
+                console.log(claimTx)
+
+                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 
                 onNextScreen()
             }
@@ -133,45 +143,78 @@ export function ClaimView({
         }
     }
 
+    const fetchIpfsFile = async (url: string) => {
+        const ipfsHash = url.split('://')[1]
+        const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
+        const formattedResponse = 'https://ipfs.io/ipfs/' + response.data.image.split('://')[1]
+        const detail = claimDetails.find((detail) => detail.tokenURI == url)
+        const array = new Array<string>(claimDetails.length)
+        const index = claimDetails.findIndex((detail) => detail.tokenURI == url)
+        array[index] = formattedResponse
+
+        setIpfsArray(array)
+
+        if (detail) {
+            detail.metadata = formattedResponse
+        }
+    }
+
+    useEffect(() => {
+        const filteredNftDetails = claimDetails.filter((details) => details.tokenType == 2)
+        if (filteredNftDetails.length > 0) {
+            filteredNftDetails.map((detail) => {
+                fetchIpfsFile(detail.tokenURI)
+            })
+        }
+    }, [claimDetails])
+
     return (
         <>
-            {' '}
-            {claimType == 'PROMO' && (
-                <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
-                    Oh, you found a promo code! Enjoy your free money!
-                </h2>
-            )}
-            <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                Claim{' '}
-                {claimDetails[0].tokenType == '2' ? (
-                    <>
-                        {' '}
-                        <label
-                            className="cursor-pointer  underline  "
-                            data-tooltip-id="my-tooltip"
-                            onClick={() => {
-                                console.log('clicked')
-                                console.log(claimDetails[0].metadata?.image)
-                            }}
-                        >
-                            1 Peanut NFT
-                        </label>
-                        <Tooltip id="my-tooltip" className="bg-black !opacity-100">
-                            <img src={IpfsMetadata} className="h-36 w-36" />
-                        </Tooltip>
-                    </>
-                ) : (
-                    <>
-                        {tokenPrice
-                            ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
-                            : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
-                        {tokenPrice ? 'in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
-                    </>
-                )}
-            </h2>
-            <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
-                {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
-            </h3>
+            <>
+                <h2 className="mb-0 mt-2 text-center text-3xl font-black lg:text-5xl ">You have found a multilink!</h2>
+                <h3 className="text-md my-1 text-center font-black sm:text-lg lg:text-xl ">
+                    This link contains the following tokens:
+                </h3>
+
+                <div className="mb-6 mt-2 flex flex-col gap-2 ">
+                    {claimDetails.map((link, idx) => {
+                        return (
+                            <div className="flex items-center gap-2" key={idx}>
+                                <img src={peanutman_logo.src} className="h-5 w-5" />
+                                {link.tokenType == 2 ? (
+                                    <>
+                                        <label
+                                            className="text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg "
+                                            data-tooltip-id="my-tooltip"
+                                            onClick={() => {
+                                                console.log(ipfsArray.at(idx))
+                                            }}
+                                        >
+                                            NFT on{' '}
+                                            {chainDetails &&
+                                                chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
+                                        </label>
+                                        <Tooltip id="my-tooltip" className="bg-black !opacity-100">
+                                            {ipfsArray.length > 1 ? (
+                                                <img src={ipfsArray.at(idx)} className="h-36 w-36" />
+                                            ) : (
+                                                ''
+                                            )}
+                                        </Tooltip>
+                                    </>
+                                ) : (
+                                    <label className="text-md my-1 text-center font-black sm:text-base lg:text-lg">
+                                        {link.tokenAmount} {link.tokenSymbol} on{' '}
+                                        {chainDetails &&
+                                            chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
+                                    </label>
+                                )}
+                            </div>
+                        )
+                    })}
+                </div>
+            </>
+
             <button
                 type={isConnected ? 'submit' : 'button'}
                 className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
@@ -263,6 +306,7 @@ export function ClaimView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
+
             <global_components.PeanutMan type="presenting" />
         </>
     )

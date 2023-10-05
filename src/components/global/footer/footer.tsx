@@ -18,7 +18,7 @@ export function Footer({ showMarquee = false }: { showMarquee?: boolean }) {
       )} */}
 
             <footer>
-                <div className="brutalborder my-4 flex w-full flex-col space-y-4 font-bold tracking-widest">
+                <div className="brutalborder my-4 flex w-full flex-col space-y-4 bg-black font-bold tracking-widest">
                     <div className="flex justify-center gap-4">
                         {_consts.SOCIALS.map((social) => {
                             return (

@@ -33,7 +33,13 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
 
                     <Link
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
-                        href={'/docs'}
+                        href={'/send'}
+                    >
+                        <span className="">send</span>
+                    </Link>
+                    <Link
+                        className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                        href={'https://docs.peanut.to'}
                     >
                         <span className="">docs</span>
                     </Link>
@@ -62,16 +68,16 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         window.open('https://peanutprotocol.gitbook.io/peanut-protocol-docs-1/overview/what-we-do')
                     }}
                 >
-                    <>
+                    {/* <>
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
                             new sdk
                         </div>
                         <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                        <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                        <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                             click here
                         </div>
                         <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                    </>
+                    </> */}
                 </global_components.MarqueeWrapper>
             )}
         </div>

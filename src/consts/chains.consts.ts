@@ -18,6 +18,7 @@ import {
     filecoinCalibration,
     neonDevnet,
     scrollTestnet,
+    holesky,
 } from 'wagmi/chains'
 import { Chain } from 'wagmi'
 
@@ -82,4 +83,5 @@ export const chains = [
     milkomeda,
     milkomedaTestnet,
     scrollTestnet,
+    holesky,
 ]
