@@ -1,8 +1,17 @@
 import * as views from './views'
+import * as multilinkViews from './multilinkViews'
 import * as interfaces from '@/interfaces'
-export type linkState = 'CLAIM' | 'NOT_FOUND' | 'ALREADY_CLAIMED' | 'LOADING'
+export type linkState =
+    | 'CLAIM'
+    | 'NOT_FOUND'
+    | 'ALREADY_CLAIMED'
+    | 'LOADING'
+    | 'MULTILINK_CLAIM'
+    | 'MULTILINK_ALREADY_CLAIMED'
 
 export type ClaimScreens = 'INITIAL' | 'SUCCESS'
+
+export type MultilinkClaimScreens = 'INITIAL' | 'SUCCESS'
 
 export interface IClaimScreenState {
     screen: ClaimScreens
@@ -19,11 +28,11 @@ export interface IClaimDetails {
 export interface IClaimScreenProps {
     onNextScreen: () => void
     onCustomScreen: (screen: ClaimScreens) => void
-    claimLink: string
-    setClaimLink: (claimLink: string) => void
-    claimDetails: interfaces.ILinkDetails
-    txHash: string
-    setTxHash: (txHash: string) => void
+    claimLink: string[]
+    setClaimLink: (claimLink: string[]) => void
+    claimDetails: interfaces.ILinkDetails[]
+    txHash: string[]
+    setTxHash: (txHash: string[]) => void
     claimType: 'CLAIM' | 'PROMO'
     setClaimType: (claimType: 'CLAIM' | 'PROMO') => void
     tokenPrice: string
@@ -42,4 +51,13 @@ export const CLAIM_SCREEN_MAP: {
 } = {
     INITIAL: { comp: views.ClaimView },
     SUCCESS: { comp: views.ClaimSuccessView },
+}
+
+export const MULTILINK_CLAIM_SCREEN_FLOW: MultilinkClaimScreens[] = ['INITIAL', 'SUCCESS']
+
+export const MULTILINK_CLAIM_SCREEN_MAP: {
+    [key in MultilinkClaimScreens]: { comp: React.FC<any> }
+} = {
+    INITIAL: { comp: multilinkViews.MultilinkClaimView },
+    SUCCESS: { comp: multilinkViews.multilinkSuccessView },
 }

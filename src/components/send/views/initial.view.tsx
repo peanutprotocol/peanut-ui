@@ -936,7 +936,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                             )}
 
                                                             <label className="flex cursor-pointer items-center">
-                                                                {chain.shortName.toUpperCase()}
+                                                                {chain.name.toUpperCase()}
                                                             </label>
                                                         </div>
                                                     )
@@ -962,7 +962,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         )}
 
                                                         <label className="flex cursor-pointer items-center">
-                                                            {chain.shortName.toUpperCase()}
+                                                            {chain.name.toUpperCase()}
                                                         </label>
                                                     </div>
                                                 )
