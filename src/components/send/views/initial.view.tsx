@@ -546,12 +546,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     return (
         <>
-            <div className="w-full flex flex-col text-center sm:mb-3  items-center">
+            <div className="flex w-full flex-col items-center text-center  sm:mb-3">
                 <h2 className="title-font bold text-2xl lg:text-4xl">
                     Send crypto with a link
                     <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
                 </h2>
-                <div className="font-normal w-4/5">Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. Send it to whomever you want.</div>
+                <div className="w-4/5 font-normal">
+                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. Send
+                    it to whomever you want.
+                </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
