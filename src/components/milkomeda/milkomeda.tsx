@@ -35,7 +35,7 @@ export function Milkomeda() {
                                             target="_blank"
                                             className="text-black"
                                         >
-                                            Milkomeda Discord channel
+                                            Milkomeda Discord channel asdf
                                         </a>{' '}
                                         to get live updates.
                                     </li>
