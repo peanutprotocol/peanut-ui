@@ -45,7 +45,7 @@ export function Send() {
                             Integrate Peanut Protocol
                         </h2>
 
-                        <div className="mx-auto w-11/12 pb-8 text-base lg:w-2/3">
+                        <div className="mx-auto w-11/12 pb-8 lg:w-2/3">
                             Want the peanut magic in your own dApp? Just install our{' '}
                             <a
                                 href="https://www.npmjs.com/package/@squirrel-labs/peanut-sdk"
@@ -58,7 +58,7 @@ export function Send() {
                         </div>
                         <img src={code_snippet.src} className="mx-auto w-11/12 lg:w-2/3" />
 
-                        <div className="mx-auto w-11/12 pt-8 text-base lg:w-2/3">
+                        <div className="mx-auto w-11/12 pt-8 lg:w-2/3">
                             Read more{' '}
                             <a
                                 href="https://peanutprotocol.gitbook.io/peanut-protocol-docs-1/overview/what-we-do"

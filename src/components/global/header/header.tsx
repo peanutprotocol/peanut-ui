@@ -62,7 +62,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         window.open('https://peanutprotocol.gitbook.io/peanut-protocol-docs-1/overview/what-we-do')
                     }}
                 >
-                    <>
+                    {/* <>
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
                             new sdk
                         </div>
@@ -71,7 +71,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                             click here
                         </div>
                         <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                    </>
+                    </> */}
                 </global_components.MarqueeWrapper>
             )}
         </div>

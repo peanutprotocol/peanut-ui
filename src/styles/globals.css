@@ -98,7 +98,7 @@ body {
 }
 
 #cta-div {
-    border: 5px solid black;
+    border: 2px solid black;
     padding: 1rem;
     transition:
         box-shadow 1s ease-in-out,
