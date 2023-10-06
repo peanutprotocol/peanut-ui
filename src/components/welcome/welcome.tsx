@@ -73,9 +73,10 @@ export function Welcome() {
                     {/* Integrate */}
                     <div className="brutalborder flex flex-col border-2 border-black bg-teal p-12 px-16" id="SDK">
                         <h3 className="text-5xl font-black">Integrate</h3>
-                        <p className="mt-1 block text-2xl leading-loose"> Are you a wallet, DEX or dApp?
-                            Let your users send token links with their friends, who will get
-                            onboarded onto your product easily. Go viral.
+                        <p className="mt-1 block text-2xl leading-loose">
+                            {' '}
+                            Are you a wallet, DEX or dApp? Let your users send token links with their friends, who will
+                            get onboarded onto your product easily. Go viral.
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">
@@ -118,7 +119,8 @@ export function Welcome() {
                     >
                         <h3 className="text-5xl font-black">Get Physical</h3>
                         <p className="mt-1 block text-2xl leading-loose">
-                            Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens. Just put stickers on your swag or flyers and boost your conversion rate.
+                            Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.
+                            Just put stickers on your swag or flyers and boost your conversion rate.
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">
