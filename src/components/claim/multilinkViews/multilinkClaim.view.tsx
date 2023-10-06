@@ -144,18 +144,23 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
     }
 
     const fetchIpfsFile = async (url: string) => {
-        const ipfsHash = url.split('://')[1]
-        const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
-        const formattedResponse = 'https://ipfs.io/ipfs/' + response.data.image.split('://')[1]
-        const detail = claimDetails.find((detail) => detail.tokenURI == url)
-        const array = new Array<string>(claimDetails.length)
-        const index = claimDetails.findIndex((detail) => detail.tokenURI == url)
-        array[index] = formattedResponse
+        try {
+            const ipfsHash = url.split('://')[1]
+            const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
+            const formattedResponse = 'https://ipfs.io/ipfs/' + response.data.image.split('://')[1]
+            const detail = claimDetails.find((detail) => detail.tokenURI == url)
+            const array = new Array<string>(claimDetails.length)
+            const index = claimDetails.findIndex((detail) => detail.tokenURI == url)
+            array[index] = formattedResponse
 
-        setIpfsArray(array)
+            setIpfsArray(array)
 
-        if (detail) {
-            detail.metadata = formattedResponse
+            console.log(response)
+            if (detail) {
+                detail.metadata = formattedResponse
+            }
+        } catch (error) {
+            console.error(error)
         }
     }
 
@@ -183,17 +188,18 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                 <img src={peanutman_logo.src} className="h-5 w-5" />
                                 {link.tokenType == 2 ? (
                                     <>
-                                        <label
-                                            className="text-md my-1 cursor-pointer text-center font-black underline sm:text-base lg:text-lg "
+                                        <a
+                                            className="text-md my-1 cursor-pointer text-center font-black text-black underline sm:text-base lg:text-lg "
                                             data-tooltip-id="my-tooltip"
-                                            onClick={() => {
-                                                console.log(ipfsArray.at(idx))
-                                            }}
+                                            href={
+                                                'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
+                                                link.tokenId
+                                            }
                                         >
                                             NFT on{' '}
                                             {chainDetails &&
                                                 chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
-                                        </label>
+                                        </a>
                                         <Tooltip id="my-tooltip" className="bg-black !opacity-100">
                                             {ipfsArray.length > 1 ? (
                                                 <img src={ipfsArray.at(idx)} className="h-36 w-36" />
