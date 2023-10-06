@@ -17,12 +17,7 @@ import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
 export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: interfaces.ILinkDetails[] }) {
-    const { isConnected, address } = useAccount()
-    const { open } = useWeb3Modal()
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [isNftModalOpen, setIsNftModalOpen] = useState(false)
-    const [selectedNftIdx, setSelectedNftIdx] = useState<number>(0)
 
     return (
         <>
@@ -44,10 +39,6 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                                         className={
                                             'text-md my-1 cursor-pointer text-center font-black underline sm:text-lg lg:text-xl '
                                         }
-                                        onClick={() => {
-                                            setSelectedNftIdx(idx)
-                                            setIsNftModalOpen(true)
-                                        }}
                                     >
                                         NFT on{' '}
                                         {chainDetails &&
