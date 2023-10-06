@@ -176,25 +176,20 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
     return (
         <>
             <>
-                <h2 className="mb-0 mt-2 text-center text-3xl font-black lg:text-5xl py-4">You have found a multilink!</h2>
+                <h2 className="mb-0 mt-2 py-4 text-center text-3xl font-black lg:text-5xl">
+                    You have found a multilink!
+                </h2>
                 <h3 className="text-md my-1 text-center font-normal sm:text-lg lg:text-xl ">
                     This link contains the following tokens:
                 </h3>
 
-
-
                 <div className="mb-6 mt-2 flex flex-col gap-2 ">
-                    
                     {claimDetails.map((link, idx) => {
                         return (
-                            
                             <div className="flex items-center gap-2" key={idx}>
-                                                
-                                
                                 <img src={peanutman_logo.src} className="h-5 w-5" />
                                 {link.tokenType == 2 ? (
                                     <>
-                                        
                                         <a
                                             className="text-md my-1 cursor-pointer text-center font-normal text-black underline sm:text-base lg:text-lg "
                                             data-tooltip-id="my-tooltip"

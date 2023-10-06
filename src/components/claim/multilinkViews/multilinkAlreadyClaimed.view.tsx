@@ -22,7 +22,7 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
     return (
         <>
             <>
-                <h2 className="mb-0 mt-2 text-center text-2xl font-black lg:text-4xl py-6">
+                <h2 className="mb-0 mt-2 py-6 text-center text-2xl font-black lg:text-4xl">
                     This link has already been claimed!
                 </h2>
                 <h3 className="text-md my-1 text-center font-normal sm:text-lg lg:text-xl ">
@@ -57,14 +57,13 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                 </div>
                 <p className="mx-14 mt-4 text-center text-base">
                     Want to send tokens via links yourself? Try now or proceed to the EthRome hacker manual.
-
                 </p>
 
-                <div className="w-3/4 mt-8 flex justify-center space-x-4 p-2">
+                <div className="mt-8 flex w-3/4 justify-center space-x-4 p-2">
                     <a
                         href="/send"
                         id="cta-btn"
-                        className="mb-2 text-center block bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                        className="mb-2 block bg-white p-5 text-center text-2xl font-black md:w-3/5 lg:w-1/3"
                     >
                         Try Now
                     </a>
@@ -73,12 +72,11 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                         href="/https://ethrome.notion.site/ETHRome-Hacker-Manual-e3aa8b443a84426186eede13b0ae8709"
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-5 text-2xl font-black text-black hover:underline no-underline"
+                        className="p-5 text-2xl font-black text-black no-underline hover:underline"
                     >
                         Hacker Manual →
                     </a>
                 </div>
-             
             </>
 
             <global_components.PeanutMan type="sad" />
