@@ -57,6 +57,15 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                 </div>
                 <p className="mx-14 mt-4 text-center text-base">
                     Want to send tokens via links yourself? Try now or proceed to the EthRome hacker manual.
+                    Want to know what you can do with your ETHRome welcome package? Click{' '}
+                    <a
+                        href="https://ethrome.notion.site/ETHRome-Hacker-Manual-e3aa8b443a84426186eede13b0ae8709"
+                        target="_blank"
+                        className="cursor-pointer text-black underline"
+                    >
+                        here
+                    </a>{' '}
+                    to find out!
                 </p>
 
                 <div className="w-3/4 mt-8 flex justify-center space-x-4 p-2">
