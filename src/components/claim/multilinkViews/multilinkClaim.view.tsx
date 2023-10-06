@@ -191,6 +191,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                         <a
                                             className="text-md my-1 cursor-pointer text-center font-black text-black underline sm:text-base lg:text-lg "
                                             data-tooltip-id="my-tooltip"
+                                            target='_blank'
                                             href={
                                                 'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
                                                 link.tokenId
