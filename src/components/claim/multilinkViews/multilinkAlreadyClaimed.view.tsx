@@ -58,6 +58,8 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                 <p className="mx-14 mt-4 text-center text-base">
                     Want to send tokens via links yourself? Try now or proceed to the EthRome hacker manual.
 
+                </p>
+
                 <div className="w-3/4 mt-8 flex justify-center space-x-4 p-2">
                     <a
                         href="/send"
