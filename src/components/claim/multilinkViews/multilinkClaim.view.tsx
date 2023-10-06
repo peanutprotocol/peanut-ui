@@ -146,16 +146,14 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
     const fetchIpfsFile = async (url: string) => {
         try {
             const ipfsHash = url.split('://')[1]
-            const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
-            const formattedResponse = 'https://ipfs.io/ipfs/' + response.data.image.split('://')[1]
+            const randomProvider = consts.ipfsProviderArray[Math.floor(Math.random() * consts.ipfsProviderArray.length)]
+            const response = await axios.get(randomProvider + ipfsHash)
+            const formattedResponse = randomProvider + response.data.image.split('://')[1]
             const detail = claimDetails.find((detail) => detail.tokenURI == url)
             const array = new Array<string>(claimDetails.length)
             const index = claimDetails.findIndex((detail) => detail.tokenURI == url)
             array[index] = formattedResponse
-
             setIpfsArray(array)
-
-            console.log(response)
             if (detail) {
                 detail.metadata = formattedResponse
             }
@@ -203,16 +201,17 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                             {chainDetails &&
                                                 chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                         </a>
-                                        <Tooltip 
-                                        id="my-tooltip" 
-                                        className="bg-black !opacity-100 "
-                                        style={{ 
-                                            backgroundColor: "black",   
-                                            borderRadius: "0px",
-                                            border: "2px solid black"
-                                        }}>
+                                        <Tooltip
+                                            id="my-tooltip"
+                                            className="bg-black !opacity-100 "
+                                            style={{
+                                                backgroundColor: 'black',
+                                                borderRadius: '0px',
+                                                border: '2px solid black',
+                                            }}
+                                        >
                                             {ipfsArray.length > 1 ? (
-                                                <img src={ipfsArray.at(idx)} className="h-36" />
+                                                <img src={ipfsArray.at(idx)} loading="eager" className="h-32 w-32" />
                                             ) : (
                                                 ''
                                             )}
