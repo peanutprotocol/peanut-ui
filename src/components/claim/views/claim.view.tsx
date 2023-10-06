@@ -29,7 +29,6 @@ export function ClaimView({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [IpfsMetadata, setIpfsMetadata] = useState('')
-    console.log(claimDetails)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -78,9 +77,15 @@ export function ClaimView({
     }
 
     const fetchIpfsFile = async (url: string) => {
-        const ipfsHash = url.split('://')[1]
-        const response = await axios.get(`https://ipfs.io/ipfs/${ipfsHash}`)
-        setIpfsMetadata('https://ipfs.io/ipfs/' + response.data.image.split('://')[1])
+        try {
+            const ipfsHash = url.split('://')[1]
+            const randomProvider = consts.ipfsProviderArray[Math.floor(Math.random() * consts.ipfsProviderArray.length)]
+            const response = await axios.get(randomProvider + ipfsHash)
+            const formattedResponse = randomProvider + response.data.image.split('://')[1]
+            setIpfsMetadata(formattedResponse)
+        } catch (error) {
+            console.error(error)
+        }
     }
 
     useEffect(() => {

@@ -102,9 +102,9 @@ export function Claim({ link }: { link: string }) {
         }
 
         try {
-            if (getLinktype(link).type === 'multilink') {
-                console.log('getting multi link details ' + link)
-                const links = await peanut.getLinksFromMultilink(link)
+            if (getLinktype(localLink).type === 'multilink') {
+                console.log('getting multi link details ' + localLink)
+                const links = await peanut.getLinksFromMultilink(localLink)
                 const linkDetails: interfaces.ILinkDetails[] = await Promise.all(
                     links.map(async (link) => {
                         console.log(link)

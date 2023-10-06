@@ -67,7 +67,11 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
             {true ? (
                 <p className="mx-14 mt-4 text-center text-base">
                     Want to know what you can do with your ETHRome welcome package? Click{' '}
-                    <a href="https://ethrome.org/" target="_blank" className="cursor-pointer text-black underline">
+                    <a
+                        href="https://ethrome.notion.site/ETHRome-Hacker-Manual-e3aa8b443a84426186eede13b0ae8709"
+                        target="_blank"
+                        className="cursor-pointer text-black underline"
+                    >
                         here
                     </a>{' '}
                     to find out!
