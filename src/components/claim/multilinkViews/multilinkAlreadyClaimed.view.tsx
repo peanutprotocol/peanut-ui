@@ -22,10 +22,10 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
     return (
         <>
             <>
-                <h2 className="mb-0 mt-2 text-center text-2xl font-black lg:text-4xl ">
+                <h2 className="mb-0 mt-2 text-center text-2xl font-black lg:text-4xl py-6">
                     This link has already been claimed!
                 </h2>
-                <h3 className="text-md my-1 text-center font-black sm:text-lg lg:text-xl ">
+                <h3 className="text-md my-1 text-center font-normal sm:text-lg lg:text-xl ">
                     This link used to contain the following tokens:
                 </h3>
 
@@ -37,7 +37,7 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                                 {link.tokenType == 2 ? (
                                     <label
                                         className={
-                                            'text-md my-1 cursor-pointer text-center font-black underline sm:text-lg lg:text-xl '
+                                            'text-md my-1 cursor-pointer text-center font-normal underline sm:text-lg lg:text-xl '
                                         }
                                     >
                                         NFT on{' '}
@@ -45,7 +45,7 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                     </label>
                                 ) : (
-                                    <label className={'text-md my-1 text-center font-black sm:text-lg lg:text-xl '}>
+                                    <label className={'text-md my-1 text-center font-normal sm:text-lg lg:text-xl '}>
                                         {link.tokenSymbol} on{' '}
                                         {chainDetails &&
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
@@ -56,12 +56,28 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                     })}
                 </div>
                 <p className="mx-14 mt-4 text-center text-base">
-                    Want to know what you can do with your ETHRome welcome package? Click{' '}
-                    <a href="https://ethrome.notion.site/ETHRome-Hacker-Manual-e3aa8b443a84426186eede13b0ae8709" target="_blank" className="cursor-pointer text-black underline">
-                        here
-                    </a>{' '}
-                    to find out!
+                    Want to send tokens via links yourself? Try now or proceed to the EthRome hacker manual.
                 </p>
+
+                <div className="w-3/4 mt-8 flex justify-center space-x-4 p-2">
+                    <a
+                        href="/send"
+                        id="cta-btn"
+                        className="mb-2 text-center block bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                    >
+                        Try Now
+                    </a>
+
+                    <a
+                        href="/https://ethrome.notion.site/ETHRome-Hacker-Manual-e3aa8b443a84426186eede13b0ae8709"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-5 text-2xl font-black text-black hover:underline no-underline"
+                    >
+                        Hacker Manual →
+                    </a>
+                </div>
+             
             </>
 
             <global_components.PeanutMan type="sad" />
