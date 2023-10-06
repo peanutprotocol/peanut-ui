@@ -146,16 +146,16 @@ export function ClaimView({
                 {claimDetails[0].tokenType == '2' ? (
                     <>
                         {' '}
-                        <label
-                            className="cursor-pointer  underline  "
+                        <a
+                            className="cursor-pointer  text-black underline "
                             data-tooltip-id="my-tooltip"
-                            onClick={() => {
-                                console.log('clicked')
-                                console.log(claimDetails[0].metadata?.image)
-                            }}
+                            href={
+                                'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
+                                claimDetails[0].tokenId
+                            }
                         >
                             1 Peanut NFT
-                        </label>
+                        </a>
                         <Tooltip id="my-tooltip" className="bg-black !opacity-100">
                             <img src={IpfsMetadata} className="h-36 w-36" />
                         </Tooltip>
