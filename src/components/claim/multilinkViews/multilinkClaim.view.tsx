@@ -208,9 +208,16 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                             {chainDetails &&
                                                 chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                         </a>
-                                        <Tooltip id="my-tooltip" className="bg-black !opacity-100 ">
+                                        <Tooltip 
+                                        id="my-tooltip" 
+                                        className="bg-black !opacity-100 "
+                                        style={{ 
+                                            backgroundColor: "black",   
+                                            borderRadius: "0px",
+                                            border: "2px solid black"
+                                        }}>
                                             {ipfsArray.length > 1 ? (
-                                                <img src={ipfsArray.at(idx)} className="h-32" />
+                                                <img src={ipfsArray.at(idx)} className="h-36" />
                                             ) : (
                                                 ''
                                             )}
