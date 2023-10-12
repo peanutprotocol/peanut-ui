@@ -20,6 +20,8 @@ import {
     scrollTestnet,
     holesky,
     sepolia,
+    linea,
+    lineaTestnet,
 } from 'wagmi/chains'
 import { Chain } from 'wagmi'
 
@@ -125,4 +127,7 @@ export const chains = [
     holesky,
     baseTestnet,
     taikoGrimsvotn,
+    linea,
+    lineaTestnet,
+    sepolia,
 ]
