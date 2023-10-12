@@ -1,32 +1,62 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-    <head>
-        <meta charset="UTF-8" />
-        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-        <title>Transfers.wtf</title>
-        <style>
-            body,
-            html {
-                margin: 0;
-                padding: 0;
-                height: 100%;
-                overflow: hidden;
-            }
-            iframe {
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                border: none;
-            }
-        </style>
-    </head>
-    <body>
-        <iframe
-            src="https://docs.google.com/presentation/d/e/2PACX-1vRTVSrU9mSF3vcTZXGn9YrpGs8H9mhJLVsSppMPygs_0EDWESia5G9uQBR8Qggk78Ld4QwXgj0keddC/embed?start=false&loop=false&delayms=5000"
-            frameborder="0"
-            allowfullscreen="true"
-        ></iframe>
-    </body>
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap">
+    <title>Transfer.wtf</title>
+    <style>
+        body {
+            font-family: 'Archivo Black', sans-serif;
+        }
+
+    </style>
+</head>
+
+<body class="bg-purple-100 h-screen flex flex-col">
+
+    <!-- Top Half: Main Content -->
+    <div class="flex flex-col items-center justify-center bg-white p-8 flex-1">
+  
+
+        <!-- Large Title and Subheader -->
+        <h1 class="text-7xl text-black mb-2">
+            TRANSFERS.WTF
+        </h1>
+        <h2 class="text-2xl text-black mb-4">
+            Istanbul - Thursday, November 16th, 2023
+
+        </h2>
+
+
+        <!-- Button -->
+        <a href="https://lu.ma/u653ldvn" 
+            class="inline-block bg-white border-2 border-black text-black text-lg font-bold py-2 px-4 rounded-none mb-4 hover:scale-90"
+            target="_blank" >
+            Register
+        </a>
+
+
+              <!-- Button -->
+              <a 
+              href="https://docs.google.com/presentation/d/e/2PACX-1vRTVSrU9mSF3vcTZXGn9YrpGs8H9mhJLVsSppMPygs_0EDWESia5G9uQBR8Qggk78Ld4QwXgj0keddC/pub?start=false&loop=false&delayms=3000"
+              class="inline-block bg-black text-white text-lg font-bold py-2 px-4 rounded-none mb-4 hover:scale-90"
+              target="_blank" >
+              Present
+          </a>
+  
+          <!-- Button -->
+          <a href="https://t.me/kkonrad" target="_blank" 
+              class="inline-block bg-none border-none text-black text-lg font-bold py-2 px-4 rounded-none mb-4 hover:scale-90">
+              Co-host
+          </a>
+    </div>
+
+    <!-- Bottom Half: Iframe -->
+    <iframe src="quad.html" class="flex-1" frameborder="0" style="width:100%;"></iframe>
+
+</body>
+
 </html>
