@@ -51,7 +51,6 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
 
             if (key !== null && key?.includes(address)) {
                 const value = localStorage.getItem(key)
-                console.log(key)
                 if (value !== null) {
                     const x = {
                         address: key.split('-')[0].trim(),

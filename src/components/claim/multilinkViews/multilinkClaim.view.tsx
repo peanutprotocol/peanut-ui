@@ -21,6 +21,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [ipfsArray, setIpfsArray] = useState<string[]>([])
+    const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -54,7 +55,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 const claimTxs = []
                 for (const detail of claimDetails) {
                     if (!detail.claimed) {
-                        console.log(detail)
+                        verbose && console.log(detail)
                         claimTxs.push(
                             peanut.claimLinkGasless({
                                 link: detail.link,
@@ -65,11 +66,11 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                     }
                 }
 
-                console.log('submitted all tx')
+                verbose && console.log('submitted all tx')
                 const claimTx = await Promise.all(claimTxs)
-                console.log('awaited all tx')
+                verbose && console.log('awaited all tx')
 
-                console.log(claimTx)
+                verbose && console.log(claimTx)
 
                 setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 
@@ -109,10 +110,10 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 setLoadingStates('executing transaction')
-                console.log('claiming link:' + claimLink)
+                verbose && console.log('claiming link:' + claimLink)
                 const claimTxs = []
                 for (const link of claimLink) {
-                    console.log(link)
+                    verbose && console.log(link)
                     claimTxs.push(
                         peanut.claimLinkGasless({
                             link,
@@ -122,11 +123,11 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                     )
                 }
 
-                console.log('submitted all tx')
+                verbose && console.log('submitted all tx')
                 const claimTx = await Promise.all(claimTxs)
-                console.log('awaited all tx')
+                verbose && console.log('awaited all tx')
 
-                console.log(claimTx)
+                verbose && console.log(claimTx)
 
                 setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 

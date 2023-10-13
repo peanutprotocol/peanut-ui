@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useNetwork } from 'wagmi'
@@ -8,7 +8,6 @@ import { useForm } from 'react-hook-form'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
-import { MediaRenderer } from '@thirdweb-dev/react'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
 
@@ -30,7 +29,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const { chain: currentChain } = useNetwork()
 
     //local states
-    // const [tokenList, setTokenList] = useState<_consts.ITokenListItem[]>([])
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
     const [formHasBeenTouched, setFormHasBeenTouched] = useState(false)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
@@ -46,6 +44,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)
+    const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -263,8 +262,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             .filter((key) => key.startsWith(type == 'batch' ? 'Bv' : 'v'))
             .sort((a, b) => parseInt(b.substring(1)) - parseInt(a.substring(1))) // Sort in descending order based on version number
 
-        console.log(versions)
-
         const highestVersion = versions.sort((a, b) => parseInt(b.slice(1)) - parseInt(a.slice(1)))[0]
 
         return highestVersion
@@ -439,8 +436,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     throw new Error(getLinksFromTxResponse.status.stack, { cause: 'creating' })
                 }
 
-                console.log('Created links:', getLinksFromTxResponse.links)
-                console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                verbose && console.log('Created links:', getLinksFromTxResponse.links)
+                verbose && console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
                 getLinksFromTxResponse.links.forEach((link, index) => {
                     utils.saveToLocalStorage(
                         address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
@@ -512,7 +509,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (!isConnected) setTokenPrice(undefined)
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
-            // console.log('fetching token price for token ' + tokenAddress + ' on chain with id ' + formwatch.chainId + '...')
             if (tokenAddress) {
                 if (tokenAddress == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
@@ -870,7 +866,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setIsTokenSelectorOpen(false)
                         setUnfoldChains(false)
                         setFilteredTokenList(undefined)
-                        console.log()
                     }}
                 >
                     <Transition.Child
@@ -923,7 +918,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                                 sendForm.setValue('chainId', chain.chainId)
                                                                 sendForm.setValue('token', chain.nativeCurrency.symbol)
                                                                 setFormHasBeenTouched(true)
-                                                                console.log(chain.icon.url)
                                                             }}
                                                         >
                                                             <img src={chain.icon.url} className="h-6 cursor-pointer" />
@@ -948,11 +942,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                             setFormHasBeenTouched(true)
                                                         }}
                                                     >
-                                                        {chain.icon.format == 'ipfs' ? (
-                                                            <MediaRenderer src={chain.icon.url} alt="A Blue Circle" />
-                                                        ) : (
-                                                            <img src={chain.icon.url} className="h-6 cursor-pointer" />
-                                                        )}
+                                                        <img src={chain.icon.url} className="h-6 cursor-pointer" />
 
                                                         <label className="flex cursor-pointer items-center">
                                                             {chain.name.toUpperCase()}

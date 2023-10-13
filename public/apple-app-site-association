@@ -1,0 +1,11 @@
+{
+    "applinks": {
+        "apps": [],
+        "details": [
+            {
+                "appID": "4K73GMPZP8.com.squirrellabs.peanut-app",
+                "paths": ["/claim*", "/claim/*"]
+            }
+        ]
+    }
+}

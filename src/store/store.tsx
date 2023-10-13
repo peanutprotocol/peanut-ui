@@ -8,7 +8,7 @@ import * as socketTech from '@socket.tech/socket-v2-sdk'
 import * as hooks from '@/hooks'
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
-
+export const userBalancesUpdateAtom = atom<boolean>(true)
 export const defaultChainDetailsAtom = atom<any[]>([])
 export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 
@@ -19,6 +19,7 @@ export function Store({ children }: { children: React.ReactNode }) {
     const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
     const setSupportedChainsSocketTech = useSetAtom(supportedChainsSocketTechAtom)
+    const [userBalancesUpdate, setUserBalancesUpdate] = useAtom(userBalancesUpdateAtom)
     const gaEventTracker = hooks.useAnalyticsEventTracker('peanut-general')
 
     const { address: userAddr, isDisconnected } = useAccount()
@@ -26,12 +27,15 @@ export function Store({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setUserBalances([])
         if (userAddr) {
-            //This will fetch all balances for the supported chains by socket.tech (https://docs.socket.tech/socket-liquidity-layer/socketll-overview/chains-dexs-bridges)
             loadUserBalances(userAddr)
-            // loadGoerliUserBalances(userAddr)
             gaEventTracker('peanut-wallet-connected', userAddr)
         }
-    }, [userAddr])
+        if (userBalancesAtom && userAddr) {
+            loadUserBalances(userAddr)
+            setUserBalancesUpdate(false)
+            gaEventTracker('reload-user-balances', userAddr)
+        }
+    }, [userAddr, userBalancesUpdate])
 
     useEffect(() => {
         if (isDisconnected) {

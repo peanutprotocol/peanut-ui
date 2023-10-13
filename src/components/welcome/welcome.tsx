@@ -55,11 +55,11 @@ export function Welcome() {
             {/* seperator */}
             <global_components.MarqueeWrapper backgroundColor="bg-black">
                 <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         GO
                     </div>
                     <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         NUTS
                     </div>
                     <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
@@ -146,11 +146,11 @@ export function Welcome() {
             {/* seperator */}
             <global_components.MarqueeWrapper backgroundColor="bg-black">
                 <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         GO
                     </div>
                     <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         NUTS
                     </div>
                     <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
@@ -225,11 +225,11 @@ export function Welcome() {
             {/* seperator */}
             <global_components.MarqueeWrapper backgroundColor="bg-black">
                 <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         GO
                     </div>
                     <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         NUTS
                     </div>
                     <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
@@ -259,11 +259,11 @@ export function Welcome() {
             {/* seperator */}
             <global_components.MarqueeWrapper backgroundColor="bg-black">
                 <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         FRENS
                     </div>
                     <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         FRENS
                     </div>
                     <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
