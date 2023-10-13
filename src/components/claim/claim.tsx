@@ -4,12 +4,9 @@ import * as multilinkViews from './multilinkViews'
 import * as _consts from './claim.consts'
 import * as interfaces from '@/interfaces'
 import { createElement, useEffect, useState } from 'react'
-import { getPublicClient, PublicClient } from '@wagmi/core'
-import { providers } from 'ethers'
 import peanut from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
-import ReactGA from 'react-ga4'
 import * as hooks from '@/hooks'
 
 export function Claim({ link }: { link: string }) {
@@ -21,6 +18,7 @@ export function Claim({ link }: { link: string }) {
     const [claimType, setClaimType] = useState<'CLAIM' | 'PROMO'>('CLAIM')
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
+    const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     const handleOnNext = () => {
         const newIdx = claimScreen.idx + 1
@@ -40,7 +38,6 @@ export function Claim({ link }: { link: string }) {
     const getLinktype = (link: string) => {
         const [, fragment] = link.split('?')
         const urlSearchParams = new URLSearchParams(fragment)
-
         const i = urlSearchParams.get('i')?.split(',').length
 
         if (i && i > 1) {
@@ -85,34 +82,33 @@ export function Claim({ link }: { link: string }) {
     }
 
     const checkLink = async (link: string) => {
-        const promoList: {
-            [key: string]: string
-        } = JSON.parse(process.env.PROMO_LIST ?? '')
-        var localLink
-
-        if (isPromoLink(link)) {
-            const [baseUrl, fragment] = link.split('?')
-            localLink = baseUrl + '#?' + promoList[fragment] ?? undefined
-        } else {
-            localLink = link
-        }
-        if (localLink === undefined) {
-            setLinkState('NOT_FOUND')
-            return
-        }
-
         try {
+            const promoList: {
+                [key: string]: string
+            } = JSON.parse(process.env.PROMO_LIST ?? '')
+            var localLink
+
+            if (isPromoLink(link)) {
+                const [baseUrl, fragment] = link.split('?')
+                localLink = baseUrl + '#?' + promoList[fragment] ?? undefined
+            } else {
+                localLink = link
+            }
+            if (localLink === undefined) {
+                throw new Error('Promo link not found')
+            }
+
             if (getLinktype(localLink).type === 'multilink') {
-                console.log('getting multi link details ' + localLink)
+                verbose && console.log('getting multi link details ' + localLink)
                 const links = await peanut.getLinksFromMultilink(localLink)
                 const linkDetails: interfaces.ILinkDetails[] = await Promise.all(
                     links.map(async (link) => {
-                        console.log(link)
+                        verbose && console.log(link)
                         return peanut.getLinkDetails({ link: link })
                     })
                 )
 
-                console.log('linkDetails', linkDetails)
+                verbose && console.log('linkDetails', linkDetails)
                 setClaimLink(links)
                 setClaimDetails(linkDetails)
                 if (linkDetails.every((link) => link.claimed)) {
@@ -122,9 +118,9 @@ export function Claim({ link }: { link: string }) {
                     setLinkState('MULTILINK_CLAIM')
                 }
             } else {
-                console.log('getting link details')
+                verbose && console.log('getting link details')
                 const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
-                console.log('linkDetails', linkDetails)
+                verbose && console.log('linkDetails', linkDetails)
 
                 setClaimLink([localLink.toString()])
 

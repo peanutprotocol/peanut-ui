@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAtom } from 'jotai'
+import { useAtom, useSetAtom } from 'jotai'
 
 import * as _consts from '../claim.consts'
 import * as store from '@/store/'
@@ -11,10 +11,10 @@ import { useRouter } from 'next/navigation'
 
 export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
     const router = useRouter()
-    const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+    const setUserBalancesUpdate = useSetAtom(store.userBalancesUpdateAtom)
 
     const explorerUrlWithTx = useMemo(() => {
         return txHash.map((hash, idx) => {
@@ -25,7 +25,7 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
 
     useEffect(() => {
         router.prefetch('/send')
-        gaEventTracker('peanut-claimed', 'success')
+        setUserBalancesUpdate(true)
     }, [])
 
     return (

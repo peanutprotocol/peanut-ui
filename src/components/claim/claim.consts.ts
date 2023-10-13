@@ -1,6 +1,7 @@
 import * as views from './views'
 import * as multilinkViews from './multilinkViews'
 import * as interfaces from '@/interfaces'
+
 export type linkState =
     | 'CLAIM'
     | 'NOT_FOUND'

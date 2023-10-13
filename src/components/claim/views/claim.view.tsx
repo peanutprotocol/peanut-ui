@@ -14,7 +14,6 @@ import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { Tooltip } from 'react-tooltip'
 import axios from 'axios'
-import { MediaRenderer } from '@thirdweb-dev/react'
 
 export function ClaimView({
     onNextScreen,
@@ -29,6 +28,7 @@ export function ClaimView({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [IpfsMetadata, setIpfsMetadata] = useState('')
+    const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -60,7 +60,7 @@ export function ClaimView({
                     recipientAddress: address,
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                 })
-                console.log(claimTx)
+                verbose && console.log(claimTx)
                 setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
 
                 onNextScreen()
@@ -116,7 +116,7 @@ export function ClaimView({
             }
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
-                console.log('claiming link:' + claimLink)
+                verbose && console.log('claiming link:' + claimLink)
                 const claimTx = await peanut.claimLinkGasless({
                     link: claimLink[0],
                     recipientAddress: data.address,
