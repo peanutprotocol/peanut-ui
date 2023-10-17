@@ -145,6 +145,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         return signer
     }
 
+    useEffect(() => {
+        console.log(tokenList)
+    }, [tokenList])
+
     const fetchTokenPrice = async (tokenAddress: string, chainId: number) => {
         try {
             const response = await axios.get('https://api.socket.tech/v2/token-price', {
