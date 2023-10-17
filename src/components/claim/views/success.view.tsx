@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAtom, useSetAtom } from 'jotai'
+import { useAtom } from 'jotai'
 
 import * as _consts from '../claim.consts'
 import * as store from '@/store/'
@@ -14,7 +14,6 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const setUserBalancesUpdate = useSetAtom(store.userBalancesUpdateAtom)
 
     const explorerUrlWithTx = useMemo(
         () =>
@@ -27,7 +26,6 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
-        setUserBalancesUpdate(true)
     }, [])
 
     return (

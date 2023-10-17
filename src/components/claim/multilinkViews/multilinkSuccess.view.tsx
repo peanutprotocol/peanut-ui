@@ -1,10 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useAtom, useSetAtom } from 'jotai'
+import { useAtom } from 'jotai'
 
 import * as _consts from '../claim.consts'
 import * as store from '@/store/'
 import * as global_components from '@/components/global'
-import * as hooks from '@/hooks'
 import * as utils from '@/utils'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
@@ -14,7 +13,6 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const setUserBalancesUpdate = useSetAtom(store.userBalancesUpdateAtom)
 
     const explorerUrlWithTx = useMemo(() => {
         return txHash.map((hash, idx) => {
@@ -25,7 +23,6 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
 
     useEffect(() => {
         router.prefetch('/send')
-        setUserBalancesUpdate(true)
     }, [])
 
     return (

@@ -4,7 +4,7 @@ import QRCode from 'react-qr-code'
 import dropdown_svg from '@/assets/dropdown.svg'
 
 import * as _consts from '../send.consts'
-import { useAtom, useSetAtom } from 'jotai'
+import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
 
@@ -27,7 +27,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const [copiedAll, setCopiedAll] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const setUserBalancesUpdate = useSetAtom(store.userBalancesUpdateAtom)
     const explorerUrlWithTx = useMemo(
         () => chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url + '/tx/' + txHash,
         [txHash, chainId]
@@ -39,7 +38,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                 setCopiedAll(false)
             }, 3000)
         }
-        setUserBalancesUpdate(true)
     }, [])
 
     return (

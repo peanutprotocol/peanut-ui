@@ -1,5 +1,5 @@
 'use client'
-import { atom, useAtom, useSetAtom } from 'jotai'
+import { atom, useSetAtom } from 'jotai'
 import { useAccount } from 'wagmi'
 import { useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
@@ -8,18 +8,16 @@ import * as socketTech from '@socket.tech/socket-v2-sdk'
 import * as hooks from '@/hooks'
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
-export const userBalancesUpdateAtom = atom<boolean>(true)
 export const defaultChainDetailsAtom = atom<any[]>([])
 export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 
 export const supportedChainsSocketTechAtom = atom<socketTech.ChainDetails[]>([])
 
 export function Store({ children }: { children: React.ReactNode }) {
-    const [, setUserBalances] = useAtom(userBalancesAtom)
+    const setUserBalances = useSetAtom(userBalancesAtom)
     const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
     const setSupportedChainsSocketTech = useSetAtom(supportedChainsSocketTechAtom)
-    const [userBalancesUpdate, setUserBalancesUpdate] = useAtom(userBalancesUpdateAtom)
     const gaEventTracker = hooks.useAnalyticsEventTracker('peanut-general')
 
     const { address: userAddr, isDisconnected } = useAccount()
@@ -30,12 +28,7 @@ export function Store({ children }: { children: React.ReactNode }) {
             loadUserBalances(userAddr)
             gaEventTracker('peanut-wallet-connected', userAddr)
         }
-        if (userBalancesAtom && userAddr) {
-            loadUserBalances(userAddr)
-            setUserBalancesUpdate(false)
-            gaEventTracker('reload-user-balances', userAddr)
-        }
-    }, [userAddr, userBalancesUpdate])
+    }, [userAddr])
 
     useEffect(() => {
         if (isDisconnected) {
@@ -104,8 +97,6 @@ export function Store({ children }: { children: React.ReactNode }) {
                         return a.chainId - b.chainId
                     }
                 })
-
-            2
 
             if (userBalancesResponse.success) {
                 setUserBalances((prev) => {
