@@ -124,6 +124,7 @@ export function Claim({ link }: { link: string }) {
 
                 setClaimLink([localLink.toString()])
 
+                setClaimDetails([linkDetails])
                 if (Number(linkDetails.tokenAmount) <= 0) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
@@ -132,7 +133,6 @@ export function Claim({ link }: { link: string }) {
                     } else {
                         await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    setClaimDetails([linkDetails])
                     setLinkState('CLAIM')
                 }
             }
@@ -157,7 +157,7 @@ export function Claim({ link }: { link: string }) {
                 </div>
             )}
             {linkState === 'NOT_FOUND' && <views.ClaimLinkNotFoundView />}
-            {linkState === 'ALREADY_CLAIMED' && <views.ClaimLinkAlreadyClaimedView />}
+            {linkState === 'ALREADY_CLAIMED' && <views.ClaimLinkAlreadyClaimedView claimDetails={claimDetails} />}
             {linkState === 'CLAIM' &&
                 createElement(_consts.CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
                     onNextScreen: handleOnNext,

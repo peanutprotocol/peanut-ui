@@ -1,5 +1,7 @@
 import twitter_logo from '@/assets/twitter-logo.svg'
 import discord_logo from '@/assets/discord-logo.svg'
+import gitbook_logo from '@/assets/logos/gitbook.png'
+import github_logo from '@/assets/logos/github-inverted.png'
 
 export const SOCIALS = [
     {
@@ -11,6 +13,16 @@ export const SOCIALS = [
         name: 'discord',
         url: 'https://discord.gg/BX9Ak7AW28',
         logoSrc: discord_logo.src,
+    },
+    {
+        name: 'gitbook',
+        url: 'https://docs.peanut.to/overview/what-is-peanut',
+        logoSrc: gitbook_logo.src,
+    },
+    {
+        name: 'github',
+        url: 'https://github.com/peanutprotocol/',
+        logoSrc: github_logo.src,
     },
 ]
 
