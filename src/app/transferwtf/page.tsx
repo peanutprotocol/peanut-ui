@@ -1,57 +1,61 @@
 'use client'
 
 import * as hooks from '@/hooks'
+import { useRouter } from 'next/navigation'
 import React, { useRef, useEffect } from 'react'
 import * as THREE from 'three'
 
 export default function TransferWTF() {
+    const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('transferwtf-page')
 
     useEffect(() => {
+        router.push('http://www.transfers.wtf/')
         gaEventTracker('peanut-opened', 'transferwtf')
     }, [])
     return (
-        <div className="bg-purple-100 flex h-screen flex-col">
-            {/* Top Half: Main Content */}
-            <div className="flex flex-1 flex-col items-center justify-center bg-white p-8">
-                {/* Large Title and Subheader */}
-                <h1 className="mb-2 text-7xl text-black">TRANSFERS.WTF</h1>
-                <h2 className="mb-4 text-2xl text-black">Istanbul - Thursday, November 16th, 2023</h2>
+        <></>
+        // <div className="bg-purple-100 flex h-screen flex-col">
+        //     {/* Top Half: Main Content */}
+        //     <div className="flex flex-1 flex-col items-center justify-center bg-white p-8">
+        //         {/* Large Title and Subheader */}
+        //         <h1 className="mb-2 text-7xl text-black">TRANSFERS.WTF</h1>
+        //         <h2 className="mb-4 text-2xl text-black">Istanbul - Thursday, November 16th, 2023</h2>
 
-                {/* Button */}
-                <a
-                    href="https://lu.ma/u653ldvn"
-                    className="mb-4 inline-block rounded-none border-2 border-black bg-white px-4 py-2 text-lg font-bold text-black hover:scale-90"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Register
-                </a>
+        //         {/* Button */}
+        //         <a
+        //             href="https://lu.ma/u653ldvn"
+        //             className="mb-4 inline-block rounded-none border-2 border-black bg-white px-4 py-2 text-lg font-bold text-black hover:scale-90"
+        //             target="_blank"
+        //             rel="noopener noreferrer"
+        //         >
+        //             Register
+        //         </a>
 
-                {/* Button */}
-                <a
-                    href="https://docs.google.com/presentation/d/e/2PACX-1vRTVSrU9mSF3vcTZXGn9YrpGs8H9mhJLVsSppMPygs_0EDWESia5G9uQBR8Qggk78Ld4QwXgj0keddC/pub?start=false&loop=false&delayms=3000"
-                    className="mb-4 inline-block rounded-none bg-black px-4 py-2 text-lg font-bold text-white hover:scale-90"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                >
-                    Present
-                </a>
+        //         {/* Button */}
+        //         <a
+        //             href="https://docs.google.com/presentation/d/e/2PACX-1vRTVSrU9mSF3vcTZXGn9YrpGs8H9mhJLVsSppMPygs_0EDWESia5G9uQBR8Qggk78Ld4QwXgj0keddC/pub?start=false&loop=false&delayms=3000"
+        //             className="mb-4 inline-block rounded-none bg-black px-4 py-2 text-lg font-bold text-white hover:scale-90"
+        //             target="_blank"
+        //             rel="noopener noreferrer"
+        //         >
+        //             Present
+        //         </a>
 
-                {/* Button */}
-                <a
-                    href="https://t.me/kkonrad"
-                    target="_blank"
-                    className="mb-4 inline-block rounded-none border-none bg-none px-4 py-2 text-lg font-bold text-black hover:scale-90"
-                    rel="noopener noreferrer"
-                >
-                    Co-host
-                </a>
-            </div>
+        //         {/* Button */}
+        //         <a
+        //             href="https://t.me/kkonrad"
+        //             target="_blank"
+        //             className="mb-4 inline-block rounded-none border-none bg-none px-4 py-2 text-lg font-bold text-black hover:scale-90"
+        //             rel="noopener noreferrer"
+        //         >
+        //             Co-host
+        //         </a>
+        //     </div>
 
-            {/* Bottom Half: Iframe */}
-            <ShaderComponent />
-        </div>
+        //     {/* Bottom Half: Iframe */}
+        //     <ShaderComponent />
+        // </div>
     )
 }
 
