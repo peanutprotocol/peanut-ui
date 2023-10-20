@@ -10,6 +10,18 @@ const nextConfig = {
     },
     productionBrowserSourceMaps: true,
     swcMinify: true,
+    async rewrites() {
+        return [
+            {
+                source: '/apple-app-site-association',
+                destination: '/api/apple-app-site-association',
+            },
+            {
+                source: '/.well-known/assetLinks.json',
+                destination: '/api/assetLinks',
+            },
+        ]
+    },
     async headers() {
         return [
             {
