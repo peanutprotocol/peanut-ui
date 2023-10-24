@@ -8,7 +8,7 @@ import * as utils from '@/utils'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
-export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
+export function xchainSuccesView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
     const router = useRouter()
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
