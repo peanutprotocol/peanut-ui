@@ -35,6 +35,7 @@ export function Claim({ link }: { link: string }) {
     const [claimType, setClaimType] = useState<'CLAIM' | 'PROMO'>('CLAIM')
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
     const [crossChainDetails, setCrossChainDetails] = useState<Array<Chain & { tokens: Token[] }>>()
+    const [crossChainSuccess, setCrossChainSuccess] = useState<_consts.ICrossChainSuccess | undefined>(undefined)
 
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
     const verbose = process.env.NODE_ENV === 'development' ? true : false
@@ -85,15 +86,19 @@ export function Claim({ link }: { link: string }) {
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
 
-        const crossChainDetails = await peanut.getCrossChainOptionsForLink(
-            isTestnet,
-            linkDetails.chainId,
-            linkDetails.tokenType
-        )
-        setCrossChainDetails(crossChainDetails)
-        if (crossChainDetails.length > 0) {
-            return true
-        } else {
+        try {
+            const crossChainDetails = await peanut.getCrossChainOptionsForLink(
+                isTestnet,
+                linkDetails.chainId,
+                linkDetails.tokenType
+            )
+            if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
+                setCrossChainDetails(crossChainDetails)
+                return true
+            } else {
+                return false
+            }
+        } catch (error) {
             return false
         }
     }
@@ -148,7 +153,7 @@ export function Claim({ link }: { link: string }) {
                 verbose && console.log('linkDetails', linkDetails)
                 setClaimLink(links)
                 setClaimDetails(linkDetails)
-                if (linkDetails.every((link) => link.claimed)) {
+                if (linkDetails.every((link) => link.claimed) || linkDetails.every((link) => link.claimed)) {
                     // TODO: implement check for already claimed (amount)
                     setLinkState('MULTILINK_ALREADY_CLAIMED')
                 } else {
@@ -158,11 +163,11 @@ export function Claim({ link }: { link: string }) {
                 verbose && console.log('getting link details')
                 const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
                 verbose && console.log('linkDetails', linkDetails)
-
+                console.log(linkDetails)
                 setClaimLink([localLink.toString()])
 
                 setClaimDetails([linkDetails])
-                if (Number(linkDetails.tokenAmount) <= 0) {
+                if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
                     if (linkDetails.tokenAddress == '0x0000000000000000000000000000000000000000') {
@@ -171,7 +176,6 @@ export function Claim({ link }: { link: string }) {
                         await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
                     if (await isBridgePossible(linkDetails)) {
-                        console.log('bridge possible')
                         setLinkState('XCHAIN_CLAIM')
                     } else {
                         setLinkState('CLAIM')
@@ -245,6 +249,8 @@ export function Claim({ link }: { link: string }) {
                     tokenPrice,
                     setTokenPrice,
                     crossChainDetails,
+                    crossChainSuccess,
+                    setCrossChainSuccess,
                 } as _consts.IClaimScreenProps)}
         </global_components.CardWrapper>
     )

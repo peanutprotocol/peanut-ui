@@ -44,7 +44,7 @@ export function Dashboard() {
                             amount: res.tokenAmount,
                             token: res.tokenSymbol,
                             date: res.depositDate == null ? 'Unavailable' : new Date(res.depositDate).toLocaleString(),
-                            claimed: Number(res.tokenAmount) <= 0,
+                            claimed: res.claimed,
                             link: item.link,
                             copied: false,
                         }
@@ -239,7 +239,9 @@ export function Dashboard() {
                                                             gaEventTracker('link-copied', '')
                                                         }}
                                                     >
-                                                        {Number(item.amount) > 0
+                                                        {item.claimed
+                                                            ? 'Claimed'
+                                                            : Number(item.amount) > 0
                                                             ? copiedLink?.includes(item.link)
                                                                 ? 'Copied'
                                                                 : 'Copy'

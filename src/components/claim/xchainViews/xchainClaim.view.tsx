@@ -1,9 +1,12 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
-import { ethers } from 'ethers'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useAccount, useNetwork } from 'wagmi'
+import { ethers, providers } from 'ethers'
+import peanut, { TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
+import { switchNetwork, getWalletClient } from '@wagmi/core'
+import { WalletClient } from 'wagmi'
+import { isMobile } from 'react-device-detect'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -13,6 +16,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
+import axios from 'axios'
 
 export function xchainClaimView({
     onNextScreen,
@@ -21,22 +25,28 @@ export function xchainClaimView({
     setTxHash,
     tokenPrice,
     crossChainDetails,
+    setCrossChainSuccess,
 }: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+    const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
     const [listIsLoading, setListIsLoading] = useState(true)
-    const [chainList, setChainList] = useState<{ chainId: number; chainName: string }[]>([])
-    const [selectedChain, setSelectedChain] = useState<{ chainId: number; chainName: string }>({
+    const [chainList, setChainList] = useState<{ chainId: number; chainName: string; chainIconURI: string }[]>([])
+    const [selectedChain, setSelectedChain] = useState<{ chainId: number; chainName: string; chainIconURI: string }>({
         chainId: claimDetails[0].chainId,
         chainName: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name,
+        chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon.url,
     })
     const [tokenList, setTokenList] = useState<any[] | undefined>(undefined)
     const verbose = process.env.NODE_ENV === 'development' ? true : false
     const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
     const [selectedToken, setSelectedToken] = useState<any | undefined>(undefined)
+    const [possibleRoutesArray, setPossibleRoutesArray] = useState<any[]>([])
+    const [isRouteLoading, setIsRouteLoading] = useState(false)
+    const { chain: currentChain } = useNetwork()
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -44,19 +54,50 @@ export function xchainClaimView({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [manualErrorState, setManualErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
 
-    const manualForm = useForm<{ address: string; addressExists: boolean }>({
-        mode: 'onChange',
-        reValidateMode: 'onChange',
-        defaultValues: {
-            address: '',
-            addressExists: false,
-        },
-    })
+    function walletClientToSigner(walletClient: WalletClient) {
+        const { account, chain, transport } = walletClient
+        const network = {
+            chainId: chain.id,
+            name: chain.name,
+            ensAddress: chain.contracts?.ensRegistry?.address,
+        }
+        const provider = new providers.Web3Provider(transport, network)
+        const signer = provider.getSigner(account.address)
+        return signer
+    }
+
+    const getWalletClientAndUpdateSigner = async ({
+        chainId,
+    }: {
+        chainId: number
+    }): Promise<providers.JsonRpcSigner> => {
+        const walletClient = await getWalletClient({ chainId: Number(chainId) })
+        if (!walletClient) {
+            throw new Error('Failed to get wallet client')
+        }
+        const signer = walletClientToSigner(walletClient)
+        return signer
+    }
+
+    const checkNetwork = async (chainId: number) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            setLoadingStates('allow network switch')
+
+            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Something went wrong while switching networks',
+                })
+                setLoadingStates('idle')
+                throw error
+            })
+            setLoadingStates('switching network')
+            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
+            setLoadingStates('loading')
+        }
+    }
 
     const claim = async () => {
         try {
@@ -64,33 +105,32 @@ export function xchainClaimView({
                 showError: false,
                 errorMessage: '',
             })
-            if (claimLink && address) {
-                setLoadingStates('executing transaction')
+            setLoadingStates('executing transaction')
+            await checkNetwork(claimDetails[0].chainId)
 
-                const claimTxs = []
-                for (const detail of claimDetails) {
-                    if (!detail.claimed) {
-                        verbose && console.log(detail)
-                        claimTxs.push(
-                            peanut.claimLinkGasless({
-                                link: detail.link,
-                                recipientAddress: address,
-                                APIKey: process.env.PEANUT_API_KEY ?? '',
-                            })
-                        )
-                    }
-                }
+            const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
+                .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
+                .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
-                verbose && console.log('submitted all tx')
-                const claimTx = await Promise.all(claimTxs)
-                verbose && console.log('awaited all tx')
-
-                verbose && console.log(claimTx)
-
-                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
-
-                onNextScreen()
-            }
+            const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+            const x = await peanut.claimLinkXChain(
+                {
+                    signer: signer,
+                },
+                claimDetails[0].link,
+                selectedChain.chainId,
+                selectedToken.address,
+                isTestnet,
+                1,
+                address ?? ''
+            )
+            setTxHash([x.txHash])
+            setCrossChainSuccess({
+                chainName: selectedChain.chainName,
+                tokenName: selectedToken.name,
+            })
+            verbose && console.log(x)
+            onNextScreen()
         } catch (error) {
             setErrorState({
                 showError: true,
@@ -102,71 +142,55 @@ export function xchainClaimView({
         }
     }
 
-    const manualClaim = async (data: { address: string; addressExists: boolean }) => {
+    const getSquidRoute = async () => {
+        const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
+            .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
+            .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet //This should always work, since these are the values of the
+        const tokenDecimals =
+            tokenDetails
+                .find((chain) => Number(chain.chainId) == claimDetails[0].chainId)
+                ?.tokens.find((token) => token.address == claimDetails[0].tokenAddress)?.decimals ?? 6 // TODO: HIGH PRIO: CHANGE TO GETLINKDETAILS TOKEN DECIMALS
+        const tokenAmount = Math.floor(Number(claimDetails[0].tokenAmount) * Math.pow(10, tokenDecimals)).toString()
+
         try {
-            setManualErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-            if (!ethers.utils.isAddress(data.address)) {
-                setManualErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a valid address',
-                })
-                return
-            }
-            if (!data.addressExists) {
-                setManualErrorState({
-                    showError: true,
-                    errorMessage: 'Please check the box to confirm that the address exists on the chain',
-                })
-                return
-            }
-            setLoadingStates('executing transaction')
-            if (claimLink && data.address) {
-                setLoadingStates('executing transaction')
-                verbose && console.log('claiming link:' + claimLink)
-                const claimTxs = []
-                for (const link of claimLink) {
-                    verbose && console.log(link)
-                    claimTxs.push(
-                        peanut.claimLinkGasless({
-                            link,
-                            recipientAddress: data.address,
-                            APIKey: process.env.PEANUT_API_KEY ?? '',
-                        })
-                    )
-                }
-
-                verbose && console.log('submitted all tx')
-                const claimTx = await Promise.all(claimTxs)
-                verbose && console.log('awaited all tx')
-
-                verbose && console.log(claimTx)
-
-                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
-
-                onNextScreen()
-            }
+            const x = await peanut.getSquidRoute(
+                isTestnet,
+                claimDetails[0].chainId.toString(),
+                claimDetails[0].tokenAddress,
+                tokenAmount,
+                selectedChain.chainId.toString(),
+                selectedToken.address,
+                address?.toString() ?? '',
+                address?.toString() ?? '',
+                1
+            )
+            setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+            verbose && console.log(x)
         } catch (error) {
             setErrorState({
                 showError: true,
-                errorMessage: 'Something went wrong while claiming',
+                errorMessage: 'Something went wrong while fetching your route',
             })
-            console.error(error)
-        } finally {
-            setLoadingStates('idle')
+            setIsRouteLoading(false)
         }
     }
 
     useEffect(() => {
         if (crossChainDetails && listIsLoading) {
             const _chainList = crossChainDetails.map((chain) => {
-                return { chainId: chain.chainId, chainName: chain.chainName }
+                return { chainId: chain.chainId, chainName: chain.chainName, chainIconURI: chain.chainIconURI }
             })
             const currentChainName = chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name
-            setSelectedChain({ chainId: claimDetails[0].chainId, chainName: currentChainName })
-            _chainList.unshift({ chainId: claimDetails[0].chainId, chainName: currentChainName })
+            setSelectedChain({
+                chainId: claimDetails[0].chainId,
+                chainName: currentChainName,
+                chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon.url,
+            })
+            _chainList.unshift({
+                chainId: claimDetails[0].chainId,
+                chainName: currentChainName,
+                chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon.url,
+            })
             setChainList(_chainList)
             setListIsLoading(false)
         }
@@ -174,9 +198,14 @@ export function xchainClaimView({
 
     useEffect(() => {
         if (selectedChain) {
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
             const _tokenList = crossChainDetails.find((chain) => chain.chainId == selectedChain.chainId)?.tokens
             if (_tokenList) {
                 setTokenList(_tokenList)
+                console.log(_tokenList)
                 setSelectedToken(_tokenList[0])
             } else {
                 setTokenList(undefined)
@@ -184,6 +213,23 @@ export function xchainClaimView({
             }
         }
     }, [selectedChain])
+
+    useEffect(() => {
+        if (selectedToken) {
+            setIsRouteLoading(true)
+            getSquidRoute()
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+        }
+    }, [selectedToken])
+
+    useEffect(() => {
+        if (possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address)) {
+            setIsRouteLoading(false)
+        }
+    }, [possibleRoutesArray])
 
     return (
         <>
@@ -201,7 +247,7 @@ export function xchainClaimView({
                             setIsTokenSelectorOpen(!isTokenSelectorOpen)
                         }}
                     >
-                        <h2 className="my-2 mb-0 ml-2 text-center text-3xl font-black lg:text-6xl ">
+                        <h2 className=" mb-0 ml-2 mt-0 text-center text-3xl font-black lg:text-6xl ">
                             {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
                         </h2>
                         <img
@@ -214,13 +260,44 @@ export function xchainClaimView({
                         />
                     </div>
                 ) : (
-                    <h2 className="my-2 mb-0 ml-2 text-center text-3xl font-black lg:text-6xl ">
+                    <h2 className=" mb-0 mt-0 text-center text-3xl font-black lg:text-6xl ">
                         {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
                     </h2>
                 )}
             </div>
+
+            {isRouteLoading ? (
+                <h2 className="my-2 mb-4 flex gap-2 text-center text-base font-black sm:text-xl ">
+                    fetching your route{' '}
+                    <div className="flex justify-center gap-1">
+                        <div className="flex h-full w-[26px] justify-start pb-1">
+                            <div className="loading" />
+                        </div>
+                    </div>
+                </h2>
+            ) : (
+                possibleRoutesArray.length > 0 &&
+                possibleRoutesArray.find((route) => route.route?.params.toToken.address === selectedToken.address) && (
+                    <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
+                        You will be claiming $
+                        {
+                            possibleRoutesArray.find(
+                                (route) => route.route.params.toToken.address === selectedToken.address
+                            ).route.estimate.toAmountUSD
+                        }{' '}
+                        in{' '}
+                        {
+                            possibleRoutesArray.find(
+                                (route) => route.route.params.toToken.address === selectedToken.address
+                            ).route.params.toToken.name
+                        }{' '}
+                        on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
+                    </h2>
+                )
+            )}
+
             <div
-                className="brutalborder mb-2 mt-2 flex cursor-pointer items-center justify-center"
+                className="brutalborder mb-8 mt-8 flex cursor-pointer items-center justify-center"
                 onClick={() => {
                     setIsChainSelectorOpen(!isChainSelectorOpen)
                 }}
@@ -243,7 +320,7 @@ export function xchainClaimView({
                 onClick={() => {
                     !isConnected ? open() : claim()
                 }}
-                disabled={isLoading}
+                disabled={isLoading || isRouteLoading}
             >
                 {isLoading ? (
                     <div className="flex justify-center gap-1">
@@ -258,70 +335,6 @@ export function xchainClaimView({
                     'Connect Wallet'
                 )}
             </button>
-            <div
-                className="mt-2 flex cursor-pointer items-center justify-center"
-                onClick={() => {
-                    setIsDropdownOpen(!isDropdownOpen)
-                }}
-            >
-                <div className="cursor-pointer border-none bg-white text-sm  ">manually enter address</div>
-                <img
-                    style={{
-                        transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
-                        transition: 'transform 0.3s ease-in-out',
-                    }}
-                    src={dropdown_svg.src}
-                    alt=""
-                    className={'h-6 '}
-                />
-            </div>
-            {isDropdownOpen && (
-                <global_components.CardWrapper mb="mb-4">
-                    <label className="block text-center text-xs font-medium">
-                        If you can't connect, you can also write your address below <br />{' '}
-                        <span className="italic">⚠️ WARNING: if you enter a wrong address, funds will get lost!!</span>
-                    </label>
-
-                    <form className=" w-full " onSubmit={manualForm.handleSubmit(manualClaim)}>
-                        <div className="brutalborder mx-auto mt-4 flex w-11/12 flex-row sm:w-3/4">
-                            <input
-                                type="text"
-                                className="h-4 w-full flex-grow border-none p-4 px-4 placeholder:text-xs placeholder:font-light"
-                                placeholder="0x6B37..."
-                                {...manualForm.register('address')}
-                            />
-                            <div className="tooltip w-1/8 brutalborder-left block h-4 cursor-pointer p-2">
-                                {isLoading ? (
-                                    <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold">
-                                        <span className="tooltiptext inline " id="myTooltip">
-                                            Claiming...
-                                        </span>
-                                    </div>
-                                ) : (
-                                    <button
-                                        className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold"
-                                        type="submit"
-                                    >
-                                        <span className="tooltiptext inline" id="myTooltip">
-                                            Claim
-                                        </span>
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                        {manualErrorState.showError && (
-                            <div className="text-center">
-                                <label className="text-xs font-normal text-red ">{manualErrorState.errorMessage}</label>
-                            </div>
-                        )}
-
-                        <div className="mx-auto mt-2 flex h-4 flex-row items-center justify-center">
-                            <input type="checkbox" className="h-4 w-4" {...manualForm.register('addressExists')} />
-                            <label className="ml-2 text-xs font-medium">This address exists on CHAIN</label>
-                        </div>
-                    </form>
-                </global_components.CardWrapper>
-            )}
             {errorState.showError && (
                 <div className="text-center">
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
@@ -361,13 +374,13 @@ export function xchainClaimView({
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
+                                <Dialog.Panel className="brutalborder relative w-full transform  overflow-hidden rounded-lg rounded-none bg-white py-5 text-left text-black shadow-xl transition-all  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
                                     <div className="mb-8 flex items-center justify-center sm:hidden">
                                         <svg width="128" height="6">
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
-                                    <div className="mb-8 ml-4 mr-4 sm:mb-2">
+                                    <div className="mb-8 ml-4 mr-4  sm:mb-2">
                                         <div
                                             className={`flex max-h-[none] w-full flex-wrap gap-2 overflow-hidden text-black`}
                                         >
@@ -375,31 +388,27 @@ export function xchainClaimView({
                                                 <div
                                                     key={chain.chainId}
                                                     className={
-                                                        'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                        'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row justify-center gap-2 px-2 py-1 sm:w-[12%] ' +
                                                         (selectedChain?.chainId == chain.chainId
                                                             ? 'bg-black text-white'
                                                             : '')
                                                     }
                                                     onClick={() => {
-                                                        // sendForm.setValue('chainId', chain.chainId)
-                                                        // sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                        // setFormHasBeenTouched(true)
                                                         setSelectedChain(chain)
                                                         setIsChainSelectorOpen(false)
+                                                        console.log(chain.chainIconURI)
                                                     }}
                                                 >
                                                     <img
-                                                        src={
-                                                            chainDetails.find(
-                                                                (_chain) => _chain.chainId == chain.chainId
-                                                            )?.icon.url
-                                                        }
+                                                        src={chain.chainIconURI}
+                                                        loading="eager"
                                                         className="h-6 cursor-pointer"
                                                     />
 
                                                     <label className="flex cursor-pointer items-center">
                                                         {chain.chainName.toUpperCase()}
                                                     </label>
+                                                    {/* {claimDetails[0].chainId == chain.chainId && <label>ORIGIN</label>} */}
                                                 </div>
                                             ))}
                                         </div>
@@ -459,7 +468,7 @@ export function xchainClaimView({
                                                 }}
                                             >
                                                 <div className="flex items-center gap-2 ">
-                                                    <img src={token.logo} className="h-6" loading="eager" />
+                                                    <img src={token.logoURI} className="h-6" loading="eager" />
                                                     <div>{token.name}</div>
                                                 </div>
                                                 <div className="flex items-center gap-2">
