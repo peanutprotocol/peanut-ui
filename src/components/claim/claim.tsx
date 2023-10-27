@@ -154,7 +154,6 @@ export function Claim({ link }: { link: string }) {
                 setClaimLink(links)
                 setClaimDetails(linkDetails)
                 if (linkDetails.every((link) => link.claimed) || linkDetails.every((link) => link.claimed)) {
-                    // TODO: implement check for already claimed (amount)
                     setLinkState('MULTILINK_ALREADY_CLAIMED')
                 } else {
                     setLinkState('MULTILINK_CLAIM')
@@ -163,7 +162,6 @@ export function Claim({ link }: { link: string }) {
                 verbose && console.log('getting link details')
                 const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
                 verbose && console.log('linkDetails', linkDetails)
-                console.log(linkDetails)
                 setClaimLink([localLink.toString()])
 
                 setClaimDetails([linkDetails])

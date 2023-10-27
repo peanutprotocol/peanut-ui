@@ -145,7 +145,7 @@ export function xchainClaimView({
     const getSquidRoute = async () => {
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-            .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet //This should always work, since these are the values of the
+            .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
         const tokenDecimals =
             tokenDetails
                 .find((chain) => Number(chain.chainId) == claimDetails[0].chainId)
@@ -169,7 +169,7 @@ export function xchainClaimView({
         } catch (error) {
             setErrorState({
                 showError: true,
-                errorMessage: 'Something went wrong while fetching your route',
+                errorMessage: 'No route found for the chosen chain and token',
             })
             setIsRouteLoading(false)
         }
@@ -269,11 +269,17 @@ export function xchainClaimView({
             {isRouteLoading ? (
                 <h2 className="my-2 mb-4 flex gap-2 text-center text-base font-black sm:text-xl ">
                     fetching your route{' '}
-                    <div className="flex justify-center gap-1">
-                        <div className="flex h-full w-[26px] justify-start pb-1">
-                            <div className="loading" />
-                        </div>
-                    </div>
+                    <span className="bouncing-dots">
+                        <span className="dot">
+                            <div className="mr-1 h-1 w-1 bg-black" />
+                        </span>
+                        <span className="dot">
+                            <div className="mr-1 h-1 w-1 bg-black" />
+                        </span>
+                        <span className="dot">
+                            <div className="h-1 w-1 bg-black" />
+                        </span>
+                    </span>
                 </h2>
             ) : (
                 possibleRoutesArray.length > 0 &&
@@ -325,9 +331,11 @@ export function xchainClaimView({
                 {isLoading ? (
                     <div className="flex justify-center gap-1">
                         <label>{loadingStates} </label>
-                        <div className="flex h-full w-[26px] justify-start pb-1">
-                            <div className="loading" />
-                        </div>
+                        <span className="bouncing-dots">
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                        </span>
                     </div>
                 ) : isConnected ? (
                     'Claim'
