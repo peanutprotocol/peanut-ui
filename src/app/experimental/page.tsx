@@ -79,7 +79,7 @@ export default function ExperimentalPage() {
                 <section className="h-full w-full bg-white py-12 text-black">
                     <div className="center-xy mx-auto flex w-11/12 items-center bg-white lg:w-3/5">
                         <div className="text-center">
-                            <h2 className="title-font text-3xl font-black text-black lg:text-7xl">Make your own</h2>
+                            <h2 className="title-font text-3xl font-black text-black lg:text-7xl">Build with us!</h2>
 
                             <div className="mx-auto w-4/5 p-5 text-xl lg:w-2/3">
                                 Thanks for helping us! We're always keen on hearing new ideas or getting feedback. Maybe
