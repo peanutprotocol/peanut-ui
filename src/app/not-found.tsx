@@ -4,7 +4,6 @@ import { useEffect } from 'react'
 import { Inter } from 'next/font/google'
 import Link from 'next/link'
 import { WagmiConfig } from 'wagmi'
-import peanutman_sad from '@/assets/peanutman-sad.svg'
 
 import * as config from '@/config'
 import * as global_components from '@/components/global'
@@ -22,10 +21,10 @@ export default function NotFound() {
         <div className={inter.className}>
             <WagmiConfig config={config.wagmiConfig}>
                 <global_components.PageWrapper bgColor="bg-red">
-                    <div className="flex flex-col gap-2 px-16 sm:flex-row md:px-32">
+                    <div className="flex flex-col gap-2 px-8 sm:flex-row md:px-32">
                         <div className="relative flex h-full flex-col items-start justify-center gap-2 font-light italic md:gap-0">
                             <h4 className="m-0 text-sm leading-none sm:text-base md:text-lg lg:text-xl">
-                                Hey there! This is how we treat ur data.
+                                Sowwy can't find anything
                             </h4>
                             <h1 className="m-0 truncate text-2xl font-bold leading-none md:text-4xl lg:text-6xl xl:text-8xl">
                                 404: Not Found.
@@ -44,14 +43,13 @@ export default function NotFound() {
                                 !
                             </div>
                         </div>
-                        <div className="h-full">
-                            <img
-                                src={peanutman_sad.src}
-                                // className="w-1/3 scale-100 absolute z-index-100 -bottom-24 -left-8 sm:-bottom-24 sm:-left-16 md:-bottom-32 md:-left-32 2xl:-bottom-48 2xl:-left-64"
-                                className="z-index-100 mt-16 w-2/3 scale-100 sm:w-full "
-                                id="peanutman-presenting"
-                            />
-                        </div>
+
+                        <iframe
+                            className="brutalborder brutalshadow block w-full  border-0 lg:w-1/2"
+                            src="/game/peanut-game.html"
+                            title="Peanut Game"
+                            allow="fullscreen"
+                        ></iframe>
                     </div>
                 </global_components.PageWrapper>
             </WagmiConfig>

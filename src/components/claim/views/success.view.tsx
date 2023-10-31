@@ -17,12 +17,14 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
 
     const explorerUrlWithTx = useMemo(
         () =>
-            chainDetails.find((detail) => detail.chainId === claimDetails.chainId)?.explorers[0].url + '/tx/' + txHash,
+            chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
+            '/tx/' +
+            txHash[0],
         [txHash, chainDetails]
     )
 
     useEffect(() => {
-        router.prefetch('/')
+        router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
     }, [])
 
@@ -54,7 +56,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
                         target="_blank"
                         className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
                     >
-                        {txHash}
+                        {txHash[0]}
                     </a>
                     <p className="m-0">
                         <small>
@@ -66,15 +68,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
                     </p>
                 </div>
             )}
-            <button
-                className="mx-auto mb-4 mt-4 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
-                id="cta-btn"
-                onClick={() => {
-                    router.push('/')
-                }}
-            >
-                Send Crypto
-            </button>
+
             <p className="mt-4 text-center text-xs">
                 Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
                 <a href="https://discord.gg/BX9Ak7AW28" target="_blank" className="cursor-pointer text-black underline">

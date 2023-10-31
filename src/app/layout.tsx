@@ -6,14 +6,17 @@ import { WagmiConfig } from 'wagmi'
 import * as config from '@/config'
 import { Store } from '@/store/store'
 import { useState, useEffect } from 'react'
+import peanut from '@squirrel-labs/peanut-sdk'
 import ReactGA from 'react-ga4'
 import '../../sentry.client.config'
 import '../../sentry.server.config'
 import '../../sentry.edge.config'
+import 'react-tooltip/dist/react-tooltip.css'
 
 const inter = Inter({ subsets: ['latin'] })
 
 var art = `%c
+Слава Україні
  ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀PEANUT⠀⠀⠀⠀⠀⠀⠀⠀⣀⣤⣶⣶⣦⣌⠙⠋⢡⣴⣶⡄⠀⠀
 ⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⠀⣿⣿⣿⡿⢋⣠⣶⣶⡌⠻⣿⠟⠀⠀
@@ -38,7 +41,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         setReady(true)
         ReactGA.initialize(process.env.GA_KEY ?? '')
-        console.log(art, 'font-size: 20px; background-color: maroon; color: yellow;')
+        console.log(art, 'font-size: 20px; background-color: blue; color: yellow;')
     }, [])
 
     return (

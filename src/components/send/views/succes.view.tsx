@@ -27,7 +27,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const [copiedAll, setCopiedAll] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-
     const explorerUrlWithTx = useMemo(
         () => chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url + '/tx/' + txHash,
         [txHash, chainId]
@@ -39,7 +38,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                 setCopiedAll(false)
             }, 3000)
         }
-    })
+    }, [])
 
     return (
         <>

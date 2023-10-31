@@ -18,6 +18,10 @@ import {
     filecoinCalibration,
     neonDevnet,
     scrollTestnet,
+    holesky,
+    sepolia,
+    linea,
+    lineaTestnet,
 } from 'wagmi/chains'
 import { Chain } from 'wagmi'
 
@@ -59,6 +63,44 @@ const milkomedaTestnet = {
     contracts: {},
 } as const satisfies Chain
 
+const baseTestnet = {
+    id: 84531,
+    name: 'Base Goerli Testnet',
+    network: 'baseGoerli',
+    nativeCurrency: {
+        name: 'Ether',
+        symbol: 'ETH',
+        decimals: 18,
+    },
+    rpcUrls: {
+        public: { http: ['https://base-goerli.publicnode.com'] },
+        default: { http: ['https://base-goerli.publicnode.com'] },
+    },
+    blockExplorers: {
+        default: { name: 'Blockscout', url: 'https://goerli.basescan.org/' },
+    },
+    contracts: {},
+} as const satisfies Chain
+
+const taikoGrimsvotn = {
+    id: 167005,
+    name: 'Taiko Grimsvotn L2',
+    network: 'taikogrimsvotn',
+    nativeCurrency: {
+        name: 'Ether',
+        symbol: 'ETH',
+        decimals: 18,
+    },
+    rpcUrls: {
+        public: { http: ['https://rpc.test.taiko.xyz'] },
+        default: { http: ['https://rpc.test.taiko.xyz'] },
+    },
+    blockExplorers: {
+        default: { name: 'Blockscout', url: 'https://explorer.test.taiko.xyz/' },
+    },
+    contracts: {},
+} as const satisfies Chain
+
 export const chains = [
     mainnet,
     arbitrum,
@@ -82,4 +124,10 @@ export const chains = [
     milkomeda,
     milkomedaTestnet,
     scrollTestnet,
+    holesky,
+    baseTestnet,
+    taikoGrimsvotn,
+    linea,
+    lineaTestnet,
+    sepolia,
 ]

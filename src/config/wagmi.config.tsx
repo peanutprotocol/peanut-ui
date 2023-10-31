@@ -5,7 +5,6 @@ import * as consts from '@/consts'
 export const wagmiConfig = defaultWagmiConfig({
     chains: consts.chains,
     projectId: process.env.WC_PROJECT_ID ?? '',
-    appName: 'Web3Modal',
 })
 
 createWeb3Modal({

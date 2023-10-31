@@ -1,5 +1,5 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
@@ -12,6 +12,8 @@ import * as utils from '@/utils'
 import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
+import { Tooltip } from 'react-tooltip'
+import axios from 'axios'
 
 export function ClaimView({
     onNextScreen,
@@ -25,6 +27,8 @@ export function ClaimView({
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+    const [IpfsMetadata, setIpfsMetadata] = useState('')
+    const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -52,12 +56,12 @@ export function ClaimView({
                 setLoadingStates('executing transaction')
 
                 const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink,
+                    link: claimLink[0],
                     recipientAddress: address,
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                 })
-                console.log(claimTx)
-                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
+                verbose && console.log(claimTx)
+                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
 
                 onNextScreen()
             }
@@ -71,6 +75,24 @@ export function ClaimView({
             setLoadingStates('idle')
         }
     }
+
+    const fetchIpfsFile = async (url: string) => {
+        try {
+            const ipfsHash = url.split('://')[1]
+            const randomProvider = consts.ipfsProviderArray[Math.floor(Math.random() * consts.ipfsProviderArray.length)]
+            const response = await axios.get(randomProvider + ipfsHash)
+            const formattedResponse = randomProvider + response.data.image.split('://')[1]
+            setIpfsMetadata(formattedResponse)
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    useEffect(() => {
+        if (claimDetails[0].tokenType == '2') {
+            fetchIpfsFile(claimDetails[0].tokenURI)
+        }
+    }, [])
 
     const manualClaim = async (data: { address: string; addressExists: boolean }) => {
         try {
@@ -94,14 +116,14 @@ export function ClaimView({
             }
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
-                console.log('claiming link:' + claimLink)
+                verbose && console.log('claiming link:' + claimLink)
                 const claimTx = await peanut.claimLinkGasless({
-                    link: claimLink,
+                    link: claimLink[0],
                     recipientAddress: data.address,
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                 })
 
-                setTxHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
+                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
 
                 onNextScreen()
             }
@@ -118,6 +140,7 @@ export function ClaimView({
 
     return (
         <>
+            {' '}
             {claimType == 'PROMO' && (
                 <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
                     Oh, you found a promo code! Enjoy your free money!
@@ -125,13 +148,34 @@ export function ClaimView({
             )}
             <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
                 Claim{' '}
-                {tokenPrice
-                    ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails.tokenAmount))
-                    : utils.formatTokenAmount(Number(claimDetails.tokenAmount))}{' '}
-                {tokenPrice ? 'in ' + claimDetails.tokenSymbol : claimDetails.tokenSymbol}
+                {claimDetails[0].tokenType == '2' ? (
+                    <>
+                        {' '}
+                        <a
+                            className="cursor-pointer  text-black underline "
+                            data-tooltip-id="my-tooltip"
+                            href={
+                                'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
+                                claimDetails[0].tokenId
+                            }
+                        >
+                            1 Peanut NFT
+                        </a>
+                        <Tooltip id="my-tooltip" className="bg-black !opacity-100">
+                            <img src={IpfsMetadata} className="h-36 w-36" />
+                        </Tooltip>
+                    </>
+                ) : (
+                    <>
+                        {tokenPrice
+                            ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
+                            : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
+                        {tokenPrice ? 'in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
+                    </>
+                )}
             </h2>
             <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
-                {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails.chainId)?.name}
+                {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
             </h3>
             <button
                 type={isConnected ? 'submit' : 'button'}
@@ -224,7 +268,6 @@ export function ClaimView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
-
             <global_components.PeanutMan type="presenting" />
         </>
     )
