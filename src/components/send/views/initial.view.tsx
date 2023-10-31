@@ -752,7 +752,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             }
                         }}
                     >
-                        <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
+                        <div className="cursor-pointer border-none bg-white text-sm  " hidden>Bulk options </div>
                         <img
                             style={{
                                 transform: advancedDropdownOpen ? 'scaleY(-1)' : 'none',
