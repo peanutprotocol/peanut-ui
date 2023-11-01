@@ -1998,10 +1998,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.0.1000":
-  version "0.0.1000"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.0.1000.tgz#2f0898f84729f84e9a4e67c3464d96e52656da6a"
-  integrity sha512-uk1jfA+XqjxJ1yKnEoeqyYsEOOH6KPWEujvrYIZsIA35IiX6SOr8g753HVrzNbVVv6Obk+V0c900Tgk9x1dm3g==
+"@squirrel-labs/peanut-sdk@0.3.0":
+  version "0.3.0"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.3.0.tgz#a3cee55399ef906f5cfa389d27de432593c1fabe"
+  integrity sha512-g8khlJ8KbBaYd+sxpfimLPHptBNko+hXDD6e1+0C67vjT37BqtMz+0ykhTXDBgQiJdQIgpNzc3s8yNPLThPZQQ==
   dependencies:
     ethersv5 "npm:ethers@^5"
     isomorphic-fetch "^3.0.0"
@@ -4814,6 +4814,7 @@ ethereumjs-util@^7.1.1, ethereumjs-util@^7.1.2, ethereumjs-util@^7.1.5:
     rlp "^2.2.4"
 
 ethers@5.7.2, ethers@^5.6.5, "ethersv5@npm:ethers@^5":
+  name ethersv5
   version "5.7.2"
   resolved "https://registry.yarnpkg.com/ethers/-/ethers-5.7.2.tgz#3a7deeabbb8c030d4126b24f84e525466145872e"
   integrity sha512-wswUsmWo1aOK8rR7DIKiWSw9DbLWe6x98Jrn8wcTflTVvaXhAMaB5zGAXy0GYQEQp9iO1iSHWVyARQm11zUtyg==
