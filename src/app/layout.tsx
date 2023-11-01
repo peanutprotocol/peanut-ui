@@ -43,6 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         ReactGA.initialize(process.env.GA_KEY ?? '')
         console.log(art, 'font-size: 20px; background-color: blue; color: yellow;')
         peanut.toggleVerbose(true)
+        console.og
     }, [])
 
     return (
