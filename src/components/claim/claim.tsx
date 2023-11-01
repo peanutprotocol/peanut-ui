@@ -8,8 +8,25 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as hooks from '@/hooks'
+import * as store from '@/store'
+import { useAtom } from 'jotai'
+
+//Todo: remove these chain and token interfaces and use the ones from the SDK
+interface Chain {
+    chainId: number
+    chainName: string
+    chainType: string
+}
+
+interface Token {
+    chainId: number
+    address: string
+    name: string
+    symbol: string
+}
 
 export function Claim({ link }: { link: string }) {
+    const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string[]>([])
@@ -17,6 +34,9 @@ export function Claim({ link }: { link: string }) {
     const [txHash, setTxHash] = useState<string[]>([])
     const [claimType, setClaimType] = useState<'CLAIM' | 'PROMO'>('CLAIM')
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
+    const [crossChainDetails, setCrossChainDetails] = useState<Array<Chain & { tokens: Token[] }>>()
+    const [crossChainSuccess, setCrossChainSuccess] = useState<_consts.ICrossChainSuccess | undefined>(undefined)
+
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
     const verbose = process.env.NODE_ENV === 'development' ? true : false
 
@@ -28,7 +48,7 @@ export function Claim({ link }: { link: string }) {
         }))
     }
 
-    const handleOnCustom = (screen: _consts.ClaimScreens) => {
+    const handleOnCustom = (screen: _consts.Screens) => {
         setClaimScreen(() => ({
             screen: screen,
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
@@ -59,6 +79,28 @@ export function Claim({ link }: { link: string }) {
         if (linkChainId && linkVersion) {
             return true
         } else return false
+    }
+
+    const isBridgePossible = async (linkDetails: interfaces.ILinkDetails) => {
+        const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
+            .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
+            .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
+
+        try {
+            const crossChainDetails = await peanut.getCrossChainOptionsForLink(
+                isTestnet,
+                linkDetails.chainId,
+                linkDetails.tokenType
+            )
+            if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
+                setCrossChainDetails(crossChainDetails)
+                return true
+            } else {
+                return false
+            }
+        } catch (error) {
+            return false
+        }
     }
 
     const fetchTokenPrice = async (tokenAddress: string, chainId: number) => {
@@ -111,8 +153,7 @@ export function Claim({ link }: { link: string }) {
                 verbose && console.log('linkDetails', linkDetails)
                 setClaimLink(links)
                 setClaimDetails(linkDetails)
-                if (linkDetails.every((link) => link.claimed)) {
-                    // implement check for already claimed (amount)
+                if (linkDetails.every((link) => link.claimed) || linkDetails.every((link) => link.claimed)) {
                     setLinkState('MULTILINK_ALREADY_CLAIMED')
                 } else {
                     setLinkState('MULTILINK_CLAIM')
@@ -121,11 +162,10 @@ export function Claim({ link }: { link: string }) {
                 verbose && console.log('getting link details')
                 const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
                 verbose && console.log('linkDetails', linkDetails)
-
                 setClaimLink([localLink.toString()])
 
                 setClaimDetails([linkDetails])
-                if (Number(linkDetails.tokenAmount) <= 0) {
+                if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
                     if (linkDetails.tokenAddress == '0x0000000000000000000000000000000000000000') {
@@ -133,7 +173,11 @@ export function Claim({ link }: { link: string }) {
                     } else {
                         await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    setLinkState('CLAIM')
+                    if (await isBridgePossible(linkDetails)) {
+                        setLinkState('XCHAIN_CLAIM')
+                    } else {
+                        setLinkState('CLAIM')
+                    }
                 }
             }
         } catch (error) {
@@ -189,6 +233,23 @@ export function Claim({ link }: { link: string }) {
             {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
                 <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
             )}
+            {linkState === 'XCHAIN_CLAIM' &&
+                createElement(_consts.XCHAIN_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
+                    onNextScreen: handleOnNext,
+                    onCustomScreen: handleOnCustom,
+                    claimLink,
+                    setClaimLink,
+                    claimDetails,
+                    txHash,
+                    setTxHash,
+                    claimType,
+                    setClaimType,
+                    tokenPrice,
+                    setTokenPrice,
+                    crossChainDetails,
+                    crossChainSuccess,
+                    setCrossChainSuccess,
+                } as _consts.IClaimScreenProps)}
         </global_components.CardWrapper>
     )
 }

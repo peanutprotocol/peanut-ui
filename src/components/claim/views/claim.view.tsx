@@ -189,9 +189,11 @@ export function ClaimView({
                 {isLoading ? (
                     <div className="flex justify-center gap-1">
                         <label>{loadingStates} </label>
-                        <div className="flex h-full w-[26px] justify-start pb-1">
-                            <div className="loading" />
-                        </div>
+                        <span className="bouncing-dots">
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                        </span>
                     </div>
                 ) : isConnected ? (
                     'Claim'

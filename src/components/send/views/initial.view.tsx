@@ -809,9 +809,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             {isLoading ? (
                                 <div className="flex justify-center gap-1">
                                     <label>{loadingStates} </label>
-                                    <div className="flex h-full w-[26px] justify-start pb-1">
-                                        <div className="loading" />
-                                    </div>
+                                    <span className="bouncing-dots">
+                                        <span className="dot">.</span>
+                                        <span className="dot">.</span>
+                                        <span className="dot">.</span>
+                                    </span>
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
@@ -883,7 +885,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         <div
                                                             key={chain.chainId}
                                                             className={
-                                                                'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                                 (formwatch.chainId == chain.chainId
                                                                     ? 'bg-black text-white'
                                                                     : '')
@@ -905,7 +907,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     <div
                                                         key={chain.chainId}
                                                         className={
-                                                            'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                            'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                             (formwatch.chainId == chain.chainId
                                                                 ? 'bg-black text-white'
                                                                 : '')
