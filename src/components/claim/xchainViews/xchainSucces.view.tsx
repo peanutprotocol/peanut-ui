@@ -4,31 +4,34 @@ import { useAtom } from 'jotai'
 import * as _consts from '../claim.consts'
 import * as store from '@/store/'
 import * as global_components from '@/components/global'
-import * as utils from '@/utils'
+import * as hooks from '@/hooks'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
-export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
+export function xchainSuccesView({ txHash, crossChainSuccess }: _consts.IClaimScreenProps) {
     const router = useRouter()
+    const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
-    const explorerUrlWithTx = useMemo(() => {
-        return txHash.map((hash, idx) => {
-            const chainDetail = chainDetails.find((cd) => cd.chainId === claimDetails[idx].chainId)
-            return chainDetail?.explorers[0].url + '/tx/' + hash
-        })
-    }, [chainDetails, claimDetails])
+    const explorerUrlWithTx = 'https://testnet.axelarscan.io/gmp/' + txHash[0]
 
     useEffect(() => {
         router.prefetch('/send')
+        gaEventTracker('peanut-x-chain-claimed', 'success')
     }, [])
 
     return (
         <>
             <h2 className="title-font mb-0 text-3xl font-black md:text-5xl">Congratulations!</h2>
-            <p className="mb-0 mt-3 break-words text-center text-lg">You have successfully claimed all your funds.</p>
+            <p className="mb-0 mt-3 break-words text-center text-lg">
+                you have successfully cross-claimed your funds!{' '}
+            </p>
+            <p className="mb-0 mt-3 break-words text-center text-lg">
+                your funds will arive shortly on {crossChainSuccess.chainName}!
+            </p>
+
             <div
                 className="mt-2 flex cursor-pointer items-center justify-center"
                 onClick={() => {
@@ -48,16 +51,21 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
             </div>
             {isDropdownOpen && (
                 <div className="m-2 flex flex-col items-center justify-center gap-2 text-center text-base sm:p-0">
-                    {txHash.map((hash, idx) => (
-                        <a
-                            href={explorerUrlWithTx[idx] ?? ''}
-                            target="_blank"
-                            className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
-                            key={hash}
-                        >
-                            {utils.shortenHash(hash)}
-                        </a>
-                    ))}
+                    <a
+                        href={explorerUrlWithTx ?? ''}
+                        target="_blank"
+                        className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
+                    >
+                        {txHash[0]}
+                    </a>
+                    <p className="m-0">
+                        <small>
+                            Click the confirmation above and check <b>Internal Txs</b>. It might be slow.
+                        </small>
+                    </p>
+                    <p className="m-0">
+                        <small>If you don't see the funds in your wallet, make sure you are on the right chain.</small>
+                    </p>
                 </div>
             )}
 

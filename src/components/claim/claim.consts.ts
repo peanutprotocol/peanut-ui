@@ -1,5 +1,6 @@
 import * as views from './views'
 import * as multilinkViews from './multilinkViews'
+import * as xchainViews from './xchainViews'
 import * as interfaces from '@/interfaces'
 
 export type linkState =
@@ -9,13 +10,13 @@ export type linkState =
     | 'LOADING'
     | 'MULTILINK_CLAIM'
     | 'MULTILINK_ALREADY_CLAIMED'
+    | 'XCHAIN_CLAIM'
+    | 'XCHAIN_ALREADY_CLAIMED'
 
-export type ClaimScreens = 'INITIAL' | 'SUCCESS'
-
-export type MultilinkClaimScreens = 'INITIAL' | 'SUCCESS'
+export type Screens = 'INITIAL' | 'SUCCESS'
 
 export interface IClaimScreenState {
-    screen: ClaimScreens
+    screen: Screens
     idx: number
 }
 
@@ -26,9 +27,30 @@ export interface IClaimDetails {
     chainId: number
 }
 
+//Todo: remove these chain and token interfaces and use the ones from the SDK
+
+interface Chain {
+    chainId: number
+    chainName: string
+    chainType: string
+    chainIconURI: string
+}
+
+interface Token {
+    chainId: number
+    address: string
+    name: string
+    symbol: string
+}
+
+export interface ICrossChainSuccess {
+    tokenName: string
+    chainName: string
+}
+
 export interface IClaimScreenProps {
     onNextScreen: () => void
-    onCustomScreen: (screen: ClaimScreens) => void
+    onCustomScreen: (screen: Screens) => void
     claimLink: string[]
     setClaimLink: (claimLink: string[]) => void
     claimDetails: interfaces.ILinkDetails[]
@@ -38,6 +60,9 @@ export interface IClaimScreenProps {
     setClaimType: (claimType: 'CLAIM' | 'PROMO') => void
     tokenPrice: string
     setTokenPrice: (tokenPrice: string) => void
+    crossChainDetails: Array<Chain & { tokens: Token[] }>
+    crossChainSuccess: ICrossChainSuccess
+    setCrossChainSuccess: (crossChainSuccess: ICrossChainSuccess) => void
 }
 
 export const INIT_VIEW: IClaimScreenState = {
@@ -45,20 +70,29 @@ export const INIT_VIEW: IClaimScreenState = {
     idx: 0,
 }
 
-export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'SUCCESS']
+export const CLAIM_SCREEN_FLOW: Screens[] = ['INITIAL', 'SUCCESS']
 
 export const CLAIM_SCREEN_MAP: {
-    [key in ClaimScreens]: { comp: React.FC<any> }
+    [key in Screens]: { comp: React.FC<any> }
 } = {
     INITIAL: { comp: views.ClaimView },
     SUCCESS: { comp: views.ClaimSuccessView },
 }
 
-export const MULTILINK_CLAIM_SCREEN_FLOW: MultilinkClaimScreens[] = ['INITIAL', 'SUCCESS']
+export const MULTILINK_CLAIM_SCREEN_FLOW: Screens[] = ['INITIAL', 'SUCCESS']
 
 export const MULTILINK_CLAIM_SCREEN_MAP: {
-    [key in MultilinkClaimScreens]: { comp: React.FC<any> }
+    [key in Screens]: { comp: React.FC<any> }
 } = {
     INITIAL: { comp: multilinkViews.MultilinkClaimView },
     SUCCESS: { comp: multilinkViews.multilinkSuccessView },
+}
+
+export const XCHAIN_CLAIM_SCREEN_FLOW: Screens[] = ['INITIAL', 'SUCCESS']
+
+export const XCHAIN_CLAIM_SCREEN_MAP: {
+    [key in Screens]: { comp: React.FC<any> }
+} = {
+    INITIAL: { comp: xchainViews.xchainClaimView },
+    SUCCESS: { comp: xchainViews.xchainSuccesView },
 }

@@ -58,7 +58,8 @@ export function Store({ children }: { children: React.ReactNode }) {
                 (key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS]
             )
             const tokenDetailsArray = peanut.TOKEN_DETAILS
-            setDefaultChainDetails(chainDetailsArray)
+            //NOTE: Filtering out milkomeda per request of KU
+            setDefaultChainDetails(chainDetailsArray.filter((chain) => chain.chainId !== 2001))
             setDefaultTokenDetails(tokenDetailsArray)
         }
     }

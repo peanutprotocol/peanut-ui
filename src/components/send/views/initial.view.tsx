@@ -370,6 +370,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 )
 
                 setLoadingStates('preparing transaction')
+
                 const prepareTxsResponse = await peanut.prepareTxs({
                     address: address ?? '',
                     linkDetails,
@@ -378,13 +379,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
                     peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
-                if (prepareTxsResponse.status.code !== peanut.interfaces.EPrepareCreateTxsStatusCodes.SUCCESS) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Something went wrong while preparing the transaction',
-                    })
-                    throw new Error(prepareTxsResponse.status.stack, { cause: 'preparing' })
-                }
 
                 const signedTxsResponse: ISignAndSubmitTxResponse[] = []
 
@@ -403,23 +397,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     signedTxsResponse.push(x)
                 }
 
-                if (
-                    signedTxsResponse.some(
-                        (tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS || tx.tx == null
-                    )
-                ) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Something went wrong while signing the transaction',
-                    })
-
-                    throw new Error(
-                        signedTxsResponse.find((tx) => tx.status.code !== peanut.interfaces.ESignAndSubmitTx.SUCCESS)
-                            ?.status.stack,
-                        { cause: 'signing' }
-                    )
-                }
-
                 setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
 
                 const getLinksFromTxResponse = await peanut.getLinksFromTx({
@@ -427,14 +404,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     passwords: passwords,
                 })
-
-                if (getLinksFromTxResponse.status.code !== peanut.interfaces.EGetLinkFromTxStatusCodes.SUCCESS) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Something went wrong while creating the links',
-                    })
-                    throw new Error(getLinksFromTxResponse.status.stack, { cause: 'creating' })
-                }
 
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
                 verbose && console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
@@ -449,7 +418,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setChainId(sendFormData.chainId)
                 onNextScreen()
             } catch (error: any) {
-                if (error.cause != 'preparing' && error.cause != 'signing' && error.cause != 'creating') {
+                console.error(error)
+                if (error instanceof peanut.interfaces.SDKStatus) {
+                    const errorMessage = utils.sdkErrorHandler(error)
+                    setErrorState({
+                        showError: true,
+                        errorMessage: errorMessage,
+                    })
+                } else {
                     console.error(error)
                     if (error.toString().includes('insufficient funds')) {
                         setErrorState({
@@ -472,8 +448,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             errorMessage: 'Something failed while creating your link. Please try again',
                         })
                     }
-                } else {
-                    console.error('cause: ' + error.cause + ' message: ' + error.message)
                 }
             } finally {
                 setLoadingStates('idle')
@@ -836,9 +810,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             {isLoading ? (
                                 <div className="flex justify-center gap-1">
                                     <label>{loadingStates} </label>
-                                    <div className="flex h-full w-[26px] justify-start pb-1">
-                                        <div className="loading" />
-                                    </div>
+                                    <span className="bouncing-dots">
+                                        <span className="dot">.</span>
+                                        <span className="dot">.</span>
+                                        <span className="dot">.</span>
+                                    </span>
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
@@ -910,7 +886,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         <div
                                                             key={chain.chainId}
                                                             className={
-                                                                'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                                 (formwatch.chainId == chain.chainId
                                                                     ? 'bg-black text-white'
                                                                     : '')
@@ -932,7 +908,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     <div
                                                         key={chain.chainId}
                                                         className={
-                                                            'brutalborder flex h-full w-1/5 min-w-max cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                            'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
                                                             (formwatch.chainId == chain.chainId
                                                                 ? 'bg-black text-white'
                                                                 : '')

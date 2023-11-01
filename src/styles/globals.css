@@ -147,19 +147,6 @@ Firefox input[type='number'] {
     -moz-appearance: textfield;
 }
 
-select {
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' fill='black'><polygon points='0,0 100,0 50,50'/></svg>")
-        no-repeat;
-    background-size: 12px;
-    background-position: calc(100% - 15px) center;
-    background-repeat: no-repeat;
-    background-color: white;
-    background-position-y: 60%;
-}
-
 input {
     box-sizing: border-box;
 }
@@ -211,5 +198,33 @@ input {
 @-webkit-keyframes ellipsis {
     to {
         width: 1.25em;
+    }
+}
+
+.dot {
+    display: inline-block;
+    animation-name: bouncing;
+    animation-duration: 700ms;
+    animation-iteration-count: infinite;
+    animation-timing-function: ease-out;
+    &:nth-child(2) {
+        animation-delay: 125ms;
+    }
+    &:nth-child(3) {
+        animation-delay: 250ms;
+    }
+}
+
+@keyframes bouncing {
+    0% {
+        transform: none;
+    }
+
+    33% {
+        transform: translateY(-0.5em);
+    }
+
+    66% {
+        transform: none;
     }
 }
