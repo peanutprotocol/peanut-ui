@@ -1998,10 +1998,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.3.1":
-  version "0.3.1"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.3.1.tgz#bb3b42fbc133dd0ccbb1576d9ea2c525d6e67e96"
-  integrity sha512-+QWbJXlM92fcTc3xbbDQLMSasY9/nqAViXStm4dc9sLePj/j16RaQy6o1p4eGYBNbA3aVeMyylgogBeyilMf8Q==
+"@squirrel-labs/peanut-sdk@0.3.2":
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.3.2.tgz#4fb5ba900c7a070f6a321c900f0b1a43fd30ebaa"
+  integrity sha512-O04N/EcvRrfp6cmNE7ixR1sN1G6tKJVdXrdgZ/JBiJ5cP6Cqkyf2+1s7GZnxuX+A/WKLXRVuPRavTGaFqxOCDg==
   dependencies:
     ethersv5 "npm:ethers@^5"
     isomorphic-fetch "^3.0.0"
@@ -9424,6 +9424,7 @@ widest-line@^4.0.1:
     string-width "^5.0.1"
 
 "wrap-ansi-cjs@npm:wrap-ansi@^7.0.0", wrap-ansi@^7.0.0:
+  name wrap-ansi-cjs
   version "7.0.0"
   resolved "https://registry.yarnpkg.com/wrap-ansi/-/wrap-ansi-7.0.0.tgz#67e145cff510a6a6984bdf1152911d69d2eb9e43"
   integrity sha512-YVGIj2kamLSTxw6NsZjoBxfSwsn0ycdesmc4p+Q21c5zPuZ1pl+NfxVdxPtdHvmNVOQ6XSYG4AUtyt/Fi7D16Q==
