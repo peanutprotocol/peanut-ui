@@ -741,7 +741,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                     </div>
-                    <div
+                    {/* <div
                         className="flex cursor-pointer items-center justify-center "
                         onClick={() => {
                             setAdvancedDropdownOpen(!advancedDropdownOpen)
@@ -749,7 +749,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 sendForm.setValue('bulkAmount', 0)
                             }
                         }}
-                        hidden
+                        
                     >
                         <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
                         <img
@@ -761,7 +761,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             alt=""
                             className={'h-6 '}
                         />
-                    </div>
+                    </div> */}
                     {advancedDropdownOpen && (
                         <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
                             <div className="relative w-full px-2 sm:w-3/4">
