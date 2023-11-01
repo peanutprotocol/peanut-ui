@@ -127,7 +127,7 @@ export function Claim({ link }: { link: string }) {
         try {
             const promoList: {
                 [key: string]: string
-            } = JSON.parse(process.env.PROMO_LIST ?? '')
+            } = JSON.parse(process.env.PROMO_LIST ?? '{}')
             var localLink
 
             if (isPromoLink(link)) {
