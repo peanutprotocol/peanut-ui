@@ -71,6 +71,17 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
                 Send Crypto
             </button>
 
+            <p className=" mt-4 text-center text-xs">
+                Click{' '}
+                <a
+                    href="https://www.notion.so/peanutprotocol/EthLisbon-2023-Peanut-Hackathon-860313c93a57448fba82aec2c88ae19a"
+                    target="_blank"
+                    className="cursor-pointer text-black underline"
+                >
+                    here{' '}
+                </a>
+                to see what you can do with your EthLisbon welcome pack!
+            </p>
             <p className="mt-4 text-center text-xs">
                 Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
                 <a href="https://discord.gg/BX9Ak7AW28" target="_blank" className="cursor-pointer text-black underline">
