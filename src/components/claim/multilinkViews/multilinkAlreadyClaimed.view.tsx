@@ -69,7 +69,7 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                     </a>
 
                     <a
-                        href="https://ethrome.notion.site/ETHRome-Hacker-Manual-e3aa8b443a84426186eede13b0ae8709"
+                        href="https://www.notion.so/EthLisbon-2023-Peanut-Hackathon-860313c93a57448fba82aec2c88ae19a"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-5 text-2xl font-black text-black no-underline hover:underline"
