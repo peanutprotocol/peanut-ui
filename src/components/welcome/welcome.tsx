@@ -5,6 +5,8 @@ import orest_image from '@/assets/people/orest.jpg'
 import mydas_image from '@/assets/people/mydas.jpg'
 import steven_image from '@/assets/people/Steven.jpg'
 import sbf_image from '@/assets/people/sbf.jpeg'
+import peanut from '@squirrel-labs/peanut-sdk'
+import * as chain_logos from '@/assets/chains'
 export function Welcome() {
     return (
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
@@ -53,17 +55,14 @@ export function Welcome() {
             </section>
 
             {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-black">
-                <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        GO
-                    </div>
-                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        NUTS
-                    </div>
-                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                </>
+            <global_components.MarqueeWrapper backgroundColor="bg-white">
+                {Object.entries(chain_logos).map(([chain, logo]) => {
+                    return (
+                        <div className="pl-3 pt-5" key={chain}>
+                            <img src={logo.default.src} className="h-16 w-16" />
+                        </div>
+                    )
+                })}
             </global_components.MarqueeWrapper>
 
             {/* Use Cases: SDK, app, marketing */}
