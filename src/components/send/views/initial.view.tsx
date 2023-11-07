@@ -379,6 +379,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
 
+                const currentDateTime = new Date()
+                const tempLocalstorageKey = 'saving passwords for address: ' + address + ' at ' + currentDateTime
+                utils.saveToLocalStorage(tempLocalstorageKey, passwords)
+
                 const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
@@ -406,12 +410,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
                 verbose && console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+
+                utils.delteFromLocalStorage(tempLocalstorageKey)
+
                 getLinksFromTxResponse.links.forEach((link, index) => {
                     utils.saveToLocalStorage(
                         address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
                         link
                     )
                 })
+
                 setClaimLink(getLinksFromTxResponse.links)
                 setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
                 setChainId(sendFormData.chainId)
