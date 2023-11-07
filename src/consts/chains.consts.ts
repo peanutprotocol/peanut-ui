@@ -1,28 +1,6 @@
-import {
-    gnosis,
-    mainnet,
-    arbitrum,
-    polygon,
-    bsc,
-    goerli,
-    optimism,
-    bscTestnet,
-    optimismGoerli,
-    polygonZkEvmTestnet,
-    mantleTestnet,
-    gnosisChiado,
-    avalancheFuji,
-    avalanche,
-    celoAlfajores,
-    polygonMumbai,
-    filecoinCalibration,
-    neonDevnet,
-    scrollTestnet,
-    holesky,
-    sepolia,
-    linea,
-    lineaTestnet,
-} from 'wagmi/chains'
+// https://wagmi.sh/core/chains
+
+import * as wagmiChains from 'wagmi/chains'
 import { Chain } from 'wagmi'
 
 const milkomeda = {
@@ -63,6 +41,7 @@ const milkomedaTestnet = {
     contracts: {},
 } as const satisfies Chain
 
+// TODO: replace with baseGoerli (wagmi export)
 const baseTestnet = {
     id: 84531,
     name: 'Base Goerli Testnet',
@@ -101,33 +80,4 @@ const taikoGrimsvotn = {
     contracts: {},
 } as const satisfies Chain
 
-export const chains = [
-    mainnet,
-    arbitrum,
-    polygon,
-    bsc,
-    goerli,
-    gnosis,
-    optimism,
-    bscTestnet,
-    optimismGoerli,
-    avalancheFuji,
-    polygonZkEvmTestnet,
-    mantleTestnet,
-    gnosisChiado,
-    avalancheFuji,
-    avalanche,
-    celoAlfajores,
-    polygonMumbai,
-    filecoinCalibration,
-    neonDevnet,
-    milkomeda,
-    milkomedaTestnet,
-    scrollTestnet,
-    holesky,
-    baseTestnet,
-    taikoGrimsvotn,
-    linea,
-    lineaTestnet,
-    sepolia,
-]
+export const chains = [...Object.values(wagmiChains), milkomeda, milkomedaTestnet, baseTestnet, taikoGrimsvotn]
