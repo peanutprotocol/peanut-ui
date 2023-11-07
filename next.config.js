@@ -22,6 +22,16 @@ const nextConfig = {
             },
         ]
     },
+    async redirects() {
+        return [
+            {
+                source: '/docs',
+                destination: 'https://docs.peanut.to',
+                permanent: false,
+                basePath: false,
+            },
+        ]
+    },
     async headers() {
         return [
             {

@@ -5,7 +5,6 @@ import { useAccount, useNetwork } from 'wagmi'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
-import peanut from '@squirrel-labs/peanut-sdk'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
@@ -20,7 +19,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
+import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -380,7 +379,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
 
-                const signedTxsResponse: ISignAndSubmitTxResponse[] = []
+                const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
