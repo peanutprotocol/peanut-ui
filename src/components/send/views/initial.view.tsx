@@ -380,8 +380,20 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 })
 
                 const currentDateTime = new Date()
-                const tempLocalstorageKey = 'saving passwords for address: ' + address + ' at ' + currentDateTime
-                utils.saveToLocalStorage(tempLocalstorageKey, passwords)
+                const tempLocalstorageKey =
+                    'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
+
+                passwords.map((password, idx) => {
+                    const tempLink =
+                        '/claim?c=' +
+                        linkDetails.chainId +
+                        '&v=' +
+                        latestContractVersion +
+                        '&i=?&p=' +
+                        password +
+                        '&t=ui'
+                    utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
+                })
 
                 const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
 
@@ -411,7 +423,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
                 verbose && console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
 
-                utils.delteFromLocalStorage(tempLocalstorageKey)
+                passwords.map((password, idx) => {
+                    utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
+                })
 
                 getLinksFromTxResponse.links.forEach((link, index) => {
                     utils.saveToLocalStorage(
@@ -722,7 +736,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                     </div>
-                    {/* <div
+                    <div
                         className="flex cursor-pointer items-center justify-center "
                         onClick={() => {
                             setAdvancedDropdownOpen(!advancedDropdownOpen)
@@ -730,7 +744,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 sendForm.setValue('bulkAmount', 0)
                             }
                         }}
-                        
                     >
                         <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
                         <img
@@ -742,7 +755,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             alt=""
                             className={'h-6 '}
                         />
-                    </div> */}
+                    </div>
                     {advancedDropdownOpen && (
                         <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
                             <div className="relative w-full px-2 sm:w-3/4">
