@@ -108,6 +108,15 @@ export function xchainClaimView({
             setLoadingStates('executing transaction')
             await checkNetwork(claimDetails[0].chainId)
 
+            if (!selectedToken) {
+                setSelectedToken({
+                    chainId: claimDetails[0].chainId,
+                    address: claimDetails[0].tokenAddress,
+                    name: claimDetails[0].tokenName,
+                    symbol: claimDetails[0].tokenSymbol,
+                })
+            }
+
             const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                 .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                 .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
@@ -119,7 +128,7 @@ export function xchainClaimView({
                 },
                 claimDetails[0].link,
                 selectedChain.chainId,
-                selectedToken.address,
+                selectedToken?.address,
                 isTestnet,
                 1,
                 address ?? ''

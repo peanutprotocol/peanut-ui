@@ -42,6 +42,15 @@ export const saveToLocalStorage = (key: string, data: any) => {
     }
 }
 
+export const delteFromLocalStorage = (key: string) => {
+    try {
+        localStorage.removeItem(key)
+        console.log(`Removed ${key} from localStorage`)
+    } catch (error) {
+        console.error('Error removing from localStorage:', error)
+    }
+}
+
 export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
         const localStorageData: interfaces.ILocalStorageItem[] = []

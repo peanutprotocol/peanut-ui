@@ -5,7 +5,6 @@ import { useAccount, useNetwork } from 'wagmi'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
-import peanut from '@squirrel-labs/peanut-sdk'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
@@ -20,7 +19,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import { ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk/dist/consts/interfaces.consts'
+import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -380,7 +379,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
 
-                const signedTxsResponse: ISignAndSubmitTxResponse[] = []
+                const currentDateTime = new Date()
+                const tempLocalstorageKey =
+                    'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
+
+                passwords.map((password, idx) => {
+                    const tempLink =
+                        '/claim?c=' +
+                        linkDetails.chainId +
+                        '&v=' +
+                        latestContractVersion +
+                        '&i=?&p=' +
+                        password +
+                        '&t=ui'
+                    utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
+                })
+
+                const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
@@ -407,12 +422,18 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
                 verbose && console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+
+                passwords.map((password, idx) => {
+                    utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
+                })
+
                 getLinksFromTxResponse.links.forEach((link, index) => {
                     utils.saveToLocalStorage(
                         address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
                         link
                     )
                 })
+
                 setClaimLink(getLinksFromTxResponse.links)
                 setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
                 setChainId(sendFormData.chainId)
@@ -715,7 +736,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                     </div>
-                    {/* <div
+                    <div
                         className="flex cursor-pointer items-center justify-center "
                         onClick={() => {
                             setAdvancedDropdownOpen(!advancedDropdownOpen)
@@ -723,7 +744,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 sendForm.setValue('bulkAmount', 0)
                             }
                         }}
-                        
                     >
                         <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
                         <img
@@ -735,7 +755,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             alt=""
                             className={'h-6 '}
                         />
-                    </div> */}
+                    </div>
                     {advancedDropdownOpen && (
                         <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
                             <div className="relative w-full px-2 sm:w-3/4">
