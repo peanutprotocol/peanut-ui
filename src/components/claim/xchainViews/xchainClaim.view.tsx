@@ -1,11 +1,7 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useAccount, useNetwork } from 'wagmi'
-import { providers } from 'ethers'
+import { useAccount } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
-import { WalletClient } from 'wagmi'
-import { isMobile } from 'react-device-detect'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
