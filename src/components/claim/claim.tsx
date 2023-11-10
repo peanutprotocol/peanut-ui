@@ -87,11 +87,12 @@ export function Claim({ link }: { link: string }) {
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
 
         try {
-            const crossChainDetails = await peanut.getCrossChainOptionsForLink(
+            const crossChainDetails = await peanut.getXChainOptionsForLink({
                 isTestnet,
-                linkDetails.chainId,
-                linkDetails.tokenType
-            )
+                sourceChainId: linkDetails.chainId,
+                tokenType: linkDetails.tokenType,
+            })
+
             if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
                 setCrossChainDetails(crossChainDetails)
                 return true
@@ -99,6 +100,7 @@ export function Claim({ link }: { link: string }) {
                 return false
             }
         } catch (error) {
+            console.log('error fetching cross chain details: ' + error)
             return false
         }
     }
@@ -173,8 +175,9 @@ export function Claim({ link }: { link: string }) {
                     } else {
                         await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    // if (await isBridgePossible(linkDetails)) { //disabling bridge for now
-                    if (false) {
+                    if (await isBridgePossible(linkDetails)) {
+                        //disabling bridge for now
+                        // if (false)
                         setLinkState('XCHAIN_CLAIM')
                     } else {
                         setLinkState('CLAIM')

@@ -61,8 +61,8 @@ export interface IClaimScreenProps {
     tokenPrice: string
     setTokenPrice: (tokenPrice: string) => void
     crossChainDetails: Array<Chain & { tokens: Token[] }>
-    crossChainSuccess: ICrossChainSuccess
-    setCrossChainSuccess: (crossChainSuccess: ICrossChainSuccess) => void
+    crossChainSuccess: ICrossChainSuccess | undefined
+    setCrossChainSuccess: (crossChainSuccess: ICrossChainSuccess | undefined) => void
 }
 
 export const INIT_VIEW: IClaimScreenState = {

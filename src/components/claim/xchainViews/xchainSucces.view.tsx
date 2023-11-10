@@ -8,14 +8,22 @@ import * as hooks from '@/hooks'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
-export function xchainSuccesView({ txHash, crossChainSuccess }: _consts.IClaimScreenProps) {
+export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _consts.IClaimScreenProps) {
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
-    const explorerUrlWithTx = 'https://testnet.axelarscan.io/gmp/' + txHash[0]
+    const explorerUrlWithTx = useMemo(
+        () =>
+            crossChainSuccess
+                ? 'https://testnet.axelarscan.io/gmp/' + txHash[0]
+                : chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
+                  '/tx/' +
+                  txHash[0],
+        [txHash, chainDetails]
+    )
 
     useEffect(() => {
         router.prefetch('/send')
@@ -25,12 +33,23 @@ export function xchainSuccesView({ txHash, crossChainSuccess }: _consts.IClaimSc
     return (
         <>
             <h2 className="title-font mb-0 text-3xl font-black md:text-5xl">Congratulations!</h2>
-            <p className="mb-0 mt-3 break-words text-center text-lg">
-                you have successfully cross-claimed your funds!{' '}
-            </p>
-            <p className="mb-0 mt-3 break-words text-center text-lg">
-                your funds will arive shortly on {crossChainSuccess.chainName}!
-            </p>
+            {crossChainSuccess ? (
+                <>
+                    <p className="mb-0 mt-3 break-words text-center text-lg">
+                        you have successfully cross-claimed your funds!{' '}
+                    </p>
+                    <p className="mb-0 mt-3 break-words text-center text-lg">
+                        your funds will arive shortly on {crossChainSuccess.chainName}!
+                    </p>
+                </>
+            ) : (
+                <>
+                    {' '}
+                    <p className="mb-0 mt-3 break-words text-center text-lg">
+                        you have successfully claimed your funds!{' '}
+                    </p>
+                </>
+            )}
 
             <div
                 className="mt-2 flex cursor-pointer items-center justify-center"

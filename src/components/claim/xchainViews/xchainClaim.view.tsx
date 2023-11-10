@@ -1,9 +1,8 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAccount, useNetwork } from 'wagmi'
-import { ethers, providers } from 'ethers'
-import peanut, { TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
-import { useForm } from 'react-hook-form'
+import { providers } from 'ethers'
+import peanut from '@squirrel-labs/peanut-sdk'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { WalletClient } from 'wagmi'
 import { isMobile } from 'react-device-detect'
@@ -16,23 +15,23 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
-import axios from 'axios'
 
 export function xchainClaimView({
     onNextScreen,
     claimDetails,
-    claimLink,
     setTxHash,
     tokenPrice,
     crossChainDetails,
     setCrossChainSuccess,
 }: _consts.IClaimScreenProps) {
+    const verbose = process.env.NODE_ENV === 'development' ? true : false
+
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
-    const [listIsLoading, setListIsLoading] = useState(true)
+
     const [chainList, setChainList] = useState<{ chainId: number; chainName: string; chainIconURI: string }[]>([])
     const [selectedChain, setSelectedChain] = useState<{ chainId: number; chainName: string; chainIconURI: string }>({
         chainId: claimDetails[0].chainId,
@@ -40,64 +39,21 @@ export function xchainClaimView({
         chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon.url,
     })
     const [tokenList, setTokenList] = useState<any[] | undefined>(undefined)
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const [selectedToken, setSelectedToken] = useState<any | undefined>(undefined)
+
     const [isChainSelectorOpen, setIsChainSelectorOpen] = useState(false)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
-    const [selectedToken, setSelectedToken] = useState<any | undefined>(undefined)
+
     const [possibleRoutesArray, setPossibleRoutesArray] = useState<any[]>([])
     const [isRouteLoading, setIsRouteLoading] = useState(false)
-    const { chain: currentChain } = useNetwork()
 
+    const [listIsLoading, setListIsLoading] = useState(true)
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-
-    function walletClientToSigner(walletClient: WalletClient) {
-        const { account, chain, transport } = walletClient
-        const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-        }
-        const provider = new providers.Web3Provider(transport, network)
-        const signer = provider.getSigner(account.address)
-        return signer
-    }
-
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: number
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = walletClientToSigner(walletClient)
-        return signer
-    }
-
-    const checkNetwork = async (chainId: number) => {
-        //check if the user is on the correct chain
-        if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingStates('allow network switch')
-
-            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Something went wrong while switching networks',
-                })
-                setLoadingStates('idle')
-                throw error
-            })
-            setLoadingStates('switching network')
-            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
-            setLoadingStates('loading')
-        }
-    }
 
     const claim = async () => {
         try {
@@ -106,44 +62,54 @@ export function xchainClaimView({
                 errorMessage: '',
             })
             setLoadingStates('executing transaction')
-            await checkNetwork(claimDetails[0].chainId)
-
-            if (!selectedToken) {
-                setSelectedToken({
-                    chainId: claimDetails[0].chainId,
-                    address: claimDetails[0].tokenAddress,
-                    name: claimDetails[0].tokenName,
-                    symbol: claimDetails[0].tokenSymbol,
+            if (!possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address)) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the chosen chain and token',
                 })
+                return
             }
 
-            const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-                .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-                .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
+            let claimTx
+            if (!selectedToken) {
+                verbose && console.log('claiming non-cross chain')
+                claimTx = await peanut.claimLinkGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: address ?? '',
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                })
+            } else {
+                verbose && console.log('claiming cross chain')
+                const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
+                    .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
+                    .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
-            const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
-            const x = await peanut.claimLinkXChain(
-                {
-                    signer: signer,
-                },
-                claimDetails[0].link,
-                selectedChain.chainId,
-                selectedToken?.address,
-                isTestnet,
-                1,
-                address ?? ''
-            )
-            setTxHash([x.txHash])
-            setCrossChainSuccess({
-                chainName: selectedChain.chainName,
-                tokenName: selectedToken.name,
-            })
-            verbose && console.log(x)
+                claimTx = await peanut.claimLinkXChainGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: address ?? '',
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                    destinationChainId: selectedChain.chainId.toString(),
+                    destinationTokenAddress: selectedToken.address,
+                    isTestnet,
+                })
+            }
+            verbose && console.log(claimTx)
+
+            setTxHash([claimTx.txHash])
+            if (selectedToken) {
+                setCrossChainSuccess({
+                    chainName: selectedChain.chainName,
+                    tokenName: selectedToken.name,
+                })
+            } else {
+                setCrossChainSuccess(undefined)
+            }
+
             onNextScreen()
         } catch (error) {
             setErrorState({
                 showError: true,
-                errorMessage: 'Something went wrong while claiming',
+                errorMessage: 'Something went wrong while claiming.',
             })
             console.error(error)
         } finally {
@@ -158,21 +124,21 @@ export function xchainClaimView({
         const tokenDecimals =
             tokenDetails
                 .find((chain) => Number(chain.chainId) == claimDetails[0].chainId)
-                ?.tokens.find((token) => token.address == claimDetails[0].tokenAddress)?.decimals ?? 6 // TODO: HIGH PRIO: CHANGE TO GETLINKDETAILS TOKEN DECIMALS
+                ?.tokens.find((token) => token.address == claimDetails[0].tokenAddress)?.decimals ?? 6 // TODO:  CHANGE TO GETLINKDETAILS TOKEN DECIMALS
         const tokenAmount = Math.floor(Number(claimDetails[0].tokenAmount) * Math.pow(10, tokenDecimals)).toString()
 
         try {
-            const x = await peanut.getSquidRoute(
+            const x = await peanut.getSquidRoute({
                 isTestnet,
-                claimDetails[0].chainId.toString(),
-                claimDetails[0].tokenAddress,
-                tokenAmount,
-                selectedChain.chainId.toString(),
-                selectedToken.address,
-                address?.toString() ?? '',
-                address?.toString() ?? '',
-                1
-            )
+                fromChain: claimDetails[0].chainId.toString(),
+                fromToken: claimDetails[0].tokenAddress,
+                fromAmount: tokenAmount,
+                toChain: selectedChain.chainId.toString(),
+                toToken: selectedToken.address,
+                slippage: 1,
+                fromAddress: address ?? '',
+                toAddress: address ?? '',
+            })
             setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
             verbose && console.log(x)
         } catch (error) {
@@ -261,7 +227,7 @@ export function xchainClaimView({
                         </h2>
                         <img
                             style={{
-                                transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                                transform: isTokenSelectorOpen ? 'scaleY(-1)' : 'none',
                                 transition: 'transform 0.3s ease-in-out',
                             }}
                             src={dropdown_svg.src}
@@ -320,7 +286,7 @@ export function xchainClaimView({
                 <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">{selectedChain?.chainName}</h3>
                 <img
                     style={{
-                        transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                        transform: isChainSelectorOpen ? 'scaleY(-1)' : 'none',
                         transition: 'transform 0.3s ease-in-out',
                     }}
                     src={dropdown_svg.src}
