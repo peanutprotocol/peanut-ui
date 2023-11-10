@@ -62,7 +62,10 @@ export function xchainClaimView({
                 errorMessage: '',
             })
             setLoadingStates('executing transaction')
-            if (!possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address)) {
+            if (
+                !possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address) &&
+                selectedToken
+            ) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'No route found for the chosen chain and token',
@@ -258,7 +261,7 @@ export function xchainClaimView({
                 </h2>
             ) : (
                 possibleRoutesArray.length > 0 &&
-                possibleRoutesArray.find((route) => route.route?.params.toToken.address === selectedToken.address) && (
+                possibleRoutesArray.find((route) => route.route?.params.toToken.address === selectedToken?.address) && (
                     <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
                         You will be claiming $
                         {
