@@ -200,7 +200,14 @@ export function xchainClaimView({
     }, [selectedToken])
 
     useEffect(() => {
-        if (possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address)) {
+        if (
+            possibleRoutesArray.find(
+                (route) =>
+                    route.route?.params?.toToken?.address &&
+                    route.route?.params?.toToken?.address == selectedToken?.address &&
+                    selectedToken?.address
+            )
+        ) {
             setIsRouteLoading(false)
         }
     }, [possibleRoutesArray])
