@@ -10,6 +10,7 @@ import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as hooks from '@/hooks'
 import * as store from '@/store'
 import { useAtom } from 'jotai'
+import * as utils from '@/utils'
 
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 interface Chain {
@@ -175,7 +176,11 @@ export function Claim({ link }: { link: string }) {
                     } else {
                         await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    if (await isBridgePossible(linkDetails)) {
+                    const _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
+                    const x = tokenPrice
+                        ? utils.formatAmount(Number(_tokenprice) * Number(claimDetails[0].tokenAmount))
+                        : 10.1
+                    if ((await isBridgePossible(linkDetails)) && Number(x) > 9) {
                         //disabling bridge for now
                         // if (false)
                         setLinkState('XCHAIN_CLAIM')

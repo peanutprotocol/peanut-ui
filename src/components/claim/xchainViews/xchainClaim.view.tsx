@@ -140,11 +140,19 @@ export function xchainClaimView({
             })
             setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
             verbose && console.log(x)
-        } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the chosen chain and token',
-            })
+        } catch (error: any) {
+            if (error.toString().includes('Please increase your input amount')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'This link can not be claimed cross-chain, it does not meet the minimum amount.',
+                })
+            } else {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the chosen chain and token',
+                })
+            }
+
             setIsRouteLoading(false)
         }
     }
