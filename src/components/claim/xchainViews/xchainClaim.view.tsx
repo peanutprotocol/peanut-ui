@@ -1,7 +1,8 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useAccount } from 'wagmi'
+import { WalletClient, useAccount } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
+import { switchNetwork, getWalletClient } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -11,6 +12,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
+import { providers } from 'ethers'
 
 export function xchainClaimView({
     onNextScreen,
@@ -51,6 +53,31 @@ export function xchainClaimView({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
+    function walletClientToSigner(walletClient: WalletClient) {
+        const { account, chain, transport } = walletClient
+        const network = {
+            chainId: chain.id,
+            name: chain.name,
+            ensAddress: chain.contracts?.ensRegistry?.address,
+        }
+        const provider = new providers.Web3Provider(transport, network)
+        const signer = provider.getSigner(account.address)
+        return signer
+    }
+
+    const getWalletClientAndUpdateSigner = async ({
+        chainId,
+    }: {
+        chainId: number
+    }): Promise<providers.JsonRpcSigner> => {
+        const walletClient = await getWalletClient({ chainId: Number(chainId) })
+        if (!walletClient) {
+            throw new Error('Failed to get wallet client')
+        }
+        const signer = walletClientToSigner(walletClient)
+        return signer
+    }
+
     const claim = async () => {
         try {
             setErrorState({
@@ -59,7 +86,7 @@ export function xchainClaimView({
             })
             setLoadingStates('executing transaction')
             if (
-                !possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address) &&
+                !possibleRoutesArray.find((route) => route.route?.params.toToken == selectedToken.address) &&
                 selectedToken
             ) {
                 setErrorState({
@@ -82,6 +109,20 @@ export function xchainClaimView({
                 const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
+
+                // const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+
+                // claimTx = await peanut.claimLinkXChain({
+                //     structSigner: {
+                //         signer: signer,
+                //     },
+                //     destinationChainId: selectedChain.chainId.toString(),
+                //     destinationTokenAddress: selectedToken.address,
+                //     link: claimDetails[0].link,
+                //     maxSlippage: 1,
+                //     isTestnet,
+                //     recipient: address ?? '',
+                // })
 
                 claimTx = await peanut.claimLinkXChainGasless({
                     link: claimDetails[0].link,
@@ -211,8 +252,8 @@ export function xchainClaimView({
         if (
             possibleRoutesArray.find(
                 (route) =>
-                    route.route?.params?.toToken?.address &&
-                    route.route?.params?.toToken?.address == selectedToken?.address &&
+                    route.route?.params?.toToken &&
+                    route.route?.params?.toToken == selectedToken?.address &&
                     selectedToken?.address
             )
         ) {
@@ -272,19 +313,26 @@ export function xchainClaimView({
                 </h2>
             ) : (
                 possibleRoutesArray.length > 0 &&
-                possibleRoutesArray.find((route) => route.route?.params.toToken.address === selectedToken?.address) && (
+                possibleRoutesArray.find((route) => route.route?.params.toToken === selectedToken?.address) && (
                     <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
                         You will be claiming $
-                        {
-                            possibleRoutesArray.find(
-                                (route) => route.route.params.toToken.address === selectedToken.address
-                            ).route.estimate.toAmountUSD
-                        }{' '}
+                        {utils.formatAmount(
+                            utils.formatAmountWithDecimals({
+                                amount: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toAmountMin,
+                                decimals: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toToken.decimals,
+                            }) /
+                                possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.exchangeRate
+                        )}{' '}
                         in{' '}
                         {
-                            possibleRoutesArray.find(
-                                (route) => route.route.params.toToken.address === selectedToken.address
-                            ).route.params.toToken.name
+                            possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
+                                .route.estimate.toToken.name
                         }{' '}
                         on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
                     </h2>
