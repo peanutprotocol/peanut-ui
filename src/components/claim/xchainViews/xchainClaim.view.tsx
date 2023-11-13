@@ -12,7 +12,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
-import { providers } from 'ethers'
+import { BigNumber, providers } from 'ethers'
 
 export function xchainClaimView({
     onNextScreen,
@@ -110,28 +110,29 @@ export function xchainClaimView({
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
-                // const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+                const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
 
-                // claimTx = await peanut.claimLinkXChain({
-                //     structSigner: {
-                //         signer: signer,
-                //     },
-                //     destinationChainId: selectedChain.chainId.toString(),
-                //     destinationTokenAddress: selectedToken.address,
-                //     link: claimDetails[0].link,
-                //     maxSlippage: 1,
-                //     isTestnet,
-                //     recipient: address ?? '',
-                // })
-
-                claimTx = await peanut.claimLinkXChainGasless({
-                    link: claimDetails[0].link,
-                    recipientAddress: address ?? '',
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                claimTx = await peanut.claimLinkXChain({
+                    structSigner: {
+                        signer: signer,
+                        gasLimit: BigNumber.from(1000000),
+                    },
                     destinationChainId: selectedChain.chainId.toString(),
                     destinationTokenAddress: selectedToken.address,
+                    link: claimDetails[0].link,
+                    maxSlippage: 1,
                     isTestnet,
+                    recipient: address ?? '',
                 })
+
+                // claimTx = await peanut.claimLinkXChainGasless({
+                //     link: claimDetails[0].link,
+                //     recipientAddress: address ?? '',
+                //     APIKey: process.env.PEANUT_API_KEY ?? '',
+                //     destinationChainId: selectedChain.chainId.toString(),
+                //     destinationTokenAddress: selectedToken.address,
+                //     isTestnet,
+                // })
             }
             verbose && console.log(claimTx)
 
@@ -161,11 +162,9 @@ export function xchainClaimView({
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
             .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
-        const tokenDecimals =
-            tokenDetails
-                .find((chain) => Number(chain.chainId) == claimDetails[0].chainId)
-                ?.tokens.find((token) => token.address == claimDetails[0].tokenAddress)?.decimals ?? 6 // TODO:  CHANGE TO GETLINKDETAILS TOKEN DECIMALS
-        const tokenAmount = Math.floor(Number(claimDetails[0].tokenAmount) * Math.pow(10, tokenDecimals)).toString()
+        const tokenAmount = Math.floor(
+            Number(claimDetails[0].tokenAmount) * Math.pow(10, claimDetails[0].tokenDecimals)
+        ).toString()
 
         try {
             const x = await peanut.getSquidRoute({
@@ -201,7 +200,7 @@ export function xchainClaimView({
     useEffect(() => {
         if (crossChainDetails && listIsLoading) {
             const _chainList = crossChainDetails.map((chain) => {
-                return { chainId: chain.chainId, chainName: chain.chainName, chainIconURI: chain.chainIconURI }
+                return { chainId: chain.chainId, chainName: chain.axelarChainName, chainIconURI: chain.chainIconURI }
             })
             const currentChainName = chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name
             setSelectedChain({
@@ -228,7 +227,6 @@ export function xchainClaimView({
             const _tokenList = crossChainDetails.find((chain) => chain.chainId == selectedChain.chainId)?.tokens
             if (_tokenList) {
                 setTokenList(_tokenList)
-                console.log(_tokenList)
                 setSelectedToken(_tokenList[0])
             } else {
                 setTokenList(undefined)
@@ -315,8 +313,23 @@ export function xchainClaimView({
                 possibleRoutesArray.length > 0 &&
                 possibleRoutesArray.find((route) => route.route?.params.toToken === selectedToken?.address) && (
                     <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
-                        You will be claiming $
-                        {utils.formatAmount(
+                        You will be claiming{' '}
+                        {utils.formatTokenAmount(
+                            utils.formatAmountWithDecimals({
+                                amount: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toAmountMin,
+                                decimals: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toToken.decimals,
+                            })
+                        )}
+                        {' in '}
+                        {
+                            possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
+                                .route.estimate.toToken.name
+                        }
+                        {/* {utils.formatAmount(
                             utils.formatAmountWithDecimals({
                                 amount: possibleRoutesArray.find(
                                     (route) => route.route.params.toToken === selectedToken.address
@@ -333,7 +346,7 @@ export function xchainClaimView({
                         {
                             possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
                                 .route.estimate.toToken.name
-                        }{' '}
+                        }{' '} */}{' '}
                         on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
                     </h2>
                 )

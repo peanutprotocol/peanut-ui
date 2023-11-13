@@ -15,7 +15,7 @@ import * as utils from '@/utils'
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 interface Chain {
     chainId: number
-    chainName: string
+    axelarChainName: string
     chainType: string
 }
 
@@ -90,7 +90,7 @@ export function Claim({ link }: { link: string }) {
         try {
             const crossChainDetails = await peanut.getXChainOptionsForLink({
                 isTestnet,
-                sourceChainId: linkDetails.chainId,
+                sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
 

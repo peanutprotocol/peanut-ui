@@ -31,7 +31,7 @@ export interface IClaimDetails {
 
 interface Chain {
     chainId: number
-    chainName: string
+    axelarChainName: string
     chainType: string
     chainIconURI: string
 }
