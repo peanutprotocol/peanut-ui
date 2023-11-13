@@ -108,18 +108,20 @@ export function Claim({ link }: { link: string }) {
 
     const fetchTokenPrice = async (tokenAddress: string, chainId: number) => {
         try {
-            const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                params: {
-                    tokenAddress: tokenAddress,
-                    chainId: chainId,
-                },
-                headers: {
-                    accept: 'application/json',
-                    'API-KEY': process.env.SOCKET_API_KEY,
-                },
-            })
-            setTokenPrice(response.data.result.tokenPrice)
-            return Number(response.data.result.tokenPrice)
+            if (!tokenPrice) {
+                const response = await axios.get('https://api.socket.tech/v2/token-price', {
+                    params: {
+                        tokenAddress: tokenAddress,
+                        chainId: chainId,
+                    },
+                    headers: {
+                        accept: 'application/json',
+                        'API-KEY': process.env.SOCKET_API_KEY,
+                    },
+                })
+                setTokenPrice(response.data.result.tokenPrice)
+                return Number(response.data.result.tokenPrice)
+            } else return tokenPrice
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
@@ -171,16 +173,19 @@ export function Claim({ link }: { link: string }) {
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
+                    let _tokenprice
                     if (linkDetails.tokenAddress == '0x0000000000000000000000000000000000000000') {
-                        await fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', linkDetails.chainId)
+                        _tokenprice = await fetchTokenPrice(
+                            '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+                            linkDetails.chainId
+                        )
                     } else {
-                        await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
+                        _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    const _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
-                    const x = tokenPrice
-                        ? utils.formatAmount(Number(_tokenprice) * Number(claimDetails[0].tokenAmount))
+                    const tokenAmountPrice = _tokenprice
+                        ? utils.formatAmount(Number(_tokenprice) * Number(linkDetails.tokenAmount))
                         : 10.1
-                    if ((await isBridgePossible(linkDetails)) && Number(x) > 9) {
+                    if ((await isBridgePossible(linkDetails)) && Number(tokenAmountPrice) > 9) {
                         //disabling bridge for now
                         // if (false)
                         setLinkState('XCHAIN_CLAIM')

@@ -223,7 +223,7 @@ export function xchainClaimView({
     return (
         <>
             <div className="flex flex-row items-center justify-center  gap-2">
-                <h2 className=" my-0 text-center text-3xl font-black lg:text-6xl ">
+                <h2 className=" my-0 text-center text-2xl font-black lg:text-6xl ">
                     Claim{' '}
                     {tokenPrice
                         ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount)) + ' in'
@@ -236,7 +236,7 @@ export function xchainClaimView({
                             setIsTokenSelectorOpen(!isTokenSelectorOpen)
                         }}
                     >
-                        <h2 className=" mb-0 ml-2 mt-0 text-center text-3xl font-black lg:text-6xl ">
+                        <h2 className=" mb-0 ml-2 mt-0 text-center text-2xl font-black lg:text-6xl ">
                             {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
                         </h2>
                         <img
@@ -249,7 +249,7 @@ export function xchainClaimView({
                         />
                     </div>
                 ) : (
-                    <h2 className=" mb-0 mt-0 text-center text-3xl font-black lg:text-6xl ">
+                    <h2 className=" mb-0 mt-0 text-center text-2xl font-black lg:text-6xl ">
                         {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
                     </h2>
                 )}
