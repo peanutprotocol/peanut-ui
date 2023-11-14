@@ -1,0 +1,20 @@
+{
+    "@context": ["https://www.w3.org/ns/did/v1", "https://w3id.org/security/suites/jws-2020/v1"],
+    "id": "did:web:peanut.to",
+    "verificationMethod": [
+        {
+            "id": "did:web:peanut.to#wc-notify-subscribe-key",
+            "type": "JsonWebKey2020",
+            "controller": "did:web:peanut.to",
+            "publicKeyJwk": { "kty": "OKP", "crv": "X25519", "x": "ZfGDEKhduDxgC0xZ4rOghj8rXpMZAGbxZVyW9C72yis" }
+        },
+        {
+            "id": "did:web:peanut.to#wc-notify-authentication-key",
+            "type": "JsonWebKey2020",
+            "controller": "did:web:peanut.to",
+            "publicKeyJwk": { "kty": "OKP", "crv": "Ed25519", "x": "DSrCX0IC6NodVVlDylY09dwXDWwR5tVLOqxw7aPR-HU" }
+        }
+    ],
+    "keyAgreement": ["did:web:peanut.to#wc-notify-subscribe-key"],
+    "authentication": ["did:web:peanut.to#wc-notify-authentication-key"]
+}
