@@ -242,10 +242,10 @@ export function Dashboard() {
                                                         {item.claimed
                                                             ? 'Claimed'
                                                             : Number(item.amount) > 0
-                                                            ? copiedLink?.includes(item.link)
-                                                                ? 'Copied'
-                                                                : 'Copy'
-                                                            : ''}
+                                                              ? copiedLink?.includes(item.link)
+                                                                  ? 'Copied'
+                                                                  : 'Copy'
+                                                              : ''}
                                                     </td>
                                                 </tr>
                                             ))}
