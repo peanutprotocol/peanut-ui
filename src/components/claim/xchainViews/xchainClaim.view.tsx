@@ -353,7 +353,10 @@ export function xchainClaimView({
             )}
 
             <div
-                className="brutalborder mb-8 mt-8 flex cursor-pointer items-center justify-center"
+                className={
+                    'brutalborder mt-8 flex cursor-pointer items-center justify-center ' +
+                    (selectedChain.chainId == claimDetails[0].chainId && ' mb-8')
+                }
                 onClick={() => {
                     setIsChainSelectorOpen(!isChainSelectorOpen)
                 }}
@@ -368,6 +371,24 @@ export function xchainClaimView({
                     className={' h-10 '}
                 />
             </div>
+
+            {selectedChain.chainId != claimDetails[0].chainId && (
+                <div
+                    className="mb-8 mt-1 cursor-pointer text-black underline"
+                    onClick={() => {
+                        setSelectedChain({
+                            chainId: claimDetails[0].chainId,
+                            chainName: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name,
+                            chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon
+                                .url,
+                        })
+                        setSelectedToken(undefined)
+                        setIsRouteLoading(false)
+                    }}
+                >
+                    Reset to origin chain
+                </div>
+            )}
 
             <button
                 type={isConnected ? 'submit' : 'button'}
