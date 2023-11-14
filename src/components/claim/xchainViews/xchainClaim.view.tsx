@@ -110,29 +110,29 @@ export function xchainClaimView({
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
-                const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+                // const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
 
-                claimTx = await peanut.claimLinkXChain({
-                    structSigner: {
-                        signer: signer,
-                        gasLimit: BigNumber.from(1000000),
-                    },
-                    destinationChainId: selectedChain.chainId.toString(),
-                    destinationTokenAddress: selectedToken.address,
-                    link: claimDetails[0].link,
-                    maxSlippage: 1,
-                    isTestnet,
-                    recipient: address ?? '',
-                })
-
-                // claimTx = await peanut.claimLinkXChainGasless({
-                //     link: claimDetails[0].link,
-                //     recipientAddress: address ?? '',
-                //     APIKey: process.env.PEANUT_API_KEY ?? '',
+                // claimTx = await peanut.claimLinkXChain({
+                //     structSigner: {
+                //         signer: signer,
+                //         gasLimit: BigNumber.from(1000000),
+                //     },
                 //     destinationChainId: selectedChain.chainId.toString(),
                 //     destinationTokenAddress: selectedToken.address,
+                //     link: claimDetails[0].link,
+                //     maxSlippage: 1,
                 //     isTestnet,
+                //     recipient: address ?? '',
                 // })
+
+                claimTx = await peanut.claimLinkXChainGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: address ?? '',
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                    destinationChainId: selectedChain.chainId.toString(),
+                    destinationTokenAddress: selectedToken.address,
+                    isTestnet,
+                })
             }
             verbose && console.log(claimTx)
 
