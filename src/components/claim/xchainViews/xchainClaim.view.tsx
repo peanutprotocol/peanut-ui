@@ -28,7 +28,6 @@ export function xchainClaimView({
     const { open } = useWeb3Modal()
 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
 
     const [chainList, setChainList] = useState<{ chainId: number; chainName: string; chainIconURI: string }[]>([])
     const [selectedChain, setSelectedChain] = useState<{ chainId: number; chainName: string; chainIconURI: string }>({
@@ -53,38 +52,34 @@ export function xchainClaimView({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
-    function walletClientToSigner(walletClient: WalletClient) {
-        const { account, chain, transport } = walletClient
-        const network = {
-            chainId: chain.id,
-            name: chain.name,
-            ensAddress: chain.contracts?.ensRegistry?.address,
-        }
-        const provider = new providers.Web3Provider(transport, network)
-        const signer = provider.getSigner(account.address)
-        return signer
-    }
+    const initializeLoadingStatesUpdating = () => {
+        let counter = 0
+        const messages = ['preparing transaction', 'executing transaction']
 
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: number
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = walletClientToSigner(walletClient)
-        return signer
+        setLoadingStates('fetching route')
+        const intervalId = setInterval(() => {
+            if (counter < messages.length) {
+                setLoadingStates(messages[counter % messages.length] as consts.LoadingStates)
+                counter++
+            } else {
+                // Once the last message is reached, clear the interval
+                clearInterval(intervalId)
+            }
+        }, 2000)
     }
 
     const claim = async () => {
         try {
+            if (selectedToken) {
+                initializeLoadingStatesUpdating()
+            } else {
+                setLoadingStates('executing transaction')
+            }
+
             setErrorState({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingStates('executing transaction')
             if (
                 !possibleRoutesArray.find((route) => route.route?.params.toToken == selectedToken.address) &&
                 selectedToken
@@ -110,21 +105,6 @@ export function xchainClaimView({
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
-                // const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
-
-                // claimTx = await peanut.claimLinkXChain({
-                //     structSigner: {
-                //         signer: signer,
-                //         gasLimit: BigNumber.from(1000000),
-                //     },
-                //     destinationChainId: selectedChain.chainId.toString(),
-                //     destinationTokenAddress: selectedToken.address,
-                //     link: claimDetails[0].link,
-                //     maxSlippage: 1,
-                //     isTestnet,
-                //     recipient: address ?? '',
-                // })
-
                 claimTx = await peanut.claimLinkXChainGasless({
                     link: claimDetails[0].link,
                     recipientAddress: address ?? '',
@@ -141,6 +121,7 @@ export function xchainClaimView({
                 setCrossChainSuccess({
                     chainName: selectedChain.chainName,
                     tokenName: selectedToken.name,
+                    chainId: selectedChain.chainId.toString(),
                 })
             } else {
                 setCrossChainSuccess(undefined)
@@ -323,8 +304,7 @@ export function xchainClaimView({
                                     (route) => route.route.params.toToken === selectedToken.address
                                 ).route.estimate.toToken.decimals,
                             })
-                        )}
-                        {' in '}
+                        )}{' '}
                         {
                             possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
                                 .route.estimate.toToken.name
@@ -376,14 +356,16 @@ export function xchainClaimView({
                 <div
                     className="mb-8 mt-1 cursor-pointer text-black underline"
                     onClick={() => {
-                        setSelectedChain({
-                            chainId: claimDetails[0].chainId,
-                            chainName: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name,
-                            chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon
-                                .url,
-                        })
-                        setSelectedToken(undefined)
-                        setIsRouteLoading(false)
+                        if (!isLoading) {
+                            setSelectedChain({
+                                chainId: claimDetails[0].chainId,
+                                chainName: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name,
+                                chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)
+                                    ?.icon.url,
+                            })
+                            setSelectedToken(undefined)
+                            setIsRouteLoading(false)
+                        }
                     }}
                 >
                     Reset to origin chain

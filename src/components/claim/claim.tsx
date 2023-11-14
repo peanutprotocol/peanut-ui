@@ -93,9 +93,9 @@ export function Claim({ link }: { link: string }) {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-
             if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
-                setCrossChainDetails(crossChainDetails)
+                //Filter to remove mainnet
+                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != 1))
                 return true
             } else {
                 return false

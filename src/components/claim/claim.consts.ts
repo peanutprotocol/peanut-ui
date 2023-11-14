@@ -46,6 +46,7 @@ interface Token {
 export interface ICrossChainSuccess {
     tokenName: string
     chainName: string
+    chainId: string
 }
 
 export interface IClaimScreenProps {
