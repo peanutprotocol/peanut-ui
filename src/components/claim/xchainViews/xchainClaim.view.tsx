@@ -122,23 +122,23 @@ export function xchainClaimView({
                 .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
             const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
-            const x = await peanut.claimLinkXChain(
-                {
-                    signer: signer,
-                },
-                claimDetails[0].link,
-                selectedChain.chainId,
-                selectedToken?.address,
-                isTestnet,
-                1,
-                address ?? ''
-            )
-            setTxHash([x.txHash])
+            // const x = await peanut.claimLinkXChain(
+            //     {
+            //         signer: signer,
+            //     },
+            //     claimDetails[0].link,
+            //     selectedChain.chainId,
+            //     selectedToken?.address,
+            //     isTestnet,
+            //     1,
+            //     address ?? ''
+            // )
+            // setTxHash([x.txHash])
             setCrossChainSuccess({
                 chainName: selectedChain.chainName,
                 tokenName: selectedToken.name,
             })
-            verbose && console.log(x)
+            // verbose && console.log(x)
             onNextScreen()
         } catch (error) {
             setErrorState({
@@ -162,19 +162,19 @@ export function xchainClaimView({
         const tokenAmount = Math.floor(Number(claimDetails[0].tokenAmount) * Math.pow(10, tokenDecimals)).toString()
 
         try {
-            const x = await peanut.getSquidRoute(
-                isTestnet,
-                claimDetails[0].chainId.toString(),
-                claimDetails[0].tokenAddress,
-                tokenAmount,
-                selectedChain.chainId.toString(),
-                selectedToken.address,
-                address?.toString() ?? '',
-                address?.toString() ?? '',
-                1
-            )
-            setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
-            verbose && console.log(x)
+            // const x = await peanut.getSquidRoute(
+            //     isTestnet,
+            //     claimDetails[0].chainId.toString(),
+            //     claimDetails[0].tokenAddress,
+            //     tokenAmount,
+            //     selectedChain.chainId.toString(),
+            //     selectedToken.address,
+            //     address?.toString() ?? '',
+            //     address?.toString() ?? '',
+            //     1
+            // )
+            // setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+            // verbose && console.log(x)
         } catch (error) {
             setErrorState({
                 showError: true,

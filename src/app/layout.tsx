@@ -44,7 +44,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         console.log(art, 'font-size: 20px; background-color: blue; color: yellow;')
         peanut.toggleVerbose(true)
         peanut.greeting()
-        console.log('Peanut-SDK version: v' + peanut.version)
     }, [])
 
     return (
