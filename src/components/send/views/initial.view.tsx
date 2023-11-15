@@ -541,8 +541,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
                 </h2>
                 <div className="w-4/5 font-normal">
-                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. Send
-                    it to whomever you want.
+                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. They
+                    will be able to claim the funds in any token on any chain.
                 </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
@@ -595,8 +595,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (

@@ -182,10 +182,8 @@ export function Claim({ link }: { link: string }) {
                     } else {
                         _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
-                    const tokenAmountPrice = _tokenprice
-                        ? utils.formatAmount(Number(_tokenprice) * Number(linkDetails.tokenAmount))
-                        : 10.1
-                    if ((await isBridgePossible(linkDetails)) && Number(tokenAmountPrice) > 9) {
+
+                    if (await isBridgePossible(linkDetails)) {
                         //disabling bridge for now
                         // if (false)
                         setLinkState('XCHAIN_CLAIM')

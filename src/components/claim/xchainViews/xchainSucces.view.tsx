@@ -16,7 +16,7 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
-    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const [isDropdownOpen, setIsDropdownOpen] = useState(true)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     const explorerUrlSrcChainWithTxHash = useMemo(

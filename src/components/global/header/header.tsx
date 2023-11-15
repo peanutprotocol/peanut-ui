@@ -67,6 +67,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     onClick={() => {
                         window.open('https://peanutprotocol.gitbook.io/peanut-protocol-docs-1/overview/what-we-do')
                     }}
+                    direction="right"
                 >
                     <>
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
