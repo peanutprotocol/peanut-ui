@@ -18,7 +18,7 @@ export default function w3ib() {
     const isReady = useInitWeb3InboxClient({
         // The project ID and domain you setup in the Domain Setup section
         projectId: process.env.WC_PROJECT_ID ?? '',
-        domain: 'www.peanut.to',
+        domain: 'peanut.to',
 
         // Allow localhost development with "unlimited" mode.
         // This authorizes this dapp to control notification subscriptions for all domains (including `app.example.com`), not just `window.location.host`
@@ -37,8 +37,10 @@ export default function w3ib() {
     const performRegistration = useCallback(async () => {
         if (!address) return
         try {
-            await register((message) => signMessageAsync({ message }))
+            const x = await register((message) => signMessageAsync({ message }))
+            console.log(x)
         } catch (registerIdentityError) {
+            console.log(registerIdentityError)
             alert(registerIdentityError)
         }
     }, [signMessageAsync, register, address])
