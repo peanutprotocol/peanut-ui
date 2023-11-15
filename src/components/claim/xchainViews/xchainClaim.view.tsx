@@ -148,19 +148,27 @@ export function xchainClaimView({
         ).toString()
 
         try {
-            const x = await peanut.getSquidRoute({
-                isTestnet,
-                fromChain: claimDetails[0].chainId.toString(),
-                fromToken: claimDetails[0].tokenAddress,
-                fromAmount: tokenAmount,
-                toChain: selectedChain.chainId.toString(),
-                toToken: selectedToken.address,
-                slippage: 1,
-                fromAddress: address ?? '',
-                toAddress: address ?? '',
-            })
-            setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
-            verbose && console.log(x)
+            if (
+                !possibleRoutesArray.find(
+                    (route) =>
+                        route.route?.params.toToken === selectedToken?.address &&
+                        route.route?.params.toChain === selectedChain?.chainId
+                )
+            ) {
+                const x = await peanut.getSquidRoute({
+                    isTestnet,
+                    fromChain: claimDetails[0].chainId.toString(),
+                    fromToken: claimDetails[0].tokenAddress,
+                    fromAmount: tokenAmount,
+                    toChain: selectedChain.chainId.toString(),
+                    toToken: selectedToken.address,
+                    slippage: 1,
+                    fromAddress: address ?? '',
+                    toAddress: address ?? '',
+                })
+                setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+                verbose && console.log(x)
+            }
         } catch (error: any) {
             if (error.toString().includes('Please increase your input amount')) {
                 setErrorState({
@@ -224,6 +232,8 @@ export function xchainClaimView({
                 showError: false,
                 errorMessage: '',
             })
+        } else {
+            setIsRouteLoading(false)
         }
     }, [selectedToken])
 
@@ -231,9 +241,8 @@ export function xchainClaimView({
         if (
             possibleRoutesArray.find(
                 (route) =>
-                    route.route?.params?.toToken &&
-                    route.route?.params?.toToken == selectedToken?.address &&
-                    selectedToken?.address
+                    route.route?.params.toToken === selectedToken?.address &&
+                    route.route?.params.toChain === selectedChain?.chainId
             )
         ) {
             setIsRouteLoading(false)
@@ -292,7 +301,11 @@ export function xchainClaimView({
                 </h2>
             ) : (
                 possibleRoutesArray.length > 0 &&
-                possibleRoutesArray.find((route) => route.route?.params.toToken === selectedToken?.address) && (
+                possibleRoutesArray.find(
+                    (route) =>
+                        route.route?.params.toToken === selectedToken?.address &&
+                        route.route?.params.toChain === selectedChain?.chainId
+                ) && (
                     <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
                         You will be claiming{' '}
                         {utils.formatTokenAmount(
