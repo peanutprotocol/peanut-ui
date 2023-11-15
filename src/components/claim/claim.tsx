@@ -87,17 +87,17 @@ export function Claim({ link }: { link: string }) {
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
 
         try {
-            const crossChainDetails = await peanut.getCrossChainOptionsForLink(
-                isTestnet,
-                linkDetails.chainId,
-                linkDetails.tokenType
-            )
-            if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
-                setCrossChainDetails(crossChainDetails)
-                return true
-            } else {
-                return false
-            }
+            // const crossChainDetails = await peanut.getCrossChainOptionsForLink(
+            //     isTestnet,
+            //     linkDetails.chainId,
+            //     linkDetails.tokenType
+            // )
+            // if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
+            //     setCrossChainDetails(crossChainDetails)
+            //     return true
+            // } else {
+            //     return false
+            // }
         } catch (error) {
             return false
         }
