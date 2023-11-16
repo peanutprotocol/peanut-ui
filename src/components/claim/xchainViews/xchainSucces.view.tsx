@@ -150,7 +150,7 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
                                 <img src={checkbox.src} className="h-4" />
                             ) : (
                                 <div className="flex justify-center gap-1">
-                                    <span className="bouncing-dots">
+                                    <span className="bouncing-dots flex">
                                         <span className="dot">.</span>
                                         <span className="dot">.</span>
                                         <span className="dot">.</span>

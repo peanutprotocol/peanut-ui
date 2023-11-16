@@ -595,8 +595,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
@@ -830,7 +830,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             {isLoading ? (
                                 <div className="flex justify-center gap-1">
                                     <label>{loadingStates} </label>
-                                    <span className="bouncing-dots">
+                                    <span className="bouncing-dots flex">
                                         <span className="dot">.</span>
                                         <span className="dot">.</span>
                                         <span className="dot">.</span>

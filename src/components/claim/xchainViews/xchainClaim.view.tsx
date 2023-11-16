@@ -251,43 +251,19 @@ export function xchainClaimView({
 
     return (
         <>
-            <div className="flex flex-row items-center justify-center  gap-2">
-                <h2 className=" my-0 text-center text-2xl font-black lg:text-6xl ">
+            <div className={'mt-2 flex w-full flex-col items-center text-center  '}>
+                <h2 className=" title-font bold my-0 text-2xl lg:text-5xl">
                     Claim{' '}
                     {tokenPrice
-                        ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount)) + ' in'
+                        ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                         : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}
                 </h2>
-                {tokenList ? (
-                    <div
-                        className="brutalborder flex cursor-pointer items-center justify-center"
-                        onClick={() => {
-                            setIsTokenSelectorOpen(!isTokenSelectorOpen)
-                        }}
-                    >
-                        <h2 className=" mb-0 ml-2 mt-0 text-center text-2xl font-black lg:text-6xl ">
-                            {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
-                        </h2>
-                        <img
-                            style={{
-                                transform: isTokenSelectorOpen ? 'scaleY(-1)' : 'none',
-                                transition: 'transform 0.3s ease-in-out',
-                            }}
-                            src={dropdown_svg.src}
-                            className={' h-16 '}
-                        />
-                    </div>
-                ) : (
-                    <h2 className=" mb-0 mt-0 text-center text-2xl font-black lg:text-6xl ">
-                        {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
-                    </h2>
-                )}
             </div>
 
             {isRouteLoading ? (
                 <h2 className="my-2 mb-4 flex gap-2 text-center text-base font-black sm:text-xl ">
                     fetching your route{' '}
-                    <span className="bouncing-dots">
+                    <span className="bouncing-dots flex">
                         <span className="dot">
                             <div className="mr-1 h-1 w-1 bg-black" />
                         </span>
@@ -347,22 +323,48 @@ export function xchainClaimView({
 
             <div
                 className={
-                    'brutalborder mt-8 flex cursor-pointer items-center justify-center ' +
+                    'mb-0 mt-8 flex h-full w-full items-center justify-center gap-2 ' +
                     (selectedChain.chainId == claimDetails[0].chainId && ' mb-8')
                 }
-                onClick={() => {
-                    setIsChainSelectorOpen(!isChainSelectorOpen)
-                }}
             >
-                <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">{selectedChain?.chainName}</h3>
-                <img
-                    style={{
-                        transform: isChainSelectorOpen ? 'scaleY(-1)' : 'none',
-                        transition: 'transform 0.3s ease-in-out',
+                <label>on</label>
+                <div
+                    className={'brutalborder flex cursor-pointer items-center justify-center self-center'}
+                    onClick={() => {
+                        setIsChainSelectorOpen(!isChainSelectorOpen)
                     }}
-                    src={dropdown_svg.src}
-                    className={' h-10 '}
-                />
+                >
+                    <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">{selectedChain?.chainName}</h3>
+                    <img
+                        style={{
+                            transform: isChainSelectorOpen ? 'scaleY(-1)' : 'none',
+                            transition: 'transform 0.3s ease-in-out',
+                        }}
+                        src={dropdown_svg.src}
+                        className={' h-10 '}
+                    />
+                </div>
+                <label>in</label>{' '}
+                <div
+                    className={'brutalborder flex cursor-pointer items-center justify-center '}
+                    onClick={() => {
+                        if (selectedChain.chainId != claimDetails[0].chainId) {
+                            setIsTokenSelectorOpen(!isTokenSelectorOpen)
+                        }
+                    }}
+                >
+                    <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">
+                        {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
+                    </h3>
+                    <img
+                        style={{
+                            transform: isTokenSelectorOpen ? 'scaleY(-1)' : 'none',
+                            transition: 'transform 0.3s ease-in-out',
+                        }}
+                        src={dropdown_svg.src}
+                        className={' h-10 '}
+                    />
+                </div>
             </div>
 
             {selectedChain.chainId != claimDetails[0].chainId && (
@@ -397,7 +399,7 @@ export function xchainClaimView({
                 {isLoading ? (
                     <div className="flex justify-center gap-1">
                         <label>{loadingStates} </label>
-                        <span className="bouncing-dots">
+                        <span className="bouncing-dots flex">
                             <span className="dot">.</span>
                             <span className="dot">.</span>
                             <span className="dot">.</span>
