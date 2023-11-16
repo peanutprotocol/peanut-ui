@@ -595,8 +595,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
@@ -896,9 +896,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                     </div>
                                     <div className="mb-8 ml-4 mr-4 sm:mb-2">
                                         <div
-                                            className={`flex max-h-10 w-full flex-wrap gap-2 overflow-hidden text-black ${
-                                                unfoldChains ? 'max-h-[none]' : ''
-                                            }`}
+                                            className={
+                                                'flex  w-full flex-wrap gap-2 overflow-hidden text-black ' +
+                                                (unfoldChains ? ' max-h-full ' : ' max-h-32 ')
+                                            }
                                         >
                                             {chainsToShow.map((chain) =>
                                                 !showTestnets ? (
@@ -949,39 +950,22 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             )}
                                         </div>
                                         <div className="flex w-full justify-between">
-                                            {isMobile
-                                                ? chainsToShow.length > 4 && (
-                                                      <div className="cursor-pointer">
-                                                          <img
-                                                              style={{
-                                                                  transform: unfoldChains ? 'scaleY(-1)' : 'none',
-                                                                  transition: 'transform 0.3s ease-in-out',
-                                                              }}
-                                                              src={dropdown_svg.src}
-                                                              alt=""
-                                                              className={'h-6 '}
-                                                              onClick={() => {
-                                                                  setUnfoldChains(!unfoldChains)
-                                                              }}
-                                                          />
-                                                      </div>
-                                                  )
-                                                : chainsToShow.length > 3 && (
-                                                      <div className=" cursor-pointer ">
-                                                          <img
-                                                              style={{
-                                                                  transform: unfoldChains ? 'scaleY(-1)' : 'none',
-                                                                  transition: 'transform 0.3s ease-in-out',
-                                                              }}
-                                                              src={dropdown_svg.src}
-                                                              alt=""
-                                                              className={'h-6 '}
-                                                              onClick={() => {
-                                                                  setUnfoldChains(!unfoldChains)
-                                                              }}
-                                                          />
-                                                      </div>
-                                                  )}
+                                            <div className=" cursor-pointer ">
+                                                <img
+                                                    style={{
+                                                        transform: unfoldChains ? 'scaleY(-1)' : 'none',
+                                                        transition: 'transform 0.3s ease-in-out',
+                                                    }}
+                                                    src={dropdown_svg.src}
+                                                    alt=""
+                                                    className={'h-9 '}
+                                                    onClick={() => {
+                                                        console.log('unfolded chains')
+
+                                                        setUnfoldChains(!unfoldChains)
+                                                    }}
+                                                />
+                                            </div>
 
                                             <Switch.Group as="div" className="flex items-center p-0">
                                                 <Switch
@@ -989,14 +973,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     onChange={setShowTestnets}
                                                     className={classNames(
                                                         showTestnets ? 'bg-teal' : 'bg-gray-200',
-                                                        'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-full border-2 border-black p-0 transition-colors duration-200 ease-in-out '
+                                                        'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
                                                     )}
                                                 >
                                                     <span
                                                         aria-hidden="true"
                                                         className={classNames(
                                                             showTestnets ? 'translate-x-5' : 'translate-x-0',
-                                                            'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-full border-2  border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                                            'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
                                                         )}
                                                     />
                                                 </Switch>
@@ -1010,7 +994,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">
                                         <input
                                             placeholder="Search"
-                                            className="brutalborder w-full px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal"
+                                            className="brutalborder w-full rounded-none px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal"
                                             onKeyUp={(e) => {
                                                 //@ts-ignore
                                                 const searchValue = e.target.value
