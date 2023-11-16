@@ -131,7 +131,7 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
                             <a
                                 href={explorerUrlSrcChainWithTxHash ?? ''}
                                 target="_blank"
-                                className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
+                                className="cursor-pointer break-all text-center text-sm font-medium text-black underline "
                             >
                                 {utils.shortenHash(txHash[0])}
                             </a>
@@ -142,7 +142,7 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
                             <a
                                 href={explorerUrlAxelarWithTxHash ?? ''}
                                 target="_blank"
-                                className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
+                                className="cursor-pointer break-all text-center text-sm font-medium text-black underline "
                             >
                                 {utils.shortenHash(txHash[0])}
                             </a>
@@ -150,7 +150,7 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
                                 <img src={checkbox.src} className="h-4" />
                             ) : (
                                 <div className="flex justify-center gap-1">
-                                    <span className="bouncing-dots">
+                                    <span className="bouncing-dots flex">
                                         <span className="dot">.</span>
                                         <span className="dot">.</span>
                                         <span className="dot">.</span>
@@ -164,7 +164,7 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
                                 <a
                                     href={explorerUrlDestChainWithTxHash.transactionUrl ?? ''}
                                     target="_blank"
-                                    className="cursor-pointer break-all text-center text-sm font-bold text-black underline "
+                                    className="cursor-pointer break-all text-center text-sm font-medium text-black underline "
                                 >
                                     {utils.shortenHash(explorerUrlDestChainWithTxHash.transactionId)}
                                 </a>
