@@ -189,7 +189,7 @@ export function ClaimView({
                 {isLoading ? (
                     <div className="flex justify-center gap-1">
                         <label>{loadingStates} </label>
-                        <span className="bouncing-dots">
+                        <span className="bouncing-dots flex">
                             <span className="dot">.</span>
                             <span className="dot">.</span>
                             <span className="dot">.</span>

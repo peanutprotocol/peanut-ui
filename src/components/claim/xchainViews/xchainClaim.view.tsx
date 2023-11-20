@@ -1,11 +1,8 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useAccount, useNetwork } from 'wagmi'
-import { providers } from 'ethers'
+import { WalletClient, useAccount } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
-import { WalletClient } from 'wagmi'
-import { isMobile } from 'react-device-detect'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -15,6 +12,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
+import { BigNumber, providers } from 'ethers'
 
 export function xchainClaimView({
     onNextScreen,
@@ -30,7 +28,6 @@ export function xchainClaimView({
     const { open } = useWeb3Modal()
 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
 
     const [chainList, setChainList] = useState<{ chainId: number; chainName: string; chainIconURI: string }[]>([])
     const [selectedChain, setSelectedChain] = useState<{ chainId: number; chainName: string; chainIconURI: string }>({
@@ -55,15 +52,36 @@ export function xchainClaimView({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
+    const initializeLoadingStatesUpdating = () => {
+        let counter = 0
+        const messages = ['preparing transaction', 'executing transaction']
+
+        setLoadingStates('fetching route')
+        const intervalId = setInterval(() => {
+            if (counter < messages.length) {
+                setLoadingStates(messages[counter % messages.length] as consts.LoadingStates)
+                counter++
+            } else {
+                // Once the last message is reached, clear the interval
+                clearInterval(intervalId)
+            }
+        }, 2000)
+    }
+
     const claim = async () => {
         try {
+            if (selectedToken) {
+                initializeLoadingStatesUpdating()
+            } else {
+                setLoadingStates('executing transaction')
+            }
+
             setErrorState({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingStates('executing transaction')
             if (
-                !possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address) &&
+                !possibleRoutesArray.find((route) => route.route?.params.toToken == selectedToken.address) &&
                 selectedToken
             ) {
                 setErrorState({
@@ -103,11 +121,11 @@ export function xchainClaimView({
                 setCrossChainSuccess({
                     chainName: selectedChain.chainName,
                     tokenName: selectedToken.name,
+                    chainId: selectedChain.chainId.toString(),
                 })
             } else {
                 setCrossChainSuccess(undefined)
             }
-
             onNextScreen()
         } catch (error) {
             setErrorState({
@@ -124,31 +142,45 @@ export function xchainClaimView({
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
             .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
-        const tokenDecimals =
-            tokenDetails
-                .find((chain) => Number(chain.chainId) == claimDetails[0].chainId)
-                ?.tokens.find((token) => token.address == claimDetails[0].tokenAddress)?.decimals ?? 6 // TODO:  CHANGE TO GETLINKDETAILS TOKEN DECIMALS
-        const tokenAmount = Math.floor(Number(claimDetails[0].tokenAmount) * Math.pow(10, tokenDecimals)).toString()
+        const tokenAmount = Math.floor(
+            Number(claimDetails[0].tokenAmount) * Math.pow(10, claimDetails[0].tokenDecimals)
+        ).toString()
 
         try {
-            const x = await peanut.getSquidRoute({
-                isTestnet,
-                fromChain: claimDetails[0].chainId.toString(),
-                fromToken: claimDetails[0].tokenAddress,
-                fromAmount: tokenAmount,
-                toChain: selectedChain.chainId.toString(),
-                toToken: selectedToken.address,
-                slippage: 1,
-                fromAddress: address ?? '',
-                toAddress: address ?? '',
-            })
-            setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
-            verbose && console.log(x)
-        } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the chosen chain and token',
-            })
+            if (
+                !possibleRoutesArray.find(
+                    (route) =>
+                        route.route?.params.toToken === selectedToken?.address &&
+                        route.route?.params.toChain === selectedChain?.chainId
+                )
+            ) {
+                const x = await peanut.getSquidRoute({
+                    isTestnet,
+                    fromChain: claimDetails[0].chainId.toString(),
+                    fromToken: claimDetails[0].tokenAddress,
+                    fromAmount: tokenAmount,
+                    toChain: selectedChain.chainId.toString(),
+                    toToken: selectedToken.address,
+                    slippage: 1,
+                    fromAddress: address ?? '',
+                    toAddress: address ?? '',
+                })
+                setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+                verbose && console.log(x)
+            }
+        } catch (error: any) {
+            if (error.toString().includes('Please increase your input amount')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'This link can not be claimed cross-chain, it does not meet the minimum amount.',
+                })
+            } else {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the chosen chain and token',
+                })
+            }
+
             setIsRouteLoading(false)
         }
     }
@@ -156,7 +188,7 @@ export function xchainClaimView({
     useEffect(() => {
         if (crossChainDetails && listIsLoading) {
             const _chainList = crossChainDetails.map((chain) => {
-                return { chainId: chain.chainId, chainName: chain.chainName, chainIconURI: chain.chainIconURI }
+                return { chainId: chain.chainId, chainName: chain.axelarChainName, chainIconURI: chain.chainIconURI }
             })
             const currentChainName = chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name
             setSelectedChain({
@@ -183,7 +215,6 @@ export function xchainClaimView({
             const _tokenList = crossChainDetails.find((chain) => chain.chainId == selectedChain.chainId)?.tokens
             if (_tokenList) {
                 setTokenList(_tokenList)
-                console.log(_tokenList)
                 setSelectedToken(_tokenList[0])
             } else {
                 setTokenList(undefined)
@@ -200,54 +231,38 @@ export function xchainClaimView({
                 showError: false,
                 errorMessage: '',
             })
+        } else {
+            setIsRouteLoading(false)
         }
     }, [selectedToken])
 
     useEffect(() => {
-        if (possibleRoutesArray.find((route) => route.route?.params.toToken.address == selectedToken.address)) {
+        if (
+            possibleRoutesArray.find(
+                (route) =>
+                    route.route?.params.toToken === selectedToken?.address &&
+                    route.route?.params.toChain === selectedChain?.chainId
+            )
+        ) {
             setIsRouteLoading(false)
         }
     }, [possibleRoutesArray])
 
     return (
         <>
-            <div className="flex flex-row items-center justify-center  gap-2">
-                <h2 className=" my-0 text-center text-3xl font-black lg:text-6xl ">
+            <div className={'mt-4 flex w-full flex-col items-center text-center  '}>
+                <h2 className=" title-font bold my-0 text-2xl lg:text-5xl">
                     Claim{' '}
                     {tokenPrice
-                        ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount)) + ' in'
+                        ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                         : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}
                 </h2>
-                {tokenList ? (
-                    <div
-                        className="brutalborder flex cursor-pointer items-center justify-center"
-                        onClick={() => {
-                            setIsTokenSelectorOpen(!isTokenSelectorOpen)
-                        }}
-                    >
-                        <h2 className=" mb-0 ml-2 mt-0 text-center text-3xl font-black lg:text-6xl ">
-                            {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
-                        </h2>
-                        <img
-                            style={{
-                                transform: isTokenSelectorOpen ? 'scaleY(-1)' : 'none',
-                                transition: 'transform 0.3s ease-in-out',
-                            }}
-                            src={dropdown_svg.src}
-                            className={' h-16 '}
-                        />
-                    </div>
-                ) : (
-                    <h2 className=" mb-0 mt-0 text-center text-3xl font-black lg:text-6xl ">
-                        {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
-                    </h2>
-                )}
             </div>
 
             {isRouteLoading ? (
-                <h2 className="my-2 mb-4 flex gap-2 text-center text-base font-black sm:text-xl ">
+                <h2 className="my-2 mb-4 flex items-center justify-center gap-2 text-center text-base font-medium sm:text-xl">
                     fetching your route{' '}
-                    <span className="bouncing-dots">
+                    <span className="bouncing-dots flex">
                         <span className="dot">
                             <div className="mr-1 h-1 w-1 bg-black" />
                         </span>
@@ -261,45 +276,124 @@ export function xchainClaimView({
                 </h2>
             ) : (
                 possibleRoutesArray.length > 0 &&
-                possibleRoutesArray.find((route) => route.route?.params.toToken.address === selectedToken?.address) && (
-                    <h2 className="my-2 mb-4 text-center text-base font-black sm:text-xl  ">
-                        You will be claiming $
+                possibleRoutesArray.find(
+                    (route) =>
+                        route.route?.params.toToken === selectedToken?.address &&
+                        route.route?.params.toChain === selectedChain?.chainId
+                ) && (
+                    <h2 className="my-2 mb-4 text-center text-base font-medium sm:text-xl  ">
+                        You will be claiming{' '}
+                        {utils.formatTokenAmount(
+                            utils.formatAmountWithDecimals({
+                                amount: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toAmountMin,
+                                decimals: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toToken.decimals,
+                            })
+                        )}{' '}
                         {
-                            possibleRoutesArray.find(
-                                (route) => route.route.params.toToken.address === selectedToken.address
-                            ).route.estimate.toAmountUSD
-                        }{' '}
+                            possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
+                                .route.estimate.toToken.name
+                        }
+                        {/* {utils.formatAmount(
+                            utils.formatAmountWithDecimals({
+                                amount: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toAmountMin,
+                                decimals: possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toToken.decimals,
+                            }) /
+                                possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.exchangeRate
+                        )}{' '}
                         in{' '}
                         {
-                            possibleRoutesArray.find(
-                                (route) => route.route.params.toToken.address === selectedToken.address
-                            ).route.params.toToken.name
-                        }{' '}
+                            possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
+                                .route.estimate.toToken.name
+                        }{' '} */}{' '}
                         on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
                     </h2>
                 )
             )}
 
             <div
-                className="brutalborder mb-8 mt-8 flex cursor-pointer items-center justify-center"
-                onClick={() => {
-                    setIsChainSelectorOpen(!isChainSelectorOpen)
-                }}
+                className={
+                    'mb-0 mt-8 flex h-full w-full items-center justify-center gap-2 ' +
+                    (selectedChain.chainId == claimDetails[0].chainId && ' mb-8')
+                }
             >
-                <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">{selectedChain?.chainName}</h3>
-                <img
-                    style={{
-                        transform: isChainSelectorOpen ? 'scaleY(-1)' : 'none',
-                        transition: 'transform 0.3s ease-in-out',
+                <label>on</label>
+                <div
+                    className={'brutalborder flex cursor-pointer items-center justify-center self-center'}
+                    onClick={() => {
+                        setIsChainSelectorOpen(!isChainSelectorOpen)
                     }}
-                    src={dropdown_svg.src}
-                    className={' h-10 '}
-                />
+                >
+                    <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">{selectedChain?.chainName}</h3>
+                    <img
+                        style={{
+                            transform: isChainSelectorOpen ? 'scaleY(-1)' : 'none',
+                            transition: 'transform 0.3s ease-in-out',
+                        }}
+                        src={dropdown_svg.src}
+                        className={' h-10 '}
+                    />
+                </div>
+                <label>in</label>{' '}
+                <div
+                    className={
+                        'brutalborder flex items-center justify-center ' +
+                        (selectedChain.chainId == claimDetails[0].chainId
+                            ? ' cursor-not-allowed opacity-50 '
+                            : ' cursor-pointer')
+                    }
+                    onClick={() => {
+                        if (selectedChain.chainId != claimDetails[0].chainId) {
+                            setIsTokenSelectorOpen(!isTokenSelectorOpen)
+                        }
+                    }}
+                >
+                    <h3 className="text-md my-0 ml-3 font-black sm:text-lg lg:text-xl">
+                        {selectedToken ? selectedToken.symbol : claimDetails[0].tokenSymbol}
+                    </h3>
+                    <img
+                        style={{
+                            transform: isTokenSelectorOpen ? 'scaleY(-1)' : 'none',
+                            transition: 'transform 0.3s ease-in-out',
+                        }}
+                        src={dropdown_svg.src}
+                        className={' h-10 '}
+                    />
+                </div>
             </div>
+
+            {selectedChain.chainId != claimDetails[0].chainId && (
+                <div
+                    className="mb-8 mt-1 cursor-pointer font-medium underline"
+                    onClick={() => {
+                        if (!isLoading) {
+                            setSelectedChain({
+                                chainId: claimDetails[0].chainId,
+                                chainName: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name,
+                                chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)
+                                    ?.icon.url,
+                            })
+                            setSelectedToken(undefined)
+                            setIsRouteLoading(false)
+                        }
+                    }}
+                >
+                    Reset to origin chain
+                </div>
+            )}
 
             <button
                 type={isConnected ? 'submit' : 'button'}
-                className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                className="mx-auto mb-8 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
                 onClick={() => {
                     !isConnected ? open() : claim()
@@ -307,9 +401,9 @@ export function xchainClaimView({
                 disabled={isLoading || isRouteLoading}
             >
                 {isLoading ? (
-                    <div className="flex justify-center gap-1">
+                    <div className="flex items-center justify-center gap-1">
                         <label>{loadingStates} </label>
-                        <span className="bouncing-dots">
+                        <span className="bouncing-dots flex">
                             <span className="dot">.</span>
                             <span className="dot">.</span>
                             <span className="dot">.</span>

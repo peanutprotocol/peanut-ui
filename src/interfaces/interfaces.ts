@@ -74,6 +74,7 @@ export interface ILinkDetails {
     tokenSymbol: any
     tokenName: any
     tokenAmount: string
+    tokenDecimals: number
     tokenId: number
     claimed: boolean
     depositDate: Date
