@@ -18,8 +18,8 @@ export function Welcome() {
                         <div className="brutalborder bg-white py-16 text-center sm:px-6 lg:mx-0 lg:max-w-none lg:px-0">
                             <h1 className="mx-auto my-8 w-3/4 text-5xl font-black">Send Tokens with a Link</h1>
                             <div className="m-4 mx-auto w-3/4 p-2 text-xl">
-                                Forget chains and wallet addresses. Send tokens with a trustless payment link, no matter
-                                whether the recipient has a wallet.
+                                This is a private beta for cross-chain peanut links. Send tokens with a Peanut link, and
+                                the recipient can claim any tokens on any chain. Test with us and get rewarded!
                             </div>
 
                             <div className="mt-8 flex justify-center space-x-4 p-2">
@@ -123,9 +123,9 @@ export function Welcome() {
                         </p>
                         <div className="flex-grow"></div>
                         <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="/send">
+                            <a href="mailto:hello@peanut.to?subject=Getting%20Physical&body=Hey%20Peanut%20team!%0D%0A%0D%0AWe're%20planning%20an%20event%20that%20could%20use%20your%20stickers.%20The%20event%20is%20on%20____________.%20It's%20about%20____________.%20Our%20budget%20for%20the%20airdrop%20is%20_______%20and%20we%20were%20thinking%20about%20100/500/1000%20stickers.%0D%0A%0D%0AHere%20is%20the%20best%20way%20to%20contact%20us:%20_____________%0D%0A%0D%0ABest%20wishes%0D%0A________">
                                 <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
-                                    Start Now
+                                    Order Now
                                 </button>
                             </a>
 
@@ -184,7 +184,11 @@ export function Welcome() {
                                 <p className="text-normal">
                                     Funds securely stored in a vault contract and can be only claimed with a secret that
                                     is contained in the link.{' '}
-                                    <a href="/docs" target="_blank" className="text-black">
+                                    <a
+                                        href="https://docs.peanut.to/fundamentals/trust-assumptions"
+                                        target="_blank"
+                                        className="text-black"
+                                    >
                                         Read more.
                                     </a>{' '}
                                 </p>
@@ -193,7 +197,11 @@ export function Welcome() {
                                 <p className="text-normal">
                                     There are no API keys, simply use our SDK or build your own way to interact with the
                                     smart contracts directly.{' '}
-                                    <a href="/docs" target="_blank" className="text-black">
+                                    <a
+                                        href="https://docs.peanut.to/integrations/building-with-the-sdk"
+                                        target="_blank"
+                                        className="text-black"
+                                    >
                                         Read more.
                                     </a>
                                 </p>
@@ -202,7 +210,11 @@ export function Welcome() {
                                 <p className="text-normal">
                                     Customize token and claim page to match your branding with logo and colors. Or even
                                     better, have the users claim the tokens on your own domain or app!{' '}
-                                    <a href="/docs" target="_blank" className="text-black">
+                                    <a
+                                        href="https://docs.peanut.to/integrations/domain-agnostic-links"
+                                        target="_blank"
+                                        className="text-black"
+                                    >
                                         Read more.
                                     </a>
                                 </p>
@@ -211,8 +223,12 @@ export function Welcome() {
                                 <p className="text-normal">
                                     Fully customizable guided wallet setup for first-time crypto users, no advance
                                     address needed!{' '}
-                                    <a href="/docs" target="_blank" className="text-black underline ">
-                                        Read more.
+                                    <a
+                                        href="https://discord.gg/kVZqXDkrq7"
+                                        target="_blank"
+                                        className="text-black underline "
+                                    >
+                                        Get in touch
                                     </a>
                                 </p>
                             </div>

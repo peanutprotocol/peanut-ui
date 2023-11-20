@@ -31,7 +31,7 @@ export interface IClaimDetails {
 
 interface Chain {
     chainId: number
-    chainName: string
+    axelarChainName: string
     chainType: string
     chainIconURI: string
 }
@@ -46,6 +46,7 @@ interface Token {
 export interface ICrossChainSuccess {
     tokenName: string
     chainName: string
+    chainId: string
 }
 
 export interface IClaimScreenProps {
@@ -61,8 +62,8 @@ export interface IClaimScreenProps {
     tokenPrice: string
     setTokenPrice: (tokenPrice: string) => void
     crossChainDetails: Array<Chain & { tokens: Token[] }>
-    crossChainSuccess: ICrossChainSuccess
-    setCrossChainSuccess: (crossChainSuccess: ICrossChainSuccess) => void
+    crossChainSuccess: ICrossChainSuccess | undefined
+    setCrossChainSuccess: (crossChainSuccess: ICrossChainSuccess | undefined) => void
 }
 
 export const INIT_VIEW: IClaimScreenState = {

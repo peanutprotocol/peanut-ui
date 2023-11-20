@@ -163,7 +163,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                                 <QRCode
                                     size={256}
                                     style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                    value={typeof claimLink === 'string' ? claimLink : ''}
+                                    value={claimLink[0]}
                                     viewBox={`0 0 256 256`}
                                 />
                             </div>

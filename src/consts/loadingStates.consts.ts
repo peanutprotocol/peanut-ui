@@ -10,3 +10,4 @@ export type LoadingStates =
     | 'switching network'
     | 'checking signer'
     | 'checking inputs'
+    | 'fetching route'
