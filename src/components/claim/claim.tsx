@@ -183,9 +183,9 @@ export function Claim({ link }: { link: string }) {
                         _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
 
-                    if (await isBridgePossible(linkDetails)) {
-                        //disabling bridge for now
-                        // if (false)
+                    // if (await isBridgePossible(linkDetails)) {
+                    //disabling bridge for now
+                    if (false) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {
                         setLinkState('CLAIM')
