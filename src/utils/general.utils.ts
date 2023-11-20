@@ -126,7 +126,7 @@ export const sendNotification = async ({
                 type: '2aee6e5f-091d-444e-96cd-868ba2ddd0e7', // Notification type ID copied from Cloud
                 title: 'Link claimed!',
                 body,
-                icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/main/src/assets/peanutman-cheering.svg', // optional
+                icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/w3i/src/assets/peanutman-cheering.png', // optional
             },
             accounts: [account],
         }),
