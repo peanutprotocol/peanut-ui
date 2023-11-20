@@ -31,7 +31,7 @@ export interface IClaimDetails {
 
 interface Chain {
     chainId: number
-    chainName: string
+    axelarChainName: string
     chainType: string
     chainIconURI: string
 }
@@ -46,6 +46,7 @@ interface Token {
 export interface ICrossChainSuccess {
     tokenName: string
     chainName: string
+    chainId: string
 }
 
 export interface IClaimScreenProps {

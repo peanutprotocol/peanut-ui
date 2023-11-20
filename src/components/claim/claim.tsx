@@ -10,11 +10,12 @@ import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as hooks from '@/hooks'
 import * as store from '@/store'
 import { useAtom } from 'jotai'
+import * as utils from '@/utils'
 
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 interface Chain {
     chainId: number
-    chainName: string
+    axelarChainName: string
     chainType: string
 }
 
@@ -89,12 +90,12 @@ export function Claim({ link }: { link: string }) {
         try {
             const crossChainDetails = await peanut.getXChainOptionsForLink({
                 isTestnet,
-                sourceChainId: linkDetails.chainId,
+                sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-
             if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
-                setCrossChainDetails(crossChainDetails)
+                //Filter to remove mainnet
+                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != 1))
                 return true
             } else {
                 return false
@@ -107,18 +108,20 @@ export function Claim({ link }: { link: string }) {
 
     const fetchTokenPrice = async (tokenAddress: string, chainId: number) => {
         try {
-            const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                params: {
-                    tokenAddress: tokenAddress,
-                    chainId: chainId,
-                },
-                headers: {
-                    accept: 'application/json',
-                    'API-KEY': process.env.SOCKET_API_KEY,
-                },
-            })
-            setTokenPrice(response.data.result.tokenPrice)
-            return Number(response.data.result.tokenPrice)
+            if (!tokenPrice) {
+                const response = await axios.get('https://api.socket.tech/v2/token-price', {
+                    params: {
+                        tokenAddress: tokenAddress,
+                        chainId: chainId,
+                    },
+                    headers: {
+                        accept: 'application/json',
+                        'API-KEY': process.env.SOCKET_API_KEY,
+                    },
+                })
+                setTokenPrice(response.data.result.tokenPrice)
+                return Number(response.data.result.tokenPrice)
+            } else return tokenPrice
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
@@ -170,11 +173,16 @@ export function Claim({ link }: { link: string }) {
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
+                    let _tokenprice
                     if (linkDetails.tokenAddress == '0x0000000000000000000000000000000000000000') {
-                        await fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', linkDetails.chainId)
+                        _tokenprice = await fetchTokenPrice(
+                            '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+                            linkDetails.chainId
+                        )
                     } else {
-                        await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
+                        _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
+
                     if (await isBridgePossible(linkDetails)) {
                         //disabling bridge for now
                         // if (false)

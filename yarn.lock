@@ -1998,10 +1998,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.3.13":
-  version "0.3.13"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.3.13.tgz#19a24062cb36dd89bad22be92123980328f9e863"
-  integrity sha512-f3X0W3+uGTEaEKz+ZbtXtT9l7Gs2IkZYiJ8gUAq0fo/f9C3c8Quid2lgCrGuh8A4Ho7JSUlVPeBRfkDG+/6KBw==
+"@squirrel-labs/peanut-sdk@0.3.24":
+  version "0.3.24"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.3.24.tgz#231c1888194599d7fac83df3f9e9b4d47057cada"
+  integrity sha512-imDkzxKds8b7J9BhL+TXlSHK9EeWRSfTLKSFcm5E4cCEwQp1ICUZ0nSNuT9w7ZeF2k+qUDvZ4e6xTTczJeWqMg==
   dependencies:
     ethersv5 "npm:ethers@^5"
 
