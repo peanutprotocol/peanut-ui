@@ -5,6 +5,7 @@ import * as _consts from '../claim.consts'
 import * as store from '@/store/'
 import * as global_components from '@/components/global'
 import * as hooks from '@/hooks'
+import * as utils from '@/utils'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
@@ -26,6 +27,12 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
+        utils.getSenderAddressAndSendNotification({
+            chainId: claimDetails[0].chainId.toString(),
+            contractVersion: claimDetails[0].contractVersion,
+            depositIdx: claimDetails[0].depositIndex,
+            linkDetails: claimDetails[0],
+        })
     }, [])
 
     return (
