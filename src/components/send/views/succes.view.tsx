@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import QRCode from 'react-qr-code'
 
 import dropdown_svg from '@/assets/dropdown.svg'
@@ -7,21 +7,15 @@ import * as _consts from '../send.consts'
 import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
-
-const linkss = [
-    'http://localhost:3000/claim#?c=5&v=v4&i=73&p=pCPss4a0WiRgbiDo&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=74&p=2ldLR8WHSR4ivkPs&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=75&p=o5BmA0Xoe5AKzXm1&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=76&p=5825iSMUmio1SMSs&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=77&p=xMhU49Y4YCFEHDAZ&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=78&p=hfn0ziQZtgiIj2bI&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=79&p=ngfZ7Npk497O9Ood&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=80&p=Z5q412r2w7POlzW1&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=81&p=4YF9JCQyLahbw8rA&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=82&p=ZbOBBU3mS44E8pVV&t=ui',
-]
+import { useAccount, useSignMessage } from 'wagmi'
+import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
+    const { address } = useAccount()
+    const { signMessageAsync } = useSignMessage()
+    const { account, setAccount, isRegistered, isRegistering, register } = useW3iAccount()
+    const { isSubscribed, isSubscribing, subscribe } = useManageSubscription()
+
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
     const [copiedLink, setCopiedLink] = useState<string[]>()
@@ -39,6 +33,31 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
             }, 3000)
         }
     }, [])
+
+    useEffect(() => {
+        if (!address) return
+        // Convert the address into a CAIP-10 blockchain-agnostic account ID and update the Web3Inbox SDK with it
+        setAccount(`eip155:1:${address}`)
+    }, [address, setAccount])
+
+    const performRegistration = useCallback(async () => {
+        if (!address) return
+        try {
+            const x = await register((message) => signMessageAsync({ message }))
+            console.log(x)
+            const xx = await subscribe()
+            console.log(xx)
+        } catch (registerIdentityError) {
+            console.log(registerIdentityError)
+            alert(registerIdentityError)
+        }
+    }, [signMessageAsync, register, address])
+
+    const performSubscribe = useCallback(async () => {
+        // Register again just in case
+        const xx = await subscribe()
+        console.log(xx)
+    }, [subscribe, isRegistered])
 
     return (
         <>
@@ -194,6 +213,22 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     </a>{' '}
                     to go back home!
                 </p>
+
+                {!isRegistered ? (
+                    <p className="text-m mt-4" id="to_address-description">
+                        Click
+                        <a
+                            onClick={performRegistration}
+                            target="_blank"
+                            className="cursor-pointer text-black underline"
+                        >
+                            here
+                        </a>{' '}
+                        to be notified when your fren claims their funds!
+                    </p>
+                ) : (
+                    ''
+                )}
 
                 <p className="mt-4 text-xs" id="to_address-description">
                     {' '}

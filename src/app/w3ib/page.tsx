@@ -37,8 +37,7 @@ export default function w3ib() {
     const performRegistration = useCallback(async () => {
         if (!address) return
         try {
-            const x = await register((message) => signMessageAsync({ message }))
-            console.log(x)
+            await register((message) => signMessageAsync({ message }))
         } catch (registerIdentityError) {
             console.log(registerIdentityError)
             alert(registerIdentityError)
@@ -46,15 +45,15 @@ export default function w3ib() {
     }, [signMessageAsync, register, address])
 
     useEffect(() => {
-        // Register even if an identity key exists, to account for stale keys
-        performRegistration()
-    }, [performRegistration])
+        if (isRegistered) {
+            console.log('registered to web3inbox, subscribing to peanut...')
+            performSubscribe()
+        }
+    }, [isRegistered])
 
     const { isSubscribed, isSubscribing, subscribe } = useManageSubscription()
 
     const performSubscribe = useCallback(async () => {
-        // Register again just in case
-        await performRegistration()
         await subscribe()
     }, [subscribe, isRegistered])
 
