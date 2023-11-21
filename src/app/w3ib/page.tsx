@@ -1,5 +1,4 @@
 'use client'
-
 import {
     useManageSubscription,
     useSubscription,
@@ -10,7 +9,7 @@ import {
 import { useCallback, useEffect } from 'react'
 import { useSignMessage, useAccount } from 'wagmi'
 
-export default function w3ib() {
+export default function App() {
     const { address } = useAccount()
     const { signMessageAsync } = useSignMessage()
 
@@ -39,23 +38,27 @@ export default function w3ib() {
         try {
             await register((message) => signMessageAsync({ message }))
         } catch (registerIdentityError) {
-            console.log(registerIdentityError)
             alert(registerIdentityError)
         }
     }, [signMessageAsync, register, address])
 
     useEffect(() => {
-        if (isRegistered) {
-            console.log('registered to web3inbox, subscribing to peanut...')
-            performSubscribe()
-        }
-    }, [isRegistered])
+        // Register even if an identity key exists, to account for stale keys
+        performRegistration()
+    }, [performRegistration])
 
-    const { isSubscribed, isSubscribing, subscribe } = useManageSubscription()
+    const { isSubscribed, isSubscribing, unsubscribe, subscribe } = useManageSubscription()
 
     const performSubscribe = useCallback(async () => {
+        // Register again just in case
+        await performRegistration()
         await subscribe()
     }, [subscribe, isRegistered])
+
+    const performUnsubscribe = useCallback(async () => {
+        // Register again just in case
+        await unsubscribe()
+    }, [unsubscribe, isRegistered])
 
     const { subscription } = useSubscription()
     const { messages } = useMessages()
@@ -92,6 +95,7 @@ export default function w3ib() {
                                             <div>You are subscribed</div>
                                             <div>Subscription: {JSON.stringify(subscription)}</div>
                                             <div>Messages: {JSON.stringify(messages)}</div>
+                                            <button onClick={performUnsubscribe}>Click here to unsub </button>{' '}
                                         </>
                                     )}
                                 </>

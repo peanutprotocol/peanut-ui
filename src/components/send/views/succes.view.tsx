@@ -8,14 +8,16 @@ import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
 import { useAccount, useSignMessage } from 'wagmi'
-import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
+import { useInitWeb3InboxClient, useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
     const { address } = useAccount()
     const { signMessageAsync } = useSignMessage()
-    const { account, setAccount, isRegistered, isRegistering, register } = useW3iAccount()
+    const { account, setAccount, isRegistered, register } = useW3iAccount()
     const { isSubscribed, isSubscribing, subscribe } = useManageSubscription()
 
+    const [isLoading, setIsLoading] = useState(false)
+    const [loadingText, setLoadingText] = useState('')
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
     const [copiedLink, setCopiedLink] = useState<string[]>()
@@ -36,28 +38,33 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
 
     useEffect(() => {
         if (!address) return
-        // Convert the address into a CAIP-10 blockchain-agnostic account ID and update the Web3Inbox SDK with it
         setAccount(`eip155:1:${address}`)
     }, [address, setAccount])
 
     const performRegistration = useCallback(async () => {
         if (!address) return
         try {
-            const x = await register((message) => signMessageAsync({ message }))
-            console.log(x)
-            const xx = await subscribe()
-            console.log(xx)
+            setIsLoading(true)
+            setLoadingText('Please confirm in your wallet')
+            await register((message) => signMessageAsync({ message }))
+            await performSubscribe()
         } catch (registerIdentityError) {
-            console.log(registerIdentityError)
             alert(registerIdentityError)
         }
     }, [signMessageAsync, register, address])
 
     const performSubscribe = useCallback(async () => {
-        // Register again just in case
-        const xx = await subscribe()
-        console.log(xx)
+        setIsLoading(true)
+        setLoadingText('subscribing to peanut')
+        const x = await subscribe()
+        console.log('subscribed to peanut: ', x)
     }, [subscribe, isRegistered])
+
+    useEffect(() => {
+        if (isRegistered && isSubscribed) {
+            setIsLoading(false)
+        }
+    }, [isRegistered, isSubscribed])
 
     return (
         <>
@@ -196,29 +203,43 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                                 Your transaction hash
                             </a>
                         </p>
+                        <p className="text-m mt-4" id="to_address-description">
+                            {' '}
+                            Want to do it again? click{' '}
+                            <a
+                                onClick={() => {
+                                    onCustomScreen('INITIAL')
+                                }}
+                                target="_blank"
+                                className="cursor-pointer text-black underline"
+                            >
+                                here
+                            </a>{' '}
+                            to go back home!
+                        </p>
                     </div>
                 )}
 
-                <p className="text-m mt-4" id="to_address-description">
-                    {' '}
-                    Want to do it again? click{' '}
-                    <a
-                        onClick={() => {
-                            onCustomScreen('INITIAL')
-                        }}
-                        target="_blank"
-                        className="cursor-pointer text-black underline"
-                    >
-                        here
-                    </a>{' '}
-                    to go back home!
-                </p>
-
-                {!isRegistered ? (
+                {isLoading ? (
+                    <div className=" flex items-center justify-center gap-2 text-center">
+                        <p className="text-m mt-4">{loadingText}</p>{' '}
+                        <span className="bouncing-dots flex">
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                            <span className="dot">.</span>
+                        </span>
+                    </div>
+                ) : !isRegistered || !isSubscribed ? (
                     <p className="text-m mt-4" id="to_address-description">
-                        Click
+                        Click{' '}
                         <a
-                            onClick={performRegistration}
+                            onClick={() => {
+                                if (!isRegistered) {
+                                    performRegistration()
+                                } else if (!isSubscribed) {
+                                    performSubscribe()
+                                }
+                            }}
                             target="_blank"
                             className="cursor-pointer text-black underline"
                         >
@@ -227,7 +248,9 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                         to be notified when your fren claims their funds!
                     </p>
                 ) : (
-                    ''
+                    <p className="text-m mt-4" id="to_address-description">
+                        You will be notified when your fren claims their funds!
+                    </p>
                 )}
 
                 <p className="mt-4 text-xs" id="to_address-description">
