@@ -252,20 +252,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    function getLatestAddress(chainId: string, type: string): string {
-        const data = peanut.PEANUT_CONTRACTS
-        const chainData = data[chainId as unknown as keyof typeof data]
-
-        // Filter keys starting with "v" and sort them
-        const versions = Object.keys(chainData)
-            .filter((key) => key.startsWith(type == 'batch' ? 'Bv' : 'v'))
-            .sort((a, b) => parseInt(b.substring(1)) - parseInt(a.substring(1))) // Sort in descending order based on version number
-
-        const highestVersion = versions.sort((a, b) => parseInt(b.slice(1)) - parseInt(a.slice(1)))[0]
-
-        return highestVersion
-    }
-
     const checkNetwork = async (chainId: number) => {
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== chainId.toString()) {
@@ -363,7 +349,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     trackId: 'ui',
                 }
 
-                const latestContractVersion = getLatestAddress(
+                const latestContractVersion = peanut.getLatestContractVersion(
                     sendFormData.chainId.toString(),
                     advancedDropdownOpen ? 'batch' : 'single'
                 )
@@ -595,8 +581,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
