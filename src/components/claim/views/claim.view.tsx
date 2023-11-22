@@ -12,8 +12,8 @@ import * as utils from '@/utils'
 import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
-import { Tooltip } from 'react-tooltip'
 import axios from 'axios'
+import nft from '@/assets/nft.png'
 
 export function ClaimView({
     onNextScreen,
@@ -146,37 +146,42 @@ export function ClaimView({
                     Oh, you found a promo code! Enjoy your free money!
                 </h2>
             )}
-            <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                Claim{' '}
-                {claimDetails[0].tokenType == '2' ? (
-                    <>
-                        {' '}
-                        <a
-                            className="cursor-pointer  text-black underline "
-                            data-tooltip-id="my-tooltip"
-                            href={
-                                'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
-                                claimDetails[0].tokenId
-                            }
-                        >
-                            1 Peanut NFT
-                        </a>
-                        <Tooltip id="my-tooltip" className="bg-black !opacity-100">
-                            <img src={IpfsMetadata} className="h-36 w-36" />
-                        </Tooltip>
-                    </>
-                ) : (
+            {/* {claimDetails[0].tokenType == '2' ? ( */}
+            {true ? (
+                <div className="flex flex-col items-center justify-center gap-4">
+                    <a
+                        className="cursor-pointer text-black no-underline hover:underline "
+                        target="_blank"
+                        href={
+                            'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
+                            claimDetails[0].tokenId
+                        }
+                    >
+                        <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
+                            Claim NFT on{' '}
+                            {chainDetails &&
+                                chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
+                        </h2>
+                    </a>
+                    <img src={nft.src} className="h-64 w-64" />
+                </div>
+            ) : (
+                <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
+                    Claim{' '}
                     <>
                         {tokenPrice
                             ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                             : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
                         {tokenPrice ? 'in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                     </>
-                )}
-            </h2>
-            <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
-                {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
-            </h3>
+                </h2>
+            )}
+            {/* {claimDetails[0].tokenType == '2' ? ( */}
+            {false && (
+                <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
+                    {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
+                </h3>
+            )}
             <button
                 type={isConnected ? 'submit' : 'button'}
                 className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
