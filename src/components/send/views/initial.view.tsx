@@ -67,7 +67,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        if (isConnected) {
+        if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
             )
@@ -581,8 +581,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
@@ -1001,7 +1001,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
-                                                      key={token.symbol}
+                                                      key={token.address}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1032,7 +1032,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                               ))
                                             : tokenList.map((token) => (
                                                   <div
-                                                      key={token.symbol}
+                                                      key={token.address}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
