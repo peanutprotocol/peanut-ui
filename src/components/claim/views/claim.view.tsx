@@ -13,7 +13,6 @@ import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
 import axios from 'axios'
-import nft from '@/assets/nft.png'
 
 export function ClaimView({
     onNextScreen,
@@ -81,7 +80,6 @@ export function ClaimView({
             const ipfsHash = url.split('://')[1]
             const randomProvider = consts.ipfsProviderArray[Math.floor(Math.random() * consts.ipfsProviderArray.length)]
             const response = await axios.get(randomProvider + ipfsHash)
-            console.log(response)
             const formattedResponse = randomProvider + response.data.image.split('://')[1]
             setIpfsMetadata(formattedResponse)
         } catch (error) {
@@ -147,8 +145,7 @@ export function ClaimView({
                     Oh, you found a promo code! Enjoy your free money!
                 </h2>
             )}
-            {/* {claimDetails[0].tokenType == '2' ? ( */}
-            {true ? (
+            {claimDetails[0].tokenType == '2' ? (
                 <div className="flex flex-col items-center justify-center gap-4">
                     <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
                         Claim NFT on{' '}
@@ -169,7 +166,6 @@ export function ClaimView({
                 </h2>
             )}
             {claimDetails[0].tokenType != '2' ? (
-                // {false && (
                 <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
                     {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
                 </h3>
