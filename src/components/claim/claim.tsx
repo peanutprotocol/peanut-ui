@@ -83,6 +83,9 @@ export function Claim({ link }: { link: string }) {
     }
 
     const isBridgePossible = async (linkDetails: interfaces.ILinkDetails) => {
+        if (linkDetails.tokenType == '2') {
+            return false
+        }
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
