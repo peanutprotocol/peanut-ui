@@ -81,6 +81,7 @@ export function ClaimView({
             const ipfsHash = url.split('://')[1]
             const randomProvider = consts.ipfsProviderArray[Math.floor(Math.random() * consts.ipfsProviderArray.length)]
             const response = await axios.get(randomProvider + ipfsHash)
+            console.log(response)
             const formattedResponse = randomProvider + response.data.image.split('://')[1]
             setIpfsMetadata(formattedResponse)
         } catch (error) {
@@ -149,21 +150,12 @@ export function ClaimView({
             {/* {claimDetails[0].tokenType == '2' ? ( */}
             {true ? (
                 <div className="flex flex-col items-center justify-center gap-4">
-                    <a
-                        className="cursor-pointer text-black no-underline hover:underline "
-                        target="_blank"
-                        href={
-                            'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
-                            claimDetails[0].tokenId
-                        }
-                    >
-                        <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
-                            Claim NFT on{' '}
-                            {chainDetails &&
-                                chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
-                        </h2>
-                    </a>
-                    <img src={nft.src} className="h-64 w-64" />
+                    <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
+                        Claim NFT on{' '}
+                        {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
+                    </h2>
+
+                    <img src={IpfsMetadata} className="h-64 w-64" />
                 </div>
             ) : (
                 <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
@@ -176,10 +168,25 @@ export function ClaimView({
                     </>
                 </h2>
             )}
-            {/* {claimDetails[0].tokenType == '2' ? ( */}
-            {false && (
+            {claimDetails[0].tokenType != '2' ? (
+                // {false && (
                 <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
                     {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
+                </h3>
+            ) : (
+                <h3 className="text-md mb-8 text-center font-black sm:text-lg lg:text-xl ">
+                    {/* Click{' '}
+                    <a
+                        className="cursor-pointer text-black underline "
+                        target="_blank"
+                        href={
+                            'https://opensea.io/assets/optimism/0xf6f3956bc653c7acb209d6ff8e965a673938cb7c/' +
+                            claimDetails[0].tokenId
+                        }
+                    >
+                        here
+                    </a>{' '}
+                    to view on opensea */}
                 </h3>
             )}
             <button
