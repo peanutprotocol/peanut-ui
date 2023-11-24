@@ -140,7 +140,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (!walletClient) {
             throw new Error('Failed to get wallet client')
         }
-        const signer = _utils.walletClientToSigner(walletClient)
+        const signer = utils.walletClientToSigner(walletClient)
         return signer
     }
 
