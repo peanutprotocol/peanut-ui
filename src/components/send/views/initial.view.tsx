@@ -176,7 +176,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
 
         //check if the amount is less than or equal to zero
-        if (sendFormData.amount && Number(sendFormData.amount) <= 0) {
+        if (!sendFormData.amount || (sendFormData.amount && Number(sendFormData.amount) <= 0)) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
@@ -284,6 +284,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 //Get the signer
                 const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
 
+                //check if the formdata is correct
+                if (checkForm(sendFormData, signer).succes === 'false') {
+                    return
+                }
+                setEnableConfirmation(true)
+
                 //Calculate the token amount
                 const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
                 if (status == 'ERROR') {
@@ -293,16 +299,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     })
                     return
                 }
-
-                //check if the formdata is correct
-                if (checkForm(sendFormData, signer).succes === 'false') {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Please make sure all the inputs are correct',
-                    })
-                    return
-                }
-                setEnableConfirmation(true)
 
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
@@ -426,7 +422,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 onNextScreen()
             } catch (error: any) {
                 console.error(error)
-                if (error instanceof peanut.interfaces.SDKStatus) {
+                if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({
                         showError: true,
@@ -439,6 +435,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             showError: true,
                             errorMessage: "You don't have enough funds",
                         })
+                    } else if (error.toString().includes('user rejected transaction')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please confirm the transaction in your wallet',
+                        })
                     } else if (error.toString().includes('not deployed on chain')) {
                         setErrorState({
                             showError: true,
@@ -447,7 +448,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Please allow the network switch in the wallet',
+                            errorMessage: 'Please allow the network switch in your wallet',
+                        })
+                    } else if (error.toString().includes('NETWORK_ERROR')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'A network error occured. Please refresh and try again',
+                        })
+                    } else if (error.toString().includes('NONCE_EXPIRED')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Nonce expired, please try again',
                         })
                     } else {
                         setErrorState({
