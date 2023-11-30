@@ -18,8 +18,8 @@ export function Welcome() {
                         <div className="brutalborder bg-white py-16 text-center sm:px-6 lg:mx-0 lg:max-w-none lg:px-0">
                             <h1 className="mx-auto my-8 w-3/4 text-5xl font-black">Send Tokens with a Link</h1>
                             <div className="m-4 mx-auto w-3/4 p-2 text-xl">
-                                This is a private beta for cross-chain peanut links. Send tokens with a Peanut link, and
-                                the recipient can claim any tokens on any chain. Test with us and get rewarded!
+                                Forget chains and wallet addresses. Send tokens with a trustless payment link, no matter
+                                whether the recipient has a wallet.
                             </div>
 
                             <div className="mt-8 flex justify-center space-x-4 p-2">
