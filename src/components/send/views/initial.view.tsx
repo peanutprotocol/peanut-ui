@@ -592,8 +592,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
@@ -733,7 +733,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                     </div>
-                    <div
+                    {/* <div
                         className="flex cursor-pointer items-center justify-center "
                         onClick={() => {
                             setAdvancedDropdownOpen(!advancedDropdownOpen)
@@ -752,7 +752,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             alt=""
                             className={'h-6 '}
                         />
-                    </div>
+                    </div> */}
                     {advancedDropdownOpen && (
                         <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
                             <div className="relative w-full px-2 sm:w-3/4">
