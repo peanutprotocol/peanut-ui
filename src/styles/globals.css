@@ -126,59 +126,43 @@ body {
 
 /* replace cta-btn id with rainbow border in html if not CTA at some point @konrad */
 #cta-btn {
-    border: 5px solid black;
-    padding: 1rem;
+    border: 3px solid black;
     transition:
-        box-shadow 1s ease-in-out,
-        border-radius 1s ease-in-out;
-    box-shadow: 0.5rem 0.5rem 0 0px #000;
+        box-shadow 0.3s ease-in-out,
+        top 0.3s ease-in-out,
+        left 0.3s ease-in-out; /* Add transitions for top and left */
+    box-shadow: 1rem 1rem 0 0px #000;
     color: #000;
     font-weight: 900;
-    left: -2.5px;
+    position: relative; /* Ensure the div is positioned relative for the top/left to work */
+    top: 0;
+    left: 0;
 }
 
 #cta-div {
-    border: 2px solid black;
-    padding: 1rem;
+    border: 3px solid black;
     transition:
-        box-shadow 1s ease-in-out,
-        border-radius 1s ease-in-out;
-    box-shadow: 0.5rem 0.5rem 0 0px #000;
+        box-shadow 0.3s ease-in-out,
+        top 0.3s ease-in-out,
+        left 0.3s ease-in-out; /* Add transitions for top and left */
+    box-shadow: 1rem 1rem 0 0px #000;
     color: #000;
     font-weight: 900;
-    left: -2.5px;
+    position: relative; /* Ensure the div is positioned relative for the top/left to work */
+    top: 0;
+    left: 0;
 }
 
-#cta-div:active {
-    transform: ease-in-out 2s;
-    border-radius: 2rem;
-    box-shadow:
-        0 0 0 0.5rem #ff90e8,
-        0 0 0 1rem #23a094,
-        0 0 0 1.5rem #f1f333,
-        0 0 0 2rem #90a8ed;
-    animation: disco 0.5s infinite;
+#cta-div:hover {
+    box-shadow: 0.2rem 0.2rem 0 0px #000; /* Smaller shadow to simulate being pressed down */
+    top: 0.8rem; /* Move down to simulate pressing */
+    left: 0.8rem; /* Move right to simulate pressing */
 }
 
 #cta-btn:hover {
-    /* animation: disco 1s infinite; */
-    /* background-color: #000; */
-    transform: ease-in-out 2s;
-    border-radius: 2rem;
-    box-shadow:
-        0 0 0 0.5rem #ff90e8,
-        0 0 0 1rem #23a094,
-        0 0 0 1.5rem #f1f333,
-        0 0 0 2rem #90a8ed;
-    /* normal shadow */
-    /* 0.5rem 0.5rem 0 0 #ff90e8,
-  1rem 1rem 0 0 #23a094,
-  1.5rem 1.5rem 0 0 #F1F333,
-  2rem 2rem 0 0 #90A8ED, */
-}
-
-#cta-btn:active {
-    animation: disco 0.5s infinite;
+    box-shadow: 0.2rem 0.2rem 0 0px #000; /* Smaller shadow to simulate being pressed down */
+    top: 0.8rem; /* Move down to simulate pressing */
+    left: 0.8rem; /* Move right to simulate pressing */
 }
 
 /* Chrome, Safari, Edge, Opera */
