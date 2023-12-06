@@ -17,7 +17,7 @@ import teal_wallet_two from '@/assets/mockups/teal-wallet-2.png'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useState } from 'react'
 
-const logoCloudLogos = [beam_logo, eco_logo, kofime_logo, hypersphere_logo, zeeprime_logo, wallet_connect_logo]
+const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const features = [
     {
         name: 'white-labled',
@@ -143,6 +143,7 @@ export function Welcome() {
                                     className="h-12 object-contain grayscale"
                                     src={logo.src}
                                     alt="Transistor"
+                                    loading="eager"
                                 />
                             )
                         })}
@@ -239,12 +240,12 @@ export function Welcome() {
 
             {/* features */}
             <section className="lg:divide-y" id="features">
-                <div className="brutalborder-y grid grid-cols-1 gap-2 overflow-hidden bg-white p-4 text-black sm:mx-0 sm:grid-cols-2 md:grid-cols-3">
+                <div className="brutalborder-y grid grid-cols-1 gap-4 overflow-hidden bg-white p-4 text-black sm:mx-0 sm:grid-cols-2 md:grid-cols-3">
                     {features.map((feature, index) => {
                         return (
                             <div
                                 className={classNames(
-                                    'brutalborder flex flex-col items-center justify-center p-4 ',
+                                    'brutalborder flex flex-col items-center justify-center px-8 py-4 ',
                                     feature.bg
                                 )}
                                 key={index}
@@ -261,7 +262,7 @@ export function Welcome() {
 
             {/* faq */}
             <div className="flex flex-col gap-4 px-4 py-4 text-black">
-                <h2 className="my-0 px-4 font-bold">FAQ</h2>
+                <h2 className="my-0 px-8 font-bold">FAQ</h2>
                 <div className="flex flex-col gap-0">
                     {faqs.map((faq, idx) => (
                         <div
@@ -282,7 +283,7 @@ export function Welcome() {
                                     ' flex w-full flex-row items-center justify-between border-none bg-white  text-2xl '
                                 )}
                             >
-                                <label className="p-4">{faq.question}</label>
+                                <label className="px-8 py-4">{faq.question}</label>
                                 <img
                                     style={{
                                         transform: openedFaq === idx ? 'scaleY(-1)' : 'none',
@@ -294,7 +295,7 @@ export function Welcome() {
                                 />
                             </div>
                             {openedFaq === idx && (
-                                <div className={classNames(' m-0 px-4 py-2 ')}>
+                                <div className={classNames(' m-0 px-8 py-2 ')}>
                                     <p>{faq.answer}</p>
                                 </div>
                             )}
@@ -303,10 +304,23 @@ export function Welcome() {
                 </div>
             </div>
 
-            {/* testimonials */}
+            {/* seperator */}
+            <global_components.MarqueeWrapper backgroundColor="bg-black">
+                <>
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        FRENS
+                    </div>
+                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        FRENS
+                    </div>
+                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                </>
+            </global_components.MarqueeWrapper>
 
+            {/* testimonials */}
             <section id="testimonials" className=" brutalborder-y justify-center bg-white p-4 text-black ">
-                <div role="list" className="grid:cols-1 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                <div role="list" className="grid:cols-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     {testimonials.map((testimonial, index) => (
                         <div
                             key={index}
@@ -317,7 +331,7 @@ export function Welcome() {
                                 //@ts-ignore
                                 src={testimonial.imageSrc}
                                 alt={testimonial.altText}
-                                className="rainbow-border mx-auto w-1/2 rounded-none bg-white p-1"
+                                className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"
                             />
                             <h1 className="mx-auto mt-2 py-2 text-base font-normal italic lg:text-lg">
                                 {testimonial.comment}
