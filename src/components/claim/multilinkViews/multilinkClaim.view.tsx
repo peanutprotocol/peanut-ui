@@ -349,7 +349,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                 placeholder="0x6B37..."
                                 {...manualForm.register('address')}
                             />
-                            <div className="tooltip w-1/8 brutalborder-left block h-4 cursor-pointer p-2">
+                            <div className="w-1/8 brutalborder-left tooltip block h-4 cursor-pointer p-2">
                                 {isLoading ? (
                                     <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold">
                                         <span className="tooltiptext inline " id="myTooltip">
