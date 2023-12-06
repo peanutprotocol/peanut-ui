@@ -76,6 +76,29 @@ body {
 .brutalborder {
     border: 2px solid #000000;
 }
+.brutalborder-y {
+    border-bottom: 2px solid #000000;
+    border-top: 2px solid #000000;
+}
+.brutalborder-x {
+    border-left: 2px solid #000000;
+    border-right: 2px solid #000000;
+}
+.brutalborder-top {
+    border-top: 2px solid #000000;
+}
+
+.brutalborder-right {
+    border-right: 2px solid #000000;
+}
+
+.brutalborder-left {
+    border-left-style: solid;
+}
+
+.brutalborder-bottom {
+    border-bottom: 2px solid #000000;
+}
 
 .brutalshadow {
     border: 3px solid black;
@@ -99,14 +122,6 @@ body {
 
 .softborder {
     border: 1px solid #000000;
-}
-
-.brutalborder-left {
-    border-left-style: solid;
-}
-
-.brutalborder-bottom {
-    border-bottom: 1px solid #ddd;
 }
 
 /* replace cta-btn id with rainbow border in html if not CTA at some point @konrad */

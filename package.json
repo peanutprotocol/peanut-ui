@@ -21,6 +21,7 @@
         "@web3modal/wagmi": "^3.1.0",
         "autoprefixer": "^10.4.14",
         "axios": "^1.4.0",
+        "daisyui": "^4.4.19",
         "encoding": "^0.1.13",
         "ethers": "5.7.2",
         "jotai": "^2.2.2",
