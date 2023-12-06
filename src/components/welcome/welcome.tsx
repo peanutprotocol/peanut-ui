@@ -21,7 +21,7 @@ import { getCalApi } from '@calcom/embed-react'
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const features = [
     {
-        name: 'Whitelabed',
+        name: 'Whitelabeled ',
         description:
             'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
         bg: 'bg-yellow',
@@ -167,12 +167,12 @@ export function Welcome() {
 
                     <div className="mt-8 flex justify-center space-x-4 p-2">
                         <a
-                            data-cal-link="kkonrad/15min"
+                            data-cal-link="https://cal.com/kkonrad+hugo/dynamic?duration=15"
                             data-cal-config='{"layout":"month_view"}'
                             id="cta-btn"
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black underline md:w-3/5 lg:w-1/3"
                         >
-                            cal.com
+                            let's chat!
                         </a>
 
                         <a
@@ -251,7 +251,7 @@ export function Welcome() {
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black underline md:w-3/5 lg:w-1/3"
                             >
-                                cal.com
+                                let's chat!
                             </a>
 
                             <a
@@ -290,7 +290,7 @@ export function Welcome() {
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black underline md:w-3/5 lg:w-1/3"
                             >
-                                cal.com
+                                let's chat!
                             </a>
 
                             <a
@@ -344,7 +344,7 @@ export function Welcome() {
                                                 data-cal-config='{"layout":"month_view"}'
                                                 className={'underline '}
                                             >
-                                                Cal.com
+                                                let's chat!
                                             </a>
                                         </button>
                                     )}
