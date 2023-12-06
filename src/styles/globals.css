@@ -135,8 +135,13 @@ body {
     color: #000;
     font-weight: 900;
     position: relative; /* Ensure the div is positioned relative for the top/left to work */
-    top: 0;
+    top: -0.7rem;
     left: 0;
+}
+#cta-btn:hover {
+    box-shadow: 0.2rem 0.2rem 0 0px #000; /* Smaller shadow to simulate being pressed down */
+    top: 0.1rem; /* Move down to simulate pressing */
+    left: 0.8rem; /* Move right to simulate pressing */
 }
 
 #cta-div {
@@ -151,18 +156,6 @@ body {
     position: relative; /* Ensure the div is positioned relative for the top/left to work */
     top: 0;
     left: 0;
-}
-
-#cta-div:hover {
-    box-shadow: 0.2rem 0.2rem 0 0px #000; /* Smaller shadow to simulate being pressed down */
-    top: 0.8rem; /* Move down to simulate pressing */
-    left: 0.8rem; /* Move right to simulate pressing */
-}
-
-#cta-btn:hover {
-    box-shadow: 0.2rem 0.2rem 0 0px #000; /* Smaller shadow to simulate being pressed down */
-    top: 0.8rem; /* Move down to simulate pressing */
-    left: 0.8rem; /* Move right to simulate pressing */
 }
 
 /* Chrome, Safari, Edge, Opera */

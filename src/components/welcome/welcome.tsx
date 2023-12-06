@@ -1,13 +1,10 @@
 import * as global_components from '@/components/global'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
-import orest_image from '@/assets/people/orest.jpg'
-import mydas_image from '@/assets/people/mydas.jpg'
-import steven_image from '@/assets/people/Steven.jpg'
 import sbf_image from '@/assets/people/sbf.jpeg'
 import * as chain_logos from '@/assets/chains'
 import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
-import eco_logo from '@/assets/logos/integrators/eco-logo.jpeg'
+import eco_logo from '@/assets/logos/integrators/eco-logo.png'
 import kofime_logo from '@/assets/logos/integrators/kofime-logo.png'
 import hypersphere_logo from '@/assets/logos/investors/hypersphere-logo.png'
 import zeeprime_logo from '@/assets/logos/investors/zeeprime-logo.png'
@@ -35,7 +32,7 @@ const features = [
         name: 'Gasless',
         description:
             'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim links solve the cold start problem.',
-        bg: 'bg-fuchsia',
+        bg: 'bg-teal',
         primaryRedirectUrl:
             'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
         primaryRedirectText: 'Docs',
@@ -60,9 +57,8 @@ const features = [
     },
     {
         name: 'Get Physical',
-        description:
-            'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens. Just put stickers on your swag or flyers and boost your conversion rate.',
-        bg: 'bg-teal',
+        description: 'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.',
+        bg: 'bg-fuchsia',
         calModal: true,
     },
     {
@@ -166,13 +162,13 @@ export function Welcome() {
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
             {/* hero */}
             <div className="flex border-2 border-black bg-white text-black">
-                <div className="w-full bg-white py-8 text-center sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                    <h1 className="mx-auto mb-8 mt-0 w-3/4 text-5xl font-black">Send Tokens with a Link</h1>
+                <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
+                    <h1 className="mx-auto mb-8 mt-0 w-3/4 text-5xl font-black sm:text-6xl">Send Tokens with a Link</h1>
                     <div className="m-4 mx-auto w-3/4 p-2 text-xl">
                         Go viral with claim links. Let your users send tokens through links
                     </div>
 
-                    <div className="mt-8 flex justify-center space-x-4 p-2">
+                    <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                         <a
                             data-cal-link="kkonrad+hugo0/15min?duration=30"
                             data-cal-config='{"layout":"month_view"}'
@@ -186,7 +182,7 @@ export function Welcome() {
                             href="https://docs.peanut.to"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-5 text-2xl font-black text-black hover:underline"
+                            className="p-5  text-xl font-black text-black hover:underline sm:text-2xl"
                         >
                             Integrate →
                         </a>
@@ -207,7 +203,7 @@ export function Welcome() {
                     </div>
                 </div>
 
-                <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16  lg:pt-32 ">
+                <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
                         src={peanutman_happy.src}
                         className="absolute  duration-200 hover:rotate-12"
@@ -251,7 +247,7 @@ export function Welcome() {
                             already.
                         </div>
 
-                        <div className="mt-8 flex justify-center space-x-4 p-2">
+                        <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
@@ -265,7 +261,7 @@ export function Welcome() {
                                 href="https://docs.peanut.to"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-5 text-2xl font-black text-black hover:underline"
+                                className="p-5 text-xl font-black text-black hover:underline sm:text-2xl"
                             >
                                 Integrate →
                             </a>
@@ -290,7 +286,7 @@ export function Welcome() {
                             Onboard new users seamlessly with a gassless claiming and onboarding experience.
                         </div>
 
-                        <div className="mt-8 flex justify-center space-x-4 p-2">
+                        <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
@@ -304,7 +300,7 @@ export function Welcome() {
                                 href="https://docs.peanut.to"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-5 text-2xl font-black text-black hover:underline"
+                                className="p-5 text-xl font-black text-black hover:underline sm:text-2xl"
                             >
                                 Integrate →
                             </a>
@@ -312,6 +308,20 @@ export function Welcome() {
                     </div>
                 </div>
             </div>
+
+            {/* seperator */}
+            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
+                <>
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        COOL
+                    </div>
+                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        THINGS
+                    </div>
+                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                </>
+            </global_components.MarqueeWrapper>
 
             {/* features */}
             <section className="lg:divide-y" id="features">
@@ -344,7 +354,7 @@ export function Welcome() {
                                             <a
                                                 href={feature.primaryRedirectUrl}
                                                 target="_blank"
-                                                className="p-5 text-2xl font-black text-black hover:underline"
+                                                className="p-5 text-xl font-black text-black hover:underline sm:text-2xl"
                                             >
                                                 {feature.primaryRedirectText} →
                                             </a>
@@ -366,7 +376,7 @@ export function Welcome() {
                                         <a
                                             href={feature.secondaryRedirectUrl}
                                             target="_blank"
-                                            className="p-5 text-2xl font-black text-black "
+                                            className="p-5 text-xl font-black text-black sm:text-2xl "
                                         >
                                             {feature.secondaryRedirectText} →
                                         </a>
@@ -395,11 +405,11 @@ export function Welcome() {
             {/* faq */}
             <div className="flex flex-col gap-4 px-4 py-4 text-black">
                 <h2 className="my-0 px-8 font-bold">FAQ</h2>
-                <div className="flex flex-col gap-0">
+                <div className="flex cursor-pointer flex-col gap-0">
                     {faqs.map((faq, idx) => (
                         <div
                             className={classNames(
-                                'brutalborder-left brutalborder-top brutalborder-right cursor-pointer rounded-none bg-white text-black ',
+                                'brutalborder-left brutalborder-top brutalborder-right rounded-none bg-white text-black ',
                                 faqs.length - 1 === idx ? ' brutalborder-bottom' : ''
                             )}
                             onClick={() => {
@@ -412,10 +422,10 @@ export function Welcome() {
                         >
                             <div
                                 className={classNames(
-                                    ' flex w-full flex-row items-center justify-between border-none bg-white  text-2xl '
+                                    ' flex w-full  flex-row items-center justify-between border-none bg-white  text-2xl '
                                 )}
                             >
-                                <label className="px-8 py-4">{faq.question}</label>
+                                <label className=" px-8 py-4">{faq.question}</label>
                                 <img
                                     style={{
                                         transform: openedFaq === idx ? 'scaleY(-1)' : 'none',
@@ -453,7 +463,7 @@ export function Welcome() {
             </div>
 
             {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-black">
+            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
                 <>
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         FRENS
