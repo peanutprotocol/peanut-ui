@@ -174,7 +174,7 @@ export function Welcome() {
 
                     <div className="mt-8 flex justify-center space-x-4 p-2">
                         <a
-                            data-cal-link="https://cal.com/kkonrad+hugo/dynamic?duration=15"
+                            data-cal-link="kkonrad+hugo0/15min?duration=30"
                             data-cal-config='{"layout":"month_view"}'
                             id="cta-btn"
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
@@ -253,7 +253,7 @@ export function Welcome() {
 
                         <div className="mt-8 flex justify-center space-x-4 p-2">
                             <a
-                                data-cal-link="kkonrad/15min"
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
@@ -292,7 +292,7 @@ export function Welcome() {
 
                         <div className="mt-8 flex justify-center space-x-4 p-2">
                             <a
-                                data-cal-link="kkonrad/15min"
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
@@ -331,7 +331,10 @@ export function Welcome() {
                                 <div className="center-xy flex-end my-6 flex justify-around">
                                     {feature.calModal && (
                                         <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
-                                            <a data-cal-link="kkonrad/15min" data-cal-config='{"layout":"month_view"}'>
+                                            <a
+                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                                data-cal-config='{"layout":"month_view"}'
+                                            >
                                                 Let's talk!
                                             </a>
                                         </button>
@@ -429,7 +432,7 @@ export function Welcome() {
                                         {faq.answer}
                                         {faq.calModal && (
                                             <a
-                                                data-cal-link="kkonrad/15min"
+                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
                                                 data-cal-config='{"layout":"month_view"}'
                                                 className=" underline"
                                             >
