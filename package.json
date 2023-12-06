@@ -9,6 +9,7 @@
         "lint": "next lint"
     },
     "dependencies": {
+        "@calcom/embed-react": "^1.3.0",
         "@headlessui/react": "^1.7.17",
         "@sentry/nextjs": "^7.70.0",
         "@socket.tech/socket-v2-sdk": "^1.21.8",
