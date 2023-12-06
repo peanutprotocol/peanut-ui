@@ -15,6 +15,9 @@ import wallet_connect_logo from '@/assets/logos/wallet-connect-logo.png'
 import teal_wallet_one from '@/assets/mockups/teal-wallet-1.png'
 import teal_wallet_two from '@/assets/mockups/teal-wallet-2.png'
 import dropdown_svg from '@/assets/dropdown.svg'
+import derek from '@/assets/people/derek.png'
+import sharuk from '@/assets/people/sharuk.png'
+import kofime_icon from '@/assets/people/kofime-icon.jpeg'
 import { useState, useEffect } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 
@@ -25,33 +28,35 @@ const features = [
         description:
             'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
         bg: 'bg-yellow',
-        redirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links',
-        buttonText: 'Docs',
+        primaryRedirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links',
+        primaryRedirectText: 'Docs',
     },
     {
         name: 'Gasless',
         description:
             'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim links solve the cold start problem.',
         bg: 'bg-fuchsia',
-        redirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
-        buttonText: 'Docs',
+        primaryRedirectUrl:
+            'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
+        primaryRedirectText: 'Docs',
     },
     {
         name: 'Welcome packs',
         description: 'Send a welcome pack of NFT + gas + token to new or existing customers',
         bg: 'bg-red',
         calModal: true,
-        redirectUrl: 'https://docs.peanut.to/overview/use-cases',
-        buttonText: 'Case study',
+        primaryRedirectUrl: 'https://docs.peanut.to/overview/use-cases',
+        primaryRedirectText: 'Case study',
     },
     {
         name: 'Cross-chain',
         description:
             'Customize token and claim page to match your branding with logo and colors. Or even better, have the users claim the tokens on your own domain or app!',
         bg: 'bg-lightblue',
-        redirectUrl: 'https://experimental.peanut.to/send',
-        buttonText: 'Try Now',
-        learnMoreUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/x-chain-links',
+        primaryRedirectUrl: 'https://experimental.peanut.to/send',
+        primaryRedirectText: 'Try Now',
+        secondaryRedirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/x-chain-links',
+        secondaryRedirectText: 'Learn more',
     },
     {
         name: 'Get Physical',
@@ -59,14 +64,12 @@ const features = [
             'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens. Just put stickers on your swag or flyers and boost your conversion rate.',
         bg: 'bg-teal',
         calModal: true,
-        redirectUrl: undefined,
     },
     {
         name: 'Web2 Airdrops',
         description: 'Airdrop your web2 audience (think Discord, Mailchimp, Twitter)',
         bg: 'bg-yellow',
         calModal: true,
-        redirectUrl: undefined,
     },
 ]
 const faqs = [
@@ -74,56 +77,60 @@ const faqs = [
     {
         question: 'What are the trust assumptions?',
         answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
-        redirectUrl: '',
-        redirectText: 'here',
+        redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
+        redirectText: 'here.',
     },
     {
         question: 'What happens if I want to cancel or if I lose the link?',
         answer: 'You can always withdraw or cancel your own links. See how ',
-        redirectUrl: '',
-        redirectText: 'here',
+        redirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/reclaiming-links',
+        redirectText: 'here.',
     },
     {
         question: 'What are the fees?',
         answer: 'On our dapp, we sponsor gasless claiming. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
-        redirectUrl: '',
-        redirectText: 'here',
+        redirectUrl: 'https://docs.peanut.to/overview/pricing',
+        redirectText: 'here.',
     },
     {
         question: 'I need help!',
         answer: 'Sure! Let us know at hello@peanut.to or on ',
         redirectUrl: 'https://discord.gg/uWFQdJHZ6j',
-        redirectText: 'discord',
+        redirectText: 'discord.',
     },
     {
         question: 'I want this for our app! How long does it take to integrate?',
-        answer: 'Our record integration took 2 hours, but it depends on your stack. Let’s chat!',
+        answer: 'Our record integration took 2 hours, but it depends on your stack. ',
         calModal: true,
+        redirectText: 'Lets talk!',
     },
 ]
 const testimonials = [
     {
-        imageSrc: orest_image.src,
-        altText: 'picture of bearded man',
+        imageSrc: derek.src,
+        altText: 'picture of chad',
         comment: 'How did this not exist before?! Great UX!',
-        name: 'Orest Tarasiuk',
-        detail: 'Scroll.io',
+        name: 'Derek Rein',
+        detail: 'WalletConnect',
+        detailRedirectUrl: 'https://walletconnect.com/',
         bgColorClass: 'bg-yellow',
     },
     {
-        imageSrc: mydas_image.src,
-        altText: 'picture of rasta NFT',
-        comment: 'Love this! Will help in mass crypto adoption.',
-        name: 'Mydas.eth',
-        detail: 'University of Nicosia',
+        imageSrc: sharuk.src,
+        altText: 'eco man',
+        comment: 'Peanut allows us to elegantly solve the cold start problem!',
+        name: 'shahrukh Rao',
+        detail: 'Eco',
+        detailRedirectUrl: 'https://eco.org/?ref=com',
         bgColorClass: 'bg-fuchsia',
     },
     {
-        imageSrc: steven_image.src,
-        altText: 'picture of smiling man',
+        imageSrc: kofime_icon.src,
+        altText: 'kofi',
         comment: 'Very buttery experience!',
-        name: 'Steven Robinson',
-        detail: 'Arkn Ventures',
+        name: 'Kofi.me',
+        detail: 'Kofi.me',
+        detailRedirectUrl: 'https://www.kofime.xyz/',
         bgColorClass: 'bg-lightblue',
     },
     {
@@ -170,9 +177,9 @@ export function Welcome() {
                             data-cal-link="https://cal.com/kkonrad+hugo/dynamic?duration=15"
                             data-cal-config='{"layout":"month_view"}'
                             id="cta-btn"
-                            className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black underline md:w-3/5 lg:w-1/3"
+                            className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                         >
-                            let's chat!
+                            Let's talk!
                         </a>
 
                         <a
@@ -249,9 +256,9 @@ export function Welcome() {
                                 data-cal-link="kkonrad/15min"
                                 data-cal-config='{"layout":"month_view"}'
                                 id="cta-btn"
-                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black underline md:w-3/5 lg:w-1/3"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                             >
-                                let's chat!
+                                Let's talk!
                             </a>
 
                             <a
@@ -288,9 +295,9 @@ export function Welcome() {
                                 data-cal-link="kkonrad/15min"
                                 data-cal-config='{"layout":"month_view"}'
                                 id="cta-btn"
-                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black underline md:w-3/5 lg:w-1/3"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                             >
-                                let's chat!
+                                Let's talk!
                             </a>
 
                             <a
@@ -313,40 +320,53 @@ export function Welcome() {
                         return (
                             <div
                                 className={classNames(
-                                    'brutalborder flex flex-col border-2 border-black p-12 px-16 ',
+                                    'brutalborder flex flex-col border-2 border-black p-4 text-center sm:p-12 sm:px-16 ',
                                     feature.bg
                                 )}
                                 id="app"
                             >
-                                <h3 className="text-5xl font-black"> {feature.name}</h3>
+                                <h3 className="mb-4 text-5xl font-black"> {feature.name}</h3>
                                 <p className="mt-1 block text-2xl leading-loose">{feature.description}</p>
                                 <div className="flex-grow"></div>
                                 <div className="center-xy flex-end my-6 flex justify-around">
-                                    {feature.learnMoreUrl && (
-                                        <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
-                                            <a href={feature.learnMoreUrl} target="_blank" className="text-black">
-                                                Learn more
-                                            </a>
-                                        </button>
-                                    )}
-                                    {feature.redirectUrl && (
-                                        <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
-                                            <a href={feature.redirectUrl} target="_blank" className="text-black">
-                                                {feature.buttonText}
-                                            </a>
-                                        </button>
-                                    )}
-
                                     {feature.calModal && (
                                         <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
-                                            <a
-                                                data-cal-link="kkonrad/15min"
-                                                data-cal-config='{"layout":"month_view"}'
-                                                className={'underline '}
-                                            >
-                                                let's chat!
+                                            <a data-cal-link="kkonrad/15min" data-cal-config='{"layout":"month_view"}'>
+                                                Let's talk!
                                             </a>
                                         </button>
+                                    )}
+                                    {feature.primaryRedirectUrl ? (
+                                        feature.calModal ? (
+                                            <a
+                                                href={feature.primaryRedirectUrl}
+                                                target="_blank"
+                                                className="p-5 text-2xl font-black text-black hover:underline"
+                                            >
+                                                {feature.primaryRedirectText} →
+                                            </a>
+                                        ) : (
+                                            <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
+                                                <a
+                                                    href={feature.primaryRedirectUrl}
+                                                    target="_blank"
+                                                    className="text-black no-underline"
+                                                >
+                                                    {feature.primaryRedirectText}
+                                                </a>
+                                            </button>
+                                        )
+                                    ) : (
+                                        ''
+                                    )}
+                                    {feature.secondaryRedirectUrl && (
+                                        <a
+                                            href={feature.secondaryRedirectUrl}
+                                            target="_blank"
+                                            className="p-5 text-2xl font-black text-black "
+                                        >
+                                            {feature.secondaryRedirectText} →
+                                        </a>
                                     )}
                                 </div>
                             </div>
@@ -354,6 +374,20 @@ export function Welcome() {
                     })}
                 </div>
             </section>
+
+            {/* seperator */}
+            <global_components.MarqueeWrapper backgroundColor="bg-black">
+                <>
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        GO
+                    </div>
+                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        NUTS
+                    </div>
+                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                </>
+            </global_components.MarqueeWrapper>
 
             {/* faq */}
             <div className="flex flex-col gap-4 px-4 py-4 text-black">
@@ -390,8 +424,24 @@ export function Welcome() {
                                 />
                             </div>
                             {openedFaq === idx && (
-                                <div className={classNames(' m-0 px-8 py-2 ')}>
-                                    <p>{faq.answer}</p>
+                                <div className={' m-0 px-8 py-2 '}>
+                                    <p>
+                                        {faq.answer}
+                                        {faq.calModal && (
+                                            <a
+                                                data-cal-link="kkonrad/15min"
+                                                data-cal-config='{"layout":"month_view"}'
+                                                className=" underline"
+                                            >
+                                                Let's talk!
+                                            </a>
+                                        )}
+                                        {faq.redirectUrl && (
+                                            <a href={faq.redirectUrl} target="_blank" className="text-black underline">
+                                                {faq.redirectText}
+                                            </a>
+                                        )}
+                                    </p>
                                 </div>
                             )}
                         </div>
@@ -428,15 +478,18 @@ export function Welcome() {
                                 alt={testimonial.altText}
                                 className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"
                             />
-                            <h1 className="mx-auto mt-2 py-2 text-base font-normal italic lg:text-lg">
+                            <h1 className="mx-auto mt-2 h-12 py-2 text-base font-normal italic lg:text-lg">
                                 {testimonial.comment}
                             </h1>
                             <p className="mb-4 text-base font-black uppercase">
                                 {testimonial.name}
-                                <span className="text-xs font-normal">
-                                    {' '}
+                                <a
+                                    className="text-xs font-normal text-black"
+                                    href={testimonial?.detailRedirectUrl ?? undefined}
+                                    target="_blank"
+                                >
                                     <br /> {testimonial.detail}{' '}
-                                </span>
+                                </a>
                             </p>
                         </div>
                     ))}
