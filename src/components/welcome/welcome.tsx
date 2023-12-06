@@ -21,7 +21,7 @@ import { getCalApi } from '@calcom/embed-react'
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const features = [
     {
-        name: 'Whitelabeled ',
+        name: 'Brand ',
         description:
             'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
         bg: 'bg-yellow',
@@ -265,7 +265,7 @@ export function Welcome() {
                         </div>
                     </div>
                 </div>
-                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-red py-8 text-black sm:py-16 lg:flex-row-reverse">
+                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-fuchsia py-8 text-black sm:py-16 lg:flex-row-reverse">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
                         <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
