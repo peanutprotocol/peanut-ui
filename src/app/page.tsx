@@ -6,7 +6,7 @@ export const metadata: Metadata = {
     title: 'Peanut-Protocol',
     description: 'Send crypto with links',
     icons: {
-        icon: '/favicon.ico',
+        icon: '/logo-favicon.png',
     },
 }
 
