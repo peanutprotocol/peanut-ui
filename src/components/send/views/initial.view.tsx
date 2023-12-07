@@ -553,7 +553,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 <div className="w-full max-w-[160px] ">
                                     <input
                                         className={
-                                            'w-full border-none bg-transparent font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
+                                            'w-full border-none bg-transparent font-black tracking-wide text-black outline-none placeholder:font-black placeholder:text-black ' +
                                             textFontSize
                                         }
                                         placeholder="0.00"
@@ -592,8 +592,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
