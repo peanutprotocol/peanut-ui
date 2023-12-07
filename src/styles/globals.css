@@ -63,6 +63,11 @@ body {
     background-color: #000000;
 }
 
+input {
+    background-color: white;
+    color: black;
+}
+
 @font-face {
     font-family: 'Montserrat';
     font-style: normal;
