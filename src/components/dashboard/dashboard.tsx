@@ -34,27 +34,52 @@ export function Dashboard() {
 
     const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
         try {
-            localStorageData.forEach(async (item) => {
-                peanut
-                    .getLinkDetails({ link: item.link })
-                    .then((res: any) => {
+            let details: IDashboardItemProps[] = []
+
+            await Promise.all(
+                localStorageData.map(async (item) => {
+                    try {
+                        const res = await peanut.getLinkDetails({ link: item.link })
+
                         const x: IDashboardItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
                             chainId: Number(item.link.match(/c=(\d+)/)?.[1]),
                             amount: res.tokenAmount,
                             token: res.tokenSymbol,
-                            date: res.depositDate == null ? 'Unavailable' : new Date(res.depositDate).toLocaleString(),
+                            date: res.depositDate ? new Date(res.depositDate).toLocaleString() : 'Unavailable',
                             claimed: res.claimed,
                             link: item.link,
                             copied: false,
                         }
 
-                        setDashboardData((prev) => [...prev, x])
-                    })
-                    .catch((error: any) => {
+                        details.push(x)
+                    } catch (error) {
                         console.error(error)
-                    })
+                    }
+                })
+            )
+
+            details.sort((a, b) => {
+                const parseDate = (dateStr: string) => {
+                    if (dateStr === 'Unavailable' || dateStr === 'undefined') {
+                        return new Date('1000-12-31T23:59:59Z')
+                    }
+
+                    const dateTimeRegex = /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/
+                    const match = dateStr.match(dateTimeRegex)
+                    if (match) {
+                        return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}Z`)
+                    } else {
+                        return new Date('1000-12-31T23:59:59Z')
+                    }
+                }
+
+                const dateA = parseDate(a.date)
+                const dateB = parseDate(b.date)
+                return dateB.getTime() - dateA.getTime()
             })
+
+            setDashboardData(details)
         } catch (error) {
             console.log(error)
         }
@@ -242,10 +267,10 @@ export function Dashboard() {
                                                         {item.claimed
                                                             ? 'Claimed'
                                                             : Number(item.amount) > 0
-                                                              ? copiedLink?.includes(item.link)
-                                                                  ? 'Copied'
-                                                                  : 'Copy'
-                                                              : ''}
+                                                            ? copiedLink?.includes(item.link)
+                                                                ? 'Copied'
+                                                                : 'Copy'
+                                                            : ''}
                                                     </td>
                                                 </tr>
                                             ))}
