@@ -1,3 +1,4 @@
+'use client'
 import * as global_components from '@/components/global'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
