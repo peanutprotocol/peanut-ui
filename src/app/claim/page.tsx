@@ -12,10 +12,19 @@ type Props = {
 
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
     const baseURL = 'https://staging.peanut.to/claim'
+    console.log('searchParams: ', searchParams)
+    const searchParamss: { [key: string]: string | string[] | undefined } = {
+        c: '137',
+        v: 'v4',
+        i: '568',
+        p: '0VuVTxgUuyosE3ZE',
+        t: 'ui',
+    }
+
     const queryParams = new URLSearchParams()
 
-    Object.keys(searchParams).forEach((key) => {
-        const value = searchParams[key]
+    Object.keys(searchParamss).forEach((key) => {
+        const value = searchParamss[key]
         if (Array.isArray(value)) {
             value.forEach((item) => queryParams.append(key, item))
         } else if (value) {
