@@ -30,14 +30,20 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
     const url = createURL(searchParams)
     console.log('url: ', url)
     let title = 'you got sent some money!'
+
     if (url !== '') {
-        const linkDetails = await getLinkDetails({ link: url })
-        title =
-            'you got sent ' +
-            utils.formatAmount(Number(linkDetails.tokenAmount)) +
-            ' in ' +
-            linkDetails.tokenSymbol +
-            '!'
+        try {
+            const linkDetails = await getLinkDetails({ link: url })
+            title =
+                'you got sent ' +
+                utils.formatAmount(Number(linkDetails.tokenAmount)) +
+                ' in ' +
+                linkDetails.tokenSymbol +
+                '!'
+        } catch (e) {
+            console.log('error: ', e)
+            title = 'Peanut Protocol'
+        }
     }
     console.log('title: ', title)
     return {
