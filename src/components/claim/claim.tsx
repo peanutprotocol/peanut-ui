@@ -27,7 +27,7 @@ interface Token {
     symbol: string
 }
 
-export function Claim({ link }: { link: string }) {
+export function Claim() {
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
@@ -203,10 +203,11 @@ export function Claim({ link }: { link: string }) {
     }
 
     useEffect(() => {
-        if (link) {
-            checkLink(link)
+        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
+        if (pageUrl) {
+            checkLink(pageUrl)
         }
-    }, [link])
+    }, [])
 
     return (
         <global_components.CardWrapper>
