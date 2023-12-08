@@ -23,8 +23,8 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
 
     const queryParams = new URLSearchParams()
 
-    Object.keys(searchParamss).forEach((key) => {
-        const value = searchParamss[key]
+    Object.keys(searchParams).forEach((key) => {
+        const value = searchParams[key]
         if (Array.isArray(value)) {
             value.forEach((item) => queryParams.append(key, item))
         } else if (value) {
