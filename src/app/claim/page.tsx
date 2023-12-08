@@ -11,7 +11,7 @@ type Props = {
 }
 
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
-    const baseURL = 'http://localhost:3000/claim'
+    const baseURL = 'https://staging.peanut.to/claim'
     const queryParams = new URLSearchParams()
 
     Object.keys(searchParams).forEach((key) => {
