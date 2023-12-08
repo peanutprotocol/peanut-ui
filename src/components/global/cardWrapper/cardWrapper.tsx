@@ -1,3 +1,5 @@
+import { isMobile } from 'react-device-detect'
+
 export function CardWrapper({
     children,
     mb = ' mb-48 ',
@@ -16,7 +18,7 @@ export function CardWrapper({
                 mb +
                 mt
             }
-            id={shadow ? 'cta-div' : ''}
+            id={!isMobile && shadow ? 'cta-div' : ''}
         >
             {' '}
             {children}
