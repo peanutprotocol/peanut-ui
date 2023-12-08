@@ -10,30 +10,38 @@ type Props = {
     searchParams: { [key: string]: string | string[] | undefined }
 }
 
+function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
+    const baseURL = 'http://localhost:3000/claim'
+    const queryParams = new URLSearchParams()
+
+    Object.keys(searchParams).forEach((key) => {
+        const value = searchParams[key]
+        if (Array.isArray(value)) {
+            value.forEach((item) => queryParams.append(key, item))
+        } else if (value) {
+            queryParams.append(key, value)
+        }
+    })
+
+    return `${baseURL}?${queryParams.toString()}`
+}
+
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
-    try {
-        const headersList = headers()
-        const fullUrl = headersList.get('referer') || ''
-        if (!fullUrl) throw new Error('no referer')
-
-        const linkDetails = await getLinkDetails({ link: fullUrl })
-
-        const title =
+    const url = createURL(searchParams)
+    console.log('url: ', url)
+    let title = 'you got sent some money!'
+    if (url !== '') {
+        const linkDetails = await getLinkDetails({ link: url })
+        title =
             'you got sent ' +
             utils.formatAmount(Number(linkDetails.tokenAmount)) +
             ' in ' +
             linkDetails.tokenSymbol +
             '!'
-
-        console.log('title: ', title)
-        return {
-            title: title,
-        }
-    } catch (error) {
-        console.error('error: ', error)
-        return {
-            title: 'you got sent some money!',
-        }
+    }
+    console.log('title: ', title)
+    return {
+        title: title,
     }
 }
 
