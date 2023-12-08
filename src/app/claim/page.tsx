@@ -6,20 +6,12 @@ import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
 
 type Props = {
-    params: { id: string }
+    params: { id?: string[] }
     searchParams: { [key: string]: string | string[] | undefined }
 }
 
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
     const baseURL = 'https://staging.peanut.to/claim'
-    console.log('searchParams: ', searchParams)
-    const searchParamss: { [key: string]: string | string[] | undefined } = {
-        c: '137',
-        v: 'v4',
-        i: '568',
-        p: '0VuVTxgUuyosE3ZE',
-        t: 'ui',
-    }
 
     const queryParams = new URLSearchParams()
 
@@ -35,31 +27,29 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
     return `${baseURL}?${queryParams.toString()}`
 }
 
-export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
-    const url = createURL(searchParams)
-    console.log('url: ', url)
-    let title = url
+export async function generateMetadata(params: Props): Promise<Metadata> {
+    const url = createURL(params.searchParams)
+    let title = ''
 
-    // if (url !== '') {
-    //     try {
-    //         const linkDetails = await getLinkDetails({ link: url })
-    //         title =
-    //             'you got sent ' +
-    //             utils.formatAmount(Number(linkDetails.tokenAmount)) +
-    //             ' in ' +
-    //             linkDetails.tokenSymbol +
-    //             '!'
-    //     } catch (e) {
-    //         console.log('error: ', e)
-    //     }
-    // }
-    console.log('title: ', title)
+    if (url !== '') {
+        try {
+            const linkDetails = await getLinkDetails({ link: url })
+            title =
+                'you got sent ' +
+                utils.formatAmount(Number(linkDetails.tokenAmount)) +
+                ' in ' +
+                linkDetails.tokenSymbol +
+                '!'
+        } catch (e) {
+            console.log('error: ', e)
+        }
+    }
     return {
         title: title,
     }
 }
 
-function ClaimPage() {
+function ClaimPage(props: Props) {
     return (
         <global_components.PageWrapper>
             <components.Claim />
