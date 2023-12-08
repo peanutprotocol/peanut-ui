@@ -38,7 +38,11 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 }
 
 function ClaimPage() {
-    return <global_components.PageWrapper>{/* <components.Claim /> */}</global_components.PageWrapper>
+    return (
+        <global_components.PageWrapper>
+            <components.Claim />
+        </global_components.PageWrapper>
+    )
 }
 
 export default ClaimPage
