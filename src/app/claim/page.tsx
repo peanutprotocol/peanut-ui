@@ -38,21 +38,21 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
     const url = createURL(searchParams)
     console.log('url: ', url)
-    let title = ''
+    let title = url
 
-    if (url !== '') {
-        try {
-            const linkDetails = await getLinkDetails({ link: url })
-            title =
-                'you got sent ' +
-                utils.formatAmount(Number(linkDetails.tokenAmount)) +
-                ' in ' +
-                linkDetails.tokenSymbol +
-                '!'
-        } catch (e) {
-            console.log('error: ', e)
-        }
-    }
+    // if (url !== '') {
+    //     try {
+    //         const linkDetails = await getLinkDetails({ link: url })
+    //         title =
+    //             'you got sent ' +
+    //             utils.formatAmount(Number(linkDetails.tokenAmount)) +
+    //             ' in ' +
+    //             linkDetails.tokenSymbol +
+    //             '!'
+    //     } catch (e) {
+    //         console.log('error: ', e)
+    //     }
+    // }
     console.log('title: ', title)
     return {
         title: title,
