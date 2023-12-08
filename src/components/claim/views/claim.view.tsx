@@ -274,7 +274,7 @@ export function ClaimView({
             )}
             <button
                 type={isConnected ? 'submit' : 'button'}
-                className="mx-auto mb-6 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
                 onClick={() => {
                     !isConnected ? open() : claim()
