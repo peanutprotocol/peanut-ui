@@ -29,7 +29,7 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
     const url = createURL(searchParams)
     console.log('url: ', url)
-    let title = 'you got sent some money!'
+    let title = ''
 
     if (url !== '') {
         try {
@@ -42,7 +42,6 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
                 '!'
         } catch (e) {
             console.log('error: ', e)
-            title = 'Peanut Protocol'
         }
     }
     console.log('title: ', title)
