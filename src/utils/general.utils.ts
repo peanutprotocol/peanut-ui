@@ -1,5 +1,7 @@
 import * as interfaces from '@/interfaces'
 import { peanut } from '@squirrel-labs/peanut-sdk'
+import { providers } from 'ethers'
+import { WalletClient } from 'wagmi'
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
     const endingBit = address.substring(address.length - 4, address.length)
@@ -163,4 +165,16 @@ export const getSenderAddressAndSendNotification = async ({
     const senderAddress = await getSenderAddress({ chainId, contractVersion, depositIdx })
     await sendNotification({ notificationRecipient: senderAddress, linkDetails })
     return senderAddress
+}
+
+export function walletClientToSigner(walletClient: WalletClient) {
+    const { account, chain, transport } = walletClient
+    const network = {
+        chainId: chain.id,
+        name: chain.name,
+        ensAddress: chain.contracts?.ensRegistry?.address,
+    }
+    const provider = new providers.Web3Provider(transport, network)
+    const signer = provider.getSigner(account.address)
+    return signer
 }

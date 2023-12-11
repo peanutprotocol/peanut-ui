@@ -35,7 +35,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                         href={'/send'}
                     >
-                        <span className="">send</span>
+                        <span className="">app</span>
                     </Link>
                     <Link
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"

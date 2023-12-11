@@ -8,17 +8,22 @@ import { useForm } from 'react-hook-form'
 import { Tooltip } from 'react-tooltip'
 
 import * as global_components from '@/components/global'
+import * as utils from '@/utils'
 import * as _consts from '../claim.consts'
 import * as store from '@/store'
 import * as consts from '@/consts'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import axios from 'axios'
+import checkbox from '@/assets/checkbox.svg'
 
 export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const [completedTx, setCompletedTx] = useState<
+        { chainId: string; tokenAddress: string; txHash: string; explorerUrl: string }[]
+    >([])
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [ipfsArray, setIpfsArray] = useState<string[]>([])
     const verbose = process.env.NODE_ENV === 'development' ? true : false
@@ -56,25 +61,52 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 for (const detail of claimDetails) {
                     if (!detail.claimed) {
                         verbose && console.log(detail)
-                        claimTxs.push(
-                            peanut.claimLinkGasless({
+                        claimTxs.push({
+                            tx: peanut.claimLinkGasless({
                                 link: detail.link,
                                 recipientAddress: address,
                                 APIKey: process.env.PEANUT_API_KEY ?? '',
-                            })
-                        )
+                            }),
+                            details: {
+                                token: detail.tokenAddress,
+                                chain: detail.chainId,
+                            },
+                        })
                     }
                 }
 
-                verbose && console.log('submitted all tx')
-                const claimTx = await Promise.all(claimTxs)
-                verbose && console.log('awaited all tx')
+                const claimTxPromises = claimTxs.map((tx) =>
+                    tx.tx.then((result) => {
+                        console.log(tx.details)
+                        console.log('Claim transaction completed:', result)
+                        console.log(tx.details.chain)
+                        const chainDetail = chainDetails.find(
+                            (cd) => cd.chainId.toString() === tx.details.chain.toString()
+                        )
+                        console.log(chainDetail)
+                        setCompletedTx((prev) => [
+                            ...prev,
+                            {
+                                chainId: tx.details.chain.toString(),
+                                tokenAddress: tx.details.token,
+                                txHash: result.tx_hash,
+                                explorerUrl: chainDetail?.explorers[0].url + '/tx/' + result.tx_hash,
+                            },
+                        ])
+                        return result // Ensure the result is passed on
+                    })
+                )
 
-                verbose && console.log(claimTx)
+                const claimTx = await Promise.all(claimTxPromises)
+                console.log('awaited all tx')
+
+                console.log(claimTx)
 
                 setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
 
-                onNextScreen()
+                // // onNextScreen()
+
+                setLoadingStates('completed')
             }
         } catch (error) {
             setErrorState({
@@ -82,8 +114,8 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 errorMessage: 'Something went wrong while claiming',
             })
             console.error(error)
-        } finally {
             setLoadingStates('idle')
+        } finally {
         }
     }
 
@@ -225,6 +257,34 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                             chainDetails.find((chain) => chain.chainId == link.chainId)?.name}
                                     </label>
                                 )}
+                                {completedTx.some(
+                                    (tx) =>
+                                        tx.chainId == link.chainId.toString() && tx.tokenAddress == link.tokenAddress
+                                ) && (
+                                    <div className="flex items-center gap-2">
+                                        -
+                                        <a
+                                            href={
+                                                completedTx.find(
+                                                    (tx) =>
+                                                        tx.chainId == link.chainId.toString() &&
+                                                        tx.tokenAddress == link.tokenAddress
+                                                )?.explorerUrl ?? ''
+                                            }
+                                            target="_blank"
+                                            className="cursor-pointer break-all text-center text-sm font-medium text-black underline "
+                                        >
+                                            {utils.shortenHash(
+                                                completedTx.find(
+                                                    (tx) =>
+                                                        tx.chainId == link.chainId.toString() &&
+                                                        tx.tokenAddress == link.tokenAddress
+                                                )?.txHash ?? ''
+                                            )}{' '}
+                                        </a>
+                                        <img src={checkbox.src} className="h-4" />
+                                    </div>
+                                )}
                             </div>
                         )
                     })}
@@ -238,9 +298,11 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 onClick={() => {
                     !isConnected ? open() : claim()
                 }}
-                disabled={isLoading}
+                disabled={isLoading || loadingStates == 'completed'}
             >
-                {isLoading ? (
+                {loadingStates == 'completed' ? (
+                    loadingStates
+                ) : isLoading ? (
                     <div className="flex justify-center gap-1">
                         <label>{loadingStates} </label>
                         <span className="bouncing-dots flex">
@@ -287,7 +349,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                 placeholder="0x6B37..."
                                 {...manualForm.register('address')}
                             />
-                            <div className="tooltip w-1/8 brutalborder-left block h-4 cursor-pointer p-2">
+                            <div className="w-1/8 brutalborder-left tooltip block h-4 cursor-pointer p-2">
                                 {isLoading ? (
                                     <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold">
                                         <span className="tooltiptext inline " id="myTooltip">

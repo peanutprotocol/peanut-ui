@@ -55,9 +55,9 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                         )
                     })}
                 </div>
-                <p className="mx-14 mt-4 text-center text-base">
+                {/* <p className="mx-14 mt-4 text-center text-base">
                     Want to send tokens via links yourself? Try now or proceed to the EthLisbon hacker manual.
-                </p>
+                </p> */}
 
                 <div className="mt-8 flex w-3/4 justify-center space-x-4 p-2">
                     <a
@@ -68,14 +68,14 @@ export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                         Try Now
                     </a>
 
-                    <a
+                    {/* <a
                         href="https://www.notion.so/EthLisbon-2023-Peanut-Hackathon-860313c93a57448fba82aec2c88ae19a"
                         target="_blank"
                         rel="noopener noreferrer"
                         className="p-5 text-2xl font-black text-black no-underline hover:underline"
                     >
                         Hacker Manual →
-                    </a>
+                    </a> */}
                 </div>
             </>
 

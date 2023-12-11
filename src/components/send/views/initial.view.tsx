@@ -67,7 +67,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        if (isConnected) {
+        if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
             )
@@ -140,7 +140,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (!walletClient) {
             throw new Error('Failed to get wallet client')
         }
-        const signer = _utils.walletClientToSigner(walletClient)
+        const signer = utils.walletClientToSigner(walletClient)
         return signer
     }
 
@@ -176,7 +176,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
 
         //check if the amount is less than or equal to zero
-        if (sendFormData.amount && Number(sendFormData.amount) <= 0) {
+        if (!sendFormData.amount || (sendFormData.amount && Number(sendFormData.amount) <= 0)) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
@@ -284,6 +284,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 //Get the signer
                 const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
 
+                //check if the formdata is correct
+                if (checkForm(sendFormData, signer).succes === 'false') {
+                    return
+                }
+                setEnableConfirmation(true)
+
                 //Calculate the token amount
                 const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
                 if (status == 'ERROR') {
@@ -293,16 +299,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     })
                     return
                 }
-
-                //check if the formdata is correct
-                if (checkForm(sendFormData, signer).succes === 'false') {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Please make sure all the inputs are correct',
-                    })
-                    return
-                }
-                setEnableConfirmation(true)
 
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
@@ -426,7 +422,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 onNextScreen()
             } catch (error: any) {
                 console.error(error)
-                if (error instanceof peanut.interfaces.SDKStatus) {
+                if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({
                         showError: true,
@@ -439,6 +435,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             showError: true,
                             errorMessage: "You don't have enough funds",
                         })
+                    } else if (error.toString().includes('user rejected transaction')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please confirm the transaction in your wallet',
+                        })
                     } else if (error.toString().includes('not deployed on chain')) {
                         setErrorState({
                             showError: true,
@@ -447,7 +448,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Please allow the network switch in the wallet',
+                            errorMessage: 'Please allow the network switch in your wallet',
+                        })
+                    } else if (error.toString().includes('NETWORK_ERROR')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'A network error occured. Please refresh and try again',
+                        })
+                    } else if (error.toString().includes('NONCE_EXPIRED')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Nonce expired, please try again',
                         })
                     } else {
                         setErrorState({
@@ -542,7 +553,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 <div className="w-full max-w-[160px] ">
                                     <input
                                         className={
-                                            'w-full border-none font-black tracking-wide outline-none placeholder:font-black placeholder:text-black ' +
+                                            'w-full border-none bg-transparent font-black tracking-wide text-black outline-none placeholder:font-black placeholder:text-black ' +
                                             textFontSize
                                         }
                                         placeholder="0.00"
@@ -678,7 +689,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                                 <input
                                     className={
-                                        'no-spin block w-full appearance-none border-none p-0 font-black  outline-none placeholder:font-black placeholder:text-black ' +
+                                        'no-spin block w-full appearance-none border-none bg-none p-0 font-black outline-none placeholder:font-black placeholder:text-black ' +
                                         textFontSize
                                     }
                                     placeholder="0.00"
@@ -722,7 +733,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                     </div>
-                    <div
+                    {/* <div
                         className="flex cursor-pointer items-center justify-center "
                         onClick={() => {
                             setAdvancedDropdownOpen(!advancedDropdownOpen)
@@ -741,7 +752,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             alt=""
                             className={'h-6 '}
                         />
-                    </div>
+                    </div> */}
                     {advancedDropdownOpen && (
                         <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
                             <div className="relative w-full px-2 sm:w-3/4">
@@ -804,7 +815,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     >
                         <button
                             type={isConnected ? 'submit' : 'button'}
-                            className="mt-2 block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                             id="cta-btn"
                             onClick={() => {
                                 if (!isConnected) {
@@ -1001,7 +1012,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
-                                                      key={token.symbol}
+                                                      key={token.address}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1032,7 +1043,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                               ))
                                             : tokenList.map((token) => (
                                                   <div
-                                                      key={token.symbol}
+                                                      key={token.address}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
