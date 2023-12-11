@@ -7,14 +7,20 @@ import * as _consts from '../send.consts'
 import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
+import * as utils from '@/utils'
 import { useAccount, useSignMessage } from 'wagmi'
-import { useInitWeb3InboxClient, useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
+import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
-    const { address } = useAccount()
+    //web3inbox stuff
+    const { address } = useAccount({
+        onDisconnect: () => {
+            setAccount('')
+        },
+    })
     const { signMessageAsync } = useSignMessage()
-    const { account, setAccount, isRegistered, register } = useW3iAccount()
-    const { isSubscribed, isSubscribing, subscribe } = useManageSubscription()
+    const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
+    const { isSubscribed, subscribe } = useManageSubscription()
 
     const [isLoading, setIsLoading] = useState(false)
     const [loadingText, setLoadingText] = useState('')
@@ -36,35 +42,76 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         }
     }, [])
 
-    useEffect(() => {
-        if (!address) return
-        setAccount(`eip155:1:${address}`)
-    }, [address, setAccount])
+    //more web3inbox stuff
 
-    const performRegistration = useCallback(async () => {
-        if (!address) return
+    const signMessage = useCallback(
+        async (message: string) => {
+            const res = await signMessageAsync({
+                message,
+            })
+
+            return res as string
+        },
+        [signMessageAsync]
+    )
+
+    useEffect(() => {
+        if (!Boolean(address)) return
+        setAccount(`eip155:1:${address}`)
+    }, [signMessage, address, setAccount])
+
+    useEffect(() => {
+        if (isSubscribed && isLoading) {
+            console.log(isSubscribed)
+            setIsLoading(false)
+            console.log('waiting')
+            setTimeout(() => {
+                utils.sendNotification({
+                    notification: {
+                        title: 'Peanut Protocol',
+                        body: 'Welcome fren!',
+                        icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/w3i/src/assets/peanutman-cheering.png',
+                        url: undefined,
+                        type: '9af57bc6-6419-4461-8193-87b7fea9b1f6',
+                    },
+                    accounts: [`eip155:1:${address}` ?? ''],
+                })
+                console.log('sent')
+            }, 5000)
+        }
+    }, [isSubscribed, address, window])
+
+    const handleRegistration = useCallback(async () => {
+        if (!account) return
         try {
             setIsLoading(true)
             setLoadingText('Please confirm in your wallet')
-            await register((message) => signMessageAsync({ message }))
-            await performSubscribe()
+            await registerIdentity(signMessage)
+                .then(async () => {
+                    await handleSubscribe()
+                })
+                .catch((err) => {
+                    console.error({ err })
+                    setIsLoading(false)
+                })
         } catch (registerIdentityError) {
-            alert(registerIdentityError)
+            setIsLoading(true)
+            console.error({ registerIdentityError })
         }
-    }, [signMessageAsync, register, address])
+    }, [signMessage, registerIdentity, account])
 
-    const performSubscribe = useCallback(async () => {
-        setIsLoading(true)
-        setLoadingText('subscribing to peanut')
-        const x = await subscribe()
-        console.log('subscribed to peanut: ', x)
-    }, [subscribe, isRegistered])
-
-    useEffect(() => {
-        if (isRegistered && isSubscribed) {
-            setIsLoading(false)
+    const handleSubscribe = useCallback(async () => {
+        try {
+            if (!identityKey) {
+                await handleRegistration()
+            }
+            setIsLoading(true)
+            setLoadingText('subscribing to peanut')
+            await subscribe()
+        } catch (error) {
+            console.error({ error })
         }
-    }, [isRegistered, isSubscribed])
+    }, [subscribe, identityKey])
 
     return (
         <>
@@ -106,36 +153,40 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     </div>
                 ) : (
                     <ul className="brutalscroll max-h-[360px] w-4/5 flex-col items-center justify-center overflow-x-hidden overflow-y-scroll p-2">
-                        {claimLink.map((link, index) => (
-                            <li
-                                className="brutalborder relative mb-4 flex w-full items-center bg-black py-1 text-white"
-                                key={index}
-                            >
-                                <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
-                                    {link}
-                                </div>
-
-                                <div
-                                    className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(link)
-                                        setCopiedLink([link])
-                                    }}
+                        {claimLink &&
+                            claimLink.map((link, index) => (
+                                <li
+                                    className="brutalborder relative mb-4 flex w-full items-center bg-black py-1 text-white"
+                                    key={index}
                                 >
-                                    {copiedLink?.includes(link) ? (
-                                        <div className="flex h-full items-center border-none bg-white text-base font-bold">
-                                            <span className="tooltiptext inline w-full justify-center" id="myTooltip">
-                                                Copied!
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold">
-                                            <label className="cursor-pointer text-black">COPY</label>
-                                        </button>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
+                                    <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
+                                        {link}
+                                    </div>
+
+                                    <div
+                                        className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(link)
+                                            setCopiedLink([link])
+                                        }}
+                                    >
+                                        {copiedLink?.includes(link) ? (
+                                            <div className="flex h-full items-center border-none bg-white text-base font-bold">
+                                                <span
+                                                    className="tooltiptext inline w-full justify-center"
+                                                    id="myTooltip"
+                                                >
+                                                    Copied!
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold">
+                                                <label className="cursor-pointer text-black">COPY</label>
+                                            </button>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
                     </ul>
                 )}
 
@@ -235,9 +286,9 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                         <a
                             onClick={() => {
                                 if (!isRegistered) {
-                                    performRegistration()
+                                    handleRegistration()
                                 } else if (!isSubscribed) {
-                                    performSubscribe()
+                                    handleSubscribe()
                                 }
                             }}
                             target="_blank"

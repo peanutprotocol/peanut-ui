@@ -86,12 +86,12 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
         if (txHash && crossChainSuccess) {
             loopUntilSuccess(txHash[0])
         }
-        utils.getSenderAddressAndSendNotification({
-            chainId: claimDetails[0].chainId.toString(),
-            contractVersion: claimDetails[0].contractVersion,
-            depositIdx: claimDetails[0].depositIndex,
-            linkDetails: claimDetails[0],
-        })
+        // utils.getSenderAddressAndSendNotification({
+        //     chainId: claimDetails[0].chainId.toString(),
+        //     contractVersion: claimDetails[0].contractVersion,
+        //     depositIdx: claimDetails[0].depositIndex,
+        //     linkDetails: claimDetails[0],
+        // })
     }, [])
 
     return (
