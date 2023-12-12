@@ -17,6 +17,7 @@ import derek from '@/assets/people/derek.png'
 import sharuk from '@/assets/people/sharuk.png'
 import kofime_icon from '@/assets/people/kofime-icon.jpeg'
 import { useState, useEffect } from 'react'
+import { getCalApi } from '@calcom/embed-react'
 
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const features = [
@@ -146,17 +147,17 @@ export function Welcome() {
         return classes.filter(Boolean).join(' ')
     }
 
-    // useEffect(() => {
-    //     ;(async function () {
-    //         const cal = await getCalApi()
-    //         cal('ui', {
-    //             theme: 'dark',
-    //             styles: { branding: { brandColor: '#ffffff' } },
-    //             hideEventTypeDetails: false,
-    //             layout: 'month_view',
-    //         })
-    //     })()
-    // }, [])
+    useEffect(() => {
+        ;(async function () {
+            const cal = await getCalApi()
+            cal('ui', {
+                theme: 'dark',
+                styles: { branding: { brandColor: '#ffffff' } },
+                hideEventTypeDetails: false,
+                layout: 'month_view',
+            })
+        })()
+    }, [])
 
     return (
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
