@@ -4,6 +4,7 @@ import { headers } from 'next/headers'
 import { Metadata, ResolvingMetadata } from 'next'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
+export const dynamic = 'force-dynamic'
 
 type Props = {
     params: { id: string }
