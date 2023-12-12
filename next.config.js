@@ -9,7 +9,6 @@ const nextConfig = {
         SENTRY_DSN: process.env.SENTRY_DSN,
     },
     productionBrowserSourceMaps: true,
-    swcMinify: true,
     async rewrites() {
         return [
             {

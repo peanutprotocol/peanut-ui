@@ -6,7 +6,7 @@ import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
 
 type Props = {
-    params: { id?: string[] }
+    params: { id: string }
     searchParams: { [key: string]: string | string[] | undefined }
 }
 
@@ -27,34 +27,32 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
     return `${baseURL}?${queryParams.toString()}`
 }
 
-export async function generateMetadata(params: Props): Promise<Metadata> {
-    const url = createURL(params.searchParams)
-    let title = ''
+export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
+    let title = 'You got sent some money!'
 
-    if (url !== '') {
-        try {
-            const linkDetails = await getLinkDetails({ link: url })
-            title =
-                'you got sent ' +
-                utils.formatAmount(Number(linkDetails.tokenAmount)) +
-                ' in ' +
-                linkDetails.tokenSymbol +
-                '!'
-        } catch (e) {
-            console.log('error: ', e)
-        }
+    try {
+        const url = createURL(searchParams)
+
+        const linkDetails = await getLinkDetails({ link: url })
+        title =
+            'you got sent ' +
+            utils.formatAmount(Number(linkDetails.tokenAmount)) +
+            ' in ' +
+            linkDetails.tokenSymbol +
+            '!'
+    } catch (e) {
+        console.log('error: ', e)
     }
+
     return {
         title: title,
     }
 }
 
-function ClaimPage(props: Props) {
+export default function ClaimPage({ params, searchParams }: Props) {
     return (
         <global_components.PageWrapper>
             <components.Claim />
         </global_components.PageWrapper>
     )
 }
-
-export default ClaimPage
