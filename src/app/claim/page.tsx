@@ -46,9 +46,15 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 
     return {
         title: title,
-        description: 'Send crypto with a link',
         icons: {
             icon: '/logo-favicon.png',
+        },
+        openGraph: {
+            images: [
+                {
+                    url: '/claim-metadata-img.jpg',
+                },
+            ],
         },
     }
 }
