@@ -1,16 +1,13 @@
-'use client'
-import { useEffect } from 'react'
-
 import * as global_components from '@/components/global'
 import * as components from '@/components'
-import * as hooks from '@/hooks'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+    title: 'Peanut Protocol',
+    description: 'Send crypto with a link',
+}
 
 export default function JobsPage() {
-    const gaEventTracker = hooks.useAnalyticsEventTracker('jobs-page')
-
-    useEffect(() => {
-        gaEventTracker('peanut-opened', 'jobs')
-    }, [])
     return (
         <global_components.PageWrapper bgColor="bg-yellow">
             <components.Jobs />

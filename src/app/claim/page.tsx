@@ -12,7 +12,7 @@ type Props = {
 }
 
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
-    const baseURL = 'https://staging.peanut.to/claim'
+    const baseURL = 'https://peanut.to/claim'
 
     const queryParams = new URLSearchParams()
 
@@ -29,14 +29,13 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
 }
 
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
-    let title = 'You got sent some money!'
+    let title = 'Peanut Protocol'
 
     try {
         const url = createURL(searchParams)
-
         const linkDetails = await getLinkDetails({ link: url })
         title =
-            'you got sent ' +
+            'You got sent ' +
             utils.formatAmount(Number(linkDetails.tokenAmount)) +
             ' in ' +
             linkDetails.tokenSymbol +
@@ -47,6 +46,7 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 
     return {
         title: title,
+        description: 'Send crypto with a link',
     }
 }
 
