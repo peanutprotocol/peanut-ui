@@ -1,16 +1,13 @@
-'use client'
-import { useEffect } from 'react'
-
 import * as global_components from '@/components/global'
 import * as components from '@/components'
-import * as hooks from '@/hooks'
+import { Metadata } from 'next'
+
+export const metadata: Metadata = {
+    title: 'Peanut Protocol',
+    description: 'Send crypto with a link',
+}
 
 export default function TermsPage() {
-    const gaEventTracker = hooks.useAnalyticsEventTracker('terms-page')
-
-    useEffect(() => {
-        gaEventTracker('peanut-opened', 'send')
-    }, [])
     return (
         <global_components.PageWrapper>
             <components.Terms />

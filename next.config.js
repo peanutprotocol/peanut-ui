@@ -9,8 +9,6 @@ const nextConfig = {
         SENTRY_DSN: process.env.SENTRY_DSN,
         NOTIFY_API_SECRET: process.env.NOTIFY_API_SECRET,
     },
-    productionBrowserSourceMaps: true,
-    swcMinify: true,
     async rewrites() {
         return [
             {
