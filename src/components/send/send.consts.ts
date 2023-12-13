@@ -38,8 +38,8 @@ export interface ISendScreenProps {
 }
 
 export const INIT_VIEW: ISendScreenState = {
-    screen: 'SUCCESS',
-    idx: 1,
+    screen: 'INITIAL',
+    idx: 0,
 }
 
 export const SEND_SCREEN_FLOW: SendScreens[] = ['INITIAL', 'SUCCESS']

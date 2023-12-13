@@ -8,6 +8,7 @@ import {
 } from '@web3inbox/widget-react'
 import { useCallback, useEffect } from 'react'
 import { useSignMessage, useAccount } from 'wagmi'
+import * as utils from '@/utils'
 
 export default function App() {
     const { address } = useAccount()
@@ -96,6 +97,22 @@ export default function App() {
                                             <div>Subscription: {JSON.stringify(subscription)}</div>
                                             <div>Messages: {JSON.stringify(messages)}</div>
                                             <button onClick={performUnsubscribe}>Click here to unsub </button>{' '}
+                                            <button
+                                                onClick={() => {
+                                                    utils.sendNotification({
+                                                        notification: {
+                                                            title: 'Peanut Protocol',
+                                                            body: 'Welcome fren!',
+                                                            icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/w3i/src/assets/peanutman-cheering.png',
+                                                            url: undefined,
+                                                            type: '9af57bc6-6419-4461-8193-87b7fea9b1f6',
+                                                        },
+                                                        accounts: [`eip155:1:${address}` ?? ''],
+                                                    })
+                                                }}
+                                            >
+                                                Click here to sub{' '}
+                                            </button>
                                         </>
                                     )}
                                 </>
