@@ -5,6 +5,17 @@ import { Metadata } from 'next'
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
     description: 'Send crypto with a link',
+
+    icons: {
+        icon: '/logo-favicon.png',
+    },
+    openGraph: {
+        images: [
+            {
+                url: '/metadata-img.jpg',
+            },
+        ],
+    },
 }
 
 export default function PrivacyPage() {

@@ -50,6 +50,13 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
         icons: {
             icon: '/logo-favicon.png',
         },
+        openGraph: {
+            images: [
+                {
+                    url: '/claim-metadata-img.jpg',
+                },
+            ],
+        },
     }
 }
 
