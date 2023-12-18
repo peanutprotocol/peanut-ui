@@ -16,10 +16,19 @@ import dropdown_svg from '@/assets/dropdown.svg'
 import derek from '@/assets/people/derek.png'
 import sharuk from '@/assets/people/sharuk.png'
 import kofime_icon from '@/assets/people/kofime-icon.jpeg'
+import web3inbox_logo from '@/assets/logos/partners/web3inbox-logo.svg'
 import { useState, useEffect } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 
-const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
+const logoCloudLogos = [
+    hypersphere_logo,
+    zeeprime_logo,
+    wallet_connect_logo,
+    beam_logo,
+    eco_logo,
+    kofime_logo,
+    web3inbox_logo,
+]
 const features = [
     {
         name: 'Brand ',
