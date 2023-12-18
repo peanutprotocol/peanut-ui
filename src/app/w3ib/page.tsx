@@ -102,10 +102,12 @@ export default function App() {
                                                     utils.sendNotification({
                                                         notification: {
                                                             title: 'Peanut Protocol',
-                                                            body: 'Welcome fren!',
+                                                            body: 'Nebolax.eth sent you 10 USDC!',
+                                                            // body: 'Kkonrad.eth requested a $200 payment',
+                                                            // body: 'Welcome to Peanut Protocol!',
                                                             icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/w3i/src/assets/peanutman-cheering.png',
                                                             url: undefined,
-                                                            type: '9af57bc6-6419-4461-8193-87b7fea9b1f6',
+                                                            type: '2aee6e5f-091d-444e-96cd-868ba2ddd0e7',
                                                         },
                                                         accounts: [`eip155:1:${address}` ?? ''],
                                                     })
