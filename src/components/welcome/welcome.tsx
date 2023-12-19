@@ -116,7 +116,6 @@ const faqs = [
         calModal: true,
         redirectText: 'Lets talk!',
     },
-
 ]
 const testimonials = [
     {
