@@ -20,6 +20,15 @@ import { useState, useEffect } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
+const logoLinks = {
+    [hypersphere_logo.src]: 'https://hypersphere.ventures/',
+    [zeeprime_logo.src]: 'https://zeeprime.capital/',
+    [wallet_connect_logo.src]: 'https://walletconnect.com/',
+    [beam_logo.src]: 'https://beam.eco/',
+    [eco_logo.src]: 'https://eco.org/',
+    [kofime_logo.src]: 'https://www.kofime.xyz/',
+}
+
 const features = [
     {
         name: 'Brand ',
@@ -94,6 +103,12 @@ const faqs = [
         answer: 'Sure! Let us know at hello@peanut.to or on ',
         redirectUrl: 'https://discord.gg/uWFQdJHZ6j',
         redirectText: 'discord.',
+    },
+    {
+        question: 'Are you audited?',
+        answer: 'Yes! ',
+        redirectUrl: 'https://docs.peanut.to',
+        redirectText: 'See our docs for more',
     },
     {
         question: 'I want this for our app! How long does it take to integrate?',
@@ -211,7 +226,7 @@ export function Welcome() {
                             href="https://docs.peanut.to"
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="p-5  text-xl font-black text-black hover:underline sm:text-2xl"
+                            className="p-5  text-xl font-black text-black hover:no-underline sm:text-2xl"
                         >
                             Integrate →
                         </a>
@@ -220,13 +235,14 @@ export function Welcome() {
                     <div className="m-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-8 gap-y-8">
                         {logoCloudLogos.map((logo) => {
                             return (
-                                <img
-                                    key={logo.src}
-                                    className="h-12 object-contain grayscale"
-                                    src={logo.src}
-                                    alt="Transistor"
-                                    loading="eager"
-                                />
+                                <a href={logoLinks[logo.src]} target="_blank" rel="noopener noreferrer" key={logo.src}>
+                                    <img
+                                        className="h-12 object-contain grayscale hover:scale-90"
+                                        src={logo.src}
+                                        alt="Logo"
+                                        loading="eager"
+                                    />
+                                </a>
                             )
                         })}
                     </div>
@@ -290,7 +306,7 @@ export function Welcome() {
                                 href="https://docs.peanut.to"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-5 text-xl font-black text-black hover:underline sm:text-2xl"
+                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
                                 Integrate →
                             </a>
@@ -329,7 +345,7 @@ export function Welcome() {
                                 href="https://docs.peanut.to"
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="p-5 text-xl font-black text-black hover:underline sm:text-2xl"
+                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
                                 Integrate →
                             </a>
@@ -383,7 +399,7 @@ export function Welcome() {
                                             <a
                                                 href={feature.primaryRedirectUrl}
                                                 target="_blank"
-                                                className="p-5 text-xl font-black text-black hover:underline sm:text-2xl"
+                                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                                             >
                                                 {feature.primaryRedirectText} →
                                             </a>
