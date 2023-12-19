@@ -105,11 +105,18 @@ const faqs = [
         redirectText: 'discord.',
     },
     {
+        question: 'Are you audited?',
+        answer: 'Yes! ',
+        redirectUrl: 'https://docs.peanut.to',
+        redirectText: 'See our docs for more',
+    },
+    {
         question: 'I want this for our app! How long does it take to integrate?',
         answer: 'Our record integration took 2 hours, but it depends on your stack. ',
         calModal: true,
         redirectText: 'Lets talk!',
     },
+
 ]
 const testimonials = [
     {
