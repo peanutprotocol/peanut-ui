@@ -328,10 +328,10 @@ export function ClaimView({
                                 placeholder="0x6B37..."
                                 {...manualForm.register('address')}
                             />
-                            <div className="w-1/8 brutalborder-left tooltip block h-4 cursor-pointer p-2">
+                            <div className="w-1/8 brutalborder-left tooltip block h-4 cursor-pointer p-2 ">
                                 {isLoading ? (
                                     <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold">
-                                        <span className="tooltiptext inline " id="myTooltip">
+                                        <span className="tooltiptext inline text-black" id="myTooltip">
                                             Claiming...
                                         </span>
                                     </div>
@@ -340,7 +340,7 @@ export function ClaimView({
                                         className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold"
                                         type="submit"
                                     >
-                                        <span className="tooltiptext inline" id="myTooltip">
+                                        <span className="tooltiptext inline text-black" id="myTooltip">
                                             Claim
                                         </span>
                                     </button>
@@ -353,7 +353,7 @@ export function ClaimView({
                             </div>
                         )}
 
-                        <div className="mx-auto mt-2 flex h-4 flex-row items-center justify-center">
+                        <div className="mx-auto mt-2 flex h-4 flex-row items-center justify-center ">
                             <input type="checkbox" className="h-4 w-4" {...manualForm.register('addressExists')} />
                             <label className="ml-2 text-xs font-medium">This address exists on CHAIN</label>
                         </div>
