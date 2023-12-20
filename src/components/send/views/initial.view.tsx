@@ -345,10 +345,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     trackId: 'ui',
                 }
 
-                const latestContractVersion = peanut.getLatestContractVersion(
-                    sendFormData.chainId.toString(),
-                    advancedDropdownOpen ? 'batch' : 'single'
-                )
+                const latestContractVersion = peanut.getLatestContractVersion({
+                    chainId: sendFormData.chainId.toString(),
+                    type: advancedDropdownOpen ? 'batch' : 'normal',
+                })
 
                 setLoadingStates('preparing transaction')
 
@@ -592,8 +592,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
