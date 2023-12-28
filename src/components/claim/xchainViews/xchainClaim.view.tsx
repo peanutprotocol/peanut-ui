@@ -109,9 +109,11 @@ export function xchainClaimView({
                     link: claimDetails[0].link,
                     recipientAddress: address ?? '',
                     APIKey: process.env.PEANUT_API_KEY ?? '',
-                    destinationChainId: selectedChain.chainId.toString(),
+                    destinationChainId: selectedChain.chainId,
                     destinationTokenAddress: selectedToken.address,
-                    isTestnet,
+                    isMainnet: !isTestnet,
+                    squidRouterUrl: 'http://localhost:8000/get-squid-route',
+                    baseUrl: 'http://localhost:8000/claim-xchain',
                 })
             }
             verbose && console.log(claimTx)
@@ -155,18 +157,18 @@ export function xchainClaimView({
                         route.route?.params.toChain === selectedChain?.chainId
                 )
             ) {
-                const x = await peanut.getSquidRoute({
-                    isTestnet,
-                    fromChain: claimDetails[0].chainId.toString(),
+                const x = await peanut.getSquidRouteRaw({
+                    squidRouterUrl: 'https://v2.api.squidrouter.com/v2/route',
+                    fromChain: claimDetails[0].chainId,
                     fromToken: claimDetails[0].tokenAddress,
                     fromAmount: tokenAmount,
-                    toChain: selectedChain.chainId.toString(),
+                    toChain: selectedChain.chainId,
                     toToken: selectedToken.address,
                     slippage: 1,
                     fromAddress: address ?? '',
                     toAddress: address ?? '',
                 })
-                setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+                setPossibleRoutesArray([...possibleRoutesArray, { route: x.route }])
                 verbose && console.log(x)
             }
         } catch (error: any) {
@@ -238,6 +240,8 @@ export function xchainClaimView({
     }, [selectedToken])
 
     useEffect(() => {
+        console.log('Possible routes array', possibleRoutesArray)
+        console.log('Selected', selectedToken, selectedChain)
         if (
             possibleRoutesArray.find(
                 (route) =>
