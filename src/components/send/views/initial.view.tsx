@@ -345,10 +345,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     trackId: 'ui',
                 }
 
-                const latestContractVersion = peanut.getLatestContractVersion(
-                    sendFormData.chainId.toString(),
-                    advancedDropdownOpen ? 'batch' : 'single'
-                )
+                const latestContractVersion = peanut.getLatestContractVersion({
+                    chainId: sendFormData.chainId.toString(),
+                    type: advancedDropdownOpen ? 'batch' : 'normal',
+                })
 
                 setLoadingStates('preparing transaction')
 

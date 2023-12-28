@@ -352,7 +352,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                             <div className="w-1/8 brutalborder-left tooltip block h-4 cursor-pointer p-2">
                                 {isLoading ? (
                                     <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold">
-                                        <span className="tooltiptext inline " id="myTooltip">
+                                        <span className="tooltiptext inline text-black" id="myTooltip">
                                             Claiming...
                                         </span>
                                     </div>
@@ -361,7 +361,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                         className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold"
                                         type="submit"
                                     >
-                                        <span className="tooltiptext inline" id="myTooltip">
+                                        <span className="tooltiptext inline text-black" id="myTooltip">
                                             Claim
                                         </span>
                                     </button>

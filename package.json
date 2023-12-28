@@ -13,7 +13,7 @@
         "@headlessui/react": "^1.7.17",
         "@sentry/nextjs": "^7.70.0",
         "@socket.tech/socket-v2-sdk": "^1.21.8",
-        "@squirrel-labs/peanut-sdk": "0.3.29",
+        "@squirrel-labs/peanut-sdk": "0.3.34",
         "@types/node": "20.4.2",
         "@types/react": "^18.2.22",
         "@types/react-csv": "^1.1.3",
