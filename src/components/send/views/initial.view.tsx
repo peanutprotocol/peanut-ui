@@ -347,7 +347,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                 const latestContractVersion = peanut.LATEST_STABLE_CONTRACT_VERSION
 
-
                 setLoadingStates('preparing transaction')
 
                 const prepareTxsResponse = await peanut.prepareTxs({
