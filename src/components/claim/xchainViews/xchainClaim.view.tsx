@@ -128,7 +128,6 @@ export function xchainClaimView({
             } else {
                 setCrossChainSuccess(undefined)
             }
-
             onNextScreen()
         } catch (error) {
             setErrorState({

@@ -1,278 +1,515 @@
+'use client'
 import * as global_components from '@/components/global'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
-import orest_image from '@/assets/people/orest.jpg'
-import mydas_image from '@/assets/people/mydas.jpg'
-import steven_image from '@/assets/people/Steven.jpg'
 import sbf_image from '@/assets/people/sbf.jpeg'
-import peanut from '@squirrel-labs/peanut-sdk'
 import * as chain_logos from '@/assets/chains'
+import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
+import eco_logo from '@/assets/logos/integrators/eco-logo.png'
+import kofime_logo from '@/assets/logos/integrators/kofime-logo.png'
+import hypersphere_logo from '@/assets/logos/investors/hypersphere-logo.png'
+import zeeprime_logo from '@/assets/logos/investors/zeeprime-logo.png'
+import wallet_connect_logo from '@/assets/logos/wallet-connect-logo.png'
+import teal_wallet_one from '@/assets/mockups/teal-wallet-1.png'
+import teal_wallet_two from '@/assets/mockups/teal-wallet-2.png'
+import dropdown_svg from '@/assets/dropdown.svg'
+import derek from '@/assets/people/derek.png'
+import sharuk from '@/assets/people/sharuk.png'
+import kofime_icon from '@/assets/people/kofime-icon.jpeg'
+import web3inbox_logo from '@/assets/logos/partners/web3inbox-logo.svg'
+import { useState, useEffect } from 'react'
+import { getCalApi } from '@calcom/embed-react'
+
+const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
+const logoLinks = {
+    [hypersphere_logo.src]: 'https://hypersphere.ventures/',
+    [zeeprime_logo.src]: 'https://zeeprime.capital/',
+    [wallet_connect_logo.src]: 'https://walletconnect.com/',
+    [beam_logo.src]: 'https://beam.eco/',
+    [eco_logo.src]: 'https://eco.org/',
+    [kofime_logo.src]: 'https://www.kofime.xyz/',
+}
+
+const features = [
+    {
+        name: 'Brand ',
+        description:
+            'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
+        bg: 'bg-yellow',
+        primaryRedirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links',
+        primaryRedirectText: 'Docs',
+    },
+    {
+        name: 'Gasless',
+        description:
+            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim links solve the cold start problem.',
+        bg: 'bg-teal',
+        primaryRedirectUrl:
+            'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
+        primaryRedirectText: 'Docs',
+    },
+    {
+        name: 'Welcome packs',
+        description: 'Send a welcome pack of NFT + gas + token to new or existing customers',
+        bg: 'bg-red',
+        calModal: true,
+        primaryRedirectUrl: 'https://docs.peanut.to/overview/use-cases',
+        primaryRedirectText: 'Case study',
+    },
+    {
+        name: 'Cross-chain',
+        description:
+            'Customize token and claim page to match your branding with logo and colors. Or even better, have the users claim the tokens on your own domain or app!',
+        bg: 'bg-lightblue',
+        primaryRedirectUrl: 'https://experimental.peanut.to/send',
+        primaryRedirectText: 'Try Now',
+        secondaryRedirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/x-chain-links',
+        secondaryRedirectText: 'Learn more',
+    },
+    {
+        name: 'Get Physical',
+        description: 'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.',
+        bg: 'bg-fuchsia',
+        calModal: true,
+    },
+    {
+        name: 'Web2 Airdrops',
+        description: 'Airdrop your web2 audience (think Discord, Mailchimp, Twitter)',
+        bg: 'bg-yellow',
+        calModal: true,
+    },
+]
+const faqs = [
+    { question: 'How can I try?', answer: 'Check out our dapp or any of the projects that already integrated Peanut.' },
+    {
+        question: 'What are the trust assumptions?',
+        answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
+        redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
+        redirectText: 'here.',
+    },
+    {
+        question: 'What happens if I want to cancel or if I lose the link?',
+        answer: 'You can always withdraw or cancel your own links. See how ',
+        redirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/reclaiming-links',
+        redirectText: 'here.',
+    },
+    {
+        question: 'What are the fees?',
+        answer: 'On our dapp, we sponsor gasless claiming. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
+        redirectUrl: 'https://docs.peanut.to/overview/pricing',
+        redirectText: 'here.',
+    },
+    {
+        question: 'I need help!',
+        answer: 'Sure! Let us know at hello@peanut.to or on ',
+        redirectUrl: 'https://discord.gg/uWFQdJHZ6j',
+        redirectText: 'discord.',
+    },
+    {
+        question: 'Are you audited?',
+        answer: 'Yes! ',
+        redirectUrl: 'https://docs.peanut.to',
+        redirectText: 'See our docs for more',
+    },
+    {
+        question: 'I want this for our app! How long does it take to integrate?',
+        answer: 'Our record integration took 2 hours, but it depends on your stack. ',
+        calModal: true,
+        redirectText: 'Lets talk!',
+    },
+]
+const testimonials = [
+    {
+        imageSrc: derek.src,
+        altText: 'picture of chad',
+        comment: 'How did this not exist before?! Great UX!',
+        name: 'Derek Rein',
+        detail: 'WalletConnect',
+        detailRedirectUrl: 'https://walletconnect.com/',
+        bgColorClass: 'bg-yellow',
+    },
+    {
+        imageSrc: sharuk.src,
+        altText: 'eco man',
+        comment: 'Peanut allows us to elegantly solve the cold start problem!',
+        name: 'shahrukh Rao',
+        detail: 'Eco',
+        detailRedirectUrl: 'https://eco.org/?ref=com',
+        bgColorClass: 'bg-fuchsia',
+    },
+    {
+        imageSrc: kofime_icon.src,
+        altText: 'kofi',
+        comment: 'Very buttery experience!',
+        name: 'Kofi.me',
+        detail: 'Kofi.me',
+        detailRedirectUrl: 'https://www.kofime.xyz/',
+        bgColorClass: 'bg-lightblue',
+    },
+    {
+        imageSrc: sbf_image.src,
+        altText: 'picture of pixel art SBF',
+        comment: 'I have a peanut allergy. Help!',
+        name: 'CEx CEO',
+        detail: 'Probably FTX',
+        bgColorClass: 'bg-red',
+    },
+]
+
 export function Welcome() {
+    const [openedFaq, setOpenedFaq] = useState<number | null>(null)
+
+    function classNames(...classes: any) {
+        return classes.filter(Boolean).join(' ')
+    }
+
+    useEffect(() => {
+        ;(async function () {
+            const cal = await getCalApi()
+            cal('ui', {
+                theme: 'dark',
+                styles: { branding: { brandColor: '#ffffff' } },
+                hideEventTypeDetails: false,
+                layout: 'month_view',
+            })
+        })()
+    }, [])
+
     return (
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
-            {/* Hero in columns */}
-            <section className="text-black  lg:divide-y" id="hero">
-                <div className="relative mx-auto">
-                    <div className="border-2 border-black lg:grid lg:grid-flow-col-dense lg:grid-cols-2 ">
-                        {/* left column */}
-                        <div className="brutalborder bg-white py-16 text-center sm:px-6 lg:mx-0 lg:max-w-none lg:px-0">
-                            <h1 className="mx-auto my-8 w-3/4 text-5xl font-black">Send Tokens with a Link</h1>
-                            <div className="m-4 mx-auto w-3/4 p-2 text-xl">
-                                This is a private beta for cross-chain peanut links. Send tokens with a Peanut link, and
-                                the recipient can claim any tokens on any chain. Test with us and get rewarded!
-                            </div>
-
-                            <div className="mt-8 flex justify-center space-x-4 p-2">
-                                <a
-                                    href="/send"
-                                    id="cta-btn"
-                                    className="mb-2 block bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
-                                >
-                                    Try Now
-                                </a>
-
-                                <a
-                                    href="https://docs.peanut.to"
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="p-5 text-2xl font-black text-black hover:underline"
-                                >
-                                    Integrate →
-                                </a>
-                            </div>
+            {/* hero */}
+            <div className="flex border-2 border-black bg-white text-black">
+                <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
+                    <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
+                        Send{' '}
+                        <div className="scroller w-[175px]">
+                            <span>
+                                NFTs
+                                <br />
+                                USDC
+                                <br />
+                                DAI
+                                <br />
+                                PEPE
+                            </span>
                         </div>
+                    </h1>
+                    <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
+                        Via Link
+                        {/* <div className="scroller w-[315px]">
+                            <span>
+                                Whatsapp
+                                <br />
+                                Link
+                                <br />
+                                Telegram
+                                <br />
+                                Twitter
+                            </span>
+                        </div> */}
+                    </h1>
 
-                        {/* right column */}
-                        <div className="center-xy brutalborder relative overflow-hidden  bg-fuchsia py-3 lg:border-l-0 lg:pb-16 lg:pt-32">
-                            <img
-                                src={peanutman_happy.src}
-                                className="absolute top-10 duration-200 hover:rotate-12"
-                                alt="Peanutman Cheering"
-                            />
-                        </div>
+                    <div className="m-4 mx-auto w-3/4 p-2 text-xl">
+                        Go viral with claim links. Let your users send tokens through links
                     </div>
-                </div>
-            </section>
 
-            {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-white">
-                {Object.entries(chain_logos).map(([chain, logo]) => {
-                    return (
-                        <div className="pl-3 pt-5" key={chain}>
-                            <img src={logo.default.src} className="h-16 w-16" />
-                        </div>
-                    )
-                })}
-            </global_components.MarqueeWrapper>
+                    <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
+                        <a
+                            data-cal-link="kkonrad+hugo0/15min?duration=30"
+                            data-cal-config='{"layout":"month_view"}'
+                            id="cta-btn"
+                            className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                        >
+                            Let's talk!
+                        </a>
 
-            {/* Use Cases: SDK, app, marketing */}
-
-            <section id="use-cases" className="bg-white">
-                <div role="list" className="grid grid-cols-1 gap-5 p-5 text-black sm:grid-cols-2 lg:grid-cols-3">
-                    {/* Integrate */}
-                    <div className="brutalborder flex flex-col border-2 border-black bg-teal p-12 px-16" id="SDK">
-                        <h3 className="text-5xl font-black">Integrate</h3>
-                        <p className="mt-1 block text-2xl leading-loose">
-                            {' '}
-                            Are you a wallet, DEX or dApp? Let your users send token links with their friends, who will
-                            get onboarded onto your product easily. Go viral.
-                        </p>
-                        <div className="flex-grow"></div>
-                        <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="https://docs.peanut.to">
-                                <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
-                                    Start Now
-                                </button>
-                            </a>
-
-                            <a
-                                href="https://peanutprotocol.notion.site/Eco-Beam-Link-Case-Study-0df5cf9b5d544cb48e209cbcbcd63bdb?pvs=4"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="ml-4 border-none bg-none p-5 text-2xl font-normal text-black no-underline hover:underline"
-                            >
-                                Case Study →
-                            </a>
-                        </div>
-                    </div>
-                    {/* App */}
-                    <div className="brutalborder flex flex-col border-2 border-black bg-red p-12 px-16 " id="app">
-                        <h3 className="text-5xl font-black">Use App</h3>
-                        <p className="mt-1 block text-2xl leading-loose">
-                            See how easy it can be to send tokens. Simply generate a link using the Peanut app and pop
-                            into a chat with your friend.
-                        </p>
-                        <div className="flex-grow"></div>
-                        <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="/send">
-                                <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
-                                    Start Now
-                                </button>
-                            </a>
-                        </div>
-                    </div>
-                    {/* Physical */}
-                    <div
-                        className="brutalborder flex flex-col border-2 border-black bg-lightblue p-12 px-16"
-                        id="physical"
-                    >
-                        <h3 className="text-5xl font-black">Get Physical</h3>
-                        <p className="mt-1 block text-2xl leading-loose">
-                            Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.
-                            Just put stickers on your swag or flyers and boost your conversion rate.
-                        </p>
-                        <div className="flex-grow"></div>
-                        <div className="center-xy flex-end my-6 flex justify-around">
-                            <a href="mailto:hello@peanut.to?subject=Getting%20Physical&body=Hey%20Peanut%20team!%0D%0A%0D%0AWe're%20planning%20an%20event%20that%20could%20use%20your%20stickers.%20The%20event%20is%20on%20____________.%20It's%20about%20____________.%20Our%20budget%20for%20the%20airdrop%20is%20_______%20and%20we%20were%20thinking%20about%20100/500/1000%20stickers.%0D%0A%0D%0AHere%20is%20the%20best%20way%20to%20contact%20us:%20_____________%0D%0A%0D%0ABest%20wishes%0D%0A________">
-                                <button className="brutalborder brutalshadow p-4 px-4 text-2xl font-black hover:invert">
-                                    Order Now
-                                </button>
-                            </a>
-
-                            <a
-                                href="https://twitter.com/AmbireWallet/status/1641088818114641920"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="ml-4 border-none bg-none p-5 text-2xl font-normal text-black no-underline hover:underline"
-                            >
-                                Testimonial →
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-black">
-                <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        GO
-                    </div>
-                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        NUTS
-                    </div>
-                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                </>
-            </global_components.MarqueeWrapper>
-
-            {/* Features  */}
-            <section className="lg:divide-y" id="features">
-                <div className="relative mx-auto text-black">
-                    <div className="lg:grid lg:grid-flow-col-dense lg:grid-cols-2">
-                        {/* Left column */}
-                        <div className="center-xy relative overflow-hidden bg-fuchsia py-3 outline-black lg:border-l-0 lg:pb-16 lg:pt-32 ">
-                            <img
-                                src={peanutman_happy.src}
-                                className="absolute top-10 duration-200 hover:rotate-12"
-                                alt="Peanutman Cheering"
-                            />
-                            <div></div>
-                        </div>
-
-                        {/* Right column */}
-                        {/* // --
-// Features:
-// noncustodial
-// permissionless
-// brandable
-// noob-friendly
- */}
-                        <div className=" bg-white text-center sm:px-6 lg:mx-0 lg:max-w-none lg:px-0 lg:py-8">
-                            <div className="inline-block w-4/5 text-left">
-                                <h2 className="text-4xl">Non-custodial</h2>
-                                <p className="text-normal">
-                                    Funds securely stored in a vault contract and can be only claimed with a secret that
-                                    is contained in the link.{' '}
-                                    <a
-                                        href="https://docs.peanut.to/fundamentals/trust-assumptions"
-                                        target="_blank"
-                                        className="text-black"
-                                    >
-                                        Read more.
-                                    </a>{' '}
-                                </p>
-
-                                <h2 className="text-4xl">Permissionless</h2>
-                                <p className="text-normal">
-                                    There are no API keys, simply use our SDK or build your own way to interact with the
-                                    smart contracts directly.{' '}
-                                    <a
-                                        href="https://docs.peanut.to/integrations/building-with-the-sdk"
-                                        target="_blank"
-                                        className="text-black"
-                                    >
-                                        Read more.
-                                    </a>
-                                </p>
-
-                                <h2 className="text-4xl">Brandable</h2>
-                                <p className="text-normal">
-                                    Customize token and claim page to match your branding with logo and colors. Or even
-                                    better, have the users claim the tokens on your own domain or app!{' '}
-                                    <a
-                                        href="https://docs.peanut.to/integrations/domain-agnostic-links"
-                                        target="_blank"
-                                        className="text-black"
-                                    >
-                                        Read more.
-                                    </a>
-                                </p>
-
-                                <h2 className="text-4xl">Noob-friendly onboarding</h2>
-                                <p className="text-normal">
-                                    Fully customizable guided wallet setup for first-time crypto users, no advance
-                                    address needed!{' '}
-                                    <a
-                                        href="https://discord.gg/kVZqXDkrq7"
-                                        target="_blank"
-                                        className="text-black underline "
-                                    >
-                                        Get in touch
-                                    </a>
-                                </p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
-            {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-black">
-                <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        GO
-                    </div>
-                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        NUTS
-                    </div>
-                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                </>
-            </global_components.MarqueeWrapper>
-
-            {/* customise */}
-            <section className="h-full w-full bg-white py-12 text-black">
-                <div className="center-xy mx-auto flex w-11/12 items-center bg-white lg:w-3/5">
-                    <div className="text-center">
-                        <h2 className="title-font text-3xl font-black text-black lg:text-7xl">Make your own</h2>
-
-                        <div className="mx-auto w-4/5 p-5 text-xl lg:w-2/3">
-                            Do you want a custom onboarding flow? Collect email addresses? Make users download a
-                            specific app or claim with a specific wallet? We've got your covered.
-                        </div>
-
-                        <a href="https://t.me/peanutprotocol" target="_blank" rel="noopener noreferrer">
-                            <button id="cta-btn" className="cta m-10 bg-white px-3 text-2xl font-black hover:underline">
-                                Talk to an expert →
-                            </button>
+                        <a
+                            href="https://docs.peanut.to"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-5  text-xl font-black text-black hover:no-underline sm:text-2xl"
+                        >
+                            Integrate →
                         </a>
                     </div>
+
+                    <div className="m-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-8 gap-y-8">
+                        {logoCloudLogos.map((logo) => {
+                            return (
+                                <a href={logoLinks[logo.src]} target="_blank" rel="noopener noreferrer" key={logo.src}>
+                                    <img
+                                        className="h-12 object-contain grayscale hover:scale-90"
+                                        src={logo.src}
+                                        alt="Logo"
+                                        loading="eager"
+                                    />
+                                </a>
+                            )
+                        })}
+                    </div>
+                </div>
+
+                <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
+                    <img
+                        src={peanutman_happy.src}
+                        className="absolute  duration-200 hover:rotate-12"
+                        alt="Peanutman Cheering"
+                    />
+                </div>
+            </div>
+
+            {/* seperator */}
+            <div className="brutalborder-y">
+                <global_components.MarqueeWrapper backgroundColor="bg-white">
+                    {Object.entries(chain_logos).map(([chain, logo]) => {
+                        return (
+                            <div className="pb-5 pl-3 pt-5" key={chain}>
+                                <img src={logo.default.src} className="h-16 w-16" />
+                            </div>
+                        )
+                    })}
+                </global_components.MarqueeWrapper>
+            </div>
+
+            {/* how it works */}
+            <div className=" flex flex-col gap-4 bg-white p-4">
+                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-teal py-8 text-black sm:py-16 lg:flex-row">
+                    {/* right column */}
+                    <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
+                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
+                            <img
+                                src={teal_wallet_one.src}
+                                className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
+                                alt="Peanutman Cheering"
+                            />
+                        </a>
+                    </div>
+                    {/* left column */}
+                    <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Go viral</h1>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">
+                            Links are the easiest way to send crypto. Leverage your userbase to get more users. Let your
+                            users send tokens to their friends and get them onboarded, no matter whether they’re users
+                            already.
+                        </div>
+
+                        <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
+                            <a
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                data-cal-config='{"layout":"month_view"}'
+                                id="cta-btn"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                            >
+                                Let's talk!
+                            </a>
+
+                            <a
+                                href="https://docs.peanut.to"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
+                            >
+                                Integrate →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-fuchsia py-8 text-black sm:py-16 lg:flex-row-reverse">
+                    {/* right column */}
+                    <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
+                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
+                            <img
+                                src={teal_wallet_two.src}
+                                className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
+                                alt="Peanutman Cheering"
+                            />
+                        </a>
+                    </div>
+                    {/* left column */}
+                    <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim gasless</h1>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">
+                            Onboard new users seamlessly with a gassless claiming and onboarding experience.
+                        </div>
+
+                        <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
+                            <a
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                data-cal-config='{"layout":"month_view"}'
+                                id="cta-btn"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                            >
+                                Let's talk!
+                            </a>
+
+                            <a
+                                href="https://docs.peanut.to"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
+                            >
+                                Integrate →
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* seperator */}
+            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
+                <>
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        COOL
+                    </div>
+                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        THINGS
+                    </div>
+                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                </>
+            </global_components.MarqueeWrapper>
+
+            {/* features */}
+            <section className="lg:divide-y" id="features">
+                <div className="brutalborder-y grid grid-cols-1 gap-4 overflow-hidden bg-white p-4 text-black sm:mx-0 sm:grid-cols-2 md:grid-cols-3">
+                    {features.map((feature, index) => {
+                        return (
+                            <div
+                                className={classNames(
+                                    'brutalborder flex flex-col border-2 border-black p-4 text-center sm:p-12 sm:px-16 ',
+                                    feature.bg
+                                )}
+                                id="app"
+                            >
+                                <h3 className="mb-4 text-5xl font-black"> {feature.name}</h3>
+                                <p className="mt-1 block text-2xl leading-loose">{feature.description}</p>
+                                <div className="flex-grow"></div>
+                                <div className="center-xy flex-end my-6 flex justify-around">
+                                    {feature.calModal && (
+                                        <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
+                                            <a
+                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                                data-cal-config='{"layout":"month_view"}'
+                                            >
+                                                Let's talk!
+                                            </a>
+                                        </button>
+                                    )}
+                                    {feature.primaryRedirectUrl ? (
+                                        feature.calModal ? (
+                                            <a
+                                                href={feature.primaryRedirectUrl}
+                                                target="_blank"
+                                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
+                                            >
+                                                {feature.primaryRedirectText} →
+                                            </a>
+                                        ) : (
+                                            <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
+                                                <a
+                                                    href={feature.primaryRedirectUrl}
+                                                    target="_blank"
+                                                    className="text-black no-underline"
+                                                >
+                                                    {feature.primaryRedirectText}
+                                                </a>
+                                            </button>
+                                        )
+                                    ) : (
+                                        ''
+                                    )}
+                                    {feature.secondaryRedirectUrl && (
+                                        <a
+                                            href={feature.secondaryRedirectUrl}
+                                            target="_blank"
+                                            className="p-5 text-xl font-black text-black sm:text-2xl "
+                                        >
+                                            {feature.secondaryRedirectText} →
+                                        </a>
+                                    )}
+                                </div>
+                            </div>
+                        )
+                    })}
                 </div>
             </section>
 
             {/* seperator */}
             <global_components.MarqueeWrapper backgroundColor="bg-black">
+                <>
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        GO
+                    </div>
+                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        NUTS
+                    </div>
+                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                </>
+            </global_components.MarqueeWrapper>
+
+            {/* faq */}
+            <div className="flex flex-col gap-4 px-4 py-4 text-black">
+                <h2 className="my-0 px-8 font-bold">FAQ</h2>
+                <div className="flex cursor-pointer flex-col gap-0">
+                    {faqs.map((faq, idx) => (
+                        <div
+                            className={classNames(
+                                'brutalborder-left brutalborder-top brutalborder-right rounded-none bg-white text-black ',
+                                faqs.length - 1 === idx ? ' brutalborder-bottom' : ''
+                            )}
+                            onClick={() => {
+                                if (openedFaq === idx) {
+                                    setOpenedFaq(null)
+                                } else {
+                                    setOpenedFaq(idx)
+                                }
+                            }}
+                        >
+                            <div
+                                className={classNames(
+                                    ' flex w-full  flex-row items-center justify-between border-none bg-white  text-2xl '
+                                )}
+                            >
+                                <label className=" px-8 py-4">{faq.question}</label>
+                                <img
+                                    style={{
+                                        transform: openedFaq === idx ? 'scaleY(-1)' : 'none',
+                                        transition: 'transform 0.3s ease-in-out',
+                                    }}
+                                    src={dropdown_svg.src}
+                                    alt=""
+                                    className={'h-6 pr-2'}
+                                />
+                            </div>
+                            {openedFaq === idx && (
+                                <div className={' m-0 px-8 py-2 '}>
+                                    <p>
+                                        {faq.answer}
+                                        {faq.calModal && (
+                                            <a
+                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                                data-cal-config='{"layout":"month_view"}'
+                                                className=" underline"
+                                            >
+                                                Let's talk!
+                                            </a>
+                                        )}
+                                        {faq.redirectUrl && (
+                                            <a href={faq.redirectUrl} target="_blank" className="text-black underline">
+                                                {faq.redirectText}
+                                            </a>
+                                        )}
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            {/* seperator */}
+            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
                 <>
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         FRENS
@@ -286,46 +523,12 @@ export function Welcome() {
             </global_components.MarqueeWrapper>
 
             {/* testimonials */}
-
-            <section id="testimonials" className="justify-center bg-white text-black sm:px-2 sm:py-2">
-                <div role="list" className="grid grid-cols-2 gap-0 sm:gap-y-4 lg:grid-cols-4">
-                    {[
-                        {
-                            imageSrc: orest_image.src,
-                            altText: 'picture of bearded man',
-                            comment: 'How did this not exist before?! Great UX!',
-                            name: 'Orest Tarasiuk',
-                            detail: 'Scroll.io',
-                            bgColorClass: 'bg-yellow',
-                        },
-                        {
-                            imageSrc: mydas_image.src,
-                            altText: 'picture of rasta NFT',
-                            comment: 'Love this! Will help in mass crypto adoption.',
-                            name: 'Mydas.eth',
-                            detail: 'University of Nicosia',
-                            bgColorClass: 'bg-fuchsia',
-                        },
-                        {
-                            imageSrc: steven_image.src,
-                            altText: 'picture of smiling man',
-                            comment: 'Very buttery experience!',
-                            name: 'Steven Robinson',
-                            detail: 'Arkn Ventures',
-                            bgColorClass: 'bg-lightblue',
-                        },
-                        {
-                            imageSrc: sbf_image.src,
-                            altText: 'picture of pixel art SBF',
-                            comment: 'I have a peanut allergy. Help!',
-                            name: 'CEx CEO',
-                            detail: 'Probably FTX',
-                            bgColorClass: 'bg-red',
-                        },
-                    ].map((testimonial, index) => (
+            <section id="testimonials" className=" brutalborder-y justify-center bg-white p-4 text-black ">
+                <div role="list" className="grid:cols-1 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    {testimonials.map((testimonial, index) => (
                         <div
                             key={index}
-                            className={`${testimonial.bgColorClass} brutalborder m-2 p-2 text-center`}
+                            className={`${testimonial.bgColorClass} brutalborder  p-2 text-center`}
                             id="frens"
                         >
                             <img
@@ -334,22 +537,23 @@ export function Welcome() {
                                 alt={testimonial.altText}
                                 className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"
                             />
-                            <h1 className="mx-auto mt-2 py-2 text-base font-normal italic lg:text-lg">
+                            <h1 className="mx-auto mt-2 h-12 py-2 text-base font-normal italic lg:text-lg">
                                 {testimonial.comment}
                             </h1>
                             <p className="mb-4 text-base font-black uppercase">
                                 {testimonial.name}
-                                <span className="text-xs font-normal">
-                                    {' '}
+                                <a
+                                    className="text-xs font-normal text-black"
+                                    href={testimonial?.detailRedirectUrl ?? undefined}
+                                    target="_blank"
+                                >
                                     <br /> {testimonial.detail}{' '}
-                                </span>
+                                </a>
                             </p>
                         </div>
                     ))}
                 </div>
             </section>
-
-            {/*  */}
         </div>
     )
 }

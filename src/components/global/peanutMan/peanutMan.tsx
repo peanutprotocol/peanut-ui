@@ -1,3 +1,4 @@
+'use client'
 import peanutman_sad from '@/assets/peanutman-sad.svg'
 import peanutman_presenting from '@/assets/peanutman-presenting.svg'
 import peanutman_cheering from '@/assets/peanutman-cheering.svg'

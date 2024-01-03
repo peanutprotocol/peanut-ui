@@ -1,3 +1,4 @@
+'use client'
 import * as global_components from '@/components/global'
 import * as views from './views'
 import * as multilinkViews from './multilinkViews'
@@ -26,7 +27,7 @@ interface Token {
     symbol: string
 }
 
-export function Claim({ link }: { link: string }) {
+export function Claim() {
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
@@ -83,6 +84,9 @@ export function Claim({ link }: { link: string }) {
     }
 
     const isBridgePossible = async (linkDetails: interfaces.ILinkDetails) => {
+        if (linkDetails.tokenType == '2') {
+            return false
+        }
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
@@ -183,9 +187,9 @@ export function Claim({ link }: { link: string }) {
                         _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
 
-                    if (await isBridgePossible(linkDetails)) {
-                        //disabling bridge for now
-                        // if (false)
+                    // if (await isBridgePossible(linkDetails)) {
+                    //disabling bridge for now
+                    if (false) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {
                         setLinkState('CLAIM')
@@ -199,10 +203,11 @@ export function Claim({ link }: { link: string }) {
     }
 
     useEffect(() => {
-        if (link) {
-            checkLink(link)
+        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
+        if (pageUrl) {
+            checkLink(pageUrl)
         }
-    }, [link])
+    }, [])
 
     return (
         <global_components.CardWrapper>

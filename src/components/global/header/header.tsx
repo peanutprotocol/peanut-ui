@@ -35,7 +35,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                         href={'/send'}
                     >
-                        <span className="">send</span>
+                        <span className="">app</span>
                     </Link>
                     <Link
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
@@ -69,7 +69,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     }}
                     direction="right"
                 >
-                    <>
+                    {/* <>
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
                             EXPERIMENTAL
                         </div>
@@ -78,7 +78,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                             x-chain
                         </div>
                         <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    </>
+                    </> */}
                 </global_components.MarqueeWrapper>
             )}
         </div>

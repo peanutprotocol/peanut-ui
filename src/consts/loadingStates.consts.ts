@@ -11,3 +11,4 @@ export type LoadingStates =
     | 'checking signer'
     | 'checking inputs'
     | 'fetching route'
+    | 'completed'
