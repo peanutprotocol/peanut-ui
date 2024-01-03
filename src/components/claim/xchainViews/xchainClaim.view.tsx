@@ -110,7 +110,7 @@ export function xchainClaimView({
                     recipientAddress: address ?? '',
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                     destinationChainId: selectedChain.chainId,
-                    destinationTokenAddress: selectedToken.address,
+                    destinationToken: selectedToken.address,
                     isMainnet: !isTestnet,
                     squidRouterUrl: 'http://localhost:8000/get-squid-route',
                     baseUrl: 'http://localhost:8000/claim-xchain',
