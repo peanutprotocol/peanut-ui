@@ -589,8 +589,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
@@ -1005,7 +1005,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         />
                                     </div>
 
-                                    <div className="min-h-32 brutalscroll flex max-h-64 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
+                                    <div className="brutalscroll flex max-h-64 min-h-32 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div

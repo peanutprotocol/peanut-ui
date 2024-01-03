@@ -112,8 +112,8 @@ export function xchainClaimView({
                     destinationChainId: selectedChain.chainId,
                     destinationToken: selectedToken.address,
                     isMainnet: !isTestnet,
-                    squidRouterUrl: 'http://localhost:8000/get-squid-route',
-                    baseUrl: 'http://localhost:8000/claim-xchain',
+                    squidRouterUrl: 'https://peanut-api-ts-9lo6.onrender.com/get-squid-route',
+                    baseUrl: 'https://peanut-api-ts-9lo6.onrender.com/claim-x-chain',
                 })
             }
             verbose && console.log(claimTx)
