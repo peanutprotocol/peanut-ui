@@ -661,8 +661,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                ? '0.00'
-                                                : '$ 0.00'}
+                                                  ? '0.00'
+                                                  : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
