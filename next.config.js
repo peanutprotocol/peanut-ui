@@ -8,8 +8,6 @@ const nextConfig = {
         PROMO_LIST: process.env.PROMO_LIST,
         SENTRY_DSN: process.env.SENTRY_DSN,
     },
-    productionBrowserSourceMaps: true,
-    swcMinify: true,
     async rewrites() {
         return [
             {

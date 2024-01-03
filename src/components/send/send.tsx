@@ -1,3 +1,4 @@
+'use client'
 import { createElement, useState } from 'react'
 import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
