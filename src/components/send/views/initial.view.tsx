@@ -271,16 +271,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    function toLowerCaseKeys(obj: any): any {
-        let newObj: any = {}
-        Object.keys(obj).forEach((key) => {
-            // Convert only the top-level keys to lowercase
-            let lowerCaseKey = key.toLowerCase()
-            newObj[lowerCaseKey] = obj[key]
-        })
-        return newObj
-    }
-
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -370,19 +360,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 })
 
                 if (
-                    toLowerCaseKeys(peanut.EIP3009Tokens[sendFormData.chainId])[tokenAddress.toLowerCase()] &&
-                    latestContractVersion == 'v4.2'
+                    _utils.toLowerCaseKeys(peanut.EIP3009Tokens[sendFormData.chainId])[tokenAddress.toLowerCase()] &&
+                    latestContractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
                 ) {
-                    console.log('creating gaslessly')
+                    verbose && console.log('creating gaslessly')
 
                     const { payload, message } = await peanut.makeGaslessDepositPayload({
                         linkDetails,
                         password: passwords[0],
-                        contractVersion: 'v4.2',
+                        contractVersion: peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION,
                         address: address ?? '',
                     })
 
-                    console.log('makeGaslessDepositPayload result: ', { payload }, { message })
+                    verbose && console.log('makeGaslessDepositPayload result: ', { payload }, { message })
 
                     setLoadingStates('sign in wallet')
 
@@ -392,7 +382,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         message.values
                     )
 
-                    console.log('Signature:', userDepositSignature)
+                    verbose && console.log('Signature:', userDepositSignature)
 
                     setLoadingStates('executing transaction')
 
@@ -400,7 +390,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         payload,
                         signature: userDepositSignature,
-                        baseUrl: 'https://peanut-api-ts-9lo6.onrender.com/deposit-3009',
+                        baseUrl: `${consts.peanut_api_url}/deposit-3009`,
                     })
 
                     passwords.map((password, idx) => {
@@ -415,7 +405,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
                     })
 
-                    console.log('makeDepositGasless response: ', response)
+                    verbose && console.log('makeDepositGasless response: ', response)
 
                     setLoadingStates('creating link')
 
@@ -429,7 +419,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     txHash = response.txHash
                 } else {
-                    console.log('not creating gaslessly')
+                    verbose && console.log('not creating gaslessly')
 
                     const prepareTxsResponse = await peanut.prepareTxs({
                         address: address ?? '',

@@ -112,8 +112,8 @@ export function xchainClaimView({
                     destinationChainId: selectedChain.chainId,
                     destinationToken: selectedToken.address,
                     isMainnet: !isTestnet,
-                    squidRouterUrl: 'https://peanut-api-ts-9lo6.onrender.com/get-squid-route',
-                    baseUrl: 'https://peanut-api-ts-9lo6.onrender.com/claim-x-chain',
+                    squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
+                    baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
                 })
             }
             verbose && console.log(claimTx)
@@ -141,9 +141,6 @@ export function xchainClaimView({
     }
 
     const getSquidRoute = async () => {
-        const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-            .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-            .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
         const tokenAmount = Math.floor(
             Number(claimDetails[0].tokenAmount) * Math.pow(10, claimDetails[0].tokenDecimals)
         ).toString()
@@ -239,8 +236,6 @@ export function xchainClaimView({
     }, [selectedToken])
 
     useEffect(() => {
-        console.log('Possible routes array', possibleRoutesArray)
-        console.log('Selected', selectedToken, selectedChain)
         if (
             possibleRoutesArray.find(
                 (route) =>

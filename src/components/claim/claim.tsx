@@ -97,7 +97,10 @@ export function Claim() {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-            if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v4.2') {
+            if (
+                crossChainDetails.length > 0 &&
+                linkDetails.contractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
+            ) {
                 //Filter to remove mainnet
                 setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != 1))
                 return true
