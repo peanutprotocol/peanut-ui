@@ -21,13 +21,6 @@ import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
-const gaslessDepositAllowedTokenAddresses = [
-    '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
-    '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-    '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
-    '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-]
-
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
@@ -278,6 +271,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
+    function toLowerCaseKeys(obj: any): any {
+        let newObj: any = {}
+        Object.keys(obj).forEach((key) => {
+            // Convert only the top-level keys to lowercase
+            let lowerCaseKey = key.toLowerCase()
+            newObj[lowerCaseKey] = obj[key]
+        })
+        return newObj
+    }
+
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -352,8 +355,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     trackId: 'ui',
                 }
 
-                const latestContractVersion = peanut.LATEST_STABLE_CONTRACT_VERSION
-
                 setLoadingStates('preparing transaction')
 
                 let getLinksFromTxResponse
@@ -362,10 +363,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 const tempLocalstorageKey =
                     'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
 
+                const latestContractVersion = peanut.getLatestContractVersion({
+                    chainId: sendFormData.chainId.toString(),
+                    type: 'normal',
+                    experimental: true,
+                })
+
                 if (
-                    gaslessDepositAllowedTokenAddresses.find(
-                        (e) => e.toLowerCase() === linkDetails.tokenAddress.toLowerCase()
-                    )
+                    toLowerCaseKeys(peanut.EIP3009Tokens[sendFormData.chainId])[tokenAddress.toLowerCase()] &&
+                    latestContractVersion == 'v4.2'
                 ) {
                     console.log('creating gaslessly')
 

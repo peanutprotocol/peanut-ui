@@ -65,22 +65,6 @@ export function Store({ children }: { children: React.ReactNode }) {
         }
     }
 
-    const formatUserBalance = (socketBalance: socketTech.TokenBalanceReponseDTO) => {
-        return {
-            chainId: socketBalance.result.chainId,
-            address: socketBalance.result.tokenAddress,
-            name: socketBalance.result.name,
-            symbol: socketBalance.result.symbol,
-            decimals: socketBalance.result.decimals,
-            chainAgnosticId: null,
-            icon: socketBalance.result.icon,
-            logoURI: socketBalance.result.icon,
-            amount: ethers.utils.formatUnits(Number(socketBalance.result.balance), socketBalance.result.decimals),
-            price: 0,
-            currency: null,
-        }
-    }
-
     const loadUserBalances = async (address: string) => {
         try {
             const userBalancesResponse: any = await socketTech.Balances.getBalances({
@@ -90,24 +74,25 @@ export function Store({ children }: { children: React.ReactNode }) {
                 tokenAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
                 chainId: 137,
                 userAddress: address,
+            }).then((res) => {
+                return {
+                    chainId: res.result.chainId,
+                    address: res.result.tokenAddress,
+                    name: res.result.name,
+                    symbol: res.result.symbol,
+                    decimals: res.result.decimals,
+                    chainAgnosticId: null,
+                    icon: res.result.icon,
+                    logoURI: res.result.icon,
+                    amount: ethers.utils.formatUnits(Number(res.result.balance), res.result.decimals),
+                    price: 0,
+                    currency: null,
+                }
             })
-            const usdcArbBalance = await socketTech.Balances.getBalance({
-                tokenAddress: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-                chainId: 42161,
-                userAddress: address,
-            })
-            const usdcOptiBalance = await socketTech.Balances.getBalance({
-                tokenAddress: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
-                chainId: 10,
-                userAddress: address,
-            })
-            const x = userBalancesResponse.result.concat([
-                formatUserBalance(usdcPolygonBalance),
-                formatUserBalance(usdcArbBalance),
-                formatUserBalance(usdcOptiBalance),
-            ])
 
-            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result
+            const x = userBalancesResponse.result.concat([usdcPolygonBalance])
+
+            const updatedBalances: interfaces.IUserBalance[] = x
                 .map((balances: any) => {
                     return {
                         chainId: balances.chainId,
