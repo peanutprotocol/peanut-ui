@@ -109,9 +109,11 @@ export function xchainClaimView({
                     link: claimDetails[0].link,
                     recipientAddress: address ?? '',
                     APIKey: process.env.PEANUT_API_KEY ?? '',
-                    destinationChainId: selectedChain.chainId.toString(),
-                    destinationTokenAddress: selectedToken.address,
-                    isTestnet,
+                    destinationChainId: selectedChain.chainId,
+                    destinationToken: selectedToken.address,
+                    isMainnet: !isTestnet,
+                    squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
+                    baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
                 })
             }
             verbose && console.log(claimTx)
@@ -139,9 +141,6 @@ export function xchainClaimView({
     }
 
     const getSquidRoute = async () => {
-        const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-            .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-            .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
         const tokenAmount = Math.floor(
             Number(claimDetails[0].tokenAmount) * Math.pow(10, claimDetails[0].tokenDecimals)
         ).toString()
@@ -154,18 +153,18 @@ export function xchainClaimView({
                         route.route?.params.toChain === selectedChain?.chainId
                 )
             ) {
-                const x = await peanut.getSquidRoute({
-                    isTestnet,
-                    fromChain: claimDetails[0].chainId.toString(),
+                const x = await peanut.getSquidRouteRaw({
+                    squidRouterUrl: 'https://v2.api.squidrouter.com/v2/route',
+                    fromChain: claimDetails[0].chainId,
                     fromToken: claimDetails[0].tokenAddress,
                     fromAmount: tokenAmount,
-                    toChain: selectedChain.chainId.toString(),
+                    toChain: selectedChain.chainId,
                     toToken: selectedToken.address,
                     slippage: 1,
                     fromAddress: address ?? '',
                     toAddress: address ?? '',
                 })
-                setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+                setPossibleRoutesArray([...possibleRoutesArray, { route: x.route }])
                 verbose && console.log(x)
             }
         } catch (error: any) {

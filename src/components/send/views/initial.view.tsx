@@ -345,79 +345,144 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     trackId: 'ui',
                 }
 
-                const latestContractVersion = peanut.getLatestContractVersion({
-                    chainId: sendFormData.chainId.toString(),
-                    type: advancedDropdownOpen ? 'batch' : 'normal',
-                })
-
                 setLoadingStates('preparing transaction')
 
-                const prepareTxsResponse = await peanut.prepareTxs({
-                    address: address ?? '',
-                    linkDetails,
-                    passwords: passwords,
-                    numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
-                    batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
-                    peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
-                })
-
+                let getLinksFromTxResponse
+                let txHash: string
                 const currentDateTime = new Date()
                 const tempLocalstorageKey =
                     'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
 
-                passwords.map((password, idx) => {
-                    const tempLink =
-                        '/claim?c=' +
-                        linkDetails.chainId +
-                        '&v=' +
-                        latestContractVersion +
-                        '&i=?&p=' +
-                        password +
-                        '&t=ui'
-                    utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
+                const latestContractVersion = peanut.getLatestContractVersion({
+                    chainId: sendFormData.chainId.toString(),
+                    type: 'normal',
+                    experimental: true,
                 })
 
-                const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+                if (
+                    _utils.toLowerCaseKeys(peanut.EIP3009Tokens[sendFormData.chainId])[tokenAddress.toLowerCase()] &&
+                    latestContractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
+                ) {
+                    verbose && console.log('creating gaslessly')
 
-                for (const tx of prepareTxsResponse.unsignedTxs) {
-                    setLoadingStates('sign in wallet')
-                    const x = await peanut.signAndSubmitTx({
-                        structSigner: {
-                            signer: signer,
-                        },
-                        unsignedTx: tx,
+                    const { payload, message } = await peanut.makeGaslessDepositPayload({
+                        linkDetails,
+                        password: passwords[0],
+                        contractVersion: peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION,
+                        address: address ?? '',
                     })
-                    isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
+
+                    verbose && console.log('makeGaslessDepositPayload result: ', { payload }, { message })
+
+                    setLoadingStates('sign in wallet')
+
+                    const userDepositSignature = await signer._signTypedData(
+                        message.domain,
+                        message.types,
+                        message.values
+                    )
+
+                    verbose && console.log('Signature:', userDepositSignature)
 
                     setLoadingStates('executing transaction')
-                    await x.tx.wait()
-                    signedTxsResponse.push(x)
+
+                    const response = await peanut.makeDepositGasless({
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        payload,
+                        signature: userDepositSignature,
+                        baseUrl: `${consts.peanut_api_url}/deposit-3009`,
+                    })
+
+                    passwords.map((password, idx) => {
+                        const tempLink =
+                            '/claim?c=' +
+                            linkDetails.chainId +
+                            '&v=' +
+                            latestContractVersion +
+                            '&i=?&p=' +
+                            password +
+                            '&t=ui'
+                        utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
+                    })
+
+                    verbose && console.log('makeDepositGasless response: ', response)
+
+                    setLoadingStates('creating link')
+
+                    await signer.provider.waitForTransaction(response.txHash)
+
+                    getLinksFromTxResponse = await peanut.getLinksFromTx({
+                        linkDetails,
+                        txHash: response.txHash,
+                        passwords: passwords,
+                    })
+
+                    txHash = response.txHash
+                } else {
+                    verbose && console.log('not creating gaslessly')
+
+                    const prepareTxsResponse = await peanut.prepareTxs({
+                        address: address ?? '',
+                        linkDetails,
+                        passwords: passwords,
+                        numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
+                        batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
+                        peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
+                    })
+
+                    passwords.map((password, idx) => {
+                        const tempLink =
+                            '/claim?c=' +
+                            linkDetails.chainId +
+                            '&v=' +
+                            latestContractVersion +
+                            '&i=?&p=' +
+                            password +
+                            '&t=ui'
+                        utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
+                    })
+
+                    const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+
+                    for (const tx of prepareTxsResponse.unsignedTxs) {
+                        setLoadingStates('sign in wallet')
+                        const x = await peanut.signAndSubmitTx({
+                            structSigner: {
+                                signer: signer,
+                            },
+                            unsignedTx: tx,
+                        })
+                        isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
+
+                        setLoadingStates('executing transaction')
+                        await x.tx.wait()
+                        signedTxsResponse.push(x)
+                    }
+
+                    setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
+
+                    getLinksFromTxResponse = await peanut.getLinksFromTx({
+                        linkDetails,
+                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                        passwords: passwords,
+                    })
+
+                    txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
                 }
 
-                setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
-
-                const getLinksFromTxResponse = await peanut.getLinksFromTx({
-                    linkDetails,
-                    txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
-                    passwords: passwords,
-                })
-
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
-                verbose && console.log('Transaction hash:', signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                verbose && console.log('Transaction hash:', txHash)
 
                 passwords.map((password, idx) => {
                     utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
                 })
 
                 getLinksFromTxResponse.links.forEach((link, index) => {
-                    utils.saveToLocalStorage(
-                        address + ' - ' + signedTxsResponse[signedTxsResponse.length - 1].txHash + ' - ' + index,
-                        link
-                    )
+                    utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
                 })
 
                 setClaimLink(getLinksFromTxResponse.links)
-                setTxHash(signedTxsResponse[signedTxsResponse.length - 1].txHash)
+                setTxHash(txHash)
                 setChainId(sendFormData.chainId)
                 onNextScreen()
             } catch (error: any) {
@@ -1008,7 +1073,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         />
                                     </div>
 
-                                    <div className="min-h-32 brutalscroll flex max-h-64 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
+                                    <div className="brutalscroll flex max-h-64 min-h-32 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div

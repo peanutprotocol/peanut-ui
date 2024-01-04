@@ -97,7 +97,10 @@ export function Claim() {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-            if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
+            if (
+                crossChainDetails.length > 0 &&
+                linkDetails.contractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
+            ) {
                 //Filter to remove mainnet
                 setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != 1))
                 return true
@@ -187,9 +190,9 @@ export function Claim() {
                         _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
 
-                    // if (await isBridgePossible(linkDetails)) {
-                    //disabling bridge for now
-                    if (false) {
+                    if (await isBridgePossible(linkDetails)) {
+                        //disabling bridge for now
+                        // if (false) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {
                         setLinkState('CLAIM')

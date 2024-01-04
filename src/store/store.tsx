@@ -2,6 +2,7 @@
 import { atom, useSetAtom } from 'jotai'
 import { useAccount } from 'wagmi'
 import { useEffect } from 'react'
+import { ethers } from 'ethersv5'
 import peanut from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
 import * as socketTech from '@socket.tech/socket-v2-sdk'
@@ -66,12 +67,33 @@ export function Store({ children }: { children: React.ReactNode }) {
 
     const loadUserBalances = async (address: string) => {
         try {
-            const userBalancesResponse = await socketTech.Balances.getBalances({
+            const userBalancesResponse: any = await socketTech.Balances.getBalances({
                 userAddress: address,
             })
+            const usdcPolygonBalance = await socketTech.Balances.getBalance({
+                tokenAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+                chainId: 137,
+                userAddress: address,
+            }).then((res) => {
+                return {
+                    chainId: res.result.chainId,
+                    address: res.result.tokenAddress,
+                    name: res.result.name,
+                    symbol: res.result.symbol,
+                    decimals: res.result.decimals,
+                    chainAgnosticId: null,
+                    icon: res.result.icon,
+                    logoURI: res.result.icon,
+                    amount: ethers.utils.formatUnits(Number(res.result.balance), res.result.decimals),
+                    price: 0,
+                    currency: null,
+                }
+            })
 
-            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result
-                .map((balances) => {
+            const x = userBalancesResponse.result.concat([usdcPolygonBalance])
+
+            const updatedBalances: interfaces.IUserBalance[] = x
+                .map((balances: any) => {
                     return {
                         chainId: balances.chainId,
                         symbol: balances.symbol,
@@ -88,8 +110,8 @@ export function Store({ children }: { children: React.ReactNode }) {
                 .sort((a: interfaces.IUserBalance, b: interfaces.IUserBalance) => {
                     if (a.chainId === b.chainId) {
                         // If the address is the native currency, move it to the top
-                        if (a.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return -1
-                        if (b.address === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return 1
+                        if (a.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return -1
+                        if (b.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return 1
 
                         // If 'chainId' is the same, sort by 'amount'
                         return b.amount - a.amount
