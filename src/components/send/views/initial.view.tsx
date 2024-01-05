@@ -43,6 +43,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)
+    const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
+    const [createGasless, setCreateGasless] = useState(true)
     const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     //global states
@@ -271,6 +273,33 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
+    const isGaslessDepositPossible = ({
+        tokenAddress,
+        latestContractVersion,
+        chainId,
+    }: {
+        tokenAddress: string
+        latestContractVersion?: string
+        chainId: number
+    }) => {
+        if (latestContractVersion == undefined)
+            latestContractVersion = peanut.getLatestContractVersion({
+                chainId: chainId.toString(),
+                type: 'normal',
+                experimental: true,
+            })
+        if (
+            _utils.toLowerCaseKeys(peanut.EIP3009Tokens[chainId as keyof typeof peanut.EIP3009Tokens])[
+                tokenAddress.toLowerCase()
+            ] &&
+            latestContractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
+        ) {
+            return true
+        } else {
+            return false
+        }
+    }
+
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -337,7 +366,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                 const linkDetails = {
                     chainId: sendFormData.chainId,
-                    tokenAmount: tokenAmount,
+                    tokenAmount: parseFloat(tokenAmount.toFixed(6)),
                     tokenType: tokenType,
                     tokenAddress: tokenAddress,
                     tokenDecimals: tokenDecimals,
@@ -360,8 +389,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 })
 
                 if (
-                    _utils.toLowerCaseKeys(peanut.EIP3009Tokens[sendFormData.chainId])[tokenAddress.toLowerCase()] &&
-                    latestContractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
+                    isGaslessDepositPossible({ tokenAddress, latestContractVersion, chainId: sendFormData.chainId }) &&
+                    createGasless
                 ) {
                     verbose && console.log('creating gaslessly')
 
@@ -567,12 +596,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
+                if (isGaslessDepositPossible({ tokenAddress, chainId: formwatch.chainId })) {
+                    setShowGaslessAvailable(true)
+                } else {
+                    setShowGaslessAvailable(false)
+                }
                 if (tokenAddress == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
                 } else {
                     fetchTokenPrice(tokenAddress, formwatch.chainId)
                 }
             }
+        }
+        if (formwatch.token) {
         }
     }, [formwatch.token, formwatch.chainId, isConnected])
 
@@ -873,7 +909,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     )}
                     <div
                         className={
-                            errorState.showError
+                            errorState.showError || showGaslessAvailable
                                 ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
                                 : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
                         }
@@ -906,10 +942,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 'Send'
                             )}
                         </button>
-                        {errorState.showError && (
+                        {errorState.showError ? (
                             <div className="text-center">
                                 <label className="font-bold text-red ">{errorState.errorMessage}</label>
                             </div>
+                        ) : (
+                            showGaslessAvailable && (
+                                <div className="flex flex-row items-center justify-center gap-1 text-center">
+                                    <label className="font-bold text-black ">
+                                        Uncheck this box if you don't want to create a link gaslessly
+                                    </label>
+                                    <input
+                                        type="checkbox"
+                                        className="m-0 mt-1 h-5 rounded-none p-0 accent-black"
+                                        checked={createGasless}
+                                        onChange={() => setCreateGasless(!createGasless)}
+                                    />
+                                </div>
+                            )
                         )}
                     </div>
                 </div>

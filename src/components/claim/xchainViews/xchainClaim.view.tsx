@@ -2,7 +2,7 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { WalletClient, useAccount } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
+import { waitForTransaction } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -98,6 +98,10 @@ export function xchainClaimView({
                     link: claimDetails[0].link,
                     recipientAddress: address ?? '',
                     APIKey: process.env.PEANUT_API_KEY ?? '',
+                    baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                })
+                await waitForTransaction({
+                    hash: claimTx.txHash,
                 })
             } else {
                 verbose && console.log('claiming cross chain')

@@ -66,6 +66,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                 link: detail.link,
                                 recipientAddress: address,
                                 APIKey: process.env.PEANUT_API_KEY ?? '',
+                                baseUrl: `${consts.peanut_api_url}/claim-v2`,
                             }),
                             details: {
                                 token: detail.tokenAddress,
@@ -148,6 +149,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                     verbose && console.log(link)
                     claimTxs.push(
                         peanut.claimLinkGasless({
+                            baseUrl: `${consts.peanut_api_url}/claim-v2`,
                             link,
                             recipientAddress: data.address,
                             APIKey: process.env.PEANUT_API_KEY ?? '',

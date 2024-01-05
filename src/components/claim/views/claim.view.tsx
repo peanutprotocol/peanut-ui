@@ -9,6 +9,7 @@ import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
+import { waitForTransaction } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -111,6 +112,10 @@ export function ClaimView({
                         link: claimLink[0],
                         recipientAddress: address,
                         APIKey: process.env.PEANUT_API_KEY ?? '',
+                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                    })
+                    await waitForTransaction({
+                        hash: claimTx.txHash,
                     })
                 }
                 verbose && console.log(claimTx)
@@ -197,6 +202,10 @@ export function ClaimView({
                     link: claimLink[0],
                     recipientAddress: data.address,
                     APIKey: process.env.PEANUT_API_KEY ?? '',
+                    baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                })
+                await waitForTransaction({
+                    hash: claimTx.txHash,
                 })
 
                 setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
