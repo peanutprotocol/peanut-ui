@@ -80,4 +80,30 @@ const taikoGrimsvotn = {
     contracts: {},
 } as const satisfies Chain
 
-export const chains = [...Object.values(wagmiChains), milkomeda, milkomedaTestnet, baseTestnet, taikoGrimsvotn]
+const ZKSyncSepolia = {
+    id: 300,
+    name: 'zkSync Sepolia Testnet',
+    network: 'zksyncsepolia',
+    nativeCurrency: {
+        name: 'Ether',
+        symbol: 'ETH',
+        decimals: 18,
+    },
+    rpcUrls: {
+        public: { http: ['https://sepolia.era.zksync.dev'] },
+        default: { http: ['https://sepolia.era.zksync.dev'] },
+    },
+    blockExplorers: {
+        default: { name: 'zkSync Block Explorer', url: ' "https://sepolia.explorer.zksync.io"' },
+    },
+    contracts: {},
+}
+
+export const chains = [
+    ...Object.values(wagmiChains),
+    milkomeda,
+    milkomedaTestnet,
+    baseTestnet,
+    taikoGrimsvotn,
+    ZKSyncSepolia,
+]
