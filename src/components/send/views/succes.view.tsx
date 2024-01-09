@@ -42,8 +42,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         }
     }, [])
 
-    //more web3inbox stuff
-
     const signMessage = useCallback(
         async (message: string) => {
             const res = await signMessageAsync({
@@ -64,19 +62,17 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         if (isSubscribed && isLoading) {
             console.log(isSubscribed)
             setIsLoading(false)
-            console.log('waiting')
             setTimeout(() => {
                 utils.sendNotification({
                     notification: {
                         title: 'Peanut Protocol',
-                        body: 'Welcome fren!',
+                        body: 'Welcome to Peanut-Protocol!',
                         icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/w3i/src/assets/peanutman-cheering.png',
                         url: undefined,
                         type: '9af57bc6-6419-4461-8193-87b7fea9b1f6',
                     },
                     accounts: [`eip155:1:${address}` ?? ''],
                 })
-                console.log('sent')
             }, 5000)
         }
     }, [isSubscribed, address, window])
