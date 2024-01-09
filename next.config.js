@@ -7,6 +7,7 @@ const nextConfig = {
         GA_KEY: process.env.GA_KEY,
         PROMO_LIST: process.env.PROMO_LIST,
         SENTRY_DSN: process.env.SENTRY_DSN,
+        NOTIFY_API_SECRET: process.env.NOTIFY_API_SECRET,
     },
     async rewrites() {
         return [
