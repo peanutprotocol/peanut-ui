@@ -38,6 +38,7 @@ export function Claim() {
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
     const [crossChainDetails, setCrossChainDetails] = useState<Array<Chain & { tokens: Token[] }>>()
     const [crossChainSuccess, setCrossChainSuccess] = useState<_consts.ICrossChainSuccess | undefined>(undefined)
+    const [senderAddress, setSenderAddress] = useState<string>('')
 
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
     const verbose = process.env.NODE_ENV === 'development' ? true : false
@@ -173,6 +174,15 @@ export function Claim() {
                 verbose && console.log('linkDetails', linkDetails)
                 setClaimLink([localLink.toString()])
 
+                const senderAddress = await utils.getSenderAddress({
+                    chainId: linkDetails.chainId.toString(),
+                    contractVersion: linkDetails.contractVersion,
+                    depositIdx: linkDetails.depositIndex,
+                })
+
+                console.log(senderAddress)
+                setSenderAddress(senderAddress)
+
                 setClaimDetails([linkDetails])
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
@@ -232,6 +242,8 @@ export function Claim() {
                     setClaimType,
                     tokenPrice,
                     setTokenPrice,
+                    senderAddress,
+                    setSenderAddress,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'MULTILINK_CLAIM' &&
                 createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
@@ -246,6 +258,8 @@ export function Claim() {
                     setClaimType,
                     tokenPrice,
                     setTokenPrice,
+                    senderAddress,
+                    setSenderAddress,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
                 <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
@@ -266,6 +280,8 @@ export function Claim() {
                     crossChainDetails,
                     crossChainSuccess,
                     setCrossChainSuccess,
+                    senderAddress,
+                    setSenderAddress,
                 } as _consts.IClaimScreenProps)}
         </global_components.CardWrapper>
     )

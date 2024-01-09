@@ -146,8 +146,11 @@ export const getSenderAddress = async ({
     depositIdx: number
 }) => {
     const contract = await peanut.getContract(chainId, null, contractVersion)
+    console.log(contract)
     const deposits = await contract.getAllDeposits()
+    console.log(deposits)
     const senderAddress = deposits[depositIdx].senderAddress
+    console.log(senderAddress)
     return senderAddress
 }
 

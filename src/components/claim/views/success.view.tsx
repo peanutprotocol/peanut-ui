@@ -10,7 +10,7 @@ import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
-export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
+export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
@@ -32,11 +32,7 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
     }, [])
 
     const sendNotification = async (linkDetails: interfaces.ILinkDetails) => {
-        const senderAddress = await utils.getSenderAddress({
-            chainId: linkDetails.chainId.toString(),
-            contractVersion: linkDetails.contractVersion,
-            depositIdx: linkDetails.depositIndex,
-        })
+        console.log('sendNotification', senderAddress)
         const accounts = [`eip155:1:${senderAddress}` ?? '']
         const chainName = chainDetails.find((detail) => detail.chainId.toString() === linkDetails.chainId.toString())
             ?.name
