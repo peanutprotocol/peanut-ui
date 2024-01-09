@@ -84,7 +84,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
             setLoadingText('Please confirm in your wallet')
             await registerIdentity(signMessage)
                 .then(async () => {
-                    await handleSubscribe()
+                    await handleSubscribe(true)
                 })
                 .catch((err) => {
                     console.error({ err })
@@ -96,18 +96,21 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         }
     }, [signMessage, registerIdentity, account])
 
-    const handleSubscribe = useCallback(async () => {
-        try {
-            if (!identityKey) {
-                await handleRegistration()
+    const handleSubscribe = useCallback(
+        async (hasJustRegistered?: boolean) => {
+            try {
+                if (!identityKey && !hasJustRegistered) {
+                    await handleRegistration()
+                }
+                setIsLoading(true)
+                setLoadingText('subscribing to peanut')
+                await subscribe()
+            } catch (error) {
+                console.error({ error })
             }
-            setIsLoading(true)
-            setLoadingText('subscribing to peanut')
-            await subscribe()
-        } catch (error) {
-            console.error({ error })
-        }
-    }, [subscribe, identityKey])
+        },
+        [subscribe, identityKey]
+    )
 
     return (
         <>
