@@ -149,6 +149,26 @@ input {
     left: 0.8rem; /* Move right to simulate pressing */
 }
 
+#cta-btn-2 {
+    border: 2px solid black; /* Smaller border */
+    transition:
+        box-shadow 0.3s ease-in-out,
+        top 0.3s ease-in-out,
+        left 0.3s ease-in-out;
+    box-shadow: 0.5rem 0.5rem 0 0px #000; /* Smaller initial shadow */
+    color: #000;
+    font-weight: 900;
+    position: relative;
+    top: -0.5rem; /* Adjusted top position */
+    left: 0;
+}
+
+#cta-btn-2:hover {
+    box-shadow: 0rem 0rem 0 0px #000; /* Remove shadow to simulate being pressed */
+    top: 0rem; /* Adjust top to simulate pressing */
+    left: 0.3rem; /* Adjust left to simulate pressing */
+}
+
 #cta-div {
     border: 3px solid black;
     transition:

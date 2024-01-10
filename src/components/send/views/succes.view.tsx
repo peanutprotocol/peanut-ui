@@ -69,7 +69,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         if (!account) return
         try {
             setIsLoading(true)
-            setLoadingText('Please confirm in your wallet')
+            setLoadingText('Confirm in wallet')
             await registerIdentity(signMessage)
                 .then(async () => {
                     await handleSubscribe(true)
@@ -91,7 +91,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     await handleRegistration()
                 }
                 setIsLoading(true)
-                setLoadingText('subscribing to peanut')
+                setLoadingText('Subscribing')
                 await subscribe()
             } catch (error) {
                 console.error({ error })
@@ -177,41 +177,83 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     </ul>
                 )}
 
-                {claimLink.length == 1 ? (
-                    <div
-                        className="mt-2 flex cursor-pointer items-center justify-center"
-                        onClick={() => {
-                            setIsDropdownOpen(!isDropdownOpen)
-                        }}
-                    >
-                        <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
-                        <img
-                            style={{
-                                transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
-                                transition: 'transform 0.3s ease-in-out',
-                            }}
-                            src={dropdown_svg.src}
-                            alt=""
-                            className={'h-6 '}
-                        />
-                    </div>
-                ) : !copiedAll ? (
-                    <div className="text-m border-none bg-white ">
-                        Click{' '}
-                        <span
-                            className="cursor-pointer text-black underline"
+                <div
+                    className={
+                        ' flex flex-col items-center justify-center ' + (isSubscribed ? ' mt-2 gap-4 ' : ' mt-8 gap-6 ')
+                    }
+                >
+                    {!isRegistered || !isSubscribed ? (
+                        <div className="flex flex-col items-center justify-center gap-4">
+                            <button
+                                className=" block w-[90%] cursor-pointer bg-white px-4 py-2 font-black sm:w-2/5 lg:w-1/2"
+                                id="cta-btn-2"
+                                onClick={() => {
+                                    if (!isRegistered) {
+                                        handleRegistration()
+                                    } else if (!isSubscribed) {
+                                        handleSubscribe()
+                                    }
+                                }}
+                            >
+                                {isLoading ? (
+                                    <div className=" m-0 flex items-center justify-center gap-2 p-0 text-center">
+                                        <p className="text-m m-0 p-0">{loadingText}</p>{' '}
+                                        <span className="bouncing-dots flex">
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <p className="text-m m-0 p-0">Subscribe</p>
+                                )}
+                            </button>
+                            <p className="text-m m-0" id="">
+                                Get notified when your link gets claimed!
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-m" id="">
+                            You will be notified when your fren claims their funds!
+                        </p>
+                    )}
+
+                    {claimLink.length == 1 ? (
+                        <div
+                            className="flex cursor-pointer items-center justify-center"
                             onClick={() => {
-                                navigator.clipboard.writeText(claimLink.join('\n'))
-                                setCopiedAll(true)
+                                setIsDropdownOpen(!isDropdownOpen)
                             }}
                         >
-                            here
-                        </span>{' '}
-                        to copy all links{' '}
-                    </div>
-                ) : (
-                    <div className="text-m border-none bg-white ">Copied all links to clipboard!</div>
-                )}
+                            <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
+                            <img
+                                style={{
+                                    transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                                    transition: 'transform 0.3s ease-in-out',
+                                }}
+                                src={dropdown_svg.src}
+                                alt=""
+                                className={'h-6 '}
+                            />
+                        </div>
+                    ) : !copiedAll ? (
+                        <div className="text-m border-none bg-white ">
+                            Click{' '}
+                            <span
+                                className="cursor-pointer text-black underline"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(claimLink.join('\n'))
+                                    setCopiedAll(true)
+                                }}
+                            >
+                                here
+                            </span>{' '}
+                            to copy all links{' '}
+                        </div>
+                    ) : (
+                        <div className="text-m border-none bg-white ">Copied all links to clipboard!</div>
+                    )}
+                </div>
 
                 {isDropdownOpen && (
                     <div>
@@ -257,52 +299,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                         </p>
                     </div>
                 )}
-
-                {isLoading ? (
-                    <div className=" flex items-center justify-center gap-2 text-center">
-                        <p className="text-m mt-4">{loadingText}</p>{' '}
-                        <span className="bouncing-dots flex">
-                            <span className="dot">.</span>
-                            <span className="dot">.</span>
-                            <span className="dot">.</span>
-                        </span>
-                    </div>
-                ) : !isRegistered || !isSubscribed ? (
-                    <p className="text-m mt-4" id="to_address-description">
-                        Click{' '}
-                        <a
-                            onClick={() => {
-                                if (!isRegistered) {
-                                    handleRegistration()
-                                } else if (!isSubscribed) {
-                                    handleSubscribe()
-                                }
-                            }}
-                            target="_blank"
-                            className="cursor-pointer text-black underline"
-                        >
-                            here
-                        </a>{' '}
-                        to be notified when your fren claims their funds!
-                    </p>
-                ) : (
-                    <p className="text-m mt-4" id="to_address-description">
-                        You will be notified when your fren claims their funds!
-                    </p>
-                )}
-
-                <p className="mt-4 text-xs" id="to_address-description">
-                    {' '}
-                    Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
-                    <a
-                        href="https://discord.gg/BX9Ak7AW28"
-                        target="_blank"
-                        className="cursor-pointer text-black underline"
-                    >
-                        Discord
-                    </a>
-                    !
-                </p>
             </div>
 
             <global_components.PeanutMan type="presenting" />
