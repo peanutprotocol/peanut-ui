@@ -39,7 +39,6 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
         const notification = {
             title: 'Peanut Protocol',
             body: `Your link has been claimed on ${chainName} by ${senderAddress}`,
-            icon: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/w3i/src/assets/peanutman-cheering.png',
             url: undefined,
             type: '2aee6e5f-091d-444e-96cd-868ba2ddd0e7',
         }
