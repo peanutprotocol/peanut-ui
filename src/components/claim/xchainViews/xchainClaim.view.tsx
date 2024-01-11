@@ -109,16 +109,20 @@ export function xchainClaimView({
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
 
-                claimTx = await peanut.claimLinkXChainGasless({
-                    link: claimDetails[0].link,
-                    recipientAddress: address ?? '',
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                    destinationChainId: selectedChain.chainId,
-                    destinationToken: selectedToken.address,
-                    isMainnet: !isTestnet,
-                    squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
-                    baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
-                })
+                try {
+                    claimTx = await peanut.claimLinkXChainGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        destinationChainId: selectedChain.chainId,
+                        destinationToken: selectedToken.address,
+                        isMainnet: !isTestnet,
+                        squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
+                        baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
+                    })
+                } catch (error) {
+                    console.error(error)
+                }
             }
             verbose && console.log(claimTx)
 
