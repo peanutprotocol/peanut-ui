@@ -83,7 +83,18 @@ export function Claim() {
         } else return false
     }
 
-    const isBridgePossible = async (linkDetails: interfaces.ILinkDetails) => {
+    const isBridgePossible = async (linkDetails: interfaces.ILinkDetails, tokenPrice: number | undefined) => {
+        let tokenPriceSufficient = false
+
+        if (tokenPrice) {
+            if (Number(linkDetails.tokenAmount) * tokenPrice < 5) {
+                tokenPriceSufficient = false
+            } else {
+                tokenPriceSufficient = true
+            }
+        } else {
+            tokenPriceSufficient = true
+        }
         if (linkDetails.tokenType == '2') {
             return false
         }
@@ -103,7 +114,11 @@ export function Claim() {
             ) {
                 //Filter to remove mainnet
                 setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != 1))
-                return true
+                if (tokenPriceSufficient) {
+                    return true
+                } else {
+                    return false
+                }
             } else {
                 return false
             }
@@ -190,7 +205,7 @@ export function Claim() {
                         _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
 
-                    if (await isBridgePossible(linkDetails)) {
+                    if (await isBridgePossible(linkDetails, _tokenprice ? Number(_tokenprice) : undefined)) {
                         //disabling bridge for now
                         // if (false) {
                         setLinkState('XCHAIN_CLAIM')

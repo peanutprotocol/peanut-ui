@@ -693,8 +693,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                     : '$ ' +
                                                       utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
                                                 : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
+                                                ? '0.00'
+                                                : '$ 0.00'}
                                         </label>
                                     </div>
                                 ) : (
@@ -908,7 +908,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         </div>
                     )}
                     <div className="m-0 flex w-full flex-col items-center p-0 text-center  sm:mb-3">
-                        <h3 className="bold m-0 p-0">Cross chain transactions only work on Polygon for now.</h3>
+                        <h3 className="bold m-0 p-0">Cross chain transactions have a minimum amount of $5.</h3>
                     </div>
                     <div
                         className={
@@ -1126,7 +1126,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         />
                                     </div>
 
-                                    <div className="brutalscroll flex max-h-64 min-h-32 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
+                                    <div className="brutalscroll min-h-32 flex max-h-64 flex-col overflow-auto	 overflow-x-hidden  sm:mt-2 ">
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
