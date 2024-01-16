@@ -100,11 +100,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         [subscribe, identityKey]
     )
 
-    useEffect(() => {
-        console.log({ isSubscribed, isRegistered, isSubscribing })
-        console.log(isSubscribed)
-    }, [isSubscribed, isRegistered, isSubscribing])
-
     return (
         <>
             <div className="flex w-full flex-col items-center text-center ">

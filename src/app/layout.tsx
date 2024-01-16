@@ -56,11 +56,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         // This authorizes this dapp to control notification subscriptions for all domains (including `app.example.com`), not just `window.location.host`
         isLimited: false,
     })
-
-    useEffect(() => {
-        console.log('web3inboxIsReady', web3inboxIsReady)
-    }, [web3inboxIsReady])
-
     return (
         <html lang="en">
             <body className={inter.className}>
