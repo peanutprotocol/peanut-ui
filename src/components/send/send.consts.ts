@@ -34,7 +34,6 @@ export interface ISendScreenProps {
     setTxHash: (txHash: string) => void
     chainId: number
     setChainId: (chainId: number) => void
-    isWeb3InboxReady: boolean
 }
 
 export const INIT_VIEW: ISendScreenState = {

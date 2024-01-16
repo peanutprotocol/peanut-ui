@@ -2,7 +2,7 @@
 import { createElement, useEffect, useState } from 'react'
 import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
-import { useInitWeb3InboxClient, useW3iAccount } from '@web3inbox/widget-react'
+import { useW3iAccount } from '@web3inbox/widget-react'
 import { useAccount } from 'wagmi'
 
 export function Send() {
