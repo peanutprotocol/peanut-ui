@@ -5,10 +5,14 @@ import * as _consts from '../claim.consts'
 import * as store from '@/store/'
 import * as global_components from '@/components/global'
 import * as hooks from '@/hooks'
+import * as utils from '@/utils'
+import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
+import { useAccount } from 'wagmi'
 
-export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
+export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
+    const { address } = useAccount()
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
@@ -26,7 +30,26 @@ export function ClaimSuccessView({ txHash, claimDetails }: _consts.IClaimScreenP
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
+        sendNotification(claimDetails[0])
     }, [])
+
+    const sendNotification = async (linkDetails: interfaces.ILinkDetails) => {
+        console.log('sendNotification', senderAddress)
+        const accounts = [`eip155:1:${senderAddress}` ?? '']
+        const chainName = chainDetails.find(
+            (detail) => detail.chainId.toString() === linkDetails.chainId.toString()
+        )?.name
+        const notification = {
+            title: 'Peanut Protocol',
+            body: `Your link has been claimed on ${chainName} by ${address ?? ''}`,
+            url: undefined,
+            type: '2aee6e5f-091d-444e-96cd-868ba2ddd0e7',
+        }
+        utils.sendNotification({
+            notification,
+            accounts,
+        })
+    }
 
     return (
         <>

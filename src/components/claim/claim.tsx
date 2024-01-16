@@ -27,7 +27,7 @@ interface Token {
     symbol: string
 }
 
-export function Claim({ link }: { link: string }) {
+export function Claim() {
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
@@ -38,6 +38,7 @@ export function Claim({ link }: { link: string }) {
     const [tokenPrice, setTokenPrice] = useState<string | undefined>(undefined)
     const [crossChainDetails, setCrossChainDetails] = useState<Array<Chain & { tokens: Token[] }>>()
     const [crossChainSuccess, setCrossChainSuccess] = useState<_consts.ICrossChainSuccess | undefined>(undefined)
+    const [senderAddress, setSenderAddress] = useState<string>('')
 
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
     const verbose = process.env.NODE_ENV === 'development' ? true : false
@@ -173,6 +174,15 @@ export function Claim({ link }: { link: string }) {
                 verbose && console.log('linkDetails', linkDetails)
                 setClaimLink([localLink.toString()])
 
+                const senderAddress = await utils.getSenderAddress({
+                    chainId: linkDetails.chainId.toString(),
+                    contractVersion: linkDetails.contractVersion,
+                    depositIdx: linkDetails.depositIndex,
+                })
+
+                console.log(senderAddress)
+                setSenderAddress(senderAddress)
+
                 setClaimDetails([linkDetails])
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
@@ -203,10 +213,11 @@ export function Claim({ link }: { link: string }) {
     }
 
     useEffect(() => {
-        if (link) {
-            checkLink(link)
+        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
+        if (pageUrl) {
+            checkLink(pageUrl)
         }
-    }, [link])
+    }, [])
 
     return (
         <global_components.CardWrapper>
@@ -231,6 +242,8 @@ export function Claim({ link }: { link: string }) {
                     setClaimType,
                     tokenPrice,
                     setTokenPrice,
+                    senderAddress,
+                    setSenderAddress,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'MULTILINK_CLAIM' &&
                 createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
@@ -245,6 +258,8 @@ export function Claim({ link }: { link: string }) {
                     setClaimType,
                     tokenPrice,
                     setTokenPrice,
+                    senderAddress,
+                    setSenderAddress,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
                 <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
@@ -265,6 +280,8 @@ export function Claim({ link }: { link: string }) {
                     crossChainDetails,
                     crossChainSuccess,
                     setCrossChainSuccess,
+                    senderAddress,
+                    setSenderAddress,
                 } as _consts.IClaimScreenProps)}
         </global_components.CardWrapper>
     )

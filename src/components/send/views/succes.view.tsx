@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import QRCode from 'react-qr-code'
 
 import dropdown_svg from '@/assets/dropdown.svg'
@@ -7,21 +7,23 @@ import * as _consts from '../send.consts'
 import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
-
-const linkss = [
-    'http://localhost:3000/claim#?c=5&v=v4&i=73&p=pCPss4a0WiRgbiDo&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=74&p=2ldLR8WHSR4ivkPs&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=75&p=o5BmA0Xoe5AKzXm1&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=76&p=5825iSMUmio1SMSs&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=77&p=xMhU49Y4YCFEHDAZ&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=78&p=hfn0ziQZtgiIj2bI&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=79&p=ngfZ7Npk497O9Ood&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=80&p=Z5q412r2w7POlzW1&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=81&p=4YF9JCQyLahbw8rA&t=ui',
-    'http://localhost:3000/claim#?c=5&v=v4&i=82&p=ZbOBBU3mS44E8pVV&t=ui',
-]
+import * as utils from '@/utils'
+import { useAccount, useSignMessage } from 'wagmi'
+import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
+    //web3inbox stuff
+    const { address } = useAccount({
+        onDisconnect: () => {
+            setAccount('')
+        },
+    })
+    const { signMessageAsync } = useSignMessage()
+    const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
+    const { isSubscribed, subscribe, isSubscribing } = useManageSubscription(`eip155:1:${address}`)
+
+    const [isLoading, setIsLoading] = useState(false)
+    const [loadingText, setLoadingText] = useState('')
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isCopied, setIsCopied] = useState(false)
     const [copiedLink, setCopiedLink] = useState<string[]>()
@@ -39,6 +41,64 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
             }, 3000)
         }
     }, [])
+
+    const signMessage = useCallback(
+        async (message: string) => {
+            const res = await signMessageAsync({
+                message,
+            })
+
+            return res as string
+        },
+        [signMessageAsync]
+    )
+
+    useEffect(() => {
+        if (!Boolean(address)) return
+        setAccount(`eip155:1:${address}`)
+    }, [signMessage, address, setAccount])
+
+    useEffect(() => {
+        if (isSubscribed && isLoading) {
+            console.log(isSubscribed)
+            setIsLoading(false)
+        }
+    }, [isSubscribed, address, window])
+
+    const handleRegistration = useCallback(async () => {
+        if (!account) return
+        try {
+            setIsLoading(true)
+            setLoadingText('Confirm in wallet')
+            await registerIdentity(signMessage)
+                .then(async () => {
+                    await handleSubscribe(true)
+                })
+                .catch((err) => {
+                    console.error({ err })
+                    setIsLoading(false)
+                })
+        } catch (registerIdentityError) {
+            setIsLoading(true)
+            console.error({ registerIdentityError })
+        }
+    }, [signMessage, registerIdentity, account])
+
+    const handleSubscribe = useCallback(
+        async (hasJustRegistered?: boolean) => {
+            try {
+                if (!identityKey && !hasJustRegistered) {
+                    await handleRegistration()
+                }
+                setIsLoading(true)
+                setLoadingText('Subscribing')
+                await subscribe()
+            } catch (error) {
+                console.error({ error })
+            }
+        },
+        [subscribe, identityKey]
+    )
 
     return (
         <>
@@ -80,74 +140,120 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                     </div>
                 ) : (
                     <ul className="brutalscroll max-h-[360px] w-4/5 flex-col items-center justify-center overflow-x-hidden overflow-y-scroll p-2">
-                        {claimLink.map((link, index) => (
-                            <li
-                                className="brutalborder relative mb-4 flex w-full items-center bg-black py-1 text-white"
-                                key={index}
-                            >
-                                <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
-                                    {link}
-                                </div>
-
-                                <div
-                                    className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(link)
-                                        setCopiedLink([link])
-                                    }}
+                        {claimLink &&
+                            claimLink.map((link, index) => (
+                                <li
+                                    className="brutalborder relative mb-4 flex w-full items-center bg-black py-1 text-white"
+                                    key={index}
                                 >
-                                    {copiedLink?.includes(link) ? (
-                                        <div className="flex h-full items-center border-none bg-white text-base font-bold">
-                                            <span className="tooltiptext inline w-full justify-center" id="myTooltip">
-                                                Copied!
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold">
-                                            <label className="cursor-pointer text-black">COPY</label>
-                                        </button>
-                                    )}
-                                </div>
-                            </li>
-                        ))}
+                                    <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
+                                        {link}
+                                    </div>
+
+                                    <div
+                                        className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(link)
+                                            setCopiedLink([link])
+                                        }}
+                                    >
+                                        {copiedLink?.includes(link) ? (
+                                            <div className="flex h-full items-center border-none bg-white text-base font-bold">
+                                                <span
+                                                    className="tooltiptext inline w-full justify-center"
+                                                    id="myTooltip"
+                                                >
+                                                    Copied!
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold">
+                                                <label className="cursor-pointer text-black">COPY</label>
+                                            </button>
+                                        )}
+                                    </div>
+                                </li>
+                            ))}
                     </ul>
                 )}
 
-                {claimLink.length == 1 ? (
-                    <div
-                        className="mt-2 flex cursor-pointer items-center justify-center"
-                        onClick={() => {
-                            setIsDropdownOpen(!isDropdownOpen)
-                        }}
-                    >
-                        <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
-                        <img
-                            style={{
-                                transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
-                                transition: 'transform 0.3s ease-in-out',
-                            }}
-                            src={dropdown_svg.src}
-                            alt=""
-                            className={'h-6 '}
-                        />
-                    </div>
-                ) : !copiedAll ? (
-                    <div className="text-m border-none bg-white ">
-                        Click{' '}
-                        <span
-                            className="cursor-pointer text-black underline"
+                <div
+                    className={
+                        ' flex flex-col items-center justify-center ' + (isSubscribed ? ' mt-2 gap-4 ' : ' mt-8 gap-6 ')
+                    }
+                >
+                    {!isRegistered || !isSubscribed ? (
+                        <div className="flex flex-col items-center justify-center gap-4">
+                            <button
+                                className=" block w-[90%] cursor-pointer bg-white px-4 py-2 font-black sm:w-2/5 lg:w-1/2"
+                                id="cta-btn-2"
+                                onClick={() => {
+                                    if (!isRegistered) {
+                                        handleRegistration()
+                                    } else if (!isSubscribed) {
+                                        handleSubscribe()
+                                    }
+                                }}
+                            >
+                                {isLoading ? (
+                                    <div className=" m-0 flex items-center justify-center gap-2 p-0 text-center">
+                                        <p className="text-m m-0 p-0">{loadingText}</p>{' '}
+                                        <span className="bouncing-dots flex">
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <p className="text-m m-0 p-0">Subscribe</p>
+                                )}
+                            </button>
+                            <p className="text-m m-0" id="">
+                                Get notified when your link gets claimed!
+                            </p>
+                        </div>
+                    ) : (
+                        <p className="text-m" id="">
+                            You will be notified when your fren claims their funds!
+                        </p>
+                    )}
+
+                    {claimLink.length == 1 ? (
+                        <div
+                            className="flex cursor-pointer items-center justify-center"
                             onClick={() => {
-                                navigator.clipboard.writeText(claimLink.join('\n'))
-                                setCopiedAll(true)
+                                setIsDropdownOpen(!isDropdownOpen)
                             }}
                         >
-                            here
-                        </span>{' '}
-                        to copy all links{' '}
-                    </div>
-                ) : (
-                    <div className="text-m border-none bg-white ">Copied all links to clipboard!</div>
-                )}
+                            <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
+                            <img
+                                style={{
+                                    transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                                    transition: 'transform 0.3s ease-in-out',
+                                }}
+                                src={dropdown_svg.src}
+                                alt=""
+                                className={'h-6 '}
+                            />
+                        </div>
+                    ) : !copiedAll ? (
+                        <div className="text-m border-none bg-white ">
+                            Click{' '}
+                            <span
+                                className="cursor-pointer text-black underline"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(claimLink.join('\n'))
+                                    setCopiedAll(true)
+                                }}
+                            >
+                                here
+                            </span>{' '}
+                            to copy all links{' '}
+                        </div>
+                    ) : (
+                        <div className="text-m border-none bg-white ">Copied all links to clipboard!</div>
+                    )}
+                </div>
 
                 {isDropdownOpen && (
                     <div>
@@ -177,36 +283,22 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                                 Your transaction hash
                             </a>
                         </p>
+                        <p className="text-m mt-4" id="to_address-description">
+                            {' '}
+                            Want to do it again? click{' '}
+                            <a
+                                onClick={() => {
+                                    onCustomScreen('INITIAL')
+                                }}
+                                target="_blank"
+                                className="cursor-pointer text-black underline"
+                            >
+                                here
+                            </a>{' '}
+                            to go back home!
+                        </p>
                     </div>
                 )}
-
-                <p className="text-m mt-4" id="to_address-description">
-                    {' '}
-                    Want to do it again? click{' '}
-                    <a
-                        onClick={() => {
-                            onCustomScreen('INITIAL')
-                        }}
-                        target="_blank"
-                        className="cursor-pointer text-black underline"
-                    >
-                        here
-                    </a>{' '}
-                    to go back home!
-                </p>
-
-                <p className="mt-4 text-xs" id="to_address-description">
-                    {' '}
-                    Thoughts? Feedback? Use cases? Memes? Hit us up on{' '}
-                    <a
-                        href="https://discord.gg/BX9Ak7AW28"
-                        target="_blank"
-                        className="cursor-pointer text-black underline"
-                    >
-                        Discord
-                    </a>
-                    !
-                </p>
             </div>
 
             <global_components.PeanutMan type="presenting" />

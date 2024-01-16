@@ -1,14 +1,26 @@
 'use client'
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
-import code_snippet from '@/assets/code_snippet.png'
+import { useW3iAccount } from '@web3inbox/widget-react'
+import { useAccount } from 'wagmi'
 
 export function Send() {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')
     const [txHash, setTxHash] = useState<string>('')
     const [chainId, setChainId] = useState<number>(0)
+    const { setAccount } = useW3iAccount()
+    const { address } = useAccount({
+        onDisconnect: () => {
+            setAccount('')
+        },
+    })
+
+    useEffect(() => {
+        if (!Boolean(address)) return
+        setAccount(`eip155:1:${address}`)
+    }, [address, setAccount])
 
     const handleOnNext = () => {
         const newIdx = sendScreen.idx + 1

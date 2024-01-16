@@ -1,4 +1,5 @@
 import * as interfaces from '@/interfaces'
+import { peanut } from '@squirrel-labs/peanut-sdk'
 import { providers } from 'ethers'
 import { WalletClient } from 'wagmi'
 export const shortenAddress = (address: string) => {
@@ -102,6 +103,24 @@ export const formatAmountWithoutComma = (input: string) => {
     if (numericValue === '' || regex.test(numericValue)) {
         return numericValue
     } else return ''
+}
+
+export const getSenderAddress = async ({
+    chainId,
+    contractVersion,
+    depositIdx,
+}: {
+    chainId: string
+    contractVersion: string
+    depositIdx: number
+}) => {
+    const contract = await peanut.getContract(chainId, null, contractVersion)
+    console.log(contract)
+    const deposits = await contract.getAllDeposits()
+    console.log(deposits)
+    const senderAddress = deposits[depositIdx].senderAddress
+    console.log(senderAddress)
+    return senderAddress
 }
 
 export function walletClientToSigner(walletClient: WalletClient) {
