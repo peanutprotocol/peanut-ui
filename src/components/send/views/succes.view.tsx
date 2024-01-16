@@ -20,7 +20,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     })
     const { signMessageAsync } = useSignMessage()
     const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
-    const { isSubscribed, subscribe, isSubscribing } = useManageSubscription()
+    const { isSubscribed, subscribe, isSubscribing } = useManageSubscription(`eip155:1:${address}`)
 
     const [isLoading, setIsLoading] = useState(false)
     const [loadingText, setLoadingText] = useState('')
