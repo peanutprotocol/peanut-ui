@@ -38,7 +38,7 @@ export interface ISendScreenProps {
 }
 
 export const INIT_VIEW: ISendScreenState = {
-    screen: 'INITIAL',
+    screen: 'SUCCESS',
     idx: 0,
 }
 

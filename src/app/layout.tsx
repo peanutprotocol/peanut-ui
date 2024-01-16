@@ -12,6 +12,7 @@ import '../../sentry.client.config'
 import '../../sentry.server.config'
 import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
+import { useInitWeb3InboxClient } from '@web3inbox/widget-react'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -45,6 +46,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         peanut.toggleVerbose(true)
         peanut.greeting()
     }, [])
+
+    const web3inboxIsReady = useInitWeb3InboxClient({
+        // The project ID and domain you setup in the Domain Setup section
+        projectId: process.env.WC_PROJECT_ID ?? '',
+        domain: 'peanut.to',
+
+        // Allow localhost development with "unlimited" mode.
+        // This authorizes this dapp to control notification subscriptions for all domains (including `app.example.com`), not just `window.location.host`
+        isLimited: false,
+    })
+
+    useEffect(() => {
+        console.log('web3inboxIsReady', web3inboxIsReady)
+    }, [web3inboxIsReady])
 
     return (
         <html lang="en">

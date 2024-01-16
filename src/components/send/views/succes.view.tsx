@@ -20,7 +20,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     })
     const { signMessageAsync } = useSignMessage()
     const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
-    const { isSubscribed, subscribe } = useManageSubscription()
+    const { isSubscribed, subscribe, isSubscribing } = useManageSubscription()
 
     const [isLoading, setIsLoading] = useState(false)
     const [loadingText, setLoadingText] = useState('')
@@ -99,6 +99,11 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         },
         [subscribe, identityKey]
     )
+
+    useEffect(() => {
+        console.log({ isSubscribed, isRegistered, isSubscribing })
+        console.log(isSubscribed)
+    }, [isSubscribed, isRegistered, isSubscribing])
 
     return (
         <>
