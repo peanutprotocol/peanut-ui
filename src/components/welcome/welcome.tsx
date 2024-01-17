@@ -42,7 +42,7 @@ const features = [
     {
         name: 'Gasless',
         description:
-            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim links solve the cold start problem.',
+            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim and send links solve the cold start problem.',
         bg: 'bg-teal',
         primaryRedirectUrl:
             'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
@@ -95,7 +95,7 @@ const faqs = [
     },
     {
         question: 'What are the fees?',
-        answer: 'On our dapp, we sponsor gasless claiming. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
+        answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
         redirectUrl: 'https://docs.peanut.to/overview/pricing',
         redirectText: 'here.',
     },
