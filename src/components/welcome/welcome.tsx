@@ -327,9 +327,9 @@ export function Welcome() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim gasless</h1>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim and send gaslessly</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
-                            Onboard new users seamlessly with a gassless claiming and onboarding experience.
+                            Onboard new users seamlessly with a gassless sending and onboarding experience.
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
