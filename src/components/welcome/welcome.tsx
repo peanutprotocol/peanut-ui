@@ -42,7 +42,7 @@ const features = [
     {
         name: 'Gasless',
         description:
-            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim links solve the cold start problem.',
+            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim and send links solve the cold start problem.',
         bg: 'bg-teal',
         primaryRedirectUrl:
             'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
@@ -95,7 +95,7 @@ const faqs = [
     },
     {
         question: 'What are the fees?',
-        answer: 'On our dapp, we sponsor gasless claiming. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
+        answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
         redirectUrl: 'https://docs.peanut.to/overview/pricing',
         redirectText: 'here.',
     },
@@ -327,9 +327,9 @@ export function Welcome() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim gasless</h1>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim and send gaslessly</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
-                            Onboard new users seamlessly with a gassless claiming and onboarding experience.
+                            Onboard new users seamlessly with a gassless sending and onboarding experience.
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
