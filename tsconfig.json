@@ -16,12 +16,12 @@
         "incremental": true,
         "plugins": [
             {
-                "name": "next"
-            }
+                "name": "next",
+            },
         ],
         "paths": {
-            "@/*": ["./src/*"]
-        }
+            "@/*": ["./src/*"],
+        },
     },
     "include": [
         "next-env.d.ts",
@@ -29,7 +29,7 @@
         "**/*.tsx",
         ".next/types/**/*.ts",
         "src/app/api/assetLinks.js",
-        "src/app/api/appleAppSiteAssociation.js"
+        "src/app/api/appleAppSiteAssociation.js",
     ],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules"],
 }
