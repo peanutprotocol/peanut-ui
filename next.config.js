@@ -51,6 +51,10 @@ const nextConfig = {
                     },
                 ],
             },
+            {
+                source: '/(.*)',
+                headers: [{ key: 'X-Frame-Options', value: 'DENY' }],
+            },
         ]
     },
 }
