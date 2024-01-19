@@ -114,6 +114,7 @@ export function ClaimView({
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         baseUrl: `${consts.peanut_api_url}/claim-v2`,
                     })
+                    await new Promise((resolve) => setTimeout(resolve, 2000))
                     await waitForTransaction({
                         hash: claimTx.txHash,
                     })
