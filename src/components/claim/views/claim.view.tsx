@@ -95,7 +95,7 @@ export function ClaimView({
                 setLoadingStates('executing transaction')
 
                 let claimTx
-                if (claimDetails[0].chainId == "1") {
+                if (claimDetails[0].chainId == '1') {
                     await checkNetwork(claimDetails[0].chainId)
 
                     const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })

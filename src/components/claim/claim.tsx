@@ -87,7 +87,8 @@ export function Claim() {
     const isBridgePossible = async (linkDetails: interfaces.ILinkDetails, tokenPrice: number | undefined) => {
         let tokenPriceSufficient = false
 
-        if (tokenPrice) { // if token price is available and higher then $5
+        if (tokenPrice) {
+            // if token price is available and higher then $5
             if (Number(linkDetails.tokenAmount) * tokenPrice < 5) {
                 tokenPriceSufficient = false
             } else {
@@ -97,7 +98,8 @@ export function Claim() {
             tokenPriceSufficient = true
         }
 
-        if (linkDetails.tokenType == '2') { // if token is not erc20
+        if (linkDetails.tokenType == '2') {
+            // if token is not erc20
             return false
         }
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
@@ -110,11 +112,9 @@ export function Claim() {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-            if (
-                crossChainDetails.length > 0 &&
-                linkDetails.contractVersion == peanut.LATEST_STABLE_CONTRACT_VERSION 
-            ) { // if there are cross chain options
-                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != "1"))
+            if (crossChainDetails.length > 0 && linkDetails.contractVersion == peanut.LATEST_STABLE_CONTRACT_VERSION) {
+                // if there are cross chain options
+                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != '1'))
                 if (tokenPriceSufficient) {
                     return true
                 } else {

@@ -151,7 +151,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                                     </div>
 
                                     <div
-                                        className="min-w-32 absolute right-0 top-0 flex h-full cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                        className="absolute right-0 top-0 flex h-full min-w-32 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
                                         onClick={() => {
                                             navigator.clipboard.writeText(link)
                                             setCopiedLink([link])
