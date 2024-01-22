@@ -15,13 +15,13 @@ import * as utils from '@/utils'
 
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 interface Chain {
-    chainId: number
+    chainId: string
     axelarChainName: string
     chainType: string
 }
 
 interface Token {
-    chainId: number
+    chainId: string
     address: string
     name: string
     symbol: string
@@ -84,8 +84,20 @@ export function Claim() {
         } else return false
     }
 
-    const isBridgePossible = async (linkDetails: interfaces.ILinkDetails) => {
-        if (linkDetails.tokenType == '2') {
+    const isBridgePossible = async (linkDetails: interfaces.ILinkDetails, tokenPrice: number | undefined) => {
+        let tokenPriceSufficient = false
+
+        if (tokenPrice) { // if token price is available and higher then $5
+            if (Number(linkDetails.tokenAmount) * tokenPrice < 5) {
+                tokenPriceSufficient = false
+            } else {
+                tokenPriceSufficient = true
+            }
+        } else {
+            tokenPriceSufficient = true
+        }
+
+        if (linkDetails.tokenType == '2') { // if token is not erc20
             return false
         }
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
@@ -98,10 +110,16 @@ export function Claim() {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-            if (crossChainDetails.length > 0 && linkDetails.contractVersion == 'v5') {
-                //Filter to remove mainnet
-                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != 1))
-                return true
+            if (
+                crossChainDetails.length > 0 &&
+                linkDetails.contractVersion == peanut.LATEST_STABLE_CONTRACT_VERSION 
+            ) { // if there are cross chain options
+                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != "1"))
+                if (tokenPriceSufficient) {
+                    return true
+                } else {
+                    return false
+                }
             } else {
                 return false
             }
@@ -111,7 +129,7 @@ export function Claim() {
         }
     }
 
-    const fetchTokenPrice = async (tokenAddress: string, chainId: number) => {
+    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
             if (!tokenPrice) {
                 const response = await axios.get('https://api.socket.tech/v2/token-price', {
@@ -197,9 +215,7 @@ export function Claim() {
                         _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     }
 
-                    // if (await isBridgePossible(linkDetails)) {
-                    //disabling bridge for now
-                    if (false) {
+                    if (await isBridgePossible(linkDetails, _tokenprice ? Number(_tokenprice) : undefined)) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {
                         setLinkState('CLAIM')

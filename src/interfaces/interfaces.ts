@@ -1,5 +1,5 @@
 export interface IUserBalance {
-    chainId: number
+    chainId: string
     address: string
     name: string
     symbol: string
@@ -30,7 +30,7 @@ export interface IPeanutChainDetails {
     }
     infoURL: string
     shortName: string
-    chainId: number
+    chainId: string
     networkId: number
     slip44: number
     ens: {
@@ -65,7 +65,7 @@ export interface ILocalStorageItem {
 
 export interface ILinkDetails {
     link: string
-    chainId: number
+    chainId: string
     depositIndex: number
     contractVersion: string
     password: string

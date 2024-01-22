@@ -24,20 +24,20 @@ export interface IClaimDetails {
     tokenAddress: string
     amount: number
     decimals: number
-    chainId: number
+    chainId: string
 }
 
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 
 interface Chain {
-    chainId: number
+    chainId: string
     axelarChainName: string
     chainType: string
     chainIconURI: string
 }
 
 interface Token {
-    chainId: number
+    chainId: string
     address: string
     name: string
     symbol: string
