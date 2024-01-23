@@ -60,7 +60,7 @@ export function Store({ children }: { children: React.ReactNode }) {
             )
             const tokenDetailsArray = peanut.TOKEN_DETAILS
             //NOTE: Filtering out milkomeda per request of KU
-            setDefaultChainDetails(chainDetailsArray.filter((chain) => chain.chainId !== "2001"))
+            setDefaultChainDetails(chainDetailsArray.filter((chain) => chain.chainId !== '2001'))
             setDefaultTokenDetails(tokenDetailsArray)
         }
     }
