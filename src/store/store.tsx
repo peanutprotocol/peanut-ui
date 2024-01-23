@@ -60,7 +60,7 @@ export function Store({ children }: { children: React.ReactNode }) {
             )
             const tokenDetailsArray = peanut.TOKEN_DETAILS
             //NOTE: Filtering out milkomeda per request of KU
-            setDefaultChainDetails(chainDetailsArray.filter((chain) => chain.chainId !== '2001'))
+            setDefaultChainDetails(chainDetailsArray.filter((chain) => chain.chainId !== "2001"))
             setDefaultTokenDetails(tokenDetailsArray)
         }
     }
@@ -70,13 +70,14 @@ export function Store({ children }: { children: React.ReactNode }) {
             const userBalancesResponse: any = await socketTech.Balances.getBalances({
                 userAddress: address,
             })
+
             const usdcPolygonBalance = await socketTech.Balances.getBalance({
                 tokenAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
                 chainId: 137,
                 userAddress: address,
             }).then((res) => {
                 return {
-                    chainId: res.result.chainId?.toString(),
+                    chainId: res.result.chainId,
                     address: res.result.tokenAddress,
                     name: res.result.name,
                     symbol: res.result.symbol,
@@ -95,7 +96,7 @@ export function Store({ children }: { children: React.ReactNode }) {
             const updatedBalances: interfaces.IUserBalance[] = x
                 .map((balances: any) => {
                     return {
-                        chainId: balances.chainId?.toString(),
+                        chainId: balances.chainId,
                         symbol: balances.symbol,
                         name: balances.name,
                         address: balances.address,
