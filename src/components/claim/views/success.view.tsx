@@ -19,13 +19,18 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
+    console.log({ chainDetails })
+    console.log({ claimDetails })
+
     const explorerUrlWithTx = useMemo(
         () =>
-            chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
-            '/tx/' +
-            txHash[0],
+        chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
+        '/tx/' +
+        txHash[0],
         [txHash, chainDetails]
     )
+
+    console.log({ explorerUrlWithTx })
 
     useEffect(() => {
         router.prefetch('/send')
