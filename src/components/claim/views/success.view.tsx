@@ -24,9 +24,9 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
 
     const explorerUrlWithTx = useMemo(
         () =>
-        chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
-        '/tx/' +
-        txHash[0],
+            chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
+            '/tx/' +
+            txHash[0],
         [txHash, chainDetails]
     )
 
