@@ -39,9 +39,7 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
     }, [])
 
     const sendNotification = async () => {
-        const chainName = chainDetails.find(
-            (detail) => detail.chainId === claimDetails[0].chainId
-        )?.name
+        const chainName = chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.name
         utils.sendNotification(senderAddress, address, chainName)
     }
 

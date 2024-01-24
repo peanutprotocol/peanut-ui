@@ -5,7 +5,11 @@ interface INotification {
     type: string
 }
 
-export const sendNotification = async (senderAddress: string, recipientAddress: string | undefined, chainName: string) => {
+export const sendNotification = async (
+    senderAddress: string,
+    recipientAddress: string | undefined,
+    chainName: string
+) => {
     console.log('sendNotification', senderAddress)
     const accounts = [`eip155:1:${senderAddress}` ?? '']
     const notification: INotification = {

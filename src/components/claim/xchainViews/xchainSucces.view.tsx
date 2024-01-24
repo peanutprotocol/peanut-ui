@@ -13,7 +13,12 @@ import axios from 'axios'
 import checkbox from '@/assets/checkbox.svg'
 import { useAccount } from 'wagmi'
 
-export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
+export function xchainSuccesView({
+    txHash,
+    crossChainSuccess,
+    claimDetails,
+    senderAddress,
+}: _consts.IClaimScreenProps) {
     const router = useRouter()
     const { address } = useAccount()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
