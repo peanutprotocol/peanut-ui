@@ -11,9 +11,11 @@ import * as utils from '@/utils'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 import checkbox from '@/assets/checkbox.svg'
+import { useAccount } from 'wagmi'
 
-export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _consts.IClaimScreenProps) {
+export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
     const router = useRouter()
+    const { address } = useAccount()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(true)
@@ -83,10 +85,17 @@ export function xchainSuccesView({ txHash, crossChainSuccess, claimDetails }: _c
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-x-chain-claimed', 'success')
+        sendNotification()
         if (txHash && crossChainSuccess) {
             loopUntilSuccess(txHash[0])
         }
     }, [])
+
+    const sendNotification = async () => {
+        const destinationChainId = crossChainSuccess?.chainId || claimDetails[0].chainId
+        const chainName = chainDetails.find((detail) => detail.chainId === destinationChainId)?.name
+        utils.sendNotification(senderAddress, address, chainName)
+    }
 
     return (
         <>
