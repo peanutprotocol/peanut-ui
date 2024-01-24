@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 const projectId = process.env.WC_PROJECT_ID
 if (!projectId) {
-    throw new Error('You need to provide NEXT_PUBLIC_PROJECT_ID env variable')
+    throw new Error('You need to provide WC_PROJECT_ID env variable')
 }
 
 export async function POST(request: NextRequest, response: NextResponse) {
@@ -28,6 +28,11 @@ export async function POST(request: NextRequest, response: NextResponse) {
             body: JSON.stringify(notificationPayload),
         })
     } catch (error: any) {
+        console.error('Error occured while sending notification:', error)
         throw new Error('Error occured while sending notification')
     }
+
+    return NextResponse.json({
+        status: 200,
+    })
 }
