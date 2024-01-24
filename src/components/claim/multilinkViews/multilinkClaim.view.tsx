@@ -90,8 +90,8 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                             {
                                 chainId: tx.details.chain.toString(),
                                 tokenAddress: tx.details.token,
-                                txHash: result.tx_hash,
-                                explorerUrl: chainDetail?.explorers[0].url + '/tx/' + result.tx_hash,
+                                txHash: result.txHash,
+                                explorerUrl: chainDetail?.explorers[0].url + '/tx/' + result.txHash,
                             },
                         ])
                         return result // Ensure the result is passed on
