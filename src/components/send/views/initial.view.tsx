@@ -438,7 +438,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('creating link')
 
-                    await signer.provider.waitForTransaction(response.txHash)
+                    // wait until 2 confirmation blocks to make sure that rpc
+                    // providers have the receipt stored
+                    await signer.provider.waitForTransaction(response.txHash, 2)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
@@ -475,7 +477,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
-                        const x = await peanut.signAndSubmitTx({
+                        const submitResponse = await peanut.signAndSubmitTx({
                             structSigner: {
                                 signer: signer,
                             },
@@ -484,8 +486,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
                         setLoadingStates('executing transaction')
-                        await x.tx.wait()
-                        signedTxsResponse.push(x)
+                        // wait until 2 confirmation blocks to make sure that rpc
+                        // providers have the receipt stored
+                        await signer.provider.waitForTransaction(submitResponse.txHash, 2)
+                        signedTxsResponse.push(submitResponse)
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
