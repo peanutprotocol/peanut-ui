@@ -7,9 +7,11 @@ import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
+import { useAccount } from 'wagmi'
 
-export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScreenProps) {
+export function multilinkSuccessView({ txHash, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
     const router = useRouter()
+    const { address } = useAccount()
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -23,7 +25,13 @@ export function multilinkSuccessView({ txHash, claimDetails }: _consts.IClaimScr
 
     useEffect(() => {
         router.prefetch('/send')
+        sendNotification()
     }, [])
+
+    const sendNotification = async () => {
+        const chainName = chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.name
+        utils.sendNotification(senderAddress, address, chainName)
+    }
 
     return (
         <>
