@@ -91,7 +91,12 @@ export function Dashboard() {
             const data = utils.getAllLinksFromLocalStorage({
                 address: address.toString(),
             })
-            data && setLocalStorageData(data)
+
+            const filteredData = data?.filter((item) => {
+                return !item.address.includes('saving temp link without depositindex for address')
+            })
+
+            data && setLocalStorageData(filteredData ?? [])
         }
         router.prefetch('/send')
     }, [address])
