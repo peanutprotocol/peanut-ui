@@ -27,12 +27,18 @@ export async function POST(request: NextRequest, response: NextResponse) {
             },
             body: JSON.stringify(notificationPayload),
         })
+
+        return NextResponse.json({
+            status: 200,
+        })
     } catch (error: any) {
         console.error('Error occured while sending notification:', error)
-        throw new Error('Error occured while sending notification')
-    }
 
-    return NextResponse.json({
-        status: 200,
-    })
+        return NextResponse.json({
+            status: 500,
+            body: {
+                error: 'Error occured while sending notification',
+            },
+        })
+    }
 }
