@@ -70,12 +70,6 @@ export function xchainClaimView({
 
     const claim = async () => {
         try {
-            if (selectedToken) {
-                initializeLoadingStatesUpdating()
-            } else {
-                setLoadingStates('executing transaction')
-            }
-
             setErrorState({
                 showError: false,
                 errorMessage: '',
@@ -89,6 +83,12 @@ export function xchainClaimView({
                     errorMessage: 'No route found for the chosen chain and token',
                 })
                 return
+            }
+
+            if (selectedToken) {
+                initializeLoadingStatesUpdating()
+            } else {
+                setLoadingStates('executing transaction')
             }
 
             let claimTx
