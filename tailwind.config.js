@@ -35,6 +35,7 @@ module.exports = {
             lightblue: '#90A8ED',
             red: '#E2442F',
             orange: '#FFC900',
+            gold: '#FFD700',
             gray: {
                 50: '#f9fafb',
                 100: '#f3f4f6',

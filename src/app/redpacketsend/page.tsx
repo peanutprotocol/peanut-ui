@@ -20,8 +20,8 @@ export const metadata: Metadata = {
 
 export default function SendPage() {
     return (
-        <global_components.PageWrapper>
-            <components.Send type="normal" />
+        <global_components.PageWrapper bgColor="bg-red">
+            <components.Send type="red-packet"></components.Send>
         </global_components.PageWrapper>
     )
 }
