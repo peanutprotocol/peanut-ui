@@ -23,7 +23,7 @@ export function CardWrapper({
             }
             id={shadow ? 'cta-div' : ''}
         >
-            {redPacket ? <div className="bg-gold absolute -top-12 h-24 w-24 rounded-full border-2 "></div> : ''}{' '}
+            {redPacket ? <div className="absolute -top-12 h-24 w-24 rounded-full border-2 bg-gold "></div> : ''}{' '}
             {children}
         </div>
     )
