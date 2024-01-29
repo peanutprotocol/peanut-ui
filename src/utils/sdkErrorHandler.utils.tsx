@@ -34,8 +34,8 @@ export const sdkErrorHandler = (error: SDKStatus) => {
             return 'Something went wrong while getting the default provider. Please try again later.'
         case peanut.interfaces.EPrepareCreateTxsStatusCodes.ERROR_VALIDATING_LINK_DETAILS:
             return 'Something went wrong while validating the link details. Please try again later.'
-        case peanut.interfaces.ESignAndSubmitTx.ERROR_SENDING_TX:
-            return 'Something went wrong while sending the transaction. Please try again later.'
+        case peanut.interfaces.ESignAndSubmitTx.ERROR_BROADCASTING_TX:
+            return 'Something went wrong while broadcasting the transaction. Please try again later.'
         default:
             return 'Something went wrong. Please try again later.'
     }

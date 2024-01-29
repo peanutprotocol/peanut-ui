@@ -61,7 +61,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     </button>
                 </div>
             </nav>
-            {showMarquee && (
+            {/* {showMarquee && (
                 <global_components.MarqueeWrapper
                     backgroundColor="bg-red"
                     onClick={() => {
@@ -69,7 +69,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     }}
                     direction="right"
                 >
-                    {/* <>
+                    <>
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide md:py-4 md:text-4xl">
                             EXPERIMENTAL
                         </div>
@@ -78,9 +78,9 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                             x-chain
                         </div>
                         <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    </> */}
+                    </>
                 </global_components.MarqueeWrapper>
-            )}
+            )} */}
         </div>
     )
 }

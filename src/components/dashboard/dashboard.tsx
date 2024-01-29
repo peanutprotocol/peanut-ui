@@ -15,7 +15,7 @@ import * as hooks from '@/hooks'
 
 interface IDashboardItemProps {
     hash: string
-    chainId: number
+    chainId: string
     amount: string
     token: string
     date: string
@@ -44,7 +44,7 @@ export function Dashboard() {
 
                         const x: IDashboardItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
-                            chainId: Number(item.link.match(/c=(\d+)/)?.[1]),
+                            chainId: item.link.match(/c=(\d+)/)?.[1] ?? '1',
                             amount: res.tokenAmount,
                             token: res.tokenSymbol,
                             date: res.depositDate ? new Date(res.depositDate).toLocaleString() : 'Unavailable',
@@ -91,7 +91,12 @@ export function Dashboard() {
             const data = utils.getAllLinksFromLocalStorage({
                 address: address.toString(),
             })
-            data && setLocalStorageData(data)
+
+            const filteredData = data?.filter((item) => {
+                return !item.address.includes('saving temp link without depositindex for address')
+            })
+
+            data && setLocalStorageData(filteredData ?? [])
         }
         router.prefetch('/send')
     }, [address])

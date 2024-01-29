@@ -1,6 +1,6 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { WalletClient, useAccount } from 'wagmi'
+import { WalletClient, useAccount, useNetwork } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 
@@ -13,6 +13,7 @@ import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
 import { BigNumber, providers } from 'ethers'
+import { isMobile } from 'react-device-detect'
 
 export function xchainClaimView({
     onNextScreen,
@@ -26,11 +27,12 @@ export function xchainClaimView({
 
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
+    const { chain: currentChain } = useNetwork()
 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
-    const [chainList, setChainList] = useState<{ chainId: number; chainName: string; chainIconURI: string }[]>([])
-    const [selectedChain, setSelectedChain] = useState<{ chainId: number; chainName: string; chainIconURI: string }>({
+    const [chainList, setChainList] = useState<{ chainId: string; chainName: string; chainIconURI: string }[]>([])
+    const [selectedChain, setSelectedChain] = useState<{ chainId: string; chainName: string; chainIconURI: string }>({
         chainId: claimDetails[0].chainId,
         chainName: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name,
         chainIconURI: chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.icon.url,
@@ -68,14 +70,40 @@ export function xchainClaimView({
         }, 2000)
     }
 
+    const getWalletClientAndUpdateSigner = async ({
+        chainId,
+    }: {
+        chainId: string
+    }): Promise<providers.JsonRpcSigner> => {
+        const walletClient = await getWalletClient({ chainId: Number(chainId) })
+        if (!walletClient) {
+            throw new Error('Failed to get wallet client')
+        }
+        const signer = utils.walletClientToSigner(walletClient)
+        return signer
+    }
+
+    const checkNetwork = async (chainId: string) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            setLoadingStates('allow network switch')
+
+            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Something went wrong while switching networks',
+                })
+                setLoadingStates('idle')
+                throw error
+            })
+            setLoadingStates('switching network')
+            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
+            setLoadingStates('loading')
+        }
+    }
+
     const claim = async () => {
         try {
-            if (selectedToken) {
-                initializeLoadingStatesUpdating()
-            } else {
-                setLoadingStates('executing transaction')
-            }
-
             setErrorState({
                 showError: false,
                 errorMessage: '',
@@ -91,28 +119,66 @@ export function xchainClaimView({
                 return
             }
 
+            if (selectedToken) {
+                initializeLoadingStatesUpdating()
+            } else {
+                setLoadingStates('executing transaction')
+            }
+
             let claimTx
             if (!selectedToken) {
                 verbose && console.log('claiming non-cross chain')
-                claimTx = await peanut.claimLinkGasless({
-                    link: claimDetails[0].link,
-                    recipientAddress: address ?? '',
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                })
+
+                if (claimDetails[0].chainId == '1') {
+                    await checkNetwork(claimDetails[0].chainId)
+
+                    const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+
+                    claimTx = await peanut.claimLink({
+                        recipient: address,
+                        link: claimDetails[0].link,
+                        structSigner: {
+                            signer,
+                        },
+                    })
+                } else {
+                    claimTx = await peanut.claimLinkGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                    })
+                }
             } else {
                 verbose && console.log('claiming cross chain')
                 const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-                    .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
+                    .find((chain) => chain.chainId == claimDetails[0].chainId.toString())?.mainnet
 
-                claimTx = await peanut.claimLinkXChainGasless({
-                    link: claimDetails[0].link,
-                    recipientAddress: address ?? '',
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                    destinationChainId: selectedChain.chainId.toString(),
-                    destinationTokenAddress: selectedToken.address,
-                    isTestnet,
-                })
+                if (claimDetails[0].chainId == '1') {
+                    await checkNetwork(claimDetails[0].chainId)
+
+                    const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+
+                    claimTx = await peanut.claimLink({
+                        recipient: address,
+                        link: claimDetails[0].link,
+                        structSigner: {
+                            signer,
+                        },
+                    })
+                } else {
+                    claimTx = await peanut.claimLinkXChainGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        destinationChainId: selectedChain.chainId,
+                        destinationToken: selectedToken.address,
+                        isMainnet: !isTestnet,
+                        squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
+                        baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
+                    })
+                }
             }
             verbose && console.log(claimTx)
 
@@ -121,7 +187,7 @@ export function xchainClaimView({
                 setCrossChainSuccess({
                     chainName: selectedChain.chainName,
                     tokenName: selectedToken.name,
-                    chainId: selectedChain.chainId.toString(),
+                    chainId: selectedChain.chainId,
                 })
             } else {
                 setCrossChainSuccess(undefined)
@@ -139,9 +205,6 @@ export function xchainClaimView({
     }
 
     const getSquidRoute = async () => {
-        const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
-            .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
-            .find((chain) => chain.chainId == claimDetails[0].chainId)?.mainnet
         const tokenAmount = Math.floor(
             Number(claimDetails[0].tokenAmount) * Math.pow(10, claimDetails[0].tokenDecimals)
         ).toString()
@@ -154,8 +217,8 @@ export function xchainClaimView({
                         route.route?.params.toChain === selectedChain?.chainId
                 )
             ) {
-                const x = await peanut.getSquidRoute({
-                    isTestnet,
+                const x = await peanut.getSquidRouteRaw({
+                    squidRouterUrl: 'https://v2.api.squidrouter.com/v2/route',
                     fromChain: claimDetails[0].chainId.toString(),
                     fromToken: claimDetails[0].tokenAddress,
                     fromAmount: tokenAmount,
@@ -165,7 +228,7 @@ export function xchainClaimView({
                     fromAddress: address ?? '',
                     toAddress: address ?? '',
                 })
-                setPossibleRoutesArray([...possibleRoutesArray, { route: x }])
+                setPossibleRoutesArray([...possibleRoutesArray, { route: x.route }])
                 verbose && console.log(x)
             }
         } catch (error: any) {
@@ -255,7 +318,9 @@ export function xchainClaimView({
                     Claim{' '}
                     {tokenPrice
                         ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
-                        : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}
+                        : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount)) +
+                          ' in ' +
+                          claimDetails[0].tokenSymbol}
                 </h2>
             </div>
 

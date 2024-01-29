@@ -9,7 +9,7 @@ export function Send() {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')
     const [txHash, setTxHash] = useState<string>('')
-    const [chainId, setChainId] = useState<number>(0)
+    const [chainId, setChainId] = useState<string>('1')
     const { setAccount } = useW3iAccount()
     const { address } = useAccount({
         onDisconnect: () => {

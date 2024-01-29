@@ -9,6 +9,7 @@ import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
+import { waitForTransaction } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -59,7 +60,7 @@ export function ClaimView({
     const getWalletClientAndUpdateSigner = async ({
         chainId,
     }: {
-        chainId: number
+        chainId: string
     }): Promise<providers.JsonRpcSigner> => {
         const walletClient = await getWalletClient({ chainId: Number(chainId) })
         if (!walletClient) {
@@ -69,7 +70,7 @@ export function ClaimView({
         return signer
     }
 
-    const checkNetwork = async (chainId: number) => {
+    const checkNetwork = async (chainId: string) => {
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== chainId.toString()) {
             setLoadingStates('allow network switch')
@@ -94,7 +95,7 @@ export function ClaimView({
                 setLoadingStates('executing transaction')
 
                 let claimTx
-                if (claimDetails[0].chainId == 1) {
+                if (claimDetails[0].chainId == '1') {
                     await checkNetwork(claimDetails[0].chainId)
 
                     const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
@@ -111,6 +112,7 @@ export function ClaimView({
                         link: claimLink[0],
                         recipientAddress: address,
                         APIKey: process.env.PEANUT_API_KEY ?? '',
+                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
                     })
                 }
                 verbose && console.log(claimTx)
@@ -128,6 +130,7 @@ export function ClaimView({
             setLoadingStates('idle')
         }
     }
+
     const fetchIpfsFile = async (url: string) => {
         const ipfsHash = url.split('://')[1]
         let response = null
@@ -197,6 +200,7 @@ export function ClaimView({
                     link: claimLink[0],
                     recipientAddress: data.address,
                     APIKey: process.env.PEANUT_API_KEY ?? '',
+                    baseUrl: `${consts.peanut_api_url}/claim-v2`,
                 })
 
                 setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])

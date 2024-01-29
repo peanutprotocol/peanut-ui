@@ -4,7 +4,7 @@ import * as views from './views'
 // I always like to use consts files like these, makes it very readable and easy to change
 
 export interface ISendFormData {
-    chainId: number
+    chainId: string
     token: string
     amount: string | null
     bulkAmount: number | undefined
@@ -12,7 +12,7 @@ export interface ISendFormData {
 export interface ITokenListItem {
     symbol: string
     amount: number
-    chainId: number
+    chainId: string
     address: string
     decimals: number
     logo: string
@@ -32,8 +32,8 @@ export interface ISendScreenProps {
     setClaimLink: (claimLink: string[]) => void
     txHash: string
     setTxHash: (txHash: string) => void
-    chainId: number
-    setChainId: (chainId: number) => void
+    chainId: string
+    setChainId: (chainId: string) => void
 }
 
 export const INIT_VIEW: ISendScreenState = {

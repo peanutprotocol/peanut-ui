@@ -19,6 +19,9 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
+    console.log({ chainDetails })
+    console.log({ claimDetails })
+
     const explorerUrlWithTx = useMemo(
         () =>
             chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
@@ -27,28 +30,17 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
         [txHash, chainDetails]
     )
 
+    console.log({ explorerUrlWithTx })
+
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
-        sendNotification(claimDetails[0])
+        sendNotification()
     }, [])
 
-    const sendNotification = async (linkDetails: interfaces.ILinkDetails) => {
-        console.log('sendNotification', senderAddress)
-        const accounts = [`eip155:1:${senderAddress}` ?? '']
-        const chainName = chainDetails.find(
-            (detail) => detail.chainId.toString() === linkDetails.chainId.toString()
-        )?.name
-        const notification = {
-            title: 'Peanut Protocol',
-            body: `Your link has been claimed on ${chainName} by ${address ?? ''}`,
-            url: undefined,
-            type: '2aee6e5f-091d-444e-96cd-868ba2ddd0e7',
-        }
-        utils.sendNotification({
-            notification,
-            accounts,
-        })
+    const sendNotification = async () => {
+        const chainName = chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.name
+        utils.sendNotification(senderAddress, address, chainName)
     }
 
     return (

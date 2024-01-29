@@ -9,3 +9,5 @@ export const ipfsProviderArray = [
     'https://nftstorage.link/ipfs/',
     'https://gw3.io/ipfs/',
 ]
+
+export const peanut_api_url = 'https://api.peanut.com'

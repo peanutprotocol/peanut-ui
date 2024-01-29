@@ -76,3 +76,16 @@ export const getTokenDetails = (
 
     return { tokenAddress, tokenDecimals, tokenType }
 }
+
+export function toLowerCaseKeys(obj: any): any {
+    let newObj: any = {}
+    if (obj) {
+        Object.keys(obj).forEach((key) => {
+            // Convert only the top-level keys to lowercase
+            let lowerCaseKey = key.toLowerCase()
+            newObj[lowerCaseKey] = obj[key]
+        })
+    }
+
+    return newObj
+}
