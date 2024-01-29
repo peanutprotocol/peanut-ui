@@ -114,7 +114,7 @@ export function Claim() {
             })
             if (crossChainDetails.length > 0 && linkDetails.contractVersion == peanut.LATEST_STABLE_CONTRACT_VERSION) {
                 // if there are cross chain options
-                setCrossChainDetails(crossChainDetails.filter((chain) => chain.chainId != '1'))
+                setCrossChainDetails(crossChainDetails.filter((chain: any) => chain.chainId != '1'))
                 if (tokenPriceSufficient) {
                     return true
                 } else {
@@ -172,7 +172,7 @@ export function Claim() {
                 verbose && console.log('getting multi link details ' + localLink)
                 const links = await peanut.getLinksFromMultilink(localLink)
                 const linkDetails: interfaces.ILinkDetails[] = await Promise.all(
-                    links.map(async (link) => {
+                    links.map(async (link: string) => {
                         verbose && console.log(link)
                         return peanut.getLinkDetails({ link: link })
                     })

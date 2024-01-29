@@ -19,7 +19,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { SDKStatus, ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -300,6 +300,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
+    useEffect(() => {
+        console.log(createGasless)
+    }, [createGasless])
+
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -388,6 +392,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     experimental: true,
                 })
 
+                console.log(createGasless)
+
                 if (
                     isGaslessDepositPossible({ tokenAddress, latestContractVersion, chainId: sendFormData.chainId }) &&
                     createGasless
@@ -438,7 +444,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('creating link')
 
-                    await signer.provider.waitForTransaction(response.txHash)
+                    // wait until 2 confirmation blocks to make sure that rpc
+                    // providers have the receipt stored
+                    await signer.provider.waitForTransaction(response.txHash, 2)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
@@ -471,11 +479,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
                     })
 
-                    const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+                    const signedTxsResponse: ISignAndSubmitTxResponse[] = []
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
-                        const x = await peanut.signAndSubmitTx({
+                        const submitResponse = await peanut.signAndSubmitTx({
                             structSigner: {
                                 signer: signer,
                             },
@@ -484,8 +492,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
                         setLoadingStates('executing transaction')
-                        await x.tx.wait()
-                        signedTxsResponse.push(x)
+                        // wait until 2 confirmation blocks to make sure that rpc
+                        // providers have the receipt stored
+                        await signer.provider.waitForTransaction(submitResponse.txHash, 2)
+                        signedTxsResponse.push(submitResponse)
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
@@ -506,7 +516,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
                 })
 
-                getLinksFromTxResponse.links.forEach((link, index) => {
+                getLinksFromTxResponse.links.forEach((link: any, index: any) => {
                     utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
                 })
 
@@ -516,7 +526,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 onNextScreen()
             } catch (error: any) {
                 console.error(error)
-                if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
+                if (error instanceof peanut.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({
                         showError: true,
@@ -575,6 +585,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             inputDenomination,
             tokenPrice,
             advancedDropdownOpen,
+            createGasless,
         ]
     )
 
