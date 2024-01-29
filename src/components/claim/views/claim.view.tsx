@@ -130,6 +130,7 @@ export function ClaimView({
             setLoadingStates('idle')
         }
     }
+
     const fetchIpfsFile = async (url: string) => {
         const ipfsHash = url.split('://')[1]
         let response = null
