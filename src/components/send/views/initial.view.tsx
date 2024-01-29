@@ -19,7 +19,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { SDKStatus, ISignAndSubmitTxResponse } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -479,7 +479,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
                     })
 
-                    const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+                    const signedTxsResponse: ISignAndSubmitTxResponse[] = []
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
@@ -516,7 +516,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
                 })
 
-                getLinksFromTxResponse.links.forEach((link, index) => {
+                getLinksFromTxResponse.links.forEach((link: any, index: any) => {
                     utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
                 })
 
@@ -526,7 +526,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 onNextScreen()
             } catch (error: any) {
                 console.error(error)
-                if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
+                if (error instanceof peanut.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({
                         showError: true,
