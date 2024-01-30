@@ -2,7 +2,7 @@
 
 import { createElement, useEffect, useState } from 'react'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
-import red_packet_svg from '@/assets/red-packet.svg'
+import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as global_components from '@/components/global'
 
 import * as views from './views'
@@ -58,7 +58,7 @@ export function Packet() {
         <global_components.CardWrapper pt=" pt-16 " redPacket>
             {packetState === 'LOADING' && (
                 <div className="animate-spin pb-16 pt-16">
-                    <img src={red_packet_svg.src} alt="logo" className="h-8 sm:h-16" />
+                    <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />
                     <span className="sr-only">Loading...</span>
                 </div>
             )}

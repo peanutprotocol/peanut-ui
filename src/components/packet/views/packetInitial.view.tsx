@@ -2,12 +2,14 @@
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
 import Lottie from 'react-lottie'
+import peanut from '@squirrel-labs/peanut-sdk'
+import axios from 'axios'
 
+import * as global_components from '@/components/global'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import * as consts from '@/consts'
 import * as _consts from '../packet.consts'
-import peanut from '@squirrel-labs/peanut-sdk'
-import axios from 'axios'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 
 export function PacketInitialView({
     onNextScreen,
@@ -17,6 +19,7 @@ export function PacketInitialView({
     tokenPrice,
     setTokenPrice,
 }: _consts.IPacketScreenProps) {
+    const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [isLottieStopped, setIsLottieStopped] = useState(false)
@@ -49,6 +52,7 @@ export function PacketInitialView({
                     'API-KEY': process.env.SOCKET_API_KEY,
                 },
             })
+            setTokenPrice(10)
             setTokenPrice(response.data.result.tokenPrice)
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
@@ -134,6 +138,7 @@ export function PacketInitialView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
+            <global_components.PeanutMan type="redpacket" />
         </>
     )
 }
