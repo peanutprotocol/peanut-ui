@@ -1937,6 +1937,7 @@
   version "0.4.0-raffle.2"
   resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.0-raffle.2.tgz#e2ba3ef97624f8a30c3fb02e5bfdb7a0ef00d6b7"
   integrity sha512-IR7WogeBiwhoXlf7ZDFWe6BHcxy2OGybDCXt00OQoJD94EoOWk44R22YpPnPcamBVYmZPADlxGHb64xfE+pIiA==
+
   dependencies:
     ethersv5 "npm:ethers@^5"
 
