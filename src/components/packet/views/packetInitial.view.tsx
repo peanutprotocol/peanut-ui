@@ -16,7 +16,6 @@ export function PacketInitialView({
     raffleInfo,
     raffleLink,
     setRaffleClaimedInfo,
-    tokenPrice,
     setTokenPrice,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
