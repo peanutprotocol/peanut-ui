@@ -27,7 +27,7 @@ export function CardWrapper({
             id={shadow ? 'cta-div' : ''}
         >
             {redPacket ? (
-                <div className="bg-gold brutalborder absolute -top-12 flex h-24 w-24 items-center justify-center rounded-full text-6xl ">
+                <div className="brutalborder absolute -top-12 flex h-24 w-24 items-center justify-center rounded-full bg-gold text-6xl ">
                     龙
                 </div>
             ) : (
