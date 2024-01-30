@@ -6,7 +6,6 @@ import * as store from '@/store/'
 import * as global_components from '@/components/global'
 import * as hooks from '@/hooks'
 import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
@@ -19,9 +18,6 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
-    console.log({ chainDetails })
-    console.log({ claimDetails })
-
     const explorerUrlWithTx = useMemo(
         () =>
             chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
@@ -29,8 +25,6 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
             txHash[0],
         [txHash, chainDetails]
     )
-
-    console.log({ explorerUrlWithTx })
 
     useEffect(() => {
         router.prefetch('/send')

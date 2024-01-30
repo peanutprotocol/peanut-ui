@@ -5,12 +5,26 @@ import Lottie from 'react-lottie'
 
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import * as consts from '@/consts'
-import * as _consts from '../win.consts'
+import * as _consts from '../packet.consts'
+import peanut from '@squirrel-labs/peanut-sdk'
+import axios from 'axios'
 
-export function WinInitialView({ onNextScreen }: _consts.IWinScreenProps) {
+export function PacketInitialView({
+    onNextScreen,
+    raffleInfo,
+    raffleLink,
+    setRaffleClaimedInfo,
+    tokenPrice,
+    setTokenPrice,
+}: _consts.IPacketScreenProps) {
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [isLottieStopped, setIsLottieStopped] = useState(false)
+
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
@@ -23,13 +37,46 @@ export function WinInitialView({ onNextScreen }: _consts.IWinScreenProps) {
         },
     }
 
-    const claim = () => {
+    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
+        try {
+            const response = await axios.get('https://api.socket.tech/v2/token-price', {
+                params: {
+                    tokenAddress: tokenAddress,
+                    chainId: chainId,
+                },
+                headers: {
+                    accept: 'application/json',
+                    'API-KEY': process.env.SOCKET_API_KEY,
+                },
+            })
+            setTokenPrice(response.data.result.tokenPrice)
+        } catch (error) {
+            console.log('error fetching token price for token ' + tokenAddress)
+        }
+    }
+
+    const claim = async () => {
         setIsLottieStopped(false)
         setLoadingStates('opening')
+        try {
+            const raffleClaimedInfo = await peanut.claimRaffleLink({
+                link: raffleLink,
+                APIKey: process.env.PEANUT_API_KEY ?? '',
+                recipientAddress: address ?? '',
+            })
 
-        setTimeout(() => {
+            setRaffleClaimedInfo(raffleClaimedInfo)
             onNextScreen()
-        }, 3000)
+        } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Something went wrong while claiming',
+            })
+            console.error(error)
+        } finally {
+            setIsLottieStopped(true)
+            setLoadingStates('idle')
+        }
     }
 
     useEffect(() => {
@@ -37,6 +84,12 @@ export function WinInitialView({ onNextScreen }: _consts.IWinScreenProps) {
             setIsLottieStopped(true)
         }, 1000)
     }, [])
+
+    useEffect(() => {
+        if (raffleInfo?.tokenAddress) {
+            fetchTokenPrice(raffleInfo.tokenAddress, raffleInfo.chainId)
+        }
+    }, [raffleInfo])
 
     return (
         <>
@@ -76,6 +129,11 @@ export function WinInitialView({ onNextScreen }: _consts.IWinScreenProps) {
                     'Connect Wallet'
                 )}
             </button>
+            {errorState.showError && (
+                <div className="mt-4 text-center">
+                    <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                </div>
+            )}
         </>
     )
 }

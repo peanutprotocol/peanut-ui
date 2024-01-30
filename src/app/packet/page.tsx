@@ -63,7 +63,7 @@ type Props = {
 export default function WinPage({ params, searchParams }: Props) {
     return (
         <global_components.PageWrapper bgColor="bg-red">
-            <components.Win />
+            <components.Packet />
         </global_components.PageWrapper>
     )
 }
