@@ -28,7 +28,7 @@ export function WinInitialView({ onNextScreen }: _consts.IWinScreenProps) {
         setLoadingStates('opening')
 
         setTimeout(() => {
-            // onNextScreen()
+            onNextScreen()
         }, 3000)
     }
 
