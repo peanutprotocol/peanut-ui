@@ -52,7 +52,6 @@ export function PacketInitialView({
                     'API-KEY': process.env.SOCKET_API_KEY,
                 },
             })
-            setTokenPrice(10)
             setTokenPrice(response.data.result.tokenPrice)
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)

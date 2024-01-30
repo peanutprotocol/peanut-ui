@@ -13,7 +13,6 @@ export function PacketSuccesView({ raffleClaimedInfo, tokenPrice, raffleInfo }: 
 
     useEffect(() => {
         router.prefetch('/send')
-        console.log(tokenPrice)
     }, [])
 
     return (
