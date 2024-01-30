@@ -12,3 +12,4 @@ export type LoadingStates =
     | 'checking inputs'
     | 'fetching route'
     | 'completed'
+    | 'opening'
