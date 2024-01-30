@@ -2,6 +2,7 @@
 import peanutman_sad from '@/assets/peanutman-sad.svg'
 import peanutman_presenting from '@/assets/peanutman-presenting.svg'
 import peanutman_cheering from '@/assets/peanutman-cheering.svg'
+import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
 import { useEffect, useState } from 'react'
 
 export function PeanutMan({ type }: { type: string }) {
@@ -19,6 +20,10 @@ export function PeanutMan({ type }: { type: string }) {
             }
             case 'presenting': {
                 setSvg(peanutman_presenting)
+                break
+            }
+            case 'redpacket': {
+                setSvg(peanutman_redpacket)
                 break
             }
             default: {

@@ -92,7 +92,7 @@ export function formatAmount(amount: number) {
 export function formatTokenAmount(amount: number) {
     const formattedAmount = amount.toLocaleString('en-US', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 4,
+        maximumFractionDigits: 6,
     })
     return formattedAmount
 }

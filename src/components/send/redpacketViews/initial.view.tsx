@@ -300,10 +300,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    useEffect(() => {
-        console.log(createGasless)
-    }, [createGasless])
-
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -392,8 +388,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     experimental: true,
                 })
 
-                console.log(createGasless)
-
                 if (
                     isGaslessDepositPossible({ tokenAddress, latestContractVersion, chainId: sendFormData.chainId }) &&
                     createGasless
@@ -444,9 +438,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('creating link')
 
-                    // wait until 2 confirmation blocks to make sure that rpc
-                    // providers have the receipt stored
-                    await signer.provider.waitForTransaction(response.txHash, 2)
+                    await signer.provider.waitForTransaction(response.txHash)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
@@ -483,7 +475,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
-                        const submitResponse = await peanut.signAndSubmitTx({
+                        const x = await peanut.signAndSubmitTx({
                             structSigner: {
                                 signer: signer,
                             },
@@ -492,10 +484,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
                         setLoadingStates('executing transaction')
-                        // wait until 2 confirmation blocks to make sure that rpc
-                        // providers have the receipt stored
-                        await signer.provider.waitForTransaction(submitResponse.txHash, 2)
-                        signedTxsResponse.push(submitResponse)
+                        await x.tx.wait()
+                        signedTxsResponse.push(x)
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
@@ -516,7 +506,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
                 })
 
-                getLinksFromTxResponse.links.forEach((link: any, index: any) => {
+                getLinksFromTxResponse.links.forEach((link, index) => {
                     utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
                 })
 
@@ -585,7 +575,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             inputDenomination,
             tokenPrice,
             advancedDropdownOpen,
-            createGasless,
         ]
     )
 
@@ -645,115 +634,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     return (
         <>
             <div className="flex w-full flex-col items-center text-center  sm:mb-3">
-                <h2 className="title-font bold text-2xl lg:text-4xl">
-                    Send crypto with a link
-                    <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
-                </h2>
+                <h2 className="title-font bold text-2xl lg:text-4xl">Red Packet</h2>
                 <div className="w-4/5 font-normal">
-                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. They
-                    will be able to claim the funds in any token on any chain.
+                    A red envelope or red packet is a gift of money given during holidays.
                 </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
-                    <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
-                        <div className="flex flex-col justify-end gap-0 pt-2 ">
-                            <div className="flex h-16 items-center justify-center">
-                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
-                                    {inputDenomination == 'USD' ? '$' : ' '}
-                                </label>
-                                <div className="w-full max-w-[160px] ">
-                                    <input
-                                        className={
-                                            'w-full border-none bg-transparent font-black tracking-wide text-black outline-none placeholder:font-black placeholder:text-black ' +
-                                            textFontSize
-                                        }
-                                        placeholder="0.00"
-                                        onChange={(e) => {
-                                            const value = utils.formatAmountWithoutComma(e.target.value)
-                                            setTextFontSize(_utils.textHandler(value))
-                                            sendForm.setValue('amount', value)
-                                        }}
-                                        type="number"
-                                        inputMode="decimal"
-                                        step="any"
-                                        min="0"
-                                        autoComplete="off"
-                                        onFocus={(e) => e.target.select()}
-                                        autoFocus
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                {tokenPrice ? (
-                                    <div>
-                                        <img
-                                            onClick={() => {
-                                                setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
-                                            }}
-                                            src={switch_svg.src}
-                                            className="h-4 cursor-pointer"
-                                        />
-                                        <label className="ml-4 w-max pr-2 text-sm font-bold">
-                                            {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
-                                                ? inputDenomination == 'USD'
-                                                    ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
-                                                      ' ' +
-                                                      formwatch.token
-                                                    : '$ ' +
-                                                      utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
-                                                : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <div className="h-5"></div>
-                                )}
-                            </div>
-                        </div>
-                        <div
-                            className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
-                            onClick={() => {
-                                if (isConnected && chainsToShow.length <= 0) {
-                                    setErrorState({
-                                        showError: true,
-                                        errorMessage: 'No funds available',
-                                    })
-                                } else {
-                                    setIsTokenSelectorOpen(true)
-                                }
-                            }}
-                        >
-                            {isConnected ? (
-                                chainsToShow.length > 0 ? (
-                                    <div className="flex cursor-pointer flex-col items-center justify-center">
-                                        <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                            {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
-                                        </label>{' '}
-                                        <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                            {formwatch.token}
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <label className="flex h-full items-center justify-center text-sm font-bold">
-                                        No funds available
-                                    </label>
-                                )
-                            ) : (
-                                <div className="flex cursor-pointer flex-col items-center justify-center">
-                                    <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                        {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
-                                    </label>{' '}
-                                    <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                        {formwatch.token}
-                                    </label>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
+                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 ">
                         <div
                             className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
@@ -793,131 +681,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-col justify-end gap-0 pt-2">
-                            <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
-                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
-                                    {inputDenomination == 'USD' ? '$' : ' '}
-                                </label>
+                        <div className=" flex h-[58px] w-[224px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">Total Amount</div>
+                            <div className="flex flex-row items-center justify-between">
+                                <input className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none" />
 
-                                <input
-                                    className={
-                                        'no-spin block w-full appearance-none border-none bg-none p-0 font-black outline-none placeholder:font-black placeholder:text-black ' +
-                                        textFontSize
-                                    }
-                                    placeholder="0.00"
-                                    inputMode="decimal"
-                                    step="any"
-                                    min="0"
-                                    autoComplete="off"
-                                    onFocus={(e) => e.target.select()}
-                                    autoFocus
-                                    onChange={(e) => {
-                                        const value = utils.formatAmountWithoutComma(e.target.value)
-                                        setTextFontSize(_utils.textHandler(value))
-                                        sendForm.setValue('amount', value)
-                                    }}
-                                    pattern="[0-9]*[.,]?[0-9]*"
-                                    size={formwatch.amount ? formwatch.amount.length : 4}
-                                />
+                                <div className="items-center text-xs font-normal">$...</div>
                             </div>
-
-                            {tokenPrice ? (
-                                <div className="flex w-full items-center justify-center">
-                                    <img
-                                        onClick={() => {
-                                            setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
-                                        }}
-                                        src={switch_svg.src}
-                                        className="h-4 cursor-pointer"
-                                    />
-                                    <label className="ml-4 w-max pr-2 text-sm font-bold">
-                                        {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
-                                            ? inputDenomination == 'USD'
-                                                ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
-                                                  ' ' +
-                                                  formwatch.token
-                                                : '$ ' + utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
-                                            : '0.00 '}
-                                    </label>
+                        </div>
+                        <div className=" flex h-[58px] w-[224px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">№ of Recipients</div>
+                            <div className="flex flex-row items-center justify-between">
+                                <div className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                    12
                                 </div>
-                            ) : (
-                                <div className="h-5"></div>
-                            )}
+                                <div className="items-center text-xs font-normal">$2.69 fee</div>
+                            </div>
                         </div>
                     </div>
-                    {/* <div
-                        className="flex cursor-pointer items-center justify-center "
-                        onClick={() => {
-                            setAdvancedDropdownOpen(!advancedDropdownOpen)
-                            if (advancedDropdownOpen) {
-                                sendForm.setValue('bulkAmount', 0)
-                            }
-                        }}
-                    >
-                        <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
-                        <img
-                            style={{
-                                transform: advancedDropdownOpen ? 'scaleY(-1)' : 'none',
-                                transition: 'transform 0.3s ease-in-out',
-                            }}
-                            src={dropdown_svg.src}
-                            alt=""
-                            className={'h-6 '}
-                        />
-                    </div> */}
-                    {advancedDropdownOpen && (
-                        <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
-                            <div className="relative w-full px-2 sm:w-3/4">
-                                <div className="absolute inset-y-0 right-4 box-border flex items-center ">
-                                    <span className="cursor-pointertext-lg align-center flex h-1/2 ">
-                                        <button
-                                            type="button"
-                                            className={
-                                                'relative inline-flex items-center border-none bg-white font-black text-black'
-                                            }
-                                        >
-                                            Links
-                                        </button>
-                                    </span>
-                                </div>
-
-                                <input
-                                    type="number"
-                                    step="any"
-                                    min="0"
-                                    autoComplete="off"
-                                    className="no-spin brutalborder block w-full appearance-none px-2 py-4 pl-4 text-lg font-bold outline-none placeholder:text-lg placeholder:font-bold placeholder:text-black "
-                                    placeholder="0"
-                                    aria-describedby="price-currency"
-                                    onChange={(e) => {
-                                        sendForm.setValue('bulkAmount', Number(e.target.value))
-                                    }}
-                                />
-                            </div>
-                            {formwatch.amount && formwatch.token && formwatch.bulkAmount ? (
-                                <div>
-                                    <div className="flex text-center text-base">
-                                        {' '}
-                                        You will be sending {formwatch.bulkAmount} links. The total value will be{' '}
-                                        {inputDenomination == 'USD'
-                                            ? utils.formatTokenAmount(
-                                                  Number(
-                                                      tokenPrice &&
-                                                          formwatch.amount &&
-                                                          (Number(formwatch.amount) / tokenPrice) * formwatch.bulkAmount
-                                                  )
-                                              )
-                                            : utils.formatTokenAmount(
-                                                  formwatch.bulkAmount * Number(formwatch.amount)
-                                              )}{' '}
-                                        {formwatch.token}
-                                    </div>
-                                </div>
-                            ) : (
-                                ''
-                            )}
-                        </div>
-                    )}
                     <div
                         className={
                             errorState.showError || showGaslessAvailable
@@ -947,10 +728,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
-                            ) : advancedDropdownOpen ? (
-                                'Bulk Send'
                             ) : (
-                                'Send'
+                                'Create'
                             )}
                         </button>
                         {errorState.showError ? (

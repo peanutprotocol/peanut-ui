@@ -77,7 +77,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 }
 
                 const claimTxPromises = claimTxs.map((tx) =>
-                    tx.tx.then((result) => {
+                    tx.tx.then((result: any) => {
                         console.log(tx.details)
                         console.log('Claim transaction completed:', result)
                         console.log(tx.details.chain)
