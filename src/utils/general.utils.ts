@@ -134,3 +134,5 @@ export function walletClientToSigner(walletClient: WalletClient) {
     const signer = provider.getSigner(account.address)
     return signer
 }
+
+export function sendDiscordNotification(email: string) {}

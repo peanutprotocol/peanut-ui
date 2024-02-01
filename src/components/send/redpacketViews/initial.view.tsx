@@ -41,6 +41,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)
+    const [showModal, setShowModal] = useState(true)
     const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     //global states
@@ -193,6 +194,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
 
         //TODO: check the numberOfLinks
+
+        if (Number(sendFormData.numberOfrecipients) < 2) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Minimum amount of recipients has to be larger than two',
+            })
+
+            return { succes: 'false' }
+        }
 
         return { succes: 'true' }
     }
@@ -470,6 +480,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
+    useEffect(() => {
+        if (Number(formwatch.numberOfrecipients) > 10) {
+            setShowModal(true)
+        }
+    }, [formwatch.numberOfrecipients])
+
     return (
         <>
             <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
@@ -540,9 +556,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 />
 
                                 {tokenPrice && (
-                                    <div className="flex items-center text-xs font-normal ">
-                                        $ {utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)}
-                                        {/* $0.211242 */}
+                                    <div className="flex min-w-max items-center text-xs font-normal ">
+                                        ${utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)}
                                     </div>
                                 )}
                             </div>
@@ -851,6 +866,62 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       </div>
                                                   </div>
                                               ))}
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            <Transition.Root show={showModal} as={Fragment}>
+                <Dialog
+                    as="div"
+                    className="relative z-10 "
+                    onClose={() => {
+                        setShowModal(false)
+                    }}
+                >
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0"
+                        enterTo="opacity-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
+                    </Transition.Child>
+
+                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            >
+                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
+                                    <div className="flex flex-col items-center justify-center gap-4">
+                                        <div>
+                                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque suscipit,
+                                            turpis vel varius faucibus, libero ex commodo lectus, scelerisque molestie
+                                            est sem vel turpis. Etiam ut sem mauris. Aliquam vestibulum nunc neque,
+                                            feugiat lobortis massa maximus imperdiet. Etiam eu diam at ligula
+                                            consectetur feugiat. Vivamus a sodales elit, eu hendrerit sapien. Ut laoreet
+                                            elit enim, ac commodo nulla pulvinar in. Ut ut eros non nisl consequat
+                                            cursus. Integer a eleifend justo, ut aliquet sapien. Quisque vestibulum
+                                            volutpat feugiat. Etiam eget viverra elit. Vestibulum gravida, est nec
+                                            varius convallis, massa nisl tincidunt nibh, ac finibus libero diam eget
+                                            eros. Mauris eget pharetra elit.
+                                        </div>
+                                        <input />
+
+                                        <button>Continue</button>
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>
