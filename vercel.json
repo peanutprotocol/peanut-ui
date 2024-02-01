@@ -5,10 +5,10 @@
             "has": [
                 {
                     "type": "host",
-                    "value": "red.peanut.to"
+                    "value": "app.acme.com"
                 }
             ],
-            "destination": "/create-packet"
+            "destination": "/app"
         }
     ]
 }
