@@ -21,6 +21,7 @@ import { getCalApi } from '@calcom/embed-react'
 import Link from 'next/link'
 import Lottie from 'react-lottie'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
+import { isMobile } from 'react-device-detect'
 
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const logoLinks = {
@@ -288,8 +289,12 @@ export function Welcome() {
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
                         <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
-                            <div className="brutalborder brutalshadow mx-2 flex h-[500px] h-full items-center justify-center bg-white object-cover">
-                                <Lottie options={defaultLottieOptions} height={500} width={400} />
+                            <div className="brutalborder brutalshadow sm:h-600 h-400 mx-2 flex h-full items-center justify-center bg-white object-cover">
+                                <Lottie
+                                    options={defaultLottieOptions}
+                                    height={isMobile ? 400 : 600}
+                                    width={isMobile ? 250 : 400}
+                                />
                             </div>
                         </a>
                     </div>
