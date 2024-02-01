@@ -22,7 +22,7 @@ const nextConfig = {
                     destination: '/api/assetLinks',
                 },
                 {
-                    source: '/:path*',
+                    source: '/',
                     has: [
                         {
                             type: 'host',
