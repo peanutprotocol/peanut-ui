@@ -2,15 +2,14 @@ import React from 'react'
 import * as views from './views'
 import * as redpacketViews from './redpacketViews'
 
-// I always like to use consts files like these, makes it very readable and easy to change
-
 export interface ISendFormData {
     chainId: string
     token: string
     amount: string | null
     bulkAmount: number | undefined
-    numberOfrecipients: number | undefined
+    numberOfrecipients: string | undefined
 }
+
 export interface ITokenListItem {
     symbol: string
     amount: number

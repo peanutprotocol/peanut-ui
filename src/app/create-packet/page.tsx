@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     },
 }
 
-export default function SendPage() {
+export default function CreatePacketPage() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
             <components.Send type="red-packet"></components.Send>
