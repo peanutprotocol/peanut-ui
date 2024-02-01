@@ -33,7 +33,7 @@ export function Packet() {
 
     const checkLink = async (link: string) => {
         try {
-            //TODO: add validation in SDK to know if its empty or not found
+            //TODO: add check in SDK to know if its empty or not found
             if (await peanut.isRaffleActive({ link })) {
                 setRaffleInfo(await peanut.getRaffleInfo({ link }))
                 setPacketState('FOUND')
