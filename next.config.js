@@ -11,16 +11,28 @@ const nextConfig = {
         DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL,
     },
     async rewrites() {
-        return [
-            {
-                source: '/apple-app-site-association',
-                destination: '/api/apple-app-site-association',
-            },
-            {
-                source: '/.well-known/assetLinks.json',
-                destination: '/api/assetLinks',
-            },
-        ]
+        return {
+            beforeFiles: [
+                {
+                    source: '/apple-app-site-association',
+                    destination: '/api/apple-app-site-association',
+                },
+                {
+                    source: '/.well-known/assetLinks.json',
+                    destination: '/api/assetLinks',
+                },
+                {
+                    source: '/',
+                    has: [
+                        {
+                            type: 'host',
+                            value: 'red.peanut.to',
+                        },
+                    ],
+                    destination: '/create-packet',
+                },
+            ],
+        }
     },
     async redirects() {
         return [
