@@ -38,7 +38,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
-    const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)
     const [showModal, setShowModal] = useState(false)
@@ -162,7 +161,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
-            setInputDenomination('TOKEN')
         }
     }
 
@@ -207,36 +205,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         return { succes: 'true' }
     }
 
-    const calculateTokenAmount = async (
-        sendFormData: _consts.ISendFormData
-    ): Promise<{ tokenAmount: number; status: string }> => {
-        if (inputDenomination == 'USD') {
-            var price: number | undefined = undefined
-            try {
-                price = await fetchTokenPrice(
-                    tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
-                    sendFormData.chainId
-                )
-            } catch (error) {
-                console.error(error)
-                setErrorState({
-                    showError: true,
-                    errorMessage:
-                        'Something went wrong while fetching the token price, please change input denomination',
-                })
-                return { tokenAmount: 0, status: 'ERROR' }
-            }
-
-            if (price) {
-                return { tokenAmount: Number(sendFormData.amount) / price, status: 'SUCCESS' }
-            } else {
-                return { tokenAmount: 0, status: 'ERROR' }
-            }
-        } else {
-            return { tokenAmount: Number(sendFormData.amount) ?? 0, status: 'SUCCESS' }
-        }
-    }
-
     const checkNetwork = async (chainId: string) => {
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== chainId.toString()) {
@@ -276,14 +244,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setEnableConfirmation(true)
 
                 //Calculate the token amount
-                const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
-                if (status == 'ERROR') {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Something went wrong while calculating the token amount',
-                    })
-                    return
-                }
+                const tokenAmount = Number(sendFormData.amount)
 
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
@@ -428,7 +389,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setEnableConfirmation(false)
             }
         },
-        [currentChain, userBalances, onNextScreen, isLoading, address, inputDenomination, tokenPrice]
+        [currentChain, userBalances, onNextScreen, isLoading, address, tokenPrice]
     )
 
     function classNames(...classes: any) {
