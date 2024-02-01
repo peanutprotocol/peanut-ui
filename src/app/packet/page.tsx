@@ -16,6 +16,13 @@ export const metadata: Metadata = {
             },
         ],
     },
+    twitter: {
+        images: [
+            {
+                url: '/redpacket-img.png',
+            },
+        ],
+    },
 }
 
 export default function PacketPage() {
