@@ -16,9 +16,11 @@ import dropdown_svg from '@/assets/dropdown.svg'
 import derek from '@/assets/people/derek.png'
 import sharuk from '@/assets/people/sharuk.png'
 import kofime_icon from '@/assets/people/kofime-icon.jpeg'
-import web3inbox_logo from '@/assets/logos/partners/web3inbox-logo.svg'
 import { useState, useEffect } from 'react'
 import { getCalApi } from '@calcom/embed-react'
+import Link from 'next/link'
+import Lottie from 'react-lottie'
+import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const logoLinks = {
@@ -163,6 +165,15 @@ export function Welcome() {
         return classes.filter(Boolean).join(' ')
     }
 
+    const defaultLottieOptions = {
+        loop: true,
+        autoplay: true,
+        animationData: redpacketLottie,
+        rendererSettings: {
+            preserveAspectRatio: 'xMidYMid slice',
+        },
+    }
+
     useEffect(() => {
         ;(async function () {
             const cal = await getCalApi()
@@ -273,6 +284,42 @@ export function Welcome() {
 
             {/* how it works */}
             <div className=" flex flex-col gap-4 bg-white p-4">
+                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-red py-8 text-black sm:py-16 lg:flex-row-reverse">
+                    {/* right column */}
+                    <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
+                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
+                            <div className="brutalborder brutalshadow mx-2 flex h-[500px] h-full items-center justify-center bg-white object-cover">
+                                <Lottie options={defaultLottieOptions} height={500} width={400} />
+                            </div>
+                        </a>
+                    </div>
+                    {/* left column */}
+                    <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Red packets</h1>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">
+                            Celebrate the Lunar New Year with Red Packets on our app or integrate the SDK!{' '}
+                        </div>
+
+                        <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
+                            <Link
+                                href={'/create-packet'}
+                                id="cta-btn"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
+                            >
+                                Use app!
+                            </Link>
+
+                            <a
+                                href="https://peanutprotocol.notion.site/Red-Packets-Implementation-Guide-1af8ed4c6caa41cf8dc8ac66b39f639b?pvs=74"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
+                            >
+                                Integrate →
+                            </a>
+                        </div>
+                    </div>
+                </div>
                 <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-teal py-8 text-black sm:py-16 lg:flex-row">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
