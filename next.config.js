@@ -20,16 +20,6 @@ const nextConfig = {
                 source: '/.well-known/assetLinks.json',
                 destination: '/api/assetLinks',
             },
-            {
-                source: '/:path*',
-                destination: '/create-packet',
-                has: [
-                    {
-                        type: 'host',
-                        value: 'https://red.peanut.to/',
-                    },
-                ],
-            },
         ]
     },
     async redirects() {

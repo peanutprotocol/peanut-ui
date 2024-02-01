@@ -5,7 +5,7 @@
             "has": [
                 {
                     "type": "host",
-                    "value": "https://red.peanut.to/"
+                    "value": "red.peanut.to"
                 }
             ],
             "destination": "/create-packet"
