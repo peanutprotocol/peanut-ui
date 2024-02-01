@@ -1,14 +1,11 @@
 import * as global_components from '@/components/global'
 import * as components from '@/components'
-import { headers } from 'next/headers'
-import { Metadata, ResolvingMetadata } from 'next'
-import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
-import * as utils from '@/utils'
+import { Metadata } from 'next'
 export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
-    title: 'You have been sent a red packet!',
-
+    title: 'Peanut Protocol',
+    description: 'You have been sent a red packet!',
     icons: {
         icon: '/logo-favicon.png',
     },
@@ -21,7 +18,7 @@ export const metadata: Metadata = {
     },
 }
 
-export default function WinPage() {
+export default function PacketPage() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
             <components.Packet />
