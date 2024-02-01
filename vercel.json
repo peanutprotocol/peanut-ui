@@ -1,0 +1,14 @@
+{
+    "rewrites": [
+        {
+            "source": "/",
+            "destination": "/create-packet",
+            "has": [
+                {
+                    "type": "host",
+                    "value": "red.peanut.to"
+                }
+            ]
+        }
+    ]
+}
