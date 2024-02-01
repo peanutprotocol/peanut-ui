@@ -1,14 +1,14 @@
 {
     "rewrites": [
         {
-            "source": "/",
-            "destination": "/create-packet",
+            "source": "/:path*",
             "has": [
                 {
                     "type": "host",
-                    "value": "red.peanut.to"
+                    "value": "https://red.peanut.to/"
                 }
-            ]
+            ],
+            "destination": "/create-packet"
         }
     ]
 }
