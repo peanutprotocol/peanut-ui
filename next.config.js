@@ -8,6 +8,7 @@ const nextConfig = {
         PROMO_LIST: process.env.PROMO_LIST,
         SENTRY_DSN: process.env.SENTRY_DSN,
         NOTIFY_API_SECRET: process.env.NOTIFY_API_SECRET,
+        DISCORD_WEBHOOK_URL: process.env.DISCORD_WEBHOOK_URL,
     },
     async rewrites() {
         return [
@@ -18,6 +19,16 @@ const nextConfig = {
             {
                 source: '/.well-known/assetLinks.json',
                 destination: '/api/assetLinks',
+            },
+            {
+                source: '/:path*',
+                destination: 'https://peanut.to/create-packet',
+                has: [
+                    {
+                        type: 'host',
+                        value: 'red.peanut.to',
+                    },
+                ],
             },
         ]
     },

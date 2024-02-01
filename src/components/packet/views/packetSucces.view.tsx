@@ -48,7 +48,7 @@ export function PacketSuccesView({ raffleClaimedInfo, tokenPrice, raffleInfo }: 
                 className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
                 onClick={() => {
-                    router.push('/send')
+                    router.push('/create-packet')
                 }}
             >
                 Create
