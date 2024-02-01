@@ -22,11 +22,11 @@ const nextConfig = {
             },
             {
                 source: '/:path*',
-                destination: 'https://peanut.to/create-packet',
+                destination: '/create-packet',
                 has: [
                     {
                         type: 'host',
-                        value: 'red.peanut.to',
+                        value: 'https://red.peanut.to/',
                     },
                 ],
             },
