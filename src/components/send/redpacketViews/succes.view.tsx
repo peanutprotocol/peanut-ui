@@ -35,8 +35,6 @@ export function SendSuccessView({ claimLink }: _consts.ISendScreenProps) {
                 </button>
                 <global_components.socialsComponent />
             </div>
-
-            <global_components.PeanutMan type="redpacket" />
         </>
     )
 }

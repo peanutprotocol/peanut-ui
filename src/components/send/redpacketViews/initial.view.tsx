@@ -41,7 +41,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)
-    const [showModal, setShowModal] = useState(true)
+    const [showModal, setShowModal] = useState(false)
+    const [enteredEmail, setEnteredEmail] = useState('')
+    const [sentEmail, setSentEmail] = useState(false)
     const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     //global states
@@ -193,8 +195,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
-        //TODO: check the numberOfLinks
-
         if (Number(sendFormData.numberOfrecipients) < 2) {
             setErrorState({
                 showError: true,
@@ -259,8 +259,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
-                //TODO: limit chains
-
                 if (isLoading) return
                 setLoadingStates('checking inputs')
                 setErrorState({
@@ -312,7 +310,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     tokenType: tokenType,
                     tokenAddress: tokenAddress,
                     tokenDecimals: tokenDecimals,
-                    baseUrl: window.location.origin + '/packet',
+                    baseUrl: 'https://red.peanut.to/packet',
                     trackId: 'ui',
                 }
 
@@ -400,7 +398,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     } else if (error.toString().includes('not deployed on chain')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Bulk is not able on this chain, please try another chain',
+                            errorMessage:
+                                'Creating a red packet is not possible on this chain yet, please try another chain',
                         })
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
@@ -481,7 +480,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
     useEffect(() => {
-        if (Number(formwatch.numberOfrecipients) > 10) {
+        if (!sentEmail && Number(formwatch.numberOfrecipients) > 10) {
             setShowModal(true)
         }
     }, [formwatch.numberOfrecipients])
@@ -905,23 +904,37 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative min-h-[240px] w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8 sm:min-h-[380px] sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex flex-col items-center justify-center gap-4">
+                                <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
+                                    <div className="flex  flex-col items-center justify-center gap-4 p-4">
                                         <div>
-                                            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Quisque suscipit,
-                                            turpis vel varius faucibus, libero ex commodo lectus, scelerisque molestie
-                                            est sem vel turpis. Etiam ut sem mauris. Aliquam vestibulum nunc neque,
-                                            feugiat lobortis massa maximus imperdiet. Etiam eu diam at ligula
-                                            consectetur feugiat. Vivamus a sodales elit, eu hendrerit sapien. Ut laoreet
-                                            elit enim, ac commodo nulla pulvinar in. Ut ut eros non nisl consequat
-                                            cursus. Integer a eleifend justo, ut aliquet sapien. Quisque vestibulum
-                                            volutpat feugiat. Etiam eget viverra elit. Vestibulum gravida, est nec
-                                            varius convallis, massa nisl tincidunt nibh, ac finibus libero diam eget
-                                            eros. Mauris eget pharetra elit.
+                                            We noticed you are trying to make a link with a large amount of recipient,
+                                            please enter your email address that way we can reach out to you to see if
+                                            we can create a campaign.
                                         </div>
-                                        <input />
+                                        <input
+                                            className="brutalborder w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                            onChange={(e) => {
+                                                setEnteredEmail(e.target.value)
+                                            }}
+                                        />
 
-                                        <button>Continue</button>
+                                        <button
+                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                            id="cta-btn"
+                                            onClick={() => {
+                                                setSentEmail(true)
+                                                const message = ` 🐿️ Someone has entered their email when creating a raffle link, 
+                                                tagging <@480931245107445760> <@833795975080181810>
+
+                                                email: ${enteredEmail}
+                                                `
+                                                utils.sendDiscordNotification(message)
+                                                setShowModal(false)
+                                            }}
+                                            disabled={isLoading ? true : false}
+                                        >
+                                            Continue
+                                        </button>
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>
