@@ -9,6 +9,7 @@ import * as hooks from '@/hooks'
 
 import peanut_logo from '@/assets/peanutman-logo.svg'
 import smiley from '@/assets/smiley.svg'
+import red_pack_svg from '@/assets/red-packet-naked.svg'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
@@ -37,11 +38,18 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     >
                         <span className="">app</span>
                     </Link>
+
                     <Link
                         className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                         href={'https://docs.peanut.to'}
                     >
                         <span className="">docs</span>
+                    </Link>
+                    <Link
+                        className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                        href={'/create-packet'}
+                    >
+                        <img src={red_pack_svg.src} className=" h-4 w-auto sm:h-6 " />
                     </Link>
                 </div>
                 <div className="mr-1 flex h-full gap-1 self-center sm:gap-4">
