@@ -91,7 +91,7 @@ export function SendSuccessView({ claimLink, onCustomScreen }: _consts.ISendScre
                 >
                     Create
                 </button>
-                <global_components.socialsComponent />
+                <global_components.socialsComponent message={`Here is a Red Packet for you! ${claimLink[0]}`} />
             </div>
         </>
     )
