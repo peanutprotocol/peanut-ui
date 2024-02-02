@@ -164,7 +164,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    const checkForm = (sendFormData: _consts.ISendFormData, signer: providers.JsonRpcSigner | undefined) => {
+    const checkForm = (
+        sendFormData: _consts.ISendFormData,
+        signer: providers.JsonRpcSigner | undefined,
+        tokenAddress: string
+    ) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
@@ -202,6 +206,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
+        if (userBalances) {
+            const amount = userBalances.find(
+                (balance) => balance.chainId == sendFormData.chainId && balance.address == tokenAddress
+            )?.amount
+
+            if (amount && Number(sendFormData.amount) > amount) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please make sure your balance is sufficient for this transaction',
+                })
+
+                return { succes: 'false' }
+            }
+        }
+
         return { succes: 'true' }
     }
 
@@ -227,6 +246,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
+                //get the token details
+                const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
+                    sendFormData,
+                    userBalances,
+                    tokenDetails,
+                    chainsToShow
+                )
+
                 if (isLoading) return
                 setLoadingStates('checking inputs')
                 setErrorState({
@@ -238,21 +265,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
 
                 //check if the formdata is correct
-                if (checkForm(sendFormData, signer).succes === 'false') {
+                if (checkForm(sendFormData, signer, tokenAddress).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
 
                 //Calculate the token amount
                 const tokenAmount = Number(sendFormData.amount)
-
-                //get the token details
-                const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
-                    sendFormData,
-                    userBalances,
-                    tokenDetails,
-                    chainsToShow
-                )
 
                 console.log(
                     `creating raffle ${tokenAmount} ${sendFormData.token} on chain with id ${sendFormData.chainId} with token address: ${tokenAddress} with tokenType: ${tokenType} with tokenDecimals: ${tokenDecimals}`
