@@ -908,22 +908,31 @@ export function SendInitialView({
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
                                 <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex  flex-col items-center justify-center gap-4 p-4">
+                                    <div className="flex flex-col items-center justify-center gap-6 p-6">
                                         <div>
-                                            We noticed you are trying to make a link with a large amount of recipient,
-                                            please enter your email address that way we can reach out to you to see if
-                                            we can create a campaign.
+                                            Henlo! That's a lot of recipients! If you're running a larger campaign, we'd
+                                            love to help.{' '}
+                                            <a
+                                                href={'https://cal.com/kkonrad+hugo0/15min?duration=30'}
+                                                target="_blank"
+                                                rel="noreferrer noopener"
+                                                className=" cursor-pointer text-black underline"
+                                            >
+                                                book
+                                            </a>{' '}
+                                            a meeting or share your email and we'll get in touch!
                                         </div>
+
                                         <input
-                                            className="brutalborder w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                            className="brutalborder  w-3/4 items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
                                             onChange={(e) => {
                                                 setEnteredEmail(e.target.value)
                                             }}
                                         />
 
                                         <button
-                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
-                                            id="cta-btn"
+                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                            id="cta-btn-2"
                                             onClick={() => {
                                                 setSentEmail(true)
                                                 const message = ` 🐿️ Someone has entered their email when creating a raffle link, 

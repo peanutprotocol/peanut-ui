@@ -5,51 +5,7 @@ import * as utils from '@/utils'
 import * as store from '@/store'
 import * as global_components from '@/components/global'
 import * as _consts from '../packet.consts'
-import { useEffect } from 'react'
-
-const claimsArray = [
-    {
-        amount: 10,
-        name: 'John Doe',
-    },
-    {
-        amount: 5,
-        name: 'Jane Doe',
-    },
-    {
-        amount: 2,
-        name: 'John Doe',
-    },
-    {
-        amount: 1,
-        name: 'Jane Doe',
-    },
-    {
-        amount: 3,
-        name: 'John Doe',
-    },
-    {
-        amount: 4,
-        name: 'Jane Doe',
-    },
-    {
-        amount: 6,
-        name: 'John Doe',
-    },
-    {
-        amount: 7,
-        name: 'Jane Doe',
-    },
-    {
-        amount: 8,
-        name: 'John Doe',
-    },
-    {
-        amount: 9,
-        name: 'Jane Doe',
-    },
-]
-
+import { useEffect, useState } from 'react'
 export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPacketScreenProps) {
     const router = useRouter()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -64,7 +20,8 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPac
 
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
-                    {utils.formatTokenAmount(Number(raffleClaimedInfo.amountReceived))} {raffleClaimedInfo.tokenSymbol}
+                    {utils.formatTokenAmount(Number(raffleClaimedInfo?.amountReceived))}{' '}
+                    {raffleClaimedInfo?.tokenSymbol}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
@@ -73,7 +30,8 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPac
 
             <div className="flex flex-col items-center justify-center gap-2">
                 <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See how lucky you were!</h3>
-                <div></div>
+
+                <global_components.leaderBoardComp />
             </div>
 
             <h3 className="text-md text-center font-normal sm:text-lg lg:text-xl ">
@@ -90,9 +48,9 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPac
                 Create
             </button>
             <global_components.socialsComponent
-                message={`I just claimed ${utils.formatTokenAmount(Number(raffleClaimedInfo.amountReceived))} ${
-                    raffleClaimedInfo.tokenSymbol
-                } on peanut.to!`}
+                message={`I just claimed ${utils.formatTokenAmount(
+                    Number(raffleClaimedInfo?.amountReceived)
+                )} ${raffleClaimedInfo?.tokenSymbol} on peanut.to!`}
             />
             <global_components.PeanutMan type="redpacket" />
         </div>
