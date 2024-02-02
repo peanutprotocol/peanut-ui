@@ -13,7 +13,7 @@ export function SendSuccessView({ claimLink, onCustomScreen }: _consts.ISendScre
     return (
         <>
             <div className="mb-4 mt-10 flex w-full flex-col items-center gap-6 text-center ">
-                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Yay!</h2>
+                <h2 className=" bold my-0 text-2xl lg:text-4xl">Yay!</h2>
                 <img src={peanutman_redpacket.src} className="h-auto w-3/4 max-w-[264px]" />
                 <p className="my-0 self-center text-lg font-normal">
                     Send your red packet link to your friend group chat!{' '}

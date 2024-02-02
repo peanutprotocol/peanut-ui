@@ -10,13 +10,14 @@ import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import * as consts from '@/consts'
 import * as _consts from '../packet.consts'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useForm } from 'react-hook-form'
 
 export function PacketInitialView({
     onNextScreen,
     raffleInfo,
     raffleLink,
     setRaffleClaimedInfo,
-    setTokenPrice,
+    ensName,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -27,6 +28,16 @@ export function PacketInitialView({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    const claimForm = useForm<{
+        name: string
+    }>({
+        mode: 'onChange',
+        defaultValues: {
+            name: '',
+        },
+    })
+    const formwatch = claimForm.watch()
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
@@ -39,25 +50,19 @@ export function PacketInitialView({
         },
     }
 
-    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
-        try {
-            const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                params: {
-                    tokenAddress: tokenAddress,
-                    chainId: chainId,
-                },
-                headers: {
-                    accept: 'application/json',
-                    'API-KEY': process.env.SOCKET_API_KEY,
-                },
+    const claim = async (claimFormData: { name: string }) => {
+        if (claimFormData.name === '') {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Name is required',
             })
-            setTokenPrice(response.data.result.tokenPrice)
-        } catch (error) {
-            console.log('error fetching token price for token ' + tokenAddress)
-        }
-    }
 
-    const claim = async () => {
+            return
+        }
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
         setIsLottieStopped(false)
         setLoadingStates('opening')
         try {
@@ -88,13 +93,11 @@ export function PacketInitialView({
     }, [])
 
     useEffect(() => {
-        if (raffleInfo?.tokenAddress) {
-            fetchTokenPrice(raffleInfo.tokenAddress, raffleInfo.chainId)
-        }
-    }, [raffleInfo])
+        if (ensName) claimForm.setValue('name', ensName)
+    }, [ensName])
 
     return (
-        <>
+        <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
             <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
             <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See what's inside!</h3>
             <div className={'mb-4 mt-0'}>
@@ -107,12 +110,28 @@ export function PacketInitialView({
                 />
             </div>
 
+            <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                <div className="font-normal">Name</div>
+                <div className="flex flex-row items-center justify-between">
+                    <input
+                        className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                        placeholder="Chad"
+                        type="text"
+                        autoComplete="off"
+                        onFocus={(e) => e.target.select()}
+                        {...claimForm.register('name')}
+                    />
+                </div>
+            </div>
+
             <button
                 type={isConnected ? 'submit' : 'button'}
                 className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
                 onClick={() => {
-                    !isConnected ? open() : claim()
+                    if (!isConnected) {
+                        open()
+                    }
                 }}
                 disabled={isLoading}
             >
@@ -137,6 +156,6 @@ export function PacketInitialView({
                 </div>
             )}
             <global_components.PeanutMan type="redpacket" />
-        </>
+        </form>
     )
 }

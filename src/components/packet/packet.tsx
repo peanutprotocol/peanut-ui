@@ -2,6 +2,8 @@
 
 import { createElement, useEffect, useState } from 'react'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import { useAccount } from 'wagmi'
+
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as global_components from '@/components/global'
 
@@ -9,12 +11,13 @@ import * as views from './views'
 import * as _consts from './packet.consts'
 
 export function Packet() {
+    const { address } = useAccount()
     const [packetState, setPacketState] = useState<_consts.packetState>('LOADING')
     const [packetScreen, setPacketScreen] = useState<_consts.IPacketScreenState>(_consts.INIT_VIEW)
     const [raffleLink, setRaffleLink] = useState<string>('')
     const [raffleInfo, setRaffleInfo] = useState<interfaces.IRaffleInfo | undefined>()
     const [raffleClaimedInfo, setRaffleClaimedInfo] = useState<interfaces.IClaimRaffleLinkResponse | undefined>()
-    const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
+    const [ensName, setEnsName] = useState<string | undefined>(undefined)
 
     const handleOnNext = () => {
         const newIdx = packetScreen.idx + 1
@@ -54,6 +57,21 @@ export function Packet() {
         }
     }, [])
 
+    async function getEnsName(address: string) {
+        const ensName = await peanut.resolveToENSName({
+            address: address,
+        })
+        if (ensName) {
+            setEnsName(ensName)
+        }
+    }
+
+    useEffect(() => {
+        if (address) {
+            getEnsName(address)
+        }
+    }, [address])
+
     return (
         <global_components.CardWrapper pt=" pt-16 " redPacket>
             {packetState === 'LOADING' && (
@@ -75,8 +93,8 @@ export function Packet() {
                     setRaffleInfo,
                     raffleClaimedInfo,
                     setRaffleClaimedInfo,
-                    tokenPrice,
-                    setTokenPrice,
+                    ensName,
+                    setEnsName,
                 })}
         </global_components.CardWrapper>
     )

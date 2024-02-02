@@ -19,8 +19,8 @@ export interface IPacketScreenProps {
     setRaffleInfo: (details: interfaces.IRaffleInfo | undefined) => void
     raffleClaimedInfo: interfaces.IClaimRaffleLinkResponse
     setRaffleClaimedInfo: (details: interfaces.IClaimRaffleLinkResponse | undefined) => void
-    tokenPrice: number | undefined
-    setTokenPrice: (price: number | undefined) => void
+    ensName: string | undefined
+    setEnsName: (name: string | undefined) => void
 }
 
 export const INIT_VIEW: IPacketScreenState = {
