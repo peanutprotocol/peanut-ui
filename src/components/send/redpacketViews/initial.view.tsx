@@ -213,6 +213,15 @@ export function SendInitialView({
             return { succes: 'false' }
         }
 
+        if (Number(sendFormData.numberOfrecipients) > 250) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Maximum amount of recipients is 250',
+            })
+
+            return { succes: 'false' }
+        }
+
         if (userBalances) {
             const amount = userBalances.find(
                 (balance) => balance.chainId == sendFormData.chainId && balance.address == tokenAddress

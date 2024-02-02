@@ -76,7 +76,7 @@ export function leaderBoardComp() {
                 )
             })}
             <div
-                className={'brutalborder flex w-full flex-row items-start justify-center gap-2 px-2'}
+                className={'brutalborder flex w-full cursor-pointer flex-row items-start justify-center gap-2 px-2'}
                 onClick={() => {
                     setIsCollapsed(!isCollapsed)
                 }}
