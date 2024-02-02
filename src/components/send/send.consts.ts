@@ -8,6 +8,7 @@ export interface ISendFormData {
     amount: string | null
     bulkAmount: number | undefined
     numberOfrecipients: string | undefined
+    recipientName: string | undefined
 }
 
 export interface ITokenListItem {
@@ -35,6 +36,8 @@ export interface ISendScreenProps {
     setTxHash: (txHash: string) => void
     chainId: string
     setChainId: (chainId: string) => void
+    ensName: string
+    setEnsName: (ensName: string) => void
 }
 
 export const INIT_VIEW: ISendScreenState = {

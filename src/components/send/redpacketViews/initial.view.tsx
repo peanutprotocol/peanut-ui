@@ -21,7 +21,13 @@ import * as global_components from '@/components/global'
 import dropdown_svg from '@/assets/dropdown.svg'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
-export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
+export function SendInitialView({
+    onNextScreen,
+    setClaimLink,
+    setTxHash,
+    setChainId,
+    ensName,
+}: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -60,6 +66,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             amount: null,
             token: '',
             numberOfrecipients: undefined,
+            recipientName: undefined,
         },
     })
     const formwatch = sendForm.watch()
@@ -197,7 +204,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
-        if (Number(sendFormData.numberOfrecipients) < 2) {
+        if (!sendFormData.numberOfrecipients || Number(sendFormData.numberOfrecipients) < 2) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Minimum amount of recipients has to be larger than two',
@@ -465,6 +472,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [formwatch.numberOfrecipients])
 
+    useEffect(() => {
+        if (ensName) sendForm.setValue('recipientName', ensName)
+    }, [ensName])
+
     return (
         <>
             <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
@@ -516,7 +527,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">Total Amount</div>
+                            <div className="font-normal">Total Amount *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
@@ -542,7 +553,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             </div>
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">№ of Recipients</div>
+                            <div className="font-normal">№ of Recipients *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
@@ -556,7 +567,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                     min="0"
                                     autoComplete="off"
                                     onFocus={(e) => e.target.select()}
-                                    autoFocus
                                     onKeyDown={(event) => {
                                         if (
                                             !/[0-9]/.test(event.key) &&
@@ -578,6 +588,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 />
 
                                 <label className=" display-block w-12 text-xs font-normal">{'$0 fee'}</label>
+                            </div>
+                        </div>
+                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">Name</div>
+                            <div className="flex flex-row items-center justify-between">
+                                <input
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                    placeholder="Chad"
+                                    type="text"
+                                    autoComplete="off"
+                                    onFocus={(e) => e.target.select()}
+                                    {...sendForm.register('recipientName')}
+                                />
                             </div>
                         </div>
                     </div>
