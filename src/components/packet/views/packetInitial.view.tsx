@@ -2,7 +2,7 @@
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
 import Lottie from 'react-lottie'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 
 import * as global_components from '@/components/global'
@@ -11,6 +11,7 @@ import * as consts from '@/consts'
 import * as _consts from '../packet.consts'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
+import { useRouter } from 'next/navigation'
 
 export function PacketInitialView({
     onNextScreen,
@@ -21,6 +22,7 @@ export function PacketInitialView({
     setLeaderboardInfo,
     senderName,
 }: _consts.IPacketScreenProps) {
+    const router = useRouter()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
@@ -56,6 +58,7 @@ export function PacketInitialView({
             showError: false,
             errorMessage: '',
         })
+
         setIsLottieStopped(false)
         setLoadingStates('opening')
         try {
@@ -73,13 +76,17 @@ export function PacketInitialView({
             setLeaderboardInfo(leaderboardInfo)
 
             setRaffleClaimedInfo(raffleClaimedInfo)
+
             onNextScreen()
-        } catch (error) {
+        } catch (error: any) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Something went wrong while claiming',
             })
-            console.error(error)
+
+            if (error.message == 'All slots have already been claimed for this raffle') {
+                window.location.reload()
+            }
         } finally {
             setIsLottieStopped(true)
             setLoadingStates('idle')
@@ -99,11 +106,11 @@ export function PacketInitialView({
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
             {senderName ? (
-                <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
+                <h2 className="my-2 mb-2 text-center text-3xl font-black lg:text-6xl ">
                     {senderName} sent you a gift!
                 </h2>
             ) : (
-                <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
+                <h2 className="my-2 mb-2 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
             )}
             <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See what's inside!</h3>
             <div className={'mb-4 mt-0'}>

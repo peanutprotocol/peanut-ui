@@ -609,6 +609,7 @@ export function SendInitialView({
                             <div className="font-normal">Name</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
+                                    maxLength={20}
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
                                     placeholder="Chad"
                                     type="text"
