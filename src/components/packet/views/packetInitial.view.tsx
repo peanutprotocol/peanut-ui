@@ -93,9 +93,8 @@ export function PacketInitialView({
     }, [])
 
     useEffect(() => {
-        if (senderName) claimForm.setValue('name', senderName)
-        else if (ensName) claimForm.setValue('name', ensName)
-    }, [senderName, ensName])
+        if (ensName) claimForm.setValue('name', ensName)
+    }, [ensName])
 
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
