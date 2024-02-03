@@ -52,7 +52,6 @@ export function Packet() {
             //TODO: add check in SDK to know if its empty or not found
             if (await peanut.isRaffleActive({ link })) {
                 const _raffleInfo = await peanut.getRaffleInfo({ link })
-
                 if (
                     await peanut.hasAddressParticipatedInRaffle({
                         link: link,
@@ -88,6 +87,7 @@ export function Packet() {
                     setRaffleLink(link)
                 }
             } else {
+                await fetchLeaderboardInfo(link)
                 setPacketState('EMPTY')
             }
         } catch (error) {
@@ -127,7 +127,7 @@ export function Packet() {
                 </div>
             )}
             {packetState === 'NOT_FOUND' && <views.PacketNotFound />}
-            {packetState === 'EMPTY' && <views.PacketEmpty />}
+            {packetState === 'EMPTY' && <views.PacketEmpty leaderboardInfo={leaderboardInfo ?? []} />}
 
             {packetState === 'FOUND' &&
                 createElement(_consts.PACKET_SCREEN_MAP[packetScreen.screen].comp, {

@@ -52,14 +52,6 @@ export function PacketInitialView({
     }
 
     const claim = async (claimFormData: { name: string | undefined }) => {
-        if (claimFormData.name === '') {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please provide your name',
-            })
-
-            return
-        }
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -101,8 +93,9 @@ export function PacketInitialView({
     }, [])
 
     useEffect(() => {
-        if (ensName) claimForm.setValue('name', ensName)
-    }, [ensName])
+        if (senderName) claimForm.setValue('name', senderName)
+        else if (ensName) claimForm.setValue('name', ensName)
+    }, [senderName, ensName])
 
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
