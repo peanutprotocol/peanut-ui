@@ -6,12 +6,20 @@ import * as store from '@/store'
 import * as global_components from '@/components/global'
 import * as _consts from '../packet.consts'
 import { useEffect, useState } from 'react'
-export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPacketScreenProps) {
+import peanut from '@squirrel-labs/peanut-sdk'
+export function PacketSuccesView({
+    raffleClaimedInfo,
+    raffleInfo,
+    raffleLink,
+    leaderboardInfo,
+    setLeaderboardInfo,
+}: _consts.IPacketScreenProps) {
     const router = useRouter()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     useEffect(() => {
         router.prefetch('/send')
+        console.log(leaderboardInfo)
     }, [])
 
     return (
@@ -20,8 +28,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPac
 
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
-                    {utils.formatTokenAmount(Number(raffleClaimedInfo?.amountReceived))}{' '}
-                    {raffleClaimedInfo?.tokenSymbol}
+                    {utils.formatTokenAmount(Number(raffleClaimedInfo?.amountReceived))} {raffleInfo?.tokenSymbol}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
@@ -31,7 +38,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPac
             <div className="flex flex-col items-center justify-center gap-2">
                 <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See how lucky you were!</h3>
 
-                <global_components.leaderBoardComp />
+                <global_components.leaderBoardComp leaderboardInfo={leaderboardInfo ?? []} />
             </div>
 
             <h3 className="text-md text-center font-normal sm:text-lg lg:text-xl ">
@@ -47,6 +54,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo }: _consts.IPac
             >
                 Create
             </button>
+
             <global_components.socialsComponent
                 message={`I just claimed ${utils.formatTokenAmount(
                     Number(raffleClaimedInfo?.amountReceived)

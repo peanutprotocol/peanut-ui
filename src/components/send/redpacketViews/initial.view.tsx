@@ -358,6 +358,12 @@ export function SendInitialView({
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
                 })
 
+                await peanut.addUsername({
+                    address: address ?? '',
+                    name: sendFormData.recipientName ?? '',
+                    link: getLinksFromTxResponse.link,
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                })
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
 
                 verbose && console.log('Created raffle link:', getLinksFromTxResponse.link)

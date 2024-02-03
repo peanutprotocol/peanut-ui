@@ -18,6 +18,8 @@ export function PacketInitialView({
     raffleLink,
     setRaffleClaimedInfo,
     ensName,
+    setLeaderboardInfo,
+    senderName,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -30,14 +32,13 @@ export function PacketInitialView({
     }>({ showError: false, errorMessage: '' })
 
     const claimForm = useForm<{
-        name: string
+        name: string | undefined
     }>({
         mode: 'onChange',
         defaultValues: {
-            name: '',
+            name: undefined,
         },
     })
-    const formwatch = claimForm.watch()
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
@@ -50,11 +51,11 @@ export function PacketInitialView({
         },
     }
 
-    const claim = async (claimFormData: { name: string }) => {
+    const claim = async (claimFormData: { name: string | undefined }) => {
         if (claimFormData.name === '') {
             setErrorState({
                 showError: true,
-                errorMessage: 'Name is required',
+                errorMessage: 'Please provide your name',
             })
 
             return
@@ -70,7 +71,14 @@ export function PacketInitialView({
                 link: raffleLink,
                 APIKey: process.env.PEANUT_API_KEY ?? '',
                 recipientAddress: address ?? '',
+                recipientName: claimFormData.name,
             })
+
+            const leaderboardInfo = await peanut.getRaffleLeaderboard({
+                link: raffleLink,
+                APIKey: process.env.PEANUT_API_KEY ?? '',
+            })
+            setLeaderboardInfo(leaderboardInfo)
 
             setRaffleClaimedInfo(raffleClaimedInfo)
             onNextScreen()
@@ -98,7 +106,13 @@ export function PacketInitialView({
 
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
-            <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
+            {senderName ? (
+                <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">
+                    {senderName} sent you a gift!
+                </h2>
+            ) : (
+                <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
+            )}
             <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See what's inside!</h3>
             <div className={'mb-4 mt-0'}>
                 <Lottie

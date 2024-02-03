@@ -21,6 +21,10 @@ export interface IPacketScreenProps {
     setRaffleClaimedInfo: (details: interfaces.IClaimRaffleLinkResponse | undefined) => void
     ensName: string | undefined
     setEnsName: (name: string | undefined) => void
+    leaderboardInfo: interfaces.IRaffleLeaderboardEntry[] | undefined
+    setLeaderboardInfo: (info: interfaces.IRaffleLeaderboardEntry[] | undefined) => void
+    senderName: string | undefined
+    setSenderName: (name: string | undefined) => void
 }
 
 export const INIT_VIEW: IPacketScreenState = {

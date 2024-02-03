@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi'
 
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as global_components from '@/components/global'
+import * as utils from '@/utils'
 
 import * as views from './views'
 import * as _consts from './packet.consts'
@@ -18,6 +19,8 @@ export function Packet() {
     const [raffleInfo, setRaffleInfo] = useState<interfaces.IRaffleInfo | undefined>()
     const [raffleClaimedInfo, setRaffleClaimedInfo] = useState<interfaces.IClaimRaffleLinkResponse | undefined>()
     const [ensName, setEnsName] = useState<string | undefined>(undefined)
+    const [leaderboardInfo, setLeaderboardInfo] = useState<interfaces.IRaffleLeaderboardEntry[] | undefined>(undefined)
+    const [senderName, setSenderName] = useState<string | undefined>(undefined)
 
     const handleOnNext = () => {
         const newIdx = packetScreen.idx + 1
@@ -34,13 +37,56 @@ export function Packet() {
         }))
     }
 
+    async function fetchLeaderboardInfo(link: string) {
+        const _leaderboardInfo = await peanut.getRaffleLeaderboard({
+            link: link,
+            APIKey: process.env.PEANUT_API_KEY ?? '',
+        })
+        console.log(_leaderboardInfo)
+        setLeaderboardInfo(_leaderboardInfo)
+    }
+
     const checkLink = async (link: string) => {
         try {
+            //TODO: check address already claimed
             //TODO: add check in SDK to know if its empty or not found
             if (await peanut.isRaffleActive({ link })) {
-                setRaffleInfo(await peanut.getRaffleInfo({ link }))
-                setPacketState('FOUND')
-                setRaffleLink(link)
+                const _raffleInfo = await peanut.getRaffleInfo({ link })
+
+                if (
+                    await peanut.hasAddressParticipatedInRaffle({
+                        link: link,
+                        address: address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                    })
+                ) {
+                    console.log(raffleInfo)
+                    setRaffleInfo(_raffleInfo)
+                    await fetchLeaderboardInfo(link)
+                    setPacketState('FOUND')
+                    setRaffleLink(link)
+                    setPacketScreen(() => ({
+                        screen: 'SUCCESS',
+                        idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
+                    }))
+                } else {
+                    const url = new URL(link)
+
+                    const senderAddress = await utils.getSenderAddress({
+                        chainId: _raffleInfo.chainId.toString(),
+                        contractVersion: url.searchParams.get('v') ?? '',
+                        depositIdx: Number(url.searchParams.get('i')?.split(',')[0] ?? 0),
+                    })
+                    const name = await peanut.getUsername({
+                        address: senderAddress,
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        link: link,
+                    })
+                    setRaffleInfo(_raffleInfo)
+                    setSenderName(name)
+                    setPacketState('FOUND')
+                    setRaffleLink(link)
+                }
             } else {
                 setPacketState('EMPTY')
             }
@@ -95,7 +141,11 @@ export function Packet() {
                     setRaffleClaimedInfo,
                     ensName,
                     setEnsName,
-                })}
+                    leaderboardInfo,
+                    setLeaderboardInfo,
+                    senderName,
+                    setSenderName,
+                } as _consts.IPacketScreenProps)}
         </global_components.CardWrapper>
     )
 }
