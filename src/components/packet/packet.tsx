@@ -42,13 +42,12 @@ export function Packet() {
             link: link,
             APIKey: process.env.PEANUT_API_KEY ?? '',
         })
-        console.log(_leaderboardInfo)
+
         setLeaderboardInfo(_leaderboardInfo)
     }
 
     const checkLink = async (link: string) => {
         try {
-            //TODO: check address already claimed
             //TODO: add check in SDK to know if its empty or not found
             if (await peanut.isRaffleActive({ link })) {
                 const _raffleInfo = await peanut.getRaffleInfo({ link })
@@ -59,7 +58,6 @@ export function Packet() {
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                     })
                 ) {
-                    console.log(raffleInfo)
                     setRaffleInfo(_raffleInfo)
                     await fetchLeaderboardInfo(link)
                     setPacketState('FOUND')

@@ -125,49 +125,47 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
 
     useEffect(() => {
         isCollapsed
-            ? setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
-            : setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)))
+            ? setArrayToUse(xxx.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
+            : setArrayToUse(xxx.sort((a, b) => Number(b.amount) - Number(a.amount)))
     }, [isCollapsed])
-    return (
-        <div className={'flex w-64 flex-col items-center justify-center gap-0'}>
-            {arrayToUse.map((claim, index) => {
-                return (
-                    <div
-                        className={
-                            'brutalborder-top brutalborder-left brutalborder-right flex w-full flex-row items-start justify-center gap-2 p-2 ' +
-                            (leaderboardInfo.length <= 3 && arrayToUse.length - 1 === index
-                                ? ' brutalborder-bottom '
-                                : '')
-                        }
-                        key={index}
-                    >
-                        <div className="flex w-[36px] items-start">#{index + 1}</div>
-                        <div className="flex w-full flex-row items-center justify-between ">
-                            <div className="font-normal ">{claim.name ?? utils.shortenAddress(claim.address)}</div>
-                            <div>{utils.formatTokenAmount(Number(claim.amount))}</div>
-                        </div>
-                    </div>
-                )
-            })}
 
-            {leaderboardInfo.length > 3 && (
-                <div
-                    className={'brutalborder flex w-full cursor-pointer flex-row items-start justify-center gap-2 px-2'}
-                    onClick={() => {
-                        setIsCollapsed(!isCollapsed)
-                    }}
-                >
-                    <img
-                        src={chevron.src}
-                        style={{
-                            transform: !isCollapsed ? 'scaleY(-1)' : 'none',
-                            transition: 'transform 0.3s ease-in-out',
-                        }}
-                        alt=""
-                        className={'h-6'}
-                    />
-                </div>
-            )}
+    return (
+        <div className={'flex w-72 flex-col items-center justify-center gap-0'}>
+            <div className="max-h-[372px] w-full overflow-y-auto">
+                <table className="w-full border-collapse">
+                    <tbody className="w-full">
+                        {arrayToUse.map((claim, index) => (
+                            <tr className="brutalborder w-full border p-2" key={index}>
+                                <td className="w-[36px] p-2">#{index + 1}</td>
+                                <td className="p-2 font-normal">{claim.name ?? utils.shortenAddress(claim.address)}</td>
+                                <td className="p-2">{utils.formatTokenAmount(Number(claim.amount))}</td>
+                            </tr>
+                        ))}
+                    </tbody>
+                    {xxx.length > 3 && (
+                        <tfoot
+                            style={{
+                                borderTop: '2px solid black',
+                            }}
+                        >
+                            <tr className="sticky bottom-0 border-t bg-white">
+                                <td colSpan={3} className="brutalborder w-full cursor-pointer border text-center">
+                                    <img
+                                        src={chevron.src}
+                                        style={{
+                                            transform: !isCollapsed ? 'scaleY(-1)' : 'none',
+                                            transition: 'transform 0.3s ease-in-out',
+                                        }}
+                                        alt=""
+                                        className="mx-auto h-6"
+                                        onClick={() => setIsCollapsed(!isCollapsed)}
+                                    />
+                                </td>
+                            </tr>
+                        </tfoot>
+                    )}
+                </table>
+            </div>
         </div>
     )
 }

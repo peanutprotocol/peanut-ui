@@ -1,6 +1,6 @@
 'use client'
 import { useAccount } from 'wagmi'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Lottie from 'react-lottie'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
@@ -26,7 +26,7 @@ export function PacketInitialView({
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
-    const [isLottieStopped, setIsLottieStopped] = useState(false)
+    const [isLottieStopped, setIsLottieStopped] = useState(true)
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -52,6 +52,8 @@ export function PacketInitialView({
             preserveAspectRatio: 'xMidYMid slice',
         },
     }
+
+    const animationRef = useRef(null)
 
     const claim = async (claimFormData: { name: string | undefined }) => {
         setErrorState({
@@ -93,10 +95,16 @@ export function PacketInitialView({
         }
     }
 
+    const goToAndStop = (frame: number, isFrame: boolean = true) => {
+        //@ts-ignore
+        const animationInstance = animationRef.current?.anim
+        if (animationInstance) {
+            animationInstance.goToAndStop(frame, isFrame)
+        }
+    }
+
     useEffect(() => {
-        setTimeout(() => {
-            setIsLottieStopped(true)
-        }, 1000)
+        goToAndStop(30, true)
     }, [])
 
     useEffect(() => {
@@ -119,7 +127,8 @@ export function PacketInitialView({
                     height={400}
                     width={400}
                     isClickToPauseDisabled
-                    isPaused={isLottieStopped}
+                    ref={animationRef}
+                    isStopped={isLottieStopped}
                 />
             </div>
 
