@@ -1,16 +1,24 @@
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
-import * as global_components from '@/components/global'
-import * as hooks from '@/hooks'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 
-export function PacketEmpty() {
+import * as global_components from '@/components/global'
+
+export function PacketEmpty({
+    leaderboardInfo,
+}: {
+    leaderboardInfo: interfaces.IRaffleLeaderboardEntry[] | undefined
+}) {
     const router = useRouter()
 
     return (
         <>
             <h2 className="title-font mb-0 text-center text-2xl font-black md:text-3xl">Sorryyy, too late.</h2>
 
-            <h3 className="text-center">This red packet is already empty.</h3>
+            <h3 className="text-center">This red packet is empty.</h3>
+
+            <div className="mb-4">
+                <global_components.leaderBoardComp leaderboardInfo={leaderboardInfo ?? []} />
+            </div>
 
             <button
                 className="mx-auto mb-4 mt-4 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"

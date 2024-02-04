@@ -9,6 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
+import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -19,9 +20,14 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
-export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
+export function SendInitialView({
+    onNextScreen,
+    setClaimLink,
+    setTxHash,
+    setChainId,
+    ensName,
+}: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -60,6 +66,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             amount: null,
             token: '',
             numberOfrecipients: undefined,
+            senderName: undefined,
         },
     })
     const formwatch = sendForm.watch()
@@ -197,10 +204,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
-        if (Number(sendFormData.numberOfrecipients) < 2) {
+        if (!sendFormData.numberOfrecipients || Number(sendFormData.numberOfrecipients) < 2) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Minimum amount of recipients has to be larger than two',
+            })
+
+            return { succes: 'false' }
+        }
+
+        if (Number(sendFormData.numberOfrecipients) > 250) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Maximum amount of recipients is 250',
             })
 
             return { succes: 'false' }
@@ -340,6 +356,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     password: password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                    creatorAddress: address ?? '',
+                    name: sendFormData.senderName ?? '',
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
@@ -465,6 +484,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [formwatch.numberOfrecipients])
 
+    useEffect(() => {
+        if (ensName) sendForm.setValue('senderName', ensName)
+    }, [ensName])
+
     return (
         <>
             <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
@@ -516,7 +539,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             )}
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">Total Amount</div>
+                            <div className="font-normal">Total Amount *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
@@ -542,7 +565,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             </div>
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">№ of Recipients</div>
+                            <div className="font-normal">№ of Recipients *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
@@ -556,7 +579,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                     min="0"
                                     autoComplete="off"
                                     onFocus={(e) => e.target.select()}
-                                    autoFocus
                                     onKeyDown={(event) => {
                                         if (
                                             !/[0-9]/.test(event.key) &&
@@ -578,6 +600,20 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 />
 
                                 <label className=" display-block w-12 text-xs font-normal">{'$0 fee'}</label>
+                            </div>
+                        </div>
+                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">Name</div>
+                            <div className="flex flex-row items-center justify-between">
+                                <input
+                                    maxLength={20}
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                    placeholder="Chad"
+                                    type="text"
+                                    autoComplete="off"
+                                    onFocus={(e) => e.target.select()}
+                                    {...sendForm.register('senderName')}
+                                />
                             </div>
                         </div>
                     </div>
@@ -885,22 +921,31 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
                                 <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex  flex-col items-center justify-center gap-4 p-4">
+                                    <div className="flex flex-col items-center justify-center gap-6 p-6">
                                         <div>
-                                            We noticed you are trying to make a link with a large amount of recipient,
-                                            please enter your email address that way we can reach out to you to see if
-                                            we can create a campaign.
+                                            Henlo! That's a lot of recipients! If you're running a larger campaign, we'd
+                                            love to help.{' '}
+                                            <a
+                                                href={'https://cal.com/kkonrad+hugo0/15min?duration=30'}
+                                                target="_blank"
+                                                rel="noreferrer noopener"
+                                                className=" cursor-pointer text-black underline"
+                                            >
+                                                book
+                                            </a>{' '}
+                                            a meeting or share your email and we'll get in touch!
                                         </div>
+
                                         <input
-                                            className="brutalborder w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                            className="brutalborder  w-3/4 items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
                                             onChange={(e) => {
                                                 setEnteredEmail(e.target.value)
                                             }}
                                         />
 
                                         <button
-                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
-                                            id="cta-btn"
+                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                            id="cta-btn-2"
                                             onClick={() => {
                                                 setSentEmail(true)
                                                 const message = ` 🐿️ Someone has entered their email when creating a raffle link, 

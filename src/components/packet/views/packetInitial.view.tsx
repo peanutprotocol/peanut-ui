@@ -1,32 +1,42 @@
 'use client'
 import { useAccount } from 'wagmi'
-import { useState, useMemo, useEffect } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import Lottie from 'react-lottie'
 import peanut from '@squirrel-labs/peanut-sdk'
-import axios from 'axios'
 
 import * as global_components from '@/components/global'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import * as consts from '@/consts'
 import * as _consts from '../packet.consts'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useForm } from 'react-hook-form'
 
 export function PacketInitialView({
     onNextScreen,
-    raffleInfo,
     raffleLink,
     setRaffleClaimedInfo,
-    setTokenPrice,
+    ensName,
+    setLeaderboardInfo,
+    senderName,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
-    const [isLottieStopped, setIsLottieStopped] = useState(false)
+    const [isLottieStopped, setIsLottieStopped] = useState(true)
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    const claimForm = useForm<{
+        name: string | undefined
+    }>({
+        mode: 'onChange',
+        defaultValues: {
+            name: undefined,
+        },
+    })
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
@@ -39,25 +49,14 @@ export function PacketInitialView({
         },
     }
 
-    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
-        try {
-            const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                params: {
-                    tokenAddress: tokenAddress,
-                    chainId: chainId,
-                },
-                headers: {
-                    accept: 'application/json',
-                    'API-KEY': process.env.SOCKET_API_KEY,
-                },
-            })
-            setTokenPrice(response.data.result.tokenPrice)
-        } catch (error) {
-            console.log('error fetching token price for token ' + tokenAddress)
-        }
-    }
+    const animationRef = useRef(null)
 
-    const claim = async () => {
+    const claim = async (claimFormData: { name: string | undefined }) => {
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
+
         setIsLottieStopped(false)
         setLoadingStates('opening')
         try {
@@ -65,37 +64,58 @@ export function PacketInitialView({
                 link: raffleLink,
                 APIKey: process.env.PEANUT_API_KEY ?? '',
                 recipientAddress: address ?? '',
+                recipientName: claimFormData.name,
             })
 
+            const leaderboardInfo = await peanut.getRaffleLeaderboard({
+                link: raffleLink,
+                APIKey: process.env.PEANUT_API_KEY ?? '',
+            })
+            setLeaderboardInfo(leaderboardInfo)
+
             setRaffleClaimedInfo(raffleClaimedInfo)
+
             onNextScreen()
-        } catch (error) {
+        } catch (error: any) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Something went wrong while claiming',
             })
-            console.error(error)
+
+            if (error.message == 'All slots have already been claimed for this raffle') {
+                window.location.reload()
+            }
         } finally {
             setIsLottieStopped(true)
             setLoadingStates('idle')
         }
     }
 
+    const goToAndStop = (frame: number, isFrame: boolean = true) => {
+        //@ts-ignore
+        const animationInstance = animationRef.current?.anim
+        if (animationInstance) {
+            animationInstance.goToAndStop(frame, isFrame)
+        }
+    }
+
     useEffect(() => {
-        setTimeout(() => {
-            setIsLottieStopped(true)
-        }, 1000)
+        goToAndStop(30, true)
     }, [])
 
     useEffect(() => {
-        if (raffleInfo?.tokenAddress) {
-            fetchTokenPrice(raffleInfo.tokenAddress, raffleInfo.chainId)
-        }
-    }, [raffleInfo])
+        if (ensName) claimForm.setValue('name', ensName)
+    }, [ensName])
 
     return (
-        <>
-            <h2 className="my-2 mb-0 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
+        <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
+            {senderName ? (
+                <h2 className="my-2 mb-2 text-center text-3xl font-black lg:text-6xl ">
+                    {senderName} sent you a gift!
+                </h2>
+            ) : (
+                <h2 className="my-2 mb-2 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
+            )}
             <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See what's inside!</h3>
             <div className={'mb-4 mt-0'}>
                 <Lottie
@@ -103,8 +123,23 @@ export function PacketInitialView({
                     height={400}
                     width={400}
                     isClickToPauseDisabled
-                    isPaused={isLottieStopped}
+                    ref={animationRef}
+                    isStopped={isLottieStopped}
                 />
+            </div>
+
+            <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                <div className="font-normal">Name</div>
+                <div className="flex flex-row items-center justify-between">
+                    <input
+                        className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                        placeholder="Chad"
+                        type="text"
+                        autoComplete="off"
+                        onFocus={(e) => e.target.select()}
+                        {...claimForm.register('name')}
+                    />
+                </div>
             </div>
 
             <button
@@ -112,7 +147,9 @@ export function PacketInitialView({
                 className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                 id="cta-btn"
                 onClick={() => {
-                    !isConnected ? open() : claim()
+                    if (!isConnected) {
+                        open()
+                    }
                 }}
                 disabled={isLoading}
             >
@@ -137,6 +174,6 @@ export function PacketInitialView({
                 </div>
             )}
             <global_components.PeanutMan type="redpacket" />
-        </>
+        </form>
     )
 }

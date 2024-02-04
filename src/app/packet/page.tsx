@@ -5,7 +5,7 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
-    description: 'You have been sent a red packet!',
+    description: `You've received a red packet!`,
     icons: {
         icon: '/logo-favicon.png',
     },

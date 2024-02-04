@@ -1933,10 +1933,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.4.0-raffle.11":
-  version "0.4.0-raffle.11"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.0-raffle.11.tgz#e85b6a4564569c64a35ca9b7116ed9c66064e286"
-  integrity sha512-hfsKVwHmzrcQ96+dIfRknbD1a9ZAFVcIgc+dggW+zmXdxTsu6QM6zHB+x9fnNkhU4l20MFsIaxDIeuON0G7dXg==
+"@squirrel-labs/peanut-sdk@0.4.0-raffle.14":
+  version "0.4.0-raffle.14"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.0-raffle.14.tgz#1c657e5e01252ac533a68bd6909d0da50cb0399d"
+  integrity sha512-yFIoaYyo1jdZl/roliEUC7NESgcI27BwbyluNz2z8PZ3jq5CBKd/FpozCFXlhqBbDgTMtgIZo5lyugbio8h9mQ==
   dependencies:
     ethersv5 "npm:ethers@^5"
 
@@ -2650,6 +2650,13 @@
   integrity sha512-JQbbmxZTZehdc2iszGKs5oC3NFnjeay7mtAWrdt7qNtAVK0g19muApzAy4bm9byz79xa2ZnO/BOBC2R8RC5Lww==
   dependencies:
     "@types/node" "*"
+
+"@vercel/analytics@^1.1.2":
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/@vercel/analytics/-/analytics-1.1.2.tgz#7e3a863abca5cb276a8e7783dc8a32689cb769bb"
+  integrity sha512-CodhkLCQ/EHzjX8k+Qg+OzTBY0UadykrcfolfSOJVZZY/ZJM5nbhztm9KdbYvMfqKlasAr1+OYy0ThZnDA/MYA==
+  dependencies:
+    server-only "^0.0.1"
 
 "@vue/compiler-core@3.4.4":
   version "3.4.4"
@@ -8462,6 +8469,11 @@ serve-static@1.15.0:
     escape-html "~1.0.3"
     parseurl "~1.3.3"
     send "0.18.0"
+
+server-only@^0.0.1:
+  version "0.0.1"
+  resolved "https://registry.yarnpkg.com/server-only/-/server-only-0.0.1.tgz#0f366bb6afb618c37c9255a314535dc412cd1c9e"
+  integrity sha512-qepMx2JxAa5jjfzxG79yPPq+8BuFToHd1hm7kI+Z4zAq1ftQiP7HcxMhDDItrbtwVeLg/cY2JnKnrcFkmiswNA==
 
 servify@^0.1.12:
   version "0.1.12"
