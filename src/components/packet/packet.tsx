@@ -68,7 +68,7 @@ export function Packet() {
                         address: _raffleInfo.senderAddress,
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         link: link,
-                    }) //TODO: fill name with diff raffle link
+                    })
 
                     const recipientName = await peanut.getUsername({
                         address: address ?? '',
@@ -83,7 +83,22 @@ export function Packet() {
                 setPacketState('FOUND')
             } else {
                 await fetchLeaderboardInfo(link)
-                setPacketState('EMPTY')
+                if (
+                    await peanut.hasAddressParticipatedInRaffle({
+                        link: link,
+                        address: address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                    })
+                ) {
+                    setPacketScreen(() => ({
+                        screen: 'SUCCESS',
+                        idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
+                    }))
+                    setRaffleLink(link)
+                    setPacketState('FOUND')
+                } else {
+                    setPacketState('EMPTY')
+                }
             }
         } catch (error) {
             console.error(error)
