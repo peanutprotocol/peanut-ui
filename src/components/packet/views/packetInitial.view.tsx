@@ -140,7 +140,7 @@ export function PacketInitialView({
                 <div className="font-normal">Name</div>
                 <div className="flex flex-row items-center justify-between">
                     <input
-                        className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                        className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
                         placeholder="Chad"
                         type="text"
                         autoComplete="off"
@@ -179,7 +179,7 @@ export function PacketInitialView({
                         <div className="font-normal">Address</div>
                         <div className="flex flex-row items-center justify-between">
                             <input
-                                className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
                                 placeholder="0x1234...5678"
                                 type="text"
                                 autoComplete="off"
