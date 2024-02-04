@@ -2,7 +2,7 @@
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import Lottie from 'react-lottie'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 
 import * as global_components from '@/components/global'
@@ -15,14 +15,12 @@ import { useRouter } from 'next/navigation'
 
 export function PacketInitialView({
     onNextScreen,
-    raffleInfo,
     raffleLink,
     setRaffleClaimedInfo,
     ensName,
     setLeaderboardInfo,
     senderName,
 }: _consts.IPacketScreenProps) {
-    const router = useRouter()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')

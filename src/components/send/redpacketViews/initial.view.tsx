@@ -9,6 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
+import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -19,7 +20,6 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({
     onNextScreen,

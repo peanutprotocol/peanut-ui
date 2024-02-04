@@ -1,9 +1,8 @@
 import { useRouter } from 'next/navigation'
-import { useEffect } from 'react'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
+
 import * as global_components from '@/components/global'
 import * as _consts from '../packet.consts'
-import * as hooks from '@/hooks'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 export function PacketEmpty({
     leaderboardInfo,

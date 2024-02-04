@@ -1,13 +1,13 @@
 import { useAtom } from 'jotai'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
+import { useAccount } from 'wagmi'
 
 import * as utils from '@/utils'
 import * as store from '@/store'
 import * as global_components from '@/components/global'
 import * as _consts from '../packet.consts'
-import { useEffect, useState } from 'react'
-import peanut from '@squirrel-labs/peanut-sdk'
-import { useAccount } from 'wagmi'
+
 export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInfo }: _consts.IPacketScreenProps) {
     const { address } = useAccount()
     const router = useRouter()
@@ -15,7 +15,6 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
 
     useEffect(() => {
         router.prefetch('/send')
-        console.log(leaderboardInfo?.find((user) => user.address == address)?.amount)
     }, [])
 
     return (

@@ -1,12 +1,10 @@
 'use client'
-
 import { createElement, useEffect, useState } from 'react'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as global_components from '@/components/global'
-import * as utils from '@/utils'
 
 import * as views from './views'
 import * as _consts from './packet.consts'
@@ -51,7 +49,7 @@ export function Packet() {
             //TODO: add check in SDK to know if its empty or not found
             if (await peanut.isRaffleActive({ link })) {
                 const _raffleInfo = await peanut.getRaffleInfo({ link })
-                console.log(_raffleInfo)
+                setRaffleInfo(_raffleInfo)
                 if (
                     await peanut.hasAddressParticipatedInRaffle({
                         link: link,
@@ -59,10 +57,7 @@ export function Packet() {
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                     })
                 ) {
-                    setRaffleInfo(_raffleInfo)
                     await fetchLeaderboardInfo(link)
-                    setPacketState('FOUND')
-                    setRaffleLink(link)
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
@@ -75,11 +70,10 @@ export function Packet() {
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         link: link,
                     })
-                    setRaffleInfo(_raffleInfo)
                     setSenderName(name)
-                    setPacketState('FOUND')
-                    setRaffleLink(link)
                 }
+                setRaffleLink(link)
+                setPacketState('FOUND')
             } else {
                 await fetchLeaderboardInfo(link)
                 setPacketState('EMPTY')
