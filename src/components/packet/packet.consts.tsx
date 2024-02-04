@@ -25,6 +25,8 @@ export interface IPacketScreenProps {
     setLeaderboardInfo: (info: interfaces.IRaffleLeaderboardEntry[] | undefined) => void
     senderName: string | undefined
     setSenderName: (name: string | undefined) => void
+    recipientName: string | undefined
+    setRecipientName: (name: string | undefined) => void
 }
 
 export const INIT_VIEW: IPacketScreenState = {

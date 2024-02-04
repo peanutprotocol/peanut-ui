@@ -18,6 +18,7 @@ export function PacketInitialView({
     ensName,
     setLeaderboardInfo,
     senderName,
+    recipientName,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -104,7 +105,8 @@ export function PacketInitialView({
     }, [])
 
     useEffect(() => {
-        if (ensName) claimForm.setValue('name', ensName)
+        if (recipientName) claimForm.setValue('name', recipientName)
+        else if (ensName) claimForm.setValue('name', ensName)
     }, [ensName])
 
     return (
