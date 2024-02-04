@@ -3,7 +3,6 @@ import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import Lottie from 'react-lottie'
 import peanut from '@squirrel-labs/peanut-sdk'
-import axios from 'axios'
 
 import * as global_components from '@/components/global'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
@@ -11,7 +10,6 @@ import * as consts from '@/consts'
 import * as _consts from '../packet.consts'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
-import { useRouter } from 'next/navigation'
 
 export function PacketInitialView({
     onNextScreen,

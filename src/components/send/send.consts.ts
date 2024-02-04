@@ -8,7 +8,7 @@ export interface ISendFormData {
     amount: string | null
     bulkAmount: number | undefined
     numberOfrecipients: string | undefined
-    recipientName: string | undefined
+    senderName: string | undefined
 }
 
 export interface ITokenListItem {

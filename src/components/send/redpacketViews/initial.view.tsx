@@ -66,7 +66,7 @@ export function SendInitialView({
             amount: null,
             token: '',
             numberOfrecipients: undefined,
-            recipientName: undefined,
+            senderName: undefined,
         },
     })
     const formwatch = sendForm.watch()
@@ -358,7 +358,7 @@ export function SendInitialView({
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                     creatorAddress: address ?? '',
-                    name: sendFormData.recipientName ?? '',
+                    name: sendFormData.senderName ?? '',
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
@@ -485,7 +485,7 @@ export function SendInitialView({
     }, [formwatch.numberOfrecipients])
 
     useEffect(() => {
-        if (ensName) sendForm.setValue('recipientName', ensName)
+        if (ensName) sendForm.setValue('senderName', ensName)
     }, [ensName])
 
     return (
@@ -612,7 +612,7 @@ export function SendInitialView({
                                     type="text"
                                     autoComplete="off"
                                     onFocus={(e) => e.target.select()}
-                                    {...sendForm.register('recipientName')}
+                                    {...sendForm.register('senderName')}
                                 />
                             </div>
                         </div>

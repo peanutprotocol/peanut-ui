@@ -2,7 +2,6 @@ import { useRouter } from 'next/navigation'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as global_components from '@/components/global'
-import * as _consts from '../packet.consts'
 
 export function PacketEmpty({
     leaderboardInfo,
