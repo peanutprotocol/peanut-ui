@@ -19,6 +19,7 @@ export function Packet() {
     const [ensName, setEnsName] = useState<string | undefined>(undefined)
     const [leaderboardInfo, setLeaderboardInfo] = useState<interfaces.IRaffleLeaderboardEntry[] | undefined>(undefined)
     const [senderName, setSenderName] = useState<string | undefined>(undefined)
+    const [recipientName, setRecipientName] = useState<string | undefined>(undefined)
 
     const handleOnNext = () => {
         const newIdx = packetScreen.idx + 1
@@ -63,14 +64,20 @@ export function Packet() {
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
                 } else {
-                    const url = new URL(link)
-
-                    const name = await peanut.getUsername({
+                    const senderName = await peanut.getUsername({
                         address: _raffleInfo.senderAddress,
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         link: link,
+                    }) //TODO: fill name with diff raffle link
+
+                    const recipientName = await peanut.getUsername({
+                        address: address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        link: link,
                     })
-                    setSenderName(name)
+
+                    setRecipientName(recipientName)
+                    setSenderName(senderName)
                 }
                 setRaffleLink(link)
                 setPacketState('FOUND')
@@ -133,6 +140,8 @@ export function Packet() {
                     setLeaderboardInfo,
                     senderName,
                     setSenderName,
+                    recipientName,
+                    setRecipientName,
                 } as _consts.IPacketScreenProps)}
         </global_components.CardWrapper>
     )

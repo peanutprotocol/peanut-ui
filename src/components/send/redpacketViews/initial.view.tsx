@@ -542,6 +542,10 @@ export function SendInitialView({
                             <div className="font-normal">Total Amount *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
+                                    onWheel={(e) => {
+                                        // @ts-ignore
+                                        e.target.blur()
+                                    }}
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
                                     placeholder="100"
                                     onChange={(e) => {
@@ -568,6 +572,10 @@ export function SendInitialView({
                             <div className="font-normal">№ of Recipients *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
+                                    onWheel={(e) => {
+                                        // @ts-ignore
+                                        e.target.blur()
+                                    }}
                                     className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
                                     placeholder="5"
                                     onChange={(e) => {
@@ -921,7 +929,7 @@ export function SendInitialView({
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
                                 <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex flex-col items-center justify-center gap-6 p-6">
+                                    <div className="flex flex-col items-center justify-center gap-6 p-12 ">
                                         <div>
                                             Henlo! That's a lot of recipients! If you're running a larger campaign, we'd
                                             love to help.{' '}
