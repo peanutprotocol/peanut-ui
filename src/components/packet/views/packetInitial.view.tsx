@@ -1,11 +1,11 @@
 'use client'
 import { useAccount } from 'wagmi'
-import { useState, useMemo, useEffect, useRef } from 'react'
-import Lottie from 'react-lottie'
+import { useState, useMemo, useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
+import { useLottie } from 'lottie-react'
 
 import dropdown_svg from '@/assets/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
@@ -13,6 +13,20 @@ import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import * as global_components from '@/components/global'
 import * as consts from '@/consts'
 import * as _consts from '../packet.consts'
+
+const defaultLottieOptions = {
+    animationData: redpacketLottie,
+    loop: true,
+    autoplay: true,
+    rendererSettings: {
+        preserveAspectRatio: 'xMidYMid slice',
+    },
+}
+
+const defaultLottieStyle = {
+    height: 400,
+    width: 400,
+}
 
 export function PacketInitialView({
     onNextScreen,
@@ -26,9 +40,10 @@ export function PacketInitialView({
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
-    const [isLottieStopped, setIsLottieStopped] = useState(true)
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isValidAddress, setIsValidAddress] = useState(false)
+
+    const { View: lottieView, goToAndStop, play } = useLottie(defaultLottieOptions, defaultLottieStyle)
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -50,24 +65,13 @@ export function PacketInitialView({
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
-    const defaultLottieOptions = {
-        loop: true,
-        autoplay: true,
-        animationData: redpacketLottie,
-        rendererSettings: {
-            preserveAspectRatio: 'xMidYMid slice',
-        },
-    }
-
-    // const animationRef = useRef(null)
-
     const claim = async (claimFormData: { name: string | undefined }) => {
         setErrorState({
             showError: false,
             errorMessage: '',
         })
 
-        setIsLottieStopped(false)
+        play()
         setLoadingStates('opening')
         try {
             const raffleClaimedInfo = await peanut.claimRaffleLink({
@@ -96,22 +100,9 @@ export function PacketInitialView({
                 window.location.reload()
             }
         } finally {
-            setIsLottieStopped(true)
             setLoadingStates('idle')
         }
     }
-
-    // const goToAndStop = (frame: number, isFrame: boolean = true) => {
-    //     //@ts-ignore
-    //     const animationInstance = animationRef.current?.anim
-    //     if (animationInstance) {
-    //         animationInstance.goToAndStop(frame, isFrame)
-    //     }
-    // }
-
-    // useEffect(() => {
-    //     goToAndStop(30, true)
-    // }, [])
 
     useEffect(() => {
         if (recipientName) claimForm.setValue('name', recipientName)
@@ -129,6 +120,10 @@ export function PacketInitialView({
         }
     }, [formwatch.address])
 
+    useEffect(() => {
+        goToAndStop(30, true)
+    }, [])
+
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
             {senderName ? (
@@ -139,16 +134,7 @@ export function PacketInitialView({
                 <h2 className="my-2 mb-2 text-center text-3xl font-black lg:text-6xl ">You received a gift!</h2>
             )}
             <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See what's inside!</h3>
-            <div className={'mb-4 mt-0'}>
-                <Lottie
-                    options={defaultLottieOptions}
-                    height={400}
-                    width={400}
-                    isClickToPauseDisabled
-                    // ref={animationRef}
-                    isStopped={isLottieStopped}
-                />
-            </div>
+            <div className={'mb-4 mt-0'}>{lottieView}</div>
 
             <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
                 <div className="font-normal">Name</div>

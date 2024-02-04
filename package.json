@@ -29,6 +29,7 @@
         "ethers": "5.7.2",
         "jotai": "^2.2.2",
         "lokijs": "^1.5.12",
+        "lottie-react": "^2.4.0",
         "next": "13.4.10",
         "node-fetch": "^3.3.2",
         "pino-pretty": "^10.0.1",
