@@ -1,17 +1,19 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { useAccount } from 'wagmi'
-
+import { CSVLink } from 'react-csv'
+import { isMobile } from 'react-device-detect'
 import { useAtom } from 'jotai'
 import { useRouter } from 'next/navigation'
 import peanut from '@squirrel-labs/peanut-sdk'
+
 import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import * as store from '@/store'
-import { CSVLink } from 'react-csv'
-import { isMobile } from 'react-device-detect'
 import * as hooks from '@/hooks'
+
+import redpacket_svg from '@/assets/red-packet.svg'
 
 interface IDashboardItemProps {
     hash: string
@@ -22,6 +24,7 @@ interface IDashboardItemProps {
     claimed: boolean
     link: string
     copied: boolean
+    type: 'normal' | 'raffle'
 }
 
 export function Dashboard() {
@@ -40,17 +43,29 @@ export function Dashboard() {
             await Promise.all(
                 localStorageData.map(async (item) => {
                     try {
-                        const res = await peanut.getLinkDetails({ link: item.link })
-
+                        let res = await peanut.getLinkDetails({ link: item.link })
+                        let type: 'normal' | 'raffle' = 'normal'
+                        if (item.link.includes('packet')) {
+                            const raffleInfo = await peanut.getRaffleInfo({
+                                link: item.link,
+                            })
+                            const totalTokenAmount = raffleInfo.slotsDetails.reduce((total, slot) => {
+                                return total + parseFloat(slot.amount)
+                            }, 0)
+                            res.tokenAmount = totalTokenAmount.toString()
+                            type = 'raffle'
+                        } else {
+                        }
                         const x: IDashboardItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
                             chainId: item.link.match(/c=(\d+)/)?.[1] ?? '1',
-                            amount: res.tokenAmount,
-                            token: res.tokenSymbol,
-                            date: res.depositDate ? new Date(res.depositDate).toLocaleString() : 'Unavailable',
-                            claimed: res.claimed,
+                            amount: res?.tokenAmount ?? '',
+                            token: res?.tokenSymbol,
+                            date: res?.depositDate ? new Date(res.depositDate).toLocaleString() : 'Unavailable',
+                            claimed: res?.claimed ?? false,
                             link: item.link,
                             copied: false,
+                            type,
                         }
 
                         details.push(x)
@@ -211,7 +226,7 @@ export function Dashboard() {
                             ) : (
                                 <div className="max-h-[360px] overflow-y-auto">
                                     <table className="w-full border-spacing-x-0 border-spacing-y-2">
-                                        <thead className="sticky top-0 bg-black text-white">
+                                        <thead className="sticky top-0 z-10 bg-black text-white">
                                             <tr>
                                                 <th scope="col" className="px-1 py-3.5 pl-3 text-left font-semibold ">
                                                     Chain
@@ -240,7 +255,7 @@ export function Dashboard() {
                                                         setCopiedLink([item.link])
                                                         gaEventTracker('link-copied', '')
                                                     }}
-                                                    className="cursor-pointer"
+                                                    className="relative cursor-pointer"
                                                 >
                                                     <td className="brutalborder-bottom  h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
                                                         {
@@ -263,7 +278,7 @@ export function Dashboard() {
                                                     </td>
 
                                                     <td
-                                                        className="brutalborder-bottom h-8 w-[64px] cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1"
+                                                        className="brutalborder-bottom relative h-8 w-[68px] cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1" // Adjust the width to accommodate the image
                                                         onClick={() => {
                                                             navigator.clipboard.writeText(item.link)
                                                             setCopiedLink([item.link])
@@ -277,6 +292,13 @@ export function Dashboard() {
                                                                   ? 'Copied'
                                                                   : 'Copy'
                                                               : ''}
+                                                        {item.type === 'raffle' && (
+                                                            <img
+                                                                src={redpacket_svg.src} // Specify the path to your image
+                                                                alt="Raffle Image"
+                                                                className=" absolute -right-0 top-0 h-4 w-4" // Position it absolutely to the top right
+                                                            />
+                                                        )}
                                                     </td>
                                                 </tr>
                                             ))}
