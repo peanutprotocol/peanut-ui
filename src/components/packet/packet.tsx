@@ -47,16 +47,19 @@ export function Packet() {
 
     const checkLink = async (link: string) => {
         try {
-            //TODO: add check in SDK to know if its empty or not found
+            const x = await peanut.validateRaffleLink({ link }) // will throw error if not valid
+            const _raffleInfo = await peanut.getRaffleInfo({ link })
+            setRaffleInfo(_raffleInfo)
+            setRaffleLink(link)
+
             if (await peanut.isRaffleActive({ link })) {
-                const _raffleInfo = await peanut.getRaffleInfo({ link })
-                setRaffleInfo(_raffleInfo)
                 if (
-                    await peanut.hasAddressParticipatedInRaffle({
+                    address &&
+                    (await peanut.hasAddressParticipatedInRaffle({
                         link: link,
                         address: address ?? '',
                         APIKey: process.env.PEANUT_API_KEY ?? '',
-                    })
+                    }))
                 ) {
                     await fetchLeaderboardInfo(link)
                     setPacketScreen(() => ({
@@ -69,26 +72,27 @@ export function Packet() {
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         link: link,
                     })
-
-                    const recipientName = await peanut.getUsername({
-                        address: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        link: link,
-                    })
-
-                    setRecipientName(recipientName)
                     setSenderName(senderName)
+
+                    if (address) {
+                        const recipientName = await peanut.getUsername({
+                            address: address ?? '',
+                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                            link: link,
+                        })
+                        setRecipientName(recipientName)
+                    }
                 }
-                setRaffleLink(link)
                 setPacketState('FOUND')
             } else {
                 await fetchLeaderboardInfo(link)
                 if (
-                    await peanut.hasAddressParticipatedInRaffle({
+                    address &&
+                    (await peanut.hasAddressParticipatedInRaffle({
                         link: link,
                         address: address ?? '',
                         APIKey: process.env.PEANUT_API_KEY ?? '',
-                    })
+                    }))
                 ) {
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',

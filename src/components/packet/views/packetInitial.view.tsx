@@ -3,13 +3,16 @@ import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect, useRef } from 'react'
 import Lottie from 'react-lottie'
 import peanut from '@squirrel-labs/peanut-sdk'
-
-import * as global_components from '@/components/global'
-import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
-import * as consts from '@/consts'
-import * as _consts from '../packet.consts'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
+import { ethers } from 'ethersv5'
+
+import dropdown_svg from '@/assets/dropdown.svg'
+import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
+
+import * as global_components from '@/components/global'
+import * as consts from '@/consts'
+import * as _consts from '../packet.consts'
 
 export function PacketInitialView({
     onNextScreen,
@@ -24,6 +27,8 @@ export function PacketInitialView({
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [isLottieStopped, setIsLottieStopped] = useState(true)
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+    const [isValidAddress, setIsValidAddress] = useState(false)
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -32,12 +37,16 @@ export function PacketInitialView({
 
     const claimForm = useForm<{
         name: string | undefined
+        address: string | undefined
     }>({
         mode: 'onChange',
         defaultValues: {
             name: undefined,
+            address: undefined,
         },
     })
+
+    const formwatch = claimForm.watch()
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
@@ -50,7 +59,7 @@ export function PacketInitialView({
         },
     }
 
-    const animationRef = useRef(null)
+    // const animationRef = useRef(null)
 
     const claim = async (claimFormData: { name: string | undefined }) => {
         setErrorState({
@@ -64,7 +73,7 @@ export function PacketInitialView({
             const raffleClaimedInfo = await peanut.claimRaffleLink({
                 link: raffleLink,
                 APIKey: process.env.PEANUT_API_KEY ?? '',
-                recipientAddress: address ?? '',
+                recipientAddress: isValidAddress ? claimForm.getValues('address') ?? '' : address ?? '',
                 recipientName: claimFormData.name,
             })
 
@@ -92,17 +101,17 @@ export function PacketInitialView({
         }
     }
 
-    const goToAndStop = (frame: number, isFrame: boolean = true) => {
-        //@ts-ignore
-        const animationInstance = animationRef.current?.anim
-        if (animationInstance) {
-            animationInstance.goToAndStop(frame, isFrame)
-        }
-    }
+    // const goToAndStop = (frame: number, isFrame: boolean = true) => {
+    //     //@ts-ignore
+    //     const animationInstance = animationRef.current?.anim
+    //     if (animationInstance) {
+    //         animationInstance.goToAndStop(frame, isFrame)
+    //     }
+    // }
 
-    useEffect(() => {
-        goToAndStop(30, true)
-    }, [])
+    // useEffect(() => {
+    //     goToAndStop(30, true)
+    // }, [])
 
     useEffect(() => {
         if (recipientName) claimForm.setValue('name', recipientName)
@@ -111,6 +120,14 @@ export function PacketInitialView({
                 claimForm.setValue('name', ensName)
         }
     }, [ensName])
+
+    useEffect(() => {
+        if (formwatch.address && ethers.utils.isAddress(formwatch.address)) {
+            setIsValidAddress(true)
+        } else {
+            setIsValidAddress(false)
+        }
+    }, [formwatch.address])
 
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
@@ -128,7 +145,7 @@ export function PacketInitialView({
                     height={400}
                     width={400}
                     isClickToPauseDisabled
-                    ref={animationRef}
+                    // ref={animationRef}
                     isStopped={isLottieStopped}
                 />
             </div>
@@ -147,12 +164,56 @@ export function PacketInitialView({
                 </div>
             </div>
 
+            <div
+                className={
+                    ' mt-2 flex cursor-pointer items-center justify-center ' + (isDropdownOpen ? ' mb-0' : ' mb-4')
+                }
+                onClick={() => {
+                    setIsDropdownOpen(!isDropdownOpen)
+                }}
+            >
+                <div className=" cursor-pointer border-none bg-white text-sm ">Claim without connecting</div>
+                <img
+                    style={{
+                        transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                        transition: 'transform 0.3s ease-in-out',
+                    }}
+                    src={dropdown_svg.src}
+                    alt=""
+                    className={'h-6 '}
+                />
+            </div>
+            {isDropdownOpen && (
+                <div className="flex flex-col items-center justify-center gap-2">
+                    <div className=" my-2 cursor-pointer border-none bg-white text-sm">
+                        Fill out your address if you can't connect your wallet.
+                    </div>
+
+                    <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                        <div className="font-normal">Address</div>
+                        <div className="flex flex-row items-center justify-between">
+                            <input
+                                className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                placeholder="0x1234...5678"
+                                type="text"
+                                autoComplete="off"
+                                onFocus={(e) => e.target.select()}
+                                {...claimForm.register('address')}
+                            />
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <button
-                type={isConnected ? 'submit' : 'button'}
-                className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                type={isConnected || isValidAddress ? 'submit' : 'button'}
+                className={
+                    ' block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2 ' +
+                    (isDropdownOpen ? ' mt-8' : ' mt-2')
+                }
                 id="cta-btn"
                 onClick={() => {
-                    if (!isConnected) {
+                    if (!isValidAddress && !isConnected) {
                         open()
                     }
                 }}
@@ -167,7 +228,7 @@ export function PacketInitialView({
                             <span className="dot">.</span>
                         </span>
                     </div>
-                ) : isConnected ? (
+                ) : isConnected || isValidAddress ? (
                     'Open'
                 ) : (
                     'Connect Wallet'
