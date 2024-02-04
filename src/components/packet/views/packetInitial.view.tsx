@@ -106,7 +106,10 @@ export function PacketInitialView({
 
     useEffect(() => {
         if (recipientName) claimForm.setValue('name', recipientName)
-        else if (ensName) claimForm.setValue('name', ensName)
+        else if (ensName) {
+            if (claimForm.getValues('name') === undefined || claimForm.getValues('name') === '')
+                claimForm.setValue('name', ensName)
+        }
     }, [ensName])
 
     return (
