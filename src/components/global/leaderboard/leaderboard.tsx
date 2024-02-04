@@ -125,8 +125,8 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
 
     useEffect(() => {
         isCollapsed
-            ? setArrayToUse(xxx.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
-            : setArrayToUse(xxx.sort((a, b) => Number(b.amount) - Number(a.amount)))
+            ? setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
+            : setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)))
     }, [isCollapsed])
 
     return (
@@ -142,7 +142,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                             </tr>
                         ))}
                     </tbody>
-                    {xxx.length > 3 && (
+                    {leaderboardInfo.length > 3 && (
                         <tfoot
                             style={{
                                 borderTop: '2px solid black',

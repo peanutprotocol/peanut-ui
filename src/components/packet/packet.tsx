@@ -51,6 +51,7 @@ export function Packet() {
             //TODO: add check in SDK to know if its empty or not found
             if (await peanut.isRaffleActive({ link })) {
                 const _raffleInfo = await peanut.getRaffleInfo({ link })
+                console.log(_raffleInfo)
                 if (
                     await peanut.hasAddressParticipatedInRaffle({
                         link: link,
@@ -69,13 +70,8 @@ export function Packet() {
                 } else {
                     const url = new URL(link)
 
-                    const senderAddress = await utils.getSenderAddress({
-                        chainId: _raffleInfo.chainId.toString(),
-                        contractVersion: url.searchParams.get('v') ?? '',
-                        depositIdx: Number(url.searchParams.get('i')?.split(',')[0] ?? 0),
-                    })
                     const name = await peanut.getUsername({
-                        address: senderAddress,
+                        address: _raffleInfo.senderAddress,
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         link: link,
                     })

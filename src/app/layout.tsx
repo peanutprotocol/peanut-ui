@@ -2,6 +2,7 @@
 import '@/styles/globals.css'
 import { Inter } from 'next/font/google'
 import { WagmiConfig } from 'wagmi'
+import { Analytics } from '@vercel/analytics/react'
 
 import * as config from '@/config'
 import { Store } from '@/store/store'
@@ -61,7 +62,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body className={inter.className}>
                 {ready && (
                     <WagmiConfig config={config.wagmiConfig}>
-                        <Store>{children}</Store>
+                        <Store>
+                            {children}
+                            <Analytics />
+                        </Store>
                     </WagmiConfig>
                 )}
             </body>
