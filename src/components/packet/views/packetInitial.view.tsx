@@ -49,7 +49,7 @@ export function PacketInitialView({
     const [isValidAddress, setIsValidAddress] = useState(false)
     const [isEnsName, setIsEnsName] = useState<{ state: boolean; address: string }>({ state: false, address: '' })
 
-    const { View: lottieView, goToAndStop, play } = useLottie(defaultLottieOptions, defaultLottieStyle)
+    const { View: lottieView, goToAndStop, play, stop } = useLottie(defaultLottieOptions, defaultLottieStyle)
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -91,6 +91,22 @@ export function PacketInitialView({
                 throw new Error('Invalid address')
             }
 
+            if (
+                await peanut.hasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    APIKey: process.env.PEANUT_API_KEY ?? '',
+                    address: recipientAddress,
+                })
+            ) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'This address has already claimed their slot!',
+                })
+                setLoadingStates('idle')
+                stop()
+                return
+            }
+
             const raffleClaimedInfo = await peanut.claimRaffleLink({
                 link: raffleLink,
                 APIKey: process.env.PEANUT_API_KEY ?? '',
@@ -108,6 +124,8 @@ export function PacketInitialView({
 
             onNextScreen()
         } catch (error: any) {
+            setLoadingStates('idle')
+            stop()
             setErrorState({
                 showError: true,
                 errorMessage: 'Something went wrong while claiming',
@@ -125,6 +143,7 @@ export function PacketInitialView({
             }
         } finally {
             setLoadingStates('idle')
+            stop()
         }
     }
 
