@@ -228,8 +228,14 @@ export function PacketInitialView({
     }, [debouncedAddress])
 
     useEffect(() => {
-        goToAndStop(30, true)
+        goToAndStop(35, true)
     }, [])
+
+    const checkSpecialChar = (e: any) => {
+        if (!/[0-9a-zA-Z]/.test(e.key)) {
+            e.preventDefault()
+        }
+    }
 
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
@@ -251,6 +257,8 @@ export function PacketInitialView({
                         placeholder="Chad"
                         type="text"
                         autoComplete="off"
+                        maxLength={20}
+                        onKeyDown={checkSpecialChar}
                         onFocus={(e) => e.target.select()}
                         {...claimForm.register('name')}
                     />
