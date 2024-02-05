@@ -45,6 +45,7 @@ export function Dashboard() {
                     try {
                         let res = await peanut.getLinkDetails({ link: item.link })
                         let type: 'normal' | 'raffle' = 'normal'
+
                         if (item.link.includes('packet')) {
                             const raffleInfo = await peanut.getRaffleInfo({
                                 link: item.link,
@@ -53,6 +54,7 @@ export function Dashboard() {
                                 return total + parseFloat(slot.amount)
                             }, 0)
                             res.tokenAmount = totalTokenAmount.toString()
+                            res.claimed = raffleInfo.slotsDetails.every((slot) => slot.claimed)
                             type = 'raffle'
                         } else {
                         }

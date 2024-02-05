@@ -1,36 +1,49 @@
 'use client'
+import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useEffect, useState } from 'react'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 
+import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import chevron from '@/assets/dropdown.svg'
 
-export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfaces.IRaffleLeaderboardEntry[] }) {
+export function PopularityLeaderboard() {
     const [isCollapsed, setIsCollapsed] = useState(true)
-    const [arrayToUse, setArrayToUse] = useState<interfaces.IRaffleLeaderboardEntry[]>([])
+    const [popularityLeaderboard, setPopularityLeaderboard] = useState<interfaces.IPopularityLeaderboardEntry[]>([])
+    const [arrayToUse, setArrayToUse] = useState<interfaces.IPopularityLeaderboardEntry[]>([])
+
+    const getPopularityLeaderboard = async () => {
+        const info = await peanut.getPopularityLeaderboard({})
+        setPopularityLeaderboard(info)
+    }
 
     useEffect(() => {
-        isCollapsed
-            ? setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
-            : setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)))
-    }, [isCollapsed])
+        getPopularityLeaderboard()
+    }, [])
+
+    useEffect(() => {
+        if (isCollapsed) {
+            setArrayToUse(popularityLeaderboard.slice(0, 3))
+        } else {
+            setArrayToUse(popularityLeaderboard)
+        }
+    }, [isCollapsed, popularityLeaderboard])
 
     return (
         <div className={'flex w-72 flex-col items-center justify-center gap-0'}>
             <div className="max-h-[372px] w-full overflow-y-auto">
                 <table className="w-full border-collapse">
                     <tbody className="w-full">
-                        {arrayToUse.map((claim, index) => (
+                        {arrayToUse.map((item, index) => (
                             <tr className="brutalborder w-full border p-2" key={index}>
                                 <td className="w-1/4 w-[36px] p-2">#{index + 1}</td>
                                 <td className="w-1/2 max-w-[125px] truncate p-2 font-normal">
-                                    {claim.name ?? utils.shortenAddress(claim.address)}
+                                    {item.name ?? utils.shortenAddress(item.address)}
                                 </td>
-                                <td className="w-1/4 p-2">{utils.formatTokenAmount(Number(claim.amount))}</td>
+                                <td className="w-1/4 p-2">{item.popularity}</td>
                             </tr>
                         ))}
                     </tbody>
-                    {leaderboardInfo.length > 3 && (
+                    {popularityLeaderboard.length > 3 && (
                         <tfoot
                             style={{
                                 borderTop: '2px solid black',
