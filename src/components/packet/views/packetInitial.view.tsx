@@ -103,7 +103,7 @@ export function PacketInitialView({
                     errorMessage: 'This address has already claimed their slot!',
                 })
                 setLoadingStates('idle')
-                stop()
+                goToAndStop(30, true)
                 return
             }
 
@@ -125,7 +125,7 @@ export function PacketInitialView({
             onNextScreen()
         } catch (error: any) {
             setLoadingStates('idle')
-            stop()
+            goToAndStop(30, true)
             setErrorState({
                 showError: true,
                 errorMessage: 'Something went wrong while claiming',
@@ -143,7 +143,7 @@ export function PacketInitialView({
             }
         } finally {
             setLoadingStates('idle')
-            stop()
+            goToAndStop(30, true)
         }
     }
 
@@ -162,10 +162,46 @@ export function PacketInitialView({
             setLoadingStates('fetching address')
             const _address = await _utils.resolveFromEnsName(address)
             if (_address) {
-                setIsValidAddress(true)
-                setIsEnsName({ state: true, address: _address })
+                if (
+                    await peanut.hasAddressParticipatedInRaffle({
+                        link: raffleLink,
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        address: _address,
+                    })
+                ) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'This address has already claimed their slot!',
+                    })
+                    return
+                } else {
+                    setErrorState({
+                        showError: false,
+                        errorMessage: '',
+                    })
+                    setIsValidAddress(true)
+                    setIsEnsName({ state: true, address: _address })
+                }
             } else if (ethers.utils.isAddress(address)) {
-                setIsValidAddress(true)
+                if (
+                    await peanut.hasAddressParticipatedInRaffle({
+                        link: raffleLink,
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        address: address,
+                    })
+                ) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'This address has already claimed their slot!',
+                    })
+                    return
+                } else {
+                    setErrorState({
+                        showError: false,
+                        errorMessage: '',
+                    })
+                    setIsValidAddress(true)
+                }
             } else {
                 setIsValidAddress(false)
             }
