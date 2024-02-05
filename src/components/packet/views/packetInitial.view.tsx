@@ -41,7 +41,6 @@ export function PacketInitialView({
     setLeaderboardInfo,
     senderName,
     recipientName,
-    raffleInfo,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -137,8 +136,11 @@ export function PacketInitialView({
         }
     }, [ensName])
 
+    const [debouncedAddress, setDebouncedAddress] = useState(formwatch.address)
+
     async function checkAddress(address: string) {
         try {
+            setLoadingStates('fetching address')
             const _address = await _utils.resolveFromEnsName(address)
             if (_address) {
                 setIsValidAddress(true)
@@ -148,14 +150,27 @@ export function PacketInitialView({
             } else {
                 setIsValidAddress(false)
             }
-        } catch (error) {}
+        } catch (error) {
+        } finally {
+            setLoadingStates('idle')
+        }
     }
 
     useEffect(() => {
-        if (formwatch.address) {
-            checkAddress(formwatch.address)
+        const handler = setTimeout(() => {
+            setDebouncedAddress(formwatch.address)
+        }, 750)
+
+        return () => {
+            clearTimeout(handler)
         }
     }, [formwatch.address])
+
+    useEffect(() => {
+        if (debouncedAddress) {
+            checkAddress(debouncedAddress)
+        }
+    }, [debouncedAddress])
 
     useEffect(() => {
         goToAndStop(30, true)

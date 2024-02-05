@@ -13,3 +13,4 @@ export type LoadingStates =
     | 'fetching route'
     | 'completed'
     | 'opening'
+    | 'fetching address'
