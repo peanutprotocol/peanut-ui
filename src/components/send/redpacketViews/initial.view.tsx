@@ -62,7 +62,7 @@ export function SendInitialView({
     const sendForm = useForm<_consts.ISendFormData>({
         mode: 'onChange',
         defaultValues: {
-            chainId: '1',
+            chainId: '10',
             amount: null,
             token: '',
             numberOfrecipients: undefined,
@@ -74,6 +74,7 @@ export function SendInitialView({
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
+        // const _chaindetails = chainDetails.filter((chain)=>{peanut.PEANUT_CONTRACTS}) TODO: remove peanut contracts that dont have bv4.2
         if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
@@ -326,7 +327,6 @@ export function SendInitialView({
                     linkDetails,
                     password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
-                    provider: signer ? signer.provider : undefined,
                 })
 
                 const tempLink =
@@ -360,7 +360,6 @@ export function SendInitialView({
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                     creatorAddress: address ?? '',
                     name: sendFormData.senderName ?? '',
-                    provider: signer ? signer.provider : undefined,
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
@@ -474,9 +473,6 @@ export function SendInitialView({
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
-        } else if (chainsToShow.length > 0 && !formHasBeenTouched) {
-            sendForm.setValue('chainId', chainsToShow[0].chainId)
-            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
         }
     }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
