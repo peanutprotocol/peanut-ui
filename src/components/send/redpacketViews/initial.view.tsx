@@ -326,6 +326,7 @@ export function SendInitialView({
                     linkDetails,
                     password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
+                    provider: signer ? signer.provider : undefined,
                 })
 
                 const tempLink =
@@ -359,6 +360,7 @@ export function SendInitialView({
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                     creatorAddress: address ?? '',
                     name: sendFormData.senderName ?? '',
+                    provider: signer ? signer.provider : undefined,
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
@@ -546,7 +548,7 @@ export function SendInitialView({
                                         // @ts-ignore
                                         e.target.blur()
                                     }}
-                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
                                     placeholder="100"
                                     onChange={(e) => {
                                         const value = utils.formatAmountWithoutComma(e.target.value)
@@ -576,7 +578,7 @@ export function SendInitialView({
                                         // @ts-ignore
                                         e.target.blur()
                                     }}
-                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
                                     placeholder="5"
                                     onChange={(e) => {
                                         sendForm.setValue('numberOfrecipients', e.target.value)
@@ -615,7 +617,7 @@ export function SendInitialView({
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     maxLength={20}
-                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
                                     placeholder="Chad"
                                     type="text"
                                     autoComplete="off"
