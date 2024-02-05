@@ -446,7 +446,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     // wait until 2 confirmation blocks to make sure that rpc
                     // providers have the receipt stored
-                    await signer.provider.waitForTransaction(response.txHash, 2)
+                    await signer.provider.waitForTransaction(response.txHash, 1)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
