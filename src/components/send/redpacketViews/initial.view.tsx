@@ -326,7 +326,6 @@ export function SendInitialView({
                     linkDetails,
                     password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
-                    provider: signer ? signer.provider : undefined,
                 })
 
                 const tempLink =
@@ -360,7 +359,6 @@ export function SendInitialView({
                     APIKey: process.env.PEANUT_API_KEY ?? '',
                     creatorAddress: address ?? '',
                     name: sendFormData.senderName ?? '',
-                    provider: signer ? signer.provider : undefined,
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
