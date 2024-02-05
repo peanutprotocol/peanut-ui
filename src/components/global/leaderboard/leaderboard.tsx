@@ -23,7 +23,9 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                         {arrayToUse.map((claim, index) => (
                             <tr className="brutalborder w-full border p-2" key={index}>
                                 <td className="w-[36px] p-2">#{index + 1}</td>
-                                <td className="p-2 font-normal">{claim.name ?? utils.shortenAddress(claim.address)}</td>
+                                <td className="max-w-[125px] truncate p-2 font-normal">
+                                    {claim.name ?? utils.shortenAddress(claim.address)}
+                                </td>
                                 <td className="p-2">{utils.formatTokenAmount(Number(claim.amount))}</td>
                             </tr>
                         ))}
