@@ -17,9 +17,8 @@ export function Leaderboard() {
 
     const getGenerosityLeaderboard = async () => {
         const info = await peanut.getGenerosityLeaderboard({})
-        const doubledInfo = info.flatMap((item) => [item, item])
 
-        setGenerosityLeaderboard(doubledInfo)
+        setGenerosityLeaderboard(info)
     }
 
     useEffect(() => {
