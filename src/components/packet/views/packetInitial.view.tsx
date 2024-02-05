@@ -99,19 +99,17 @@ export function PacketInitialView({
             errorMessage: '',
         })
 
-        // play()
-        // setLoadingStates('opening')
+        play()
+        setLoadingStates('opening')
         try {
             const signer = address && (await getWalletClientAndUpdateSigner({ chainId: raffleInfo?.chainId ?? '' }))
 
             let recipientAddress
-            if (isEnsName) {
+            if (isEnsName.state) {
                 recipientAddress = isEnsName.address
             } else if (isValidAddress) {
-                console.log(isValidAddress)
                 recipientAddress = claimForm.getValues('address') ?? ''
             } else if (address) {
-                console.log(address)
                 recipientAddress = address
             } else {
                 throw new Error('Invalid address')
@@ -234,12 +232,8 @@ export function PacketInitialView({
             </div>
             {isDropdownOpen && (
                 <div className="flex flex-col items-center justify-center gap-2">
-                    <div className=" my-2 cursor-pointer border-none bg-white text-sm">
-                        Fill out your address if you can't connect your wallet.
-                    </div>
-
-                    <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                        <div className="font-normal">Address</div>
+                    <div className="my-4 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                        <div className="font-normal">Your address/ensname</div>
                         <div className="flex flex-row items-center justify-between">
                             <input
                                 className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
