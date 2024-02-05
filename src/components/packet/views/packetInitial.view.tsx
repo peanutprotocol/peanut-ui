@@ -6,13 +6,18 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
 import { useLottie } from 'lottie-react'
+import { providers } from 'ethers'
+import { getWalletClient } from '@wagmi/core'
 
 import dropdown_svg from '@/assets/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 import * as global_components from '@/components/global'
 import * as consts from '@/consts'
+import * as utils from '@/utils'
+
 import * as _consts from '../packet.consts'
+import * as _utils from '../packet.utils'
 
 const defaultLottieOptions = {
     animationData: redpacketLottie,
@@ -36,12 +41,14 @@ export function PacketInitialView({
     setLeaderboardInfo,
     senderName,
     recipientName,
+    raffleInfo,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isValidAddress, setIsValidAddress] = useState(false)
+    const [isEnsName, setIsEnsName] = useState<{ state: boolean; address: string }>({ state: false, address: '' })
 
     const { View: lottieView, goToAndStop, play } = useLottie(defaultLottieOptions, defaultLottieStyle)
 
@@ -65,20 +72,57 @@ export function PacketInitialView({
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
+    const getWalletClientAndUpdateSigner = async ({
+        chainId,
+    }: {
+        chainId: string
+    }): Promise<providers.JsonRpcSigner | undefined> => {
+        try {
+            const walletClient = await getWalletClient({ chainId: Number(chainId) })
+            if (!walletClient) {
+                throw new Error('Failed to get wallet client')
+            }
+            const signer = utils.walletClientToSigner(walletClient)
+            return signer
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
+    useEffect(() => {
+        if (address) getWalletClientAndUpdateSigner({ chainId: raffleInfo?.chainId ?? '' })
+    }, [address])
+
     const claim = async (claimFormData: { name: string | undefined }) => {
         setErrorState({
             showError: false,
             errorMessage: '',
         })
 
-        play()
-        setLoadingStates('opening')
+        // play()
+        // setLoadingStates('opening')
         try {
+            const signer = address && (await getWalletClientAndUpdateSigner({ chainId: raffleInfo?.chainId ?? '' }))
+
+            let recipientAddress
+            if (isEnsName) {
+                recipientAddress = isEnsName.address
+            } else if (isValidAddress) {
+                console.log(isValidAddress)
+                recipientAddress = claimForm.getValues('address') ?? ''
+            } else if (address) {
+                console.log(address)
+                recipientAddress = address
+            } else {
+                throw new Error('Invalid address')
+            }
+
             const raffleClaimedInfo = await peanut.claimRaffleLink({
                 link: raffleLink,
                 APIKey: process.env.PEANUT_API_KEY ?? '',
-                recipientAddress: isValidAddress ? claimForm.getValues('address') ?? '' : address ?? '',
+                recipientAddress: recipientAddress ?? '',
                 recipientName: claimFormData.name,
+                provider: signer ? signer.provider : undefined,
             })
 
             const leaderboardInfo = await peanut.getRaffleLeaderboard({
@@ -96,6 +140,13 @@ export function PacketInitialView({
                 errorMessage: 'Something went wrong while claiming',
             })
 
+            if (error.message == 'Invalid address') {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Invalid address, try again after refreshing ',
+                })
+            }
+
             if (error.message == 'All slots have already been claimed for this raffle') {
                 window.location.reload()
             }
@@ -112,11 +163,23 @@ export function PacketInitialView({
         }
     }, [ensName])
 
+    async function checkAddress(address: string) {
+        try {
+            const _address = await _utils.resolveFromEnsName(address)
+            if (_address) {
+                setIsValidAddress(true)
+                setIsEnsName({ state: true, address: _address })
+            } else if (ethers.utils.isAddress(address)) {
+                setIsValidAddress(true)
+            } else {
+                setIsValidAddress(false)
+            }
+        } catch (error) {}
+    }
+
     useEffect(() => {
-        if (formwatch.address && ethers.utils.isAddress(formwatch.address)) {
-            setIsValidAddress(true)
-        } else {
-            setIsValidAddress(false)
+        if (formwatch.address) {
+            checkAddress(formwatch.address)
         }
     }, [formwatch.address])
 

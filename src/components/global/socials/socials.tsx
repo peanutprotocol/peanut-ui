@@ -21,7 +21,7 @@ export function socialsComponent({ message }: { message: string }) {
             <a href={`https://wa.me/?text=${encodedMessage}`} target="_blank">
                 <img src={whatsapp_icon.src} className={'h-8 w-8'} />
             </a>
-            <a href={`mailto:?subject=Peanut%20Protocol&body=${encodedMessage}`}>
+            <a href={`mailto:?subject=Red%20Packet&body=${encodedMessage}`}>
                 <img src={mail_svg.src} className={'h-8 w-8'} />
             </a>
             <a href={`https://twitter.com/intent/tweet?text=${encodedMessage}`} target="_blank">

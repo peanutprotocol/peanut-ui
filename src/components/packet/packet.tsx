@@ -2,12 +2,15 @@
 import { createElement, useEffect, useState } from 'react'
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
+import { getWalletClient } from '@wagmi/core'
+import { providers } from 'ethers'
 
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as global_components from '@/components/global'
 
 import * as views from './views'
 import * as _consts from './packet.consts'
+import * as utils from '@/utils'
 
 export function Packet() {
     const { address } = useAccount()
@@ -45,10 +48,29 @@ export function Packet() {
         setLeaderboardInfo(_leaderboardInfo)
     }
 
+    const getWalletClientAndUpdateSigner = async ({
+        chainId,
+    }: {
+        chainId: string
+    }): Promise<providers.JsonRpcSigner | undefined> => {
+        try {
+            const walletClient = await getWalletClient({ chainId: Number(chainId) })
+            if (!walletClient) {
+                throw new Error('Failed to get wallet client')
+            }
+            const signer = utils.walletClientToSigner(walletClient)
+            return signer
+        } catch (error) {
+            console.error(error)
+        }
+    }
+
     const checkLink = async (link: string) => {
         try {
-            const x = await peanut.validateRaffleLink({ link }) // will throw error if not valid
-            const _raffleInfo = await peanut.getRaffleInfo({ link })
+            const signer = await getWalletClientAndUpdateSigner({ chainId: raffleInfo?.chainId ?? '' })
+            await peanut.validateRaffleLink({ link }) // will throw error if not valid
+            const _raffleInfo = await peanut.getRaffleInfo({ link, provider: signer ? signer.provider : undefined })
+
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
 
