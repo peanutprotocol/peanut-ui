@@ -7,7 +7,7 @@ import * as utils from '@/utils'
 
 export function Leaderboard() {
     const [selectedTab, setSelectedTab] = useState<'Popularity' | 'Generosity'>('Popularity')
-    const [popularityLeaderboard, setPopularityLeaderboard] = useState<interfaces.IGenerosityLeaderboardEntry[]>([])
+    const [popularityLeaderboard, setPopularityLeaderboard] = useState<interfaces.IPopularityLeaderboardEntry[]>([])
     const [generosityLeaderboard, setGenerosityLeaderboard] = useState<interfaces.IGenerosityLeaderboardEntry[]>([])
 
     const getPopularityLeaderboard = async () => {
