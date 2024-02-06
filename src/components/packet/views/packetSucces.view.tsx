@@ -6,7 +6,6 @@ import { useAccount } from 'wagmi'
 import * as utils from '@/utils'
 import * as store from '@/store'
 import * as global_components from '@/components/global'
-import * as components from '@/components'
 import * as _consts from '../packet.consts'
 
 export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInfo }: _consts.IPacketScreenProps) {

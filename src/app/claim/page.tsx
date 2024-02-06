@@ -1,6 +1,5 @@
 import * as global_components from '@/components/global'
 import * as components from '@/components'
-import { headers } from 'next/headers'
 import { Metadata, ResolvingMetadata } from 'next'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'

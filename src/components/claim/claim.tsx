@@ -11,7 +11,6 @@ import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as hooks from '@/hooks'
 import * as store from '@/store'
 import { useAtom } from 'jotai'
-import * as utils from '@/utils'
 
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 interface Chain {

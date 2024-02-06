@@ -9,7 +9,6 @@ import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
-import { waitForTransaction } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'

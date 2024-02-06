@@ -1,6 +1,6 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { WalletClient, useAccount, useNetwork } from 'wagmi'
+import { useAccount, useNetwork } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 
@@ -12,7 +12,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
-import { BigNumber, ethers, providers } from 'ethers'
+import { ethers, providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import { useForm } from 'react-hook-form'
 

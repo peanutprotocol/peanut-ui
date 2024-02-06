@@ -6,15 +6,12 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
 import { useLottie } from 'lottie-react'
-import { providers } from 'ethers'
-import { getWalletClient } from '@wagmi/core'
 
 import dropdown_svg from '@/assets/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 import * as global_components from '@/components/global'
 import * as consts from '@/consts'
-import * as utils from '@/utils'
 
 import * as _consts from '../packet.consts'
 import * as _utils from '../packet.utils'
