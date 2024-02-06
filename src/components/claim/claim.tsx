@@ -191,8 +191,6 @@ export function Claim() {
                 const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({ link: localLink })
                 verbose && console.log('linkDetails', linkDetails)
                 setClaimLink([localLink.toString()])
-
-                //@ts-ignore
                 setSenderAddress(linkDetails.senderAddress)
 
                 setClaimDetails([linkDetails])
