@@ -35,6 +35,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                             style={{
                                 borderTop: '2px solid black',
                             }}
+                            onClick={() => setIsCollapsed(!isCollapsed)}
                         >
                             <tr className="sticky bottom-0 border-t bg-white">
                                 <td colSpan={3} className="brutalborder w-full cursor-pointer border text-center">
@@ -46,7 +47,6 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                                         }}
                                         alt=""
                                         className="mx-auto h-6"
-                                        onClick={() => setIsCollapsed(!isCollapsed)}
                                     />
                                 </td>
                             </tr>

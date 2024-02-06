@@ -9,7 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { PEANUT_CONTRACTS, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
