@@ -192,14 +192,8 @@ export function Claim() {
                 verbose && console.log('linkDetails', linkDetails)
                 setClaimLink([localLink.toString()])
 
-                const senderAddress = await utils.getSenderAddress({
-                    chainId: linkDetails.chainId.toString(),
-                    contractVersion: linkDetails.contractVersion,
-                    depositIdx: linkDetails.depositIndex,
-                })
-
-                console.log(senderAddress)
-                setSenderAddress(senderAddress)
+                //@ts-ignore
+                setSenderAddress(linkDetails.senderAddress)
 
                 setClaimDetails([linkDetails])
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {

@@ -1,19 +1,9 @@
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useMemo, useState, Fragment } from 'react'
-import { useAccount } from 'wagmi'
-import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
-import peanut from '@squirrel-labs/peanut-sdk'
-import { useForm } from 'react-hook-form'
-import { Dialog, Transition } from '@headlessui/react'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
-import * as utils from '@/utils'
 import * as store from '@/store'
-import * as consts from '@/consts'
 import * as interfaces from '@/interfaces'
-import dropdown_svg from '@/assets/dropdown.svg'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
 export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: interfaces.ILinkDetails[] }) {

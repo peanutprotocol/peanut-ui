@@ -9,7 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { PEANUT_CONTRACTS, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -64,17 +64,25 @@ export function SendInitialView({
         defaultValues: {
             chainId: '10',
             amount: null,
-            token: '',
+            token: 'ETH',
             numberOfrecipients: undefined,
             senderName: undefined,
         },
     })
     const formwatch = sendForm.watch()
 
+    useEffect(() => {
+        const _chaindetails = chainDetails.filter((chain) => {
+            chain.chainId === peanut.PEANUT_CONTRACTS
+        })
+    }, [])
+
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        // const _chaindetails = chainDetails.filter((chain)=>{peanut.PEANUT_CONTRACTS}) TODO: remove peanut contracts that dont have bv4.2
+        const _chaindetails = chainDetails.filter((chain) => {
+            peanut.PEANUT_CONTRACTS
+        })
         if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
