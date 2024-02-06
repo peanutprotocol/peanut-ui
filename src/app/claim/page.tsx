@@ -28,36 +28,36 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
     return `${baseURL}?${queryParams.toString()}`
 }
 
-// export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
-//     let title = 'Peanut Protocol'
+export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
+    let title = 'Peanut Protocol'
 
-//     try {
-//         const url = createURL(searchParams)
-//         const linkDetails = await getLinkDetails({ link: url })
-//         title =
-//             'You got sent ' +
-//             utils.formatAmount(Number(linkDetails.tokenAmount)) +
-//             ' in ' +
-//             linkDetails.tokenSymbol +
-//             '!'
-//     } catch (e) {
-//         console.log('error: ', e)
-//     }
+    try {
+        const url = createURL(searchParams)
+        const linkDetails = await getLinkDetails({ link: url })
+        title =
+            'You got sent ' +
+            utils.formatAmount(Number(linkDetails.tokenAmount)) +
+            ' in ' +
+            linkDetails.tokenSymbol +
+            '!'
+    } catch (e) {
+        console.log('error: ', e)
+    }
 
-//     return {
-//         title: title,
-//         icons: {
-//             icon: '/logo-favicon.png',
-//         },
-//         openGraph: {
-//             images: [
-//                 {
-//                     url: '/claim-metadata-img.jpg',
-//                 },
-//             ],
-//         },
-//     }
-// }
+    return {
+        title: title,
+        icons: {
+            icon: '/logo-favicon.png',
+        },
+        openGraph: {
+            images: [
+                {
+                    url: '/claim-metadata-img.jpg',
+                },
+            ],
+        },
+    }
+}
 
 export default function ClaimPage({ params, searchParams }: Props) {
     return (
