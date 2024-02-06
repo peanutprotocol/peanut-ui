@@ -12,8 +12,9 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
-import { BigNumber, providers } from 'ethers'
+import { BigNumber, ethers, providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
+import { useForm } from 'react-hook-form'
 
 export function xchainClaimView({
     onNextScreen,
@@ -30,7 +31,7 @@ export function xchainClaimView({
     const { chain: currentChain } = useNetwork()
 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-
+    const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainList, setChainList] = useState<{ chainId: string; chainName: string; chainIconURI: string }[]>([])
     const [selectedChain, setSelectedChain] = useState<{ chainId: string; chainName: string; chainIconURI: string }>({
         chainId: claimDetails[0].chainId,
@@ -53,6 +54,21 @@ export function xchainClaimView({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    const [manualErrorState, setManualErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
+
+    const manualForm = useForm<{ address: string; addressExists: boolean }>({
+        mode: 'onChange',
+        reValidateMode: 'onChange',
+        defaultValues: {
+            address: '',
+        },
+    })
+
+    const manualFormWatch = manualForm.watch()
 
     const initializeLoadingStatesUpdating = () => {
         let counter = 0
@@ -99,6 +115,124 @@ export function xchainClaimView({
             setLoadingStates('switching network')
             isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
             setLoadingStates('loading')
+        }
+    }
+
+    const manualClaim = async (data: { address: string }) => {
+        try {
+            setManualErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+
+            if (!ethers.utils.isAddress(data.address)) {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a valid address',
+                })
+                return
+            }
+
+            if (claimDetails[0].chainId == '1') {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'Mainnet not supported for manual claiming',
+                })
+                return
+            }
+
+            if (
+                !possibleRoutesArray.find((route) => route.route?.params.toToken == selectedToken.address) &&
+                selectedToken
+            ) {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the chosen chain and token',
+                })
+                return
+            }
+
+            if (selectedToken) {
+                initializeLoadingStatesUpdating()
+            } else {
+                setLoadingStates('executing transaction')
+            }
+            let claimTx
+            if (!selectedToken) {
+                verbose && console.log('claiming non-cross chain')
+
+                if (claimDetails[0].chainId == '1') {
+                    await checkNetwork(claimDetails[0].chainId)
+
+                    const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+
+                    claimTx = await peanut.claimLink({
+                        recipient: data.address,
+                        link: claimDetails[0].link,
+                        structSigner: {
+                            signer,
+                        },
+                    })
+                } else {
+                    claimTx = await peanut.claimLinkGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: data.address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                    })
+                }
+            } else {
+                verbose && console.log('claiming cross chain')
+                const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
+                    .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
+                    .find((chain) => chain.chainId == claimDetails[0].chainId.toString())?.mainnet
+
+                if (claimDetails[0].chainId == '1') {
+                    await checkNetwork(claimDetails[0].chainId)
+
+                    const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+
+                    claimTx = await peanut.claimLink({
+                        recipient: data.address,
+                        link: claimDetails[0].link,
+                        structSigner: {
+                            signer,
+                        },
+                    })
+                } else {
+                    claimTx = await peanut.claimLinkXChainGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: data.address ?? '',
+                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                        destinationChainId: selectedChain.chainId,
+                        destinationToken: selectedToken.address,
+                        isMainnet: !isTestnet,
+                        squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
+                        baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
+                    })
+                }
+            }
+            verbose && console.log(claimTx)
+
+            setTxHash([claimTx.txHash])
+            if (selectedToken) {
+                setCrossChainSuccess({
+                    chainName: selectedChain.chainName,
+                    tokenName: selectedToken.name,
+                    chainId: selectedChain.chainId,
+                })
+            } else {
+                setCrossChainSuccess(undefined)
+            }
+            onNextScreen()
+        } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Something went wrong while claiming',
+            })
+            console.error(error)
+        } finally {
+            setLoadingStates('idle')
         }
     }
 
@@ -225,14 +359,20 @@ export function xchainClaimView({
                     toChain: selectedChain.chainId.toString(),
                     toToken: selectedToken.address,
                     slippage: 1,
-                    fromAddress: address ?? '',
-                    toAddress: address ?? '',
+                    //@ts-ignore
+                    fromAddress: claimDetails[0].senderAddress,
+                    toAddress: isDropdownOpen ? manualFormWatch.address : address ?? '',
                 })
                 setPossibleRoutesArray([...possibleRoutesArray, { route: x.route }])
                 verbose && console.log(x)
             }
         } catch (error: any) {
-            if (error.toString().includes('Please increase your input amount')) {
+            if (error.toString().includes('is not a valid to addres')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a valid recipient address',
+                })
+            } else if (error.toString().includes('Please increase your input amount')) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'This link can not be claimed cross-chain, it does not meet the minimum amount.',
@@ -480,6 +620,65 @@ export function xchainClaimView({
                     'Connect Wallet'
                 )}
             </button>
+            <div
+                className="mt-2 flex cursor-pointer items-center justify-center"
+                onClick={() => {
+                    setIsDropdownOpen(!isDropdownOpen)
+                }}
+            >
+                <div className="cursor-pointer border-none bg-white text-sm  ">manually enter address</div>
+                <img
+                    style={{
+                        transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
+                        transition: 'transform 0.3s ease-in-out',
+                    }}
+                    src={dropdown_svg.src}
+                    alt=""
+                    className={'h-6 '}
+                />
+            </div>
+            {isDropdownOpen && (
+                <global_components.CardWrapper mb="mb-4">
+                    <label className="block text-center text-xs font-medium">
+                        If you can't connect, you can also write your address below <br />{' '}
+                        <span className="italic">⚠️ WARNING: if you enter a wrong address, funds will get lost!!</span>
+                    </label>
+
+                    <form className=" w-full " onSubmit={manualForm.handleSubmit(manualClaim)}>
+                        <div className="brutalborder mx-auto mt-4 flex w-11/12 flex-row sm:w-3/4">
+                            <input
+                                type="text"
+                                className="h-4 w-full flex-grow border-none p-4 px-4 placeholder:text-xs placeholder:font-light"
+                                placeholder="0x6B37..."
+                                {...manualForm.register('address')}
+                            />
+                            <div className="w-1/8 brutalborder-left tooltip block h-4 cursor-pointer p-2 ">
+                                {isLoading ? (
+                                    <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold">
+                                        <span className="tooltiptext inline text-black" id="myTooltip">
+                                            Claiming...
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <button
+                                        className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold"
+                                        type="submit"
+                                    >
+                                        <span className="tooltiptext inline text-black" id="myTooltip">
+                                            Claim
+                                        </span>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                        {manualErrorState.showError && (
+                            <div className="text-center">
+                                <label className="text-xs font-normal text-red ">{manualErrorState.errorMessage}</label>
+                            </div>
+                        )}
+                    </form>
+                </global_components.CardWrapper>
+            )}
             {errorState.showError && (
                 <div className="text-center">
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
