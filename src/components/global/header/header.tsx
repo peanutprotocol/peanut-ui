@@ -3,12 +3,10 @@ import Link from 'next/link'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 
-import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import * as hooks from '@/hooks'
 
 import peanut_logo from '@/assets/peanutman-logo.svg'
-import smiley from '@/assets/smiley.svg'
 import red_pack_svg from '@/assets/red-packet-naked.svg'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {

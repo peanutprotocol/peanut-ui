@@ -5,7 +5,6 @@ import * as hooks from '@/hooks'
 import * as _consts from '../claim.consts'
 import * as interfaces from '@/interfaces'
 import * as store from '@/store'
-import * as utils from '@/utils'
 import { useAtom } from 'jotai'
 
 export function ClaimLinkAlreadyClaimedView({ claimDetails }: { claimDetails: interfaces.ILinkDetails[] }) {

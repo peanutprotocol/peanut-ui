@@ -105,24 +105,6 @@ export const formatAmountWithoutComma = (input: string) => {
     } else return ''
 }
 
-export const getSenderAddress = async ({
-    chainId,
-    contractVersion,
-    depositIdx,
-}: {
-    chainId: string
-    contractVersion: string
-    depositIdx: number
-}) => {
-    const contract = await peanut.getContract(chainId, null, contractVersion)
-    console.log(contract)
-    const deposits = await contract.getAllDeposits()
-    console.log(deposits)
-    const senderAddress = deposits[depositIdx].senderAddress
-    console.log(senderAddress)
-    return senderAddress
-}
-
 export function walletClientToSigner(walletClient: WalletClient) {
     const { account, chain, transport } = walletClient
     const network = {

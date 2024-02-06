@@ -71,29 +71,29 @@ export function Store({ children }: { children: React.ReactNode }) {
                 userAddress: address,
             })
 
-            const usdcPolygonBalance = await socketTech.Balances.getBalance({
-                tokenAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-                chainId: 137,
-                userAddress: address,
-            }).then((res) => {
-                return {
-                    chainId: res.result.chainId,
-                    address: res.result.tokenAddress,
-                    name: res.result.name,
-                    symbol: res.result.symbol,
-                    decimals: res.result.decimals,
-                    chainAgnosticId: null,
-                    icon: res.result.icon,
-                    logoURI: res.result.icon,
-                    amount: ethers.utils.formatUnits(Number(res.result.balance), res.result.decimals),
-                    price: 0,
-                    currency: null,
-                }
-            })
+            // const usdcPolygonBalance = await socketTech.Balances.getBalance({
+            //     tokenAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+            //     chainId: 137,
+            //     userAddress: address,
+            // }).then((res) => {
+            //     return {
+            //         chainId: res.result.chainId,
+            //         address: res.result.tokenAddress,
+            //         name: res.result.name,
+            //         symbol: res.result.symbol,
+            //         decimals: res.result.decimals,
+            //         chainAgnosticId: null,
+            //         icon: res.result.icon,
+            //         logoURI: res.result.icon,
+            //         amount: ethers.utils.formatUnits(Number(res.result.balance), res.result.decimals),
+            //         price: 0,
+            //         currency: null,
+            //     }
+            // })
 
-            const x = userBalancesResponse.result.concat([usdcPolygonBalance])
+            // const x = userBalancesResponse.result.concat([usdcPolygonBalance])
 
-            const updatedBalances: interfaces.IUserBalance[] = x
+            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result
                 .map((balances: any) => {
                     return {
                         chainId: balances.chainId,

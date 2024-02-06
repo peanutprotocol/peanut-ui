@@ -42,6 +42,14 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
                 <global_components.leaderBoardComp leaderboardInfo={leaderboardInfo ?? []} />
             </div>
 
+            {/* <div className="flex flex-col items-center justify-center gap-2">
+                <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">
+                    See how popular you are!
+                </h3>
+
+                <components.PopularityLeaderboard />
+            </div> */}
+
             <h3 className="text-md text-center font-normal sm:text-lg lg:text-xl ">
                 Create a red packet link to send to your friend group chat
             </h3>

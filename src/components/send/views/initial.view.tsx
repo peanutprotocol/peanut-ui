@@ -300,10 +300,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    useEffect(() => {
-        console.log(createGasless)
-    }, [createGasless])
-
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -526,7 +522,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setChainId(sendFormData.chainId)
                 onNextScreen()
             } catch (error: any) {
-                console.error(error)
                 if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({

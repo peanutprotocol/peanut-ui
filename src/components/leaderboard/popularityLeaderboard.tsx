@@ -2,7 +2,6 @@
 import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useEffect, useState } from 'react'
 
-import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import chevron from '@/assets/dropdown.svg'
 

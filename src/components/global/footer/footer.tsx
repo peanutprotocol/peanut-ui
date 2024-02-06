@@ -1,8 +1,5 @@
 import Link from 'next/link'
-import smiley from '@/assets/smiley.svg'
 
-import * as global_components from '@/components/global'
-// You can find all social and other links in this const file.
 import * as _consts from './footer.consts'
 
 export function Footer({ showMarquee = false }: { showMarquee?: boolean }) {

@@ -9,7 +9,6 @@ import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
-import { waitForTransaction } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -53,7 +52,6 @@ export function ClaimView({
         reValidateMode: 'onChange',
         defaultValues: {
             address: '',
-            addressExists: false,
         },
     })
 
@@ -173,7 +171,7 @@ export function ClaimView({
         }
     }, [])
 
-    const manualClaim = async (data: { address: string; addressExists: boolean }) => {
+    const manualClaim = async (data: { address: string }) => {
         try {
             setManualErrorState({
                 showError: false,
@@ -186,13 +184,7 @@ export function ClaimView({
                 })
                 return
             }
-            if (!data.addressExists) {
-                setManualErrorState({
-                    showError: true,
-                    errorMessage: 'Please check the box to confirm that the address exists on the chain',
-                })
-                return
-            }
+
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 verbose && console.log('claiming link:' + claimLink)
@@ -356,11 +348,6 @@ export function ClaimView({
                                 <label className="text-xs font-normal text-red ">{manualErrorState.errorMessage}</label>
                             </div>
                         )}
-
-                        <div className="mx-auto mt-2 flex h-4 flex-row items-center justify-center ">
-                            <input type="checkbox" className="h-4 w-4" {...manualForm.register('addressExists')} />
-                            <label className="ml-2 text-xs font-medium">This address exists on CHAIN</label>
-                        </div>
                     </form>
                 </global_components.CardWrapper>
             )}

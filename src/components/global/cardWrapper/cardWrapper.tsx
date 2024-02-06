@@ -1,6 +1,3 @@
-import { useEffect } from 'react'
-import { isMobile } from 'react-device-detect'
-
 export function CardWrapper({
     children,
     mb = ' mb-48 ',

@@ -7,7 +7,6 @@ import * as _consts from '../send.consts'
 import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
-import * as utils from '@/utils'
 import { useAccount, useSignMessage } from 'wagmi'
 import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
 

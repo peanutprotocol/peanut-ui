@@ -64,17 +64,25 @@ export function SendInitialView({
         defaultValues: {
             chainId: '10',
             amount: null,
-            token: '',
+            token: 'ETH',
             numberOfrecipients: undefined,
             senderName: undefined,
         },
     })
     const formwatch = sendForm.watch()
 
+    useEffect(() => {
+        const _chaindetails = chainDetails.filter((chain) => {
+            chain.chainId === peanut.PEANUT_CONTRACTS
+        })
+    }, [])
+
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        // const _chaindetails = chainDetails.filter((chain)=>{peanut.PEANUT_CONTRACTS}) TODO: remove peanut contracts that dont have bv4.2
+        const _chaindetails = chainDetails.filter((chain) => {
+            peanut.PEANUT_CONTRACTS
+        })
         if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
@@ -231,7 +239,7 @@ export function SendInitialView({
             if (amount && Number(sendFormData.amount) > amount) {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Please make sure your balance is sufficient for this transaction',
+                    errorMessage: 'Insufficient funds to complete this transaction.',
                 })
 
                 return { succes: 'false' }
