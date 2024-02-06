@@ -239,7 +239,7 @@ export function SendInitialView({
             if (amount && Number(sendFormData.amount) > amount) {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Please make sure your balance is sufficient for this transaction',
+                    errorMessage: 'Insufficient funds to complete this transaction.',
                 })
 
                 return { succes: 'false' }
