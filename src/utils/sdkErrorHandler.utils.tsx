@@ -8,6 +8,8 @@ export declare class SDKStatus extends Error {
 
 export const sdkErrorHandler = (error: SDKStatus) => {
     switch (error.code) {
+        case peanut.interfaces.ESignAndSubmitTx.ERROR_INSUFFICIENT_NATIVE_TOKEN:
+            return 'Insufficient funds to complete the transaction.'
         case peanut.interfaces.ECreateLinkStatusCodes.ERROR_GETTING_LINKS_FROM_TX:
             return 'Something went wrong while getting the links from the transaction. Please try again later.'
         case peanut.interfaces.ECreateLinkStatusCodes.ERROR_SIGNING_AND_SUBMITTING_TX:
