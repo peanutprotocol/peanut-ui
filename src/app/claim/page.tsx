@@ -35,9 +35,10 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
         const url = createURL(searchParams)
         const linkDetails = await getLinkDetails({ link: url })
         title =
-            'You got sent ' +
-            utils.formatAmount(Number(linkDetails.tokenAmount)) +
-            ' in ' +
+            'You received ' +
+            (Number(linkDetails.tokenAmount) < 0.01
+                ? 'some '
+                : utils.formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
             linkDetails.tokenSymbol +
             '!'
     } catch (e) {
