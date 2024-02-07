@@ -6,8 +6,11 @@ import * as consts from '@/consts'
 import * as hooks from '@/hooks'
 import { ethers } from 'ethers'
 import peanut, {
+    getDefaultProvider,
+    getLatestContractVersion,
     getRaffleLinkFromTx,
     getRandomString,
+    getTokenContractDetails,
     interfaces,
     prepareRaffleDepositTxs,
     setFeeOptions,
@@ -24,8 +27,6 @@ type tokenType = {
     tokenAddress: string
     tokenAmount: number
     numberOfSlots: number
-    tokenDecimals: number
-    tokenType: number
 }
 
 export function GigaPacket() {
@@ -39,19 +40,29 @@ export function GigaPacket() {
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const [formState, setFormState] = useState<tokenType[]>([
+        // {
+        //     tokenAddress: '',
+        //     tokenAmount: 0,
+        //     numberOfSlots: 0,
+        //     tokenDecimals: 0,
+        //     tokenType: 0,
+        // },
+        // {
+        //     tokenAddress: '',
+        //     tokenAmount: 0,
+        //     numberOfSlots: 0,
+        //     tokenDecimals: 0,
+        //     tokenType: 1,
+        // },
         {
-            tokenAddress: '',
-            tokenAmount: 0,
-            numberOfSlots: 0,
-            tokenDecimals: 0,
-            tokenType: 0,
+            tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+            tokenAmount: 0.1,
+            numberOfSlots: 9,
         },
         {
-            tokenAddress: '',
-            tokenAmount: 0,
-            numberOfSlots: 0,
-            tokenDecimals: 0,
-            tokenType: 1,
+            tokenAddress: '0x0000000000000000000000000000000000000000',
+            tokenAmount: 0.1,
+            numberOfSlots: 11,
         },
     ])
     const [errorState, setErrorState] = useState<{
@@ -139,37 +150,55 @@ export function GigaPacket() {
             //get signer
             const signer = await getWalletClientAndUpdateSigner({ chainId: _consts.MANTLE_CHAIN_ID })
 
-            const href = window.location
-
-            const baseUrl = `${href}packet/`
-
-            console.log(href)
-
             //filter out empty token fields
             const _formState = formState.filter((state) => state.tokenAddress !== '')
 
             let raffleLinks: string[] = []
 
-            const currentDateTime = new Date()
-            const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
-            const premadeLink = `${href}`
-            // utils.savetoLocalStorage(localstorageKey, '')
+            const baseUrl = `${window.location.origin}/packet`
+            const trackId = 'mantle'
 
-            return
+            // const batcherContractVersion = getLatestContractVersion({
+            //     chainId: _consts.MANTLE_CHAIN_ID,
+            //     type: 'batch',
+            //     experimental: true,
+            // })
+
+            const batcherContractVersion = 'Bv4.3' //TODO: change to sdk version
+
+            // const currentDateTime = new Date()
+            // const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
+            // const premadeLink = `${baseUrl}?c=${_consts.MANTLE_CHAIN_ID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
+            // utils.saveToLocalStorage(localstorageKey, premadeLink)
 
             //We'll handle each token separately
             for (const token of _formState) {
                 let preparedTransactions: interfaces.IPrepareDepositTxsResponse[] = []
-
                 const [quotient, remainder] = _utils.divideAndRemainder(token.numberOfSlots)
-
                 const tokenAmountPerSlot = token.tokenAmount / token.numberOfSlots
+                let tokenType, tokenDecimals
+
+                const defaultProvider = await getDefaultProvider(_consts.MANTLE_CHAIN_ID)
+                try {
+                    const contractDetails = await getTokenContractDetails({
+                        address: token.tokenAddress,
+                        provider: defaultProvider,
+                    })
+
+                    tokenType = contractDetails.type
+                    contractDetails.decimals ? (tokenDecimals = contractDetails.decimals) : (tokenDecimals = 16)
+                } catch (error) {
+                    throw new Error('Contract type not supported')
+                }
+
+                if (tokenType === undefined || tokenDecimals === undefined) {
+                    throw new Error('Token type or decimals not found, please contact support')
+                }
 
                 //if tokentype is 1 (erc20), prepare and send an approval transaction once for the entire amount
-                if (token.tokenType == 1) {
-                    const tokenAmountString = trim_decimal_overflow(token.tokenAmount, token.tokenDecimals)
-                    const tokenAmountBigNum = ethers.utils.parseUnits(tokenAmountString, token.tokenDecimals)
-                    const batcherContractVersion = 'Bv4.2'
+                if (tokenType == 1) {
+                    const tokenAmountString = trim_decimal_overflow(token.tokenAmount, tokenDecimals)
+                    const tokenAmountBigNum = ethers.utils.parseUnits(tokenAmountString, tokenDecimals)
 
                     const approveTx = await peanut.prepareApproveERC20Tx(
                         address ?? '',
@@ -204,29 +233,25 @@ export function GigaPacket() {
                             ...txOptions,
                             ...convertedTransaction,
                         } as ethers.providers.TransactionRequest
-
-                        console.log(combined)
                         const tx = await signer.sendTransaction(combined)
 
                         await tx.wait()
                     }
                 }
 
-                //
+                //prepare the transactions. It is calculated based on the number of slots and the max transactions per block
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
-
-                    //TODO !!IMPORTANT!!: update baseurl, tokenDecimals and tokenType !!!!!
 
                     if (numberofLinks > 0) {
                         const linkDetails = {
                             chainId: _consts.MANTLE_CHAIN_ID,
                             tokenAmount: Number(tokenAmountPerSlot * numberofLinks),
                             tokenAddress: token.tokenAddress,
-                            baseUrl: 'https://red.peanut.to/packet',
-                            trackId: 'mantle',
-                            tokenDecimals: token.tokenDecimals,
-                            tokenType: token.tokenType,
+                            baseUrl,
+                            trackId,
+                            tokenDecimals: tokenDecimals,
+                            tokenType: tokenType,
                         }
 
                         const prepTx = await prepareRaffleDepositTxs({
@@ -239,6 +264,10 @@ export function GigaPacket() {
                         preparedTransactions.push(prepTx)
                     }
                 }
+
+                console.log(preparedTransactions)
+
+                return
 
                 let hashes: string[] = []
 
@@ -288,8 +317,8 @@ export function GigaPacket() {
                         tokenAddress: token.tokenAddress,
                         baseUrl: 'https://red.peanut.to/packet',
                         trackId: 'mantle',
-                        tokenDecimals: token.tokenDecimals,
-                        tokenType: token.tokenType,
+                        tokenDecimals: tokenDecimals,
+                        tokenType: tokenType,
                     }
 
                     const getLinkFromTxResponse = await getRaffleLinkFromTx({
