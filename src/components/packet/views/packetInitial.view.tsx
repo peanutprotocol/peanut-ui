@@ -13,6 +13,7 @@ import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 import * as global_components from '@/components/global'
 import * as consts from '@/consts'
+import * as utils from '@/utils'
 
 import * as _consts from '../packet.consts'
 import * as _utils from '../packet.utils'
@@ -91,13 +92,11 @@ export function PacketInitialView({
                 throw new Error('Invalid address')
             }
 
-            if (
-                await peanut.hasAddressParticipatedInRaffle({
-                    link: raffleLink,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                    address: recipientAddress,
-                })
-            ) {
+            const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+                link: raffleLink,
+                address: recipientAddress,
+            })
+            if (hasAddressParticipated) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'This address has already claimed their slot!',
@@ -107,16 +106,14 @@ export function PacketInitialView({
                 return
             }
 
-            const raffleClaimedInfo = await peanut.claimRaffleLink({
+            const raffleClaimedInfo = await utils.fetchClaimRaffleLink({
                 link: raffleLink,
-                APIKey: process.env.PEANUT_API_KEY ?? '',
                 recipientAddress: recipientAddress ?? '',
-                recipientName: claimFormData.name,
+                recipientName: claimFormData.name ?? '',
             })
 
-            const leaderboardInfo = await peanut.getRaffleLeaderboard({
+            const leaderboardInfo = await utils.fetchLeaderboardInfo({
                 link: raffleLink,
-                APIKey: process.env.PEANUT_API_KEY ?? '',
             })
             setLeaderboardInfo(leaderboardInfo)
 
@@ -162,13 +159,11 @@ export function PacketInitialView({
             setLoadingStates('fetching address')
             const _address = await _utils.resolveFromEnsName(address)
             if (_address) {
-                if (
-                    await peanut.hasAddressParticipatedInRaffle({
-                        link: raffleLink,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        address: _address,
-                    })
-                ) {
+                const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    address: _address,
+                })
+                if (hasAddressParticipated) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'This address has already claimed their slot!',
@@ -183,13 +178,11 @@ export function PacketInitialView({
                     setIsEnsName({ state: true, address: _address })
                 }
             } else if (ethers.utils.isAddress(address)) {
-                if (
-                    await peanut.hasAddressParticipatedInRaffle({
-                        link: raffleLink,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        address: address,
-                    })
-                ) {
+                const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    address: address,
+                })
+                if (hasAddressParticipated) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'This address has already claimed their slot!',

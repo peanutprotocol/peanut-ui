@@ -39,15 +39,6 @@ export function Packet() {
         }))
     }
 
-    async function fetchLeaderboardInfo(link: string) {
-        const _leaderboardInfo = await peanut.getRaffleLeaderboard({
-            link: link,
-            APIKey: process.env.PEANUT_API_KEY ?? '',
-        })
-
-        setLeaderboardInfo(_leaderboardInfo)
-    }
-
     const getWalletClientAndUpdateSigner = async ({
         chainId,
     }: {
@@ -74,48 +65,38 @@ export function Packet() {
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
 
+            const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+                link: link,
+                address: address ?? '',
+            })
+
             if (await peanut.isRaffleActive({ link })) {
-                if (
-                    address &&
-                    (await peanut.hasAddressParticipatedInRaffle({
-                        link: link,
-                        address: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                    }))
-                ) {
-                    await fetchLeaderboardInfo(link)
+                if (address && hasAddressParticipated) {
+                    await utils.fetchLeaderboardInfo({ link })
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
                 } else {
-                    const senderName = await peanut.getUsername({
-                        address: _raffleInfo.senderAddress,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        link: link,
+                    const senderName = await utils.fetchUserName({
+                        senderAddress: _raffleInfo.senderAddress,
+                        link,
                     })
                     setSenderName(senderName)
 
                     if (address) {
-                        const recipientName = await peanut.getUsername({
-                            address: address ?? '',
-                            APIKey: process.env.PEANUT_API_KEY ?? '',
-                            link: link,
+                        const recipientName = await utils.fetchUserName({
+                            senderAddress: address ?? '',
+                            link,
                         })
                         setRecipientName(recipientName)
                     }
                 }
                 setPacketState('FOUND')
             } else {
-                await fetchLeaderboardInfo(link)
-                if (
-                    address &&
-                    (await peanut.hasAddressParticipatedInRaffle({
-                        link: link,
-                        address: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                    }))
-                ) {
+                await utils.fetchLeaderboardInfo({ link })
+
+                if (address && hasAddressParticipated) {
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),

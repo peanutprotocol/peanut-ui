@@ -174,10 +174,9 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkGasless({
+                    claimTx = await utils.fetchClaimLinkGasless({
                         link: claimDetails[0].link,
                         recipientAddress: data.address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         baseUrl: `${consts.peanut_api_url}/claim-v2`,
                     })
                 }
@@ -200,10 +199,9 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkXChainGasless({
+                    claimTx = await utils.fetchClaimLinkXchainGasless({
                         link: claimDetails[0].link,
                         recipientAddress: data.address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         destinationChainId: selectedChain.chainId,
                         destinationToken: selectedToken.address,
                         isMainnet: !isTestnet,
@@ -276,10 +274,9 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkGasless({
+                    claimTx = await utils.fetchClaimLinkGasless({
                         link: claimDetails[0].link,
                         recipientAddress: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         baseUrl: `${consts.peanut_api_url}/claim-v2`,
                     })
                 }
@@ -302,10 +299,9 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkXChainGasless({
+                    claimTx = await utils.fetchClaimLinkXchainGasless({
                         link: claimDetails[0].link,
                         recipientAddress: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         destinationChainId: selectedChain.chainId,
                         destinationToken: selectedToken.address,
                         isMainnet: !isTestnet,

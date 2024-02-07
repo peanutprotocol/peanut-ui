@@ -106,10 +106,9 @@ export function ClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkGasless({
+                    claimTx = await utils.fetchClaimLinkGasless({
                         link: claimLink[0],
                         recipientAddress: address,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         baseUrl: `${consts.peanut_api_url}/claim-v2`,
                     })
                 }
@@ -188,10 +187,9 @@ export function ClaimView({
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 verbose && console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless({
+                const claimTx = await utils.fetchClaimLinkGasless({
                     link: claimLink[0],
                     recipientAddress: data.address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
                     baseUrl: `${consts.peanut_api_url}/claim-v2`,
                 })
 

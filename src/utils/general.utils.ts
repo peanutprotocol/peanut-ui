@@ -125,25 +125,4 @@ export function formatMessage(message: string) {
         .join('\n')
 }
 
-export async function sendDiscordNotification(message: string) {
-    const _message = formatMessage(message)
-    try {
-        const webhookUrl = process.env.DISCORD_WEBHOOK_URL
-
-        if (!webhookUrl) throw new Error('DISCORD_WEBHOOK not found in env')
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                content: _message,
-            }),
-        })
-        if (!response.ok) throw response.text()
-    } catch (error) {
-        console.error(`======== Error sending Notification Push message: ${error}`)
-    }
-}
-
 export async function pushMessage(errorMessage: string): Promise<void> {}

@@ -61,13 +61,15 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 for (const detail of claimDetails) {
                     if (!detail.claimed) {
                         verbose && console.log(detail)
+
+                        const tx = await utils.fetchClaimLinkGasless({
+                            link: detail.link,
+                            recipientAddress: address,
+                            baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                        })
+
                         claimTxs.push({
-                            tx: peanut.claimLinkGasless({
-                                link: detail.link,
-                                recipientAddress: address,
-                                APIKey: process.env.PEANUT_API_KEY ?? '',
-                                baseUrl: `${consts.peanut_api_url}/claim-v2`,
-                            }),
+                            tx,
                             details: {
                                 token: detail.tokenAddress,
                                 chain: detail.chainId,
@@ -147,14 +149,13 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 const claimTxs = []
                 for (const link of claimLink) {
                     verbose && console.log(link)
-                    claimTxs.push(
-                        peanut.claimLinkGasless({
-                            baseUrl: `${consts.peanut_api_url}/claim-v2`,
-                            link,
-                            recipientAddress: data.address,
-                            APIKey: process.env.PEANUT_API_KEY ?? '',
-                        })
-                    )
+
+                    const tx = await utils.fetchClaimLinkGasless({
+                        link: link,
+                        recipientAddress: data.address,
+                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                    })
+                    claimTxs.push(tx)
                 }
 
                 verbose && console.log('submitted all tx')

@@ -337,12 +337,11 @@ export function LargePacket() {
                         tokenType: token.tokenType,
                     }
 
-                    const getLinkFromTxResponse = await getRaffleLinkFromTx({
+                    const getLinkFromTxResponse = await utils.fetchGetRaffleLinkFromTx({
                         password: peanutPassword,
                         txHash: hash,
                         linkDetails: linkDetails,
                         creatorAddress: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         numberOfLinks: numberofLinks,
                         provider: signer.provider,
                     })

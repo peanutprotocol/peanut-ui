@@ -417,8 +417,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('executing transaction')
 
-                    const response = await peanut.makeDepositGasless({
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
+                    const response = await utils.fetchMakeGaslessDeposit({
                         payload,
                         signature: userDepositSignature,
                         baseUrl: `${consts.peanut_api_url}/deposit-3009`,
