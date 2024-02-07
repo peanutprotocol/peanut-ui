@@ -34,36 +34,45 @@ export function GigaPacket() {
     const [peanutPassword, setPeanutPassword] = useState<string>('')
     const { chain: currentChain } = useNetwork()
 
+    const [finalLink, setFinalLink] = useState<string | undefined>(undefined)
+
     hooks.useConfirmRefresh(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const [formState, setFormState] = useState<tokenType[]>([
-        // {
-        //     tokenAddress: '',
-        //     tokenAmount: 0,
-        //     numberOfSlots: 0,
-        //     tokenDecimals: 0,
-        //     tokenType: 0,
-        // },
-        // {
-        //     tokenAddress: '',
-        //     tokenAmount: 0,
-        //     numberOfSlots: 0,
-        //     tokenDecimals: 0,
-        //     tokenType: 1,
-        // },
         {
-            tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-            tokenAmount: 0.1,
-            numberOfSlots: 9,
+            tokenAddress: '',
+            tokenAmount: 0,
+            numberOfSlots: 0,
         },
         {
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            tokenAmount: 0.1,
-            numberOfSlots: 11,
+            tokenAddress: '',
+            tokenAmount: 0,
+            numberOfSlots: 0,
         },
+        {
+            tokenAddress: '',
+            tokenAmount: 0,
+            numberOfSlots: 0,
+        },
+        {
+            tokenAddress: '',
+            tokenAmount: 0,
+            numberOfSlots: 0,
+        },
+
+        // {
+        //     tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+        //     tokenAmount: 0.1,
+        //     numberOfSlots: 9,
+        // },
+        // {
+        //     tokenAddress: '0x0000000000000000000000000000000000000000',
+        //     tokenAmount: 0.1,
+        //     numberOfSlots: 11,
+        // },
     ])
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -132,10 +141,58 @@ export function GigaPacket() {
             }
         }
 
-        const expandedLinks = links.map((link) => peanut.expandMultilink(link))
+        console.log(links)
+        const expandedLinks = links.map((link) => expandMultilink(link))
+        console.log(expandedLinks)
         const combinedLink = peanut.createMultiLinkFromLinks(expandedLinks)
+        console.log(combinedLink)
 
         return combinedLink
+    } //TODO: move to sdk
+
+    function expandMultilink(link: string): string {
+        const url = new URL(link)
+        const params = new URLSearchParams(url.search)
+
+        console.log(url)
+
+        const i = params.get('i')
+        if (!i) {
+            throw new Error('Error expanding the multilink')
+        }
+
+        const expandedIValues = []
+        const groupRegex = /\((\d+),(\d+)\)/g
+        let match
+
+        if (groupRegex.test(i) === false) {
+            return link
+        }
+
+        console.log(i)
+
+        console.log(groupRegex.test(i) === false)
+
+        while ((match = groupRegex.exec(i)) !== null) {
+            console.log(match)
+            const start = parseInt(match[1], 10)
+            console.log(start)
+            const count = parseInt(match[2], 10)
+            console.log(count)
+            for (let j = 0; j < count; j++) {
+                expandedIValues.push(start + j)
+            }
+        }
+
+        console.log(expandedIValues)
+
+        params.set('i', expandedIValues.join(','))
+        console.log(params.set('i', expandedIValues.join(',')))
+        console.log(decodeURIComponent(params.toString()))
+        url.search = decodeURIComponent(params.toString())
+
+        console.log(url)
+        return url.href
     } //TODO: move to sdk
 
     async function createRaffle() {
@@ -166,35 +223,49 @@ export function GigaPacket() {
 
             const batcherContractVersion = 'Bv4.3' //TODO: change to sdk version
 
-            // const currentDateTime = new Date()
-            // const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
-            // const premadeLink = `${baseUrl}?c=${_consts.MANTLE_CHAIN_ID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
-            // utils.saveToLocalStorage(localstorageKey, premadeLink)
+            const currentDateTime = new Date()
+            const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
+            const premadeLink = `${baseUrl}?c=${_consts.MANTLE_CHAIN_ID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
+            utils.saveToLocalStorage(localstorageKey, premadeLink)
+
+            console.log('saved to localstorage with key and value:', localstorageKey, premadeLink)
 
             //We'll handle each token separately
             for (const token of _formState) {
                 let preparedTransactions: interfaces.IPrepareDepositTxsResponse[] = []
                 const [quotient, remainder] = _utils.divideAndRemainder(token.numberOfSlots)
+                console.log(token.tokenAmount)
+                console.log(token.numberOfSlots)
                 const tokenAmountPerSlot = token.tokenAmount / token.numberOfSlots
                 let tokenType, tokenDecimals
 
                 const defaultProvider = await getDefaultProvider(_consts.MANTLE_CHAIN_ID)
-                try {
-                    const contractDetails = await getTokenContractDetails({
-                        address: token.tokenAddress,
-                        provider: defaultProvider,
-                    })
 
-                    tokenType = contractDetails.type
-                    contractDetails.decimals ? (tokenDecimals = contractDetails.decimals) : (tokenDecimals = 16)
-                } catch (error) {
-                    throw new Error('Contract type not supported')
+                if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                    tokenType = 0
+                    tokenDecimals = 18
+                } else {
+                    try {
+                        const contractDetails = await getTokenContractDetails({
+                            address: token.tokenAddress,
+                            provider: defaultProvider,
+                        })
+
+                        tokenType = contractDetails.type
+                        contractDetails.decimals ? (tokenDecimals = contractDetails.decimals) : (tokenDecimals = 16)
+                    } catch (error) {
+                        throw new Error('Contract type not supported')
+                    }
+
+                    if (tokenType === undefined || tokenDecimals === undefined) {
+                        throw new Error('Token type or decimals not found, please contact support')
+                    }
                 }
 
-                if (tokenType === undefined || tokenDecimals === undefined) {
-                    throw new Error('Token type or decimals not found, please contact support')
-                }
+                console.log('tokenType:', tokenType)
+                console.log('tokenDecimals:', tokenDecimals)
 
+                console.log(token)
                 //if tokentype is 1 (erc20), prepare and send an approval transaction once for the entire amount
                 if (tokenType == 1) {
                     const tokenAmountString = trim_decimal_overflow(token.tokenAmount, tokenDecimals)
@@ -211,7 +282,9 @@ export function GigaPacket() {
                         signer.provider
                     )
 
-                    if (approveTx) {
+                    console.log('approveTx:', approveTx)
+
+                    if (approveTx !== null) {
                         let txOptions
                         try {
                             txOptions = await setFeeOptions({ provider: signer.provider })
@@ -243,6 +316,14 @@ export function GigaPacket() {
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
 
+                    console.log(numberofLinks)
+
+                    console.log(tokenAmountPerSlot)
+
+                    console.log(Number(tokenAmountPerSlot * numberofLinks))
+
+                    console.log(index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder)
+
                     if (numberofLinks > 0) {
                         const linkDetails = {
                             chainId: _consts.MANTLE_CHAIN_ID,
@@ -265,9 +346,22 @@ export function GigaPacket() {
                     }
                 }
 
-                console.log(preparedTransactions)
+                console.log('preparedTx: ', preparedTransactions)
 
-                return
+                if (token.tokenAddress === _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                    console.log('hier')
+                    preparedTransactions = preparedTransactions.map((item) => {
+                        console.log(item.unsignedTxs.length)
+                        if (item.unsignedTxs.length === 2) {
+                            // Filter out the first transaction and return only the second one
+                            return { unsignedTxs: [item.unsignedTxs[1]] }
+                        }
+                        // If the length is not 2, return the item as it is
+                        return item
+                    })
+                }
+
+                console.log('filtered preparedTx: ', preparedTransactions)
 
                 let hashes: string[] = []
 
@@ -284,6 +378,7 @@ export function GigaPacket() {
                                 error
                             )
                         }
+                        console.log(txOptions)
 
                         const convertedTransaction: ethers.providers.TransactionRequest = {
                             from: prearedTransaction.from,
@@ -297,6 +392,8 @@ export function GigaPacket() {
                             ...txOptions,
                             ...convertedTransaction,
                         } as ethers.providers.TransactionRequest
+
+                        console.log('combined:', combined)
                         const tx = await signer.sendTransaction(combined)
                         await tx.wait()
                         hashes.push(tx.hash)
@@ -304,6 +401,8 @@ export function GigaPacket() {
                         index++
                     }
                 }
+
+                console.log('hashes:', hashes)
 
                 const links: string[] = []
                 let index = 0
@@ -336,16 +435,38 @@ export function GigaPacket() {
                     index++
                 }
 
+                console.log('links:', links)
+
                 const combinedLink = combineRaffleLink(links)
 
                 console.log(combinedLink)
 
+                //save to localstorage status with smt like not finalized
+
+                const localstorageItem = utils.getFromLocalStorage(localstorageKey)
+
+                console.log(localstorageItem)
+
+                const localstorageItemUrl = new URL(localstorageItem)
+
+                console.log(localstorageItemUrl.searchParams.get('i'))
+
+                if (localstorageItemUrl.searchParams.get('i') == '') {
+                    console.log('hier')
+                    utils.saveToLocalStorage(localstorageKey, combinedLink)
+                } else {
+                    console.log('da')
+                    console.log(localstorageItem)
+                    console.log(combinedLink)
+                    const _combinedLink = combineRaffleLink([localstorageItem, combinedLink])
+                    utils.saveToLocalStorage(localstorageKey, _combinedLink)
+                }
+
                 raffleLinks.push(combinedLink)
             }
-
             const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
-
             console.log(finalfinalv4rafflelink_final)
+            setFinalLink(finalfinalv4rafflelink_final)
         } catch (error) {
             setLoadingStates('idle')
 
@@ -373,7 +494,9 @@ export function GigaPacket() {
             <div className=" mt-10 flex w-full flex-col items-center gap-2 text-center">
                 <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Red Packet</h2>
                 <div className="my-0 w-4/5 font-normal">
-                    Form for specifically creating red packets with more than 250 slots. Only possible on mantle
+                    Form for specifically creating red packets with more than 250 slots. Only possible on mantle. Fill
+                    out the rows with the token address, the amount of tokens and the number of slots you want to
+                    create. You can add up to 4 different tokens, just leave the remaining ones empty.
                 </div>
 
                 <div className="mt-4 flex w-full flex-col items-center justify-center">
@@ -387,7 +510,7 @@ export function GigaPacket() {
                                                 #{idx + 1}
                                             </label>
                                         </div>
-                                        <div className="grid grid-cols-4 items-center gap-4">
+                                        <div className="grid grid-cols-3 items-center gap-4">
                                             <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
                                                 <div className="font-normal">Token address</div>
                                                 <input
@@ -413,7 +536,8 @@ export function GigaPacket() {
                                                     autoComplete="off"
                                                     onChange={(e) => {
                                                         const newFormState = formState
-                                                        newFormState[idx].tokenAmount = parseInt(e.target.value)
+                                                        console.log(Number(e.target.value))
+                                                        newFormState[idx].tokenAmount = Number(e.target.value)
                                                         setFormState(newFormState)
                                                     }}
                                                 />
@@ -428,16 +552,10 @@ export function GigaPacket() {
                                                     autoComplete="off"
                                                     onChange={(e) => {
                                                         const newFormState = formState
-                                                        newFormState[idx].numberOfSlots = parseInt(e.target.value)
+                                                        newFormState[idx].numberOfSlots = Number(e.target.value)
                                                         setFormState(newFormState)
                                                     }}
                                                 />
-                                            </div>
-                                            <div className="col-span-1 flex h-[58px] flex-col  items-center gap-2 !px-4 !py-1">
-                                                <div className="font-normal">Total amount</div>
-                                                <div className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none">
-                                                    {formState[idx].tokenAmount * formState[idx].numberOfSlots}
-                                                </div>
                                             </div>
                                         </div>
                                     </div>
@@ -485,10 +603,14 @@ export function GigaPacket() {
                         )}
                     </button>
 
-                    {isLoading && (
-                        <div className="mt-6 w-4/5 font-normal">
-                            Please do not click away during the creation proccess. This might take a while
-                        </div>
+                    {finalLink ? (
+                        <div className="mt-6 w-4/5 font-normal">{finalLink}</div>
+                    ) : (
+                        isLoading && (
+                            <div className="mt-6 w-4/5 font-normal">
+                                Please do not click away during the creation proccess. This might take a while
+                            </div>
+                        )
                     )}
                     {errorState.showError && (
                         <div className="text-center">

@@ -1,3 +1,5 @@
-export const MAX_TRANSACTIONS_PER_BLOCK = 5
+export const MAX_TRANSACTIONS_PER_BLOCK = 25
 
-export const MANTLE_CHAIN_ID = '11155111'
+export const MANTLE_CHAIN_ID = '5001'
+
+export const MANTLE_NATIVE_TOKEN_ADDRESS = '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000'
