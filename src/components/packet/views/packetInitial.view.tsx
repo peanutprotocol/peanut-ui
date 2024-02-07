@@ -6,6 +6,7 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
 import { useLottie } from 'lottie-react'
+import ReCAPTCHA from 'react-google-recaptcha'
 
 import dropdown_svg from '@/assets/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
@@ -45,6 +46,8 @@ export function PacketInitialView({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isValidAddress, setIsValidAddress] = useState(false)
     const [isEnsName, setIsEnsName] = useState<{ state: boolean; address: string }>({ state: false, address: '' })
+    const [captchaValue, setCaptchaValue] = useState<string | null>(null)
+    const [isCaptchaNeeded, setIsCaptchaNeeded] = useState(false)
 
     const { View: lottieView, goToAndStop, play, stop } = useLottie(defaultLottieOptions, defaultLottieStyle)
 
@@ -234,6 +237,11 @@ export function PacketInitialView({
         }
     }
 
+    const handleCaptchaChange = (value: string | null) => {
+        console.log(value)
+        setCaptchaValue(value)
+    }
+
     return (
         <form className="flex w-full flex-col items-center justify-center" onSubmit={claimForm.handleSubmit(claim)}>
             {senderName ? (
@@ -299,11 +307,15 @@ export function PacketInitialView({
                 </div>
             )}
 
+            {isCaptchaNeeded && (
+                <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
+            )}
+
             <button
                 type={isConnected || isValidAddress ? 'submit' : 'button'}
                 className={
                     ' block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2 ' +
-                    (isDropdownOpen ? ' mt-8' : ' mt-2')
+                    (isDropdownOpen || isCaptchaNeeded ? ' mt-8' : ' mt-2')
                 }
                 id="cta-btn"
                 onClick={() => {

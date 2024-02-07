@@ -1037,7 +1037,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                                 setFormHasBeenTouched(true)
                                                             }}
                                                         >
-                                                            <img src={chain.icon.url} className="h-6 cursor-pointer" />
+                                                            <img
+                                                                src={chain.icon.url}
+                                                                className="h-6 cursor-pointer bg-white"
+                                                            />
 
                                                             <label className="flex cursor-pointer items-center">
                                                                 {chain.name.toUpperCase()}
@@ -1059,7 +1062,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                             setFormHasBeenTouched(true)
                                                         }}
                                                     >
-                                                        <img src={chain.icon.url} className="h-6 cursor-pointer" />
+                                                        <img
+                                                            src={chain.icon.url}
+                                                            className="h-6 cursor-pointer bg-white"
+                                                        />
 
                                                         <label className="flex cursor-pointer items-center">
                                                             {chain.name.toUpperCase()}
