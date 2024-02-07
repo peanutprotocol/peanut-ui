@@ -1,0 +1,3 @@
+export const MAX_TRANSACTIONS_PER_BLOCK = 5
+
+export const MANTLE_CHAIN_ID = '11155111'

@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     },
 }
 
-export default function CreatePacketPage() {
+export default function CreateGigaPacket() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
-            <components.LargePacket />
+            <components.GigaPacket />
         </global_components.PageWrapper>
     )
 }
