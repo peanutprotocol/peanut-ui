@@ -44,6 +44,21 @@ export const saveToLocalStorage = (key: string, data: any) => {
     }
 }
 
+export const getFromLocalStorage = (key: string) => {
+    try {
+        const data = localStorage.getItem(key)
+        if (data === null) {
+            console.log(`No data found in localStorage for ${key}`)
+            return null
+        }
+        const parsedData = JSON.parse(data)
+        console.log(`Retrieved ${key} from localStorage:`, parsedData)
+        return parsedData
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
 export const delteFromLocalStorage = (key: string) => {
     try {
         localStorage.removeItem(key)
@@ -125,4 +140,6 @@ export function formatMessage(message: string) {
         .join('\n')
 }
 
-export async function pushMessage(errorMessage: string): Promise<void> {}
+export const isMantleInUrl = (): boolean => {
+    return window.location.origin.includes('mantle') ? true : false
+}

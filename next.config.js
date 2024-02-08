@@ -31,6 +31,16 @@ const nextConfig = {
                     ],
                     destination: '/create-packet',
                 },
+                {
+                    source: '/',
+                    has: [
+                        {
+                            type: 'host',
+                            value: 'mantle.peanut.to',
+                        },
+                    ],
+                    destination: '/create-packet',
+                },
             ],
         }
     },
