@@ -355,12 +355,11 @@ export function SendInitialView({
 
                 setLoadingStates('creating link')
 
-                const getLinksFromTxResponse = await peanut.getRaffleLinkFromTx({
+                const getLinksFromTxResponse = await utils.fetchGetRaffleLinkFromTx({
                     linkDetails,
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     password: password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
                     creatorAddress: address ?? '',
                     name: sendFormData.senderName ?? '',
                 })
@@ -980,7 +979,7 @@ export function SendInitialView({
 
                                                 email: ${enteredEmail}
                                                 `
-                                                utils.sendDiscordNotification(message)
+                                                utils.fetchSendDiscordNotification({ message })
                                                 setShowModal(false)
                                             }}
                                             disabled={isLoading ? true : false}
