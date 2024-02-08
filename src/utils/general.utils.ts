@@ -146,4 +146,6 @@ export async function sendDiscordNotification(message: string) {
     }
 }
 
-export async function pushMessage(errorMessage: string): Promise<void> {}
+export const isMantleInUrl = (): boolean => {
+    return window.location.origin.includes('mantle') ? false : true
+}

@@ -3,6 +3,7 @@ import peanutman_sad from '@/assets/peanutman-sad.svg'
 import peanutman_presenting from '@/assets/peanutman-presenting.svg'
 import peanutman_cheering from '@/assets/peanutman-cheering.svg'
 import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
+import peanutman_mantle from '@/assets/peanut-holding-mantle-logo.svg'
 import { useEffect, useState } from 'react'
 
 export function PeanutMan({ type }: { type: string }) {
@@ -26,6 +27,10 @@ export function PeanutMan({ type }: { type: string }) {
                 setSvg(peanutman_redpacket)
                 break
             }
+            case 'mantle': {
+                setSvg(peanutman_mantle)
+                break
+            }
             default: {
                 setSvg(peanutman_cheering)
                 break
@@ -36,7 +41,7 @@ export function PeanutMan({ type }: { type: string }) {
     return (
         <img
             src={peanutmanSvg.src}
-            className="z-index-100 absolute -bottom-40 -left-32 hidden w-2/3 scale-100 sm:-bottom-48 sm:-left-32 sm:w-1/2 md:-bottom-56 md:-left-48 md:block 2xl:-bottom-80 2xl:-left-80 2xl:-mb-4 2xl:-ml-8"
+            className="z-index-100 absolute -bottom-40 -left-32 hidden h-[450px] w-2/3 w-[375] scale-100 sm:-bottom-48 sm:-left-32 sm:w-1/2 md:-bottom-56 md:-left-48 md:block 2xl:-bottom-80 2xl:-left-80 2xl:-mb-4 2xl:-ml-8"
         />
     )
 }
