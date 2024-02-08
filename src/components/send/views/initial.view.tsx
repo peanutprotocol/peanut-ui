@@ -46,6 +46,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
     const [createGasless, setCreateGasless] = useState(true)
     const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const mantleCheck = utils.isMantleInUrl()
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -58,9 +59,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const sendForm = useForm<_consts.ISendFormData>({
         mode: 'onChange',
         defaultValues: {
-            chainId: '1',
+            chainId: mantleCheck ? '5000' : '10',
             amount: null,
-            token: '',
+            token: mantleCheck ? 'MNT' : 'ETH',
             bulkAmount: undefined,
         },
     })
@@ -69,6 +70,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
+        if (mantleCheck) {
+            return chainDetails.filter((chain) => chain.chainId == '5000' || chain.chainId == '5001')
+        }
         if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
@@ -621,6 +625,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     useEffect(() => {
         //update the chain and token when the user changes the chain in the wallet
+        if (mantleCheck) {
+            sendForm.setValue('chainId', '5000')
+            return
+        }
         if (
             currentChain &&
             currentChain?.id.toString() != formwatch.chainId &&
@@ -972,7 +980,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 </div>
             </form>
 
-            <global_components.PeanutMan type="presenting" />
+            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
@@ -1151,7 +1159,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
-                                                          <img src={token.logo} className="h-6" loading="eager" />
+                                                          <img
+                                                              src={token.logo}
+                                                              className="h-6 bg-white"
+                                                              loading="eager"
+                                                          />
                                                           <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
@@ -1182,7 +1194,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
-                                                          <img src={token.logo} className="h-6" loading="eager" />
+                                                          <img
+                                                              src={token.logo}
+                                                              className="h-6 bg-white"
+                                                              loading="eager"
+                                                          />
                                                           <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">

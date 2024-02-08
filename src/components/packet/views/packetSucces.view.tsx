@@ -12,6 +12,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
     const { address } = useAccount()
     const router = useRouter()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+    const mantleCheck = utils.isMantleInUrl()
 
     useEffect(() => {
         router.prefetch('/send')
@@ -72,7 +73,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
                     )
                 )} ${raffleInfo?.tokenSymbol} on peanut.to!`}
             />
-            <global_components.PeanutMan type="redpacket" />
+            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
         </div>
     )
 }
