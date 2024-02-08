@@ -2,12 +2,10 @@
 import * as global_components from '@/components/global'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAccount, useNetwork } from 'wagmi'
-import * as consts from '@/consts'
-import * as hooks from '@/hooks'
-import { ethers } from 'ethers'
+import { providers, ethers } from 'ethers'
+import { switchNetwork, getWalletClient } from '@wagmi/core'
 import peanut, {
     getDefaultProvider,
-    getLatestContractVersion,
     getRaffleLinkFromTx,
     getRandomString,
     getTokenContractDetails,
@@ -15,13 +13,26 @@ import peanut, {
     prepareRaffleDepositTxs,
     setFeeOptions,
     trim_decimal_overflow,
+    getLatestContractVersion,
 } from '@squirrel-labs/peanut-sdk'
-import { providers } from 'ethers'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
+
 import * as utils from '@/utils'
+import * as consts from '@/consts'
+import * as hooks from '@/hooks'
 import * as _utils from './gigaPacket.utils'
 import * as _consts from './gigaPacket.consts'
-import { base } from 'viem/chains'
+import { Switch } from '@headlessui/react'
+
+// {
+//     tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
+//     tokenAmount: 0.1,
+//     numberOfSlots: 9,
+// },
+// {
+//     tokenAddress: '0x0000000000000000000000000000000000000000',
+//     tokenAmount: 0.1,
+//     numberOfSlots: 11,
+// },
 
 type tokenType = {
     tokenAddress: string
@@ -31,10 +42,11 @@ type tokenType = {
 
 export function GigaPacket() {
     const { isConnected, address } = useAccount()
-    const [peanutPassword, setPeanutPassword] = useState<string>('')
     const { chain: currentChain } = useNetwork()
 
+    const [peanutPassword, setPeanutPassword] = useState<string>('')
     const [finalLink, setFinalLink] = useState<string | undefined>(undefined)
+    const [isMainnet, setIsMainnet] = useState<boolean>(true)
 
     hooks.useConfirmRefresh(true)
 
@@ -62,18 +74,7 @@ export function GigaPacket() {
             tokenAmount: 0,
             numberOfSlots: 0,
         },
-
-        // {
-        //     tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
-        //     tokenAmount: 0.1,
-        //     numberOfSlots: 9,
-        // },
-        // {
-        //     tokenAddress: '0x0000000000000000000000000000000000000000',
-        //     tokenAmount: 0.1,
-        //     numberOfSlots: 11,
-        // },
-    ])
+    ]) //Should be a form, but for now we'll just use a state
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -107,6 +108,13 @@ export function GigaPacket() {
             })
             setLoadingStates('switching network')
             setLoadingStates('loading')
+        }
+    }
+
+    async function setPassword() {
+        if (peanutPassword == '') {
+            const passw = await getRandomString(16)
+            setPeanutPassword(passw)
         }
     }
 
@@ -195,40 +203,81 @@ export function GigaPacket() {
         return url.href
     } //TODO: move to sdk
 
+    function checkForm(formState: tokenType[]) {
+        for (const token of formState) {
+            console.log(token)
+            if (token.tokenAddress !== '') {
+                if (token.tokenAmount <= 0) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage:
+                            'Token amount must be greater than 0 for token with address: ' + token.tokenAddress,
+                    })
+                    return false
+                }
+                if (token.numberOfSlots <= 0) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage:
+                            'Number of slots must be greater than 0 for token with address: ' + token.tokenAddress,
+                    })
+                    return false
+                }
+            }
+        }
+        return true
+    }
+
     async function createRaffle() {
         setLoadingStates('executing transaction')
         // check if token addresses are correct
         // check if amounts and number of slots per link are correct
 
         try {
+            const _formState = formState.filter((state) => state.tokenAddress !== '')
+
+            if (_formState.length === 0) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please provide the details for at least one token.',
+                })
+                setLoadingStates('idle')
+                return
+            }
+
+            if (!checkForm(_formState)) {
+                setLoadingStates('idle')
+                return
+            }
+
+            const _chainID = isMainnet ? _consts.MANTLE_CHAIN_ID : _consts.MANTLE_TESTNET_CHAIN_ID
+
             //Check network
-            await checkNetwork(_consts.MANTLE_CHAIN_ID)
+            await checkNetwork(_chainID)
 
             //get signer
-            const signer = await getWalletClientAndUpdateSigner({ chainId: _consts.MANTLE_CHAIN_ID })
+            const signer = await getWalletClientAndUpdateSigner({ chainId: _chainID })
 
             //filter out empty token fields
-            const _formState = formState.filter((state) => state.tokenAddress !== '')
 
             let raffleLinks: string[] = []
 
             const baseUrl = `${window.location.origin}/packet`
             const trackId = 'mantle'
 
-            // const batcherContractVersion = getLatestContractVersion({
-            //     chainId: _consts.MANTLE_CHAIN_ID,
-            //     type: 'batch',
-            //     experimental: true,
-            // })
-
-            const batcherContractVersion = 'Bv4.3' //TODO: change to sdk version
+            const batcherContractVersion = getLatestContractVersion({
+                chainId: _chainID,
+                type: 'batch',
+                experimental: true,
+            })
 
             const currentDateTime = new Date()
             const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
-            const premadeLink = `${baseUrl}?c=${_consts.MANTLE_CHAIN_ID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
+            const premadeLink = `${baseUrl}?c=${_chainID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
             utils.saveToLocalStorage(localstorageKey, premadeLink)
 
             console.log('saved to localstorage with key and value:', localstorageKey, premadeLink)
+            const defaultProvider = await getDefaultProvider(_chainID)
 
             //We'll handle each token separately
             for (const token of _formState) {
@@ -239,8 +288,7 @@ export function GigaPacket() {
                 const tokenAmountPerSlot = token.tokenAmount / token.numberOfSlots
                 let tokenType, tokenDecimals
 
-                const defaultProvider = await getDefaultProvider(_consts.MANTLE_CHAIN_ID)
-
+                //We do this cause mantle native token isnt an actual native token, but e need to treat it that way
                 if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
                     tokenType = 0
                     tokenDecimals = 18
@@ -273,7 +321,7 @@ export function GigaPacket() {
 
                     const approveTx = await peanut.prepareApproveERC20Tx(
                         address ?? '',
-                        _consts.MANTLE_CHAIN_ID,
+                        _chainID,
                         token.tokenAddress,
                         tokenAmountBigNum,
                         -1, // decimals doesn't matter
@@ -326,7 +374,7 @@ export function GigaPacket() {
 
                     if (numberofLinks > 0) {
                         const linkDetails = {
-                            chainId: _consts.MANTLE_CHAIN_ID,
+                            chainId: _chainID,
                             tokenAmount: Number(tokenAmountPerSlot * numberofLinks),
                             tokenAddress: token.tokenAddress,
                             baseUrl,
@@ -411,7 +459,7 @@ export function GigaPacket() {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
 
                     const linkDetails = {
-                        chainId: _consts.MANTLE_CHAIN_ID,
+                        chainId: _chainID,
                         tokenAmount: 0,
                         tokenAddress: token.tokenAddress,
                         baseUrl: 'https://red.peanut.to/packet',
@@ -476,18 +524,15 @@ export function GigaPacket() {
         }
     }
 
-    async function setPassword() {
-        if (peanutPassword == '') {
-            const passw = await getRandomString(16)
-            setPeanutPassword(passw)
-        }
-    }
-
     useEffect(() => {
         if (peanutPassword == '') {
             setPassword()
         }
     }, [])
+
+    function classNames(...classes: any) {
+        return classes.filter(Boolean).join(' ')
+    }
 
     return (
         <global_components.CardWrapper redPacket>
@@ -498,6 +543,31 @@ export function GigaPacket() {
                     out the rows with the token address, the amount of tokens and the number of slots you want to
                     create. You can add up to 4 different tokens, just leave the remaining ones empty.
                 </div>
+
+                <Switch.Group as="div" className="flex items-center gap-4">
+                    <Switch.Label as="span">
+                        <span className="text-sm">Testnet</span>
+                    </Switch.Label>
+                    <Switch
+                        checked={isMainnet}
+                        onChange={setIsMainnet}
+                        className={classNames(
+                            isMainnet ? 'bg-teal' : 'bg-gray-200',
+                            'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
+                        )}
+                    >
+                        <span
+                            aria-hidden="true"
+                            className={classNames(
+                                isMainnet ? 'translate-x-5' : 'translate-x-0',
+                                'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                            )}
+                        />
+                    </Switch>
+                    <Switch.Label as="span">
+                        <span className="text-sm">Mainnet</span>
+                    </Switch.Label>
+                </Switch.Group>
 
                 <div className="mt-4 flex w-full flex-col items-center justify-center">
                     <div className="grid w-full gap-4">
@@ -568,7 +638,7 @@ export function GigaPacket() {
                 </div>
 
                 <div className="my-4 w-4/5 font-normal">
-                    Please confirm all token addresses are correct and have sufficient funds.
+                    Please confirm all token addresses are correct and the connected wallet has sufficient funds.
                 </div>
 
                 <div
@@ -604,14 +674,15 @@ export function GigaPacket() {
                     </button>
 
                     {finalLink ? (
-                        <div className="mt-6 w-4/5 font-normal">{finalLink}</div>
+                        <div className="mt-6 w-4/5 text-xl font-black">{finalLink}</div>
                     ) : (
                         isLoading && (
-                            <div className="mt-6 w-4/5 font-normal">
+                            <div className="mt-6 w-4/5 text-xl font-black">
                                 Please do not click away during the creation proccess. This might take a while
                             </div>
                         )
                     )}
+
                     {errorState.showError && (
                         <div className="text-center">
                             <label className="font-bold text-red ">{errorState.errorMessage}</label>
