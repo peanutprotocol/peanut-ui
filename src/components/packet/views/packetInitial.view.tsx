@@ -13,6 +13,7 @@ import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 import * as global_components from '@/components/global'
 import * as consts from '@/consts'
+import * as utils from '@/utils'
 
 import * as _consts from '../packet.consts'
 import * as _utils from '../packet.utils'
@@ -48,6 +49,7 @@ export function PacketInitialView({
     const [isEnsName, setIsEnsName] = useState<{ state: boolean; address: string }>({ state: false, address: '' })
     const [captchaValue, setCaptchaValue] = useState<string | null>(null)
     const [isCaptchaNeeded, setIsCaptchaNeeded] = useState(false)
+    const mantleCheck = utils.isMantleInUrl()
 
     const { View: lottieView, goToAndStop, play, stop } = useLottie(defaultLottieOptions, defaultLottieStyle)
 
@@ -345,7 +347,7 @@ export function PacketInitialView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
-            <global_components.PeanutMan type="redpacket" />
+            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
         </form>
     )
 }

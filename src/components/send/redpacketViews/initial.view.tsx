@@ -49,6 +49,7 @@ export function SendInitialView({
     const [showModal, setShowModal] = useState(false)
     const [enteredEmail, setEnteredEmail] = useState('')
     const [sentEmail, setSentEmail] = useState(false)
+    const mantleCheck = utils.isMantleInUrl()
     const verbose = process.env.NODE_ENV === 'development' ? true : false
 
     //global states
@@ -62,27 +63,21 @@ export function SendInitialView({
     const sendForm = useForm<_consts.ISendFormData>({
         mode: 'onChange',
         defaultValues: {
-            chainId: '10',
+            chainId: mantleCheck ? '5000' : '10',
             amount: null,
-            token: 'ETH',
+            token: mantleCheck ? 'MNT' : 'ETH',
             numberOfrecipients: undefined,
             senderName: undefined,
         },
     })
     const formwatch = sendForm.watch()
 
-    useEffect(() => {
-        const _chaindetails = chainDetails.filter((chain) => {
-            chain.chainId === peanut.PEANUT_CONTRACTS
-        })
-    }, [])
-
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        const _chaindetails = chainDetails.filter((chain) => {
-            peanut.PEANUT_CONTRACTS
-        })
+        if (mantleCheck) {
+            return chainDetails.filter((chain) => chain.chainId == '5000' || chain.chainId == '5001')
+        }
         if (isConnected && userBalances.length > 0) {
             const filteredChains = chainDetails.filter(
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
@@ -470,6 +465,10 @@ export function SendInitialView({
 
     //update the chain and token when the user changes the chain in the wallet
     useEffect(() => {
+        if (mantleCheck) {
+            sendForm.setValue('chainId', '5000')
+            return
+        }
         if (
             currentChain &&
             currentChain?.id.toString() != formwatch.chainId &&
@@ -673,7 +672,7 @@ export function SendInitialView({
                 </div>
             </form>
 
-            <global_components.PeanutMan type="redpacket" />
+            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
@@ -738,7 +737,10 @@ export function SendInitialView({
                                                                 setFormHasBeenTouched(true)
                                                             }}
                                                         >
-                                                            <img src={chain.icon.url} className="h-6 cursor-pointer" />
+                                                            <img
+                                                                src={chain.icon.url}
+                                                                className="h-6 cursor-pointer bg-white"
+                                                            />
 
                                                             <label className="flex cursor-pointer items-center">
                                                                 {chain.name.toUpperCase()}
@@ -760,7 +762,10 @@ export function SendInitialView({
                                                             setFormHasBeenTouched(true)
                                                         }}
                                                     >
-                                                        <img src={chain.icon.url} className="h-6 cursor-pointer" />
+                                                        <img
+                                                            src={chain.icon.url}
+                                                            className="h-6 cursor-pointer bg-white"
+                                                        />
 
                                                         <label className="flex cursor-pointer items-center">
                                                             {chain.name.toUpperCase()}
@@ -852,7 +857,11 @@ export function SendInitialView({
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
-                                                          <img src={token.logo} className="h-6" loading="eager" />
+                                                          <img
+                                                              src={token.logo}
+                                                              className="h-6 bg-white"
+                                                              loading="eager"
+                                                          />
                                                           <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
@@ -883,7 +892,11 @@ export function SendInitialView({
                                                       }}
                                                   >
                                                       <div className="flex items-center gap-2 ">
-                                                          <img src={token.logo} className="h-6" loading="eager" />
+                                                          <img
+                                                              src={token.logo}
+                                                              className="h-6 bg-white"
+                                                              loading="eager"
+                                                          />
                                                           <div>{token.name}</div>
                                                       </div>
                                                       <div className="flex items-center gap-2">
