@@ -147,5 +147,5 @@ export async function sendDiscordNotification(message: string) {
 }
 
 export const isMantleInUrl = (): boolean => {
-    return window.location.origin.includes('mantle') ? false : true
+    return window.location.origin.includes('mantle') ? true : false
 }
