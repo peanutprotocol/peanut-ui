@@ -41,7 +41,7 @@ export function PacketSuccesView({
 
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
-                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''} {raffleClaimedInfo?.tokenSymbol}
+                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''} {userLeaderboard?.tokenSymbol}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
