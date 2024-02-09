@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     const headersToPass = {
         'Content-Type': 'application/json',
         'x-forwarded-for': userIp,
+        'Accept-Encoding': 'gzip', // Explicitly accept gzip encoding
     } as any
 
     const apiResponse = await fetch(fullAPIUrl, {
