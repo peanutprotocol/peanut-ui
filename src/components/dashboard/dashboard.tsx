@@ -12,6 +12,7 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import * as store from '@/store'
 import * as hooks from '@/hooks'
+import * as consts from '@/consts'
 
 import redpacket_svg from '@/assets/red-packet.svg'
 
@@ -49,12 +50,12 @@ export function Dashboard() {
                         if (item.link.includes('packet')) {
                             const raffleInfo = await peanut.getRaffleInfo({
                                 link: item.link,
+                                baseUrl: `${consts.next_proxy_url}/get-raffle-info`
                             })
-                            const totalTokenAmount = raffleInfo.slotsDetails.reduce((total, slot) => {
-                                return total + parseFloat(slot.amount)
-                            }, 0)
+                            // can't calculate total amount since raffle links may contain different tokens
+                            const totalTokenAmount = 0
                             res.tokenAmount = totalTokenAmount.toString()
-                            res.claimed = raffleInfo.slotsDetails.every((slot) => slot.claimed)
+                            res.claimed = raffleInfo.isActive
                             type = 'raffle'
                         } else {
                         }

@@ -30,7 +30,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
                                 leaderboardInfo?.find((user) => user.address == address)?.amount
                         )
                     )}{' '}
-                    {raffleInfo?.tokenSymbol}
+                    {raffleClaimedInfo?.tokenSymbol}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
@@ -71,7 +71,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
                         raffleClaimedInfo?.amountReceived ??
                             leaderboardInfo?.find((user) => user.address == address)?.amount
                     )
-                )} ${raffleInfo?.tokenSymbol} on peanut.to!`}
+                )} ${raffleClaimedInfo?.tokenSymbol} on peanut.to!`}
             />
             <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
         </div>

@@ -62,8 +62,8 @@ export function Packet() {
             peanut.validateRaffleLink({ link }) // will throw error if not valid
             const _raffleInfo = await peanut.getRaffleInfo({
                 link,
-                APIKey: process.env.PEANUT_API_KEY ?? '',
                 baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
+                APIKey: 'doesnt-matter'
             })
 
             setRaffleInfo(_raffleInfo)
