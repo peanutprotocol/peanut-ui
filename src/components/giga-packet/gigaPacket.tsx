@@ -277,9 +277,9 @@ export function GigaPacket() {
             utils.saveToLocalStorage(localstorageKey, premadeLink)
 
             console.log('saved to localstorage with key and value:', localstorageKey, premadeLink)
-            const defaultProvider = await getDefaultProvider(_chainID)
+            const defaultProvider = await getDefaultProvider(_chainID) // get from wallet? But rpc.mantle.xyz should work
 
-            //We'll handle each token separately
+            // We'll handle each token separately
             for (const token of _formState) {
                 let preparedTransactions: interfaces.IPrepareDepositTxsResponse[] = []
                 const [quotient, remainder] = _utils.divideAndRemainder(token.numberOfSlots)
@@ -288,7 +288,7 @@ export function GigaPacket() {
                 const tokenAmountPerSlot = token.tokenAmount / token.numberOfSlots
                 let tokenType, tokenDecimals
 
-                //We do this cause mantle native token isnt an actual native token, but e need to treat it that way
+                // We do this cause mantle native token isnt an actual native token, but we need to treat it that way
                 if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
                     tokenType = 0
                     tokenDecimals = 18
@@ -360,7 +360,7 @@ export function GigaPacket() {
                     }
                 }
 
-                //prepare the transactions. It is calculated based on the number of slots and the max transactions per block
+                // prepare the transactions. It is calculated based on the number of slots and the max transactions per block
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
 

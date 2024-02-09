@@ -3,8 +3,8 @@ import * as components from '@/components'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Send crypto with a link',
+    title: 'Mantle Red packet',
+    description: 'Create a Giga Mantle Red Packet',
 
     icons: {
         icon: '/logo-favicon.png',
