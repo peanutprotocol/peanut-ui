@@ -35,7 +35,10 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify(jsonToPass),
     })
 
-    return new NextResponse(apiResponse.body, {
+    // render returns in gzip format - turn to string and let next handle it
+    const apiResponseString = await apiResponse.text()
+
+    return new NextResponse(apiResponseString, {
         status: apiResponse.status,
         statusText: apiResponse.statusText,
         headers: apiResponse.headers,
