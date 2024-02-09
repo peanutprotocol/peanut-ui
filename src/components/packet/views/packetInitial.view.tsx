@@ -1,7 +1,7 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
@@ -107,7 +107,8 @@ export function PacketInitialView({
                 return
             }
 
-            const raffleClaimedInfo = await utils.fetchClaimRaffleLink({
+            // TODO: add captcha payload
+            const raffleClaimedInfo: interfaces.IRaffleInfo = await utils.fetchClaimRaffleLink({
                 link: raffleLink,
                 recipientAddress: recipientAddress ?? '',
                 recipientName: claimFormData.name ?? '',

@@ -387,6 +387,7 @@ export function GigaPacket() {
                             userAddress: address ?? '',
                             linkDetails: linkDetails,
                             password: peanutPassword,
+                            withMFA: true,
                             numberOfLinks: index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder,
                         })
 
@@ -471,8 +472,10 @@ export function GigaPacket() {
                     const getLinkFromTxResponse = await getRaffleLinkFromTx({
                         password: peanutPassword,
                         txHash: hash,
+                        name: '',
                         linkDetails: linkDetails,
-                        creatorAddress: address ?? '',
+                        withMFA: true,
+                        withCaptcha: true,
                         APIKey: process.env.PEANUT_API_KEY ?? '',
                         numberOfLinks: numberofLinks,
                         provider: signer.provider,

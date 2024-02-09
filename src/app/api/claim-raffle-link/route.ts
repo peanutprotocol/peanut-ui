@@ -7,11 +7,15 @@ export async function POST(request: NextRequest) {
         const APIKey = process.env.PEANUT_API_KEY ?? ''
         console.log(body)
 
+        // TODO: Add Captcha response here somewhere
+        // TODO: pass user IP address
+        const userIp = request.headers.get('cf-connecting-ip')
         const raffleClaimedInfo = await claimRaffleLink({
             link: body.link,
             APIKey: APIKey,
             recipientAddress: body.recipientAddress,
             recipientName: body.recipientName,
+            // captchaResponse: body.captchaResponse,
         })
 
         return new Response(JSON.stringify(raffleClaimedInfo), {

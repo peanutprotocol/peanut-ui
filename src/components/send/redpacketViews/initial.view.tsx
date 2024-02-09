@@ -329,6 +329,7 @@ export function SendInitialView({
                     userAddress: address ?? '',
                     linkDetails,
                     password,
+                    withMFA: true,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
                 })
 
