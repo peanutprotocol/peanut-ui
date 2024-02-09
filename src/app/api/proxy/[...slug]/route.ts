@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as consts from '@/consts'
+import { PEANUT_API_URL } from '../../api.consts'
 
 /**
  * Proxy requests from the UI to the API.
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     const separator = '/api/proxy/'
     const indexOfSeparator = request.url.indexOf(separator)
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
-    const fullAPIUrl = `${consts.peanut_api_url}${endpointToCall}`
+    const fullAPIUrl = `${PEANUT_API_URL}${endpointToCall}`
 
     let jsonToPass
     try {
