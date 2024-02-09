@@ -63,7 +63,7 @@ export function Packet() {
             const _raffleInfo = await peanut.getRaffleInfo({
                 link,
                 baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
-                APIKey: 'doesnt-matter'
+                APIKey: 'doesnt-matter',
             })
 
             setRaffleInfo(_raffleInfo)

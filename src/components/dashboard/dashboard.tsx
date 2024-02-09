@@ -50,7 +50,7 @@ export function Dashboard() {
                         if (item.link.includes('packet')) {
                             const raffleInfo = await peanut.getRaffleInfo({
                                 link: item.link,
-                                baseUrl: `${consts.next_proxy_url}/get-raffle-info`
+                                baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
                             })
                             // can't calculate total amount since raffle links may contain different tokens
                             const totalTokenAmount = 0
