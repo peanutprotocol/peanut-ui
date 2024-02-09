@@ -42,6 +42,5 @@ export async function POST(request: NextRequest) {
     return new NextResponse(apiResponseString, {
         status: apiResponse.status,
         statusText: apiResponse.statusText,
-        headers: apiResponse.headers,
     })
 }
