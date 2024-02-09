@@ -10,7 +10,13 @@ import * as _consts from '../packet.consts'
 import * as consts from '@/consts'
 import { getRaffleLeaderboard } from '@squirrel-labs/peanut-sdk'
 
-export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInfo, setLeaderboardInfo, raffleLink }: _consts.IPacketScreenProps) {
+export function PacketSuccesView({
+    raffleClaimedInfo,
+    raffleInfo,
+    leaderboardInfo,
+    setLeaderboardInfo,
+    raffleLink,
+}: _consts.IPacketScreenProps) {
     const { address } = useAccount()
     const router = useRouter()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -35,8 +41,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
 
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
-                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''}{' '}
-                    {raffleClaimedInfo?.tokenSymbol}
+                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''} {raffleClaimedInfo?.tokenSymbol}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}

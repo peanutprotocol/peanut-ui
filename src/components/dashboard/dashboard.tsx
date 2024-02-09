@@ -51,7 +51,7 @@ export function Dashboard() {
                             const raffleInfo = await peanut.getRaffleInfo({
                                 link: item.link,
                                 baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
-                                APIKey: 'doesnt-matter'
+                                APIKey: 'doesnt-matter',
                             })
                             // can't calculate total amount since raffle links may contain different tokens
                             const totalTokenAmount = 0
