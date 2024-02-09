@@ -1933,10 +1933,10 @@
     rpc-websockets "^7.5.1"
     superstruct "^0.14.2"
 
-"@squirrel-labs/peanut-sdk@0.4.0-raffle.31":
-  version "0.4.0-raffle.31"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.0-raffle.31.tgz#b5d6a176074250d9dd86a4cb90dbff7935a84103"
-  integrity sha512-KnfTbK4dq7m+shcMlGK6erZwoPV3/3ULgEwK+jAnPRXO7uKUx8UTc5kRWrIsQ+PrEnLBttQ3QsYfhyYClWkt5Q==
+"@squirrel-labs/peanut-sdk@0.4.0-raffle.32":
+  version "0.4.0-raffle.32"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.0-raffle.32.tgz#8b1fa2eb640753397d8195304fd3cef4008e67d0"
+  integrity sha512-6WUXzBSlJbkQZkmM+oO6T/S/NUNFj4Sy/lNxBZtyFsUK79q+howA7WIzVunAPwZ/1WqDFU2tDzqr2Mfqfq4UFw==
   dependencies:
     ethersv5 "npm:ethers@^5"
 
