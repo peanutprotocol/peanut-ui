@@ -69,12 +69,15 @@ export function Packet() {
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
 
-            const hasAddressParticipated = await hasAddressParticipatedInRaffle({
-                link: link,
-                address: address ?? '',
-                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                APIKey: 'doesnt-matter',
-            })
+            let hasAddressParticipated = false
+            if (address) {
+                hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                    link: link,
+                    address: address ?? '',
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter',
+                })
+            }
 
             if (_raffleInfo.isActive) {
                 if (address && hasAddressParticipated) {

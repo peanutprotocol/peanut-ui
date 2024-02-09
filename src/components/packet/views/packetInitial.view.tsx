@@ -129,6 +129,7 @@ export function PacketInitialView({
                 baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
                 APIKey: 'doesnt-matter',
             })
+            console.log('fresh leaderboard!', leaderboardInfo)
             setLeaderboardInfo(leaderboardInfo)
 
             setRaffleClaimedInfo(raffleClaimedInfo)

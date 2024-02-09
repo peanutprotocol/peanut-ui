@@ -13,7 +13,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
         isCollapsed
             ? setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
             : setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)))
-    }, [isCollapsed])
+    }, [isCollapsed, leaderboardInfo])
 
     return (
         <div className={'flex w-72 flex-col items-center justify-center gap-0'}>
