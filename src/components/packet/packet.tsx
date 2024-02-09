@@ -1,6 +1,6 @@
 'use client'
 import { createElement, useEffect, useState } from 'react'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { hasAddressParticipatedInRaffle, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
@@ -10,6 +10,7 @@ import * as global_components from '@/components/global'
 
 import * as views from './views'
 import * as _consts from './packet.consts'
+import * as consts from '@/consts'
 import * as utils from '@/utils'
 
 export function Packet() {
@@ -58,44 +59,34 @@ export function Packet() {
 
     const checkLink = async (link: string) => {
         try {
-            const signer = await getWalletClientAndUpdateSigner({ chainId: raffleInfo?.chainId ?? '' })
-            await peanut.validateRaffleLink({ link }) // will throw error if not valid
-            const _raffleInfo = await peanut.getRaffleInfo({ link, provider: signer ? signer.provider : undefined })
+            peanut.validateRaffleLink({ link }) // will throw error if not valid
+            const _raffleInfo = await peanut.getRaffleInfo({
+                link,
+                APIKey: process.env.PEANUT_API_KEY ?? '',
+                baseUrl: `${consts.next_proxy_url}/get-raffle-info`
+            })
 
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
 
-            const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+            const hasAddressParticipated = await hasAddressParticipatedInRaffle({
                 link: link,
                 address: address ?? '',
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                APIKey: 'doesnt-matter'
             })
 
-            if (await peanut.isRaffleActive({ link })) {
+            if (_raffleInfo.isActive) {
                 if (address && hasAddressParticipated) {
-                    await utils.fetchLeaderboardInfo({ link })
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
                 } else {
-                    const senderName = await utils.fetchUserName({
-                        senderAddress: _raffleInfo.senderAddress,
-                        link,
-                    })
-                    setSenderName(senderName)
-
-                    if (address) {
-                        const recipientName = await utils.fetchUserName({
-                            senderAddress: address ?? '',
-                            link,
-                        })
-                        setRecipientName(recipientName)
-                    }
+                    setSenderName(_raffleInfo.senderName)
                 }
                 setPacketState('FOUND')
             } else {
-                await utils.fetchLeaderboardInfo({ link })
-
                 if (address && hasAddressParticipated) {
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',

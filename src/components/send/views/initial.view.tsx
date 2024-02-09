@@ -19,7 +19,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { interfaces, makeDepositGasless } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -421,10 +421,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('executing transaction')
 
-                    const response = await utils.fetchMakeGaslessDeposit({
+                    const response = await makeDepositGasless({
                         payload,
                         signature: userDepositSignature,
-                        baseUrl: `${consts.peanut_api_url}/deposit-3009`,
+                        baseUrl: `${consts.next_proxy_url}/deposit-3009`,
+                        APIKey: 'doesnt-matter'
                     })
 
                     passwords.map((password, idx) => {

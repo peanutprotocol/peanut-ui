@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import { Tooltip } from 'react-tooltip'
 
@@ -62,10 +62,11 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                     if (!detail.claimed) {
                         verbose && console.log(detail)
 
-                        const tx = await utils.fetchClaimLinkGasless({
+                        const tx = await claimLinkGasless({
                             link: detail.link,
                             recipientAddress: address,
-                            baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                            baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                            APIKey: 'doesnt-matter',
                         })
 
                         claimTxs.push({
@@ -150,10 +151,11 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 for (const link of claimLink) {
                     verbose && console.log(link)
 
-                    const tx = await utils.fetchClaimLinkGasless({
+                    const tx = await claimLinkGasless({
                         link: link,
                         recipientAddress: data.address,
-                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter'
                     })
                     claimTxs.push(tx)
                 }

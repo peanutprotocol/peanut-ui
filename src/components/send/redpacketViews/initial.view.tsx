@@ -9,7 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { PEANUT_CONTRACTS, interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { PEANUT_CONTRACTS, getRaffleLinkFromTx, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -356,13 +356,16 @@ export function SendInitialView({
 
                 setLoadingStates('creating link')
 
-                const getLinksFromTxResponse = await utils.fetchGetRaffleLinkFromTx({
+                const getLinksFromTxResponse = await getRaffleLinkFromTx({
                     linkDetails,
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     password: password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
-                    creatorAddress: address ?? '',
                     name: sendFormData.senderName ?? '',
+                    withMFA: true,
+                    withCaptcha: true,
+                    baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
+                    APIKey: 'doesnt-matter'
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash

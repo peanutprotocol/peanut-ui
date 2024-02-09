@@ -1,7 +1,7 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { claimRaffleLink, getRaffleLeaderboard, hasAddressParticipatedInRaffle, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
@@ -93,9 +93,11 @@ export function PacketInitialView({
                 throw new Error('Invalid address')
             }
 
-            const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+            const hasAddressParticipated = await hasAddressParticipatedInRaffle({
                 link: raffleLink,
                 address: recipientAddress,
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                APIKey: 'doesnt-matter'
             })
             if (hasAddressParticipated) {
                 setErrorState({
@@ -108,14 +110,19 @@ export function PacketInitialView({
             }
 
             // TODO: add captcha payload
-            const raffleClaimedInfo: interfaces.IRaffleInfo = await utils.fetchClaimRaffleLink({
+            const raffleClaimedInfo = await claimRaffleLink({
                 link: raffleLink,
                 recipientAddress: recipientAddress ?? '',
                 recipientName: claimFormData.name ?? '',
+                APIKey: 'doesnt-matter',
+                baseUrlAuth: `${consts.next_proxy_url}/get-authorisation`,
+                baseUrlClaim: `${consts.next_proxy_url}/claim-v2`
             })
 
-            const leaderboardInfo = await utils.fetchLeaderboardInfo({
+            const leaderboardInfo = await getRaffleLeaderboard({
                 link: raffleLink,
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                APIKey: 'doesnt-matter'
             })
             setLeaderboardInfo(leaderboardInfo)
 
@@ -161,9 +168,11 @@ export function PacketInitialView({
             setLoadingStates('fetching address')
             const _address = await _utils.resolveFromEnsName(address)
             if (_address) {
-                const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+                const hasAddressParticipated = await hasAddressParticipatedInRaffle({
                     link: raffleLink,
                     address: _address,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter'
                 })
                 if (hasAddressParticipated) {
                     setErrorState({
@@ -180,9 +189,11 @@ export function PacketInitialView({
                     setIsEnsName({ state: true, address: _address })
                 }
             } else if (ethers.utils.isAddress(address)) {
-                const hasAddressParticipated = await utils.fetchHasAddressParticipatedInRaffle({
+                const hasAddressParticipated = await hasAddressParticipatedInRaffle({
                     link: raffleLink,
                     address: address,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter'
                 })
                 if (hasAddressParticipated) {
                     setErrorState({
