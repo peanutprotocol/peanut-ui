@@ -178,7 +178,7 @@ export function xchainClaimView({
                         link: claimDetails[0].link,
                         recipientAddress: data.address ?? '',
                         baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
                 }
             } else {
@@ -208,7 +208,7 @@ export function xchainClaimView({
                         isMainnet: !isTestnet,
                         squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
                         baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
                 }
             }
@@ -280,7 +280,7 @@ export function xchainClaimView({
                         link: claimDetails[0].link,
                         recipientAddress: address ?? '',
                         baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
                 }
             } else {
@@ -310,7 +310,7 @@ export function xchainClaimView({
                         isMainnet: !isTestnet,
                         squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
                         baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
                 }
             }

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/consts'
 
 /**
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
         jsonToPass = await request.json()
     } catch (error: any) {
         return NextResponse.json('Pass a valid json', {
-            status: 403
+            status: 403,
         })
     }
     jsonToPass.apiKey = process.env.PEANUT_API_KEY!
@@ -29,14 +29,11 @@ export async function POST(request: NextRequest) {
         'x-forwarded-for': userIp,
     }
 
-    const apiResponse = await fetch(
-        fullAPIUrl,
-        {
-            method: 'POST',
-            headers: headersToPass,
-            body: JSON.stringify(jsonToPass)
-        }
-    )
+    const apiResponse = await fetch(fullAPIUrl, {
+        method: 'POST',
+        headers: headersToPass,
+        body: JSON.stringify(jsonToPass),
+    })
 
     return new NextResponse(apiResponse.body, {
         status: apiResponse.status,

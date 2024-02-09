@@ -155,7 +155,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                         link: link,
                         recipientAddress: data.address,
                         baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
                     claimTxs.push(tx)
                 }

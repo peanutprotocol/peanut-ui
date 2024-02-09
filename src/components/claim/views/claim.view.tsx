@@ -110,7 +110,7 @@ export function ClaimView({
                         link: claimLink[0],
                         recipientAddress: address,
                         baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
                 }
                 verbose && console.log(claimTx)

@@ -425,7 +425,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         payload,
                         signature: userDepositSignature,
                         baseUrl: `${consts.next_proxy_url}/deposit-3009`,
-                        APIKey: 'doesnt-matter'
+                        APIKey: 'doesnt-matter',
                     })
 
                     passwords.map((password, idx) => {

@@ -1,7 +1,12 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
-import { claimRaffleLink, getRaffleLeaderboard, hasAddressParticipatedInRaffle, interfaces } from '@squirrel-labs/peanut-sdk'
+import {
+    claimRaffleLink,
+    getRaffleLeaderboard,
+    hasAddressParticipatedInRaffle,
+    interfaces,
+} from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
@@ -97,7 +102,7 @@ export function PacketInitialView({
                 link: raffleLink,
                 address: recipientAddress,
                 baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                APIKey: 'doesnt-matter'
+                APIKey: 'doesnt-matter',
             })
             if (hasAddressParticipated) {
                 setErrorState({
@@ -116,13 +121,13 @@ export function PacketInitialView({
                 recipientName: claimFormData.name ?? '',
                 APIKey: 'doesnt-matter',
                 baseUrlAuth: `${consts.next_proxy_url}/get-authorisation`,
-                baseUrlClaim: `${consts.next_proxy_url}/claim-v2`
+                baseUrlClaim: `${consts.next_proxy_url}/claim-v2`,
             })
 
             const leaderboardInfo = await getRaffleLeaderboard({
                 link: raffleLink,
                 baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                APIKey: 'doesnt-matter'
+                APIKey: 'doesnt-matter',
             })
             setLeaderboardInfo(leaderboardInfo)
 
@@ -172,7 +177,7 @@ export function PacketInitialView({
                     link: raffleLink,
                     address: _address,
                     baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                    APIKey: 'doesnt-matter'
+                    APIKey: 'doesnt-matter',
                 })
                 if (hasAddressParticipated) {
                     setErrorState({
@@ -193,7 +198,7 @@ export function PacketInitialView({
                     link: raffleLink,
                     address: address,
                     baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                    APIKey: 'doesnt-matter'
+                    APIKey: 'doesnt-matter',
                 })
                 if (hasAddressParticipated) {
                     setErrorState({

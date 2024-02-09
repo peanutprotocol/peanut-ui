@@ -63,7 +63,7 @@ export function Packet() {
             const _raffleInfo = await peanut.getRaffleInfo({
                 link,
                 APIKey: process.env.PEANUT_API_KEY ?? '',
-                baseUrl: `${consts.next_proxy_url}/get-raffle-info`
+                baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
             })
 
             setRaffleInfo(_raffleInfo)
@@ -73,7 +73,7 @@ export function Packet() {
                 link: link,
                 address: address ?? '',
                 baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                APIKey: 'doesnt-matter'
+                APIKey: 'doesnt-matter',
             })
 
             if (_raffleInfo.isActive) {

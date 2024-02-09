@@ -365,7 +365,7 @@ export function SendInitialView({
                     withMFA: true,
                     withCaptcha: true,
                     baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
-                    APIKey: 'doesnt-matter'
+                    APIKey: 'doesnt-matter',
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
