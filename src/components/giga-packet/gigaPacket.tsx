@@ -22,6 +22,7 @@ import * as hooks from '@/hooks'
 import * as _utils from './gigaPacket.utils'
 import * as _consts from './gigaPacket.consts'
 import { Switch } from '@headlessui/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 
 // {
 //     tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -43,6 +44,8 @@ type tokenType = {
 export function GigaPacket() {
     const { isConnected, address } = useAccount()
     const { chain: currentChain } = useNetwork()
+    const { open } = useWeb3Modal()
+    const [isCopied, setIsCopied] = useState(false)
 
     const [peanutPassword, setPeanutPassword] = useState<string>('')
     const [finalLink, setFinalLink] = useState<string | undefined>(undefined)
@@ -55,12 +58,12 @@ export function GigaPacket() {
 
     const [formState, setFormState] = useState<tokenType[]>([
         {
-            tokenAddress: '',
+            tokenAddress: '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000',
             tokenAmount: 0,
             numberOfSlots: 0,
         },
         {
-            tokenAddress: '',
+            tokenAddress: '0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9',
             tokenAmount: 0,
             numberOfSlots: 0,
         },
@@ -112,6 +115,7 @@ export function GigaPacket() {
     }
 
     async function setPassword() {
+        utils.getFromLocalStorage('peanutpassword for raffle')
         if (peanutPassword == '') {
             const passw = await getRandomString(16)
             setPeanutPassword(passw)
@@ -230,6 +234,10 @@ export function GigaPacket() {
 
     async function createRaffle() {
         setLoadingStates('executing transaction')
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
         // check if token addresses are correct
         // check if amounts and number of slots per link are correct
 
@@ -577,7 +585,7 @@ export function GigaPacket() {
                         {formState.map((item, idx) => {
                             return (
                                 <Fragment key={idx}>
-                                    <div className="flex gap-2">
+                                    <div className="flex w-full items-center justify-center gap-2">
                                         <div>
                                             <label className="flex h-full items-center justify-center text-xl font-bold">
                                                 #{idx + 1}
@@ -597,6 +605,7 @@ export function GigaPacket() {
                                                         newFormState[idx].tokenAddress = e.target.value
                                                         setFormState(newFormState)
                                                     }}
+                                                    defaultValue={formState[idx].tokenAddress}
                                                 />
                                             </div>
                                             <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
@@ -652,11 +661,15 @@ export function GigaPacket() {
                     }
                 >
                     <button
-                        type={isConnected ? 'submit' : 'button'}
+                        type={'button'}
                         className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
                         id="cta-btn"
                         onClick={() => {
-                            isConnected ? createRaffle() : open()
+                            if (!isConnected) {
+                                open()
+                            } else {
+                                createRaffle()
+                            }
                         }}
                         disabled={isLoading ? true : false}
                     >
@@ -677,7 +690,31 @@ export function GigaPacket() {
                     </button>
 
                     {finalLink ? (
-                        <div className="mt-6 w-4/5 text-xl font-black">{finalLink}</div>
+                        <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-1 text-white ">
+                            <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
+                                {finalLink}
+                            </div>
+                            <div
+                                className="absolute right-0 top-0 flex h-full min-w-32 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                onClick={() => {
+                                    navigator.clipboard.writeText(finalLink ?? '')
+                                    setIsCopied(true)
+                                }}
+                            >
+                                {isCopied ? (
+                                    <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold ">
+                                        <span className="tooltiptext inline w-full justify-center" id="myTooltip">
+                                            {' '}
+                                            copied!{' '}
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold ">
+                                        <label className="cursor-pointer text-black">COPY</label>
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     ) : (
                         isLoading && (
                             <div className="mt-6 w-4/5 text-xl font-black">
