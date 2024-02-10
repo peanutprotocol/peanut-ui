@@ -547,7 +547,7 @@ export function SendInitialView({
                             )}
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">Total Amount *</div>
+                            <div className="font-normal">${formwatch.token} Amount *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     onWheel={(e) => {
@@ -615,11 +615,11 @@ export function SendInitialView({
                                     }}
                                 />
 
-                                <label className=" display-block w-12 text-xs font-normal">{'$0 fee'}</label>
+                                <label className=" display-block w-12 text-xs font-normal">{'No fee'}</label>
                             </div>
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">Name</div>
+                            <div className="font-normal">Display Name</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     maxLength={15}
