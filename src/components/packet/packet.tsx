@@ -1,6 +1,6 @@
 'use client'
 import { createElement, useEffect, useState } from 'react'
-import peanut, { hasAddressParticipatedInRaffle, interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { hasAddressParticipatedInRaffle, interfaces, requiresRaffleCaptcha } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
@@ -24,6 +24,7 @@ export function Packet() {
     const [leaderboardInfo, setLeaderboardInfo] = useState<interfaces.IRaffleLeaderboardEntry[] | undefined>(undefined)
     const [senderName, setSenderName] = useState<string | undefined>(undefined)
     const [recipientName, setRecipientName] = useState<string | undefined>(undefined)
+    const [requiresCaptcha, setRequiresCaptcha] = useState<boolean>(false)
 
     const handleOnNext = () => {
         const newIdx = packetScreen.idx + 1
@@ -38,23 +39,6 @@ export function Packet() {
             screen: screen,
             idx: _consts.PACKET_SCREEN_FLOW.indexOf(screen),
         }))
-    }
-
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner | undefined> => {
-        try {
-            const walletClient = await getWalletClient({ chainId: Number(chainId) })
-            if (!walletClient) {
-                throw new Error('Failed to get wallet client')
-            }
-            const signer = utils.walletClientToSigner(walletClient)
-            return signer
-        } catch (error) {
-            console.error(error)
-        }
     }
 
     const checkLink = async (link: string) => {
@@ -87,6 +71,13 @@ export function Packet() {
                     }))
                 } else {
                     setSenderName(_raffleInfo.senderName)
+                    setRequiresCaptcha(
+                        await requiresRaffleCaptcha({
+                            link: link,
+                            baseUrl: `${consts.next_proxy_url}/requires-captcha`,
+                            APIKey: 'doesnt-matter',
+                        })
+                    )
                 }
                 setPacketState('FOUND')
             } else {
@@ -158,6 +149,8 @@ export function Packet() {
                     setSenderName,
                     recipientName,
                     setRecipientName,
+                    requiresCaptcha,
+                    setRequiresCaptcha,
                 } as _consts.IPacketScreenProps)}
         </global_components.CardWrapper>
     )

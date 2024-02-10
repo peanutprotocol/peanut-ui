@@ -34,6 +34,9 @@ export function PacketSuccesView({
     }, [])
 
     const userLeaderboard = leaderboardInfo?.find((user) => user.address == address)
+    console.log(userLeaderboard)
+    console.log(raffleInfo)
+    console.log(raffleClaimedInfo)
     const receivedAmount = Number(raffleClaimedInfo?.amountReceived ?? userLeaderboard?.amount)
     return (
         <div className="mb-4 mt-2 flex w-full flex-col items-center gap-6 text-center ">
@@ -41,7 +44,8 @@ export function PacketSuccesView({
 
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
-                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''} {userLeaderboard?.tokenSymbol}
+                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''}{' '}
+                    {raffleClaimedInfo?.tokenSymbol ?? userLeaderboard?.tokenSymbol ?? ''}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}

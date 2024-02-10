@@ -1,7 +1,7 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
-import {
+import peanut, {
     claimRaffleLink,
     getRaffleLeaderboard,
     hasAddressParticipatedInRaffle,
@@ -45,6 +45,7 @@ export function PacketInitialView({
     setLeaderboardInfo,
     senderName,
     recipientName,
+    requiresCaptcha,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -52,8 +53,7 @@ export function PacketInitialView({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isValidAddress, setIsValidAddress] = useState(false)
     const [isEnsName, setIsEnsName] = useState<{ state: boolean; address: string }>({ state: false, address: '' })
-    const [captchaValue, setCaptchaValue] = useState<string | null>(null)
-    const [isCaptchaNeeded, setIsCaptchaNeeded] = useState(false)
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
     const mantleCheck = utils.isMantleInUrl()
 
     const { View: lottieView, goToAndStop, play, stop } = useLottie(defaultLottieOptions, defaultLottieStyle)
@@ -79,6 +79,18 @@ export function PacketInitialView({
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const claim = async (claimFormData: { name: string | undefined }) => {
+        // throw new interfaces.SDKStatus(
+        //     interfaces.ERaffleErrorCodes.CAPTCHA_REQUIRED,
+        //     'Captcha is required',
+        // )
+
+        if (requiresCaptcha && !captchaToken) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Please complete the captcha',
+            })
+            return
+        }
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -122,6 +134,7 @@ export function PacketInitialView({
                 APIKey: 'doesnt-matter',
                 baseUrlAuth: `${consts.next_proxy_url}/get-authorisation`,
                 baseUrlClaim: `${consts.next_proxy_url}/claim-v2`,
+                captchaResponse: captchaToken ?? '',
             })
 
             const leaderboardInfo = await getRaffleLeaderboard({
@@ -250,8 +263,7 @@ export function PacketInitialView({
     }
 
     const handleCaptchaChange = (value: string | null) => {
-        console.log(value)
-        setCaptchaValue(value)
+        setCaptchaToken(value)
     }
 
     return (
@@ -319,7 +331,7 @@ export function PacketInitialView({
                 </div>
             )}
 
-            {isCaptchaNeeded && (
+            {requiresCaptcha && (
                 <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
             )}
 
@@ -327,7 +339,7 @@ export function PacketInitialView({
                 type={isConnected || isValidAddress ? 'submit' : 'button'}
                 className={
                     ' block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2 ' +
-                    (isDropdownOpen || isCaptchaNeeded ? ' mt-8' : ' mt-2')
+                    (isDropdownOpen || requiresCaptcha ? ' mt-8' : ' mt-2')
                 }
                 id="cta-btn"
                 onClick={() => {
