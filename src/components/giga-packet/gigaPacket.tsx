@@ -115,10 +115,13 @@ export function GigaPacket() {
     }
 
     async function setPassword() {
-        utils.getFromLocalStorage('peanutpassword for raffle')
-        if (peanutPassword == '') {
-            const passw = await getRandomString(16)
-            setPeanutPassword(passw)
+        const _password = utils.getFromLocalStorage('latest-gigalink-password')
+        if (_password == null) {
+            const _passw = await getRandomString(16)
+            setPeanutPassword(_passw)
+            utils.saveToLocalStorage('latest-gigalink-password', _passw)
+        } else {
+            setPeanutPassword(_password)
         }
     }
 
@@ -526,6 +529,7 @@ export function GigaPacket() {
             const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
             console.log(finalfinalv4rafflelink_final)
             setFinalLink(finalfinalv4rafflelink_final)
+            utils.delteFromLocalStorage('latest-gigalink-password')
         } catch (error) {
             setLoadingStates('idle')
 
