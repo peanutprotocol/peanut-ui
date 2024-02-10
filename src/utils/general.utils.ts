@@ -94,6 +94,32 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
     }
 }
 
+export const getAllGigalinksFromLocalstorage = ({ address }: { address: string }) => {
+    try {
+        const localStorageData: interfaces.ILocalStorageItem[] = []
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+
+            if (key !== null && key?.includes('saving giga-link for address: ' + address)) {
+                const value = localStorage.getItem(key)
+                if (value !== null) {
+                    const x = {
+                        address: key.split('-')[0].trim(),
+                        hash: key.split('-')[1]?.trim() ?? '',
+                        idx: key.split('-')[2]?.trim() ?? '',
+                        link: value.replaceAll('"', ''),
+                    }
+                    localStorageData.push(x)
+                }
+            }
+        }
+        return localStorageData
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
 export function formatAmountWithDecimals({ amount, decimals }: { amount: number; decimals: number }) {
     const divider = 10 ** decimals
     const formattedAmount = amount / divider
