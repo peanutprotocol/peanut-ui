@@ -1,11 +1,17 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, {
+    claimRaffleLink,
+    getRaffleLeaderboard,
+    hasAddressParticipatedInRaffle,
+    interfaces,
+} from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
 import { useLottie } from 'lottie-react'
+import ReCAPTCHA from 'react-google-recaptcha'
 
 import dropdown_svg from '@/assets/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
@@ -39,6 +45,7 @@ export function PacketInitialView({
     setLeaderboardInfo,
     senderName,
     recipientName,
+    requiresCaptcha,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -46,6 +53,7 @@ export function PacketInitialView({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [isValidAddress, setIsValidAddress] = useState(false)
     const [isEnsName, setIsEnsName] = useState<{ state: boolean; address: string }>({ state: false, address: '' })
+    const [captchaToken, setCaptchaToken] = useState<string | null>(null)
     const mantleCheck = utils.isMantleInUrl()
 
     const { View: lottieView, goToAndStop, play, stop } = useLottie(defaultLottieOptions, defaultLottieStyle)
@@ -71,6 +79,18 @@ export function PacketInitialView({
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const claim = async (claimFormData: { name: string | undefined }) => {
+        // throw new interfaces.SDKStatus(
+        //     interfaces.ERaffleErrorCodes.CAPTCHA_REQUIRED,
+        //     'Captcha is required',
+        // )
+
+        if (requiresCaptcha && !captchaToken) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Please complete the captcha',
+            })
+            return
+        }
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -90,13 +110,13 @@ export function PacketInitialView({
                 throw new Error('Invalid address')
             }
 
-            if (
-                await peanut.hasAddressParticipatedInRaffle({
-                    link: raffleLink,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                    address: recipientAddress,
-                })
-            ) {
+            const hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                link: raffleLink,
+                address: recipientAddress,
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                APIKey: 'doesnt-matter',
+            })
+            if (hasAddressParticipated) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'This address has already claimed their slot!',
@@ -106,17 +126,23 @@ export function PacketInitialView({
                 return
             }
 
-            const raffleClaimedInfo = await peanut.claimRaffleLink({
+            // TODO: add captcha payload
+            const raffleClaimedInfo = await claimRaffleLink({
                 link: raffleLink,
-                APIKey: process.env.PEANUT_API_KEY ?? '',
                 recipientAddress: recipientAddress ?? '',
-                recipientName: claimFormData.name,
+                recipientName: claimFormData.name ?? '',
+                APIKey: 'doesnt-matter',
+                baseUrlAuth: `${consts.next_proxy_url}/get-authorisation`,
+                baseUrlClaim: `${consts.next_proxy_url}/claim-v2`,
+                captchaResponse: captchaToken ?? '',
             })
 
-            const leaderboardInfo = await peanut.getRaffleLeaderboard({
+            const leaderboardInfo = await getRaffleLeaderboard({
                 link: raffleLink,
-                APIKey: process.env.PEANUT_API_KEY ?? '',
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                APIKey: 'doesnt-matter',
             })
+            console.log('fresh leaderboard!', leaderboardInfo)
             setLeaderboardInfo(leaderboardInfo)
 
             setRaffleClaimedInfo(raffleClaimedInfo)
@@ -161,13 +187,13 @@ export function PacketInitialView({
             setLoadingStates('fetching address')
             const _address = await _utils.resolveFromEnsName(address)
             if (_address) {
-                if (
-                    await peanut.hasAddressParticipatedInRaffle({
-                        link: raffleLink,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        address: _address,
-                    })
-                ) {
+                const hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    address: _address,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter',
+                })
+                if (hasAddressParticipated) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'This address has already claimed their slot!',
@@ -182,13 +208,13 @@ export function PacketInitialView({
                     setIsEnsName({ state: true, address: _address })
                 }
             } else if (ethers.utils.isAddress(address)) {
-                if (
-                    await peanut.hasAddressParticipatedInRaffle({
-                        link: raffleLink,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        address: address,
-                    })
-                ) {
+                const hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    address: address,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter',
+                })
+                if (hasAddressParticipated) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'This address has already claimed their slot!',
@@ -234,6 +260,10 @@ export function PacketInitialView({
         if (!/[0-9a-zA-Z]/.test(e.key)) {
             e.preventDefault()
         }
+    }
+
+    const handleCaptchaChange = (value: string | null) => {
+        setCaptchaToken(value)
     }
 
     return (
@@ -301,11 +331,15 @@ export function PacketInitialView({
                 </div>
             )}
 
+            {requiresCaptcha && (
+                <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
+            )}
+
             <button
                 type={isConnected || isValidAddress ? 'submit' : 'button'}
                 className={
                     ' block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2 ' +
-                    (isDropdownOpen ? ' mt-8' : ' mt-2')
+                    (isDropdownOpen || requiresCaptcha ? ' mt-8' : ' mt-2')
                 }
                 id="cta-btn"
                 onClick={() => {

@@ -44,6 +44,21 @@ export const saveToLocalStorage = (key: string, data: any) => {
     }
 }
 
+export const getFromLocalStorage = (key: string) => {
+    try {
+        const data = localStorage.getItem(key)
+        if (data === null) {
+            console.log(`No data found in localStorage for ${key}`)
+            return null
+        }
+        const parsedData = JSON.parse(data)
+        console.log(`Retrieved ${key} from localStorage:`, parsedData)
+        return parsedData
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
 export const delteFromLocalStorage = (key: string) => {
     try {
         localStorage.removeItem(key)
@@ -123,27 +138,6 @@ export function formatMessage(message: string) {
         .map((line) => line.trim())
         .filter((line) => !!line)
         .join('\n')
-}
-
-export async function sendDiscordNotification(message: string) {
-    const _message = formatMessage(message)
-    try {
-        const webhookUrl = process.env.DISCORD_WEBHOOK_URL
-
-        if (!webhookUrl) throw new Error('DISCORD_WEBHOOK not found in env')
-        const response = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                content: _message,
-            }),
-        })
-        if (!response.ok) throw response.text()
-    } catch (error) {
-        console.error(`======== Error sending Notification Push message: ${error}`)
-    }
 }
 
 export const isMantleInUrl = (): boolean => {

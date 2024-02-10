@@ -1,6 +1,6 @@
 'use client'
 import { createElement, useEffect, useState } from 'react'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { hasAddressParticipatedInRaffle, interfaces, requiresRaffleCaptcha } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
@@ -10,6 +10,7 @@ import * as global_components from '@/components/global'
 
 import * as views from './views'
 import * as _consts from './packet.consts'
+import * as consts from '@/consts'
 import * as utils from '@/utils'
 
 export function Packet() {
@@ -23,6 +24,7 @@ export function Packet() {
     const [leaderboardInfo, setLeaderboardInfo] = useState<interfaces.IRaffleLeaderboardEntry[] | undefined>(undefined)
     const [senderName, setSenderName] = useState<string | undefined>(undefined)
     const [recipientName, setRecipientName] = useState<string | undefined>(undefined)
+    const [requiresCaptcha, setRequiresCaptcha] = useState<boolean>(false)
 
     const handleOnNext = () => {
         const newIdx = packetScreen.idx + 1
@@ -39,83 +41,47 @@ export function Packet() {
         }))
     }
 
-    async function fetchLeaderboardInfo(link: string) {
-        const _leaderboardInfo = await peanut.getRaffleLeaderboard({
-            link: link,
-            APIKey: process.env.PEANUT_API_KEY ?? '',
-        })
-
-        setLeaderboardInfo(_leaderboardInfo)
-    }
-
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner | undefined> => {
-        try {
-            const walletClient = await getWalletClient({ chainId: Number(chainId) })
-            if (!walletClient) {
-                throw new Error('Failed to get wallet client')
-            }
-            const signer = utils.walletClientToSigner(walletClient)
-            return signer
-        } catch (error) {
-            console.error(error)
-        }
-    }
-
     const checkLink = async (link: string) => {
         try {
-            const signer = await getWalletClientAndUpdateSigner({ chainId: raffleInfo?.chainId ?? '' })
-            await peanut.validateRaffleLink({ link }) // will throw error if not valid
-            const _raffleInfo = await peanut.getRaffleInfo({ link, provider: signer ? signer.provider : undefined })
+            peanut.validateRaffleLink({ link }) // will throw error if not valid
+            const _raffleInfo = await peanut.getRaffleInfo({
+                link,
+                baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
+                APIKey: 'doesnt-matter',
+            })
 
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
 
-            if (await peanut.isRaffleActive({ link })) {
-                if (
-                    address &&
-                    (await peanut.hasAddressParticipatedInRaffle({
-                        link: link,
-                        address: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                    }))
-                ) {
-                    await fetchLeaderboardInfo(link)
+            let hasAddressParticipated = false
+            if (address) {
+                hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                    link: link,
+                    address: address ?? '',
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter',
+                })
+            }
+
+            if (_raffleInfo.isActive) {
+                if (address && hasAddressParticipated) {
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
                 } else {
-                    const senderName = await peanut.getUsername({
-                        address: _raffleInfo.senderAddress,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        link: link,
-                    })
-                    setSenderName(senderName)
-
-                    if (address) {
-                        const recipientName = await peanut.getUsername({
-                            address: address ?? '',
-                            APIKey: process.env.PEANUT_API_KEY ?? '',
+                    setSenderName(_raffleInfo.senderName)
+                    setRequiresCaptcha(
+                        await requiresRaffleCaptcha({
                             link: link,
+                            baseUrl: `${consts.next_proxy_url}/requires-captcha`,
+                            APIKey: 'doesnt-matter',
                         })
-                        setRecipientName(recipientName)
-                    }
+                    )
                 }
                 setPacketState('FOUND')
             } else {
-                await fetchLeaderboardInfo(link)
-                if (
-                    address &&
-                    (await peanut.hasAddressParticipatedInRaffle({
-                        link: link,
-                        address: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                    }))
-                ) {
+                if (address && hasAddressParticipated) {
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
@@ -183,6 +149,8 @@ export function Packet() {
                     setSenderName,
                     recipientName,
                     setRecipientName,
+                    requiresCaptcha,
+                    setRequiresCaptcha,
                 } as _consts.IPacketScreenProps)}
         </global_components.CardWrapper>
     )

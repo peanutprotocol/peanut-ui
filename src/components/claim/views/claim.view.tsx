@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAccount, useNetwork } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
@@ -106,11 +106,11 @@ export function ClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkGasless({
+                    claimTx = await claimLinkGasless({
                         link: claimLink[0],
                         recipientAddress: address,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
                     })
                 }
                 verbose && console.log(claimTx)
@@ -188,11 +188,11 @@ export function ClaimView({
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 verbose && console.log('claiming link:' + claimLink)
-                const claimTx = await peanut.claimLinkGasless({
+                const claimTx = await claimLinkGasless({
                     link: claimLink[0],
                     recipientAddress: data.address,
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                    baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                    APIKey: 'doesnt-matter',
                 })
 
                 setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])

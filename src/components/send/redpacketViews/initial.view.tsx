@@ -9,7 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { PEANUT_CONTRACTS, getRaffleLinkFromTx, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -329,6 +329,7 @@ export function SendInitialView({
                     userAddress: address ?? '',
                     linkDetails,
                     password,
+                    withMFA: true,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
                 })
 
@@ -355,14 +356,16 @@ export function SendInitialView({
 
                 setLoadingStates('creating link')
 
-                const getLinksFromTxResponse = await peanut.getRaffleLinkFromTx({
+                const getLinksFromTxResponse = await getRaffleLinkFromTx({
                     linkDetails,
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     password: password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
-                    APIKey: process.env.PEANUT_API_KEY ?? '',
-                    creatorAddress: address ?? '',
                     name: sendFormData.senderName ?? '',
+                    withMFA: true,
+                    withCaptcha: true,
+                    baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
+                    APIKey: 'doesnt-matter',
                 })
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
@@ -980,7 +983,7 @@ export function SendInitialView({
 
                                                 email: ${enteredEmail}
                                                 `
-                                                utils.sendDiscordNotification(message)
+                                                utils.fetchSendDiscordNotification({ message })
                                                 setShowModal(false)
                                             }}
                                             disabled={isLoading ? true : false}

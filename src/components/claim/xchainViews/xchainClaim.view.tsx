@@ -1,7 +1,7 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { useAccount, useNetwork } from 'wagmi'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { claimLinkGasless, claimLinkXChainGasless } from '@squirrel-labs/peanut-sdk'
 import { switchNetwork, getWalletClient } from '@wagmi/core'
 
 import * as global_components from '@/components/global'
@@ -174,11 +174,11 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkGasless({
+                    claimTx = await claimLinkGasless({
                         link: claimDetails[0].link,
                         recipientAddress: data.address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
                     })
                 }
             } else {
@@ -200,15 +200,15 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkXChainGasless({
+                    claimTx = await claimLinkXChainGasless({
                         link: claimDetails[0].link,
                         recipientAddress: data.address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         destinationChainId: selectedChain.chainId,
                         destinationToken: selectedToken.address,
                         isMainnet: !isTestnet,
-                        squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
-                        baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
+                        squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
+                        baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
+                        APIKey: 'doesnt-matter',
                     })
                 }
             }
@@ -276,11 +276,11 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkGasless({
+                    claimTx = await claimLinkGasless({
                         link: claimDetails[0].link,
                         recipientAddress: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        baseUrl: `${consts.peanut_api_url}/claim-v2`,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
                     })
                 }
             } else {
@@ -302,15 +302,15 @@ export function xchainClaimView({
                         },
                     })
                 } else {
-                    claimTx = await peanut.claimLinkXChainGasless({
+                    claimTx = await claimLinkXChainGasless({
                         link: claimDetails[0].link,
                         recipientAddress: address ?? '',
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
                         destinationChainId: selectedChain.chainId,
                         destinationToken: selectedToken.address,
                         isMainnet: !isTestnet,
-                        squidRouterUrl: `${consts.peanut_api_url}/get-squid-route`,
-                        baseUrl: `${consts.peanut_api_url}/claim-x-chain`,
+                        squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
+                        baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
+                        APIKey: 'doesnt-matter',
                     })
                 }
             }

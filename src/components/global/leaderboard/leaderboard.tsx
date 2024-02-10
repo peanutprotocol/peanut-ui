@@ -13,7 +13,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
         isCollapsed
             ? setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)).slice(0, 3))
             : setArrayToUse(leaderboardInfo.sort((a, b) => Number(b.amount) - Number(a.amount)))
-    }, [isCollapsed])
+    }, [isCollapsed, leaderboardInfo])
 
     return (
         <div className={'flex w-72 flex-col items-center justify-center gap-0'}>
@@ -24,7 +24,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                             <tr className="brutalborder w-full border p-2" key={index}>
                                 <td className="w-1/4 w-[36px] p-2">#{index + 1}</td>
                                 <td className="w-1/2 max-w-[125px] truncate p-2 font-normal">
-                                    {claim.name ?? utils.shortenAddress(claim.address)}
+                                    {claim.name != '' ? claim.name : utils.shortenAddress(claim.address)}
                                 </td>
                                 <td className="w-1/4 p-2">{utils.formatTokenAmount(Number(claim.amount))}</td>
                             </tr>
@@ -35,6 +35,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                             style={{
                                 borderTop: '2px solid black',
                             }}
+                            onClick={() => setIsCollapsed(!isCollapsed)}
                         >
                             <tr className="sticky bottom-0 border-t bg-white">
                                 <td colSpan={3} className="brutalborder w-full cursor-pointer border text-center">
@@ -46,7 +47,6 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                                         }}
                                         alt=""
                                         className="mx-auto h-6"
-                                        onClick={() => setIsCollapsed(!isCollapsed)}
                                     />
                                 </td>
                             </tr>

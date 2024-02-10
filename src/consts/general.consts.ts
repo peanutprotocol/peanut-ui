@@ -10,4 +10,7 @@ export const ipfsProviderArray = [
     'https://gw3.io/ipfs/',
 ]
 
-export const peanut_api_url = 'https://api.peanut.to'
+// TODO: get from env
+// export const peanut_api_url = 'https://api.peanut.to'
+export const peanut_api_url = 'https://api.staging.peanut.to/'
+export const next_proxy_url = '/api/proxy'

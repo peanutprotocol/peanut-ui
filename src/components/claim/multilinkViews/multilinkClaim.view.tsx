@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useAccount } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import { Tooltip } from 'react-tooltip'
 
@@ -61,13 +61,16 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 for (const detail of claimDetails) {
                     if (!detail.claimed) {
                         verbose && console.log(detail)
+
+                        const tx = await claimLinkGasless({
+                            link: detail.link,
+                            recipientAddress: address,
+                            baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                            APIKey: 'doesnt-matter',
+                        })
+
                         claimTxs.push({
-                            tx: peanut.claimLinkGasless({
-                                link: detail.link,
-                                recipientAddress: address,
-                                APIKey: process.env.PEANUT_API_KEY ?? '',
-                                baseUrl: `${consts.peanut_api_url}/claim-v2`,
-                            }),
+                            tx,
                             details: {
                                 token: detail.tokenAddress,
                                 chain: detail.chainId,
@@ -147,14 +150,14 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 const claimTxs = []
                 for (const link of claimLink) {
                     verbose && console.log(link)
-                    claimTxs.push(
-                        peanut.claimLinkGasless({
-                            baseUrl: `${consts.peanut_api_url}/claim-v2`,
-                            link,
-                            recipientAddress: data.address,
-                            APIKey: process.env.PEANUT_API_KEY ?? '',
-                        })
-                    )
+
+                    const tx = await claimLinkGasless({
+                        link: link,
+                        recipientAddress: data.address,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
+                    })
+                    claimTxs.push(tx)
                 }
 
                 verbose && console.log('submitted all tx')

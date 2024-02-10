@@ -7,8 +7,16 @@ import * as utils from '@/utils'
 import * as store from '@/store'
 import * as global_components from '@/components/global'
 import * as _consts from '../packet.consts'
+import * as consts from '@/consts'
+import { getRaffleLeaderboard } from '@squirrel-labs/peanut-sdk'
 
-export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInfo }: _consts.IPacketScreenProps) {
+export function PacketSuccesView({
+    raffleClaimedInfo,
+    raffleInfo,
+    leaderboardInfo,
+    setLeaderboardInfo,
+    raffleLink,
+}: _consts.IPacketScreenProps) {
     const { address } = useAccount()
     const router = useRouter()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -16,21 +24,28 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
 
     useEffect(() => {
         router.prefetch('/send')
+        if (!leaderboardInfo) {
+            getRaffleLeaderboard({
+                link: raffleLink,
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                APIKey: 'doesnt-matter',
+            }).then(setLeaderboardInfo)
+        }
     }, [])
 
+    const userLeaderboard = leaderboardInfo?.find((user) => user.address == address)
+    console.log(userLeaderboard)
+    console.log(raffleInfo)
+    console.log(raffleClaimedInfo)
+    const receivedAmount = Number(raffleClaimedInfo?.amountReceived ?? userLeaderboard?.amount)
     return (
         <div className="mb-4 mt-2 flex w-full flex-col items-center gap-6 text-center ">
             <h2 className="my-0 text-center text-2xl font-black lg:text-4xl ">You got</h2>
 
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
-                    {utils.formatTokenAmount(
-                        Number(
-                            raffleClaimedInfo?.amountReceived ??
-                                leaderboardInfo?.find((user) => user.address == address)?.amount
-                        )
-                    )}{' '}
-                    {raffleInfo?.tokenSymbol}
+                    {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''}{' '}
+                    {raffleClaimedInfo?.tokenSymbol ?? userLeaderboard?.tokenSymbol ?? ''}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
@@ -71,7 +86,7 @@ export function PacketSuccesView({ raffleClaimedInfo, raffleInfo, leaderboardInf
                         raffleClaimedInfo?.amountReceived ??
                             leaderboardInfo?.find((user) => user.address == address)?.amount
                     )
-                )} ${raffleInfo?.tokenSymbol} on peanut.to!`}
+                )} ${raffleClaimedInfo?.tokenSymbol} on peanut.to!`}
             />
             <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
         </div>
