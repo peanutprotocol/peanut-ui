@@ -118,7 +118,7 @@ export function PacketInitialView({
                 link: raffleLink,
                 userAddress: recipientAddress,
                 baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
-                APIKey: 'doesnt-matter'
+                APIKey: 'doesnt-matter',
             })
             const hasAddressParticipated = userStatus.userResults !== null
 

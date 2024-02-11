@@ -1,9 +1,6 @@
 'use client'
 import { createElement, useEffect, useState } from 'react'
-import peanut, {
-    getRaffleLeaderboard,
-    interfaces,
-} from '@squirrel-labs/peanut-sdk'
+import peanut, { getRaffleLeaderboard, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
