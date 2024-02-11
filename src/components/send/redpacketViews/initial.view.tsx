@@ -9,7 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { PEANUT_CONTRACTS, getRaffleLinkFromTx, interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { PEANUT_CONTRACTS, getRaffleLinkFromTx, interfaces, validateUserName } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -266,6 +266,18 @@ export function SendInitialView({
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
+                if (sendFormData.senderName) {
+                    try {
+                        validateUserName(sendFormData.senderName)
+                    } catch (error) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please make sure the username is valid.',
+                        })
+                        return
+                    }
+                }
+
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
                     sendFormData,

@@ -13,6 +13,7 @@ import { getRaffleLeaderboard } from '@squirrel-labs/peanut-sdk'
 export function PacketSuccesView({
     raffleClaimedInfo,
     raffleInfo,
+    userStatus,
     leaderboardInfo,
     setLeaderboardInfo,
     raffleLink,
@@ -33,11 +34,10 @@ export function PacketSuccesView({
         }
     }, [])
 
-    const userLeaderboard = leaderboardInfo?.find((user) => user.address == address)
-    console.log(userLeaderboard)
+    console.log(userStatus)
     console.log(raffleInfo)
     console.log(raffleClaimedInfo)
-    const receivedAmount = Number(raffleClaimedInfo?.amountReceived ?? userLeaderboard?.amount)
+    const receivedAmount = Number(raffleClaimedInfo?.amountReceived ?? userStatus?.userResults?.amount)
     return (
         <div className="mb-4 mt-2 flex w-full flex-col items-center gap-6 text-center ">
             <h2 className="my-0 text-center text-2xl font-black lg:text-4xl ">You got</h2>
@@ -45,12 +45,17 @@ export function PacketSuccesView({
             <div className={'flex flex-col items-center justify-center gap-4'}>
                 <h1 className="text-md my-0 text-center font-black sm:text-4xl lg:text-6xl ">
                     {receivedAmount ? utils.formatTokenAmount(receivedAmount) : ''}{' '}
-                    {raffleClaimedInfo?.tokenSymbol ?? userLeaderboard?.tokenSymbol ?? ''}
+                    {raffleClaimedInfo?.tokenSymbol ?? userStatus?.userResults?.tokenSymbol ?? ''}
                 </h1>
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
                 </h3>
             </div>
+            {raffleInfo?.chainId == '5000' && (
+                <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
+                    Your funds will arive in a couple of minutes!
+                </h3>
+            )}
 
             <div className="flex flex-col items-center justify-center gap-2">
                 <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See how lucky you were!</h3>

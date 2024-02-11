@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PEANUT_API_URL } from '../../api.consts'
+import { PEANUT_API_URL } from '@/consts/general.consts'
 
 /**
  * Proxy requests from the UI to the API.
