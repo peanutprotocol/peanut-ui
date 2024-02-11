@@ -51,6 +51,11 @@ export function PacketSuccesView({
                     on {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
                 </h3>
             </div>
+            {raffleInfo?.chainId == '5000' && (
+                <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
+                    Your funds will arive in a couple of minutes!
+                </h3>
+            )}
 
             <div className="flex flex-col items-center justify-center gap-2">
                 <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See how lucky you were!</h3>
