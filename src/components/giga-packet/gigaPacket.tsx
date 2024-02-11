@@ -723,25 +723,57 @@ export function GigaPacket() {
         <>
             <global_components.CardWrapper redPacket>
                 <div className=" mt-10 flex w-full flex-col items-center gap-2 text-center">
+                    <h2 className="title-font bold my-0 text-2xl lg:text-4xl">⚠️ DO NOT USE ⚠️</h2>
                     <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create a Mega Red Packet</h2>
                     <div className="my-0 w-4/5 font-normal">
-                        This is a form for specifically creating red packets with more than 250 slots. Only possible on
-                        mantle.
-                        <br></br>
+                        <p>
+                            This is a widget for marketers joining the Mantle Red Packets campaign to create Red Packets
+                            with:
+                        </p>
+                        <ul className="list-inside list-disc">
+                            <li>More than 250 slots</li>
+                            <li>Multiple tokens</li>
+                            <li>Only works on mantle</li>
+                        </ul>
+                        <p>Each project's red packets should contain:</p>
+                        <ul className="list-inside list-disc">
+                            <li>Either 1000 USDC or project token - 2000 slots</li>
+                            <li>2000 MNT - 2000 slots</li>
+                            <li>10000 $MDRAGON - 6000 slots</li>
+                        </ul>
+                        <p>Some common token addresses:</p>
+                        <ul className="list-inside list-disc">
+                            <li>MNT: 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000</li>
+                            <li>MDRAGON: 0x057250c1DeFbfE4BD75240e3607A055FC072B6d0</li>
+                            <li>USDC: 0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9</li>
+                        </ul>
+                        <p>Instructions:</p>
+                        <ol className="list-inside list-disc">
+                            <li>Populate the token addresses,</li>
+                            <li>Amounts of tokens,</li>
+                            <li>The number of slots,</li>
+                            <li>Confirm.</li>
+                        </ol>
+                        <p>
+                            Make yourself a cup of green tea as you will be prompted for approx. 40 signatures and 3-4
+                            allowances, each one depositing for 250 slots (which is a hard onchain limit). This might
+                            take more than 15 minutes in total, so please prepare the links well in advance of the
+                            campaign. Do not navigate away from the page or change tabs during the process.
+                        </p>
+                        <p>
+                            If the processes gets interrupted through an error, you can safely continue by clicking the
+                            create button again. The raffles have been stored in localstorage.
+                        </p>
+                        <p>
+                            Before you start, ensure you have the relevant amounts of ERC-20 tokens and at least 100 MNT
+                            for gas (it will not cost as much).
+                        </p>
                         <br></br>
                         <a className="font-bold">Instructions: </a>
-                        Fill out the rows with the token address, the amount of tokens and the number of slots you want
-                        to create. You can add up to 4 different tokens, just leave the remaining ones empty.
-                        {/*  click{' '}
-                        <label
-                            className="cursor-pointer underline"
-                            onClick={() => {
-                                setShowModal(true)
-                            }}
-                        >
-                            here
-                        </label>{' '}
-                        to see all previously created giga-links */}
+                        <p>
+                            Fill out the rows with the token address, the amount of tokens, and the number of slots you
+                            want to create. You can add up to 4 different tokens, just leave the remaining ones empty.
+                        </p>
                     </div>
 
                     <Switch.Group as="div" className="flex items-center gap-4">
