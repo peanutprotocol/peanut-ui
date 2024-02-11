@@ -1533,7 +1533,7 @@ export function GigaPacket() {
                                                       </div>
                                                   )
                                               })
-                                            : 'No links created yet'}
+                                            : 'No links created yet. Make sure the correct wallet is connected'}
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>
