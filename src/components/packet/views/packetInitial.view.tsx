@@ -1,11 +1,11 @@
 'use client'
 import { useAccount } from 'wagmi'
 import { useState, useMemo, useEffect } from 'react'
-import peanut, {
+import {
     claimRaffleLink,
     getRaffleLeaderboard,
     validateUserName,
-    getUserRaffleStatus,
+    hasAddressParticipatedInRaffle,
 } from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
@@ -45,7 +45,7 @@ export function PacketInitialView({
     setLeaderboardInfo,
     senderName,
     recipientName,
-    userStatus,
+    requiresCaptcha,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -79,7 +79,7 @@ export function PacketInitialView({
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const claim = async (claimFormData: { name: string | undefined }) => {
-        if (userStatus.requiresCaptcha && !captchaToken) {
+        if (requiresCaptcha && !captchaToken) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please complete the captcha',
@@ -114,13 +114,12 @@ export function PacketInitialView({
                 throw new Error('Invalid address')
             }
 
-            const userStatus = await getUserRaffleStatus({
+            const hasAddressParticipated = await hasAddressParticipatedInRaffle({
                 link: raffleLink,
-                userAddress: recipientAddress,
-                baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
+                address: recipientAddress,
+                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
                 APIKey: 'doesnt-matter',
             })
-            const hasAddressParticipated = userStatus.userResults !== null
 
             if (hasAddressParticipated) {
                 setErrorState({
@@ -189,46 +188,67 @@ export function PacketInitialView({
 
     async function checkAddress(address: string) {
         try {
-            if (address.endsWith('.eth')) {
-                setLoadingStates('fetching address')
-                const resolvedAddress = await _utils.resolveFromEnsName(address)
-                if (resolvedAddress) {
-                    address = resolvedAddress
-                    setIsEnsName({ state: true, address })
-                } else {
-                    return
-                }
-            }
-            if (!ethers.utils.isAddress(address)) {
-                setIsValidAddress(false)
-                return
-            }
-            const userStatus = await peanut.getUserRaffleStatus({
-                link: raffleLink,
-                userAddress: address,
-                baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
-                APIKey: 'doesnt-matter',
-            })
-            const hasAddressParticipated = userStatus.userResults !== null
-
-            if (hasAddressParticipated) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'This address has already claimed their slot!',
-                })
-            } else {
+            if (ethers.utils.isAddress(address)) {
                 setErrorState({
                     showError: false,
                     errorMessage: '',
                 })
                 setIsValidAddress(true)
+
+                setIsEnsName({ state: true, address })
+                return
+            }
+            if (!address.endsWith('.eth')) {
+                // definetely not an ens name, so no reason to attempt to resolve it
+                return
+            }
+            setLoadingStates('fetching address')
+            const _address = await _utils.resolveFromEnsName(address)
+            if (_address) {
+                const hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    address: _address,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter',
+                })
+                if (hasAddressParticipated) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'This address has already claimed their slot!',
+                    })
+                    return
+                } else {
+                    setErrorState({
+                        showError: false,
+                        errorMessage: '',
+                    })
+                    setIsValidAddress(true)
+                    setIsEnsName({ state: true, address: _address })
+                }
+            } else if (ethers.utils.isAddress(address)) {
+                const hasAddressParticipated = await hasAddressParticipatedInRaffle({
+                    link: raffleLink,
+                    address: address,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                    APIKey: 'doesnt-matter',
+                })
+                if (hasAddressParticipated) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'This address has already claimed their slot!',
+                    })
+                    return
+                } else {
+                    setErrorState({
+                        showError: false,
+                        errorMessage: '',
+                    })
+                    setIsValidAddress(true)
+                }
+            } else {
+                setIsValidAddress(false)
             }
         } catch (error) {
-            console.error('Error while validating address input field:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: `Error: ${String(error)}`,
-            })
         } finally {
             setLoadingStates('idle')
         }
@@ -329,7 +349,7 @@ export function PacketInitialView({
                 </div>
             )}
 
-            {userStatus.requiresCaptcha && (
+            {requiresCaptcha && (
                 <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
             )}
 
@@ -337,7 +357,7 @@ export function PacketInitialView({
                 type={isConnected || isValidAddress ? 'submit' : 'button'}
                 className={
                     ' block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2 ' +
-                    (isDropdownOpen || userStatus.requiresCaptcha ? ' mt-8' : ' mt-2')
+                    (isDropdownOpen || requiresCaptcha ? ' mt-8' : ' mt-2')
                 }
                 id="cta-btn"
                 onClick={() => {

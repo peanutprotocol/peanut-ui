@@ -27,8 +27,8 @@ export interface IPacketScreenProps {
     setSenderName: (name: string | undefined) => void
     recipientName: string | undefined
     setRecipientName: (name: string | undefined) => void
-    userStatus: interfaces.IUserRaffleStatus
-    setUserStatus: (value: interfaces.IUserRaffleStatus) => void
+    requiresCaptcha: boolean
+    setRequiresCaptcha: (value: boolean) => void
 }
 
 export const INIT_VIEW: IPacketScreenState = {
