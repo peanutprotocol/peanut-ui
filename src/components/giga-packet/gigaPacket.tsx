@@ -22,6 +22,7 @@ import checkbox_svg from '@/assets/checkbox.svg'
 
 import * as utils from '@/utils'
 import * as consts from '@/consts'
+import * as hooks from '@/hooks'
 import * as _utils from './gigaPacket.utils'
 import * as _consts from './gigaPacket.consts'
 import { Dialog, Switch, Transition } from '@headlessui/react'
@@ -73,7 +74,7 @@ export function GigaPacket() {
     const [incompleteForm, setIncompleteForm] = useState<localStorageItem | undefined>(undefined)
     const [localStorageCompleteData, setLocalStorageCompleteData] = useState<localStorageItem[]>([])
     const [copiedIdx, setCopiedIdx] = useState<number | undefined>(undefined)
-    // hooks.useConfirmRefresh(true)
+    hooks.useConfirmRefresh(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -1399,7 +1400,7 @@ export function GigaPacket() {
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative my-24 w-[980px] w-full  transform overflow-hidden rounded-lg rounded-none bg-white py-5 text-left text-black shadow-xl  transition-all ">
+                                <Dialog.Panel className="brutalborder relative my-24 w-full min-w-[980px] max-w-[980px]  transform overflow-hidden rounded-lg rounded-none bg-white py-5 text-left text-black shadow-xl  transition-all ">
                                     <div className="border-2 border-black bg-white p-6 font-mono text-black">
                                         <p className="mb-2 border-b border-black pb-2">
                                             This is a widget for marketers joining the Mantle Red Packets campaign to
@@ -1494,7 +1495,7 @@ export function GigaPacket() {
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative my-24 w-[980px] w-full  transform overflow-hidden rounded-lg rounded-none bg-white py-5 text-left text-black shadow-xl  transition-all ">
+                                <Dialog.Panel className="brutalborder relative my-24 w-full min-w-[980px] max-w-[980px]  transform overflow-hidden rounded-lg rounded-none bg-white py-5 text-left text-black shadow-xl  transition-all ">
                                     <div className="flex flex-col items-center justify-center gap-2 ">
                                         {localStorageCompleteData.length > 0
                                             ? localStorageCompleteData.map((item, idx) => {
