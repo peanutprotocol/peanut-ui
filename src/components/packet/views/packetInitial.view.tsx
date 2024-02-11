@@ -184,6 +184,19 @@ export function PacketInitialView({
 
     async function checkAddress(address: string) {
         try {
+            if (ethers.utils.isAddress(address)) {
+                setErrorState({
+                    showError: false,
+                    errorMessage: '',
+                })
+                setIsValidAddress(true)
+                setIsEnsName({ state: true, address  })
+                return
+            }
+            if (!address.endsWith('.eth')) {
+                // definetely not an ens name, so no reason to attempt to resolve it
+                return
+            }
             setLoadingStates('fetching address')
             const _address = await _utils.resolveFromEnsName(address)
             if (_address) {
