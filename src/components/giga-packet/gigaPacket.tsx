@@ -869,7 +869,11 @@ export function GigaPacket() {
 
                     <h2>EXPERIMENTAL! DO NOT USE IN PRODUCTION!</h2>
                     <p>
-                        Hop over into our <a href="https://discord.com/invite/BX9Ak7AW28" target="_blank">discord</a> in case of any issues!
+                        Hop over into our{' '}
+                        <a href="https://discord.com/invite/BX9Ak7AW28" target="_blank">
+                            discord
+                        </a>{' '}
+                        in case of any issues!
                     </p>
                     <div
                         className={
