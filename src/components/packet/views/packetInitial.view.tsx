@@ -297,7 +297,7 @@ export function PacketInitialView({
             <div className={'mb-4 mt-0'}>{lottieView}</div>
 
             <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                <div className="font-normal">Name</div>
+                <div className="font-normal">Claim peanut handle</div>
                 <div className="flex flex-row items-center justify-between">
                     <input
                         className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
