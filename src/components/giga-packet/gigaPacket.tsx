@@ -686,39 +686,6 @@ export function GigaPacket() {
         return classes.filter(Boolean).join(' ')
     }
 
-    useEffect(() => {
-        if (address) {
-            let localStorageItems: localStorageItem[] = []
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i)
-                if (key !== null && key?.includes(`${address}-gigalink-`)) {
-                    const value = localStorage.getItem(key)
-                    if (value !== null) {
-                        localStorageItems.push(JSON.parse(value))
-                    }
-                }
-            }
-
-            console.log(localStorageItems)
-
-            const incompleteForm = localStorageItems.find((item) => item.completed === false)
-            if (incompleteForm) {
-                console.log('found incomplete form, ', incompleteForm)
-                setIncompleteForm(incompleteForm)
-                setFormState(
-                    incompleteForm.tokenDetails.map((token) => {
-                        return {
-                            tokenAddress: token.tokenAddress,
-                            tokenAmount: token.tokenAmount,
-                            numberOfSlots: token.numberOfSlots,
-                        }
-                    })
-                )
-            } else {
-                setIncompleteForm(undefined)
-            }
-        }
-    }, [])
     return (
         <>
             <global_components.CardWrapper redPacket>
@@ -890,15 +857,6 @@ export function GigaPacket() {
                         Please confirm all token addresses are correct and your connected wallet has sufficient funds!
                     </div>
 
-                    <div className="my-4 w-4/5 font-normal">
-                        The proccess of creating a gigalink was interupted. You still have to confirm{' '}
-                        {incompleteForm?.tokenDetails.map((_token) => {
-                            return _token.completed
-                                ? ''
-                                : _token.numberOfSlots + ' for token with address ' + _token.tokenAddress
-                        })}{' '}
-                    </div>
-
                     <h2>EXPERIMENTAL! DO NOT USE IN PRODUCTION!</h2>
                     <p>
                         Hop over into our{' '}
@@ -921,8 +879,6 @@ export function GigaPacket() {
                             onClick={() => {
                                 if (!isConnected) {
                                     open()
-                                } else if (incompleteForm) {
-                                    completeRaffle()
                                 } else {
                                     createRaffle()
                                 }
@@ -940,8 +896,6 @@ export function GigaPacket() {
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
-                            ) : incompleteForm ? (
-                                'Complete '
                             ) : (
                                 'Create'
                             )}
