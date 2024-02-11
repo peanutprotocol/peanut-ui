@@ -628,8 +628,6 @@ export function GigaPacket() {
             }
 
             const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
-            console.log({ finalfinalv4rafflelink_final })
-            setFinalLink(finalfinalv4rafflelink_final)
 
             await addLinkCreation({
                 name: senderName,
@@ -639,6 +637,9 @@ export function GigaPacket() {
                 withMFA: true,
                 baseUrl: consts.next_proxy_url + '/submit-raffle-link',
             })
+
+            console.log({ finalfinalv4rafflelink_final })
+            setFinalLink(finalfinalv4rafflelink_final)
 
             //udpatelocalstorage with final link and completed flag
 
@@ -677,6 +678,7 @@ export function GigaPacket() {
 
     async function completeRaffle() {
         if (incompleteForm) {
+            console.log(incompleteForm)
         }
     }
 
@@ -701,7 +703,19 @@ export function GigaPacket() {
 
             const incompleteForm = localStorageItems.find((item) => item.completed === false)
             if (incompleteForm) {
+                console.log('found incomplete form, ', incompleteForm)
                 setIncompleteForm(incompleteForm)
+                setFormState(
+                    incompleteForm.tokenDetails.map((token) => {
+                        return {
+                            tokenAddress: token.tokenAddress,
+                            tokenAmount: token.tokenAmount,
+                            numberOfSlots: token.numberOfSlots,
+                        }
+                    })
+                )
+            } else {
+                setIncompleteForm(undefined)
             }
         }
     }, [])
@@ -797,6 +811,7 @@ export function GigaPacket() {
                                                             newFormState[idx].tokenAmount = Number(e.target.value)
                                                             setFormState(newFormState)
                                                         }}
+                                                        defaultValue={formState[idx].tokenAmount}
                                                     />
                                                 </div>
                                                 <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
@@ -812,6 +827,7 @@ export function GigaPacket() {
                                                             newFormState[idx].numberOfSlots = Number(e.target.value)
                                                             setFormState(newFormState)
                                                         }}
+                                                        defaultValue={formState[idx].numberOfSlots}
                                                     />
                                                 </div>
                                             </div>
@@ -842,6 +858,15 @@ export function GigaPacket() {
                         Please confirm all token addresses are correct and your connected wallet has sufficient funds!
                     </div>
 
+                    <div className="my-4 w-4/5 font-normal">
+                        The proccess of creating a gigalink was interupted. You still have to confirm{' '}
+                        {incompleteForm?.tokenDetails.map((_token) => {
+                            return _token.completed
+                                ? ''
+                                : _token.numberOfSlots + ' for token with address ' + _token.tokenAddress
+                        })}{' '}
+                    </div>
+
                     <div
                         className={
                             errorState.showError
@@ -857,7 +882,7 @@ export function GigaPacket() {
                                 if (!isConnected) {
                                     open()
                                 } else if (incompleteForm) {
-                                    console.log(incompleteForm)
+                                    completeRaffle()
                                 } else {
                                     createRaffle()
                                 }
