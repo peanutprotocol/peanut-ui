@@ -316,13 +316,15 @@ export function SendInitialView({
 
                 const password = await peanut.getRandomString(16)
 
+                const baseUrl = `${window.location.origin}/packet`
+
                 const linkDetails = {
                     chainId: sendFormData.chainId,
                     tokenAmount: parseFloat(tokenAmount.toFixed(6)),
                     tokenType: tokenType,
                     tokenAddress: tokenAddress,
                     tokenDecimals: tokenDecimals,
-                    baseUrl: 'https://red.peanut.to/packet',
+                    baseUrl: baseUrl,
                     trackId: 'ui',
                 }
 
