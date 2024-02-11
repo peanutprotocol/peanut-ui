@@ -6,6 +6,7 @@ import peanut, {
     getRaffleLeaderboard,
     hasAddressParticipatedInRaffle,
     interfaces,
+    validateUserName,
 } from '@squirrel-labs/peanut-sdk'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useForm } from 'react-hook-form'
@@ -79,11 +80,6 @@ export function PacketInitialView({
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const claim = async (claimFormData: { name: string | undefined }) => {
-        // throw new interfaces.SDKStatus(
-        //     interfaces.ERaffleErrorCodes.CAPTCHA_REQUIRED,
-        //     'Captcha is required',
-        // )
-
         if (requiresCaptcha && !captchaToken) {
             setErrorState({
                 showError: true,
@@ -99,6 +95,15 @@ export function PacketInitialView({
         play()
         setLoadingStates('opening')
         try {
+            try {
+                claimFormData.name && validateUserName(claimFormData.name ?? '')
+            } catch (error) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Invalid name',
+                })
+            }
+
             let recipientAddress
             if (isEnsName.state) {
                 recipientAddress = isEnsName.address
@@ -126,7 +131,6 @@ export function PacketInitialView({
                 return
             }
 
-            // TODO: add captcha payload
             const raffleClaimedInfo = await claimRaffleLink({
                 link: raffleLink,
                 recipientAddress: recipientAddress ?? '',
