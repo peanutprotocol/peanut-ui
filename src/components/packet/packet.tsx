@@ -48,7 +48,6 @@ export function Packet() {
 
     const checkLink = async (link: string) => {
         try {
-            peanut.validateRaffleLink({ link }) // will throw error if not valid
             const _raffleInfo = await peanut.getRaffleInfo({
                 link,
                 baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
