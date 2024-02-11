@@ -2,9 +2,7 @@
 import { createElement, useEffect, useState } from 'react'
 import peanut, {
     getRaffleLeaderboard,
-    hasAddressParticipatedInRaffle,
     interfaces,
-    requiresRaffleCaptcha,
 } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { getWalletClient } from '@wagmi/core'
@@ -29,7 +27,10 @@ export function Packet() {
     const [leaderboardInfo, setLeaderboardInfo] = useState<interfaces.IRaffleLeaderboardEntry[] | undefined>(undefined)
     const [senderName, setSenderName] = useState<string | undefined>(undefined)
     const [recipientName, setRecipientName] = useState<string | undefined>(undefined)
-    const [requiresCaptcha, setRequiresCaptcha] = useState<boolean>(false)
+    const [userStatus, setUserStatus] = useState<interfaces.IUserRaffleStatus>({
+        requiresCaptcha: false,
+        userResults: null,
+    })
 
     const handleOnNext = () => {
         const newIdx = packetScreen.idx + 1
@@ -53,19 +54,17 @@ export function Packet() {
                 baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
                 APIKey: 'doesnt-matter',
             })
+            const userStatus = await peanut.getUserRaffleStatus({
+                link,
+                userAddress: address,
+                baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
+                APIKey: 'doesnt-matter',
+            })
+            const hasAddressParticipated = userStatus.userResults !== null
 
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
-
-            let hasAddressParticipated = false
-            if (address) {
-                hasAddressParticipated = await hasAddressParticipatedInRaffle({
-                    link: link,
-                    address: address ?? '',
-                    baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                    APIKey: 'doesnt-matter',
-                })
-            }
+            setUserStatus(userStatus)
 
             if (_raffleInfo.isActive) {
                 if (address && hasAddressParticipated) {
@@ -82,13 +81,6 @@ export function Packet() {
                     }))
                 } else {
                     setSenderName(_raffleInfo.senderName)
-                    setRequiresCaptcha(
-                        await requiresRaffleCaptcha({
-                            link: link,
-                            baseUrl: `${consts.next_proxy_url}/requires-captcha`,
-                            APIKey: 'doesnt-matter',
-                        })
-                    )
                 }
                 setPacketState('FOUND')
             } else {
@@ -104,7 +96,6 @@ export function Packet() {
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
-                    setRaffleLink(link)
                     setPacketState('FOUND')
                 } else {
                     setPacketState('EMPTY')
@@ -167,8 +158,8 @@ export function Packet() {
                     setSenderName,
                     recipientName,
                     setRecipientName,
-                    requiresCaptcha,
-                    setRequiresCaptcha,
+                    userStatus,
+                    setUserStatus,
                 } as _consts.IPacketScreenProps)}
         </global_components.CardWrapper>
     )
