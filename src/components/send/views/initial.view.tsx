@@ -45,7 +45,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [showTestnets, setShowTestnets] = useState(false)
     const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
     const [createGasless, setCreateGasless] = useState(true)
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const verbose = true
     const mantleCheck = utils.isMantleInUrl()
 
     //global states

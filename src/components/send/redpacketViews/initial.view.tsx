@@ -50,7 +50,7 @@ export function SendInitialView({
     const [enteredEmail, setEnteredEmail] = useState('')
     const [sentEmail, setSentEmail] = useState(false)
     const mantleCheck = utils.isMantleInUrl()
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const verbose = true
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
