@@ -738,19 +738,21 @@ export function GigaPacket() {
                         </div>
                     </div>
 
-                    <div className="col-span-1 ml-10 mt-4 flex h-[58px] w-[270px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                        <div className="font-normal">Name</div>
-                        <input
-                            className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                            placeholder="Ben"
-                            type="text"
-                            autoComplete="off"
-                            autoFocus
-                            onChange={(e) => {
-                                setSenderName(e.target.value)
-                            }}
-                        />
-                    </div>
+                    <div className="grid grid-cols-3 items-center gap-4">
+                                                <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                                                    <div className="font-normal">Name</div>
+                                                    <input
+                                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                                        placeholder="0x123"
+                                                        type="text"
+                                                        autoComplete="off"
+                                                        autoFocus
+                                                        onChange={(e) => {
+                                                          setSenderName(e.target.value)
+                                                        }}
+                                                    />
+                                                </div>
+                                                </div>
 
                     <div className="my-4 w-4/5 font-normal">
                         Please confirm all token addresses are correct and your connected wallet has sufficient funds!
