@@ -45,16 +45,31 @@ type tokenType = {
     numberOfSlots: number
 }
 
+type localStorageItem = {
+    completed: boolean
+    tokenDetails: {
+        tokenAddress: string
+        tokenAmount: number
+        numberOfSlots: number
+        slotsExecuted: number //this will be the amount of slots that have been created
+        link: string
+        completed: boolean
+        hashesExecuted: string[]
+    }[]
+    senderName: string
+    finalLink: string
+}
+
 export function GigaPacket() {
     const { isConnected, address } = useAccount()
     const { chain: currentChain } = useNetwork()
     const { open } = useWeb3Modal()
     const [isCopied, setIsCopied] = useState(false)
 
-    const [peanutPassword, setPeanutPassword] = useState<string>('')
     const [finalLink, setFinalLink] = useState<string | undefined>(undefined)
     const [isMainnet, setIsMainnet] = useState<boolean>(true)
     const [showModal, setShowModal] = useState<boolean>(false)
+    const [incompleteForm, setIncompleteForm] = useState<localStorageItem | undefined>(undefined)
     hooks.useConfirmRefresh(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
@@ -117,17 +132,6 @@ export function GigaPacket() {
             })
             setLoadingStates('switching network')
             setLoadingStates('loading')
-        }
-    }
-
-    async function setPassword() {
-        const _password = utils.getFromLocalStorage('latest-gigalink-password')
-        if (_password == null) {
-            const _passw = await getRandomString(16)
-            setPeanutPassword(_passw)
-            utils.saveToLocalStorage('latest-gigalink-password', _passw)
-        } else {
-            setPeanutPassword(_password)
         }
     }
 
@@ -241,6 +245,10 @@ export function GigaPacket() {
         return true
     }
 
+    function updateLocalstorageItem(key: string, item: localStorageItem) {
+        localStorage.setItem(key, JSON.stringify(item))
+    }
+
     async function createRaffle() {
         setErrorState({
             showError: false,
@@ -248,10 +256,14 @@ export function GigaPacket() {
         })
         // check if token addresses are correct
         // check if amounts and number of slots per link are correct
-
         try {
             const _formState = formState.filter((state) => state.tokenAddress !== '')
 
+            //create localstorage item and save to localstorage
+
+            const peanutPassword = await getRandomString(16)
+
+            //check if sendername is defined
             if (senderName == '') {
                 setErrorState({
                     showError: true,
@@ -260,8 +272,7 @@ export function GigaPacket() {
                 return
             }
 
-            console.log(senderName)
-
+            //check if the form is empty
             if (_formState.length === 0) {
                 setErrorState({
                     showError: true,
@@ -270,42 +281,63 @@ export function GigaPacket() {
                 return
             }
 
-            setLoadingStates('executing transaction')
-
+            //check formvalues
             if (!checkForm(_formState)) {
-                setLoadingStates('idle')
                 return
             }
+            setLoadingStates('loading')
+
+            const _localstorageKey = `${address}-gigalink-${peanutPassword}` //get all items from locastorage, and filter out with the correct address TODO: update password in key
+            let _localstorageItem: localStorageItem = {
+                completed: false,
+                tokenDetails: _formState.map((_token) => {
+                    return {
+                        tokenAddress: _token.tokenAddress,
+                        tokenAmount: _token.tokenAmount,
+                        numberOfSlots: _token.numberOfSlots,
+                        slotsExecuted: 0, //this will be the amount of slots that have been created
+                        startIdx: 0,
+                        link: '',
+                        hashesExecuted: [],
+                        completed: false,
+                    }
+                }),
+                senderName: senderName,
+                finalLink: '',
+            }
+            updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+            console.log({ _localstorageItem })
 
             const _chainID = isMainnet ? _consts.MANTLE_CHAIN_ID : _consts.MANTLE_TESTNET_CHAIN_ID
+
+            setLoadingStates('allow network switch')
 
             //Check network
             await checkNetwork(_chainID)
 
+            setLoadingStates('loading')
+
             //get signer
             const signer = await getWalletClientAndUpdateSigner({ chainId: _chainID })
-
-            //filter out empty token fields
 
             let raffleLinks: string[] = []
 
             const baseUrl = `${window.location.origin}/packet`
             const trackId = 'mantle'
-
             const batcherContractVersion = getLatestContractVersion({
                 chainId: _chainID,
                 type: 'batch',
                 experimental: true,
             })
+            // const currentDateTime = new Date()
+            // const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
+            // const premadeLink = `${baseUrl}?c=${_chainID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
+            // utils.saveToLocalStorage(localstorageKey, premadeLink)
 
-            const currentDateTime = new Date()
-            const localstorageKey = `saving giga-link for address: ${address} at ${currentDateTime}`
-            const premadeLink = `${baseUrl}?c=${_chainID}&v=v4.3&i=&t=${trackId}#p=${peanutPassword}`
-            utils.saveToLocalStorage(localstorageKey, premadeLink)
-
-            console.log('saved to localstorage with key and value:', localstorageKey, premadeLink)
             const defaultProvider = await getDefaultProvider(_chainID) // get from wallet? But rpc.mantle.xyz should work
 
+            // for each token, prepare the approve tx if needed. Need to fetch tokenDecimals and tokenType for this
             for (const token of _formState) {
                 let tokenType, tokenDecimals
 
@@ -330,6 +362,7 @@ export function GigaPacket() {
                     }
                 }
 
+                setLoadingStates('getting allowance')
                 if (tokenType == 1) {
                     const tokenAmountString = trim_decimal_overflow(token.tokenAmount, tokenDecimals)
                     const tokenAmountBigNum = ethers.utils.parseUnits(tokenAmountString, tokenDecimals)
@@ -369,21 +402,29 @@ export function GigaPacket() {
                             ...txOptions,
                             ...convertedTransaction,
                         } as ethers.providers.TransactionRequest
+
+                        setLoadingStates('sign in wallet')
+
                         const tx = await signer.sendTransaction(combined)
+
+                        setLoadingStates('executing transaction')
 
                         await tx.wait()
                     }
                 }
             }
 
+            //wait for the rpc to update
             await new Promise((resolve) => setTimeout(resolve, 2500))
 
-            // We'll handle each token separately
+            // We'll handle each token separately: preparing, sending and getting the link
             for (const token of _formState) {
+                console.log({ token })
+
                 let preparedTransactions: interfaces.IPrepareDepositTxsResponse[] = []
+
+                // Calculate the number of transactions needed (quotient is for the full slots, remainder for the last one)
                 const [quotient, remainder] = _utils.divideAndRemainder(token.numberOfSlots)
-                console.log(token.tokenAmount)
-                console.log(token.numberOfSlots)
                 const tokenAmountPerSlot = token.tokenAmount / token.numberOfSlots
                 let tokenType, tokenDecimals
 
@@ -409,22 +450,13 @@ export function GigaPacket() {
                     }
                 }
 
-                console.log('tokenType:', tokenType)
-                console.log('tokenDecimals:', tokenDecimals)
+                console.log({ tokenType })
+                console.log({ tokenDecimals })
 
-                console.log(token)
+                setLoadingStates('preparing transaction')
                 // prepare the transactions. It is calculated based on the number of slots and the max transactions per block
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
-
-                    console.log(numberofLinks)
-
-                    console.log(tokenAmountPerSlot)
-
-                    console.log(Number(tokenAmountPerSlot * numberofLinks))
-
-                    console.log(index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder)
-
                     if (numberofLinks > 0) {
                         const linkDetails = {
                             chainId: _chainID,
@@ -448,27 +480,18 @@ export function GigaPacket() {
                     }
                 }
 
-                console.log('preparedTx: ', preparedTransactions)
-
-                if (token.tokenAddress === _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
-                    console.log('hier')
-                    preparedTransactions = preparedTransactions.map((item) => {
-                        console.log(item.unsignedTxs.length)
-                        if (item.unsignedTxs.length === 2) {
-                            // Filter out the first transaction and return only the second one
-                            return { unsignedTxs: [item.unsignedTxs[1]] }
-                        }
-                        // If the length is not 2, return the item as it is
-                        return item
-                    })
-                }
-
-                console.log('filtered preparedTx: ', preparedTransactions)
+                console.log({ preparedTransactions })
 
                 let hashes: string[] = []
 
+                setLoadingStates('executing transaction')
+
+                let preparedTransactionsArrayIndex = 0
+                // set the fee options, combine into the tx and send the transactions
                 for (const preparedTransactionsArray of preparedTransactions) {
                     let index = 0
+                    const numberofLinks =
+                        preparedTransactionsArrayIndex != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
                     for (const prearedTransaction of preparedTransactionsArray.unsignedTxs) {
                         let txOptions
                         try {
@@ -480,7 +503,6 @@ export function GigaPacket() {
                                 error
                             )
                         }
-                        console.log(txOptions)
 
                         const convertedTransaction: ethers.providers.TransactionRequest = {
                             from: prearedTransaction.from,
@@ -490,25 +512,46 @@ export function GigaPacket() {
                                 ? ethers.BigNumber.from(prearedTransaction.value)
                                 : undefined,
                         }
-                        const combined = {
+                        const preparedTx = {
                             ...txOptions,
                             ...convertedTransaction,
                         } as ethers.providers.TransactionRequest
 
-                        console.log('combined:', combined)
-                        const tx = await signer.sendTransaction(combined)
+                        console.log({ preparedTx })
+                        setLoadingStates('sign in wallet')
+                        const tx = await signer.sendTransaction(preparedTx)
+                        setLoadingStates('executing transaction')
                         await tx.wait()
                         hashes.push(tx.hash)
-
                         index++
+
+                        _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                            if (_token.tokenAddress === token.tokenAddress) {
+                                return {
+                                    ..._token,
+                                    slotsExecuted: _token.slotsExecuted + numberofLinks, // Updated value
+                                    hashesExecuted: [..._token.hashesExecuted, tx.hash], // Updated value
+                                }
+                            }
+                            return _token // Return the original _token, not `token`
+                        })
+
+                        updateLocalstorageItem(_localstorageKey, _localstorageItem)
+                        console.log({
+                            _localstorageItem,
+                        })
                     }
+                    preparedTransactionsArrayIndex++
                 }
 
-                console.log('hashes:', hashes)
+                console.log({ hashes })
 
                 const links: string[] = []
                 let index = 0
 
+                setLoadingStates('creating link')
+
+                // get the links from the hashes
                 for (const hash of hashes) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
 
@@ -516,26 +559,13 @@ export function GigaPacket() {
                         chainId: _chainID,
                         tokenAmount: 0,
                         tokenAddress: token.tokenAddress,
-                        baseUrl: 'https://red.peanut.to/packet',
-                        trackId: 'mantle',
+                        baseUrl: baseUrl,
+                        trackId: trackId,
                         tokenDecimals: tokenDecimals,
                         tokenType: tokenType,
                     }
 
-                    // TODO: push to backend
-                    // const getLinkFromTxResponse = await getRaffleLinkFromTx({
-                    //     password: peanutPassword,
-                    //     txHash: hash,
-                    //     name: '',
-                    //     linkDetails: linkDetails,
-                    //     withMFA: true,
-                    //     withCaptcha: true,
-                    //     APIKey: process.env.PEANUT_API_KEY ?? '',
-                    //     numberOfLinks: numberofLinks,
-                    //     provider: signer.provider,
-                    // })
-
-                    // TODO: len passwords
+                    //gets the links from the tx
                     const getLinksFromTxResponse = await getLinksFromTx({
                         passwords: Array(numberofLinks).fill(peanutPassword),
                         txHash: hash,
@@ -543,46 +573,61 @@ export function GigaPacket() {
                         provider: signer.provider,
                     })
 
+                    //creates a multilink from the links
                     const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
 
                     // returns array of links
                     links.push(createdMultilink)
 
                     index++
+
+                    _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                        if (_token.tokenAddress === token.tokenAddress) {
+                            return {
+                                ..._token,
+                                link:
+                                    _token.link !== ''
+                                        ? combineRaffleLink([_token.link, createdMultilink])
+                                        : createdMultilink, // Updated value
+                            }
+                        }
+                        return _token // Return the original _token, not `token`
+                    })
+
+                    updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                    console.log({
+                        _localstorageItem,
+                    })
                 }
 
-                console.log('links:', links)
+                console.log({ links })
 
                 const combinedLink = combineRaffleLink(links)
 
-                console.log(combinedLink)
-
-                // save to localstorage status with smt like not finalized
-
-                const localstorageItem = utils.getFromLocalStorage(localstorageKey)
-
-                console.log(localstorageItem)
-
-                const localstorageItemUrl = new URL(localstorageItem)
-
-                console.log(localstorageItemUrl.searchParams.get('i'))
-
-                if (localstorageItemUrl.searchParams.get('i') == '') {
-                    console.log('hier') // lmao
-                    utils.saveToLocalStorage(localstorageKey, combinedLink)
-                } else {
-                    console.log('da')
-                    console.log(localstorageItem)
-                    console.log(combinedLink)
-                    const _combinedLink = combineRaffleLink([localstorageItem, combinedLink])
-                    utils.saveToLocalStorage(localstorageKey, _combinedLink)
-                }
+                console.log({ combinedLink })
 
                 raffleLinks.push(combinedLink)
+
+                _localstorageItem
+                _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                    if (_token.tokenAddress === token.tokenAddress) {
+                        return {
+                            ..._token,
+                            link: combinedLink, // Updated value
+                            completed: true,
+                        }
+                    }
+                    return _token // Return the original _token, not `token`
+                })
+
+                updateLocalstorageItem(_localstorageKey, _localstorageItem)
+                console.log({
+                    _localstorageItem,
+                })
             }
+
             const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
-            console.log(finalfinalv4rafflelink_final)
-            setFinalLink(finalfinalv4rafflelink_final)
 
             await addLinkCreation({
                 name: senderName,
@@ -593,9 +638,37 @@ export function GigaPacket() {
                 baseUrl: consts.next_proxy_url + '/submit-raffle-link',
             })
 
-            utils.delteFromLocalStorage('latest-gigalink-password')
-        } catch (error) {
+            console.log({ finalfinalv4rafflelink_final })
+            setFinalLink(finalfinalv4rafflelink_final)
+
+            //udpatelocalstorage with final link and completed flag
+
+            _localstorageItem = {
+                ..._localstorageItem,
+                completed: true,
+                finalLink: finalfinalv4rafflelink_final,
+            }
+            updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+            console.log({
+                _localstorageItem,
+            })
+
             setLoadingStates('idle')
+        } catch (error: any) {
+            setLoadingStates('idle')
+
+            if (error.toString().includes('Failed to get wallet client')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please make sure your wallet is connected.',
+                })
+            } else {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Something went wrong while creating the raffle link',
+                })
+            }
 
             console.error(error)
         } finally {
@@ -603,22 +676,49 @@ export function GigaPacket() {
         }
     }
 
-    useEffect(() => {
-        if (peanutPassword == '') {
-            setPassword()
+    async function completeRaffle() {
+        if (incompleteForm) {
+            console.log(incompleteForm)
         }
-        getAllGigalinks()
-    }, [])
+    }
 
     function classNames(...classes: any) {
         return classes.filter(Boolean).join(' ')
     }
 
-    function getAllGigalinks() {
-        const links = utils.getAllGigalinksFromLocalstorage({ address: address ?? '' })
-        console.log(links)
-    }
+    useEffect(() => {
+        if (address) {
+            let localStorageItems: localStorageItem[] = []
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key !== null && key?.includes(`${address}-gigalink-`)) {
+                    const value = localStorage.getItem(key)
+                    if (value !== null) {
+                        localStorageItems.push(JSON.parse(value))
+                    }
+                }
+            }
 
+            console.log(localStorageItems)
+
+            const incompleteForm = localStorageItems.find((item) => item.completed === false)
+            if (incompleteForm) {
+                console.log('found incomplete form, ', incompleteForm)
+                setIncompleteForm(incompleteForm)
+                setFormState(
+                    incompleteForm.tokenDetails.map((token) => {
+                        return {
+                            tokenAddress: token.tokenAddress,
+                            tokenAmount: token.tokenAmount,
+                            numberOfSlots: token.numberOfSlots,
+                        }
+                    })
+                )
+            } else {
+                setIncompleteForm(undefined)
+            }
+        }
+    }, [])
     return (
         <>
             <global_components.CardWrapper redPacket>
@@ -711,6 +811,7 @@ export function GigaPacket() {
                                                             newFormState[idx].tokenAmount = Number(e.target.value)
                                                             setFormState(newFormState)
                                                         }}
+                                                        defaultValue={formState[idx].tokenAmount}
                                                     />
                                                 </div>
                                                 <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
@@ -726,6 +827,7 @@ export function GigaPacket() {
                                                             newFormState[idx].numberOfSlots = Number(e.target.value)
                                                             setFormState(newFormState)
                                                         }}
+                                                        defaultValue={formState[idx].numberOfSlots}
                                                     />
                                                 </div>
                                             </div>
@@ -738,24 +840,31 @@ export function GigaPacket() {
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 items-center gap-4">
-                                                <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                                                    <div className="font-normal">Name</div>
-                                                    <input
-                                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                                        placeholder="0x123"
-                                                        type="text"
-                                                        autoComplete="off"
-                                                        autoFocus
-                                                        onChange={(e) => {
-                                                          setSenderName(e.target.value)
-                                                        }}
-                                                    />
-                                                </div>
-                                                </div>
+                    <div className="col-span-1 ml-6 flex h-[58px] w-[270px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                        <div className="font-normal">Name</div>
+                        <input
+                            className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                            placeholder="Ben"
+                            type="text"
+                            autoComplete="off"
+                            autoFocus
+                            onChange={(e) => {
+                                setSenderName(e.target.value)
+                            }}
+                        />
+                    </div>
 
                     <div className="my-4 w-4/5 font-normal">
                         Please confirm all token addresses are correct and your connected wallet has sufficient funds!
+                    </div>
+
+                    <div className="my-4 w-4/5 font-normal">
+                        The proccess of creating a gigalink was interupted. You still have to confirm{' '}
+                        {incompleteForm?.tokenDetails.map((_token) => {
+                            return _token.completed
+                                ? ''
+                                : _token.numberOfSlots + ' for token with address ' + _token.tokenAddress
+                        })}{' '}
                     </div>
 
                     <div
@@ -772,6 +881,8 @@ export function GigaPacket() {
                             onClick={() => {
                                 if (!isConnected) {
                                     open()
+                                } else if (incompleteForm) {
+                                    completeRaffle()
                                 } else {
                                     createRaffle()
                                 }
@@ -789,6 +900,8 @@ export function GigaPacket() {
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
+                            ) : incompleteForm ? (
+                                'Complete '
                             ) : (
                                 'Create'
                             )}

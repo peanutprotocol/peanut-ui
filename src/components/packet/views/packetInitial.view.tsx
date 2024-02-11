@@ -190,6 +190,8 @@ export function PacketInitialView({
                     errorMessage: '',
                 })
                 setIsValidAddress(true)
+
+
                 setIsEnsName({ state: true, address  })
                 return
             }

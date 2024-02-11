@@ -422,6 +422,11 @@ export function SendInitialView({
                             showError: true,
                             errorMessage: 'Nonce expired, please try again',
                         })
+                    } else if (error.toString().includes('Failed to get wallet client')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please make sure your wallet is connected.',
+                        })
                     } else {
                         setErrorState({
                             showError: true,
