@@ -27,6 +27,7 @@ import * as _consts from './gigaPacket.consts'
 import { Dialog, Switch, Transition } from '@headlessui/react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { waitForTransactionReceipt } from 'viem/_types/actions/public/waitForTransactionReceipt'
+import { number } from 'prop-types'
 
 // {
 //     tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -57,6 +58,7 @@ type localStorageItem = {
         hashesExecuted: string[]
     }[]
     senderName: string
+    password: string
     finalLink: string
 }
 
@@ -249,6 +251,22 @@ export function GigaPacket() {
         localStorage.setItem(key, JSON.stringify(item))
     }
 
+    const checkBalance = async (totalSlots: number, address: string, provider?: ethers.providers.JsonRpcProvider) => {
+        provider = provider ?? (await getDefaultProvider(_consts.MANTLE_CHAIN_ID))
+        const balance = await provider.getBalance(address)
+        const formattedBalance = utils.formatAmountWithDecimals({ amount: Number(balance.toString()), decimals: 18 })
+        const requiredBalance = (totalSlots / _consts.MAX_TRANSACTIONS_PER_BLOCK) * _consts.MAX_GAS_PRICE
+        if (requiredBalance > Number(formattedBalance)) {
+            console.log('not enough balance to cover gas')
+        } else {
+            console.log('enough balance to cover gas')
+        }
+    }
+
+    useEffect(() => {
+        checkBalance(1000, address ?? '')
+    }, [])
+
     async function createRaffle() {
         setErrorState({
             showError: false,
@@ -303,6 +321,7 @@ export function GigaPacket() {
                     }
                 }),
                 senderName: senderName,
+                password: peanutPassword,
                 finalLink: '',
             }
             updateLocalstorageItem(_localstorageKey, _localstorageItem)
@@ -609,7 +628,6 @@ export function GigaPacket() {
 
                 raffleLinks.push(combinedLink)
 
-                _localstorageItem
                 _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
                     if (_token.tokenAddress === token.tokenAddress) {
                         return {
@@ -677,14 +695,404 @@ export function GigaPacket() {
     }
 
     async function completeRaffle() {
-        if (incompleteForm) {
-            console.log(incompleteForm)
+        try {
+            if (incompleteForm) {
+                console.log(incompleteForm)
+
+                const _password = incompleteForm.password
+                const _chainID = isMainnet ? _consts.MANTLE_CHAIN_ID : _consts.MANTLE_TESTNET_CHAIN_ID
+                const _localstorageKey = `${address}-gigalink-${_password}`
+
+                const _senderName = incompleteForm.senderName
+
+                let _localstorageItem: localStorageItem = {
+                    password: _password,
+                    completed: false,
+                    tokenDetails: incompleteForm.tokenDetails,
+                    senderName: _senderName,
+                    finalLink: '',
+                }
+
+                setLoadingStates('allow network switch')
+
+                //Check network
+                await checkNetwork(_chainID)
+
+                setLoadingStates('loading')
+
+                //get signer
+                const signer = await getWalletClientAndUpdateSigner({ chainId: _chainID })
+
+                const baseUrl = `${window.location.origin}/packet`
+                const trackId = 'mantle'
+                const batcherContractVersion = getLatestContractVersion({
+                    chainId: _chainID,
+                    type: 'batch',
+                    experimental: true,
+                })
+
+                let raffleLinks: string[] = []
+
+                const defaultProvider = await getDefaultProvider(_chainID) // get from wallet? But rpc.mantle.xyz should work
+
+                for (const token of incompleteForm.tokenDetails) {
+                    if (token.completed) {
+                        raffleLinks.push(token.link)
+                    } else {
+                        let tokenType, tokenDecimals
+
+                        const numberOfSlotsTodo = token.numberOfSlots - token.slotsExecuted
+                        const totalTokenAmountTodo = (token.tokenAmount / token.numberOfSlots) * numberOfSlotsTodo
+
+                        if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                            tokenType = 0
+                            tokenDecimals = 18
+                        } else {
+                            try {
+                                const contractDetails = await getTokenContractDetails({
+                                    address: token.tokenAddress,
+                                    provider: defaultProvider,
+                                })
+
+                                tokenType = contractDetails.type
+                                contractDetails.decimals
+                                    ? (tokenDecimals = contractDetails.decimals)
+                                    : (tokenDecimals = 16)
+                            } catch (error) {
+                                throw new Error('Contract type not supported')
+                            }
+
+                            if (tokenType === undefined || tokenDecimals === undefined) {
+                                throw new Error('Token type or decimals not found, please contact support')
+                            }
+                        }
+
+                        if (tokenType == 1) {
+                            const tokenAmountString = trim_decimal_overflow(totalTokenAmountTodo, tokenDecimals)
+                            const tokenAmountBigNum = ethers.utils.parseUnits(tokenAmountString, tokenDecimals)
+
+                            const approveTx = await peanut.prepareApproveERC20Tx(
+                                address ?? '',
+                                _chainID,
+                                token.tokenAddress,
+                                tokenAmountBigNum,
+                                -1, // decimals doesn't matter
+                                true, // already a prepared bignumber
+                                batcherContractVersion,
+                                signer.provider
+                            )
+
+                            console.log('approveTx:', approveTx)
+
+                            if (approveTx !== null) {
+                                let txOptions
+                                try {
+                                    txOptions = await setFeeOptions({ provider: signer.provider })
+                                } catch (error) {
+                                    throw new interfaces.SDKStatus(
+                                        interfaces.ESignAndSubmitTx.ERROR_SETTING_FEE_OPTIONS,
+                                        'Error setting the fee options',
+                                        error
+                                    )
+                                }
+
+                                const convertedTransaction: ethers.providers.TransactionRequest = {
+                                    from: approveTx.from,
+                                    to: approveTx.to,
+                                    data: approveTx.data,
+                                    value: approveTx.value ? ethers.BigNumber.from(approveTx.value) : undefined,
+                                }
+                                const combined = {
+                                    ...txOptions,
+                                    ...convertedTransaction,
+                                } as ethers.providers.TransactionRequest
+
+                                setLoadingStates('sign in wallet')
+
+                                const tx = await signer.sendTransaction(combined)
+
+                                setLoadingStates('executing transaction')
+
+                                await tx.wait()
+
+                                //wait for the rpc to update
+                                await new Promise((resolve) => setTimeout(resolve, 2500))
+                            }
+                        }
+
+                        const [totalQuotient, totalRemainder] = _utils.divideAndRemainder(token.numberOfSlots)
+
+                        const [quotient, remainder] = _utils.divideAndRemainder(numberOfSlotsTodo)
+                        const tokenAmountPerSlot = totalTokenAmountTodo / numberOfSlotsTodo // or should this be the total number of slots?
+
+                        let preparedTransactions: interfaces.IPrepareDepositTxsResponse[] = []
+
+                        setLoadingStates('preparing transaction')
+                        // prepare the transactions. It is calculated based on the number of slots and the max transactions per block
+                        for (let index = 0; index <= quotient; index++) {
+                            const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
+                            if (numberofLinks > 0) {
+                                const linkDetails = {
+                                    chainId: _chainID,
+                                    tokenAmount: Number(tokenAmountPerSlot * numberofLinks),
+                                    tokenAddress: token.tokenAddress,
+                                    baseUrl,
+                                    trackId,
+                                    tokenDecimals: tokenDecimals,
+                                    tokenType: tokenType,
+                                }
+
+                                const prepTx = await prepareRaffleDepositTxs({
+                                    userAddress: address ?? '',
+                                    linkDetails: linkDetails,
+                                    password: _password,
+                                    withMFA: true,
+                                    numberOfLinks: numberofLinks,
+                                })
+
+                                preparedTransactions.push(prepTx)
+                            }
+                        }
+
+                        console.log({ preparedTransactions })
+
+                        let hashes: string[] = token.hashesExecuted
+
+                        let preparedTransactionsArrayIndex = 0
+                        // set the fee options, combine into the tx and send the transactions
+                        for (const preparedTransactionsArray of preparedTransactions) {
+                            let index = 0
+                            const numberofLinks =
+                                preparedTransactionsArrayIndex != quotient
+                                    ? _consts.MAX_TRANSACTIONS_PER_BLOCK
+                                    : remainder
+                            for (const prearedTransaction of preparedTransactionsArray.unsignedTxs) {
+                                let txOptions
+                                try {
+                                    txOptions = await setFeeOptions({ provider: signer.provider })
+                                } catch (error) {
+                                    throw new interfaces.SDKStatus(
+                                        interfaces.ESignAndSubmitTx.ERROR_SETTING_FEE_OPTIONS,
+                                        'Error setting the fee options',
+                                        error
+                                    )
+                                }
+
+                                const convertedTransaction: ethers.providers.TransactionRequest = {
+                                    from: prearedTransaction.from,
+                                    to: prearedTransaction.to,
+                                    data: prearedTransaction.data,
+                                    value: prearedTransaction.value
+                                        ? ethers.BigNumber.from(prearedTransaction.value)
+                                        : undefined,
+                                }
+                                const preparedTx = {
+                                    ...txOptions,
+                                    ...convertedTransaction,
+                                } as ethers.providers.TransactionRequest
+
+                                console.log({ preparedTx })
+                                setLoadingStates('sign in wallet')
+                                const tx = await signer.sendTransaction(preparedTx)
+                                setLoadingStates('executing transaction')
+                                await tx.wait()
+                                hashes.push(tx.hash)
+                                index++
+
+                                _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                                    if (_token.tokenAddress === token.tokenAddress) {
+                                        return {
+                                            ..._token,
+                                            slotsExecuted: _token.slotsExecuted + numberofLinks,
+                                            hashesExecuted: [..._token.hashesExecuted, tx.hash],
+                                        }
+                                    }
+                                    return _token
+                                })
+
+                                updateLocalstorageItem(_localstorageKey, _localstorageItem)
+                                console.log({
+                                    _localstorageItem,
+                                })
+                            }
+                            preparedTransactionsArrayIndex++
+                        }
+
+                        hashes = hashes.filter((value, index, self) => {
+                            return self.indexOf(value) === index
+                        })
+                        console.log({
+                            hashes,
+                        })
+
+                        const links: string[] = []
+                        let index = 0
+
+                        setLoadingStates('creating link')
+
+                        for (const hash of hashes) {
+                            const numberOfLinks =
+                                index != totalQuotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : totalRemainder
+
+                            const linkDetails = {
+                                chainId: _chainID,
+                                tokenAmount: 0, //doesnt matter here
+                                tokenAddress: token.tokenAddress,
+                                baseUrl: baseUrl,
+                                trackId: trackId,
+                                tokenDecimals: tokenDecimals,
+                                tokenType: tokenType,
+                            }
+
+                            //gets the links from the tx
+                            const getLinksFromTxResponse = await getLinksFromTx({
+                                passwords: Array(numberOfLinks).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
+                                txHash: hash,
+                                linkDetails: linkDetails,
+                                provider: signer.provider,
+                            })
+
+                            console.log({ getLinksFromTxResponse })
+
+                            //creates a multilink from the links
+                            const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
+
+                            // returns array of links
+                            links.push(createdMultilink)
+
+                            index++
+
+                            _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                                if (_token.tokenAddress === token.tokenAddress) {
+                                    return {
+                                        ..._token,
+                                        link:
+                                            _token.link !== ''
+                                                ? combineRaffleLink([_token.link, createdMultilink])
+                                                : createdMultilink,
+                                    }
+                                }
+                                return _token
+                            })
+
+                            updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                            console.log({
+                                _localstorageItem,
+                            })
+                        }
+
+                        console.log({ links })
+
+                        const combinedLink = combineRaffleLink(links)
+
+                        console.log({ combinedLink })
+
+                        raffleLinks.push(combinedLink)
+
+                        _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                            if (_token.tokenAddress === token.tokenAddress) {
+                                return {
+                                    ..._token,
+                                    link: combinedLink,
+                                    completed: true,
+                                }
+                            }
+                            return _token
+                        })
+
+                        updateLocalstorageItem(_localstorageKey, _localstorageItem)
+                        console.log({
+                            _localstorageItem,
+                        })
+                    }
+                }
+
+                const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+
+                await addLinkCreation({
+                    name: _senderName,
+                    link: finalfinalv4rafflelink_final,
+                    APIKey: 'youwish',
+                    withCaptcha: true,
+                    withMFA: true,
+                    baseUrl: consts.next_proxy_url + '/submit-raffle-link',
+                })
+
+                console.log({ finalfinalv4rafflelink_final })
+                setFinalLink(finalfinalv4rafflelink_final)
+
+                _localstorageItem = {
+                    ..._localstorageItem,
+                    completed: true,
+                    finalLink: finalfinalv4rafflelink_final,
+                }
+                updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                console.log({
+                    _localstorageItem,
+                })
+
+                setLoadingStates('idle')
+            }
+        } catch (error: any) {
+            setLoadingStates('idle')
+
+            if (error.toString().includes('Failed to get wallet client')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please make sure your wallet is connected.',
+                })
+            } else {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Something went wrong while creating the raffle link',
+                })
+            }
+
+            console.error(error)
+        } finally {
+            setLoadingStates('idle')
         }
     }
 
     function classNames(...classes: any) {
         return classes.filter(Boolean).join(' ')
     }
+
+    useEffect(() => {
+        if (address) {
+            let localStorageItems: localStorageItem[] = []
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key !== null && key?.includes(`${address}-gigalink-`)) {
+                    const value = localStorage.getItem(key)
+                    if (value !== null) {
+                        localStorageItems.push(JSON.parse(value))
+                    }
+                }
+            }
+
+            console.log(localStorageItems)
+
+            const incompleteForm = localStorageItems.find((item) => item.completed === false)
+            if (incompleteForm) {
+                console.log('found incomplete form, ', incompleteForm)
+                setIncompleteForm(incompleteForm)
+                setFormState(
+                    incompleteForm.tokenDetails.map((token) => {
+                        return {
+                            tokenAddress: token.tokenAddress,
+                            tokenAmount: token.tokenAmount,
+                            numberOfSlots: token.numberOfSlots,
+                        }
+                    })
+                )
+            } else {
+                setIncompleteForm(undefined)
+            }
+        }
+    }, [])
 
     return (
         <>
@@ -741,6 +1149,8 @@ export function GigaPacket() {
                             Fill out the rows with the token address, the amount of tokens, and the number of slots you
                             want to create. You can add up to 4 different tokens, just leave the remaining ones empty.
                         </p>
+
+                        <p>DONT USE BRAVE OR INCOGNITO BROWSER</p>
                     </div>
 
                     <Switch.Group as="div" className="flex items-center gap-4">
@@ -857,6 +1267,21 @@ export function GigaPacket() {
                         Please confirm all token addresses are correct and your connected wallet has sufficient funds!
                     </div>
 
+                    {incompleteForm && (
+                        <div className="my-4 w-4/5 font-normal">
+                            The proccess of creating a gigalink was interupted. You still have to confirm
+                            {incompleteForm?.tokenDetails.map((_token) => {
+                                return _token.completed
+                                    ? ''
+                                    : ' ' +
+                                          (_token.numberOfSlots - _token.slotsExecuted) +
+                                          ' slots for token with address ' +
+                                          _token.tokenAddress +
+                                          ' '
+                            })}
+                        </div>
+                    )}
+
                     <h2>EXPERIMENTAL! DO NOT USE IN PRODUCTION!</h2>
                     <p>
                         Hop over into our{' '}
@@ -879,6 +1304,8 @@ export function GigaPacket() {
                             onClick={() => {
                                 if (!isConnected) {
                                     open()
+                                } else if (incompleteForm) {
+                                    completeRaffle()
                                 } else {
                                     createRaffle()
                                 }
@@ -896,6 +1323,8 @@ export function GigaPacket() {
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
+                            ) : incompleteForm ? (
+                                'Complete '
                             ) : (
                                 'Create'
                             )}
