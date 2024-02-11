@@ -191,8 +191,7 @@ export function PacketInitialView({
                 })
                 setIsValidAddress(true)
 
-
-                setIsEnsName({ state: true, address  })
+                setIsEnsName({ state: true, address })
                 return
             }
             if (!address.endsWith('.eth')) {
