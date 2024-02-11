@@ -69,6 +69,7 @@ export function GigaPacket() {
     const [finalLink, setFinalLink] = useState<string | undefined>(undefined)
     const [isMainnet, setIsMainnet] = useState<boolean>(true)
     const [showModal, setShowModal] = useState<boolean>(false)
+    const [incompleteForm, setIncompleteForm] = useState<localStorageItem | undefined>(undefined)
     hooks.useConfirmRefresh(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
@@ -310,8 +311,12 @@ export function GigaPacket() {
 
             const _chainID = isMainnet ? _consts.MANTLE_CHAIN_ID : _consts.MANTLE_TESTNET_CHAIN_ID
 
+            setLoadingStates('allow network switch')
+
             //Check network
             await checkNetwork(_chainID)
+
+            setLoadingStates('loading')
 
             //get signer
             const signer = await getWalletClientAndUpdateSigner({ chainId: _chainID })
@@ -357,6 +362,7 @@ export function GigaPacket() {
                     }
                 }
 
+                setLoadingStates('getting allowance')
                 if (tokenType == 1) {
                     const tokenAmountString = trim_decimal_overflow(token.tokenAmount, tokenDecimals)
                     const tokenAmountBigNum = ethers.utils.parseUnits(tokenAmountString, tokenDecimals)
@@ -396,7 +402,12 @@ export function GigaPacket() {
                             ...txOptions,
                             ...convertedTransaction,
                         } as ethers.providers.TransactionRequest
+
+                        setLoadingStates('sign in wallet')
+
                         const tx = await signer.sendTransaction(combined)
+
+                        setLoadingStates('executing transaction')
 
                         await tx.wait()
                     }
@@ -442,6 +453,7 @@ export function GigaPacket() {
                 console.log({ tokenType })
                 console.log({ tokenDecimals })
 
+                setLoadingStates('preparing transaction')
                 // prepare the transactions. It is calculated based on the number of slots and the max transactions per block
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
@@ -471,6 +483,8 @@ export function GigaPacket() {
                 console.log({ preparedTransactions })
 
                 let hashes: string[] = []
+
+                setLoadingStates('executing transaction')
 
                 let preparedTransactionsArrayIndex = 0
                 // set the fee options, combine into the tx and send the transactions
@@ -504,7 +518,9 @@ export function GigaPacket() {
                         } as ethers.providers.TransactionRequest
 
                         console.log({ preparedTx })
+                        setLoadingStates('sign in wallet')
                         const tx = await signer.sendTransaction(preparedTx)
+                        setLoadingStates('executing transaction')
                         await tx.wait()
                         hashes.push(tx.hash)
                         index++
@@ -532,6 +548,8 @@ export function GigaPacket() {
 
                 const links: string[] = []
                 let index = 0
+
+                setLoadingStates('creating link')
 
                 // get the links from the hashes
                 for (const hash of hashes) {
@@ -634,6 +652,8 @@ export function GigaPacket() {
             console.log({
                 _localstorageItem,
             })
+
+            setLoadingStates('idle')
         } catch (error: any) {
             setLoadingStates('idle')
 
@@ -655,23 +675,35 @@ export function GigaPacket() {
         }
     }
 
-    async function completeRaffle() {}
+    async function completeRaffle() {
+        if (incompleteForm) {
+        }
+    }
 
     function classNames(...classes: any) {
         return classes.filter(Boolean).join(' ')
     }
 
     useEffect(() => {
-        // if (address) {
-        //     const totalLocalstorageItem = ''
-        //     const localstorageItem = utils.getFromLocalStorage(`${address}-gigalink`)
-        //     if (localstorageItem != '' && localstorageItem != null) {
-        //         const item = JSON.parse(localstorageItem) as localStorageItem
-        //         if (!item.completed) {
-        //             //handle complete stuff
-        //         }
-        //     }
-        // }
+        if (address) {
+            let localStorageItems: localStorageItem[] = []
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key !== null && key?.includes(`${address}-gigalink-`)) {
+                    const value = localStorage.getItem(key)
+                    if (value !== null) {
+                        localStorageItems.push(JSON.parse(value))
+                    }
+                }
+            }
+
+            console.log(localStorageItems)
+
+            const incompleteForm = localStorageItems.find((item) => item.completed === false)
+            if (incompleteForm) {
+                setIncompleteForm(incompleteForm)
+            }
+        }
     }, [])
     return (
         <>
@@ -824,6 +856,8 @@ export function GigaPacket() {
                             onClick={() => {
                                 if (!isConnected) {
                                     open()
+                                } else if (incompleteForm) {
+                                    console.log(incompleteForm)
                                 } else {
                                     createRaffle()
                                 }
@@ -841,6 +875,8 @@ export function GigaPacket() {
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
+                            ) : incompleteForm ? (
+                                'Complete '
                             ) : (
                                 'Create'
                             )}

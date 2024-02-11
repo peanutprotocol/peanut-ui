@@ -14,3 +14,4 @@ export type LoadingStates =
     | 'completed'
     | 'opening'
     | 'fetching address'
+    | 'getting allowance'
