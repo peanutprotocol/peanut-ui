@@ -7,6 +7,8 @@ import { switchNetwork, getWalletClient } from '@wagmi/core'
 import peanut, {
     getDefaultProvider,
     getRaffleLinkFromTx,
+    addLinkCreation,
+    getLinksFromTx,
     getRandomString,
     getTokenContractDetails,
     interfaces,
@@ -14,6 +16,7 @@ import peanut, {
     setFeeOptions,
     trim_decimal_overflow,
     getLatestContractVersion,
+    createMultiLinkFromLinks,
 } from '@squirrel-labs/peanut-sdk'
 
 import * as utils from '@/utils'
@@ -79,6 +82,8 @@ export function GigaPacket() {
             numberOfSlots: 0,
         },
     ]) //Should be a form, but for now we'll just use a state
+    const [senderName, setSenderName] = useState<string>('')
+
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -237,7 +242,6 @@ export function GigaPacket() {
     }
 
     async function createRaffle() {
-        setLoadingStates('executing transaction')
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -248,14 +252,23 @@ export function GigaPacket() {
         try {
             const _formState = formState.filter((state) => state.tokenAddress !== '')
 
+            if(senderName == ''){
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please provide a name for the sender',
+                })
+                return
+            }
+
             if (_formState.length === 0) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Please provide the details for at least one token.',
                 })
-                setLoadingStates('idle')
                 return
             }
+
+            setLoadingStates('executing transaction')
 
             if (!checkForm(_formState)) {
                 setLoadingStates('idle')
@@ -507,19 +520,31 @@ export function GigaPacket() {
                         tokenType: tokenType,
                     }
 
-                    const getLinkFromTxResponse = await getRaffleLinkFromTx({
-                        password: peanutPassword,
+                    // TODO: push to backend
+                    // const getLinkFromTxResponse = await getRaffleLinkFromTx({
+                    //     password: peanutPassword,
+                    //     txHash: hash,
+                    //     name: '',
+                    //     linkDetails: linkDetails,
+                    //     withMFA: true,
+                    //     withCaptcha: true,
+                    //     APIKey: process.env.PEANUT_API_KEY ?? '',
+                    //     numberOfLinks: numberofLinks,
+                    //     provider: signer.provider,
+                    // })
+
+                    // TODO: len passwords
+                    const getLinksFromTxResponse = await getLinksFromTx({
+                        passwords: Array(numberofLinks).fill(peanutPassword),
                         txHash: hash,
-                        name: '',
                         linkDetails: linkDetails,
-                        withMFA: true,
-                        withCaptcha: true,
-                        APIKey: process.env.PEANUT_API_KEY ?? '',
-                        numberOfLinks: numberofLinks,
                         provider: signer.provider,
                     })
 
-                    links.push(getLinkFromTxResponse.link)
+                    const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
+
+                    // returns array of links
+                    links.push(createdMultilink)
 
                     index++
                 }
@@ -530,7 +555,7 @@ export function GigaPacket() {
 
                 console.log(combinedLink)
 
-                //save to localstorage status with smt like not finalized
+                // save to localstorage status with smt like not finalized
 
                 const localstorageItem = utils.getFromLocalStorage(localstorageKey)
 
@@ -541,7 +566,7 @@ export function GigaPacket() {
                 console.log(localstorageItemUrl.searchParams.get('i'))
 
                 if (localstorageItemUrl.searchParams.get('i') == '') {
-                    console.log('hier')
+                    console.log('hier') // lmao
                     utils.saveToLocalStorage(localstorageKey, combinedLink)
                 } else {
                     console.log('da')
@@ -556,6 +581,16 @@ export function GigaPacket() {
             const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
             console.log(finalfinalv4rafflelink_final)
             setFinalLink(finalfinalv4rafflelink_final)
+
+            await addLinkCreation({
+                name: senderName,
+                link: finalfinalv4rafflelink_final,
+                APIKey: 'youwish',
+                withCaptcha: true,
+                withMFA: true,
+                baseUrl: consts.next_proxy_url + '/submit-raffle-link',
+            })
+
             utils.delteFromLocalStorage('latest-gigalink-password')
         } catch (error) {
             setLoadingStates('idle')
@@ -586,9 +621,13 @@ export function GigaPacket() {
         <>
             <global_components.CardWrapper redPacket>
                 <div className=" mt-10 flex w-full flex-col items-center gap-2 text-center">
-                    <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Red Packet</h2>
+                    <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create a Mega Red Packet</h2>
                     <div className="my-0 w-4/5 font-normal">
-                        Form for specifically creating red packets with more than 250 slots. Only possible on mantle.
+                        This is a form for specifically creating red packets with more than 250 slots. Only possible on
+                        mantle.
+                        <br></br>
+                        <br></br>
+                        <a className="font-bold">Instructions: </a>
                         Fill out the rows with the token address, the amount of tokens and the number of slots you want
                         to create. You can add up to 4 different tokens, just leave the remaining ones empty.
                         {/*  click{' '}
@@ -657,7 +696,7 @@ export function GigaPacket() {
                                                     />
                                                 </div>
                                                 <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                                                    <div className="font-normal">Token amount</div>
+                                                    <div className="font-normal">TOTAL Token amount</div>
                                                     <input
                                                         className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
                                                         placeholder="500"
@@ -697,8 +736,23 @@ export function GigaPacket() {
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-3 items-center gap-4">
+                                                <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                                                    <div className="font-normal">Name</div>
+                                                    <input
+                                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                                        placeholder="0x123"
+                                                        type="text"
+                                                        autoComplete="off"
+                                                        autoFocus
+                                                        onChange={(e) => {
+                                                          setSenderName(e.target.value)
+                                                        }}
+                                                    />
+                                                </div>
+
                     <div className="my-4 w-4/5 font-normal">
-                        Please confirm all token addresses are correct and the connected wallet has sufficient funds.
+                        Please confirm all token addresses are correct and your connected wallet has sufficient funds!
                     </div>
 
                     <div
