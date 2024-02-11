@@ -24,7 +24,7 @@ export function xchainClaimView({
     crossChainDetails,
     setCrossChainSuccess,
 }: _consts.IClaimScreenProps) {
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const verbose = true
 
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()

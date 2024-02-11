@@ -33,7 +33,7 @@ export function ClaimView({
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [IpfsMetadata, setIpfsMetadata] = useState('')
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const verbose = true
     const [isIpfsLoading, setIsIpfsLoading] = useState(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')

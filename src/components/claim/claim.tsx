@@ -40,7 +40,7 @@ export function Claim() {
     const [senderAddress, setSenderAddress] = useState<string>('')
 
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const verbose = true
 
     const handleOnNext = () => {
         const newIdx = claimScreen.idx + 1

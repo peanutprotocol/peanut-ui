@@ -1,6 +1,11 @@
 'use client'
 import { createElement, useEffect, useState } from 'react'
-import peanut, { hasAddressParticipatedInRaffle, interfaces, requiresRaffleCaptcha } from '@squirrel-labs/peanut-sdk'
+import peanut, {
+    getRaffleLeaderboard,
+    hasAddressParticipatedInRaffle,
+    interfaces,
+    requiresRaffleCaptcha,
+} from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
@@ -65,6 +70,13 @@ export function Packet() {
 
             if (_raffleInfo.isActive) {
                 if (address && hasAddressParticipated) {
+                    setLeaderboardInfo(
+                        await getRaffleLeaderboard({
+                            link: link,
+                            baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                            APIKey: 'doesnt-matter',
+                        })
+                    )
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
@@ -81,6 +93,13 @@ export function Packet() {
                 }
                 setPacketState('FOUND')
             } else {
+                setLeaderboardInfo(
+                    await getRaffleLeaderboard({
+                        link: link,
+                        baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                        APIKey: 'doesnt-matter',
+                    })
+                )
                 if (address && hasAddressParticipated) {
                     setPacketScreen(() => ({
                         screen: 'SUCCESS',

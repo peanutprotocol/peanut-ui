@@ -26,7 +26,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
     >([])
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [ipfsArray, setIpfsArray] = useState<string[]>([])
-    const verbose = process.env.NODE_ENV === 'development' ? true : false
+    const verbose = true
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
