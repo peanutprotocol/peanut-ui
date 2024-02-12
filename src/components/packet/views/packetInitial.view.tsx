@@ -79,6 +79,7 @@ export function PacketInitialView({
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
     const claim = async (claimFormData: { name: string | undefined }) => {
+        if (isLoading) return
         if (userStatus.requiresCaptcha && !captchaToken) {
             setErrorState({
                 showError: true,

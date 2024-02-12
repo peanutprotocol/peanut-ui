@@ -277,6 +277,7 @@ export function GigaPacket() {
     }
 
     async function createRaffle() {
+        if (isLoading) return
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -1303,6 +1304,11 @@ export function GigaPacket() {
                         <h3 className="my-6 w-4/5 font-bold">
                             The proccess of creating a gigalink was interupted. Click continue to finish the link.
                         </h3>
+                    )}
+                    {txStep && (
+                        <div>
+                            Step: {txStep.step}/{txStep.length}
+                        </div>
                     )}
 
                     <div

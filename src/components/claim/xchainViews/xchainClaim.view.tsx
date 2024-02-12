@@ -119,6 +119,7 @@ export function xchainClaimView({
     }
 
     const manualClaim = async (data: { address: string }) => {
+        if (isLoading) return
         try {
             setManualErrorState({
                 showError: false,
