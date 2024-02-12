@@ -225,8 +225,6 @@ export function WelcomeMantle() {
                             Run your own campaign →
                         </a>
                     </div>
-
-
                 </div>
 
                 <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
@@ -246,7 +244,7 @@ export function WelcomeMantle() {
                     </div>
                     <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                    DISCOVER
+                        DISCOVER
                     </div>
                     <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
                 </>
@@ -308,7 +306,9 @@ export function WelcomeMantle() {
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
                         <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Build your own campaigns</h1>
-                        <div className="mx-auto w-3/4 pb-4 text-xl ">Build your own campaigns or integrate Peanut features seamlessly</div>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">
+                            Build your own campaigns or integrate Peanut features seamlessly
+                        </div>
 
                         <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
                             <a
@@ -331,7 +331,6 @@ export function WelcomeMantle() {
                         </div>
                     </div>
                 </div>
-
             </div>
 
             {/* seperator */}
