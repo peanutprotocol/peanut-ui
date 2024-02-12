@@ -1144,7 +1144,9 @@ export function GigaPacket() {
 
     useEffect(() => {
         // Fetch tokens list to display them in the nice dropdown
-        fetch('/api/gigapacket-tokens').then((res) => res.json()).then(setAvailableTokens)
+        fetch('/api/gigapacket-tokens')
+            .then((res) => res.json())
+            .then(setAvailableTokens)
         if (address) {
             let localStorageItems: localStorageItem[] = []
             for (let i = 0; i < localStorage.length; i++) {
@@ -1258,9 +1260,14 @@ export function GigaPacket() {
                                                             newFormState[idx].tokenAddress = e.target.value
                                                             setFormState(newFormState)
                                                             console.log({ formState, availableTokens })
-                                                        }}>
+                                                        }}
+                                                    >
                                                         <option value=""></option>
-                                                        {availableTokens.map((token) => <option key={token.address} value={token.address}>{token.symbol}</option>)}
+                                                        {availableTokens.map((token) => (
+                                                            <option key={token.address} value={token.address}>
+                                                                {token.symbol}
+                                                            </option>
+                                                        ))}
                                                     </select>
                                                 </div>
                                                 <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
