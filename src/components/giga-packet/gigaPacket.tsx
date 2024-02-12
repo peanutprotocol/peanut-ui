@@ -28,6 +28,7 @@ import * as _utils from './gigaPacket.utils'
 import * as _consts from './gigaPacket.consts'
 import { Dialog, Switch, Transition } from '@headlessui/react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { isMobile } from 'react-device-detect'
 
 // {
 //     tokenAddress: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238',
@@ -62,6 +63,29 @@ type localStorageItem = {
     finalLink: string
 }
 
+const defaultValues: tokenType[] = [
+    {
+        tokenAddress: '',
+        tokenAmount: 0,
+        numberOfSlots: 0,
+    },
+    {
+        tokenAddress: '',
+        tokenAmount: 0,
+        numberOfSlots: 0,
+    },
+    {
+        tokenAddress: '',
+        tokenAmount: 0,
+        numberOfSlots: 0,
+    },
+    {
+        tokenAddress: '',
+        tokenAmount: 0,
+        numberOfSlots: 0,
+    },
+]
+
 export function GigaPacket() {
     const { isConnected, address } = useAccount()
     const { chain: currentChain } = useNetwork()
@@ -81,28 +105,7 @@ export function GigaPacket() {
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
-    const [formState, setFormState] = useState<tokenType[]>([
-        {
-            tokenAddress: '',
-            tokenAmount: 0,
-            numberOfSlots: 0,
-        },
-        {
-            tokenAddress: '',
-            tokenAmount: 0,
-            numberOfSlots: 0,
-        },
-        {
-            tokenAddress: '',
-            tokenAmount: 0,
-            numberOfSlots: 0,
-        },
-        {
-            tokenAddress: '',
-            tokenAmount: 0,
-            numberOfSlots: 0,
-        },
-    ]) //Should be a form, but for now we'll just use a state
+    const [formState, setFormState] = useState<tokenType[]>(defaultValues) //Should be a form, but for now we'll just use a state
     const [senderName, setSenderName] = useState<string>('')
 
     const [errorState, setErrorState] = useState<{
@@ -405,14 +408,26 @@ export function GigaPacket() {
                             provider: defaultProvider,
                         })
 
+                        console.log({ contractDetails })
+
                         tokenType = contractDetails.type
                         contractDetails.decimals ? (tokenDecimals = contractDetails.decimals) : (tokenDecimals = 16)
                     } catch (error) {
-                        throw new Error('Contract type not supported')
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                'Contract type not supported. Please make sure all token addresses are correct.',
+                        })
+                        return
                     }
 
                     if (tokenType === undefined || tokenDecimals === undefined) {
-                        throw new Error('Token type or decimals not found, please contact support')
+                        setErrorState({
+                            showError: true,
+                            errorMessage:
+                                'Contract type not supported. Please make sure all token addresses are correct.',
+                        })
+                        return
                     }
                 }
 
@@ -1182,243 +1197,290 @@ export function GigaPacket() {
 
     return (
         <>
+            {' '}
             <global_components.CardWrapper redPacket>
-                <div className=" mt-10 flex w-full flex-col items-center gap-2 text-center">
-                    <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create a Mega Red Packet</h2>
-                    <h3 className="my-2">
-                        click{' '}
-                        <label
-                            className="cursor-pointer underline"
-                            onClick={() => {
-                                setShowManualModal(true)
-                            }}
-                        >
-                            here
-                        </label>{' '}
-                        to read the instructions
-                    </h3>
-
-                    <h3 className="my-2">
-                        click{' '}
-                        <label
-                            className="cursor-pointer underline"
-                            onClick={() => {
-                                setShowDashboardModal(true)
-                            }}
-                        >
-                            here
-                        </label>{' '}
-                        to see previously created links
-                    </h3>
-
-                    <Switch.Group as="div" className="flex items-center gap-4">
-                        <Switch
-                            checked={isMainnet}
-                            onChange={setIsMainnet}
-                            className={classNames(
-                                isMainnet ? 'bg-teal' : 'bg-gray-200',
-                                'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
-                            )}
-                        >
-                            <span
-                                aria-hidden="true"
-                                className={classNames(
-                                    isMainnet ? 'translate-x-5' : 'translate-x-0',
-                                    'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
-                                )}
-                            />
-                        </Switch>
-                        <Switch.Label as="span">
-                            <span className="text-sm">{isMainnet ? 'Mantle Mainnet' : 'Mantle Testnet'}</span>
-                        </Switch.Label>
-                    </Switch.Group>
-
-                    <div className="mt-4 flex w-full flex-col items-center justify-center">
-                        <div className="grid w-full gap-4">
-                            {formState.map((item, idx) => {
-                                return (
-                                    <Fragment key={idx}>
-                                        <div className="flex w-full items-center justify-center gap-2">
-                                            <div>
-                                                <label className="flex h-full items-center justify-center text-xl font-bold">
-                                                    #{idx + 1}
-                                                </label>
-                                            </div>
-                                            <div className="grid grid-cols-3 items-center gap-4">
-                                                <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                                                    <div className="font-normal">Token address</div>
-                                                    <input
-                                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                                        placeholder="0x123"
-                                                        type="text"
-                                                        autoComplete="off"
-                                                        autoFocus
-                                                        onChange={(e) => {
-                                                            const newFormState = formState
-                                                            newFormState[idx].tokenAddress = e.target.value
-                                                            setFormState(newFormState)
-                                                        }}
-                                                        defaultValue={formState[idx].tokenAddress}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                                                    <div className="font-normal">TOTAL Token amount</div>
-                                                    <input
-                                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                                        placeholder="500"
-                                                        type="number"
-                                                        inputMode="decimal"
-                                                        autoComplete="off"
-                                                        onChange={(e) => {
-                                                            const newFormState = formState
-                                                            console.log(Number(e.target.value))
-                                                            newFormState[idx].tokenAmount = Number(e.target.value)
-                                                            setFormState(newFormState)
-                                                        }}
-                                                        defaultValue={formState[idx].tokenAmount}
-                                                    />
-                                                </div>
-                                                <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                                                    <div className="font-normal">Number of slots</div>
-                                                    <input
-                                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                                        placeholder="1000"
-                                                        type="number"
-                                                        inputMode="decimal"
-                                                        autoComplete="off"
-                                                        onChange={(e) => {
-                                                            const newFormState = formState
-                                                            newFormState[idx].numberOfSlots = Number(e.target.value)
-                                                            setFormState(newFormState)
-                                                        }}
-                                                        defaultValue={formState[idx].numberOfSlots}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {idx < formState.length - 1 && <div className="brutalborder w-full"></div>}
-                                    </Fragment>
-                                )
-                            })}
-                        </div>
+                {isMobile ? (
+                    <div className="my-4 flex w-full items-center justify-center">
+                        <h2>
+                            This page is not available on mobile. Please use a desktop or a laptop to create a Mega Red
+                            Packet.
+                        </h2>
                     </div>
-
-                    <div className="col-span-1 ml-6 flex h-[58px] w-[270px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
-                        <div className="font-normal">Name</div>
-                        <input
-                            className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                            placeholder="Ben"
-                            type="text"
-                            autoComplete="off"
-                            autoFocus
-                            onChange={(e) => {
-                                setSenderName(e.target.value)
-                            }}
-                        />
-                    </div>
-
-                    {incompleteForm && (
-                        <h3 className="my-6 w-4/5 font-bold">
-                            The proccess of creating a gigalink was interupted. Click continue to finish the link.
+                ) : (
+                    <div className=" mt-10 flex w-full flex-col items-center gap-2 text-center">
+                        <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create a Mega Red Packet</h2>
+                        <h3 className="my-2">
+                            click{' '}
+                            <label
+                                className="cursor-pointer underline"
+                                onClick={() => {
+                                    setShowManualModal(true)
+                                }}
+                            >
+                                here
+                            </label>{' '}
+                            to read the instructions
                         </h3>
-                    )}
-                    {txStep && (
-                        <div>
-                            Step: {txStep.step}/{txStep.length}
-                        </div>
-                    )}
 
-                    <div
-                        className={
-                            errorState.showError
-                                ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
-                                : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
-                        }
-                    >
-                        <button
-                            type={'button'}
-                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
-                            id="cta-btn"
-                            onClick={() => {
-                                if (!isConnected) {
-                                    open()
-                                } else if (incompleteForm) {
-                                    completeRaffle()
-                                } else {
-                                    createRaffle()
-                                }
-                            }}
-                            disabled={isLoading || finalLink ? true : false}
-                        >
-                            {isLoading ? (
-                                <div className="flex justify-center gap-1">
-                                    <label>{loadingStates} </label>
-                                    <span className="bouncing-dots flex">
-                                        <span className="dot">.</span>
-                                        <span className="dot">.</span>
-                                        <span className="dot">.</span>
-                                    </span>
-                                </div>
-                            ) : !isConnected ? (
-                                'Connect Wallet'
-                            ) : finalLink ? (
-                                'Completed!'
-                            ) : incompleteForm ? (
-                                'Continue'
-                            ) : (
-                                'Create'
-                            )}
-                        </button>
+                        <h3 className="my-2">
+                            click{' '}
+                            <label
+                                className="cursor-pointer underline"
+                                onClick={() => {
+                                    setShowDashboardModal(true)
+                                }}
+                            >
+                                here
+                            </label>{' '}
+                            to see previously created links
+                        </h3>
 
-                        {finalLink ? (
-                            <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-1 text-white ">
-                                <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
-                                    {finalLink}
-                                </div>
-                                <div
-                                    className="absolute right-0 top-0 flex h-full min-w-32 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(finalLink ?? '')
-                                        setIsCopied(true)
-                                    }}
-                                >
-                                    {isCopied ? (
-                                        <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold ">
-                                            <span className="tooltiptext inline w-full justify-center" id="myTooltip">
-                                                {' '}
-                                                copied!{' '}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold ">
-                                            <label className="cursor-pointer text-black">COPY</label>
-                                        </button>
+                        {!incompleteForm && (
+                            <Switch.Group as="div" className="flex items-center gap-4">
+                                <Switch
+                                    checked={isMainnet}
+                                    onChange={setIsMainnet}
+                                    className={classNames(
+                                        isMainnet ? 'bg-teal' : 'bg-gray-200',
+                                        'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
                                     )}
-                                </div>
-                            </div>
-                        ) : errorState.showError ? (
-                            <div className="text-center">
-                                <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                                >
+                                    <span
+                                        aria-hidden="true"
+                                        className={classNames(
+                                            isMainnet ? 'translate-x-5' : 'translate-x-0',
+                                            'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                        )}
+                                    />
+                                </Switch>
+                                <Switch.Label as="span">
+                                    <span className="text-sm">{isMainnet ? 'Mantle Mainnet' : 'Mantle Testnet'}</span>
+                                </Switch.Label>
+                            </Switch.Group>
+                        )}
+
+                        {incompleteForm ? (
+                            <div className="my-4 flex flex-col items-center justify-center gap-6">
+                                {incompleteForm.tokenDetails.map((item, idx) => {
+                                    if (item.completed === false) {
+                                        return (
+                                            <div className="text-xl font-black ">
+                                                You still have to confirm {item.numberOfSlots - item.slotsExecuted}{' '}
+                                                slots for token with address {item.tokenAddress}
+                                            </div>
+                                        )
+                                    } else {
+                                        return ''
+                                    }
+                                })}
                             </div>
                         ) : (
-                            isLoading && (
-                                <div className="mt-6 w-4/5 text-xl font-black">
-                                    Please do not click away during the creation proccess. This might take a while
-                                </div>
-                            )
-                        )}
-                    </div>
-                    <p className="my-0 mt-4">
-                        Hop over into our{' '}
-                        <a href="https://discord.com/invite/BX9Ak7AW28" className=" text-black" target="_blank">
-                            discord
-                        </a>{' '}
-                        in case of any issues!
-                    </p>
-                </div>
-            </global_components.CardWrapper>
+                            <>
+                                <div className="mt-4 flex w-full flex-col items-center justify-center">
+                                    <div className="grid w-full gap-4">
+                                        {formState.map((item, idx) => {
+                                            return (
+                                                <Fragment key={idx}>
+                                                    <div className="flex w-full items-center justify-center gap-2">
+                                                        <div>
+                                                            <label className="flex h-full items-center justify-center text-xl font-bold">
+                                                                #{idx + 1}
+                                                            </label>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 items-center gap-4">
+                                                            <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                                                                <div className="font-normal">Token address</div>
+                                                                <input
+                                                                    className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                                                    placeholder="0x123"
+                                                                    type="text"
+                                                                    autoComplete="off"
+                                                                    autoFocus
+                                                                    onChange={(e) => {
+                                                                        const newFormState = formState
+                                                                        newFormState[idx].tokenAddress = e.target.value
+                                                                        setFormState(newFormState)
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                                                                <div className="font-normal">TOTAL Token amount</div>
+                                                                <input
+                                                                    className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                                                    placeholder="500"
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    autoComplete="off"
+                                                                    onChange={(e) => {
+                                                                        const newFormState = formState
+                                                                        console.log(Number(e.target.value))
+                                                                        newFormState[idx].tokenAmount = Number(
+                                                                            e.target.value
+                                                                        )
+                                                                        setFormState(newFormState)
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                            <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                                                                <div className="font-normal">Number of slots</div>
+                                                                <input
+                                                                    className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                                                    placeholder="1000"
+                                                                    type="number"
+                                                                    inputMode="decimal"
+                                                                    autoComplete="off"
+                                                                    onChange={(e) => {
+                                                                        const newFormState = formState
+                                                                        newFormState[idx].numberOfSlots = Number(
+                                                                            e.target.value
+                                                                        )
+                                                                        setFormState(newFormState)
+                                                                    }}
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    </div>
 
+                                                    {idx < formState.length - 1 && (
+                                                        <div className="brutalborder w-full"></div>
+                                                    )}
+                                                </Fragment>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                                <div className="col-span-1 ml-6 flex h-[58px] w-[270px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
+                                    <div className="font-normal">Name</div>
+                                    <input
+                                        className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                        placeholder="sender name"
+                                        type="text"
+                                        autoComplete="off"
+                                        autoFocus
+                                        onChange={(e) => {
+                                            setSenderName(e.target.value)
+                                        }}
+                                    />
+                                </div>{' '}
+                            </>
+                        )}
+
+                        {incompleteForm && (
+                            <h3 className="my-6 w-4/5 font-bold">
+                                The proccess of creating a gigalink was interupted. Click continue to finish the link or
+                                in case you want to delete the incomplete link, please click{' '}
+                                <label
+                                    className="cursor-pointer font-black underline"
+                                    onClick={() => {
+                                        localStorage.removeItem(`${address}-gigalink-${incompleteForm.password}`)
+                                        setIncompleteForm(undefined)
+                                        setFormState(defaultValues)
+                                    }}
+                                >
+                                    HERE
+                                </label>
+                                . Be aware that this action is irreversible.
+                            </h3>
+                        )}
+                        {txStep && (
+                            <div>
+                                Step: {txStep.step}/{txStep.length}
+                            </div>
+                        )}
+
+                        <div
+                            className={
+                                errorState.showError
+                                    ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
+                                    : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
+                            }
+                        >
+                            <button
+                                type={'button'}
+                                className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                id="cta-btn"
+                                onClick={() => {
+                                    if (!isConnected) {
+                                        open()
+                                    } else if (incompleteForm) {
+                                        completeRaffle()
+                                    } else {
+                                        createRaffle()
+                                    }
+                                }}
+                                disabled={isLoading || finalLink ? true : false}
+                            >
+                                {isLoading ? (
+                                    <div className="flex justify-center gap-1">
+                                        <label>{loadingStates} </label>
+                                        <span className="bouncing-dots flex">
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                        </span>
+                                    </div>
+                                ) : !isConnected ? (
+                                    'Connect Wallet'
+                                ) : finalLink ? (
+                                    'Completed!'
+                                ) : incompleteForm ? (
+                                    'Continue'
+                                ) : (
+                                    'Create'
+                                )}
+                            </button>
+
+                            {finalLink ? (
+                                <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-1 text-white ">
+                                    <div className="flex w-[90%] items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all bg-black p-2 text-lg font-normal text-white">
+                                        {finalLink}
+                                    </div>
+                                    <div
+                                        className="absolute right-0 top-0 flex h-full min-w-32 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                        onClick={() => {
+                                            navigator.clipboard.writeText(finalLink ?? '')
+                                            setIsCopied(true)
+                                        }}
+                                    >
+                                        {isCopied ? (
+                                            <div className="flex h-full cursor-pointer items-center border-none bg-white text-base font-bold ">
+                                                <span
+                                                    className="tooltiptext inline w-full justify-center"
+                                                    id="myTooltip"
+                                                >
+                                                    {' '}
+                                                    copied!{' '}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <button className="h-full cursor-pointer gap-2 border-none bg-white p-0 text-base font-bold ">
+                                                <label className="cursor-pointer text-black">COPY</label>
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                            ) : errorState.showError ? (
+                                <div className="text-center">
+                                    <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                                </div>
+                            ) : (
+                                isLoading && (
+                                    <div className="mt-6 w-4/5 text-xl font-black">
+                                        Please do not click away during the creation proccess. This might take a while
+                                    </div>
+                                )
+                            )}
+                        </div>
+                        <p className="my-0 mt-4">
+                            Hop over into our{' '}
+                            <a href="https://discord.com/invite/BX9Ak7AW28" className=" text-black" target="_blank">
+                                discord
+                            </a>{' '}
+                            in case of any issues!
+                        </p>
+                    </div>
+                )}
+            </global_components.CardWrapper>
             <Transition.Root show={showManualModal} as={Fragment}>
                 <Dialog
                     as="div"
@@ -1472,7 +1534,7 @@ export function GigaPacket() {
                                         <p className="mb-2 border-b border-black pb-2">Some common token addresses:</p>
                                         <ul className="mb-2 list-inside list-disc border-b border-black pb-2">
                                             <li>MNT: 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000</li>
-                                            <li>MDRAGON: 0x057250c1DeFbfE4BD75240e3607A055FC072B6d0</li>
+                                            <li>MDRAGON: 0x217B4382a1De262C0FBa97C1B8378904B4a25e4D</li>
                                             <li>USDC: 0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9</li>
                                         </ul>
                                         <p className="mb-2 border-b border-black pb-2">Instructions:</p>
@@ -1513,7 +1575,6 @@ export function GigaPacket() {
                     </div>
                 </Dialog>
             </Transition.Root>
-
             <Transition.Root show={showDashboardModal} as={Fragment}>
                 <Dialog
                     as="div"
