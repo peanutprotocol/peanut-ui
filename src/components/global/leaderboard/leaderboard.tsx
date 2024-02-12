@@ -24,7 +24,9 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                             <tr className="brutalborder w-full border p-2" key={index}>
                                 <td className="w-1/4 w-[36px] p-2">#{index + 1}</td>
                                 <td className="w-1/2 max-w-[125px] truncate p-2 font-normal">
-                                    {claim.name != '' ? claim.name : utils.shortenAddress(claim.address)}
+                                    {claim.name != '' || claim.name == null
+                                        ? claim.name
+                                        : utils.shortenAddress(claim.address)}
                                 </td>
                                 <td className="w-1/4 p-2">{utils.formatTokenAmount(Number(claim.amount))}</td>
                             </tr>
