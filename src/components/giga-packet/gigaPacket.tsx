@@ -83,12 +83,12 @@ export function GigaPacket() {
 
     const [formState, setFormState] = useState<tokenType[]>([
         {
-            tokenAddress: '0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000',
+            tokenAddress: '',
             tokenAmount: 0,
             numberOfSlots: 0,
         },
         {
-            tokenAddress: '0x09Bc4E0D864854c6aFB6eB9A9cdF58aC190D0dF9',
+            tokenAddress: '',
             tokenAmount: 0,
             numberOfSlots: 0,
         },
@@ -1212,9 +1212,6 @@ export function GigaPacket() {
                     </h3>
 
                     <Switch.Group as="div" className="flex items-center gap-4">
-                        <Switch.Label as="span">
-                            <span className="text-sm">Testnet</span>
-                        </Switch.Label>
                         <Switch
                             checked={isMainnet}
                             onChange={setIsMainnet}
@@ -1232,7 +1229,7 @@ export function GigaPacket() {
                             />
                         </Switch>
                         <Switch.Label as="span">
-                            <span className="text-sm">Mainnet</span>
+                            <span className="text-sm">{isMainnet ? 'Mantle Mainnet' : 'Mantle Testnet'}</span>
                         </Switch.Label>
                     </Switch.Group>
 
