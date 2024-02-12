@@ -719,6 +719,10 @@ export function GigaPacket() {
     }
 
     async function completeRaffle() {
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
         try {
             if (incompleteForm) {
                 console.log(incompleteForm)
@@ -1032,7 +1036,12 @@ export function GigaPacket() {
                     }
                 }
 
-                const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+                console.log(raffleLinks)
+
+                let finalfinalv4rafflelink_final = raffleLinks[0]
+                if (raffleLinks.length > 1) {
+                    finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+                }
 
                 await addLinkCreation({
                     name: _senderName,
