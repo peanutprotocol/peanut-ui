@@ -1,6 +1,5 @@
 import { ethers } from 'ethers'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 
 const GIGAPACKET_TOKENS_DOC = process.env.GIGAPACKET_TOKENS_DOC!
 
@@ -9,7 +8,7 @@ export async function GET() {
     const docContents = await docResponse.text()
     const allLines = docContents.split('\n')
 
-    const tokens = []
+    const tokens = []   
     for (let line of allLines) {
         try {
             line = line.trim()
