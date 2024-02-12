@@ -373,7 +373,7 @@ export function SendInitialView({
 
                 setLoadingStates('creating link')
 
-                const getLinksFromTxResponse = await getRaffleLinkFromTx({
+                const { link: fullCreatedLink } = await getRaffleLinkFromTx({
                     linkDetails,
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     password: password,
@@ -384,17 +384,21 @@ export function SendInitialView({
                     baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
                     APIKey: 'doesnt-matter',
                 })
+                // Remove indices since they are stored on the API anyway
+                const fullCreatedURL = new URL(fullCreatedLink)
+                fullCreatedURL.searchParams.delete('i')
+                const minimizedLink = fullCreatedURL.toString()
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
 
-                verbose && console.log('Created raffle link:', getLinksFromTxResponse.link)
+                verbose && console.log('Created raffle link:', { fullCreatedLink, minimizedLink })
                 verbose && console.log('Transaction hash:', txHash)
 
                 utils.delteFromLocalStorage(tempLocalstorageKey)
 
-                utils.saveToLocalStorage(address + ' - ' + txHash, getLinksFromTxResponse.link)
+                utils.saveToLocalStorage(address + ' - ' + txHash, minimizedLink)
 
-                setClaimLink([getLinksFromTxResponse.link])
+                setClaimLink([minimizedLink])
                 setTxHash(txHash)
                 setChainId(sendFormData.chainId)
                 onNextScreen()
