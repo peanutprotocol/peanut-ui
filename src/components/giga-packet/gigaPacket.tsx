@@ -1534,7 +1534,7 @@ export function GigaPacket() {
                                         <p className="mb-2 border-b border-black pb-2">Some common token addresses:</p>
                                         <ul className="mb-2 list-inside list-disc border-b border-black pb-2">
                                             <li>MNT: 0xDeadDeAddeAddEAddeadDEaDDEAdDeaDDeAD0000</li>
-                                            <li>MDRAGON: 0x057250c1DeFbfE4BD75240e3607A055FC072B6d0</li>
+                                            <li>MDRAGON: 0x217B4382a1De262C0FBa97C1B8378904B4a25e4D</li>
                                             <li>USDC: 0x09bc4e0d864854c6afb6eb9a9cdf58ac190d0df9</li>
                                         </ul>
                                         <p className="mb-2 border-b border-black pb-2">Instructions:</p>
