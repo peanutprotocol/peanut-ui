@@ -77,6 +77,7 @@ export function GigaPacket() {
     const [copiedIdx, setCopiedIdx] = useState<number | undefined>(undefined)
     const [txStep, setTxStep] = useState<{ step: number; length: number } | undefined>(undefined)
     hooks.useConfirmRefresh(true)
+    const [availableTokens, setAvailableTokens] = useState<{ symbol: string; address: string }[]>([])
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -1142,6 +1143,8 @@ export function GigaPacket() {
     }
 
     useEffect(() => {
+        // Fetch tokens list to display them in the nice dropdown
+        fetch('/api/gigapacket-tokens').then((res) => res.json()).then(setAvailableTokens)
         if (address) {
             let localStorageItems: localStorageItem[] = []
             for (let i = 0; i < localStorage.length; i++) {
@@ -1247,19 +1250,18 @@ export function GigaPacket() {
                                             <div className="grid grid-cols-3 items-center gap-4">
                                                 <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
                                                     <div className="font-normal">Token address</div>
-                                                    <input
+                                                    <select
                                                         className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                                        placeholder="0x123"
-                                                        type="text"
-                                                        autoComplete="off"
                                                         autoFocus
                                                         onChange={(e) => {
                                                             const newFormState = formState
                                                             newFormState[idx].tokenAddress = e.target.value
                                                             setFormState(newFormState)
-                                                        }}
-                                                        defaultValue={formState[idx].tokenAddress}
-                                                    />
+                                                            console.log({ formState, availableTokens })
+                                                        }}>
+                                                        <option value=""></option>
+                                                        {availableTokens.map((token) => <option key={token.address} value={token.address}>{token.symbol}</option>)}
+                                                    </select>
                                                 </div>
                                                 <div className="col-span-1 flex h-[58px] flex-col items-start gap-2 border-4 border-solid !px-4 !py-1">
                                                     <div className="font-normal">TOTAL Token amount</div>
