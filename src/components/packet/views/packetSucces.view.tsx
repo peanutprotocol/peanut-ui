@@ -54,7 +54,7 @@ export function PacketSuccesView({
             </div>
             {raffleInfo?.chainId == '5000' && (
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
-                    Your funds will arive in a couple of minutes!
+                    Your funds will arrive in a couple of minutes!
                 </h3>
             )}
 
