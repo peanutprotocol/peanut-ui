@@ -1,2 +1,3 @@
 export * from './welcome'
-export * from './welcomeRaffle'
+export * from './welcomeRed'
+export * from './welcomeMantle'

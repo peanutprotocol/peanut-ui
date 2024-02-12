@@ -166,7 +166,7 @@ const testimonials = [
     },
 ]
 
-export function WelcomeRaffle() {
+export function WelcomeRed() {
     const [openedFaq, setOpenedFaq] = useState<number | null>(null)
 
     function classNames(...classes: any) {
