@@ -328,14 +328,6 @@ export function GigaPacket() {
 
             setLoadingStates('loading')
 
-            let totalTxs = 0
-            _formState.forEach((item) => {
-                const x = _utils.divideAndRemainder(item.numberOfSlots)
-                totalTxs += x[0] + (x[1] > 0 ? 1 : 0)
-            })
-
-            console.log(totalTxs)
-
             const totalSlots = _formState.reduce((acc, token) => acc + token.numberOfSlots, 0)
             const totalMNT =
                 _formState.find((item) => item.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS)?.tokenAmount ?? 0
@@ -479,6 +471,14 @@ export function GigaPacket() {
             //wait for the rpc to update
             await new Promise((resolve) => setTimeout(resolve, 2500))
 
+            let totalTxIndex = 1
+            let totalTxs = 0
+            _formState.forEach((item) => {
+                const x = _utils.divideAndRemainder(item.numberOfSlots)
+                totalTxs += x[0] + (x[1] > 0 ? 1 : 0)
+            })
+            setTxStep({ step: totalTxIndex, length: totalTxs })
+
             // We'll handle each token separately: preparing, sending and getting the link
             for (const token of _formState) {
                 console.log({ token })
@@ -547,7 +547,6 @@ export function GigaPacket() {
                 let hashes: string[] = []
 
                 setLoadingStates('executing transaction')
-                setTxStep({ step: 1, length: totalTxs })
 
                 let preparedTransactionsArrayIndex = 0
                 // set the fee options, combine into the tx and send the transactions
@@ -588,11 +587,13 @@ export function GigaPacket() {
                         console.log(txResponse)
                         hashes.push(tx.hash)
                         index++
+                        if (totalTxIndex < totalTxs) {
+                            totalTxIndex++
+                        }
                         setTxStep({
-                            length: txStep?.length ?? totalTxs,
-                            step: (txStep?.step ?? 0) + 1,
+                            step: totalTxIndex,
+                            length: totalTxs,
                         })
-
                         _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
                             if (_token.tokenAddress === token.tokenAddress) {
                                 return {
@@ -611,8 +612,6 @@ export function GigaPacket() {
                     }
                     preparedTransactionsArrayIndex++
                 }
-
-                setTxStep(undefined)
 
                 console.log({ hashes })
 
@@ -723,6 +722,8 @@ export function GigaPacket() {
                 _localstorageItem,
             })
 
+            setTxStep(undefined)
+
             setLoadingStates('idle')
         } catch (error: any) {
             setLoadingStates('idle')
@@ -754,6 +755,14 @@ export function GigaPacket() {
         try {
             if (incompleteForm) {
                 console.log(incompleteForm)
+
+                let totalTxIndex = 1
+                let totalTxs = 0
+                incompleteForm.tokenDetails.forEach((item) => {
+                    const x = _utils.divideAndRemainder(item.numberOfSlots - item.slotsExecuted)
+                    totalTxs += x[0] + (x[1] > 0 ? 1 : 0)
+                })
+                console.log(totalTxs)
 
                 const _password = incompleteForm.password
                 const _chainID = isMainnet ? _consts.MANTLE_CHAIN_ID : _consts.MANTLE_TESTNET_CHAIN_ID
@@ -790,6 +799,8 @@ export function GigaPacket() {
                 let raffleLinks: string[] = []
 
                 const defaultProvider = await getDefaultProvider(_chainID) // get from wallet? But rpc.mantle.xyz should work
+
+                setTxStep({ step: totalTxIndex, length: totalTxs })
 
                 for (const token of incompleteForm.tokenDetails) {
                     if (token.completed) {
@@ -954,6 +965,13 @@ export function GigaPacket() {
                                 await tx.wait()
                                 hashes.push(tx.hash)
                                 index++
+                                if (totalTxIndex < totalTxs) {
+                                    totalTxIndex++
+                                }
+                                setTxStep({
+                                    step: totalTxIndex,
+                                    length: totalTxs,
+                                })
 
                                 _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
                                     if (_token.tokenAddress === token.tokenAddress) {
@@ -1058,6 +1076,8 @@ export function GigaPacket() {
                         })
 
                         updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                        setTxStep(undefined)
                         console.log({
                             _localstorageItem,
                         })
