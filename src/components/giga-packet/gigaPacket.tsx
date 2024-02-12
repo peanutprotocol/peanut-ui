@@ -1353,7 +1353,7 @@ export function GigaPacket() {
                                     <div className="font-normal">Name</div>
                                     <input
                                         className="w-full items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                        placeholder="Ben"
+                                        placeholder="sender name"
                                         type="text"
                                         autoComplete="off"
                                         autoFocus
