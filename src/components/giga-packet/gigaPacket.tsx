@@ -258,7 +258,7 @@ export function GigaPacket() {
         localStorage.setItem(key, JSON.stringify(item))
     }
 
-    const checkBalance = async (
+    const checkMnt = async (
         totalSlots: number,
         mntAmount: number,
         address: string,
@@ -277,6 +277,31 @@ export function GigaPacket() {
         } else {
             return true
         }
+    }
+
+    async function checkBalances(formState: tokenType[], provider?: ethers.providers.JsonRpcProvider) {
+        provider = provider ?? (await getDefaultProvider(_consts.MANTLE_CHAIN_ID))
+
+        for (const token of formState) {
+            if (token.tokenAddress !== _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                const contract = new ethers.Contract(token.tokenAddress, peanut.ERC20_ABI, provider)
+                const balance = await contract.balanceOf(address)
+                const decimals = await contract.decimals()
+                const formattedbalance = utils.formatAmountWithDecimals({
+                    amount: Number(balance.toString()),
+                    decimals: Number(decimals),
+                })
+
+                if (formattedbalance < token.tokenAmount) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: `Insufficient balance for token with address: ${token.tokenAddress}`,
+                    })
+                    return { status: false, address: `${token.tokenAddress}` }
+                }
+            }
+        }
+        return { status: true, address: '' }
     }
 
     async function createRaffle() {
@@ -309,6 +334,7 @@ export function GigaPacket() {
                         showError: true,
                         errorMessage: 'Invalid name',
                     })
+                    return
                 }
             }
 
@@ -334,11 +360,20 @@ export function GigaPacket() {
             const totalSlots = _formState.reduce((acc, token) => acc + token.numberOfSlots, 0)
             const totalMNT =
                 _formState.find((item) => item.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS)?.tokenAmount ?? 0
-            const balanceCheck = await checkBalance(totalSlots, totalMNT, address ?? '')
+            const balanceCheck = await checkMnt(totalSlots, totalMNT, address ?? '')
             if (!balanceCheck) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Insufficient MNT to create the raffle links',
+                })
+                return
+            }
+
+            const totalBalancesCheck = checkBalances(_formState)
+            if (!(await totalBalancesCheck).status) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: `Insufficient balance for token with address: ${(await totalBalancesCheck).address}`,
                 })
                 return
             }

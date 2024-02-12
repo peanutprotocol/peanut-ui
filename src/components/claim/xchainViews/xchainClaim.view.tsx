@@ -597,30 +597,34 @@ export function xchainClaimView({
                 </div>
             )}
 
-            <button
-                type={isConnected ? 'submit' : 'button'}
-                className="mx-auto mb-8 block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
-                id="cta-btn"
-                onClick={() => {
-                    !isConnected ? open() : claim()
-                }}
-                disabled={isLoading || isRouteLoading}
-            >
-                {isLoading ? (
-                    <div className="flex items-center justify-center gap-1">
-                        <label>{loadingStates} </label>
-                        <span className="bouncing-dots flex">
-                            <span className="dot">.</span>
-                            <span className="dot">.</span>
-                            <span className="dot">.</span>
-                        </span>
-                    </div>
-                ) : isConnected ? (
-                    'Claim'
-                ) : (
-                    'Connect Wallet'
-                )}
-            </button>
+            <div className="mx-auto mb-8 flex w-full flex-col items-center justify-center gap-1">
+                <button
+                    type={isConnected ? 'submit' : 'button'}
+                    className="block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                    id="cta-btn"
+                    onClick={() => {
+                        !isConnected ? open() : claim()
+                    }}
+                    disabled={isLoading || isRouteLoading}
+                >
+                    {isLoading ? (
+                        <div className="flex items-center justify-center gap-1">
+                            <label>{loadingStates} </label>
+                            <span className="bouncing-dots flex">
+                                <span className="dot">.</span>
+                                <span className="dot">.</span>
+                                <span className="dot">.</span>
+                            </span>
+                        </div>
+                    ) : isConnected ? (
+                        'Claim'
+                    ) : (
+                        'Connect Wallet'
+                    )}
+                </button>
+                <p>Cross-chain claims have a 2% fee. </p>
+            </div>
+
             <div
                 className="mt-2 flex cursor-pointer items-center justify-center"
                 onClick={() => {
