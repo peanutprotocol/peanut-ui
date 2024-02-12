@@ -584,7 +584,8 @@ export function GigaPacket() {
                         setLoadingStates('sign in wallet')
                         const tx = await signer.sendTransaction(preparedTx)
                         setLoadingStates('executing transaction')
-                        await tx.wait()
+                        const txResponse = await tx.wait()
+                        console.log(txResponse)
                         hashes.push(tx.hash)
                         index++
                         setTxStep({
@@ -1065,27 +1066,27 @@ export function GigaPacket() {
 
                 console.log(raffleLinks)
 
-                let finalfinalv4rafflelink_final = raffleLinks[0]
+                let FINAL_finalfinalv4rafflelink_final = raffleLinks[0]
                 if (raffleLinks.length > 1) {
-                    finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+                    FINAL_finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
                 }
 
                 await addLinkCreation({
                     name: _senderName,
-                    link: finalfinalv4rafflelink_final,
+                    link: FINAL_finalfinalv4rafflelink_final,
                     APIKey: 'youwish',
                     withCaptcha: true,
                     withMFA: true,
                     baseUrl: consts.next_proxy_url + '/submit-raffle-link',
                 })
 
-                console.log({ finalfinalv4rafflelink_final })
-                setFinalLink(finalfinalv4rafflelink_final)
+                console.log({ FINAL_finalfinalv4rafflelink_final })
+                setFinalLink(FINAL_finalfinalv4rafflelink_final)
 
                 _localstorageItem = {
                     ..._localstorageItem,
                     completed: true,
-                    finalLink: finalfinalv4rafflelink_final,
+                    finalLink: FINAL_finalfinalv4rafflelink_final,
                 }
                 updateLocalstorageItem(_localstorageKey, _localstorageItem)
 
