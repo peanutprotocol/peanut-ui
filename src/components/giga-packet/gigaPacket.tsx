@@ -16,6 +16,7 @@ import peanut, {
     trim_decimal_overflow,
     getLatestContractVersion,
     createMultiLinkFromLinks,
+    validateUserName,
 } from '@squirrel-labs/peanut-sdk'
 import clipboard_svg from '@/assets/clipboard.svg'
 import checkbox_svg from '@/assets/checkbox.svg'
@@ -74,6 +75,7 @@ export function GigaPacket() {
     const [incompleteForm, setIncompleteForm] = useState<localStorageItem | undefined>(undefined)
     const [localStorageCompleteData, setLocalStorageCompleteData] = useState<localStorageItem[]>([])
     const [copiedIdx, setCopiedIdx] = useState<number | undefined>(undefined)
+    const [txStep, setTxStep] = useState<{ step: number; length: number } | undefined>(undefined)
     hooks.useConfirmRefresh(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
@@ -275,6 +277,7 @@ export function GigaPacket() {
     }
 
     async function createRaffle() {
+        if (isLoading) return
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -295,6 +298,15 @@ export function GigaPacket() {
                     errorMessage: 'Please provide a name for the sender',
                 })
                 return
+            } else {
+                try {
+                    validateUserName(senderName)
+                } catch (error) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Invalid name',
+                    })
+                }
             }
 
             //check if the form is empty
@@ -305,7 +317,6 @@ export function GigaPacket() {
                 })
                 return
             }
-
             //check formvalues
             if (!checkForm(_formState)) {
                 setErrorState({
@@ -316,6 +327,14 @@ export function GigaPacket() {
             }
 
             setLoadingStates('loading')
+
+            let totalTxs = 0
+            _formState.forEach((item) => {
+                const x = _utils.divideAndRemainder(item.numberOfSlots)
+                totalTxs += x[0] + (x[1] > 0 ? 1 : 0)
+            })
+
+            console.log(totalTxs)
 
             const totalSlots = _formState.reduce((acc, token) => acc + token.numberOfSlots, 0)
             const totalMNT =
@@ -528,6 +547,7 @@ export function GigaPacket() {
                 let hashes: string[] = []
 
                 setLoadingStates('executing transaction')
+                setTxStep({ step: 1, length: totalTxs })
 
                 let preparedTransactionsArrayIndex = 0
                 // set the fee options, combine into the tx and send the transactions
@@ -564,9 +584,14 @@ export function GigaPacket() {
                         setLoadingStates('sign in wallet')
                         const tx = await signer.sendTransaction(preparedTx)
                         setLoadingStates('executing transaction')
-                        await tx.wait()
+                        const txResponse = await tx.wait()
+                        console.log(txResponse)
                         hashes.push(tx.hash)
                         index++
+                        setTxStep({
+                            length: txStep?.length ?? totalTxs,
+                            step: (txStep?.step ?? 0) + 1,
+                        })
 
                         _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
                             if (_token.tokenAddress === token.tokenAddress) {
@@ -586,6 +611,8 @@ export function GigaPacket() {
                     }
                     preparedTransactionsArrayIndex++
                 }
+
+                setTxStep(undefined)
 
                 console.log({ hashes })
 
@@ -708,7 +735,8 @@ export function GigaPacket() {
             } else {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Something went wrong while creating the raffle link',
+                    errorMessage:
+                        'Something went wrong while creating the raffle link. Please refresh the page to continue the process.',
                 })
             }
 
@@ -719,6 +747,10 @@ export function GigaPacket() {
     }
 
     async function completeRaffle() {
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
         try {
             if (incompleteForm) {
                 console.log(incompleteForm)
@@ -1032,24 +1064,29 @@ export function GigaPacket() {
                     }
                 }
 
-                const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+                console.log(raffleLinks)
+
+                let FINAL_finalfinalv4rafflelink_final = raffleLinks[0]
+                if (raffleLinks.length > 1) {
+                    FINAL_finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+                }
 
                 await addLinkCreation({
                     name: _senderName,
-                    link: finalfinalv4rafflelink_final,
+                    link: FINAL_finalfinalv4rafflelink_final,
                     APIKey: 'youwish',
                     withCaptcha: true,
                     withMFA: true,
                     baseUrl: consts.next_proxy_url + '/submit-raffle-link',
                 })
 
-                console.log({ finalfinalv4rafflelink_final })
-                setFinalLink(finalfinalv4rafflelink_final)
+                console.log({ FINAL_finalfinalv4rafflelink_final })
+                setFinalLink(FINAL_finalfinalv4rafflelink_final)
 
                 _localstorageItem = {
                     ..._localstorageItem,
                     completed: true,
-                    finalLink: finalfinalv4rafflelink_final,
+                    finalLink: FINAL_finalfinalv4rafflelink_final,
                 }
                 updateLocalstorageItem(_localstorageKey, _localstorageItem)
 
@@ -1128,7 +1165,7 @@ export function GigaPacket() {
             <global_components.CardWrapper redPacket>
                 <div className=" mt-10 flex w-full flex-col items-center gap-2 text-center">
                     <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create a Mega Red Packet</h2>
-                    <h3>
+                    <h3 className="my-2">
                         click{' '}
                         <label
                             className="cursor-pointer underline"
@@ -1139,6 +1176,19 @@ export function GigaPacket() {
                             here
                         </label>{' '}
                         to read the instructions
+                    </h3>
+
+                    <h3 className="my-2">
+                        click{' '}
+                        <label
+                            className="cursor-pointer underline"
+                            onClick={() => {
+                                setShowDashboardModal(true)
+                            }}
+                        >
+                            here
+                        </label>{' '}
+                        to see previously created links
                     </h3>
 
                     <Switch.Group as="div" className="flex items-center gap-4">
@@ -1252,27 +1302,16 @@ export function GigaPacket() {
                     </div>
 
                     {incompleteForm && (
-                        <div className="my-4 w-4/5 font-normal">
-                            The proccess of creating a gigalink was interupted. You still have to confirm
-                            {incompleteForm?.tokenDetails.map((_token) => {
-                                return _token.completed
-                                    ? ''
-                                    : ' ' +
-                                          (_token.numberOfSlots - _token.slotsExecuted) +
-                                          ' slots for token with address ' +
-                                          _token.tokenAddress +
-                                          ' '
-                            })}
+                        <h3 className="my-6 w-4/5 font-bold">
+                            The proccess of creating a gigalink was interupted. Click continue to finish the link.
+                        </h3>
+                    )}
+                    {txStep && (
+                        <div>
+                            Step: {txStep.step}/{txStep.length}
                         </div>
                     )}
 
-                    <p>
-                        Hop over into our{' '}
-                        <a href="https://discord.com/invite/BX9Ak7AW28" className=" text-black" target="_blank">
-                            discord
-                        </a>{' '}
-                        in case of any issues!
-                    </p>
                     <div
                         className={
                             errorState.showError
@@ -1293,7 +1332,7 @@ export function GigaPacket() {
                                     createRaffle()
                                 }
                             }}
-                            disabled={isLoading ? true : false}
+                            disabled={isLoading || finalLink ? true : false}
                         >
                             {isLoading ? (
                                 <div className="flex justify-center gap-1">
@@ -1306,25 +1345,14 @@ export function GigaPacket() {
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
+                            ) : finalLink ? (
+                                'Completed!'
                             ) : incompleteForm ? (
-                                'Complete '
+                                'Continue'
                             ) : (
                                 'Create'
                             )}
                         </button>
-
-                        <h3>
-                            click{' '}
-                            <label
-                                className="cursor-pointer underline"
-                                onClick={() => {
-                                    setShowDashboardModal(true)
-                                }}
-                            >
-                                here
-                            </label>{' '}
-                            to see previously created links
-                        </h3>
 
                         {finalLink ? (
                             <div className="brutalborder relative mt-4 flex w-4/5 items-center bg-black py-1 text-white ">
@@ -1352,6 +1380,10 @@ export function GigaPacket() {
                                     )}
                                 </div>
                             </div>
+                        ) : errorState.showError ? (
+                            <div className="text-center">
+                                <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                            </div>
                         ) : (
                             isLoading && (
                                 <div className="mt-6 w-4/5 text-xl font-black">
@@ -1359,13 +1391,14 @@ export function GigaPacket() {
                                 </div>
                             )
                         )}
-
-                        {errorState.showError && (
-                            <div className="text-center">
-                                <label className="font-bold text-red ">{errorState.errorMessage}</label>
-                            </div>
-                        )}
                     </div>
+                    <p className="my-0 mt-4">
+                        Hop over into our{' '}
+                        <a href="https://discord.com/invite/BX9Ak7AW28" className=" text-black" target="_blank">
+                            discord
+                        </a>{' '}
+                        in case of any issues!
+                    </p>
                 </div>
             </global_components.CardWrapper>
 

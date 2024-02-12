@@ -37,6 +37,7 @@ export function PacketSuccesView({
     console.log(userStatus)
     console.log(raffleInfo)
     console.log(raffleClaimedInfo)
+    console.log(leaderboardInfo)
     const receivedAmount = Number(raffleClaimedInfo?.amountReceived ?? userStatus?.userResults?.amount)
     return (
         <div className="mb-4 mt-2 flex w-full flex-col items-center gap-6 text-center ">
@@ -53,7 +54,7 @@ export function PacketSuccesView({
             </div>
             {raffleInfo?.chainId == '5000' && (
                 <h3 className="text-md my-0 text-center font-black sm:text-lg lg:text-xl ">
-                    Your funds will arive in a couple of minutes!
+                    Your funds will arrive in a couple of minutes!
                 </h3>
             )}
 

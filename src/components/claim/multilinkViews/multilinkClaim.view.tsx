@@ -49,6 +49,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
     })
 
     const claim = async () => {
+        if (isLoading) return
         try {
             setErrorState({
                 showError: false,

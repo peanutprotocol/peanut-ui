@@ -266,6 +266,8 @@ export function SendInitialView({
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
+                if (isLoading) return
+
                 if (sendFormData.senderName) {
                     try {
                         validateUserName(sendFormData.senderName)
@@ -286,7 +288,6 @@ export function SendInitialView({
                     chainsToShow
                 )
 
-                if (isLoading) return
                 setLoadingStates('checking inputs')
                 setErrorState({
                     showError: false,

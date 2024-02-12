@@ -88,6 +88,7 @@ export function ClaimView({
     }
 
     const claim = async () => {
+        if (isLoading) return
         try {
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
