@@ -8,7 +8,7 @@ export async function GET() {
     const docContents = await docResponse.text()
     const allLines = docContents.split('\n')
 
-    const tokens = []   
+    const tokens = []
     for (let line of allLines) {
         try {
             line = line.trim()
