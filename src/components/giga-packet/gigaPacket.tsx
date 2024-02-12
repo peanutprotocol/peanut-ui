@@ -334,6 +334,7 @@ export function GigaPacket() {
                         showError: true,
                         errorMessage: 'Invalid name',
                     })
+                    return
                 }
             }
 

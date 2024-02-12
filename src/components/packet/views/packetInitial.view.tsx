@@ -96,12 +96,13 @@ export function PacketInitialView({
         setLoadingStates('opening')
         try {
             try {
-                claimFormData.name && validateUserName(claimFormData.name ?? '')
+                claimFormData.name && validateUserName(claimFormData.name)
             } catch (error) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Invalid name',
                 })
+                return
             }
 
             let recipientAddress
