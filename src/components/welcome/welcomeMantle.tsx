@@ -200,11 +200,11 @@ export function WelcomeMantle() {
             <div className="flex border-2 border-black bg-white text-black">
                 <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
                     <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
-                        Send red packets via a Link
+                        Poster goes here
                     </h1>
 
                     <div className="m-4 mx-auto w-3/4 p-2 text-xl">
-                        Reward and engage your community for the Lunar New Year
+                        Celebrate the Lunar New Year with Mantle & Peanut Protocol.
                     </div>
 
                     <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
@@ -213,7 +213,7 @@ export function WelcomeMantle() {
                             id="cta-btn"
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                         >
-                            Try now!
+                            Discover!
                         </a>
 
                         <a
@@ -222,24 +222,11 @@ export function WelcomeMantle() {
                             rel="noopener noreferrer"
                             className="p-5  text-xl font-black text-black hover:no-underline sm:text-2xl"
                         >
-                            Integrate →
+                            Run your own campaign →
                         </a>
                     </div>
 
-                    <div className="m-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-8 gap-y-8">
-                        {logoCloudLogos.map((logo) => {
-                            return (
-                                <a href={logoLinks[logo.src]} target="_blank" rel="noopener noreferrer" key={logo.src}>
-                                    <img
-                                        className="h-12 object-contain grayscale hover:scale-90"
-                                        src={logo.src}
-                                        alt="Logo"
-                                        loading="eager"
-                                    />
-                                </a>
-                            )
-                        })}
-                    </div>
+
                 </div>
 
                 <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
@@ -252,17 +239,18 @@ export function WelcomeMantle() {
             </div>
 
             {/* seperator */}
-            <div className="brutalborder-y">
-                <global_components.MarqueeWrapper backgroundColor="bg-white">
-                    {Object.entries(chain_logos).map(([chain, logo]) => {
-                        return (
-                            <div className="pb-5 pl-3 pt-5" key={chain}>
-                                <img src={logo.default.src} className="h-16 w-16" />
-                            </div>
-                        )
-                    })}
-                </global_components.MarqueeWrapper>
-            </div>
+            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
+                <>
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                        DISCOVER
+                    </div>
+                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
+                    DISCOVER
+                    </div>
+                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                </>
+            </global_components.MarqueeWrapper>
 
             {/* how it works */}
             <div className=" flex flex-col gap-4 bg-white p-4">
@@ -281,9 +269,9 @@ export function WelcomeMantle() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Red packets</h1>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Get whitelisted!</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
-                            Celebrate the Lunar New Year with Red Packets on our app or integrate the SDK!{' '}
+                            Be the first to be informed about future airdrops and raffles!{' '}
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
@@ -292,16 +280,16 @@ export function WelcomeMantle() {
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
                             >
-                                Use app!
+                                Subscribe!
                             </Link>
 
                             <a
-                                href="https://peanutprotocol.notion.site/Red-Packets-Implementation-Guide-1af8ed4c6caa41cf8dc8ac66b39f639b?pvs=74"
+                                href="https://docs.peanut.to"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
-                                Integrate →
+                                Learn more →
                             </a>
                         </div>
                     </div>
@@ -319,8 +307,8 @@ export function WelcomeMantle() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Your Brand</h1>
-                        <div className="mx-auto w-3/4 pb-4 text-xl ">Integrate Peanut features seamlessly</div>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Build your own campaigns</h1>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">Build your own campaigns or integrate Peanut features seamlessly</div>
 
                         <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
                             <a
@@ -343,43 +331,7 @@ export function WelcomeMantle() {
                         </div>
                     </div>
                 </div>
-                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-fuchsia py-8 text-black sm:py-16 lg:flex-row-reverse">
-                    {/* right column */}
-                    <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
-                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
-                            <img
-                                src={teal_wallet_two.src} //TODO: update with correct mockup
-                                className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
-                                alt="Peanutman Cheering"
-                            />
-                        </a>
-                    </div>
-                    {/* left column */}
-                    <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Distribute</h1>
-                        <div className="mx-auto w-3/4 pb-4 text-xl ">distribute red packet raffles </div>
 
-                        <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
-                            <a
-                                data-cal-link="kkonrad+hugo0/15min?duration=30"
-                                data-cal-config='{"layout":"month_view"}'
-                                id="cta-btn"
-                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
-                            >
-                                Let's talk!
-                            </a>
-
-                            <a
-                                href="https://docs.peanut.to"
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
-                            >
-                                Integrate →
-                            </a>
-                        </div>
-                    </div>
-                </div>
             </div>
 
             {/* seperator */}
