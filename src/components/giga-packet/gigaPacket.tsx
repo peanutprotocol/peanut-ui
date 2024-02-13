@@ -607,9 +607,13 @@ export function GigaPacket() {
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
                     if (numberofLinks > 0) {
+                        const tokenAmount =
+                            index != quotient
+                                ? Number(tokenAmountPerSlot * numberofLinks)
+                                : Number(tokenAmountPerSlot * numberofLinks) * 0.99
                         const linkDetails = {
                             chainId: _chainID,
-                            tokenAmount: Number(tokenAmountPerSlot * numberofLinks),
+                            tokenAmount: tokenAmount,
                             tokenAddress: token.tokenAddress,
                             baseUrl,
                             trackId,
@@ -1038,9 +1042,13 @@ export function GigaPacket() {
                         for (let index = 0; index <= quotient; index++) {
                             const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
                             if (numberofLinks > 0) {
+                                const tokenAmount =
+                                    index != quotient
+                                        ? Number(tokenAmountPerSlot * numberofLinks)
+                                        : Number(tokenAmountPerSlot * numberofLinks) * 0.99
                                 const linkDetails = {
                                     chainId: _chainID,
-                                    tokenAmount: Number(tokenAmountPerSlot * numberofLinks),
+                                    tokenAmount: tokenAmount,
                                     tokenAddress: token.tokenAddress,
                                     baseUrl,
                                     trackId,
