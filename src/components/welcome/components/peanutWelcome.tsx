@@ -2,7 +2,6 @@
 import * as global_components from '@/components/global'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
-import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
 import sbf_image from '@/assets/people/sbf.jpeg'
 import * as chain_logos from '@/assets/chains'
 import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
@@ -36,31 +35,34 @@ const logoLinks = {
 
 const features = [
     {
-        name: 'Raffle ',
-        description: '2-10k slots with random amounts per red pack',
+        name: 'Brand ',
+        description:
+            'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
         bg: 'bg-yellow',
-        primaryRedirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links', //TODO: update link
+        primaryRedirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links',
         primaryRedirectText: 'Docs',
-    },
-    {
-        name: 'ERC-20',
-        description: 'Multiple ERC-20s tokens per red pack',
-        bg: 'bg-teal',
-        primaryRedirectUrl:
-            'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly', //TODO: update link
-        primaryRedirectText: 'Docs',
-    },
-    {
-        name: 'Your Brand',
-        description: 'Use web app or white-label (self-service or integration fee)',
-        bg: 'bg-red',
-        calModal: true,
-        primaryRedirectUrl: 'https://docs.peanut.to/overview/use-cases', //TODO: update link
-        primaryRedirectText: 'Case study',
     },
     {
         name: 'Gasless',
-        description: 'Seamlessly sponsor gas for claiming!',
+        description:
+            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim and send links solve the cold start problem.',
+        bg: 'bg-teal',
+        primaryRedirectUrl:
+            'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
+        primaryRedirectText: 'Docs',
+    },
+    {
+        name: 'Welcome packs',
+        description: 'Send a welcome pack of NFT + gas + token to new or existing customers',
+        bg: 'bg-red',
+        calModal: true,
+        primaryRedirectUrl: 'https://docs.peanut.to/overview/use-cases',
+        primaryRedirectText: 'Case study',
+    },
+    {
+        name: 'Cross-chain',
+        description:
+            'Customize token and claim page to match your branding with logo and colors. Or even better, have the users claim the tokens on your own domain or app!',
         bg: 'bg-lightblue',
         primaryRedirectUrl: 'https://experimental.peanut.to/send',
         primaryRedirectText: 'Try Now',
@@ -68,14 +70,14 @@ const features = [
         secondaryRedirectText: 'Learn more',
     },
     {
-        name: 'Non-custodial & Audited',
-        description: 'Audited, open source, non-custodial',
+        name: 'Get Physical',
+        description: 'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.',
         bg: 'bg-fuchsia',
         calModal: true,
     },
     {
-        name: 'Sybil-resistant',
-        description: 'One slot per wallet address',
+        name: 'Web2 Airdrops',
+        description: 'Airdrop your web2 audience (think Discord, Mailchimp, Twitter)',
         bg: 'bg-yellow',
         calModal: true,
     },
@@ -118,15 +120,6 @@ const faqs = [
         calModal: true,
         redirectText: 'Lets talk!',
     },
-    {
-        question: 'How many slots per raffle?',
-        answer: 'Up to 250 for a simple red packet, or use this guide [link[ for large red packets, with up to 10k slots.',
-    }, //TODO: update link
-    {
-        question: 'Which tokens can I use? Can I use multiple tokens?',
-        answer: 'Yes, any ERC-20. Yes, use this guide for multi-token Red Packets',
-    },
-    { question: 'I want to run a large campaign. Help?', answer: 'OK, ', calModal: true },
 ]
 const testimonials = [
     {
@@ -166,7 +159,7 @@ const testimonials = [
     },
 ]
 
-export function WelcomeRed() {
+export function Welcome() {
     const [openedFaq, setOpenedFaq] = useState<number | null>(null)
 
     function classNames(...classes: any) {
@@ -200,20 +193,46 @@ export function WelcomeRed() {
             <div className="flex border-2 border-black bg-white text-black">
                 <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
                     <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
-                        Send red packets via a Link
+                        Send{' '}
+                        <div className="scroller w-[175px]">
+                            <span>
+                                NFTs
+                                <br />
+                                USDC
+                                <br />
+                                DAI
+                                <br />
+                                PEPE
+                            </span>
+                        </div>
+                    </h1>
+                    <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
+                        Via Link
+                        {/* <div className="scroller w-[315px]">
+                            <span>
+                                Whatsapp
+                                <br />
+                                Link
+                                <br />
+                                Telegram
+                                <br />
+                                Twitter
+                            </span>
+                        </div> */}
                     </h1>
 
                     <div className="m-4 mx-auto w-3/4 p-2 text-xl">
-                        Reward and engage your community for the Lunar New Year
+                        Go viral with claim links. Let your users send tokens through links
                     </div>
 
                     <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                         <a
-                            href="https://red.peanut.to"
+                            data-cal-link="kkonrad+hugo0/15min?duration=30"
+                            data-cal-config='{"layout":"month_view"}'
                             id="cta-btn"
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                         >
-                            Try now!
+                            Let's talk!
                         </a>
 
                         <a
@@ -244,8 +263,8 @@ export function WelcomeRed() {
 
                 <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
-                        src={peanutman_redpacket.src}
-                        className="absolute h-auto w-3/4 duration-200 hover:rotate-12"
+                        src={peanutman_happy.src}
+                        className="absolute  duration-200 hover:rotate-12"
                         alt="Peanutman Cheering"
                     />
                 </div>
@@ -311,7 +330,7 @@ export function WelcomeRed() {
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
                         <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
                             <img
-                                src={teal_wallet_one.src} //TODO: update with correct mockup
+                                src={teal_wallet_one.src}
                                 className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
                                 alt="Peanutman Cheering"
                             />
@@ -319,8 +338,12 @@ export function WelcomeRed() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Your Brand</h1>
-                        <div className="mx-auto w-3/4 pb-4 text-xl ">Integrate Peanut features seamlessly</div>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Go viral</h1>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">
+                            Links are the easiest way to send crypto. Leverage your userbase to get more users. Let your
+                            users send tokens to their friends and get them onboarded, no matter whether they’re users
+                            already.
+                        </div>
 
                         <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
                             <a
@@ -333,7 +356,7 @@ export function WelcomeRed() {
                             </a>
 
                             <a
-                                href="https://docs.peanut.to" //TODO: update to redpacket implementation guide?
+                                href="https://docs.peanut.to"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
@@ -348,7 +371,7 @@ export function WelcomeRed() {
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
                         <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
                             <img
-                                src={teal_wallet_two.src} //TODO: update with correct mockup
+                                src={teal_wallet_two.src}
                                 className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
                                 alt="Peanutman Cheering"
                             />
@@ -356,8 +379,10 @@ export function WelcomeRed() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Distribute</h1>
-                        <div className="mx-auto w-3/4 pb-4 text-xl ">distribute red packet raffles </div>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim and send gaslessly</h1>
+                        <div className="mx-auto w-3/4 pb-4 text-xl ">
+                            Onboard new users seamlessly with a gassless sending and onboarding experience.
+                        </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                             <a

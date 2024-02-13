@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function Home() {
     return (
         <global_components.PageWrapper>
-            <components.Welcome />
+            <components.welcomePage />
         </global_components.PageWrapper>
     )
 }

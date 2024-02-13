@@ -1,5 +1,6 @@
 'use client'
 import * as global_components from '@/components/global'
+import * as components from '@/components'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
 import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
@@ -211,7 +212,7 @@ export function WelcomeMantle() {
 
                     <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                         <a
-                            href="https://twitter.com/0xMantle/"
+                            href="https://twitter.com/0xMantle/status/1757390410669023248?t=og2A7MIeovDLGKfCQ2wxOw&s=19"
                             id="cta-btn"
                             target="blank"
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
@@ -229,12 +230,8 @@ export function WelcomeMantle() {
                         </a>
                     </div>
                 </div>
-                <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
-                    <img
-                        src={peanutman_mantle.src}
-                        className="absolute h-auto w-3/4 duration-200 hover:rotate-12"
-                        alt="Peanutman Cheering"
-                    />
+                <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia lg:flex ">
+                    <Lottie options={defaultLottieOptions} height={isMobile ? 200 : 400} width={isMobile ? 125 : 250} />
                 </div>
             </div>
 
@@ -256,16 +253,12 @@ export function WelcomeMantle() {
             <div className=" flex flex-col gap-4 bg-white p-4">
                 <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-red py-8 text-black sm:py-16 lg:flex-row-reverse">
                     {/* right column */}
-                    <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
-                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
-                            <div className="brutalborder brutalshadow sm:h-600 h-400 mx-2 flex h-full items-center justify-center bg-white object-cover">
-                                <Lottie
-                                    options={defaultLottieOptions}
-                                    height={isMobile ? 400 : 600}
-                                    width={isMobile ? 250 : 400}
-                                />
-                            </div>
-                        </a>
+                    <div className=" relative flex h-full w-2/3 items-center justify-center  ">
+                        <div className=" relative flex w-full items-center justify-center   ">
+                            <div className=" brutalborder brutalshadow relative flex items-center justify-center bg-white    ">
+                                <components.Leaderboard />
+                            </div>{' '}
+                        </div>
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
