@@ -6,6 +6,7 @@ import { getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 
 import peanutman_logo from '@/assets/peanutman-logo.svg'
+import peanutman_sad from '@/assets/peanutman-sad.svg'
 import * as global_components from '@/components/global'
 
 import * as views from './views'
@@ -98,9 +99,13 @@ export function Packet() {
                     setPacketState('EMPTY')
                 }
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error(error)
             setPacketState('NOT_FOUND')
+
+            // if (error.toString().includes('FUNCTION_INVOCATION_TIMEOUT')) {
+            //     setPacketState('TIMEOUT')
+            // }
         }
     }
 
@@ -128,6 +133,14 @@ export function Packet() {
 
     return (
         <global_components.CardWrapper pt=" pt-16 " redPacket>
+            {packetState === 'TIMEOUT' && (
+                <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
+                    <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
+                    <span className="text-center text-xl">
+                        Our services are under heavy load. Please try again later.
+                    </span>
+                </div>
+            )}
             {packetState === 'LOADING' && (
                 <div className="animate-spin pb-16 pt-16">
                     <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />
