@@ -100,6 +100,7 @@ export function GigaPacket() {
     const [localStorageCompleteData, setLocalStorageCompleteData] = useState<localStorageItem[]>([])
     const [copiedIdx, setCopiedIdx] = useState<number | undefined>(undefined)
     const [txStep, setTxStep] = useState<{ step: number; length: number } | undefined>(undefined)
+    const [isInterupted, setIsInterupted] = useState<boolean>(false)
     hooks.useConfirmRefresh(true)
 
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
@@ -309,6 +310,7 @@ export function GigaPacket() {
     }
 
     async function createRaffle() {
+        if (isInterupted) return
         if (isLoading) return
         setErrorState({
             showError: false,
@@ -792,6 +794,7 @@ export function GigaPacket() {
 
             setLoadingStates('idle')
         } catch (error: any) {
+            setIsInterupted(true)
             setLoadingStates('idle')
 
             if (error.toString().includes('Failed to get wallet client')) {
@@ -1472,6 +1475,8 @@ export function GigaPacket() {
                                     </div>
                                 ) : !isConnected ? (
                                     'Connect Wallet'
+                                ) : isInterupted ? (
+                                    'Error'
                                 ) : finalLink ? (
                                     'Completed!'
                                 ) : incompleteForm ? (
