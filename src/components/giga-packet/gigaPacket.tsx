@@ -922,38 +922,6 @@ export function GigaPacket() {
                         const numberOfSlotsTodo = token.numberOfSlots - token.slotsExecuted
                         let totalTokenAmountTodo = (token.tokenAmount / token.numberOfSlots) * numberOfSlotsTodo
 
-                        if (token.tokenAddress !== _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
-                            try {
-                                const contract = new ethers.Contract(
-                                    token.tokenAddress,
-                                    peanut.ERC20_ABI,
-                                    defaultProvider
-                                )
-                                const balance = await contract.balanceOf(address)
-                                const decimals = await contract.decimals()
-                                const formattedbalance = utils.formatAmountWithDecimals({
-                                    amount: Number(balance.toString()),
-                                    decimals: Number(decimals),
-                                })
-
-                                if (formattedbalance < totalTokenAmountTodo) {
-                                    setErrorState({
-                                        showError: true,
-                                        errorMessage: `Insufficient balance for token with address: ${token.tokenAddress}`,
-                                    })
-                                    return
-                                } else if (formattedbalance == totalTokenAmountTodo) {
-                                    totalTokenAmountTodo = totalTokenAmountTodo * 0.999
-                                }
-                            } catch (error) {
-                                setErrorState({
-                                    showError: true,
-                                    errorMessage: `Incorrect token address for token with address: ${token.tokenAddress}`,
-                                })
-                                return
-                            }
-                        }
-
                         if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
                             tokenType = 0
                             tokenDecimals = 18
