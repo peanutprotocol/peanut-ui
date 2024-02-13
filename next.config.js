@@ -21,26 +21,6 @@ const nextConfig = {
                     source: '/.well-known/assetLinks.json',
                     destination: '/api/assetLinks',
                 },
-                {
-                    source: '/',
-                    has: [
-                        {
-                            type: 'host',
-                            value: 'red.peanut.to',
-                        },
-                    ],
-                    destination: '/create-packet',
-                },
-                {
-                    source: '/',
-                    has: [
-                        {
-                            type: 'host',
-                            value: 'mantle.peanut.to',
-                        },
-                    ],
-                    destination: '/create-packet',
-                },
             ],
         }
     },
