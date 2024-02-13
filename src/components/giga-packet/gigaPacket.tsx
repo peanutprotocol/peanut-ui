@@ -204,7 +204,7 @@ export function GigaPacket() {
             return link
         }
 
-        const groupRegex = new RegExp(regexpCode)
+        const groupRegex = new RegExp(regexpCode, 'g')
         while ((match = groupRegex.exec(i)) !== null) {
             console.log(match)
             const start = parseInt(match[1], 10)
@@ -348,7 +348,7 @@ export function GigaPacket() {
                 return
             } else {
                 try {
-                    validateUserName(senderName)
+                    setSenderName(validateUserName(senderName))
                 } catch (error) {
                     setErrorState({
                         showError: true,
@@ -775,6 +775,7 @@ export function GigaPacket() {
                             _localstorageItem,
                         })
                     } catch (error: any) {
+                        console.log(error)
                         if (error.toString().includes('toLowerCase')) {
                             console.log('not a valid hash, most likely an approval tx. Skipping ')
                         } else {
@@ -809,6 +810,7 @@ export function GigaPacket() {
             }
 
             const finalfinalv4rafflelink_final = combineRaffleLink(raffleLinks)
+            console.log({ finalfinalv4rafflelink_final })
 
             await addLinkCreation({
                 name: senderName,
@@ -1150,7 +1152,7 @@ export function GigaPacket() {
                             try {
                                 //gets the links from the tx
                                 const getLinksFromTxResponse = await getLinksFromTx({
-                                    passwords: Array(250).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
+                                    passwords: Array(numberOfLinks).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
                                     txHash: hash,
                                     linkDetails: linkDetails,
                                     provider: signer.provider,
@@ -1185,6 +1187,7 @@ export function GigaPacket() {
                                     _localstorageItem,
                                 })
                             } catch (error: any) {
+                                console.log(error)
                                 if (error.toString().includes('toLowerCase')) {
                                     console.log('not a valid hash, most likely an approval tx. Skipping ')
                                 } else {
@@ -1229,7 +1232,7 @@ export function GigaPacket() {
                 }
 
                 await addLinkCreation({
-                    name: _senderName,
+                    name: validateUserName(_senderName),
                     link: FINAL_finalfinalv4rafflelink_final,
                     APIKey: 'youwish',
                     withCaptcha: true,
