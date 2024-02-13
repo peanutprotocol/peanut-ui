@@ -606,11 +606,17 @@ export function GigaPacket() {
                 // prepare the transactions. It is calculated based on the number of slots and the max transactions per block
                 for (let index = 0; index <= quotient; index++) {
                     const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
+
+                    let lastTx = false
+
+                    if (index == quotient - 1 && remainder == 0) {
+                        lastTx = true
+                    }
+
                     if (numberofLinks > 0) {
-                        const tokenAmount =
-                            index != quotient
-                                ? Number(tokenAmountPerSlot * numberofLinks)
-                                : Number(tokenAmountPerSlot * numberofLinks) * 0.9
+                        const tokenAmount = lastTx
+                            ? Number(tokenAmountPerSlot * numberofLinks) * 0.9
+                            : Number(tokenAmountPerSlot * numberofLinks)
                         const linkDetails = {
                             chainId: _chainID,
                             tokenAmount: tokenAmount,
@@ -1009,11 +1015,18 @@ export function GigaPacket() {
                         // prepare the transactions. It is calculated based on the number of slots and the max transactions per block
                         for (let index = 0; index <= quotient; index++) {
                             const numberofLinks = index != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
+
+                            let lastTx = false
+
+                            if (index == quotient - 1 && remainder == 0) {
+                                lastTx = true
+                            }
+
                             if (numberofLinks > 0) {
-                                const tokenAmount =
-                                    index != quotient
-                                        ? Number(tokenAmountPerSlot * numberofLinks)
-                                        : Number(tokenAmountPerSlot * numberofLinks) * 0.9
+                                const tokenAmount = lastTx
+                                    ? Number(tokenAmountPerSlot * numberofLinks) * 0.9
+                                    : Number(tokenAmountPerSlot * numberofLinks)
+
                                 const linkDetails = {
                                     chainId: _chainID,
                                     tokenAmount: tokenAmount,
