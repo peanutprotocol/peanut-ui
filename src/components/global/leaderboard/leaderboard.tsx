@@ -19,7 +19,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
 
     return (
         <div className={'flex w-72 flex-col items-center justify-center gap-0'}>
-            <div className="max-h-[372px] w-full overflow-y-auto">
+            <div className="max-h-[450px] w-full overflow-y-auto">
                 <table className="w-full border-collapse">
                     <tbody className="w-full">
                         {arrayToUse.map((claim, index) => (
@@ -30,10 +30,9 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                                         ? utils.shortenAddress(claim.address)
                                         : claim.name}
                                 </td>
-                                <td className="w-1/4 p-2">
-                                    {claim.usdValue
-                                        ? `$${utils.formatAmount(Number(claim.usdValue))}`
-                                        : utils.formatTokenAmount(Number(claim.amount))}
+                                <td className="flex w-1/4 flex-row gap-1 p-2">
+                                    <div>{utils.formatTokenAmount(Number(claim.amount), 4)}</div>
+                                    <div>{claim.tokenSymbol}</div>
                                 </td>
                             </tr>
                         ))}

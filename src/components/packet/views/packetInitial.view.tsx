@@ -100,7 +100,9 @@ export function PacketInitialView({
         setLoadingStates('opening')
         try {
             try {
-                claimFormData.name && validateUserName(claimFormData.name)
+                if (claimFormData.name) {
+                    claimFormData.name = validateUserName(claimFormData.name)
+                }
             } catch (error) {
                 setErrorState({
                     showError: true,

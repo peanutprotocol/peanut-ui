@@ -272,7 +272,7 @@ export function SendInitialView({
 
                 if (sendFormData.senderName) {
                     try {
-                        validateUserName(sendFormData.senderName)
+                        sendFormData.senderName = validateUserName(sendFormData.senderName)
                     } catch (error) {
                         setErrorState({
                             showError: true,

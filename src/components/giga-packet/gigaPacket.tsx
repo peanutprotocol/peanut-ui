@@ -779,6 +779,7 @@ export function GigaPacket() {
                         if (error.toString().includes('toLowerCase')) {
                             console.log('not a valid hash, most likely an approval tx. Skipping ')
                         } else {
+                            console.error('Error getting links from tx', error)
                             throw new Error('Error getting links from tx')
                         }
                     }
@@ -1191,6 +1192,7 @@ export function GigaPacket() {
                                 if (error.toString().includes('toLowerCase')) {
                                     console.log('not a valid hash, most likely an approval tx. Skipping ')
                                 } else {
+                                    console.error('Error getting links from tx', error)
                                     throw new Error('Error getting links from tx')
                                 }
                             }
