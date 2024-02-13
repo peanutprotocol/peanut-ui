@@ -41,14 +41,14 @@ export function Leaderboard() {
     const [isLoading, setIsLoading] = useState<number>(0)
 
     const getPopularityLeaderboard = async () => {
-        const info = await peanut.getPopularityLeaderboard({})
-        setPopularityLeaderboard(info)
+        // const info = await peanut.getPopularityLeaderboard({})
+        // setPopularityLeaderboard(info)
         setIsLoading((prev) => prev + 1)
     }
 
     const getGenerosityLeaderboard = async () => {
-        const info = await peanut.getGenerosityLeaderboard({})
-        setGenerosityLeaderboard(info)
+        // const info = await peanut.getGenerosityLeaderboard({})
+        // setGenerosityLeaderboard(info)
         setIsLoading((prev) => prev + 1)
     }
 
