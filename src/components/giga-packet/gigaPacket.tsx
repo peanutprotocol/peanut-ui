@@ -281,7 +281,7 @@ export function GigaPacket() {
         provider = provider ?? (await getDefaultProvider(_consts.MANTLE_CHAIN_ID))
 
         for (const token of formState) {
-            if (token.tokenAddress !== _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+            if (token.tokenAddress.toLowerCase() !== _consts.MANTLE_NATIVE_TOKEN_ADDRESS.toLowerCase()) {
                 try {
                     const contract = new ethers.Contract(token.tokenAddress, peanut.ERC20_ABI, provider)
                     const balance = await contract.balanceOf(address)
@@ -379,7 +379,9 @@ export function GigaPacket() {
 
             const totalSlots = _formState.reduce((acc, token) => acc + token.numberOfSlots, 0)
             const totalMNT =
-                _formState.find((item) => item.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS)?.tokenAmount ?? 0
+                _formState.find(
+                    (item) => item.tokenAddress.toLowerCase() == _consts.MANTLE_NATIVE_TOKEN_ADDRESS.toLowerCase()
+                )?.tokenAmount ?? 0
             const balanceCheck = await checkMnt(totalSlots, totalMNT, address ?? '')
             if (!balanceCheck) {
                 setErrorState({
@@ -467,7 +469,7 @@ export function GigaPacket() {
             for (const token of _formState) {
                 let tokenType, tokenDecimals
 
-                if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                if (token.tokenAddress.toLowerCase() == _consts.MANTLE_NATIVE_TOKEN_ADDRESS.toLocaleLowerCase()) {
                     tokenType = 0
                     tokenDecimals = 18
                 } else {
@@ -575,7 +577,7 @@ export function GigaPacket() {
                 let tokenType, tokenDecimals
 
                 // We do this cause mantle native token isnt an actual native token, but we need to treat it that way
-                if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                if (token.tokenAddress.toLowerCase() == _consts.MANTLE_NATIVE_TOKEN_ADDRESS.toLowerCase()) {
                     tokenType = 0
                     tokenDecimals = 18
                 } else {
@@ -928,7 +930,7 @@ export function GigaPacket() {
                         const numberOfSlotsTodo = token.numberOfSlots - token.slotsExecuted
                         let totalTokenAmountTodo = (token.tokenAmount / token.numberOfSlots) * numberOfSlotsTodo
 
-                        if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                        if (token.tokenAddress.toLowerCase() == _consts.MANTLE_NATIVE_TOKEN_ADDRESS.toLowerCase()) {
                             tokenType = 0
                             tokenDecimals = 18
                         } else {
