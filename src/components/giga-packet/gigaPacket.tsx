@@ -284,24 +284,28 @@ export function GigaPacket() {
 
         for (const token of formState) {
             if (token.tokenAddress !== _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
-                const contract = new ethers.Contract(token.tokenAddress, peanut.ERC20_ABI, provider)
-                const balance = await contract.balanceOf(address)
-                const decimals = await contract.decimals()
-                const formattedbalance = utils.formatAmountWithDecimals({
-                    amount: Number(balance.toString()),
-                    decimals: Number(decimals),
-                })
-
-                if (formattedbalance < token.tokenAmount) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: `Insufficient balance for token with address: ${token.tokenAddress}`,
+                try {
+                    const contract = new ethers.Contract(token.tokenAddress, peanut.ERC20_ABI, provider)
+                    const balance = await contract.balanceOf(address)
+                    const decimals = await contract.decimals()
+                    const formattedbalance = utils.formatAmountWithDecimals({
+                        amount: Number(balance.toString()),
+                        decimals: Number(decimals),
                     })
-                    return { status: false, address: `${token.tokenAddress}` }
+
+                    if (formattedbalance < token.tokenAmount) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: `Insufficient balance for token with address: ${token.tokenAddress}`,
+                        })
+                        return { status: false, address: `${token.tokenAddress}`, type: 'balance' }
+                    }
+                } catch (error) {
+                    return { status: false, address: `${token.tokenAddress}`, type: 'failed' }
                 }
             }
         }
-        return { status: true, address: '' }
+        return { status: true, address: '', type: '' }
     }
 
     async function createRaffle() {
@@ -369,12 +373,24 @@ export function GigaPacket() {
                 return
             }
 
-            const totalBalancesCheck = checkBalances(_formState)
-            if (!(await totalBalancesCheck).status) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: `Insufficient balance for token with address: ${(await totalBalancesCheck).address}`,
-                })
+            const totalBalancesCheck = await checkBalances(_formState)
+            if (!totalBalancesCheck.status) {
+                if (totalBalancesCheck.type === 'failed') {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: `Failed to check balance for token with address: ${
+                            (await totalBalancesCheck).address
+                        }, please ensure the address is correct.`,
+                    })
+                } else if (totalBalancesCheck.type === 'balance') {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: `Insufficient balance for token with address: ${
+                            (await totalBalancesCheck).address
+                        }.`,
+                    })
+                }
+
                 return
             }
 
