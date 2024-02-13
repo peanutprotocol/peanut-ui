@@ -3,6 +3,8 @@ import * as global_components from '@/components/global'
 import smiley from '@/assets/smiley.svg'
 import peanutman_happy from '@/assets/peanutman-happy.svg'
 import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
+import peanutman_mantle from '@/assets/peanut-holding-mantle-logo.svg'
+import mantle_poster_1 from '@/assets/mantle-poster-1.jpg'
 import sbf_image from '@/assets/people/sbf.jpeg'
 import * as chain_logos from '@/assets/chains'
 import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
@@ -198,19 +200,22 @@ export function WelcomeMantle() {
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
             {/* hero */}
             <div className="flex border-2 border-black bg-white text-black">
-                <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                    <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
-                        Poster goes here
+                <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:px-0">
+
+                <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
+                        Red Packets
                     </h1>
 
                     <div className="m-4 mx-auto w-3/4 p-2 text-xl">
-                        Celebrate the Lunar New Year with Mantle & Peanut Protocol.
+                        Reward and engage your community for the Lunar New Year
                     </div>
 
+                
                     <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                         <a
-                            href="https://red.peanut.to"
+                            href="https://twitter.com/0xMantle/"
                             id="cta-btn"
+                            target='blank'
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                         >
                             Discover!
@@ -228,10 +233,9 @@ export function WelcomeMantle() {
 
 
                 </div>
-
                 <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
-                        src={peanutman_redpacket.src}
+                        src={peanutman_mantle.src}
                         className="absolute h-auto w-3/4 duration-200 hover:rotate-12"
                         alt="Peanutman Cheering"
                     />
@@ -281,6 +285,10 @@ export function WelcomeMantle() {
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
                             >
                                 Subscribe!
+                                {/* make this a modal that shows this google form iframe
+                                 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdrDAnvpuVb-Yr2fuehjTQTMkjMvraDe7WUvCXhUjYaZoiboA/viewform?embedded=true" width="640" height="371" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
+                                or, if that's too annoying, just target blank to https://forms.gle/PmyttnM1ZKH2Ey4q7
+                                */}
                             </Link>
 
                             <a
