@@ -1452,19 +1452,7 @@ export function GigaPacket() {
 
                         {incompleteForm && (
                             <h3 className="my-6 w-4/5 font-bold">
-                                The proccess of creating a gigalink was interupted. Click continue to finish the link or
-                                in case you want to delete the incomplete link, please click{' '}
-                                <label
-                                    className="cursor-pointer font-black underline"
-                                    onClick={() => {
-                                        localStorage.removeItem(`${address}-gigalink-${incompleteForm.password}`)
-                                        setIncompleteForm(undefined)
-                                        setFormState(defaultValues)
-                                    }}
-                                >
-                                    HERE
-                                </label>
-                                . Be aware that this action is irreversible.
+                                The proccess of creating a gigalink was interupted. Click continue to finish the link.
                             </h3>
                         )}
                         {txStep && (
