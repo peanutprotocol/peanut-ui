@@ -66,7 +66,7 @@ export function Leaderboard() {
     return (
         <div className="flex w-full flex-col items-center justify-center gap-4 ">
             <img src={peanutman_red.src} className="h-80 w-80" />
-            <div>Leaderboard coming soon!</div>
+            <div className="text-2xl font-bold">Leaderboard coming soon!</div>
         </div>
         // <div className="w-full">
         //     <div className="mb-4 hidden sm:block">
