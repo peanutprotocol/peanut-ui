@@ -494,7 +494,7 @@ export function GigaPacket() {
                         _chainID,
                         token.tokenAddress,
                         tokenAmountBigNum,
-                        -1, // decimals doesn't matter
+                        tokenDecimals,
                         true, // already a prepared bignumber
                         batcherContractVersion,
                         signer.provider
@@ -622,6 +622,7 @@ export function GigaPacket() {
                     let index = 0
                     const numberofLinks =
                         preparedTransactionsArrayIndex != quotient ? _consts.MAX_TRANSACTIONS_PER_BLOCK : remainder
+
                     for (const prearedTransaction of preparedTransactionsArray.unsignedTxs) {
                         let txOptions
                         try {
@@ -658,29 +659,35 @@ export function GigaPacket() {
                         const txResponse = await tx.wait()
                         console.log(txResponse)
                         hashes.push(tx.hash)
-                        index++
-                        if (totalTxIndex < totalTxs) {
-                            totalTxIndex++
-                        }
-                        setTxStep({
-                            step: totalTxIndex,
-                            length: totalTxs,
-                        })
-                        _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
-                            if (_token.tokenAddress === token.tokenAddress) {
-                                return {
-                                    ..._token,
-                                    slotsExecuted: _token.slotsExecuted + numberofLinks, // Updated value
-                                    hashesExecuted: [..._token.hashesExecuted, tx.hash], // Updated value
-                                }
-                            }
-                            return _token // Return the original _token, not `token`
-                        })
 
-                        updateLocalstorageItem(_localstorageKey, _localstorageItem)
-                        console.log({
-                            _localstorageItem,
-                        })
+                        if (index + 1 == preparedTransactionsArray.unsignedTxs.length) {
+                            setTxStep({
+                                step: totalTxIndex,
+                                length: totalTxs,
+                            })
+                            _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                                if (_token.tokenAddress === token.tokenAddress) {
+                                    return {
+                                        ..._token,
+                                        slotsExecuted: _token.slotsExecuted + numberofLinks, // Updated value
+                                        hashesExecuted: [..._token.hashesExecuted, tx.hash], // Updated value
+                                    }
+                                }
+                                return _token // Return the original _token, not `token`
+                            })
+
+                            updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                            if (totalTxIndex < totalTxs) {
+                                totalTxIndex++
+                            }
+
+                            console.log({
+                                _localstorageItem,
+                            })
+                        }
+
+                        index++
                     }
                     preparedTransactionsArrayIndex++
                 }
@@ -706,40 +713,48 @@ export function GigaPacket() {
                         tokenType: tokenType,
                     }
 
-                    //gets the links from the tx
-                    const getLinksFromTxResponse = await getLinksFromTx({
-                        passwords: Array(numberofLinks).fill(peanutPassword),
-                        txHash: hash,
-                        linkDetails: linkDetails,
-                        provider: signer.provider,
-                    })
+                    try {
+                        //gets the links from the tx
+                        const getLinksFromTxResponse = await getLinksFromTx({
+                            passwords: Array(numberofLinks).fill(peanutPassword),
+                            txHash: hash,
+                            linkDetails: linkDetails,
+                            provider: signer.provider,
+                        })
 
-                    //creates a multilink from the links
-                    const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
+                        //creates a multilink from the links
+                        const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
 
-                    // returns array of links
-                    links.push(createdMultilink)
+                        // returns array of links
+                        links.push(createdMultilink)
 
-                    index++
+                        index++
 
-                    _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
-                        if (_token.tokenAddress === token.tokenAddress) {
-                            return {
-                                ..._token,
-                                link:
-                                    _token.link !== ''
-                                        ? combineRaffleLink([_token.link, createdMultilink])
-                                        : createdMultilink, // Updated value
+                        _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                            if (_token.tokenAddress === token.tokenAddress) {
+                                return {
+                                    ..._token,
+                                    link:
+                                        _token.link !== ''
+                                            ? combineRaffleLink([_token.link, createdMultilink])
+                                            : createdMultilink, // Updated value
+                                }
                             }
+                            return _token // Return the original _token, not `token`
+                        })
+
+                        updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                        console.log({
+                            _localstorageItem,
+                        })
+                    } catch (error: any) {
+                        if (error.toString().includes('toLowerCase')) {
+                            console.log('not a valid hash, most likely an approval tx. Skipping ')
+                        } else {
+                            throw new Error('Error getting links from tx')
                         }
-                        return _token // Return the original _token, not `token`
-                    })
-
-                    updateLocalstorageItem(_localstorageKey, _localstorageItem)
-
-                    console.log({
-                        _localstorageItem,
-                    })
+                    }
                 }
 
                 console.log({ links })
@@ -1036,31 +1051,35 @@ export function GigaPacket() {
                                 const tx = await signer.sendTransaction(preparedTx)
                                 setLoadingStates('executing transaction')
                                 await tx.wait()
-                                hashes.push(tx.hash)
-                                index++
-                                if (totalTxIndex < totalTxs) {
-                                    totalTxIndex++
-                                }
-                                setTxStep({
-                                    step: totalTxIndex,
-                                    length: totalTxs,
-                                })
 
-                                _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
-                                    if (_token.tokenAddress === token.tokenAddress) {
-                                        return {
-                                            ..._token,
-                                            slotsExecuted: _token.slotsExecuted + numberofLinks,
-                                            hashesExecuted: [..._token.hashesExecuted, tx.hash],
+                                if (index + 1 == preparedTransactionsArray.unsignedTxs.length) {
+                                    hashes.push(tx.hash)
+
+                                    setTxStep({
+                                        step: totalTxIndex,
+                                        length: totalTxs,
+                                    })
+                                    _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                                        if (_token.tokenAddress === token.tokenAddress) {
+                                            return {
+                                                ..._token,
+                                                slotsExecuted: _token.slotsExecuted + numberofLinks, // Updated value
+                                                hashesExecuted: [..._token.hashesExecuted, tx.hash], // Updated value
+                                            }
                                         }
-                                    }
-                                    return _token
-                                })
+                                        return _token // Return the original _token, not `token`
+                                    })
 
-                                updateLocalstorageItem(_localstorageKey, _localstorageItem)
-                                console.log({
-                                    _localstorageItem,
-                                })
+                                    updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                                    if (totalTxIndex < totalTxs) {
+                                        totalTxIndex++
+                                    }
+
+                                    console.log({
+                                        _localstorageItem,
+                                    })
+                                }
                             }
                             preparedTransactionsArrayIndex++
                         }
@@ -1091,42 +1110,50 @@ export function GigaPacket() {
                                 tokenType: tokenType,
                             }
 
-                            //gets the links from the tx
-                            const getLinksFromTxResponse = await getLinksFromTx({
-                                passwords: Array(numberOfLinks).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
-                                txHash: hash,
-                                linkDetails: linkDetails,
-                                provider: signer.provider,
-                            })
+                            try {
+                                //gets the links from the tx
+                                const getLinksFromTxResponse = await getLinksFromTx({
+                                    passwords: Array(numberOfLinks).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
+                                    txHash: hash,
+                                    linkDetails: linkDetails,
+                                    provider: signer.provider,
+                                })
 
-                            console.log({ getLinksFromTxResponse })
+                                console.log({ getLinksFromTxResponse })
 
-                            //creates a multilink from the links
-                            const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
+                                //creates a multilink from the links
+                                const createdMultilink = createMultiLinkFromLinks(getLinksFromTxResponse.links)
 
-                            // returns array of links
-                            links.push(createdMultilink)
+                                // returns array of links
+                                links.push(createdMultilink)
 
-                            index++
+                                index++
 
-                            _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
-                                if (_token.tokenAddress === token.tokenAddress) {
-                                    return {
-                                        ..._token,
-                                        link:
-                                            _token.link !== ''
-                                                ? combineRaffleLink([_token.link, createdMultilink])
-                                                : createdMultilink,
+                                _localstorageItem.tokenDetails = _localstorageItem.tokenDetails.map((_token) => {
+                                    if (_token.tokenAddress === token.tokenAddress) {
+                                        return {
+                                            ..._token,
+                                            link:
+                                                _token.link !== ''
+                                                    ? combineRaffleLink([_token.link, createdMultilink])
+                                                    : createdMultilink,
+                                        }
                                     }
+                                    return _token
+                                })
+
+                                updateLocalstorageItem(_localstorageKey, _localstorageItem)
+
+                                console.log({
+                                    _localstorageItem,
+                                })
+                            } catch (error: any) {
+                                if (error.toString().includes('toLowerCase')) {
+                                    console.log('not a valid hash, most likely an approval tx. Skipping ')
+                                } else {
+                                    throw new Error('Error getting links from tx')
                                 }
-                                return _token
-                            })
-
-                            updateLocalstorageItem(_localstorageKey, _localstorageItem)
-
-                            console.log({
-                                _localstorageItem,
-                            })
+                            }
                         }
 
                         console.log({ links })
