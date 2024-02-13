@@ -1153,7 +1153,7 @@ export function GigaPacket() {
                             try {
                                 //gets the links from the tx
                                 const getLinksFromTxResponse = await getLinksFromTx({
-                                    passwords: Array(numberOfLinks).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
+                                    passwords: Array(250).fill(_password), // always creating array of 250, max is 250 and not trivial to find out how much links a password
                                     txHash: hash,
                                     linkDetails: linkDetails,
                                     provider: signer.provider,
