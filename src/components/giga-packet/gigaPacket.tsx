@@ -824,8 +824,11 @@ export function GigaPacket() {
                 baseUrl: consts.next_proxy_url + '/submit-raffle-link',
             })
 
+            // Remove indices to shorten the link
             console.log({ finalfinalv4rafflelink_final })
-            setFinalLink(finalfinalv4rafflelink_final)
+            const finalURL = new URL(finalfinalv4rafflelink_final)
+            finalURL.searchParams.delete('i')
+            setFinalLink(finalURL.toString())
 
             //udpatelocalstorage with final link and completed flag
 
@@ -1244,8 +1247,11 @@ export function GigaPacket() {
                     baseUrl: consts.next_proxy_url + '/submit-raffle-link',
                 })
 
+                // Remove indices to shorten the link
                 console.log({ FINAL_finalfinalv4rafflelink_final })
-                setFinalLink(FINAL_finalfinalv4rafflelink_final)
+                const finalURL = new URL(FINAL_finalfinalv4rafflelink_final)
+                finalURL.searchParams.delete('i')
+                setFinalLink(finalURL.toString())
 
                 _localstorageItem = {
                     ..._localstorageItem,
