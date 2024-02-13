@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 
 import * as global_components from '@/components/global'
 import * as utils from '@/utils'
+import peanutman_logo from '@/assets/peanutman-logo.svg'
 
 const mock = [
     { name: 'XIBdiWhwyf', address: 'rCbrFRUAtVGgLFaJEwUNDcvgLMDZzYKtfRRHFHRxOw', popularity: 910 },
@@ -37,16 +38,18 @@ export function Leaderboard() {
     const [selectedTab, setSelectedTab] = useState<'Popularity' | 'Generosity'>('Popularity')
     const [popularityLeaderboard, setPopularityLeaderboard] = useState<interfaces.IPopularityLeaderboardEntry[]>([])
     const [generosityLeaderboard, setGenerosityLeaderboard] = useState<interfaces.IGenerosityLeaderboardEntry[]>([])
+    const [isLoading, setIsLoading] = useState<number>(0)
 
     const getPopularityLeaderboard = async () => {
         const info = await peanut.getPopularityLeaderboard({})
         setPopularityLeaderboard(info)
+        setIsLoading((prev) => prev + 1)
     }
 
     const getGenerosityLeaderboard = async () => {
         const info = await peanut.getGenerosityLeaderboard({})
-
         setGenerosityLeaderboard(info)
+        setIsLoading((prev) => prev + 1)
     }
 
     useEffect(() => {
@@ -85,12 +88,23 @@ export function Leaderboard() {
                     ))}
                 </nav>
             </div>
-            {selectedTab == 'Popularity' && (
+            {isLoading < 2 ? (
+                <div
+                    className={
+                        'center-xy relative mx-auto mr-4 flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black sm:mr-auto lg:w-2/3 xl:w-1/2 '
+                    }
+                >
+                    <div className="animate-spin pb-16 pt-16">
+                        <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                </div>
+            ) : selectedTab == 'Popularity' ? (
                 <div className={'flex  flex-col items-center justify-center gap-0'}>
                     <div className="brutalscroll max-h-[377px] w-full overflow-y-auto">
                         <table className="w-full border-collapse">
                             <tbody className="w-full">
-                                {mock.map((item, index) => (
+                                {popularityLeaderboard.map((item, index) => (
                                     <tr className="brutalborder w-full border p-2" key={index}>
                                         <td className="w-[36px] p-2">#{index + 1}</td>
                                         <td className="p-2 font-normal">
@@ -108,25 +122,26 @@ export function Leaderboard() {
                         </table>
                     </div>
                 </div>
-            )}
-            {selectedTab == 'Generosity' && (
-                <div className={'flex flex-col items-center justify-center gap-0'}>
-                    <div className="brutalscroll max-h-[377px] w-full overflow-y-auto">
-                        <table className="w-full border-collapse">
-                            <tbody className="w-full">
-                                {generosityLeaderboard.map((item, index) => (
-                                    <tr className="brutalborder w-full border p-2" key={index}>
-                                        <td className="w-[36px] p-2">#{index + 1}</td>
-                                        <td className="p-2 font-normal">
-                                            {item.name ?? utils.shortenAddress(item.address)}
-                                        </td>
-                                        <td className="p-2">{item.linksCreated}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+            ) : (
+                selectedTab == 'Generosity' && (
+                    <div className={'flex flex-col items-center justify-center gap-0'}>
+                        <div className="brutalscroll max-h-[377px] w-full overflow-y-auto">
+                            <table className="w-full border-collapse">
+                                <tbody className="w-full">
+                                    {generosityLeaderboard.map((item, index) => (
+                                        <tr className="brutalborder w-full border p-2" key={index}>
+                                            <td className="w-[36px] p-2">#{index + 1}</td>
+                                            <td className="p-2 font-normal">
+                                                {item.name ?? utils.shortenAddress(item.address)}
+                                            </td>
+                                            <td className="p-2">{item.linksCreated}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
-                </div>
+                )
             )}
         </div>
     )

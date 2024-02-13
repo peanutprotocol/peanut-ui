@@ -20,12 +20,14 @@ import dropdown_svg from '@/assets/dropdown.svg'
 import derek from '@/assets/people/derek.png'
 import sharuk from '@/assets/people/sharuk.png'
 import kofime_icon from '@/assets/people/kofime-icon.jpeg'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Fragment } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 import Link from 'next/link'
 import Lottie from 'react-lottie'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import { isMobile } from 'react-device-detect'
+import { Transition, Dialog } from '@headlessui/react'
+import { Widget } from '@typeform/embed-react'
 
 const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
 const logoLinks = {
@@ -197,6 +199,8 @@ export function WelcomeMantle() {
         })()
     }, [])
 
+    const [showIframe, setShowIframe] = useState(false)
+
     return (
         <div className="mt-0 flex h-full min-h-[100vh] flex-col  ">
             {/* hero */}
@@ -255,7 +259,10 @@ export function WelcomeMantle() {
                     {/* right column */}
                     <div className=" relative flex h-full w-2/3 items-center justify-center  ">
                         <div className=" relative flex w-full items-center justify-center   ">
-                            <div className=" brutalborder brutalshadow relative flex items-center justify-center bg-white    ">
+                            <div
+                                id="cta-div"
+                                className=" brutalborder relative flex w-3/4 items-center justify-center bg-white p-6   "
+                            >
                                 <components.Leaderboard />
                             </div>{' '}
                         </div>
@@ -268,17 +275,15 @@ export function WelcomeMantle() {
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
-                            <Link
-                                href={'/create-packet'}
+                            <div
+                                onClick={() => {
+                                    setShowIframe(!showIframe)
+                                }}
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
                             >
                                 Subscribe!
-                                {/* make this a modal that shows this google form iframe
-                                 <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdrDAnvpuVb-Yr2fuehjTQTMkjMvraDe7WUvCXhUjYaZoiboA/viewform?embedded=true" width="640" height="371" frameborder="0" marginheight="0" marginwidth="0">Loading…</iframe>
-                                or, if that's too annoying, just target blank to https://forms.gle/PmyttnM1ZKH2Ey4q7
-                                */}
-                            </Link>
+                            </div>
 
                             <a
                                 href="https://docs.peanut.to"
@@ -531,6 +536,51 @@ export function WelcomeMantle() {
                     ))}
                 </div>
             </section>
+
+            <Transition.Root show={showIframe} as={Fragment}>
+                <Dialog
+                    as="div"
+                    className="relative z-10 "
+                    onClose={() => {
+                        setShowIframe(false)
+                    }}
+                >
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0"
+                        enterTo="opacity-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
+                    </Transition.Child>
+                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            >
+                                <Dialog.Panel className="brutalborder relative my-24 h-full max-h-[720px] min-h-[720px] w-full min-w-[580px] max-w-[580px] transform overflow-hidden rounded-lg rounded-none bg-white text-left text-black shadow-xl  transition-all ">
+                                    <div className="flex h-full max-h-[720px] min-h-[720px] flex-col items-center justify-center gap-2 ">
+                                        <Widget
+                                            id="bqfEVQzJ"
+                                            style={{ width: '100%', height: '720px' }}
+                                            className="form"
+                                        />
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
         </div>
     )
 }
