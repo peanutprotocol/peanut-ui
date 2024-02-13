@@ -625,7 +625,11 @@ export function GigaPacket() {
                     for (const prearedTransaction of preparedTransactionsArray.unsignedTxs) {
                         let txOptions
                         try {
-                            txOptions = await setFeeOptions({ provider: signer.provider })
+                            // set 29.5 million gas limit
+                            txOptions = await setFeeOptions({
+                                provider: signer.provider,
+                                gasLimit: ethers.BigNumber.from(29500000),
+                            })
                         } catch (error) {
                             throw new interfaces.SDKStatus(
                                 interfaces.ESignAndSubmitTx.ERROR_SETTING_FEE_OPTIONS,
