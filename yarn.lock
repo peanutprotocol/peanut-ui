@@ -2490,6 +2490,19 @@
     "@tufjs/canonical-json" "2.0.0"
     minimatch "^9.0.3"
 
+"@typeform/embed-react@^3.11.0":
+  version "3.11.0"
+  resolved "https://registry.yarnpkg.com/@typeform/embed-react/-/embed-react-3.11.0.tgz#0465667240f25d7c48e1a05699fe020f63c4595b"
+  integrity sha512-FRCtoKoMLvvWxfMmGVtjQVqljPex5K0bw//+fGaR+TrexZgn2ydgj9KNdVhIhTeauwslknxoJ2/ptjpT9NiREA==
+  dependencies:
+    "@typeform/embed" "4.5.0"
+    fast-deep-equal "^3.1.3"
+
+"@typeform/embed@4.5.0":
+  version "4.5.0"
+  resolved "https://registry.yarnpkg.com/@typeform/embed/-/embed-4.5.0.tgz#c54685931a2031c1c92790f70d7de7349a5c0a06"
+  integrity sha512-k6lLxxOxu+QcWqXkMgsxo2HA2KRyF3gpXEZzN+16LjeyHih8YzY6K7g3w+RPtHBKaV4ld8+7lS9yipaM4etriw==
+
 "@types/bn.js@^5.1.0", "@types/bn.js@^5.1.1":
   version "5.1.5"
   resolved "https://registry.npmjs.org/@types/bn.js/-/bn.js-5.1.5.tgz"
@@ -5176,7 +5189,7 @@ fast-copy@^3.0.0:
   resolved "https://registry.npmjs.org/fast-copy/-/fast-copy-3.0.1.tgz"
   integrity sha512-Knr7NOtK3HWRYGtHoJrjkaWepqT8thIVGAwt0p0aUs1zqkAzXZV4vo9fFNwyb5fcqK1GKYFYxldQdIDVKhUAfA==
 
-fast-deep-equal@^3.1.1:
+fast-deep-equal@^3.1.1, fast-deep-equal@^3.1.3:
   version "3.1.3"
   resolved "https://registry.npmjs.org/fast-deep-equal/-/fast-deep-equal-3.1.3.tgz"
   integrity sha512-f3qQ9oQy9j2AhBe/H9VC91wLmKBCCU/gDOnKNAYG5hswO7BLKj09Hc5HYNz9cGI++xlpDCIgDaitVs03ATR84Q==
