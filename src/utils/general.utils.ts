@@ -130,10 +130,11 @@ export function formatAmount(amount: number) {
     return amount.toFixed(2)
 }
 
-export function formatTokenAmount(amount: number) {
+export function formatTokenAmount(amount: number, maxFractionDigits?: number) {
+    maxFractionDigits = maxFractionDigits ?? 6
     const formattedAmount = amount.toLocaleString('en-US', {
         minimumFractionDigits: 0,
-        maximumFractionDigits: 6,
+        maximumFractionDigits: maxFractionDigits,
     })
     return formattedAmount
 }

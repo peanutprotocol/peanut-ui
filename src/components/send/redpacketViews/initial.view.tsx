@@ -20,6 +20,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
 import dropdown_svg from '@/assets/dropdown.svg'
+import { useRouter } from 'next/navigation'
 
 export function SendInitialView({
     onNextScreen,
@@ -32,6 +33,7 @@ export function SendInitialView({
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const { chain: currentChain } = useNetwork()
+    const router = useRouter()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -270,7 +272,7 @@ export function SendInitialView({
 
                 if (sendFormData.senderName) {
                     try {
-                        validateUserName(sendFormData.senderName)
+                        sendFormData.senderName = validateUserName(sendFormData.senderName)
                     } catch (error) {
                         setErrorState({
                             showError: true,
@@ -371,7 +373,7 @@ export function SendInitialView({
 
                 setLoadingStates('creating link')
 
-                const getLinksFromTxResponse = await getRaffleLinkFromTx({
+                const { link: fullCreatedLink } = await getRaffleLinkFromTx({
                     linkDetails,
                     txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
                     password: password,
@@ -382,17 +384,21 @@ export function SendInitialView({
                     baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
                     APIKey: 'doesnt-matter',
                 })
+                // Remove indices since they are stored on the API anyway
+                const fullCreatedURL = new URL(fullCreatedLink)
+                fullCreatedURL.searchParams.delete('i')
+                const minimizedLink = fullCreatedURL.toString()
 
                 const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
 
-                verbose && console.log('Created raffle link:', getLinksFromTxResponse.link)
+                verbose && console.log('Created raffle link:', { fullCreatedLink, minimizedLink })
                 verbose && console.log('Transaction hash:', txHash)
 
                 utils.delteFromLocalStorage(tempLocalstorageKey)
 
-                utils.saveToLocalStorage(address + ' - ' + txHash, getLinksFromTxResponse.link)
+                utils.saveToLocalStorage(address + ' - ' + txHash, minimizedLink)
 
-                setClaimLink([getLinksFromTxResponse.link])
+                setClaimLink([minimizedLink])
                 setTxHash(txHash)
                 setChainId(sendFormData.chainId)
                 onNextScreen()
@@ -523,6 +529,24 @@ export function SendInitialView({
                 <div className="my-0 w-4/5 font-normal">
                     A red envelope or red packet is a gift of money given during holidays.
                 </div>
+                {mantleCheck && (
+                    <div className="my-0 w-4/5 font-normal">
+                        NOTICE: if you are a partner of the{' '}
+                        <a href="https://mantle.xyz" target="_blank" className="cursor-pointer text-black underline">
+                            mantle.xyz
+                        </a>{' '}
+                        campaign and want to create &gt; 250 slot red packets, go{' '}
+                        <label
+                            className="cursor-pointer underline"
+                            onClick={() => {
+                                router.push('/create-giga-packet')
+                            }}
+                        >
+                            here
+                        </label>
+                        .
+                    </div>
+                )}
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-2 sm:gap-7">

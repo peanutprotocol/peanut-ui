@@ -12,6 +12,7 @@ import { useForm } from 'react-hook-form'
 import { ethers } from 'ethersv5'
 import { useLottie } from 'lottie-react'
 import ReCAPTCHA from 'react-google-recaptcha'
+import { useAtom } from 'jotai'
 
 import dropdown_svg from '@/assets/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
@@ -19,6 +20,7 @@ import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import * as global_components from '@/components/global'
 import * as consts from '@/consts'
 import * as utils from '@/utils'
+import * as store from '@/store'
 
 import * as _consts from '../packet.consts'
 import * as _utils from '../packet.utils'
@@ -40,6 +42,7 @@ const defaultLottieStyle = {
 export function PacketInitialView({
     onNextScreen,
     raffleLink,
+    raffleInfo,
     setRaffleClaimedInfo,
     ensName,
     setLeaderboardInfo,
@@ -48,6 +51,7 @@ export function PacketInitialView({
     userStatus,
 }: _consts.IPacketScreenProps) {
     const { open } = useWeb3Modal()
+    const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const { isConnected, address } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -96,12 +100,15 @@ export function PacketInitialView({
         setLoadingStates('opening')
         try {
             try {
-                claimFormData.name && validateUserName(claimFormData.name ?? '')
+                if (claimFormData.name) {
+                    claimFormData.name = validateUserName(claimFormData.name)
+                }
             } catch (error) {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Invalid name',
                 })
+                return
             }
 
             let recipientAddress
@@ -313,8 +320,8 @@ export function PacketInitialView({
                 />
             </div>
             {isDropdownOpen && (
-                <div className="flex flex-col items-center justify-center gap-2">
-                    <div className="my-4 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                <div className="my-4 flex flex-col items-center justify-center gap-2">
+                    <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
                         <div className="font-normal">Your address/ensname</div>
                         <div className="flex flex-row items-center justify-between">
                             <input
@@ -326,6 +333,10 @@ export function PacketInitialView({
                                 {...claimForm.register('address')}
                             />
                         </div>
+                    </div>
+                    <div className="text-sm ">
+                        Please ensure that this address exists on{' '}
+                        {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
                     </div>
                 </div>
             )}

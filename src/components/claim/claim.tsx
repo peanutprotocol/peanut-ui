@@ -88,7 +88,7 @@ export function Claim() {
 
         if (tokenPrice) {
             // if token price is available and higher then $5
-            if (Number(linkDetails.tokenAmount) * tokenPrice < 4.9) {
+            if (Number(linkDetails.tokenAmount) * tokenPrice < 19.9) {
                 tokenPriceSufficient = false
             } else {
                 tokenPriceSufficient = true
