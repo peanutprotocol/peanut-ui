@@ -299,14 +299,31 @@ export function GigaPacket() {
                             showError: true,
                             errorMessage: `Insufficient balance for token with address: ${token.tokenAddress}`,
                         })
-                        return { status: false, address: `${token.tokenAddress}`, type: 'balance' }
+                        return {
+                            status: false,
+                            address: `${token.tokenAddress}`,
+                            type: 'balance',
+                            formState: formState,
+                        }
+                    } else if (formattedbalance == token.tokenAmount) {
+                        formState.forEach((_token) => {
+                            if (_token.tokenAddress === token.tokenAddress) {
+                                _token.tokenAmount = token.tokenAmount * 0.999
+                            }
+                        })
+                        return {
+                            status: false,
+                            address: `${token.tokenAddress}`,
+                            type: 'reduce',
+                            formsState: formState,
+                        }
                     }
                 } catch (error) {
-                    return { status: false, address: `${token.tokenAddress}`, type: 'failed' }
+                    return { status: false, address: `${token.tokenAddress}`, type: 'failed', formState: formState }
                 }
             }
         }
-        return { status: true, address: '', type: '' }
+        return { status: true, address: '', type: '', formState: formState }
     }
 
     async function createRaffle() {
@@ -319,7 +336,7 @@ export function GigaPacket() {
         // check if token addresses are correct
         // check if amounts and number of slots per link are correct
         try {
-            const _formState = formState.filter((state) => state.tokenAddress !== '')
+            let _formState = formState.filter((state) => state.tokenAddress !== '')
 
             //create localstorage item and save to localstorage
 
@@ -384,6 +401,7 @@ export function GigaPacket() {
                             (await totalBalancesCheck).address
                         }, please ensure the address is correct.`,
                     })
+                    return
                 } else if (totalBalancesCheck.type === 'balance') {
                     setErrorState({
                         showError: true,
@@ -391,9 +409,10 @@ export function GigaPacket() {
                             (await totalBalancesCheck).address
                         }.`,
                     })
+                    return
+                } else if (totalBalancesCheck.type === 'reduce') {
+                    _formState = totalBalancesCheck.formState ?? _formState
                 }
-
-                return
             }
 
             const _localstorageKey = `${address}-gigalink-${peanutPassword}` //get all items from locastorage, and filter out with the correct address TODO: update password in key
@@ -897,7 +916,39 @@ export function GigaPacket() {
                         let tokenType, tokenDecimals
 
                         const numberOfSlotsTodo = token.numberOfSlots - token.slotsExecuted
-                        const totalTokenAmountTodo = (token.tokenAmount / token.numberOfSlots) * numberOfSlotsTodo
+                        let totalTokenAmountTodo = (token.tokenAmount / token.numberOfSlots) * numberOfSlotsTodo
+
+                        if (token.tokenAddress !== _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
+                            try {
+                                const contract = new ethers.Contract(
+                                    token.tokenAddress,
+                                    peanut.ERC20_ABI,
+                                    defaultProvider
+                                )
+                                const balance = await contract.balanceOf(address)
+                                const decimals = await contract.decimals()
+                                const formattedbalance = utils.formatAmountWithDecimals({
+                                    amount: Number(balance.toString()),
+                                    decimals: Number(decimals),
+                                })
+
+                                if (formattedbalance < totalTokenAmountTodo) {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: `Insufficient balance for token with address: ${token.tokenAddress}`,
+                                    })
+                                    return
+                                } else if (formattedbalance == totalTokenAmountTodo) {
+                                    totalTokenAmountTodo = totalTokenAmountTodo * 0.999
+                                }
+                            } catch (error) {
+                                setErrorState({
+                                    showError: true,
+                                    errorMessage: `Incorrect token address for token with address: ${token.tokenAddress}`,
+                                })
+                                return
+                            }
+                        }
 
                         if (token.tokenAddress == _consts.MANTLE_NATIVE_TOKEN_ADDRESS) {
                             tokenType = 0
