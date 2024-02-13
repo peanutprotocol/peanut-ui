@@ -610,7 +610,7 @@ export function GigaPacket() {
                         const tokenAmount =
                             index != quotient
                                 ? Number(tokenAmountPerSlot * numberofLinks)
-                                : Number(tokenAmountPerSlot * numberofLinks) * 0.99
+                                : Number(tokenAmountPerSlot * numberofLinks) * 0.9
                         const linkDetails = {
                             chainId: _chainID,
                             tokenAmount: tokenAmount,
@@ -1045,7 +1045,7 @@ export function GigaPacket() {
                                 const tokenAmount =
                                     index != quotient
                                         ? Number(tokenAmountPerSlot * numberofLinks)
-                                        : Number(tokenAmountPerSlot * numberofLinks) * 0.99
+                                        : Number(tokenAmountPerSlot * numberofLinks) * 0.9
                                 const linkDetails = {
                                     chainId: _chainID,
                                     tokenAmount: tokenAmount,
