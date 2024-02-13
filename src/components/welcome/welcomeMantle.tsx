@@ -201,8 +201,7 @@ export function WelcomeMantle() {
             {/* hero */}
             <div className="flex border-2 border-black bg-white text-black">
                 <div className="w-full bg-white py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:px-0">
-
-                <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
+                    <h1 className="mx-auto mb-8 mt-0 flex w-3/4 flex-row items-center justify-center gap-2 text-5xl font-black sm:text-6xl">
                         Red Packets
                     </h1>
 
@@ -210,12 +209,11 @@ export function WelcomeMantle() {
                         Reward and engage your community for the Lunar New Year
                     </div>
 
-                
                     <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                         <a
                             href="https://twitter.com/0xMantle/"
                             id="cta-btn"
-                            target='blank'
+                            target="blank"
                             className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
                         >
                             Discover!
