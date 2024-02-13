@@ -197,17 +197,14 @@ export function GigaPacket() {
         }
 
         const expandedIValues = []
-        const groupRegex = /\((\d+),(\d+)\)/g
+        const regexpCode = '\\((\\d+),(\\d+)\\)'
         let match
 
-        if (groupRegex.test(i) === false) {
+        if (new RegExp(regexpCode).test(i) === false) {
             return link
         }
 
-        console.log(i)
-
-        console.log(groupRegex.test(i) === false)
-
+        const groupRegex = new RegExp(regexpCode)
         while ((match = groupRegex.exec(i)) !== null) {
             console.log(match)
             const start = parseInt(match[1], 10)
