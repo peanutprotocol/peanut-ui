@@ -1125,6 +1125,7 @@ export function GigaPacket() {
                                         _localstorageItem,
                                     })
                                 }
+                                index++
                             }
                             preparedTransactionsArrayIndex++
                         }
