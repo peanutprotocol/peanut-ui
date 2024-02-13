@@ -1,7 +1,7 @@
 import * as views from './views'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
-export type packetState = 'LOADING' | 'FOUND' | 'NOT_FOUND' | 'EMPTY' | 'SUCCESS'
+export type packetState = 'LOADING' | 'FOUND' | 'NOT_FOUND' | 'EMPTY' | 'SUCCESS' | 'TIMEOUT'
 
 export type Screens = 'INITIAL' | 'SUCCESS'
 
