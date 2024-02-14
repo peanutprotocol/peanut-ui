@@ -1268,6 +1268,7 @@ export function GigaPacket() {
                 setLoadingStates('idle')
             }
         } catch (error: any) {
+            setIsInterupted(true)
             setLoadingStates('idle')
 
             if (error.toString().includes('Failed to get wallet client')) {
