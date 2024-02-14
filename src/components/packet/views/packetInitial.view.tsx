@@ -342,7 +342,10 @@ export function PacketInitialView({
             )}
 
             {userStatus.requiresCaptcha && (
-                <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
+                <div>
+                    <h1>You have already claimed, congrats!</h1>
+                    <p>Connect with the wallet that you have claimed with to see yourself on the leaderboard!</p>
+                </div>
             )}
 
             <button

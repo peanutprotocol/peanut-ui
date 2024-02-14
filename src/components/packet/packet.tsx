@@ -58,11 +58,17 @@ export function Packet() {
                 baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
                 APIKey: 'doesnt-matter',
             })
+
             const hasAddressParticipated = userStatus.userResults !== null
 
             setRaffleInfo(_raffleInfo)
             setRaffleLink(link)
             setUserStatus(userStatus)
+
+            if (userStatus.requiresCaptcha) {
+                setPacketState('TOO_LATE')
+                return
+            }
 
             if (_raffleInfo.isActive) {
                 if (address && hasAddressParticipated) {
@@ -148,6 +154,12 @@ export function Packet() {
                     <span className="text-center text-xl">
                         Our services are under heavy load. Please try again later.
                     </span>
+                </div>
+            )}
+            {packetState === 'TOO_LATE' && (
+                <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
+                    <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
+                    <span className="text-center text-xl">You have already claimed you red packet.</span>
                 </div>
             )}
             {packetState === 'LOADING' && (
