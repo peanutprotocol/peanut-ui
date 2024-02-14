@@ -10,5 +10,10 @@
             ],
             "destination": "/app"
         }
-    ]
+    ],
+    "functions": {
+        "api/**/*": {
+            "maxDuration": 300
+        }
+    }
 }
