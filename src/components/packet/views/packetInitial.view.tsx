@@ -89,14 +89,9 @@ export function PacketInitialView({
                 showError: true,
                 errorMessage: 'You have already claimed your slot!',
             })
-        }
-        if (userStatus.requiresCaptcha && !captchaToken) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please complete the captcha',
-            })
             return
         }
+
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -153,7 +148,7 @@ export function PacketInitialView({
                 APIKey: 'doesnt-matter',
                 baseUrlAuth: `${consts.next_proxy_url}/get-authorisation`,
                 baseUrlClaim: `${consts.next_proxy_url}/claim-v2`,
-                captchaResponse: captchaToken ?? '',
+                // captchaResponse: captchaToken ?? '',
             })
 
             const leaderboardInfo = await getRaffleLeaderboard({
