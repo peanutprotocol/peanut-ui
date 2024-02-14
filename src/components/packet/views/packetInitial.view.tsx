@@ -134,7 +134,8 @@ export function PacketInitialView({
             if (hasAddressParticipated) {
                 setErrorState({
                     showError: true,
-                    errorMessage: 'This address has already claimed their slot!',
+                    errorMessage:
+                        'You have already claimed this packet! Please find a different packet to claim again.',
                 })
                 setLoadingStates('idle')
                 goToAndStop(30, true)
