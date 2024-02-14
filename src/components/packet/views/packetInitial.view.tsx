@@ -100,6 +100,14 @@ export function PacketInitialView({
         play()
         setLoadingStates('opening')
         try {
+            if (!captchaToken) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please complete the captcha',
+                })
+                return
+            }
+
             try {
                 if (claimFormData.name) {
                     claimFormData.name = validateUserName(claimFormData.name)
@@ -149,7 +157,7 @@ export function PacketInitialView({
                 APIKey: 'doesnt-matter',
                 baseUrlAuth: `${consts.next_proxy_url}/get-authorisation`,
                 baseUrlClaim: `${consts.next_proxy_url}/claim-v2`,
-                // captchaResponse: captchaToken ?? '',
+                captchaResponse: captchaToken ?? '',
             })
 
             const leaderboardInfo = await getRaffleLeaderboard({
@@ -204,6 +212,7 @@ export function PacketInitialView({
                     showError: true,
                     errorMessage: 'You have already claimed your slot!',
                 })
+                return
             }
             if (address.endsWith('.eth')) {
                 setLoadingStates('fetching address')
@@ -348,12 +357,12 @@ export function PacketInitialView({
                     </div>
                 </div>
             )}
+            <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
 
             <button
                 type={isConnected || isValidAddress ? 'submit' : 'button'}
                 className={
-                    ' block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2 ' +
-                    (isDropdownOpen || userStatus.requiresCaptcha ? ' mt-8' : ' mt-2')
+                    ' mt-8 block w-[90%] cursor-pointer bg-white p-5  px-2 text-2xl font-black sm:w-2/5 lg:w-1/2'
                 }
                 id="cta-btn"
                 onClick={() => {
