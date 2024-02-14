@@ -176,7 +176,7 @@ export function PacketInitialView({
                 })
             }
 
-            if (error.message == 'All slots have already been claimed for this raffle') {
+            if (error.message == 'All slots have already been claimed') {
                 window.location.reload()
             }
         } finally {

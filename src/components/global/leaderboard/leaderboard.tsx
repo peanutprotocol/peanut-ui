@@ -5,6 +5,99 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
 import chevron from '@/assets/dropdown.svg'
 
+const mock = [
+    {
+        name: 'teststeststests',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'teststeststests',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'teststeststests',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'teststeststests',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'test',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'test',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'test',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'test',
+        address: '0x123',
+        amount: 25,
+        tokenSymbol: 'test',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+    {
+        name: 'tesdfqsdfqsdfqsfdst',
+        address: 'qsdfqsdfq',
+        amount: 25,
+        tokenSymbol: 'mragondss',
+    },
+]
+
 export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfaces.IRaffleLeaderboardEntry[] }) {
     const [isCollapsed, setIsCollapsed] = useState(true)
     const [arrayToUse, setArrayToUse] = useState<interfaces.IRaffleLeaderboardEntry[]>([])
@@ -19,7 +112,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
 
     return (
         <div className={'flex w-72 flex-col items-center justify-center gap-0'}>
-            <div className="max-h-[450px] w-full overflow-y-auto">
+            <div className="max-h-[450px] w-max overflow-y-auto">
                 <table className="w-full border-collapse">
                     <tbody className="w-full">
                         {arrayToUse.map((claim, index) => (
@@ -30,7 +123,7 @@ export function leaderBoardComp({ leaderboardInfo }: { leaderboardInfo: interfac
                                         ? utils.shortenAddress(claim.address)
                                         : claim.name}
                                 </td>
-                                <td className="flex w-1/4 flex-row gap-1 p-2">
+                                <td className="flex flex-row justify-end gap-1 p-2">
                                     <div>{utils.formatTokenAmount(Number(claim.amount), 4)}</div>
                                     <div>{claim.tokenSymbol}</div>
                                 </td>
