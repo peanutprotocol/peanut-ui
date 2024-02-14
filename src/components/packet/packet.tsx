@@ -65,13 +65,9 @@ export function Packet() {
             setRaffleLink(link)
             setUserStatus(userStatus)
 
-            if (userStatus.requiresCaptcha) {
-                setPacketState('TOO_LATE')
-                return
-            }
-
             if (_raffleInfo.isActive) {
-                if (address && hasAddressParticipated) {
+                console.log(address, hasAddressParticipated, userStatus.requiresCaptcha)
+                if (address && hasAddressParticipated && userStatus.requiresCaptcha) {
                     setLeaderboardInfo(
                         await getRaffleLeaderboard({
                             link: link,
@@ -83,10 +79,13 @@ export function Packet() {
                         screen: 'SUCCESS',
                         idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
+                    setPacketState('FOUND')
+                } else if (!address && userStatus.requiresCaptcha) {
+                    setPacketState('TOO_LATE')
                 } else {
                     setSenderName(_raffleInfo.senderName)
+                    setPacketState('FOUND')
                 }
-                setPacketState('FOUND')
             } else {
                 setLeaderboardInfo(
                     await getRaffleLeaderboard({
@@ -159,7 +158,7 @@ export function Packet() {
             {packetState === 'TOO_LATE' && (
                 <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
                     <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
-                    <span className="text-center text-xl">You have already claimed you red packet.</span>
+                    <span className="text-center text-xl">You have already opened this red packet.</span>
                 </div>
             )}
             {packetState === 'LOADING' && (
