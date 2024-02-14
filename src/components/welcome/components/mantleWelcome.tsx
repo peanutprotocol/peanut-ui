@@ -567,9 +567,12 @@ export function WelcomeMantle() {
                                 leaveFrom="opacity-100 translate-y-0 sm:scale-100"
                                 leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
                             >
-                                <Dialog.Panel className="brutalborder relative my-24 h-full max-h-[720px] min-h-[720px] w-full min-w-[580px] max-w-[580px] transform overflow-hidden rounded-lg rounded-none bg-white text-left text-black shadow-xl  transition-all ">
-                                    <div className="flex h-full max-h-[720px] min-h-[720px] flex-col items-center justify-center gap-2 ">
-                                        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdrDAnvpuVb-Yr2fuehjTQTMkjMvraDe7WUvCXhUjYaZoiboA/viewform?embedded=true">
+                                <Dialog.Panel className="brutalborder relative my-24 h-full w-full min-w-[580px] max-w-[580px] transform overflow-hidden rounded-lg rounded-none bg-white text-left text-black shadow-xl  transition-all ">
+                                    <div className="flex h-full flex-col items-center justify-center gap-2 ">
+                                        <iframe
+                                            src="https://docs.google.com/forms/d/e/1FAIpQLSdrDAnvpuVb-Yr2fuehjTQTMkjMvraDe7WUvCXhUjYaZoiboA/viewform?embedded=true"
+                                            className="h-[500px] w-full "
+                                        >
                                             Loading…
                                         </iframe>
                                     </div>
