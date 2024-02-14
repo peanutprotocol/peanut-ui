@@ -13,7 +13,7 @@
     ],
     "functions": {
         "api/**/*": {
-            "maxDuration": 300
+            "maxDuration": 100
         }
     }
 }
