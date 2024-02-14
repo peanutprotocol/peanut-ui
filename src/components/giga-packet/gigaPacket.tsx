@@ -876,6 +876,8 @@ export function GigaPacket() {
         })
         try {
             if (incompleteForm) {
+                if (isInterupted) return
+
                 console.log(incompleteForm)
 
                 let totalTxIndex = 1
