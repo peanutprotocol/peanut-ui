@@ -127,7 +127,7 @@ export function Packet() {
 
     useEffect(() => {
         if (address) {
-            getEnsName(address)
+            // getEnsName(address)
         }
     }, [address])
 
