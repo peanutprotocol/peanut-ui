@@ -103,6 +103,12 @@ export function Packet() {
             console.error(error)
             setPacketState('NOT_FOUND')
 
+            console.log('error', error.toString())
+
+            if (error.toString().includes('Service temporarily unavailable')) {
+                setPacketState('TIMEOUT')
+            }
+
             // if (error.toString().includes('FUNCTION_INVOCATION_TIMEOUT')) {
             //     setPacketState('TIMEOUT')
             // }
