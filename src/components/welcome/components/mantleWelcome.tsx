@@ -569,11 +569,9 @@ export function WelcomeMantle() {
                             >
                                 <Dialog.Panel className="brutalborder relative my-24 h-full max-h-[720px] min-h-[720px] w-full min-w-[580px] max-w-[580px] transform overflow-hidden rounded-lg rounded-none bg-white text-left text-black shadow-xl  transition-all ">
                                     <div className="flex h-full max-h-[720px] min-h-[720px] flex-col items-center justify-center gap-2 ">
-                                        <Widget
-                                            id="bqfEVQzJ"
-                                            style={{ width: '100%', height: '720px' }}
-                                            className="form"
-                                        />
+                                        <iframe src="https://docs.google.com/forms/d/e/1FAIpQLSdrDAnvpuVb-Yr2fuehjTQTMkjMvraDe7WUvCXhUjYaZoiboA/viewform?embedded=true">
+                                            Loading…
+                                        </iframe>
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>
