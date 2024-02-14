@@ -84,6 +84,12 @@ export function PacketInitialView({
 
     const claim = async (claimFormData: { name: string | undefined }) => {
         if (isLoading) return
+        if (userStatus.requiresCaptcha) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'You have already claimed your slot!',
+            })
+        }
         if (userStatus.requiresCaptcha && !captchaToken) {
             setErrorState({
                 showError: true,
@@ -122,13 +128,13 @@ export function PacketInitialView({
                 throw new Error('Invalid address')
             }
 
-            const userStatus = await getUserRaffleStatus({
+            const _userStatus = await getUserRaffleStatus({
                 link: raffleLink,
                 userAddress: recipientAddress,
                 baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
                 APIKey: 'doesnt-matter',
             })
-            const hasAddressParticipated = userStatus.userResults !== null
+            const hasAddressParticipated = _userStatus.userResults !== null
 
             if (hasAddressParticipated) {
                 setErrorState({
@@ -197,6 +203,12 @@ export function PacketInitialView({
 
     async function checkAddress(address: string) {
         try {
+            if (userStatus.requiresCaptcha) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'You have already claimed your slot!',
+                })
+            }
             if (address.endsWith('.eth')) {
                 setLoadingStates('fetching address')
                 const resolvedAddress = await _utils.resolveFromEnsName(address)
@@ -211,13 +223,13 @@ export function PacketInitialView({
                 setIsValidAddress(false)
                 return
             }
-            const userStatus = await peanut.getUserRaffleStatus({
+            const _userStatus = await peanut.getUserRaffleStatus({
                 link: raffleLink,
                 userAddress: address,
                 baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
                 APIKey: 'doesnt-matter',
             })
-            const hasAddressParticipated = userStatus.userResults !== null
+            const hasAddressParticipated = _userStatus.userResults !== null
 
             if (hasAddressParticipated) {
                 setErrorState({
@@ -338,13 +350,6 @@ export function PacketInitialView({
                         Please ensure that this address exists on{' '}
                         {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
                     </div>
-                </div>
-            )}
-
-            {userStatus.requiresCaptcha && (
-                <div>
-                    <h1>You have already claimed, congrats!</h1>
-                    <p>Connect with the wallet that you have claimed with to see yourself on the leaderboard!</p>
                 </div>
             )}
 
