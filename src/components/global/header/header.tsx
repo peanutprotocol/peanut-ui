@@ -30,14 +30,14 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                         <div className="relative flex h-16 items-center justify-between">
                             <div className="absolute inset-y-0 left-0 flex w-full items-center justify-between sm:hidden">
                                 <div
-                                    className="flex h-full cursor-pointer items-center px-2 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
+                                    className="flex h-full cursor-pointer items-center px-2  font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
                                     onClick={() => {
                                         if (window.location.pathname == '/') window.location.reload()
                                         else window.location.href = '/'
                                     }}
                                 >
                                     <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
-                                    <span className="hidden lg:inline lg:px-6">peanut protocol</span>
+                                    <span className=" inline px-2 text-lg sm:px-6 sm:text-2xl">peanut protocol</span>
                                 </div>
                                 <Disclosure.Button className="relative inline-flex items-center justify-center border-none  bg-black p-2">
                                     <span className="sr-only">Open main menu</span>
@@ -78,11 +78,11 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                 leaveFrom="transform opacity-100 scale-100"
                                                 leaveTo="transform opacity-0 scale-95"
                                             >
-                                                <Menu.Items className="brutalborder absolute left-0 z-10 mt-2 w-48 origin-top-right bg-black p-0 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                    <img
+                                                <Menu.Items className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    {/* <img
                                                         src={triangle_svg.src}
                                                         className="absolute -top-4 left-8 h-4 w-4"
-                                                    />
+                                                    /> */}
 
                                                     <Menu.Item>
                                                         {({ active }) => (
