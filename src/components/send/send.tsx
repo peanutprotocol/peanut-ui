@@ -6,7 +6,7 @@ import { useW3iAccount } from '@web3inbox/widget-react'
 import { useAccount } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
 
-export function Send({ type }: { type: 'normal' | 'red-packet' }) {
+export function Send({ type }: { type: 'normal' | 'raffle' }) {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')
     const [txHash, setTxHash] = useState<string>('')
@@ -72,9 +72,9 @@ export function Send({ type }: { type: 'normal' | 'red-packet' }) {
                     } as _consts.ISendScreenProps)}
                 </global_components.CardWrapper>
             )}
-            {type == 'red-packet' && (
-                <global_components.CardWrapper mt=" mt-16 " shadow redPacket>
-                    {createElement(_consts.RED_PACKET_SEND_SCREEN_MAP[sendScreen.screen].comp, {
+            {type == 'raffle' && (
+                <global_components.CardWrapper mt=" mt-16 " shadow>
+                    {createElement(_consts.RAFFLE_SEND_SCREEN_MAP[sendScreen.screen].comp, {
                         onNextScreen: handleOnNext,
                         onCustomScreen: handleOnCustom,
                         claimLink,

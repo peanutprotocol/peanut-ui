@@ -22,8 +22,8 @@ import * as consts from '@/consts'
 import * as utils from '@/utils'
 import * as store from '@/store'
 
-import * as _consts from '../packet.consts'
-import * as _utils from '../packet.utils'
+import * as _consts from '../raffle.consts'
+import * as _utils from '../raffle.utils'
 
 const defaultLottieOptions = {
     animationData: redpacketLottie,
@@ -39,7 +39,7 @@ const defaultLottieStyle = {
     width: 400,
 }
 
-export function PacketInitialView({
+export function RaffleInitialView({
     onNextScreen,
     raffleLink,
     raffleInfo,
@@ -49,7 +49,7 @@ export function PacketInitialView({
     senderName,
     recipientName,
     userStatus,
-}: _consts.IPacketScreenProps) {
+}: _consts.IRaffleScreenProps) {
     const { open } = useWeb3Modal()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const { isConnected, address } = useAccount()
@@ -142,8 +142,7 @@ export function PacketInitialView({
             if (hasAddressParticipated) {
                 setErrorState({
                     showError: true,
-                    errorMessage:
-                        'You have already claimed this packet! Please find a different packet to claim again.',
+                    errorMessage: 'You have already claimed a slot in this raffle!',
                 })
                 setLoadingStates('idle')
                 goToAndStop(30, true)
@@ -392,7 +391,7 @@ export function PacketInitialView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
-            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
+            <global_components.PeanutMan type={'presenting'} />
         </form>
     )
 }

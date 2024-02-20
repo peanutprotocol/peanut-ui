@@ -25,10 +25,10 @@ export const metadata: Metadata = {
     },
 }
 
-export default function PacketPage() {
+export default function RafflePage() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
-            <components.Packet />
+            <components.RaffleClaim />
         </global_components.PageWrapper>
     )
 }

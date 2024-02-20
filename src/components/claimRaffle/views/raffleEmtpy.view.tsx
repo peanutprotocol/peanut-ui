@@ -3,7 +3,7 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as global_components from '@/components/global'
 
-export function PacketEmpty({
+export function RaffleEmpty({
     leaderboardInfo,
 }: {
     leaderboardInfo: interfaces.IRaffleLeaderboardEntry[] | undefined
@@ -14,7 +14,7 @@ export function PacketEmpty({
         <>
             <h2 className="title-font mb-0 text-center text-2xl font-black md:text-3xl">Sorryyy, too late.</h2>
 
-            <h3 className="text-center">This red packet is empty. Make one for your friends.</h3>
+            <h3 className="text-center">This raffle is empty. Make one for your friends.</h3>
 
             <div className="mb-4">
                 <global_components.leaderBoardComp leaderboardInfo={leaderboardInfo ?? []} />

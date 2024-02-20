@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     },
 }
 
-export default function CreatePacketPage() {
+export default function CreateRafflePage() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
-            <components.Send type="red-packet"></components.Send>
+            <components.Send type="raffle" />
         </global_components.PageWrapper>
     )
 }

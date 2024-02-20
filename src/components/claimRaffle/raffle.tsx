@@ -2,22 +2,20 @@
 import { createElement, useEffect, useState } from 'react'
 import peanut, { getRaffleLeaderboard, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
-import { getWalletClient } from '@wagmi/core'
-import { providers } from 'ethers'
 
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import peanutman_sad from '@/assets/peanutman-sad.svg'
 import * as global_components from '@/components/global'
 
 import * as views from './views'
-import * as _consts from './packet.consts'
+import * as _consts from './raffle.consts'
 import * as consts from '@/consts'
 import * as utils from '@/utils'
 
-export function Packet() {
+export function RaffleClaim() {
     const { address } = useAccount()
-    const [packetState, setPacketState] = useState<_consts.packetState>('LOADING')
-    const [packetScreen, setPacketScreen] = useState<_consts.IPacketScreenState>(_consts.INIT_VIEW)
+    const [raffleState, setRaffleState] = useState<_consts.raffleState>('LOADING')
+    const [raffleScreen, setRaffleScreen] = useState<_consts.IRaffleScreenState>(_consts.INIT_VIEW)
     const [raffleLink, setRaffleLink] = useState<string>('')
     const [raffleInfo, setRaffleInfo] = useState<interfaces.IRaffleInfo | undefined>()
     const [raffleClaimedInfo, setRaffleClaimedInfo] = useState<interfaces.IClaimRaffleLinkResponse | undefined>()
@@ -31,17 +29,17 @@ export function Packet() {
     })
 
     const handleOnNext = () => {
-        const newIdx = packetScreen.idx + 1
-        setPacketScreen(() => ({
-            screen: _consts.PACKET_SCREEN_FLOW[newIdx],
+        const newIdx = raffleScreen.idx + 1
+        setRaffleScreen(() => ({
+            screen: _consts.RAFFLE_SCREEN_FLOW[newIdx],
             idx: newIdx,
         }))
     }
 
     const handleOnCustom = (screen: _consts.Screens) => {
-        setPacketScreen(() => ({
+        setRaffleScreen(() => ({
             screen: screen,
-            idx: _consts.PACKET_SCREEN_FLOW.indexOf(screen),
+            idx: _consts.RAFFLE_SCREEN_FLOW.indexOf(screen),
         }))
     }
 
@@ -66,7 +64,6 @@ export function Packet() {
             setUserStatus(userStatus)
 
             if (_raffleInfo.isActive) {
-                console.log(address, hasAddressParticipated, userStatus.requiresCaptcha)
                 if (address && hasAddressParticipated && userStatus.requiresCaptcha) {
                     setLeaderboardInfo(
                         await getRaffleLeaderboard({
@@ -75,16 +72,16 @@ export function Packet() {
                             APIKey: 'doesnt-matter',
                         })
                     )
-                    setPacketScreen(() => ({
+                    setRaffleScreen(() => ({
                         screen: 'SUCCESS',
-                        idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
+                        idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
-                    setPacketState('FOUND')
+                    setRaffleState('FOUND')
                 } else if (!address && userStatus.requiresCaptcha) {
-                    setPacketState('TOO_LATE')
+                    setRaffleState('TOO_LATE')
                 } else {
                     setSenderName(_raffleInfo.senderName)
-                    setPacketState('FOUND')
+                    setRaffleState('FOUND')
                 }
             } else {
                 setLeaderboardInfo(
@@ -95,59 +92,38 @@ export function Packet() {
                     })
                 )
                 if (address && hasAddressParticipated) {
-                    setPacketScreen(() => ({
+                    setRaffleScreen(() => ({
                         screen: 'SUCCESS',
-                        idx: _consts.PACKET_SCREEN_FLOW.indexOf('SUCCESS'),
+                        idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
-                    setPacketState('FOUND')
+                    setRaffleState('FOUND')
                 } else {
-                    setPacketState('EMPTY')
+                    setRaffleState('EMPTY')
                 }
             }
         } catch (error: any) {
             console.error(error)
-            setPacketState('NOT_FOUND')
-
-            console.log('error', error.toString())
+            setRaffleState('NOT_FOUND')
 
             if (error.toString().includes('Service temporarily unavailable')) {
-                setPacketState('TIMEOUT')
+                setRaffleState('TIMEOUT')
             }
             if (error.toString().includes('FUNCTION_INVOCATION_TIMEOUT')) {
-                setPacketState('TIMEOUT')
+                setRaffleState('TIMEOUT')
             }
-
-            // if (error.toString().includes('FUNCTION_INVOCATION_TIMEOUT')) {
-            //     setPacketState('TIMEOUT')
-            // }
         }
     }
 
     useEffect(() => {
-        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
+        const pageUrl = typeof window !== 'undefined' ? window.location.href : undefined
         if (pageUrl) {
             checkLink(pageUrl)
         }
     }, [])
 
-    async function getEnsName(address: string) {
-        const ensName = await peanut.resolveToENSName({
-            address: address,
-        })
-        if (ensName) {
-            setEnsName(ensName)
-        }
-    }
-
-    useEffect(() => {
-        if (address) {
-            // getEnsName(address)
-        }
-    }, [address])
-
     return (
         <global_components.CardWrapper pt=" pt-16 ">
-            {packetState === 'TIMEOUT' && (
+            {raffleState === 'TIMEOUT' && (
                 <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
                     <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
                     <span className="text-center text-xl">
@@ -155,23 +131,23 @@ export function Packet() {
                     </span>
                 </div>
             )}
-            {packetState === 'TOO_LATE' && (
+            {raffleState === 'TOO_LATE' && (
                 <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
                     <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
-                    <span className="text-center text-xl">You have already opened this red packet.</span>
+                    <span className="text-center text-xl">You have already opened this raffle.</span>
                 </div>
             )}
-            {packetState === 'LOADING' && (
+            {raffleState === 'LOADING' && (
                 <div className="animate-spin pb-16 pt-16">
                     <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />
                     <span className="sr-only">Loading...</span>
                 </div>
             )}
-            {packetState === 'NOT_FOUND' && <views.PacketNotFound />}
-            {packetState === 'EMPTY' && <views.PacketEmpty leaderboardInfo={leaderboardInfo ?? []} />}
+            {raffleState === 'NOT_FOUND' && <views.RaffleNotFound />}
+            {raffleState === 'EMPTY' && <views.RaffleEmpty leaderboardInfo={leaderboardInfo ?? []} />}
 
-            {packetState === 'FOUND' &&
-                createElement(_consts.PACKET_SCREEN_MAP[packetScreen.screen].comp, {
+            {raffleState === 'FOUND' &&
+                createElement(_consts.RAFFLE_SCREEN_MAP[raffleScreen.screen].comp, {
                     onNextScreen: handleOnNext,
                     onCustomScreen: handleOnCustom,
                     raffleLink,
@@ -190,7 +166,7 @@ export function Packet() {
                     setRecipientName,
                     userStatus,
                     setUserStatus,
-                } as _consts.IPacketScreenProps)}
+                } as _consts.IRaffleScreenProps)}
         </global_components.CardWrapper>
     )
 }

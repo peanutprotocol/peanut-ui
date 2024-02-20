@@ -6,18 +6,18 @@ import { useAccount } from 'wagmi'
 import * as utils from '@/utils'
 import * as store from '@/store'
 import * as global_components from '@/components/global'
-import * as _consts from '../packet.consts'
+import * as _consts from '../raffle.consts'
 import * as consts from '@/consts'
 import { getRaffleLeaderboard } from '@squirrel-labs/peanut-sdk'
 
-export function PacketSuccesView({
+export function RaffleSuccessView({
     raffleClaimedInfo,
     raffleInfo,
     userStatus,
     leaderboardInfo,
     setLeaderboardInfo,
     raffleLink,
-}: _consts.IPacketScreenProps) {
+}: _consts.IRaffleScreenProps) {
     const { address } = useAccount()
     const router = useRouter()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -34,11 +34,8 @@ export function PacketSuccesView({
         }
     }, [])
 
-    console.log(userStatus)
-    console.log(raffleInfo)
-    console.log(raffleClaimedInfo)
-    console.log(leaderboardInfo)
     const receivedAmount = Number(raffleClaimedInfo?.amountReceived ?? userStatus?.userResults?.amount)
+
     return (
         <div className="mb-4 mt-2 flex w-full flex-col items-center gap-6 text-center ">
             <h2 className="my-0 text-center text-2xl font-black lg:text-4xl ">You got</h2>
@@ -73,7 +70,7 @@ export function PacketSuccesView({
             </div> */}
 
             <h3 className="text-md text-center font-normal sm:text-lg lg:text-xl ">
-                Create a red packet link to send to your friend group chat
+                Create a raffle link to send to your friend group chat
             </h3>
             <button
                 type={'button'}
@@ -94,7 +91,7 @@ export function PacketSuccesView({
                     )
                 )} ${raffleClaimedInfo?.tokenSymbol} on peanut.to!`}
             />
-            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
+            <global_components.PeanutMan type={'cheering'} />
         </div>
     )
 }
