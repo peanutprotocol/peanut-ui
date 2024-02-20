@@ -146,7 +146,7 @@ export function Packet() {
     }, [address])
 
     return (
-        <global_components.CardWrapper pt=" pt-16 " redPacket>
+        <global_components.CardWrapper pt=" pt-16 ">
             {packetState === 'TIMEOUT' && (
                 <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
                     <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
