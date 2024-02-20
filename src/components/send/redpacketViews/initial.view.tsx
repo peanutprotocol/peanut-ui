@@ -529,24 +529,6 @@ export function SendInitialView({
                 <div className="my-0 w-4/5 font-normal">
                     A red envelope or red packet is a gift of money given during holidays.
                 </div>
-                {mantleCheck && (
-                    <div className="my-0 w-4/5 font-normal">
-                        NOTICE: if you are a partner of the{' '}
-                        <a href="https://mantle.xyz" target="_blank" className="cursor-pointer text-black underline">
-                            mantle.xyz
-                        </a>{' '}
-                        campaign and want to create &gt; 250 slot red packets, go{' '}
-                        <label
-                            className="cursor-pointer underline"
-                            onClick={() => {
-                                router.push('/create-giga-packet')
-                            }}
-                        >
-                            here
-                        </label>
-                        .
-                    </div>
-                )}
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
