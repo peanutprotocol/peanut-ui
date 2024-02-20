@@ -48,16 +48,18 @@ export function Dashboard() {
                         let type: 'normal' | 'raffle' = 'normal'
 
                         if (item.link.includes('packet')) {
-                            const raffleInfo = await peanut.getRaffleInfo({
-                                link: item.link,
-                                baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
-                                APIKey: 'doesnt-matter',
-                            })
-                            // can't calculate total amount since raffle links may contain different tokens
-                            const totalTokenAmount = 0
-                            res.tokenAmount = totalTokenAmount.toString()
-                            res.claimed = raffleInfo.isActive
-                            type = 'raffle'
+                            return // skip packet links
+
+                            // const raffleInfo = await peanut.getRaffleInfo({
+                            //     link: item.link,
+                            //     baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
+                            //     APIKey: 'doesnt-matter',
+                            // })
+                            // // can't calculate total amount since raffle links may contain different tokens
+                            // const totalTokenAmount = 0
+                            // res.tokenAmount = totalTokenAmount.toString()
+                            // res.claimed = raffleInfo.isActive
+                            // type = 'raffle'
                         } else {
                         }
                         const x: IDashboardItemProps = {
@@ -296,13 +298,13 @@ export function Dashboard() {
                                                                   ? 'Copied'
                                                                   : 'Copy'
                                                               : ''}
-                                                        {item.type === 'raffle' && (
+                                                        {/* {item.type === 'raffle' && (
                                                             <img
                                                                 src={redpacket_svg.src} // Specify the path to your image
                                                                 alt="Raffle Image"
                                                                 className=" absolute -right-0 top-0 h-4 w-4" // Position it absolutely to the top right
                                                             />
-                                                        )}
+                                                        )} */}
                                                     </td>
                                                 </tr>
                                             ))}
