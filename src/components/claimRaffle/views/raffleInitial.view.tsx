@@ -367,10 +367,8 @@ export function RaffleInitialView({
                             <span className="dot">.</span>
                         </span>
                     </div>
-                ) : isConnected || isValidAddress ? (
-                    'Open'
                 ) : (
-                    'Connect Wallet'
+                    'Open'
                 )}
             </button>
             {errorState.showError && (
