@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useNetwork } from 'wagmi'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
+import { useAccount, useSwitchChain } from 'wagmi'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
@@ -31,9 +30,9 @@ export function RaffleInitialView({
 }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
-    const { isConnected, address } = useAccount()
-    const { chain: currentChain } = useNetwork()
+    const { isConnected, address, chain: currentChain } = useAccount()
     const router = useRouter()
+    const { switchChainAsync } = useSwitchChain()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -73,6 +72,8 @@ export function RaffleInitialView({
         },
     })
     const formwatch = sendForm.watch()
+
+    const signer = utils.useEthersSigner({ chainId: Number(formwatch?.chainId) })
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -144,19 +145,6 @@ export function RaffleInitialView({
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = utils.walletClientToSigner(walletClient)
-        return signer
-    }
-
     const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
             const response = await axios.get('https://api.socket.tech/v2/token-price', {
@@ -201,7 +189,6 @@ export function RaffleInitialView({
         }
 
         if (!signer) {
-            getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
                 showError: true,
                 errorMessage: 'Signer undefined, please try again',
@@ -251,17 +238,19 @@ export function RaffleInitialView({
         if (currentChain?.id.toString() !== chainId.toString()) {
             setLoadingStates('allow network switch')
 
-            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingStates('switching network')
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setLoadingStates('loading')
+            } catch (error) {
+                setLoadingStates('idle')
+                console.error('Error switching network:', error)
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Something went wrong while switching networks',
+                    errorMessage: 'Error switching network',
                 })
-                setLoadingStates('idle')
-                throw error
-            })
-            setLoadingStates('switching network')
-            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
-            setLoadingStates('loading')
+            }
         }
     }
 
@@ -282,6 +271,14 @@ export function RaffleInitialView({
                     }
                 }
 
+                await checkNetwork(sendFormData.chainId)
+
+                const _signer = await signer
+
+                if (!_signer) {
+                    return
+                }
+
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
                     sendFormData,
@@ -296,11 +293,8 @@ export function RaffleInitialView({
                     errorMessage: '',
                 })
 
-                //Get the signer
-                const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
-
                 //check if the formdata is correct
-                if (checkForm(sendFormData, signer, tokenAddress).succes === 'false') {
+                if (checkForm(sendFormData, _signer, tokenAddress).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -311,9 +305,6 @@ export function RaffleInitialView({
                 console.log(
                     `creating raffle ${tokenAmount} ${sendFormData.token} on chain with id ${sendFormData.chainId} with token address: ${tokenAddress} with tokenType: ${tokenType} with tokenDecimals: ${tokenDecimals}`
                 )
-
-                await checkNetwork(sendFormData.chainId)
-
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
 
@@ -366,7 +357,7 @@ export function RaffleInitialView({
                     setLoadingStates('sign in wallet')
                     const x = await peanut.signAndSubmitTx({
                         structSigner: {
-                            signer: signer,
+                            signer: _signer,
                         },
                         unsignedTx: tx,
                     })

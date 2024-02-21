@@ -1,9 +1,8 @@
 'use client'
 import * as global_components from '@/components/global'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useAccount, useNetwork } from 'wagmi'
+import { useAccount, useSwitchChain } from 'wagmi'
 import { providers, ethers } from 'ethers'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
 import peanut, {
     getDefaultProvider,
     addLinkCreation,
@@ -87,10 +86,11 @@ const defaultValues: tokenType[] = [
 ]
 
 export function GigaPacket() {
-    const { isConnected, address } = useAccount()
-    const { chain: currentChain } = useNetwork()
+    const { isConnected, address, chain: currentChain } = useAccount()
     const { open } = useWeb3Modal()
     const [isCopied, setIsCopied] = useState(false)
+    const [signer, setSigner] = useState<providers.JsonRpcSigner | undefined>(undefined) //TODO: revisit in future if needed
+    const { switchChainAsync } = useSwitchChain()
 
     const [finalLink, setFinalLink] = useState<string | undefined>(undefined)
     const [isMainnet, setIsMainnet] = useState<boolean>(true)
@@ -114,34 +114,24 @@ export function GigaPacket() {
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = utils.walletClientToSigner(walletClient)
-        return signer
-    }
-
     const checkNetwork = async (chainId: string) => {
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== chainId.toString()) {
             setLoadingStates('allow network switch')
 
-            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingStates('switching network')
+                isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
+                setLoadingStates('loading')
+            } catch (error) {
+                setLoadingStates('idle')
+                console.error('Error switching network:', error)
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Something went wrong while switching networks',
+                    errorMessage: 'Error switching network',
                 })
-                setLoadingStates('idle')
-                throw error
-            })
-            setLoadingStates('switching network')
-            setLoadingStates('loading')
+            }
         }
     }
 
@@ -326,6 +316,8 @@ export function GigaPacket() {
     async function createRaffle() {
         if (isInterupted) return
         if (isLoading) return
+        if (!signer) return
+
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -445,9 +437,6 @@ export function GigaPacket() {
             await checkNetwork(_chainID)
 
             setLoadingStates('loading')
-
-            //get signer
-            const signer = await getWalletClientAndUpdateSigner({ chainId: _chainID })
 
             let raffleLinks: string[] = []
 
@@ -877,6 +866,7 @@ export function GigaPacket() {
         try {
             if (incompleteForm) {
                 if (isInterupted) return
+                if (!signer) return
 
                 console.log(incompleteForm)
 
@@ -909,9 +899,7 @@ export function GigaPacket() {
 
                 setLoadingStates('loading')
 
-                //get signer
-                const signer = await getWalletClientAndUpdateSigner({ chainId: _chainID })
-
+                //get signe
                 const baseUrl = `${window.location.origin}/packet`
                 const trackId = 'mantle'
                 const batcherContractVersion = getLatestContractVersion({
@@ -1333,6 +1321,20 @@ export function GigaPacket() {
     useEffect(() => {
         console.log(copiedIdx)
     }, [copiedIdx])
+
+    useEffect(() => {
+        async function fetchData() {
+            try {
+                const signer = await utils.useEthersSigner({ chainId: currentChain?.id }) // Assuming myAsyncHook returns a promise
+                setSigner(signer)
+            } catch (error) {
+                console.error('Error fetching data:', error)
+            } finally {
+            }
+        }
+
+        fetchData()
+    }, [currentChain]) //This is going to fail, if chain is changed after initial render
 
     return (
         <>

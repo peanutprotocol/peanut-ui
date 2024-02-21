@@ -12,11 +12,8 @@ import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
     //web3inbox stuff
-    const { address } = useAccount({
-        onDisconnect: () => {
-            setAccount('')
-        },
-    })
+    const { address } = useAccount({})
+
     const { signMessageAsync } = useSignMessage()
     const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
     const { isSubscribed, subscribe, isSubscribing } = useManageSubscription(`eip155:1:${address}`)
@@ -98,6 +95,12 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         },
         [subscribe, identityKey]
     )
+
+    useEffect(() => {
+        if (!address) {
+            setAccount('')
+        }
+    }, [address])
 
     return (
         <>

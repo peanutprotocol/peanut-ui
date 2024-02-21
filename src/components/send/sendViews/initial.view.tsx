@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useNetwork } from 'wagmi'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
+import { useAccount, useSwitchChain } from 'wagmi'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
+import { Config } from '@wagmi/core'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -24,8 +24,8 @@ import peanut, { interfaces, makeDepositGasless } from '@squirrel-labs/peanut-sd
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
-    const { isConnected, address } = useAccount()
-    const { chain: currentChain } = useNetwork()
+    const { isConnected, address, chain: currentChain } = useAccount()
+    const { switchChainAsync } = useSwitchChain()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -66,6 +66,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         },
     })
     const formwatch = sendForm.watch()
+
+    const signer = utils.useEthersSigner({ chainId: Number(formwatch?.chainId) })
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -137,19 +139,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = utils.walletClientToSigner(walletClient)
-        return signer
-    }
-
     const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
             const response = await axios.get('https://api.socket.tech/v2/token-price', {
@@ -199,7 +188,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
 
         if (!signer) {
-            getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
                 showError: true,
                 errorMessage: 'Signer undefined, please try again',
@@ -263,17 +251,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (currentChain?.id.toString() !== chainId.toString()) {
             setLoadingStates('allow network switch')
 
-            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingStates('switching network')
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setLoadingStates('loading')
+            } catch (error) {
+                setLoadingStates('idle')
+                console.error('Error switching network:', error)
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Something went wrong while switching networks',
+                    errorMessage: 'Error switching network',
                 })
-                setLoadingStates('idle')
-                throw error
-            })
-            setLoadingStates('switching network')
-            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
-            setLoadingStates('loading')
+            }
         }
     }
 
@@ -308,17 +298,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         async (sendFormData: _consts.ISendFormData) => {
             try {
                 if (isLoading) return
+
                 setLoadingStates('checking inputs')
                 setErrorState({
                     showError: false,
                     errorMessage: '',
                 })
 
-                //Get the signer
-                const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
+                await checkNetwork(sendFormData.chainId)
 
+                const _signer = await signer
+
+                if (!_signer) {
+                    return
+                }
+
+                //Get the signe
                 //check if the formdata is correct
-                if (checkForm(sendFormData, signer).succes === 'false') {
+                if (checkForm(sendFormData, _signer).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -356,8 +353,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         ' with tokenDecimals: ' +
                         tokenDecimals
                 )
-
-                await checkNetwork(sendFormData.chainId)
 
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
@@ -411,7 +406,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('sign in wallet')
 
-                    const userDepositSignature = await signer._signTypedData(
+                    const userDepositSignature = await _signer._signTypedData(
                         message.domain,
                         message.types,
                         message.values
@@ -446,7 +441,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     // wait until 2 confirmation blocks to make sure that rpc
                     // providers have the receipt stored
-                    await signer.provider.waitForTransaction(response.txHash, 1)
+                    await _signer.provider.waitForTransaction(response.txHash, 1)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
@@ -485,7 +480,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setLoadingStates('sign in wallet')
                         const submitResponse = await peanut.signAndSubmitTx({
                             structSigner: {
-                                signer: signer,
+                                signer: _signer,
                             },
                             unsignedTx: tx,
                         })
@@ -494,7 +489,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setLoadingStates('executing transaction')
                         // wait until 2 confirmation blocks to make sure that rpc
                         // providers have the receipt stored
-                        await signer.provider.waitForTransaction(submitResponse.txHash, 1)
+                        await _signer.provider.waitForTransaction(submitResponse.txHash, 1)
                         await new Promise((resolve) => setTimeout(resolve, 1000))
                         signedTxsResponse.push(submitResponse)
                     }
@@ -591,6 +586,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             tokenPrice,
             advancedDropdownOpen,
             createGasless,
+            signer,
         ]
     )
 
