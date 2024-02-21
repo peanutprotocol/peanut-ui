@@ -488,7 +488,7 @@ export function Dashboard() {
                                                 className="brutalborder col-span-1 flex flex-col divide-y divide-gray-200 bg-white p-2 text-center shadow"
                                             >
                                                 <div className="flex flex-col items-start justify-center gap-2 font-normal">
-                                                    <div className="max-w-fill-available  flex items-center space-x-1 overflow-hidden">
+                                                    <div className="flex  max-w-fill-available items-center space-x-1 overflow-hidden">
                                                         <label className="whitespace-nowrap font-bold">Chain:</label>
                                                         <div className=" min-w-0 flex-1 truncate">
                                                             {' '}
@@ -519,7 +519,7 @@ export function Dashboard() {
                                                         <label className="font-bold">With captcha:</label>{' '}
                                                         {item.withCaptcha ? 'Yes' : 'No'}
                                                     </div>
-                                                    <div className="max-w-fill-available  flex items-center space-x-1 overflow-hidden">
+                                                    <div className="flex  max-w-fill-available items-center space-x-1 overflow-hidden">
                                                         <label className="whitespace-nowrap font-bold">
                                                             Sender name:
                                                         </label>
@@ -527,7 +527,7 @@ export function Dashboard() {
                                                             {item.senderName}
                                                         </div>
                                                     </div>
-                                                    <div className="max-w-fill-available  flex items-center space-x-1 overflow-hidden">
+                                                    <div className="flex  max-w-fill-available items-center space-x-1 overflow-hidden">
                                                         <label className="whitespace-nowrap font-bold">
                                                             Sender address:
                                                         </label>
