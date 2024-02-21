@@ -32,6 +32,16 @@ const nextConfig = {
                 permanent: false,
                 basePath: false,
             },
+            {
+                source: '/packet',
+                destination: '/raffle/claim', // Adjust as needed
+                permanent: true,
+            },
+            {
+                source: '/create-packet',
+                destination: '/raffle/create', // Adjust as needed
+                permanent: true,
+            },
         ]
     },
     async headers() {

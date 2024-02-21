@@ -22,8 +22,8 @@ import * as consts from '@/consts'
 import * as utils from '@/utils'
 import * as store from '@/store'
 
-import * as _consts from '../packet.consts'
-import * as _utils from '../packet.utils'
+import * as _consts from '../raffle.consts'
+import * as _utils from '../raffle.utils'
 
 const defaultLottieOptions = {
     animationData: redpacketLottie,
@@ -39,7 +39,7 @@ const defaultLottieStyle = {
     width: 400,
 }
 
-export function PacketInitialView({
+export function RaffleInitialView({
     onNextScreen,
     raffleLink,
     raffleInfo,
@@ -49,7 +49,7 @@ export function PacketInitialView({
     senderName,
     recipientName,
     userStatus,
-}: _consts.IPacketScreenProps) {
+}: _consts.IRaffleScreenProps) {
     const { open } = useWeb3Modal()
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const { isConnected, address } = useAccount()
@@ -84,10 +84,11 @@ export function PacketInitialView({
 
     const claim = async (claimFormData: { name: string | undefined }) => {
         if (isLoading) return
-        if (userStatus.requiresCaptcha) {
+
+        if (userStatus.requiresCaptcha && !captchaToken) {
             setErrorState({
                 showError: true,
-                errorMessage: 'You have already claimed your slot!',
+                errorMessage: 'Please complete the captcha',
             })
             return
         }
@@ -100,14 +101,6 @@ export function PacketInitialView({
         play()
         setLoadingStates('opening')
         try {
-            if (!captchaToken) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please complete the captcha',
-                })
-                return
-            }
-
             try {
                 if (claimFormData.name) {
                     claimFormData.name = validateUserName(claimFormData.name)
@@ -142,8 +135,7 @@ export function PacketInitialView({
             if (hasAddressParticipated) {
                 setErrorState({
                     showError: true,
-                    errorMessage:
-                        'You have already claimed this packet! Please find a different packet to claim again.',
+                    errorMessage: 'You have already claimed a slot in this raffle!',
                 })
                 setLoadingStates('idle')
                 goToAndStop(30, true)
@@ -207,13 +199,6 @@ export function PacketInitialView({
 
     async function checkAddress(address: string) {
         try {
-            if (userStatus.requiresCaptcha) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'You have already claimed your slot!',
-                })
-                return
-            }
             if (address.endsWith('.eth')) {
                 setLoadingStates('fetching address')
                 const resolvedAddress = await _utils.resolveFromEnsName(address)
@@ -301,19 +286,23 @@ export function PacketInitialView({
             <h3 className="text-md my-0 text-center font-normal sm:text-lg lg:text-xl ">See what's inside!</h3>
             <div className={'mb-4 mt-0'}>{lottieView}</div>
 
-            <div className="mb-6 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                <div className="font-normal">Claim peanut handle</div>
-                <div className="flex flex-row items-center justify-between">
-                    <input
-                        className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                        placeholder="Chad"
-                        type="text"
-                        autoComplete="off"
-                        maxLength={20}
-                        onKeyDown={checkSpecialChar}
-                        onFocus={(e) => e.target.select()}
-                        {...claimForm.register('name')}
-                    />
+            <div className="mb-6 flex flex-col items-center justify-center gap-2">
+                <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                    <div className="font-normal">Your address/ensname</div>
+                    <div className="flex flex-row items-center justify-between">
+                        <input
+                            className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                            placeholder="0x1234...5678"
+                            type="text"
+                            autoComplete="off"
+                            onFocus={(e) => e.target.select()}
+                            {...claimForm.register('address')}
+                        />
+                    </div>
+                </div>
+                <div className="text-sm ">
+                    Please ensure that this address exists on{' '}
+                    {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
                 </div>
             </div>
 
@@ -325,7 +314,7 @@ export function PacketInitialView({
                     setIsDropdownOpen(!isDropdownOpen)
                 }}
             >
-                <div className=" cursor-pointer border-none bg-white text-sm ">Claim without connecting</div>
+                <div className=" cursor-pointer border-none bg-white text-sm ">Claim your peanut handle</div>
                 <img
                     style={{
                         transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
@@ -337,28 +326,25 @@ export function PacketInitialView({
                 />
             </div>
             {isDropdownOpen && (
-                <div className="my-4 flex flex-col items-center justify-center gap-2">
-                    <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                        <div className="font-normal">Your address/ensname</div>
-                        <div className="flex flex-row items-center justify-between">
-                            <input
-                                className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                placeholder="0x1234...5678"
-                                type="text"
-                                autoComplete="off"
-                                onFocus={(e) => e.target.select()}
-                                {...claimForm.register('address')}
-                            />
-                        </div>
-                    </div>
-                    <div className="text-sm ">
-                        Please ensure that this address exists on{' '}
-                        {chainDetails && chainDetails.find((chain) => chain.chainId == raffleInfo?.chainId)?.name}
+                <div className="my-4 flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                    <div className="font-normal">Peanut handle</div>
+                    <div className="flex flex-row items-center justify-between">
+                        <input
+                            className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                            placeholder="Chad"
+                            type="text"
+                            autoComplete="off"
+                            maxLength={20}
+                            onKeyDown={checkSpecialChar}
+                            onFocus={(e) => e.target.select()}
+                            {...claimForm.register('name')}
+                        />
                     </div>
                 </div>
             )}
-            <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
-
+            {userStatus.requiresCaptcha && (
+                <ReCAPTCHA sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''} onChange={handleCaptchaChange} />
+            )}
             <button
                 type={isConnected || isValidAddress ? 'submit' : 'button'}
                 className={
@@ -381,10 +367,8 @@ export function PacketInitialView({
                             <span className="dot">.</span>
                         </span>
                     </div>
-                ) : isConnected || isValidAddress ? (
-                    'Open'
                 ) : (
-                    'Connect Wallet'
+                    'Open'
                 )}
             </button>
             {errorState.showError && (
@@ -392,7 +376,7 @@ export function PacketInitialView({
                     <label className="font-bold text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
-            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
+            <global_components.PeanutMan type={'presenting'} />
         </form>
     )
 }

@@ -2,21 +2,21 @@ import { useState } from 'react'
 import { isMobile } from 'react-device-detect'
 import { Tooltip } from 'react-tooltip'
 
-import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
+import peanutman_cheering from '@/assets/peanutman-cheering.png'
 import clipboard_svg from '@/assets/clipboard.svg'
 import * as global_components from '@/components/global'
 import * as _consts from '../send.consts'
 
-export function SendSuccessView({ claimLink, onCustomScreen }: _consts.ISendScreenProps) {
+export function RaffleSuccessView({ claimLink, onCustomScreen }: _consts.ISendScreenProps) {
     const [isCopied, setIsCopied] = useState(false)
 
     return (
         <>
             <div className="mb-4 mt-10 flex w-full flex-col items-center gap-6 text-center ">
                 <h2 className=" bold my-0 text-2xl lg:text-4xl">Yay!</h2>
-                <img src={peanutman_redpacket.src} className="h-auto w-3/4 max-w-[264px]" />
+                <img src={peanutman_cheering.src} className="h-auto w-3/4 max-w-[264px]" />
                 <p className="my-0 self-center text-lg font-normal">
-                    Send your red packet link to your friend group chat!{' '}
+                    Send your raffle link to your friend group chat!{' '}
                 </p>
 
                 <div
@@ -91,7 +91,7 @@ export function SendSuccessView({ claimLink, onCustomScreen }: _consts.ISendScre
                 >
                     Create
                 </button>
-                <global_components.socialsComponent message={`Here is a Red Packet for you! ${claimLink[0]}`} />
+                <global_components.socialsComponent message={`Here is a Raffle for you! ${claimLink[0]}`} />
             </div>
         </>
     )

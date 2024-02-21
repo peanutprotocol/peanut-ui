@@ -3,8 +3,8 @@ import * as components from '@/components'
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
-    title: 'Mantle Red packet',
-    description: 'Create a Giga Mantle Red Packet',
+    title: 'Peanut Protocol',
+    description: 'Send crypto with a link',
 
     icons: {
         icon: '/logo-favicon.png',
@@ -18,10 +18,10 @@ export const metadata: Metadata = {
     },
 }
 
-export default function CreateGigaPacket() {
+export default function CreateRafflePage() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
-            <components.GigaPacket />
+            <components.Send type="raffle" />
         </global_components.PageWrapper>
     )
 }

@@ -77,7 +77,13 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
 
             if (key !== null && key?.includes(address)) {
                 const value = localStorage.getItem(key)
-                if (value !== null) {
+                if (
+                    value !== null &&
+                    !key.includes('- raffle -') &&
+                    !key.includes('saving giga-link for address:') &&
+                    !key.includes('saving temp') &&
+                    value.includes('/claim')
+                ) {
                     const x = {
                         address: key.split('-')[0].trim(),
                         hash: key.split('-')[1]?.trim() ?? '',
@@ -88,6 +94,80 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
                 }
             }
         }
+        return localStorageData
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string }) => {
+    try {
+        const localStorageData: interfaces.ILocalStorageItem[] = []
+
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i)
+
+            if (key !== null && key?.includes(address)) {
+                const value = localStorage.getItem(key)
+
+                if (
+                    value !== null &&
+                    (key.includes('- raffle -') ||
+                        value.includes('/packet') ||
+                        key.includes('giga-link') ||
+                        key.includes('gigalink')) &&
+                    !key.includes('saving giga-link for address:') &&
+                    !key.includes('saving temp')
+                ) {
+                    if (key.includes('- raffle - ')) {
+                        localStorageData.push({
+                            address: key.split('-')[0].trim(),
+                            hash: key.split('-')[2]?.trim() ?? '',
+                            idx: '0',
+                            link: value.replaceAll('"', ''),
+                        })
+                    } else if (key.includes('giga-link')) {
+                        const startIndex = key.indexOf('0x')
+                        if (startIndex === -1) {
+                            return
+                        }
+
+                        let endIndex = key.indexOf(' ', startIndex)
+                        if (endIndex === -1) {
+                            endIndex = key.length
+                        }
+                        const address = key.substring(startIndex, endIndex)
+
+                        localStorageData.push({
+                            address: address,
+                            hash: '',
+                            idx: '0',
+                            link: value.replaceAll('"', ''),
+                        })
+                    } else if (key.includes('gigalink')) {
+                        const v = JSON.parse(value)
+
+                        if (v.completed) {
+                            localStorageData.push({
+                                address: key.split('-')[0].trim(),
+                                hash: key.split('-')[2]?.trim() ?? '',
+                                idx: '0',
+                                link: v.finalLink,
+                            })
+                        }
+                    } else if (value.includes('/packet')) {
+                        const x = {
+                            address: key.split('-')[0].trim(),
+                            hash: key.split('-')[1]?.trim() ?? '',
+                            idx: '',
+                            link: value.replaceAll('"', ''),
+                        }
+                        localStorageData.push(x)
+                    }
+                }
+            }
+        }
+        console.log(localStorageData)
         return localStorageData
     } catch (error) {
         console.error('Error getting data from localStorage:', error)

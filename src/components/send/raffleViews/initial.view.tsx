@@ -9,6 +9,7 @@ import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
+import peanut, { PEANUT_CONTRACTS, getRaffleLinkFromTx, interfaces, validateUserName } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -17,36 +18,41 @@ import * as utils from '@/utils'
 import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
-import switch_svg from '@/assets/switch.svg'
-import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces, makeDepositGasless } from '@squirrel-labs/peanut-sdk'
 
-export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
+import dropdown_svg from '@/assets/dropdown.svg'
+import { useRouter } from 'next/navigation'
+
+export function RaffleInitialView({
+    onNextScreen,
+    setClaimLink,
+    setTxHash,
+    setChainId,
+    ensName,
+}: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const { chain: currentChain } = useNetwork()
+    const router = useRouter()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
     const [formHasBeenTouched, setFormHasBeenTouched] = useState(false)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
     const [enableConfirmation, setEnableConfirmation] = useState(false)
-    const [textFontSize, setTextFontSize] = useState('text-6xl')
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
-    const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
-    const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
     const [showTestnets, setShowTestnets] = useState(false)
-    const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
-    const [createGasless, setCreateGasless] = useState(true)
-    const verbose = true
+    const [showModal, setShowModal] = useState(false)
+    const [enteredEmail, setEnteredEmail] = useState('')
+    const [sentEmail, setSentEmail] = useState(false)
     const mantleCheck = utils.isMantleInUrl()
+    const verbose = true
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -62,7 +68,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             chainId: mantleCheck ? '5000' : '10',
             amount: null,
             token: mantleCheck ? 'MNT' : 'ETH',
-            bulkAmount: undefined,
+            numberOfrecipients: undefined,
+            senderName: undefined,
         },
     })
     const formwatch = sendForm.watch()
@@ -167,11 +174,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
-            setInputDenomination('TOKEN')
         }
     }
 
-    const checkForm = (sendFormData: _consts.ISendFormData, signer: providers.JsonRpcSigner | undefined) => {
+    const checkForm = (
+        sendFormData: _consts.ISendFormData,
+        signer: providers.JsonRpcSigner | undefined,
+        tokenAddress: string
+    ) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
@@ -190,14 +200,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
-        if (advancedDropdownOpen && !Number.isInteger(sendFormData.bulkAmount)) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please define a non-decimal number of links',
-            })
-            return { succes: 'false' }
-        }
-
         if (!signer) {
             getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
@@ -208,54 +210,40 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
-        //check if the bulkAmount is less than or equal to zero when bulk is selected
-        if (sendFormData.bulkAmount && sendFormData.bulkAmount <= 0 && advancedDropdownOpen) {
+        if (!sendFormData.numberOfrecipients || Number(sendFormData.numberOfrecipients) < 2) {
             setErrorState({
                 showError: true,
-                errorMessage: 'If you want to bulk send, please input an amount of links you want to have created',
+                errorMessage: 'Minimum amount of recipients has to be larger than two',
             })
 
             return { succes: 'false' }
         }
 
-        return { succes: 'true' }
-    }
+        if (Number(sendFormData.numberOfrecipients) > 250) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Maximum amount of recipients is 250',
+            })
 
-    const calculateTokenAmount = async (
-        sendFormData: _consts.ISendFormData
-    ): Promise<{ tokenAmount: number; status: string }> => {
-        if (inputDenomination == 'USD') {
-            var price: number | undefined = undefined
-            try {
-                price = await fetchTokenPrice(
-                    tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
-                    sendFormData.chainId
-                )
-            } catch (error) {
-                console.error(error)
+            return { succes: 'false' }
+        }
+
+        if (userBalances) {
+            const amount = userBalances.find(
+                (balance) => balance.chainId == sendFormData.chainId && balance.address == tokenAddress
+            )?.amount
+
+            if (amount && Number(sendFormData.amount) > amount) {
                 setErrorState({
                     showError: true,
-                    errorMessage:
-                        'Something went wrong while fetching the token price, please change input denomination',
+                    errorMessage: 'Insufficient funds to complete this transaction.',
                 })
-                return { tokenAmount: 0, status: 'ERROR' }
-            }
 
-            if (price) {
-                if (advancedDropdownOpen) {
-                    return {
-                        tokenAmount: (Number(sendFormData.amount) * (sendFormData.bulkAmount ?? 0)) / price,
-                        status: 'SUCCESS',
-                    }
-                } else {
-                    return { tokenAmount: Number(sendFormData.amount) / price, status: 'SUCCESS' }
-                }
-            } else {
-                return { tokenAmount: 0, status: 'ERROR' }
+                return { succes: 'false' }
             }
-        } else {
-            return { tokenAmount: Number(sendFormData.amount) ?? 0, status: 'SUCCESS' }
         }
+
+        return { succes: 'true' }
     }
 
     const checkNetwork = async (chainId: string) => {
@@ -277,60 +265,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    const isGaslessDepositPossible = ({
-        tokenAddress,
-        latestContractVersion,
-        chainId,
-    }: {
-        tokenAddress: string
-        latestContractVersion?: string
-        chainId: string
-    }) => {
-        if (latestContractVersion == undefined)
-            latestContractVersion = peanut.getLatestContractVersion({
-                chainId: chainId,
-                type: 'normal',
-                experimental: true,
-            })
-        if (
-            _utils.toLowerCaseKeys(peanut.EIP3009Tokens[chainId as keyof typeof peanut.EIP3009Tokens])[
-                tokenAddress.toLowerCase()
-            ] &&
-            latestContractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
-        ) {
-            return true
-        } else {
-            return false
-        }
-    }
-
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
                 if (isLoading) return
-                setLoadingStates('checking inputs')
-                setErrorState({
-                    showError: false,
-                    errorMessage: '',
-                })
 
-                //Get the signer
-                const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
-
-                //check if the formdata is correct
-                if (checkForm(sendFormData, signer).succes === 'false') {
-                    return
-                }
-                setEnableConfirmation(true)
-
-                //Calculate the token amount
-                const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
-                if (status == 'ERROR') {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Something went wrong while calculating the token amount',
-                    })
-                    return
+                if (sendFormData.senderName) {
+                    try {
+                        sendFormData.senderName = validateUserName(sendFormData.senderName)
+                    } catch (error) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please make sure the username is valid.',
+                        })
+                        return
+                    }
                 }
 
                 //get the token details
@@ -341,20 +290,26 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     chainsToShow
                 )
 
+                setLoadingStates('checking inputs')
+                setErrorState({
+                    showError: false,
+                    errorMessage: '',
+                })
+
+                //Get the signer
+                const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
+
+                //check if the formdata is correct
+                if (checkForm(sendFormData, signer, tokenAddress).succes === 'false') {
+                    return
+                }
+                setEnableConfirmation(true)
+
+                //Calculate the token amount
+                const tokenAmount = Number(sendFormData.amount)
+
                 console.log(
-                    (advancedDropdownOpen ? 'bulk ' : 'solo ') +
-                        'sending ' +
-                        tokenAmount +
-                        ' ' +
-                        sendFormData.token +
-                        ' on chain with id ' +
-                        sendFormData.chainId +
-                        ' with token address: ' +
-                        tokenAddress +
-                        ' with tokenType: ' +
-                        tokenType +
-                        ' with tokenDecimals: ' +
-                        tokenDecimals
+                    `creating raffle ${tokenAmount} ${sendFormData.token} on chain with id ${sendFormData.chainId} with token address: ${tokenAddress} with tokenType: ${tokenType} with tokenDecimals: ${tokenDecimals}`
                 )
 
                 await checkNetwork(sendFormData.chainId)
@@ -362,11 +317,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
 
-                const passwords = await Promise.all(
-                    Array.from({ length: advancedDropdownOpen ? sendFormData.bulkAmount ?? 1 : 1 }, async () =>
-                        peanut.getRandomString(16)
-                    )
-                )
+                const password = await peanut.getRandomString(16)
+
+                const baseUrl = `${window.location.origin}/raffle/claim`
 
                 const linkDetails = {
                     chainId: sendFormData.chainId,
@@ -374,158 +327,89 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     tokenType: tokenType,
                     tokenAddress: tokenAddress,
                     tokenDecimals: tokenDecimals,
-                    baseUrl: window.location.origin + '/claim',
+                    baseUrl: baseUrl,
                     trackId: 'ui',
                 }
 
                 setLoadingStates('preparing transaction')
 
-                let getLinksFromTxResponse
-                let txHash: string
                 const currentDateTime = new Date()
                 const tempLocalstorageKey =
-                    'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
+                    'saving temp raffle link without depositindex for address: ' + address + ' at ' + currentDateTime
 
                 const latestContractVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
                     type: 'normal',
                     experimental: true,
                 })
+                const prepareTxsResponse = await peanut.prepareRaffleDepositTxs({
+                    userAddress: address ?? '',
+                    linkDetails,
+                    password,
+                    withMFA: true,
+                    numberOfLinks: Number(sendFormData.numberOfrecipients),
+                })
 
-                console.log(createGasless)
+                const tempLink =
+                    '/raffle/claim?c=' +
+                    linkDetails.chainId +
+                    '&v=' +
+                    latestContractVersion +
+                    '&i=?&p=' +
+                    password +
+                    '&t=ui'
+                utils.saveToLocalStorage(tempLocalstorageKey, tempLink)
 
-                if (
-                    isGaslessDepositPossible({ tokenAddress, latestContractVersion, chainId: sendFormData.chainId }) &&
-                    createGasless
-                ) {
-                    verbose && console.log('creating gaslessly')
+                const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
 
-                    const { payload, message } = await peanut.makeGaslessDepositPayload({
-                        linkDetails,
-                        password: passwords[0],
-                        contractVersion: peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION,
-                        address: address ?? '',
-                    })
-
-                    verbose && console.log('makeGaslessDepositPayload result: ', { payload }, { message })
-
+                for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
-
-                    const userDepositSignature = await signer._signTypedData(
-                        message.domain,
-                        message.types,
-                        message.values
-                    )
-
-                    verbose && console.log('Signature:', userDepositSignature)
+                    const x = await peanut.signAndSubmitTx({
+                        structSigner: {
+                            signer: signer,
+                        },
+                        unsignedTx: tx,
+                    })
+                    isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
                     setLoadingStates('executing transaction')
-
-                    const response = await makeDepositGasless({
-                        payload,
-                        signature: userDepositSignature,
-                        baseUrl: `${consts.next_proxy_url}/deposit-3009`,
-                        APIKey: 'doesnt-matter',
-                    })
-
-                    passwords.map((password, idx) => {
-                        const tempLink =
-                            '/claim?c=' +
-                            linkDetails.chainId +
-                            '&v=' +
-                            latestContractVersion +
-                            '&i=?&p=' +
-                            password +
-                            '&t=ui'
-                        utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
-                    })
-
-                    verbose && console.log('makeDepositGasless response: ', response)
-
-                    setLoadingStates('creating link')
-
-                    // wait until 2 confirmation blocks to make sure that rpc
-                    // providers have the receipt stored
-                    await signer.provider.waitForTransaction(response.txHash, 1)
-
-                    getLinksFromTxResponse = await peanut.getLinksFromTx({
-                        linkDetails,
-                        txHash: response.txHash,
-                        passwords: passwords,
-                    })
-
-                    txHash = response.txHash
-                } else {
-                    verbose && console.log('not creating gaslessly')
-
-                    const prepareTxsResponse = await peanut.prepareTxs({
-                        address: address ?? '',
-                        linkDetails,
-                        passwords: passwords,
-                        numberOfLinks: advancedDropdownOpen ? sendFormData.bulkAmount : undefined,
-                        batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
-                        peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
-                    })
-
-                    passwords.map((password, idx) => {
-                        const tempLink =
-                            '/claim?c=' +
-                            linkDetails.chainId +
-                            '&v=' +
-                            latestContractVersion +
-                            '&i=?&p=' +
-                            password +
-                            '&t=ui'
-                        utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
-                    })
-
-                    const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
-
-                    for (const tx of prepareTxsResponse.unsignedTxs) {
-                        setLoadingStates('sign in wallet')
-                        const submitResponse = await peanut.signAndSubmitTx({
-                            structSigner: {
-                                signer: signer,
-                            },
-                            unsignedTx: tx,
-                        })
-                        isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
-
-                        setLoadingStates('executing transaction')
-                        // wait until 2 confirmation blocks to make sure that rpc
-                        // providers have the receipt stored
-                        await signer.provider.waitForTransaction(submitResponse.txHash, 1)
-                        await new Promise((resolve) => setTimeout(resolve, 1000))
-                        signedTxsResponse.push(submitResponse)
-                    }
-
-                    setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
-
-                    getLinksFromTxResponse = await peanut.getLinksFromTx({
-                        linkDetails,
-                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
-                        passwords: passwords,
-                    })
-
-                    txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
+                    await x.tx.wait()
+                    signedTxsResponse.push(x)
                 }
 
-                verbose && console.log('Created links:', getLinksFromTxResponse.links)
+                setLoadingStates('creating link')
+
+                const { link: fullCreatedLink } = await getRaffleLinkFromTx({
+                    linkDetails,
+                    txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                    password: password,
+                    numberOfLinks: Number(sendFormData.numberOfrecipients),
+                    name: sendFormData.senderName ?? '',
+                    withMFA: true,
+                    withCaptcha: true,
+                    baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
+                    APIKey: 'doesnt-matter',
+                })
+                // Remove indices since they are stored on the API anyway
+                const fullCreatedURL = new URL(fullCreatedLink)
+                fullCreatedURL.searchParams.delete('i')
+                const minimizedLink = fullCreatedURL.toString()
+
+                const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
+
+                verbose && console.log('Created raffle link:', { fullCreatedLink, minimizedLink })
                 verbose && console.log('Transaction hash:', txHash)
 
-                passwords.map((password, idx) => {
-                    utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
-                })
+                utils.delteFromLocalStorage(tempLocalstorageKey)
 
-                getLinksFromTxResponse.links.forEach((link: any, index: any) => {
-                    utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
-                })
+                utils.saveToLocalStorage(address + ' - raffle - ' + txHash, minimizedLink)
 
-                setClaimLink(getLinksFromTxResponse.links)
+                setClaimLink([minimizedLink])
                 setTxHash(txHash)
                 setChainId(sendFormData.chainId)
                 onNextScreen()
             } catch (error: any) {
+                console.error(error)
                 if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({
@@ -547,7 +431,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     } else if (error.toString().includes('not deployed on chain')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Bulk is not able on this chain, please try another chain',
+                            errorMessage:
+                                'Creating a raffle is not possible on this chain yet, please try another chain',
                         })
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
@@ -581,17 +466,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 setEnableConfirmation(false)
             }
         },
-        [
-            currentChain,
-            userBalances,
-            onNextScreen,
-            isLoading,
-            address,
-            inputDenomination,
-            tokenPrice,
-            advancedDropdownOpen,
-            createGasless,
-        ]
+        [currentChain, userBalances, onNextScreen, isLoading, address, tokenPrice]
     )
 
     function classNames(...classes: any) {
@@ -612,11 +487,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
-                if (isGaslessDepositPossible({ tokenAddress, chainId: formwatch.chainId })) {
-                    setShowGaslessAvailable(true)
-                } else {
-                    setShowGaslessAvailable(false)
-                }
                 if (tokenAddress == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
                 } else {
@@ -628,8 +498,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [formwatch.token, formwatch.chainId, isConnected])
 
+    //update the chain and token when the user changes the chain in the wallet
     useEffect(() => {
-        //update the chain and token when the user changes the chain in the wallet
         if (mantleCheck) {
             sendForm.setValue('chainId', '5000')
             return
@@ -645,124 +515,28 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
-        } else if (chainsToShow.length > 0 && !formHasBeenTouched) {
-            sendForm.setValue('chainId', chainsToShow[0].chainId)
-            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
         }
     }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
+    useEffect(() => {
+        if (!sentEmail && Number(formwatch.numberOfrecipients) > 10) {
+            setShowModal(true)
+        }
+    }, [formwatch.numberOfrecipients])
+
+    useEffect(() => {
+        if (ensName) sendForm.setValue('senderName', ensName)
+    }, [ensName])
+
     return (
         <>
-            <div className="flex w-full flex-col items-center text-center  sm:mb-3">
-                <h2 className="title-font bold text-2xl lg:text-4xl">
-                    Send crypto with a link
-                    <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
-                </h2>
-                <div className="w-4/5 font-normal">
-                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. They
-                    will be able to claim the funds in any token on any chain.
-                </div>
+            <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
+                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Raffle</h2>
+                <div className="my-0 w-4/5 font-normal">Create a raffle.</div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
-                <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
-                    <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
-                        <div className="flex flex-col justify-end gap-0 pt-2 ">
-                            <div className="flex h-16 items-center justify-center">
-                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
-                                    {inputDenomination == 'USD' ? '$' : ' '}
-                                </label>
-                                <div className="w-full max-w-[160px] ">
-                                    <input
-                                        className={
-                                            'w-full border-none bg-transparent font-black tracking-wide text-black outline-none placeholder:font-black placeholder:text-black ' +
-                                            textFontSize
-                                        }
-                                        placeholder="0.00"
-                                        onChange={(e) => {
-                                            const value = utils.formatAmountWithoutComma(e.target.value)
-                                            setTextFontSize(_utils.textHandler(value))
-                                            sendForm.setValue('amount', value)
-                                        }}
-                                        type="number"
-                                        inputMode="decimal"
-                                        step="any"
-                                        min="0"
-                                        autoComplete="off"
-                                        onFocus={(e) => e.target.select()}
-                                        autoFocus
-                                    />
-                                </div>
-                            </div>
-
-                            <div>
-                                {tokenPrice ? (
-                                    <div>
-                                        <img
-                                            onClick={() => {
-                                                setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
-                                            }}
-                                            src={switch_svg.src}
-                                            className="h-4 cursor-pointer"
-                                        />
-                                        <label className="ml-4 w-max pr-2 text-sm font-bold">
-                                            {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
-                                                ? inputDenomination == 'USD'
-                                                    ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
-                                                      ' ' +
-                                                      formwatch.token
-                                                    : '$ ' +
-                                                      utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
-                                                : inputDenomination == 'USD'
-                                                  ? '0.00'
-                                                  : '$ 0.00'}
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <div className="h-5"></div>
-                                )}
-                            </div>
-                        </div>
-                        <div
-                            className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
-                            onClick={() => {
-                                if (isConnected && chainsToShow.length <= 0) {
-                                    setErrorState({
-                                        showError: true,
-                                        errorMessage: 'No funds available',
-                                    })
-                                } else {
-                                    setIsTokenSelectorOpen(true)
-                                }
-                            }}
-                        >
-                            {isConnected ? (
-                                chainsToShow.length > 0 ? (
-                                    <div className="flex cursor-pointer flex-col items-center justify-center">
-                                        <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                            {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
-                                        </label>{' '}
-                                        <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                            {formwatch.token}
-                                        </label>
-                                    </div>
-                                ) : (
-                                    <label className="flex h-full items-center justify-center text-sm font-bold">
-                                        No funds available
-                                    </label>
-                                )
-                            ) : (
-                                <div className="flex cursor-pointer flex-col items-center justify-center">
-                                    <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
-                                        {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
-                                    </label>{' '}
-                                    <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
-                                        {formwatch.token}
-                                    </label>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
+                <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
+                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 ">
                         <div
                             className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
                             onClick={() => {
@@ -802,134 +576,96 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 </div>
                             )}
                         </div>
-                        <div className="flex flex-col justify-end gap-0 pt-2">
-                            <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
-                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
-                                    {inputDenomination == 'USD' ? '$' : ' '}
-                                </label>
-
+                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">${formwatch.token} Amount *</div>
+                            <div className="flex flex-row items-center justify-between">
                                 <input
-                                    className={
-                                        'no-spin block w-full appearance-none border-none bg-none p-0 font-black outline-none placeholder:font-black placeholder:text-black ' +
-                                        textFontSize
-                                    }
-                                    placeholder="0.00"
+                                    onWheel={(e) => {
+                                        // @ts-ignore
+                                        e.target.blur()
+                                    }}
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                    placeholder="100"
+                                    onChange={(e) => {
+                                        const value = utils.formatAmountWithoutComma(e.target.value)
+                                        sendForm.setValue('amount', value)
+                                    }}
+                                    type="number"
                                     inputMode="decimal"
                                     step="any"
                                     min="0"
                                     autoComplete="off"
                                     onFocus={(e) => e.target.select()}
                                     autoFocus
-                                    onChange={(e) => {
-                                        const value = utils.formatAmountWithoutComma(e.target.value)
-                                        setTextFontSize(_utils.textHandler(value))
-                                        sendForm.setValue('amount', value)
-                                    }}
-                                    pattern="[0-9]*[.,]?[0-9]*"
-                                    size={formwatch.amount ? formwatch.amount.length : 4}
                                 />
+
+                                {tokenPrice && (
+                                    <div className="flex min-w-max items-center text-xs font-normal ">
+                                        ${utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)}
+                                    </div>
+                                )}
                             </div>
-
-                            {tokenPrice ? (
-                                <div className="flex w-full items-center justify-center">
-                                    <img
-                                        onClick={() => {
-                                            setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
-                                        }}
-                                        src={switch_svg.src}
-                                        className="h-4 cursor-pointer"
-                                    />
-                                    <label className="ml-4 w-max pr-2 text-sm font-bold">
-                                        {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
-                                            ? inputDenomination == 'USD'
-                                                ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
-                                                  ' ' +
-                                                  formwatch.token
-                                                : '$ ' + utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
-                                            : '0.00 '}
-                                    </label>
-                                </div>
-                            ) : (
-                                <div className="h-5"></div>
-                            )}
                         </div>
-                    </div>
-                    {/* <div
-                        className="flex cursor-pointer items-center justify-center "
-                        onClick={() => {
-                            setAdvancedDropdownOpen(!advancedDropdownOpen)
-                            if (advancedDropdownOpen) {
-                                sendForm.setValue('bulkAmount', 0)
-                            }
-                        }}
-                    >
-                        <div className="cursor-pointer border-none bg-white text-sm  ">Bulk options </div>
-                        <img
-                            style={{
-                                transform: advancedDropdownOpen ? 'scaleY(-1)' : 'none',
-                                transition: 'transform 0.3s ease-in-out',
-                            }}
-                            src={dropdown_svg.src}
-                            alt=""
-                            className={'h-6 '}
-                        />
-                    </div> */}
-                    {advancedDropdownOpen && (
-                        <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
-                            <div className="relative w-full px-2 sm:w-3/4">
-                                <div className="absolute inset-y-0 right-4 box-border flex items-center ">
-                                    <span className="cursor-pointertext-lg align-center flex h-1/2 ">
-                                        <button
-                                            type="button"
-                                            className={
-                                                'relative inline-flex items-center border-none bg-white font-black text-black'
-                                            }
-                                        >
-                                            Links
-                                        </button>
-                                    </span>
-                                </div>
-
+                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">№ of Recipients *</div>
+                            <div className="flex flex-row items-center justify-between">
                                 <input
+                                    onWheel={(e) => {
+                                        // @ts-ignore
+                                        e.target.blur()
+                                    }}
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                    placeholder="5"
+                                    onChange={(e) => {
+                                        sendForm.setValue('numberOfrecipients', e.target.value)
+                                    }}
                                     type="number"
+                                    inputMode="numeric"
                                     step="any"
                                     min="0"
                                     autoComplete="off"
-                                    className="no-spin brutalborder block w-full appearance-none px-2 py-4 pl-4 text-lg font-bold outline-none placeholder:text-lg placeholder:font-bold placeholder:text-black "
-                                    placeholder="0"
-                                    aria-describedby="price-currency"
-                                    onChange={(e) => {
-                                        sendForm.setValue('bulkAmount', Number(e.target.value))
+                                    onFocus={(e) => e.target.select()}
+                                    onKeyDown={(event) => {
+                                        if (
+                                            !/[0-9]/.test(event.key) &&
+                                            ![
+                                                'Backspace',
+                                                'ArrowLeft',
+                                                'ArrowRight',
+                                                'ArrowUp',
+                                                'ArrowDown',
+                                                'Delete',
+                                                'End',
+                                                'Home',
+                                                'Tab',
+                                            ].includes(event.key)
+                                        ) {
+                                            event.preventDefault()
+                                        }
                                     }}
                                 />
+
+                                <label className=" display-block w-12 text-xs font-normal">{'No fee'}</label>
                             </div>
-                            {formwatch.amount && formwatch.token && formwatch.bulkAmount ? (
-                                <div>
-                                    <div className="flex text-center text-base">
-                                        {' '}
-                                        You will be sending {formwatch.bulkAmount} links. The total value will be{' '}
-                                        {inputDenomination == 'USD'
-                                            ? utils.formatTokenAmount(
-                                                  Number(
-                                                      tokenPrice &&
-                                                          formwatch.amount &&
-                                                          (Number(formwatch.amount) / tokenPrice) * formwatch.bulkAmount
-                                                  )
-                                              )
-                                            : utils.formatTokenAmount(
-                                                  formwatch.bulkAmount * Number(formwatch.amount)
-                                              )}{' '}
-                                        {formwatch.token}
-                                    </div>
-                                </div>
-                            ) : (
-                                ''
-                            )}
                         </div>
-                    )}
+                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
+                            <div className="font-normal">Display Name</div>
+                            <div className="flex flex-row items-center justify-between">
+                                <input
+                                    maxLength={15}
+                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
+                                    placeholder="Chad"
+                                    type="text"
+                                    autoComplete="off"
+                                    onFocus={(e) => e.target.select()}
+                                    {...sendForm.register('senderName')}
+                                />
+                            </div>
+                        </div>
+                    </div>
                     <div
                         className={
-                            errorState.showError || showGaslessAvailable
+                            errorState.showError
                                 ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
                                 : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
                         }
@@ -956,36 +692,20 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
-                            ) : advancedDropdownOpen ? (
-                                'Bulk Send'
                             ) : (
-                                'Send'
+                                'Create'
                             )}
                         </button>
-                        {errorState.showError ? (
+                        {errorState.showError && (
                             <div className="text-center">
                                 <label className="font-bold text-red ">{errorState.errorMessage}</label>
                             </div>
-                        ) : (
-                            showGaslessAvailable && (
-                                <div className="flex flex-row items-center justify-center gap-1 text-center">
-                                    <label className="font-bold text-black ">
-                                        Uncheck this box if you don't want to create a link gaslessly
-                                    </label>
-                                    <input
-                                        type="checkbox"
-                                        className="m-0 mt-1 h-5 rounded-none p-0 accent-black"
-                                        checked={createGasless}
-                                        onChange={() => setCreateGasless(!createGasless)}
-                                    />
-                                </div>
-                            )
                         )}
                     </div>
                 </div>
             </form>
 
-            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
+            <global_components.PeanutMan type={'presenting'} />
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
@@ -1221,6 +941,85 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       </div>
                                                   </div>
                                               ))}
+                                    </div>
+                                </Dialog.Panel>
+                            </Transition.Child>
+                        </div>
+                    </div>
+                </Dialog>
+            </Transition.Root>
+
+            <Transition.Root show={showModal} as={Fragment}>
+                <Dialog
+                    as="div"
+                    className="relative z-10 "
+                    onClose={() => {
+                        setShowModal(false)
+                    }}
+                >
+                    <Transition.Child
+                        as={Fragment}
+                        enter="ease-out duration-300"
+                        enterFrom="opacity-0"
+                        enterTo="opacity-100"
+                        leave="ease-in duration-200"
+                        leaveFrom="opacity-100"
+                        leaveTo="opacity-0"
+                    >
+                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
+                    </Transition.Child>
+
+                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
+                            <Transition.Child
+                                as={Fragment}
+                                enter="ease-out duration-300"
+                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                                enterTo="opacity-100 translate-y-0 sm:scale-100"
+                                leave="ease-in duration-200"
+                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
+                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+                            >
+                                <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
+                                    <div className="flex flex-col items-center justify-center gap-6 p-12 ">
+                                        <div>
+                                            Henlo! That's a lot of recipients! If you're running a larger campaign, we'd
+                                            love to help.{' '}
+                                            <a
+                                                href={'https://cal.com/kkonrad+hugo0/15min?duration=30'}
+                                                target="_blank"
+                                                rel="noreferrer noopener"
+                                                className=" cursor-pointer text-black underline"
+                                            >
+                                                book
+                                            </a>{' '}
+                                            a meeting or share your email and we'll get in touch!
+                                        </div>
+
+                                        <input
+                                            className="brutalborder  w-3/4 items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
+                                            onChange={(e) => {
+                                                setEnteredEmail(e.target.value)
+                                            }}
+                                        />
+
+                                        <button
+                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                            id="cta-btn-2"
+                                            onClick={() => {
+                                                setSentEmail(true)
+                                                const message = ` 🐿️ Someone has entered their email when creating a raffle link, 
+                                                tagging <@480931245107445760> <@833795975080181810>
+
+                                                email: ${enteredEmail}
+                                                `
+                                                utils.fetchSendDiscordNotification({ message })
+                                                setShowModal(false)
+                                            }}
+                                            disabled={isLoading ? true : false}
+                                        >
+                                            Continue
+                                        </button>
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>

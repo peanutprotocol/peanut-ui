@@ -1337,7 +1337,7 @@ export function GigaPacket() {
     return (
         <>
             {' '}
-            <global_components.CardWrapper redPacket>
+            <global_components.CardWrapper>
                 {isMobile ? (
                     <div className="my-4 flex w-full items-center justify-center">
                         <h2>

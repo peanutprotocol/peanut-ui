@@ -1,16 +1,16 @@
 import * as views from './views'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
-export type packetState = 'LOADING' | 'FOUND' | 'NOT_FOUND' | 'EMPTY' | 'SUCCESS' | 'TIMEOUT' | 'TOO_LATE'
+export type raffleState = 'LOADING' | 'FOUND' | 'NOT_FOUND' | 'EMPTY' | 'SUCCESS' | 'TIMEOUT' | 'TOO_LATE'
 
 export type Screens = 'INITIAL' | 'SUCCESS'
 
-export interface IPacketScreenState {
+export interface IRaffleScreenState {
     screen: Screens
     idx: number
 }
 
-export interface IPacketScreenProps {
+export interface IRaffleScreenProps {
     onNextScreen: () => void
     onCustomScreen: (screen: Screens) => void
     raffleLink: string
@@ -31,16 +31,16 @@ export interface IPacketScreenProps {
     setUserStatus: (value: interfaces.IUserRaffleStatus) => void
 }
 
-export const INIT_VIEW: IPacketScreenState = {
+export const INIT_VIEW: IRaffleScreenState = {
     screen: 'INITIAL',
     idx: 0,
 }
 
-export const PACKET_SCREEN_FLOW: Screens[] = ['INITIAL', 'SUCCESS']
+export const RAFFLE_SCREEN_FLOW: Screens[] = ['INITIAL', 'SUCCESS']
 
-export const PACKET_SCREEN_MAP: {
+export const RAFFLE_SCREEN_MAP: {
     [key in Screens]: { comp: React.FC<any> }
 } = {
-    INITIAL: { comp: views.PacketInitialView },
-    SUCCESS: { comp: views.PacketSuccesView },
+    INITIAL: { comp: views.RaffleInitialView },
+    SUCCESS: { comp: views.RaffleSuccessView },
 }
