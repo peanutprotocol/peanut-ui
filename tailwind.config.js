@@ -22,6 +22,9 @@ module.exports = {
                 50: '50px',
                 75: '75px',
             },
+            maxWidth: {
+                'fill-available': '-webkit-fill-available',
+            },
         },
         colors: {
             transparent: 'transparent',

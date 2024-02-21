@@ -335,7 +335,7 @@ export function RaffleInitialView({
 
                 const currentDateTime = new Date()
                 const tempLocalstorageKey =
-                    'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
+                    'saving temp raffle link without depositindex for address: ' + address + ' at ' + currentDateTime
 
                 const latestContractVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
@@ -402,7 +402,7 @@ export function RaffleInitialView({
 
                 utils.delteFromLocalStorage(tempLocalstorageKey)
 
-                utils.saveToLocalStorage(address + ' - ' + txHash, minimizedLink)
+                utils.saveToLocalStorage(address + ' - raffle - ' + txHash, minimizedLink)
 
                 setClaimLink([minimizedLink])
                 setTxHash(txHash)
