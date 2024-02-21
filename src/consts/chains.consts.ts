@@ -1,12 +1,11 @@
 // https://wagmi.sh/core/chains
 
 import * as wagmiChains from 'wagmi/chains'
-import { Chain } from 'wagmi'
+import type { Chain } from 'viem'
 
 const milkomeda = {
     id: 2001,
     name: 'Milkomeda C1 Mainnet',
-    network: 'milkAda',
     nativeCurrency: {
         name: 'milkAda',
         symbol: 'mADA',
@@ -25,7 +24,6 @@ const milkomeda = {
 const milkomedaTestnet = {
     id: 200101,
     name: 'Milkomeda C1 Testnet',
-    network: '"milkTAda"',
     nativeCurrency: {
         name: 'milkTAda',
         symbol: 'mTAda',
@@ -45,7 +43,6 @@ const milkomedaTestnet = {
 const baseTestnet = {
     id: 84531,
     name: 'Base Goerli Testnet',
-    network: 'baseGoerli',
     nativeCurrency: {
         name: 'Ether',
         symbol: 'ETH',
@@ -64,7 +61,6 @@ const baseTestnet = {
 const taikoGrimsvotn = {
     id: 167005,
     name: 'Taiko Grimsvotn L2',
-    network: 'taikogrimsvotn',
     nativeCurrency: {
         name: 'Ether',
         symbol: 'ETH',
@@ -83,7 +79,6 @@ const taikoGrimsvotn = {
 const ZKSyncSepolia = {
     id: 300,
     name: 'zkSync Sepolia Testnet',
-    network: 'zksyncsepolia',
     nativeCurrency: {
         name: 'Ether',
         symbol: 'ETH',
@@ -97,8 +92,9 @@ const ZKSyncSepolia = {
         default: { name: 'zkSync Block Explorer', url: ' "https://sepolia.explorer.zksync.io"' },
     },
     contracts: {},
-}
+} as const satisfies Chain
 
+//@ts-ignore
 export const chains = [
     ...Object.values(wagmiChains),
     milkomeda,
@@ -106,4 +102,4 @@ export const chains = [
     baseTestnet,
     taikoGrimsvotn,
     ZKSyncSepolia,
-]
+] as [Chain, ...Chain[]]

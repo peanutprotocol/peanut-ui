@@ -13,11 +13,7 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
     const [chainId, setChainId] = useState<string>('1')
     const [ensName, setEnsName] = useState<string>('')
     const { setAccount } = useW3iAccount()
-    const { address } = useAccount({
-        onDisconnect: () => {
-            setAccount('')
-        },
-    })
+    const { address } = useAccount({})
 
     useEffect(() => {
         if (!Boolean(address)) return
@@ -51,6 +47,8 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
     useEffect(() => {
         if (address) {
             getEnsName(address)
+        } else if (!address) {
+            setAccount('')
         }
     }, [address])
 

@@ -19,7 +19,7 @@ export default function NotFound() {
     }, [])
     return (
         <div className={inter.className}>
-            <WagmiConfig config={config.wagmiConfig}>
+            <config.ContextProvider>
                 <global_components.PageWrapper bgColor="bg-red">
                     <div className="flex flex-col gap-2 px-8 sm:flex-row md:px-32">
                         <div className="relative flex h-full flex-col items-start justify-center gap-2 font-light italic md:gap-0">
@@ -52,7 +52,7 @@ export default function NotFound() {
                         ></iframe>
                     </div>
                 </global_components.PageWrapper>
-            </WagmiConfig>
+            </config.ContextProvider>
         </div>
     )
 }

@@ -15,6 +15,7 @@
         "@sentry/nextjs": "^7.70.0",
         "@socket.tech/socket-v2-sdk": "^1.21.8",
         "@squirrel-labs/peanut-sdk": "0.4.0-raffle.60",
+        "@tanstack/react-query": "^5.22.2",
         "@typeform/embed-react": "^3.11.0",
         "@types/node": "20.4.2",
         "@types/react": "^18.2.22",
@@ -25,7 +26,7 @@
         "@vercel/analytics": "^1.1.2",
         "@web3inbox/core": "^0.0.25",
         "@web3inbox/widget-react": "^0.6.25",
-        "@web3modal/wagmi": "3.5.3",
+        "@web3modal/wagmi": "^4.0.6",
         "autoprefixer": "^10.4.14",
         "axios": "^1.4.0",
         "encoding": "^0.1.13",
@@ -54,8 +55,8 @@
         "tap": "^18.4.2",
         "three": "^0.157.0",
         "typescript": "5.1.6",
-        "viem": "^1.16.6",
-        "wagmi": "^1.4.4",
+        "viem": "^2.7.11",
+        "wagmi": "^2.5.7",
         "web3": "^1.7.0"
     },
     "devDependencies": {
