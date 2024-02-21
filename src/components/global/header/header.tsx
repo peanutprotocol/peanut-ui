@@ -57,7 +57,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                     }}
                                 >
                                     <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
-                                    <span className="hidden lg:inline lg:px-6">peanut protocol</span>
+                                    <span className="inline lg:px-6">peanut protocol</span>
                                 </div>
                                 <div className="hidden h-full items-center justify-center  sm:flex ">
                                     <div className="flex h-full items-center">
@@ -65,7 +65,6 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                             <Menu.Button
                                                 as="a"
                                                 className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
-                                                aria-current={false ? 'page' : undefined}
                                             >
                                                 APP
                                             </Menu.Button>
@@ -122,8 +121,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                             key={'docs'}
                                             as="a"
                                             href={'/docs'}
-                                            className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
-                                            aria-current={false ? 'page' : undefined}
+                                            className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
                                         >
                                             DOCS
                                         </Disclosure.Button>
