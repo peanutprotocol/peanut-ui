@@ -34,12 +34,12 @@ const nextConfig = {
             },
             {
                 source: '/packet',
-                destination: '/raffle/claim', // Adjust as needed
+                destination: '/raffle/claim',
                 permanent: true,
             },
             {
                 source: '/create-packet',
-                destination: '/raffle/create', // Adjust as needed
+                destination: '/raffle/create',
                 permanent: true,
             },
         ]

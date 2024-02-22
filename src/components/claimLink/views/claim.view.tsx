@@ -89,7 +89,11 @@ export function ClaimView({
                     const _signer = await signer
 
                     if (!_signer) {
-                        return //TODO: handle error
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Error fetching signer. Please try again',
+                        })
+                        return
                     }
 
                     claimTx = await peanut.claimLink({

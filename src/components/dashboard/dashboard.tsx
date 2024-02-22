@@ -130,7 +130,7 @@ export function Dashboard() {
                             withCaptcha: _raffleInfo.withCaptcha,
                             senderName: _raffleInfo.senderName,
                             senderAddress: _raffleInfo.senderAddress,
-                        }
+                        } // TODO: add more details
 
                         details.push(x)
                     } catch (error) {
@@ -186,7 +186,7 @@ export function Dashboard() {
         >
             <div
                 className={
-                    'absolute -left-[2px] -top-[40px] cursor-pointer ' +
+                    'absolute -left-[5px] -top-[40px] cursor-pointer ' +
                     (selectedDashboard === 'normal' ? ' z-20 ' : ' z-0 ')
                 }
                 onClick={() => {
@@ -480,7 +480,7 @@ export function Dashboard() {
                                 dashboardRaffleData.length > 0 ? (
                                     <ul
                                         role="list"
-                                        className="grid max-h-[560px] grid-cols-1 gap-6 overflow-y-auto  md:grid-cols-2 lg:grid-cols-3"
+                                        className="grid max-h-[560px] grid-cols-1 gap-6 overflow-y-auto  md:grid-cols-2 "
                                     >
                                         {dashboardRaffleData.map((item) => (
                                             <li
@@ -538,20 +538,20 @@ export function Dashboard() {
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <div className="-mt-px flex divide-x divide-gray-200">
-                                                        <div className="flex w-0 flex-1">
+                                                    <div className="brutalborder-top -mt-px mt-4 flex">
+                                                        <div className="brutalborder-right flex w-0 flex-1">
                                                             <div
                                                                 onClick={() => {
                                                                     navigator.clipboard.writeText(item.link)
                                                                     setCopiedLink([item.link])
                                                                 }}
-                                                                className="relative -mr-px inline-flex w-0 flex-1 cursor-pointer items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-4 text-sm font-semibold text-gray-900"
+                                                                className="relative -mr-px inline-flex w-0 flex-1 cursor-pointer items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-2 text-sm font-semibold text-gray-900"
                                                             >
                                                                 {copiedLink?.includes(item.link) ? 'Copied' : 'Copy'}
                                                             </div>
                                                         </div>
                                                         <div className="-ml-px flex w-0 flex-1">
-                                                            <div className="relative inline-flex w-0 flex-1 cursor-pointer items-center justify-center gap-x-3 rounded-br-lg border border-transparent bg-white py-4 text-sm font-semibold text-gray-900">
+                                                            <div className="relative inline-flex w-0 flex-1 cursor-pointer items-center justify-center gap-x-3 rounded-br-lg border border-transparent bg-white py-2 text-sm font-semibold text-gray-900">
                                                                 Open
                                                             </div>
                                                         </div>

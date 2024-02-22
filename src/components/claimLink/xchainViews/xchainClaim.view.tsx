@@ -118,7 +118,11 @@ export function xchainClaimView({
             const _signer = await signer
 
             if (!_signer) {
-                return //TODO: handle error
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Error fetching signer. Please try again',
+                })
+                return
             }
 
             if (!ethers.utils.isAddress(data.address)) {
@@ -237,7 +241,11 @@ export function xchainClaimView({
             const _signer = await signer
 
             if (!_signer) {
-                return //TODO: handle error
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Error fetching signer. Please try again',
+                })
+                return
             }
             if (
                 !possibleRoutesArray.find((route) => route.route?.params.toToken == selectedToken.address) &&

@@ -276,6 +276,10 @@ export function RaffleInitialView({
                 const _signer = await signer
 
                 if (!_signer) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Error fetching signer. Please try again',
+                    })
                     return
                 }
 
