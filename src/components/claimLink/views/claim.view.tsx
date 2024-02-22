@@ -63,7 +63,7 @@ export function ClaimView({
             try {
                 await switchChainAsync({ chainId: Number(chainId) })
                 setLoadingStates('switching network')
-                await new Promise((resolve) => setTimeout(resolve, 4000))
+                await new Promise((resolve) => setTimeout(resolve, 2000))
                 setLoadingStates('loading')
             } catch (error) {
                 setLoadingStates('idle')

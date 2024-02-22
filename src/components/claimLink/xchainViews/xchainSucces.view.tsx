@@ -13,7 +13,7 @@ import axios from 'axios'
 import checkbox from '@/assets/checkbox.svg'
 import { useAccount } from 'wagmi'
 
-export function xchainSuccesView({
+export function xchainSuccessView({
     txHash,
     crossChainSuccess,
     claimDetails,

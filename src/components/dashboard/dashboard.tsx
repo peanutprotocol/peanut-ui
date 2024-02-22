@@ -7,9 +7,7 @@ import { useAtom } from 'jotai'
 import { useRouter } from 'next/navigation'
 import peanut from '@squirrel-labs/peanut-sdk'
 
-import trapezoid from '@/assets/icons/trapezoid.svg'
-
-import * as global_components from '@/components/global'
+import trapezoid from '@/assets/icons/trapezoid.svg' //TODO: replace with div and tailwind skew
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import * as store from '@/store'
@@ -55,21 +53,27 @@ export function Dashboard() {
     const [selectedDashboard, setSelectedDashboard] = useState<'normal' | 'raffle'>('normal')
     const gaEventTracker = hooks.useAnalyticsEventTracker('dashboard-component')
 
-    const fetchLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
+    /**
+     * Fetches all the link details from the peanut SDK and sets the state
+     * @param localStorageData
+     */
+    const getAllLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
         try {
             let details: IDashboardLinkItemProps[] = []
             await Promise.all(
                 localStorageData.map(async (item) => {
                     try {
-                        let res = await peanut.getLinkDetails({ link: item.link })
+                        let linkDetails = await peanut.getLinkDetails({ link: item.link }) // TODO: change to fetch all at once (batch request)
 
                         const x: IDashboardLinkItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
-                            chainId: item.link.match(/c=(\d+)/)?.[1] ?? '1',
-                            amount: res?.tokenAmount ?? '',
-                            token: res?.tokenSymbol,
-                            date: res?.depositDate ? new Date(res.depositDate).toLocaleString() : 'Unavailable',
-                            claimed: res?.claimed ?? false,
+                            chainId: linkDetails.chainId,
+                            amount: linkDetails?.tokenAmount ?? '',
+                            token: linkDetails?.tokenSymbol,
+                            date: linkDetails?.depositDate
+                                ? new Date(linkDetails.depositDate).toLocaleString()
+                                : 'Unavailable',
+                            claimed: linkDetails?.claimed ?? false,
                             link: item.link,
                             copied: false,
                         }
@@ -102,9 +106,12 @@ export function Dashboard() {
         }
     }
 
-    const fetchRaffleLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
+    /**
+     * Fetches all the raffle link details from the peanut SDK and sets the state
+     * @param localStorageData
+     */
+    const getAllRaffleLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
         try {
-            console.log(localStorageData)
             let details: IDashboardRaffleItemProps[] = []
             await Promise.all(
                 localStorageData.map(async (item) => {
@@ -113,7 +120,7 @@ export function Dashboard() {
                             link: item.link,
                             baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
                             APIKey: 'doesnt-matter',
-                        })
+                        }) // TODO: change to fetch all at once (batch request)
 
                         const x: IDashboardRaffleItemProps = {
                             hash: item.idx ? item.hash + item.idx : item.hash,
@@ -166,12 +173,12 @@ export function Dashboard() {
 
     useEffect(() => {
         if (localStorageLinkData.length > 0 && dashboardLinkData.length === 0) {
-            fetchLinkDetails(localStorageLinkData)
+            getAllLinkDetails(localStorageLinkData)
         }
         if (localStorageRaffleData.length > 0 && dashboardRaffleData.length === 0) {
-            fetchRaffleLinkDetails(localStorageRaffleData)
+            getAllRaffleLinkDetails(localStorageRaffleData)
         }
-    }, [localStorageLinkData])
+    }, [localStorageLinkData, dashboardLinkData, localStorageRaffleData, dashboardRaffleData])
 
     useEffect(() => {
         console.log(selectedDashboard)
@@ -272,7 +279,7 @@ export function Dashboard() {
                                                 </thead>
                                                 <tbody>
                                                     {dashboardLinkData.map((item) => (
-                                                        <tr key={Math.random()}>
+                                                        <tr key={item.link}>
                                                             <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
                                                                 {
                                                                     chainDetails.find(
@@ -460,7 +467,7 @@ export function Dashboard() {
                                     className="brutalborder inline-flex cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm font-medium text-white hover:bg-white hover:text-black sm:w-auto"
                                     onClick={() => {
                                         router.push('/raffle/create')
-                                    }}
+                                    }} //TODO: remove create and add in a empty card for create
                                 >
                                     CREATE
                                     <svg

@@ -122,7 +122,7 @@ export function GigaPacket() {
             try {
                 await switchChainAsync({ chainId: Number(chainId) })
                 setLoadingStates('switching network')
-                isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
+                isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait a sec after switching chain before making other deeplink
                 setLoadingStates('loading')
             } catch (error) {
                 setLoadingStates('idle')

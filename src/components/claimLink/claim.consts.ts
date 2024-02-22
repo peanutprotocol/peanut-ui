@@ -97,5 +97,5 @@ export const XCHAIN_CLAIM_SCREEN_MAP: {
     [key in Screens]: { comp: React.FC<any> }
 } = {
     INITIAL: { comp: xchainViews.xchainClaimView },
-    SUCCESS: { comp: xchainViews.xchainSuccesView },
+    SUCCESS: { comp: xchainViews.xchainSuccessView },
 }

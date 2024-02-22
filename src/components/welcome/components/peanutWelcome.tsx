@@ -302,7 +302,7 @@ export function Welcome() {
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
                         <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Raffles</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
-                            Create raffles using our APP or the SDK and send them out to whomever you want!{' '}
+                            Engage your audience with exciting raffles! Create the raffles easily using our APP or SDK.
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">

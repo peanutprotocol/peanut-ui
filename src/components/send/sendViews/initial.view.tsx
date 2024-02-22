@@ -494,7 +494,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         // wait until 2 confirmation blocks to make sure that rpc
                         // providers have the receipt stored
                         await _signer.provider.waitForTransaction(submitResponse.txHash, 1)
-                        await new Promise((resolve) => setTimeout(resolve, 1000))
+                        await new Promise((resolve) => setTimeout(resolve, 2000))
                         signedTxsResponse.push(submitResponse)
                     }
 
