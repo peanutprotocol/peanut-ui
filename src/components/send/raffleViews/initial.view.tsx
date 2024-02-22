@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useNetwork } from 'wagmi'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
+import { useAccount, useSwitchChain } from 'wagmi'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
@@ -22,7 +21,7 @@ import * as global_components from '@/components/global'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useRouter } from 'next/navigation'
 
-export function SendInitialView({
+export function RaffleInitialView({
     onNextScreen,
     setClaimLink,
     setTxHash,
@@ -31,9 +30,9 @@ export function SendInitialView({
 }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
-    const { isConnected, address } = useAccount()
-    const { chain: currentChain } = useNetwork()
+    const { isConnected, address, chain: currentChain } = useAccount()
     const router = useRouter()
+    const { switchChainAsync } = useSwitchChain()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -73,6 +72,8 @@ export function SendInitialView({
         },
     })
     const formwatch = sendForm.watch()
+
+    const signer = utils.useEthersSigner({ chainId: Number(formwatch?.chainId) })
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -144,19 +145,6 @@ export function SendInitialView({
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = utils.walletClientToSigner(walletClient)
-        return signer
-    }
-
     const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
             const response = await axios.get('https://api.socket.tech/v2/token-price', {
@@ -201,7 +189,6 @@ export function SendInitialView({
         }
 
         if (!signer) {
-            getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
             setErrorState({
                 showError: true,
                 errorMessage: 'Signer undefined, please try again',
@@ -251,17 +238,19 @@ export function SendInitialView({
         if (currentChain?.id.toString() !== chainId.toString()) {
             setLoadingStates('allow network switch')
 
-            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingStates('switching network')
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setLoadingStates('loading')
+            } catch (error) {
+                setLoadingStates('idle')
+                console.error('Error switching network:', error)
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Something went wrong while switching networks',
+                    errorMessage: 'Error switching network',
                 })
-                setLoadingStates('idle')
-                throw error
-            })
-            setLoadingStates('switching network')
-            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
-            setLoadingStates('loading')
+            }
         }
     }
 
@@ -282,6 +271,18 @@ export function SendInitialView({
                     }
                 }
 
+                await checkNetwork(sendFormData.chainId)
+
+                const _signer = await signer
+
+                if (!_signer) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Error fetching signer. Please try again',
+                    })
+                    return
+                }
+
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
                     sendFormData,
@@ -296,11 +297,8 @@ export function SendInitialView({
                     errorMessage: '',
                 })
 
-                //Get the signer
-                const signer = await getWalletClientAndUpdateSigner({ chainId: sendFormData.chainId })
-
                 //check if the formdata is correct
-                if (checkForm(sendFormData, signer, tokenAddress).succes === 'false') {
+                if (checkForm(sendFormData, _signer, tokenAddress).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -311,15 +309,12 @@ export function SendInitialView({
                 console.log(
                     `creating raffle ${tokenAmount} ${sendFormData.token} on chain with id ${sendFormData.chainId} with token address: ${tokenAddress} with tokenType: ${tokenType} with tokenDecimals: ${tokenDecimals}`
                 )
-
-                await checkNetwork(sendFormData.chainId)
-
                 //when the user tries to refresh, show an alert
                 setEnableConfirmation(true)
 
                 const password = await peanut.getRandomString(16)
 
-                const baseUrl = `${window.location.origin}/packet`
+                const baseUrl = `${window.location.origin}/raffle/claim`
 
                 const linkDetails = {
                     chainId: sendFormData.chainId,
@@ -335,7 +330,7 @@ export function SendInitialView({
 
                 const currentDateTime = new Date()
                 const tempLocalstorageKey =
-                    'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
+                    'saving temp raffle link without depositindex for address: ' + address + ' at ' + currentDateTime
 
                 const latestContractVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
@@ -351,7 +346,13 @@ export function SendInitialView({
                 })
 
                 const tempLink =
-                    '/packet?c=' + linkDetails.chainId + '&v=' + latestContractVersion + '&i=?&p=' + password + '&t=ui'
+                    '/raffle/claim?c=' +
+                    linkDetails.chainId +
+                    '&v=' +
+                    latestContractVersion +
+                    '&i=?&p=' +
+                    password +
+                    '&t=ui'
                 utils.saveToLocalStorage(tempLocalstorageKey, tempLink)
 
                 const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
@@ -360,7 +361,7 @@ export function SendInitialView({
                     setLoadingStates('sign in wallet')
                     const x = await peanut.signAndSubmitTx({
                         structSigner: {
-                            signer: signer,
+                            signer: _signer,
                         },
                         unsignedTx: tx,
                     })
@@ -396,7 +397,7 @@ export function SendInitialView({
 
                 utils.delteFromLocalStorage(tempLocalstorageKey)
 
-                utils.saveToLocalStorage(address + ' - ' + txHash, minimizedLink)
+                utils.saveToLocalStorage(address + ' - raffle - ' + txHash, minimizedLink)
 
                 setClaimLink([minimizedLink])
                 setTxHash(txHash)
@@ -426,7 +427,7 @@ export function SendInitialView({
                         setErrorState({
                             showError: true,
                             errorMessage:
-                                'Creating a red packet is not possible on this chain yet, please try another chain',
+                                'Creating a raffle is not possible on this chain yet, please try another chain',
                         })
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
@@ -525,28 +526,8 @@ export function SendInitialView({
     return (
         <>
             <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
-                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Red Packet</h2>
-                <div className="my-0 w-4/5 font-normal">
-                    A red envelope or red packet is a gift of money given during holidays.
-                </div>
-                {mantleCheck && (
-                    <div className="my-0 w-4/5 font-normal">
-                        NOTICE: if you are a partner of the{' '}
-                        <a href="https://mantle.xyz" target="_blank" className="cursor-pointer text-black underline">
-                            mantle.xyz
-                        </a>{' '}
-                        campaign and want to create &gt; 250 slot red packets, go{' '}
-                        <label
-                            className="cursor-pointer underline"
-                            onClick={() => {
-                                router.push('/create-giga-packet')
-                            }}
-                        >
-                            here
-                        </label>
-                        .
-                    </div>
-                )}
+                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Raffle</h2>
+                <div className="my-0 w-4/5 font-normal">Create a raffle.</div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
@@ -719,7 +700,7 @@ export function SendInitialView({
                 </div>
             </form>
 
-            <global_components.PeanutMan type={mantleCheck ? 'mantle' : 'redpacket'} />
+            <global_components.PeanutMan type={'presenting'} />
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"

@@ -1,6 +1,6 @@
 import React from 'react'
-import * as views from './views'
-import * as redpacketViews from './redpacketViews'
+import * as views from './sendViews'
+import * as raffleViews from './raffleViews'
 
 export interface ISendFormData {
     chainId: string
@@ -52,9 +52,9 @@ export const SEND_SCREEN_MAP: { [key in SendScreens]: { comp: React.FC<any> } } 
     SUCCESS: { comp: views.SendSuccessView },
 }
 
-export const RED_PACKET_SEND_SCREEN_MAP: {
+export const RAFFLE_SEND_SCREEN_MAP: {
     [key in SendScreens]: { comp: React.FC<any> }
 } = {
-    INITIAL: { comp: redpacketViews.SendInitialView },
-    SUCCESS: { comp: redpacketViews.SendSuccessView },
+    INITIAL: { comp: raffleViews.RaffleInitialView },
+    SUCCESS: { comp: raffleViews.RaffleSuccessView },
 }

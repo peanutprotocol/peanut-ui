@@ -5,30 +5,30 @@ export const dynamic = 'force-dynamic'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
-    description: `You've received a red packet!`,
+    description: `You've received a slot in a raffle!`,
     icons: {
         icon: '/logo-favicon.png',
     },
     openGraph: {
         images: [
             {
-                url: '/redpacket-img.png',
+                url: '/claim-metadata-img.jpg',
             },
         ],
     },
     twitter: {
         images: [
             {
-                url: '/redpacket-img.png',
+                url: '/claim-metadata-img.jpg',
             },
         ],
     },
 }
 
-export default function PacketPage() {
+export default function RafflePage() {
     return (
         <global_components.PageWrapper bgColor="bg-red">
-            <components.Packet />
+            <components.RaffleClaim />
         </global_components.PageWrapper>
     )
 }

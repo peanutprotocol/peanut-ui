@@ -1,11 +1,10 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useEffect, useMemo, useState } from 'react'
-import { useAccount, useNetwork } from 'wagmi'
+import { useAccount, useSwitchChain, useWalletClient } from 'wagmi'
 import { ethers } from 'ethers'
 import { useAtom } from 'jotai'
 import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
-import { switchNetwork, getWalletClient } from '@wagmi/core'
 import { providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
@@ -26,9 +25,10 @@ export function ClaimView({
     claimType,
     tokenPrice,
 }: _consts.IClaimScreenProps) {
-    const { isConnected, address } = useAccount()
+    const { isConnected, address, chain: currentChain } = useAccount()
+    const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
-    const { chain: currentChain } = useNetwork()
+    const signer = utils.useEthersSigner({ chainId: Number(claimDetails[0].chainId) })
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -55,35 +55,24 @@ export function ClaimView({
         },
     })
 
-    const getWalletClientAndUpdateSigner = async ({
-        chainId,
-    }: {
-        chainId: string
-    }): Promise<providers.JsonRpcSigner> => {
-        const walletClient = await getWalletClient({ chainId: Number(chainId) })
-        if (!walletClient) {
-            throw new Error('Failed to get wallet client')
-        }
-        const signer = utils.walletClientToSigner(walletClient)
-        return signer
-    }
-
     const checkNetwork = async (chainId: string) => {
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== chainId.toString()) {
             setLoadingStates('allow network switch')
 
-            await utils.waitForPromise(switchNetwork({ chainId: Number(chainId) })).catch((error) => {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingStates('switching network')
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setLoadingStates('loading')
+            } catch (error) {
+                setLoadingStates('idle')
+                console.error('Error switching network:', error)
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Something went wrong while switching networks',
+                    errorMessage: 'Error switching network',
                 })
-                setLoadingStates('idle')
-                throw error
-            })
-            setLoadingStates('switching network')
-            isMobile && (await new Promise((resolve) => setTimeout(resolve, 4000))) // wait a sec after switching chain before making other deeplink
-            setLoadingStates('loading')
+            }
         }
     }
 
@@ -97,13 +86,21 @@ export function ClaimView({
                 if (claimDetails[0].chainId == '1') {
                     await checkNetwork(claimDetails[0].chainId)
 
-                    const signer = await getWalletClientAndUpdateSigner({ chainId: claimDetails[0].chainId })
+                    const _signer = await signer
+
+                    if (!_signer) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Error fetching signer. Please try again',
+                        })
+                        return
+                    }
 
                     claimTx = await peanut.claimLink({
                         recipient: address,
                         link: claimLink[0],
                         structSigner: {
-                            signer,
+                            signer: _signer,
                         },
                     })
                 } else {

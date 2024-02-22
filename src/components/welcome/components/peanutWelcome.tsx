@@ -300,14 +300,14 @@ export function Welcome() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Red packets</h1>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Raffles</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
-                            Celebrate the Lunar New Year with Red Packets on our app or integrate the SDK!{' '}
+                            Engage your audience with exciting raffles! Create the raffles easily using our APP or SDK.
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                             <Link
-                                href={'/create-packet'}
+                                href={'/raffle/create'}
                                 id="cta-btn"
                                 className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
                             >
