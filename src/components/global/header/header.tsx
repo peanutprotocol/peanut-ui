@@ -36,7 +36,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                         else window.location.href = '/'
                                     }}
                                 >
-                                    <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
+                                    <img src={peanut_logo.src} alt="logo" className=" l-2 h-6 sm:h-10" />
                                     <span className=" inline px-2 text-lg sm:px-6 sm:text-2xl">peanut protocol</span>
                                 </div>
                                 <Disclosure.Button className="relative inline-flex items-center justify-center border-none  bg-black p-2">
@@ -56,7 +56,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                         else window.location.href = '/'
                                     }}
                                 >
-                                    <img src={peanut_logo.src} alt="logo" className="h-6 sm:h-10" />
+                                    <img src={peanut_logo.src} alt="logo" className="ml-2 h-6 sm:h-10" />
                                     <span className="inline lg:px-6">peanut protocol</span>
                                 </div>
                                 <div className="hidden h-full items-center justify-center  sm:flex ">
@@ -70,10 +70,10 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                             </Menu.Button>
                                             <Transition
                                                 as={Fragment}
-                                                enter="transition ease-out duration-100"
+                                                enter="transition ease-out duration-0"
                                                 enterFrom="transform opacity-0 scale-95"
                                                 enterTo="transform opacity-100 scale-100"
-                                                leave="transition ease-in duration-75"
+                                                leave="transition ease-in duration-0"
                                                 leaveFrom="transform opacity-100 scale-100"
                                                 leaveTo="transform opacity-0 scale-95"
                                             >
@@ -128,7 +128,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                     </div>
                                 </div>
                             </div>
-                            <div className="absolute inset-y-0 right-0 flex hidden items-center pr-2 sm:static sm:inset-auto sm:ml-6 sm:flex sm:pr-0">
+                            <div className="absolute inset-y-0 right-0 flex hidden items-center gap-2 pr-2 sm:static sm:inset-auto sm:ml-6 sm:flex sm:pr-0">
                                 <Link href={'/dashboard'} className="no-underline">
                                     <button className="brutalborder block h-full cursor-pointer bg-white p-1 text-center text-sm font-bold text-black hover:invert sm:px-4 sm:py-2 md:h-max lg:text-lg">
                                         Dashboard
