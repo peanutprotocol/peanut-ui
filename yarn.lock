@@ -2206,10 +2206,10 @@
     form-data "^4.0.0"
     tslib "^2.4.0"
 
-"@squirrel-labs/peanut-sdk@0.4.0-raffle.60":
-  version "0.4.0-raffle.60"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.0-raffle.60.tgz#4d66b2f1e6ac82d089f2bbd1d05b585599a3fbae"
-  integrity sha512-ypM5va+tVdq+szEWHeY04mUvXGUfNwaB7y8figgNKwCm68x3Uj261ebOaKHgn8x7bsJ1tRTfEe4XAjc3hAaARw==
+"@squirrel-labs/peanut-sdk@0.4.2":
+  version "0.4.2"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.2.tgz#88548a53e9ed4963ad9a2738dd0d51d2857b163e"
+  integrity sha512-taSgiI6bCdxqR3Fmpp7gcJfSZ6gA4sXO+xcPRXAtol09cJYz5XgUCCc5qtNlIUTI0rmbd/sqkoeKnGu78wQsHA==
   dependencies:
     ethersv5 "npm:ethers@^5"
 
