@@ -86,6 +86,7 @@ const defaultValues: tokenType[] = [
 ]
 
 export function GigaPacket() {
+    //TODO: this component does not work with the current signer functionallity
     const { isConnected, address, chain: currentChain } = useAccount()
     const { open } = useWeb3Modal()
     const [isCopied, setIsCopied] = useState(false)
@@ -1321,20 +1322,6 @@ export function GigaPacket() {
     useEffect(() => {
         console.log(copiedIdx)
     }, [copiedIdx])
-
-    useEffect(() => {
-        async function fetchData() {
-            try {
-                const signer = await utils.useEthersSigner({ chainId: currentChain?.id }) // Assuming myAsyncHook returns a promise
-                setSigner(signer)
-            } catch (error) {
-                console.error('Error fetching data:', error)
-            } finally {
-            }
-        }
-
-        fetchData()
-    }, [currentChain]) //This is going to fail, if chain is changed after initial render
 
     return (
         <>
