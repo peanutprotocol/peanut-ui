@@ -36,7 +36,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                         else window.location.href = '/'
                                     }}
                                 >
-                                    <img src={peanut_logo.src} alt="logo" className=" l-2 h-6 sm:h-10" />
+                                    <img src={peanut_logo.src} alt="logo" className="ml-2 h-6 sm:h-10" />
                                     <span className=" inline px-2 text-lg sm:px-6 sm:text-2xl">peanut protocol</span>
                                 </div>
                                 <Disclosure.Button className="relative inline-flex items-center justify-center border-none  bg-black p-2">
