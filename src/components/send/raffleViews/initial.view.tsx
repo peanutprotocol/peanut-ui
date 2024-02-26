@@ -856,7 +856,9 @@ export function RaffleInitialView({
                                                 } else {
                                                     setFilteredTokenList(
                                                         tokenList.filter((token) =>
-                                                            token.name.toLowerCase().includes(searchValue.toLowerCase())
+                                                            token.symbol
+                                                                .toLowerCase()
+                                                                .includes(searchValue.toLowerCase())
                                                         )
                                                     )
                                                 }
