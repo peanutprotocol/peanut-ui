@@ -1,14 +1,14 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSwitchChain } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi'
 import { providers } from 'ethers'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { PEANUT_CONTRACTS, getRaffleLinkFromTx, interfaces, validateUserName } from '@squirrel-labs/peanut-sdk'
+import peanut, { getRaffleLinkFromTx, validateUserName } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -33,6 +33,7 @@ export function RaffleInitialView({
     const { isConnected, address, chain: currentChain } = useAccount()
     const router = useRouter()
     const { switchChainAsync } = useSwitchChain()
+    const { sendTransactionAsync } = useSendTransaction()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -72,8 +73,6 @@ export function RaffleInitialView({
         },
     })
     const formwatch = sendForm.watch()
-
-    const signer = utils.useEthersSigner({ chainId: Number(formwatch?.chainId) })
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -165,11 +164,7 @@ export function RaffleInitialView({
         }
     }
 
-    const checkForm = (
-        sendFormData: _consts.ISendFormData,
-        signer: providers.JsonRpcSigner | undefined,
-        tokenAddress: string
-    ) => {
+    const checkForm = (sendFormData: _consts.ISendFormData, tokenAddress: string) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
@@ -185,15 +180,6 @@ export function RaffleInitialView({
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
             })
-            return { succes: 'false' }
-        }
-
-        if (!signer) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Signer undefined, please try again',
-            })
-
             return { succes: 'false' }
         }
 
@@ -273,16 +259,6 @@ export function RaffleInitialView({
 
                 await checkNetwork(sendFormData.chainId)
 
-                const _signer = await signer
-
-                if (!_signer) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Error fetching signer. Please try again',
-                    })
-                    return
-                }
-
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
                     sendFormData,
@@ -298,7 +274,7 @@ export function RaffleInitialView({
                 })
 
                 //check if the formdata is correct
-                if (checkForm(sendFormData, _signer, tokenAddress).succes === 'false') {
+                if (checkForm(sendFormData, tokenAddress).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -355,28 +331,26 @@ export function RaffleInitialView({
                     '&t=ui'
                 utils.saveToLocalStorage(tempLocalstorageKey, tempLink)
 
-                const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+                const signedTxsResponse: string[] = []
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
-                    const x = await peanut.signAndSubmitTx({
-                        structSigner: {
-                            signer: _signer,
-                        },
-                        unsignedTx: tx,
+                    const x = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(Number(tx.value)) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
                     })
-                    isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
                     setLoadingStates('executing transaction')
-                    await x.tx.wait()
-                    signedTxsResponse.push(x)
+                    await new Promise((resolve) => setTimeout(resolve, 2000))
+                    signedTxsResponse.push(x.toString())
                 }
 
                 setLoadingStates('creating link')
 
                 const { link: fullCreatedLink } = await getRaffleLinkFromTx({
                     linkDetails,
-                    txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                    txHash: signedTxsResponse[signedTxsResponse.length - 1],
                     password: password,
                     numberOfLinks: Number(sendFormData.numberOfrecipients),
                     name: sendFormData.senderName ?? '',
@@ -390,7 +364,7 @@ export function RaffleInitialView({
                 fullCreatedURL.searchParams.delete('i')
                 const minimizedLink = fullCreatedURL.toString()
 
-                const txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
+                const txHash = signedTxsResponse[signedTxsResponse.length - 1]
 
                 verbose && console.log('Created raffle link:', { fullCreatedLink, minimizedLink })
                 verbose && console.log('Transaction hash:', txHash)

@@ -1,8 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSwitchChain } from 'wagmi'
-import { providers } from 'ethers'
+import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData } from 'wagmi'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
@@ -19,13 +18,15 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces, makeDepositGasless } from '@squirrel-labs/peanut-sdk'
+import peanut, { makeDepositGasless } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
+    const { sendTransactionAsync } = useSendTransaction()
+    const { signTypedDataAsync } = useSignTypedData()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -66,8 +67,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         },
     })
     const formwatch = sendForm.watch()
-
-    const signer = utils.useEthersSigner({ chainId: Number(formwatch?.chainId) })
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -160,7 +159,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    const checkForm = (sendFormData: _consts.ISendFormData, signer: providers.JsonRpcSigner | undefined) => {
+    const checkForm = (sendFormData: _consts.ISendFormData) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
@@ -184,15 +183,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 showError: true,
                 errorMessage: 'Please define a non-decimal number of links',
             })
-            return { succes: 'false' }
-        }
-
-        if (!signer) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Signer undefined, please try again',
-            })
-
             return { succes: 'false' }
         }
 
@@ -307,19 +297,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                 await checkNetwork(sendFormData.chainId)
 
-                const _signer = await signer
-
-                if (!_signer) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Error fetching signer. Please try again',
-                    })
-                    return
-                }
-
                 //Get the signe
                 //check if the formdata is correct
-                if (checkForm(sendFormData, _signer).succes === 'false') {
+                if (checkForm(sendFormData).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -410,11 +390,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('sign in wallet')
 
-                    const userDepositSignature = await _signer._signTypedData(
-                        message.domain,
-                        message.types,
-                        message.values
-                    )
+                    const userDepositSignature = await signTypedDataAsync({
+                        domain: {
+                            ...message.domain,
+                            chainId: Number(message.domain.chainId),
+                            verifyingContract: message.domain.verifyingContract as `0x${string}`,
+                        },
+                        types: message.types,
+                        primaryType: message.primaryType,
+                        message: {
+                            ...message.values,
+                            value: Number(message.values.value),
+                            validAfter: Number(message.values.validAfter),
+                            validBefore: Number(message.values.validBefore),
+                        }, //TODO: check if Number is ok here
+                    })
 
                     verbose && console.log('Signature:', userDepositSignature)
 
@@ -442,10 +432,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     verbose && console.log('makeDepositGasless response: ', response)
 
                     setLoadingStates('creating link')
-
-                    // wait until 2 confirmation blocks to make sure that rpc
-                    // providers have the receipt stored
-                    await _signer.provider.waitForTransaction(response.txHash, 1)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
@@ -478,35 +464,31 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
                     })
 
-                    const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+                    const signedTxsResponse: string[] = []
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
-                        const submitResponse = await peanut.signAndSubmitTx({
-                            structSigner: {
-                                signer: _signer,
-                            },
-                            unsignedTx: tx,
-                        })
-                        isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
+                        const x = await sendTransactionAsync({
+                            to: (tx.to ? tx.to : '') as `0x${string}`,
+                            value: tx.value ? BigInt(Number(tx.value)) : undefined,
+                            data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        }) // TODO: BigInt(Number) ??
                         setLoadingStates('executing transaction')
-                        // wait until 2 confirmation blocks to make sure that rpc
-                        // providers have the receipt stored
-                        await _signer.provider.waitForTransaction(submitResponse.txHash, 1)
+                        console.log(x)
                         await new Promise((resolve) => setTimeout(resolve, 2000))
-                        signedTxsResponse.push(submitResponse)
+                        signedTxsResponse.push(x.toString())
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
-                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                        txHash: signedTxsResponse[signedTxsResponse.length - 1],
                         passwords: passwords,
                     })
 
-                    txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
+                    txHash = signedTxsResponse[signedTxsResponse.length - 1]
                 }
 
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
@@ -590,7 +572,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             tokenPrice,
             advancedDropdownOpen,
             createGasless,
-            signer,
         ]
     )
 
