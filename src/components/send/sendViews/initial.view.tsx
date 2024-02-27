@@ -18,7 +18,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { getDefaultProvider, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
+import peanut, { makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -473,11 +473,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
                     })
 
+                    // Array of txHashes
                     const signedTxsResponse: string[] = []
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
 
+                        // Set fee options using our SDK
                         let txOptions
                         try {
                             txOptions = await setFeeOptions({
@@ -487,6 +489,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             console.log('error setting fee options, fallback to default')
                         }
 
+                        // Send the transaction using wagmi
                         const hash = await sendTransactionAsync({
                             to: (tx.to ? tx.to : '') as `0x${string}`,
                             value: tx.value ? BigInt(Number(tx.value)) : undefined,
@@ -499,6 +502,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setLoadingStates('executing transaction')
                         console.log(hash)
 
+                        // Wait for the transaction to be mined using wagmi/actions
                         await waitForTransactionReceipt(config, {
                             confirmations: 2,
                             hash: hash,

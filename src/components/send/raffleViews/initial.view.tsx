@@ -329,10 +329,13 @@ export function RaffleInitialView({
                     '&t=ui'
                 utils.saveToLocalStorage(tempLocalstorageKey, tempLink)
 
+                // Array of txHashes
                 const signedTxsResponse: string[] = []
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
+
+                    // Set fee options using our SDK
                     let txOptions
                     try {
                         txOptions = await setFeeOptions({
@@ -341,6 +344,8 @@ export function RaffleInitialView({
                     } catch (error: any) {
                         console.log('error setting fee options, fallback to default')
                     }
+
+                    // Send the transaction using wagmi
                     const hash = await sendTransactionAsync({
                         to: (tx.to ? tx.to : '') as `0x${string}`,
                         value: tx.value ? BigInt(Number(tx.value)) : undefined,
@@ -349,11 +354,11 @@ export function RaffleInitialView({
                         gasPrice: txOptions?.gasPrice ?? undefined,
                         maxFeePerGas: txOptions?.maxFeePerGas ?? undefined,
                         maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas ?? undefined,
-                    })
+                    }) //TODO: BigInt(Number(tx.value)) ?
 
                     setLoadingStates('executing transaction')
-                    console.log(hash)
 
+                    // Wait for the transaction to be mined using wagmi/actions
                     await waitForTransactionReceipt(config, {
                         confirmations: 2,
                         hash: hash,
