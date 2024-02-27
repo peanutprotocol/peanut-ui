@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
+
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
-import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import { Config } from '@wagmi/core'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -18,7 +18,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { makeDepositGasless } from '@squirrel-labs/peanut-sdk'
+import peanut, { getDefaultProvider, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -27,6 +27,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
     const { signTypedDataAsync } = useSignTypedData()
+    const config = useConfig()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -295,6 +296,14 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     errorMessage: '',
                 })
 
+                // console.log({
+                //     estimateFeesPerGasResult,
+                //     estimateGasResult,
+                //     estimateMaxPriorityFeePerGasResult,
+                // })
+
+                // return
+
                 await checkNetwork(sendFormData.chainId)
 
                 //Get the signe
@@ -469,15 +478,33 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
 
-                        const x = await sendTransactionAsync({
+                        let txOptions
+                        try {
+                            txOptions = await setFeeOptions({
+                                chainId: sendFormData.chainId,
+                            })
+                        } catch (error: any) {
+                            console.log('error setting fee options, fallback to default')
+                        }
+
+                        const hash = await sendTransactionAsync({
                             to: (tx.to ? tx.to : '') as `0x${string}`,
                             value: tx.value ? BigInt(Number(tx.value)) : undefined,
                             data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                            gas: txOptions?.gas ?? undefined,
+                            gasPrice: txOptions?.gasPrice ?? undefined,
+                            maxFeePerGas: txOptions?.maxFeePerGas ?? undefined,
+                            maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas ?? undefined,
                         }) // TODO: BigInt(Number) ??
                         setLoadingStates('executing transaction')
-                        console.log(x)
-                        await new Promise((resolve) => setTimeout(resolve, 2000))
-                        signedTxsResponse.push(x.toString())
+                        console.log(hash)
+
+                        await waitForTransactionReceipt(config, {
+                            confirmations: 2,
+                            hash: hash,
+                            chainId: Number(sendFormData.chainId),
+                        })
+                        signedTxsResponse.push(hash.toString())
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')

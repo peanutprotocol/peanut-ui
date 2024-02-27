@@ -1,14 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSendTransaction, useSwitchChain } from 'wagmi'
-import { providers } from 'ethers'
+import { useAccount, useConfig, useSendTransaction, useSwitchChain } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
-import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import peanut, { getRaffleLinkFromTx, validateUserName } from '@squirrel-labs/peanut-sdk'
+import peanut, { getRaffleLinkFromTx, setFeeOptions, validateUserName } from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -19,7 +18,6 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
 import dropdown_svg from '@/assets/dropdown.svg'
-import { useRouter } from 'next/navigation'
 
 export function RaffleInitialView({
     onNextScreen,
@@ -31,9 +29,9 @@ export function RaffleInitialView({
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address, chain: currentChain } = useAccount()
-    const router = useRouter()
     const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
+    const config = useConfig()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -335,15 +333,33 @@ export function RaffleInitialView({
 
                 for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
-                    const x = await sendTransactionAsync({
+                    let txOptions
+                    try {
+                        txOptions = await setFeeOptions({
+                            chainId: sendFormData.chainId,
+                        })
+                    } catch (error: any) {
+                        console.log('error setting fee options, fallback to default')
+                    }
+                    const hash = await sendTransactionAsync({
                         to: (tx.to ? tx.to : '') as `0x${string}`,
                         value: tx.value ? BigInt(Number(tx.value)) : undefined,
                         data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: txOptions?.gas ?? undefined,
+                        gasPrice: txOptions?.gasPrice ?? undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ?? undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas ?? undefined,
                     })
 
                     setLoadingStates('executing transaction')
-                    await new Promise((resolve) => setTimeout(resolve, 2000))
-                    signedTxsResponse.push(x.toString())
+                    console.log(hash)
+
+                    await waitForTransactionReceipt(config, {
+                        confirmations: 2,
+                        hash: hash,
+                        chainId: Number(sendFormData.chainId),
+                    })
+                    signedTxsResponse.push(hash.toString())
                 }
 
                 setLoadingStates('creating link')
