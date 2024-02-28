@@ -28,7 +28,6 @@ export function ClaimView({
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
-    const signer = utils.useEthersSigner({ chainId: Number(claimDetails[0].chainId) })
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -83,34 +82,24 @@ export function ClaimView({
                 setLoadingStates('executing transaction')
 
                 let claimTx
-                if (claimDetails[0].chainId == '1') {
-                    await checkNetwork(claimDetails[0].chainId)
+                // if (claimDetails[0].chainId == '1') {
+                //     await checkNetwork(claimDetails[0].chainId)
 
-                    const _signer = await signer
-
-                    if (!_signer) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Error fetching signer. Please try again',
-                        })
-                        return
-                    }
-
-                    claimTx = await peanut.claimLink({
-                        recipient: address,
-                        link: claimLink[0],
-                        structSigner: {
-                            signer: _signer,
-                        },
-                    })
-                } else {
-                    claimTx = await claimLinkGasless({
-                        link: claimLink[0],
-                        recipientAddress: address,
-                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter',
-                    })
-                }
+                //     claimTx = await peanut.claimLink({
+                //         recipient: address,
+                //         link: claimLink[0],
+                //         structSigner: {
+                //             signer: _signer,
+                //         },
+                //     })
+                // } else {
+                claimTx = await claimLinkGasless({
+                    link: claimLink[0],
+                    recipientAddress: address,
+                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                    APIKey: 'doesnt-matter',
+                })
+                // }
                 verbose && console.log(claimTx)
                 setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
 

@@ -1,14 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSwitchChain } from 'wagmi'
-import { providers } from 'ethers'
+import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
+import { waitForTransactionReceipt, sendTransaction } from 'wagmi/actions'
+
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
-import { isMobile } from 'react-device-detect'
 import { Switch } from '@headlessui/react'
-import { Config } from '@wagmi/core'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -19,13 +18,16 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/switch.svg'
 import dropdown_svg from '@/assets/dropdown.svg'
-import peanut, { interfaces, makeDepositGasless } from '@squirrel-labs/peanut-sdk'
+import peanut, { makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
+    const { sendTransactionAsync } = useSendTransaction()
+    const { signTypedDataAsync } = useSignTypedData()
+    const config = useConfig()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -66,8 +68,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         },
     })
     const formwatch = sendForm.watch()
-
-    const signer = utils.useEthersSigner({ chainId: Number(formwatch?.chainId) })
 
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
@@ -160,7 +160,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    const checkForm = (sendFormData: _consts.ISendFormData, signer: providers.JsonRpcSigner | undefined) => {
+    const checkForm = (sendFormData: _consts.ISendFormData) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
@@ -184,15 +184,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 showError: true,
                 errorMessage: 'Please define a non-decimal number of links',
             })
-            return { succes: 'false' }
-        }
-
-        if (!signer) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Signer undefined, please try again',
-            })
-
             return { succes: 'false' }
         }
 
@@ -305,21 +296,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     errorMessage: '',
                 })
 
+                // console.log({
+                //     estimateFeesPerGasResult,
+                //     estimateGasResult,
+                //     estimateMaxPriorityFeePerGasResult,
+                // })
+
+                // return
+
                 await checkNetwork(sendFormData.chainId)
-
-                const _signer = await signer
-
-                if (!_signer) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'Error fetching signer. Please try again',
-                    })
-                    return
-                }
 
                 //Get the signe
                 //check if the formdata is correct
-                if (checkForm(sendFormData, _signer).succes === 'false') {
+                if (checkForm(sendFormData).succes === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -410,11 +399,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                     setLoadingStates('sign in wallet')
 
-                    const userDepositSignature = await _signer._signTypedData(
-                        message.domain,
-                        message.types,
-                        message.values
-                    )
+                    const userDepositSignature = await signTypedDataAsync({
+                        domain: {
+                            ...message.domain,
+                            chainId: Number(message.domain.chainId), //TODO: non-evm chains wont work
+                            verifyingContract: message.domain.verifyingContract as `0x${string}`,
+                        },
+                        types: message.types,
+                        primaryType: message.primaryType,
+                        message: {
+                            ...message.values,
+                            value: BigInt(message.values.value),
+                            validAfter: BigInt(message.values.validAfter),
+                            validBefore: BigInt(message.values.validBefore),
+                        }, //TODO: test this
+                    })
 
                     verbose && console.log('Signature:', userDepositSignature)
 
@@ -442,10 +441,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     verbose && console.log('makeDepositGasless response: ', response)
 
                     setLoadingStates('creating link')
-
-                    // wait until 2 confirmation blocks to make sure that rpc
-                    // providers have the receipt stored
-                    await _signer.provider.waitForTransaction(response.txHash, 1)
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
@@ -478,35 +473,56 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
                     })
 
-                    const signedTxsResponse: interfaces.ISignAndSubmitTxResponse[] = []
+                    // Array of txHashes
+                    const signedTxsResponse: string[] = []
 
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
-                        const submitResponse = await peanut.signAndSubmitTx({
-                            structSigner: {
-                                signer: _signer,
-                            },
-                            unsignedTx: tx,
-                        })
-                        isMobile && (await new Promise((resolve) => setTimeout(resolve, 2000))) // wait 2 seconds
 
+                        // Set fee options using our SDK
+                        let txOptions
+                        try {
+                            txOptions = await setFeeOptions({
+                                chainId: sendFormData.chainId,
+                            })
+                        } catch (error: any) {
+                            console.log('error setting fee options, fallback to default')
+                        }
+                        // Send the transaction using wagmi
+                        const hash = await sendTransactionAsync({
+                            to: (tx.to ? tx.to : '') as `0x${string}`,
+                            value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                            data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                            gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                            gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                            maxFeePerGas: txOptions?.maxFeePerGas
+                                ? BigInt(txOptions?.maxFeePerGas.toString())
+                                : undefined,
+                            maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                                ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                                : undefined,
+                        })
                         setLoadingStates('executing transaction')
-                        // wait until 2 confirmation blocks to make sure that rpc
-                        // providers have the receipt stored
-                        await _signer.provider.waitForTransaction(submitResponse.txHash, 1)
-                        await new Promise((resolve) => setTimeout(resolve, 2000))
-                        signedTxsResponse.push(submitResponse)
+                        console.log(hash)
+
+                        // Wait for the transaction to be mined using wagmi/actions
+                        await waitForTransactionReceipt(config, {
+                            confirmations: 2,
+                            hash: hash,
+                            chainId: Number(sendFormData.chainId),
+                        })
+                        signedTxsResponse.push(hash.toString())
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
 
                     getLinksFromTxResponse = await peanut.getLinksFromTx({
                         linkDetails,
-                        txHash: signedTxsResponse[signedTxsResponse.length - 1].txHash,
+                        txHash: signedTxsResponse[signedTxsResponse.length - 1],
                         passwords: passwords,
                     })
 
-                    txHash = signedTxsResponse[signedTxsResponse.length - 1].txHash
+                    txHash = signedTxsResponse[signedTxsResponse.length - 1]
                 }
 
                 verbose && console.log('Created links:', getLinksFromTxResponse.links)
@@ -590,7 +606,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             tokenPrice,
             advancedDropdownOpen,
             createGasless,
-            signer,
         ]
     )
 

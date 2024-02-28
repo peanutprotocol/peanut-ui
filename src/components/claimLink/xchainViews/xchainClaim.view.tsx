@@ -11,8 +11,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
-import { ethers, providers } from 'ethers'
-import { isMobile } from 'react-device-detect'
+import { ethers } from 'ethers'
 import { useForm } from 'react-hook-form'
 
 export function xchainClaimView({
@@ -27,7 +26,6 @@ export function xchainClaimView({
 
     const { isConnected, address, chain: currentChain } = useAccount()
     const { open } = useWeb3Modal()
-    const signer = utils.useEthersSigner({ chainId: Number(claimDetails[0].chainId) })
     const { switchChainAsync } = useSwitchChain()
 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -115,16 +113,6 @@ export function xchainClaimView({
                 errorMessage: '',
             })
 
-            const _signer = await signer
-
-            if (!_signer) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Error fetching signer. Please try again',
-                })
-                return
-            }
-
             if (!ethers.utils.isAddress(data.address)) {
                 setManualErrorState({
                     showError: true,
@@ -161,52 +149,52 @@ export function xchainClaimView({
             if (!selectedToken) {
                 verbose && console.log('claiming non-cross chain')
 
-                if (claimDetails[0].chainId == '1') {
-                    await checkNetwork(claimDetails[0].chainId)
+                // if (claimDetails[0].chainId == '1') {
+                //     await checkNetwork(claimDetails[0].chainId)
 
-                    claimTx = await peanut.claimLink({
-                        recipient: data.address,
-                        link: claimDetails[0].link,
-                        structSigner: {
-                            signer: _signer,
-                        },
-                    })
-                } else {
-                    claimTx = await claimLinkGasless({
-                        link: claimDetails[0].link,
-                        recipientAddress: data.address ?? '',
-                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter',
-                    })
-                }
+                //     claimTx = await peanut.claimLink({
+                //         recipient: data.address,
+                //         link: claimDetails[0].link,
+                //         structSigner: {
+                //             signer: _signer,
+                //         },
+                //     })
+                // } else {
+                claimTx = await claimLinkGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: data.address ?? '',
+                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                    APIKey: 'doesnt-matter',
+                })
+                // }
             } else {
                 verbose && console.log('claiming cross chain')
                 const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId.toString())?.mainnet
 
-                if (claimDetails[0].chainId == '1') {
-                    await checkNetwork(claimDetails[0].chainId)
+                // if (claimDetails[0].chainId == '1') {
+                //     await checkNetwork(claimDetails[0].chainId)
 
-                    claimTx = await peanut.claimLink({
-                        recipient: data.address,
-                        link: claimDetails[0].link,
-                        structSigner: {
-                            signer: _signer,
-                        },
-                    })
-                } else {
-                    claimTx = await claimLinkXChainGasless({
-                        link: claimDetails[0].link,
-                        recipientAddress: data.address ?? '',
-                        destinationChainId: selectedChain.chainId,
-                        destinationToken: selectedToken.address,
-                        isMainnet: !isTestnet,
-                        squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
-                        baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
-                        APIKey: 'doesnt-matter',
-                    })
-                }
+                //     claimTx = await peanut.claimLink({
+                //         recipient: data.address,
+                //         link: claimDetails[0].link,
+                //         structSigner: {
+                //             signer: _signer,
+                //         },
+                //     })
+                // } else {
+                claimTx = await claimLinkXChainGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: data.address ?? '',
+                    destinationChainId: selectedChain.chainId,
+                    destinationToken: selectedToken.address,
+                    isMainnet: !isTestnet,
+                    squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
+                    baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
+                    APIKey: 'doesnt-matter',
+                })
+                // }
             }
             verbose && console.log(claimTx)
 
@@ -238,15 +226,7 @@ export function xchainClaimView({
                 showError: false,
                 errorMessage: '',
             })
-            const _signer = await signer
 
-            if (!_signer) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Error fetching signer. Please try again',
-                })
-                return
-            }
             if (
                 !possibleRoutesArray.find((route) => route.route?.params.toToken == selectedToken.address) &&
                 selectedToken
@@ -268,52 +248,52 @@ export function xchainClaimView({
             if (!selectedToken) {
                 verbose && console.log('claiming non-cross chain')
 
-                if (claimDetails[0].chainId == '1') {
-                    await checkNetwork(claimDetails[0].chainId)
+                // if (claimDetails[0].chainId == '1') {
+                //     await checkNetwork(claimDetails[0].chainId)
 
-                    claimTx = await peanut.claimLink({
-                        recipient: address,
-                        link: claimDetails[0].link,
-                        structSigner: {
-                            signer: _signer,
-                        },
-                    })
-                } else {
-                    claimTx = await claimLinkGasless({
-                        link: claimDetails[0].link,
-                        recipientAddress: address ?? '',
-                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter',
-                    })
-                }
+                //     claimTx = await peanut.claimLink({
+                //         recipient: address,
+                //         link: claimDetails[0].link,
+                //         structSigner: {
+                //             signer: _signer,
+                //         },
+                //     })
+                // } else {
+                claimTx = await claimLinkGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: address ?? '',
+                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                    APIKey: 'doesnt-matter',
+                })
+                // }
             } else {
                 verbose && console.log('claiming cross chain')
                 const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId.toString())?.mainnet
 
-                if (claimDetails[0].chainId == '1') {
-                    await checkNetwork(claimDetails[0].chainId)
+                // if (claimDetails[0].chainId == '1') {
+                //     await checkNetwork(claimDetails[0].chainId)
 
-                    claimTx = await peanut.claimLink({
-                        recipient: address,
-                        link: claimDetails[0].link,
-                        structSigner: {
-                            signer: _signer,
-                        },
-                    })
-                } else {
-                    claimTx = await claimLinkXChainGasless({
-                        link: claimDetails[0].link,
-                        recipientAddress: address ?? '',
-                        destinationChainId: selectedChain.chainId,
-                        destinationToken: selectedToken.address,
-                        isMainnet: !isTestnet,
-                        squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
-                        baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
-                        APIKey: 'doesnt-matter',
-                    })
-                }
+                //     claimTx = await peanut.claimLink({
+                //         recipient: address,
+                //         link: claimDetails[0].link,
+                //         structSigner: {
+                //             signer: _signer,
+                //         },
+                //     })
+                // } else {
+                claimTx = await claimLinkXChainGasless({
+                    link: claimDetails[0].link,
+                    recipientAddress: address ?? '',
+                    destinationChainId: selectedChain.chainId,
+                    destinationToken: selectedToken.address,
+                    isMainnet: !isTestnet,
+                    squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
+                    baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
+                    APIKey: 'doesnt-matter',
+                })
+                // }
             }
             verbose && console.log(claimTx)
 

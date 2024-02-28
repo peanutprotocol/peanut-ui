@@ -2243,10 +2243,10 @@
     form-data "^4.0.0"
     tslib "^2.4.0"
 
-"@squirrel-labs/peanut-sdk@0.4.7":
-  version "0.4.7"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.7.tgz#14e06571197ea13758e62593d5855048effa386c"
-  integrity sha512-xQL2jl8AFt3yDaxVuVndXDSgPXZ61+iC6YGh1GtX/bpHaHUIRpYJYmlacdW3y5rOfYhQn6wx6BVBHNPgh8vE6Q==
+"@squirrel-labs/peanut-sdk@0.4.8":
+  version "0.4.8"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.8.tgz#f79b0a0d5514068404be6c68a16566de02db5e71"
+  integrity sha512-kpV0ttaArktASXNFqmdh8eUmEUMZMC6ovdTRXdPgwQnP1UbLEbp+2ToCaR9ZnMGd2WlJsrohcYXKcF8g7Zhj+w==
   dependencies:
     ethersv5 "npm:ethers@^5"
 
