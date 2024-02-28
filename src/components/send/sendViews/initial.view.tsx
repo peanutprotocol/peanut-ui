@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
-import { waitForTransactionReceipt } from 'wagmi/actions'
+import { waitForTransactionReceipt, sendTransaction } from 'wagmi/actions'
 
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
@@ -402,17 +402,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     const userDepositSignature = await signTypedDataAsync({
                         domain: {
                             ...message.domain,
-                            chainId: Number(message.domain.chainId),
+                            chainId: Number(message.domain.chainId), //TODO: non-evm chains wont work
                             verifyingContract: message.domain.verifyingContract as `0x${string}`,
                         },
                         types: message.types,
                         primaryType: message.primaryType,
                         message: {
                             ...message.values,
-                            value: Number(message.values.value),
-                            validAfter: Number(message.values.validAfter),
-                            validBefore: Number(message.values.validBefore),
-                        }, //TODO: check if Number is ok here
+                            value: BigInt(message.values.value),
+                            validAfter: BigInt(message.values.validAfter),
+                            validBefore: BigInt(message.values.validBefore),
+                        }, //TODO: test this
                     })
 
                     verbose && console.log('Signature:', userDepositSignature)
@@ -488,17 +488,20 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         } catch (error: any) {
                             console.log('error setting fee options, fallback to default')
                         }
-
                         // Send the transaction using wagmi
                         const hash = await sendTransactionAsync({
                             to: (tx.to ? tx.to : '') as `0x${string}`,
-                            value: tx.value ? BigInt(Number(tx.value)) : undefined,
+                            value: tx.value ? BigInt(tx.value.toString()) : undefined,
                             data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                            gas: txOptions?.gas ?? undefined,
-                            gasPrice: txOptions?.gasPrice ?? undefined,
-                            maxFeePerGas: txOptions?.maxFeePerGas ?? undefined,
-                            maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas ?? undefined,
-                        }) // TODO: BigInt(Number) ??
+                            gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                            gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                            maxFeePerGas: txOptions?.maxFeePerGas
+                                ? BigInt(txOptions?.maxFeePerGas.toString())
+                                : undefined,
+                            maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                                ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                                : undefined,
+                        })
                         setLoadingStates('executing transaction')
                         console.log(hash)
 

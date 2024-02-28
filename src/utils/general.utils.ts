@@ -1,11 +1,5 @@
 import * as interfaces from '@/interfaces'
 
-import { providers } from 'ethers'
-
-import { useMemo } from 'react'
-import type { Account, Chain, Client, Transport } from 'viem'
-import { Config, useConnectorClient } from 'wagmi'
-
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
     const endingBit = address.substring(address.length - 4, address.length)

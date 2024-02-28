@@ -348,13 +348,15 @@ export function RaffleInitialView({
                     // Send the transaction using wagmi
                     const hash = await sendTransactionAsync({
                         to: (tx.to ? tx.to : '') as `0x${string}`,
-                        value: tx.value ? BigInt(Number(tx.value)) : undefined,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
                         data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                        gas: txOptions?.gas ?? undefined,
-                        gasPrice: txOptions?.gasPrice ?? undefined,
-                        maxFeePerGas: txOptions?.maxFeePerGas ?? undefined,
-                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas ?? undefined,
-                    }) //TODO: BigInt(Number(tx.value)) ?
+                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                    })
 
                     setLoadingStates('executing transaction')
 
