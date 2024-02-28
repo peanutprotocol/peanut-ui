@@ -35,7 +35,9 @@ export const saveToLocalStorage = (key: string, data: any) => {
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = JSON.stringify(data)
-        localStorage.setItem(key, serializedData)
+        if (typeof window !== 'undefined' && window.localStorage) {
+            localStorage.setItem(key, serializedData)
+        }
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
         console.error('Error saving to localStorage:', error)
