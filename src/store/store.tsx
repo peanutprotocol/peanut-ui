@@ -102,7 +102,6 @@ export function Store({ children }: { children: React.ReactNode }) {
     const loadUserBalances = async (address: string) => {
         try {
             if (userBalances.length === 0) {
-                // TODO: also refetch when address changes
                 const mobulaResponse = await fetch('/api/mobula/fetch-wallet-balance', {
                     method: 'POST',
                     headers: {
