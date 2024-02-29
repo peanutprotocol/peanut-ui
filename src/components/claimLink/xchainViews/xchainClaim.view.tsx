@@ -643,7 +643,7 @@ export function xchainClaimView({
                         'Connect Wallet'
                     )}
                 </button>
-                <p>Cross-chain claims have a 2% fee. </p>
+                {selectedToken && <p>Cross-chain claims have a 2% fee. </p>}
             </div>
 
             <div
