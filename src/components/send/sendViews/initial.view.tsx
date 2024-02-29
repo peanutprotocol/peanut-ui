@@ -142,7 +142,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
-            if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+            if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
                 tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
             }
 
