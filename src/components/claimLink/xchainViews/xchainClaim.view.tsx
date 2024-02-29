@@ -1,7 +1,8 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { useAccount, useSwitchChain } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain, useConfig } from 'wagmi'
 import peanut, { claimLinkGasless, claimLinkXChainGasless } from '@squirrel-labs/peanut-sdk'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
@@ -27,6 +28,8 @@ export function xchainClaimView({
     const { isConnected, address, chain: currentChain } = useAccount()
     const { open } = useWeb3Modal()
     const { switchChainAsync } = useSwitchChain()
+    const { sendTransactionAsync } = useSendTransaction()
+    const config = useConfig()
 
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
@@ -149,41 +152,61 @@ export function xchainClaimView({
             if (!selectedToken) {
                 verbose && console.log('claiming non-cross chain')
 
-                // if (claimDetails[0].chainId == '1') {
-                //     await checkNetwork(claimDetails[0].chainId)
+                if (claimDetails[0].chainId == '1') {
+                    console.log('claiming non gasless')
+                    await checkNetwork(claimDetails[0].chainId)
 
-                //     claimTx = await peanut.claimLink({
-                //         recipient: data.address,
-                //         link: claimDetails[0].link,
-                //         structSigner: {
-                //             signer: _signer,
-                //         },
-                //     })
-                // } else {
-                claimTx = await claimLinkGasless({
-                    link: claimDetails[0].link,
-                    recipientAddress: data.address ?? '',
-                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                    APIKey: 'doesnt-matter',
-                })
-                // }
+                    const preparedClaimTx = await peanut.prepareClaimTx({
+                        link: claimDetails[0].link,
+                        recipientAddress: address ?? '',
+                    })
+
+                    setLoadingStates('sign in wallet')
+                    let txOptions
+                    try {
+                        txOptions = await peanut.setFeeOptions({
+                            chainId: claimDetails[0].chainId,
+                        })
+                    } catch (error: any) {
+                        console.log('error setting fee options, fallback to default')
+                    }
+
+                    const tx = { ...preparedClaimTx, ...txOptions }
+
+                    const claimedTx = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                    })
+                    setLoadingStates('executing transaction')
+
+                    await waitForTransactionReceipt(config, {
+                        hash: claimedTx,
+                        chainId: Number(claimDetails[0].chainId),
+                    })
+
+                    verbose && console.log(claimedTx)
+                    setTxHash([claimedTx.toString()])
+                } else {
+                    claimTx = await claimLinkGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: data.address ?? '',
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
+                    })
+                }
             } else {
                 verbose && console.log('claiming cross chain')
                 const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId.toString())?.mainnet
 
-                // if (claimDetails[0].chainId == '1') {
-                //     await checkNetwork(claimDetails[0].chainId)
-
-                //     claimTx = await peanut.claimLink({
-                //         recipient: data.address,
-                //         link: claimDetails[0].link,
-                //         structSigner: {
-                //             signer: _signer,
-                //         },
-                //     })
-                // } else {
                 claimTx = await claimLinkXChainGasless({
                     link: claimDetails[0].link,
                     recipientAddress: data.address ?? '',
@@ -194,7 +217,6 @@ export function xchainClaimView({
                     baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
                     APIKey: 'doesnt-matter',
                 })
-                // }
             }
             verbose && console.log(claimTx)
 
@@ -248,41 +270,61 @@ export function xchainClaimView({
             if (!selectedToken) {
                 verbose && console.log('claiming non-cross chain')
 
-                // if (claimDetails[0].chainId == '1') {
-                //     await checkNetwork(claimDetails[0].chainId)
+                if (claimDetails[0].chainId == '1') {
+                    console.log('claiming non gasless')
+                    await checkNetwork(claimDetails[0].chainId)
 
-                //     claimTx = await peanut.claimLink({
-                //         recipient: address,
-                //         link: claimDetails[0].link,
-                //         structSigner: {
-                //             signer: _signer,
-                //         },
-                //     })
-                // } else {
-                claimTx = await claimLinkGasless({
-                    link: claimDetails[0].link,
-                    recipientAddress: address ?? '',
-                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                    APIKey: 'doesnt-matter',
-                })
-                // }
+                    const preparedClaimTx = await peanut.prepareClaimTx({
+                        link: claimDetails[0].link,
+                        recipientAddress: address ?? '',
+                    })
+
+                    setLoadingStates('sign in wallet')
+                    let txOptions
+                    try {
+                        txOptions = await peanut.setFeeOptions({
+                            chainId: claimDetails[0].chainId,
+                        })
+                    } catch (error: any) {
+                        console.log('error setting fee options, fallback to default')
+                    }
+
+                    const tx = { ...preparedClaimTx, ...txOptions }
+
+                    const claimedTx = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                    })
+                    setLoadingStates('executing transaction')
+
+                    await waitForTransactionReceipt(config, {
+                        hash: claimedTx,
+                        chainId: Number(claimDetails[0].chainId),
+                    })
+
+                    verbose && console.log(claimedTx)
+                    setTxHash([claimedTx.toString()])
+                } else {
+                    claimTx = await claimLinkGasless({
+                        link: claimDetails[0].link,
+                        recipientAddress: address ?? '',
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
+                    })
+                }
             } else {
                 verbose && console.log('claiming cross chain')
                 const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
                     .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
                     .find((chain) => chain.chainId == claimDetails[0].chainId.toString())?.mainnet
 
-                // if (claimDetails[0].chainId == '1') {
-                //     await checkNetwork(claimDetails[0].chainId)
-
-                //     claimTx = await peanut.claimLink({
-                //         recipient: address,
-                //         link: claimDetails[0].link,
-                //         structSigner: {
-                //             signer: _signer,
-                //         },
-                //     })
-                // } else {
                 claimTx = await claimLinkXChainGasless({
                     link: claimDetails[0].link,
                     recipientAddress: address ?? '',
@@ -293,7 +335,6 @@ export function xchainClaimView({
                     baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
                     APIKey: 'doesnt-matter',
                 })
-                // }
             }
             verbose && console.log(claimTx)
 
