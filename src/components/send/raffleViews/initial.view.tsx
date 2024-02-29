@@ -485,7 +485,7 @@ export function RaffleInitialView({
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
-                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
                 } else {
                     fetchTokenPrice(tokenAddress, formwatch.chainId)

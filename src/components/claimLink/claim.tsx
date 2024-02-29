@@ -197,7 +197,7 @@ export function Claim() {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
                     let _tokenprice
-                    if (linkDetails.tokenAddress == '0x0000000000000000000000000000000000000000') {
+                    if (linkDetails.tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
                         _tokenprice = await fetchTokenPrice(
                             '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
                             linkDetails.chainId

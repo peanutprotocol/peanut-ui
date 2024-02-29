@@ -637,7 +637,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 } else {
                     setShowGaslessAvailable(false)
                 }
-                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
                 } else {
                     fetchTokenPrice(tokenAddress, formwatch.chainId)
