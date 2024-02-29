@@ -203,6 +203,7 @@ export function Claim() {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
                     const _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
+
                     if (await isBridgePossible(linkDetails, _tokenprice ? Number(_tokenprice) : undefined)) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {
