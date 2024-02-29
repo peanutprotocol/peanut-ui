@@ -11,7 +11,7 @@ import * as store from '@/store/'
 import dropdown_svg from '@/assets/dropdown.svg'
 import { useAtom } from 'jotai'
 import { Transition, Dialog } from '@headlessui/react'
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv5'
 import { useForm } from 'react-hook-form'
 
 export function xchainClaimView({

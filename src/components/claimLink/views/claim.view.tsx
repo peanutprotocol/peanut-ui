@@ -1,11 +1,10 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useEffect, useMemo, useState } from 'react'
 import { useAccount, useSwitchChain, useWalletClient } from 'wagmi'
-import { ethers } from 'ethers'
+import { ethers } from 'ethersv5'
 import { useAtom } from 'jotai'
 import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
-import { providers } from 'ethers'
 import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
