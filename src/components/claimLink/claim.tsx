@@ -6,7 +6,6 @@ import * as _consts from './claim.consts'
 import * as interfaces from '@/interfaces'
 import { createElement, useEffect, useState } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
-import axios from 'axios'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as hooks from '@/hooks'
 import * as store from '@/store'
@@ -27,7 +26,6 @@ interface Token {
 }
 
 export function Claim() {
-    const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [linkState, setLinkState] = useState<_consts.linkState>('LOADING')
     const [claimScreen, setClaimScreen] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string[]>([])
@@ -131,18 +129,26 @@ export function Claim() {
     const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
             if (!tokenPrice) {
-                const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                    params: {
-                        tokenAddress: tokenAddress,
-                        chainId: chainId,
-                    },
+                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                    tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+                }
+
+                // Routing mobula api call through nextjs BFF
+                const mobulaResponse = await fetch('/api/mobula/fetch-token-price', {
+                    method: 'POST',
                     headers: {
-                        accept: 'application/json',
-                        'API-KEY': process.env.SOCKET_API_KEY,
+                        'Content-Type': 'application/json',
                     },
+                    body: JSON.stringify({
+                        tokenAddress,
+                        chainId,
+                    }),
                 })
-                setTokenPrice(response.data.result.tokenPrice)
-                return Number(response.data.result.tokenPrice)
+                const json = await mobulaResponse.json()
+                if (mobulaResponse.ok) {
+                    setTokenPrice(json.data.price)
+                    return json.data.price
+                }
             } else return tokenPrice
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
@@ -196,16 +202,7 @@ export function Claim() {
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
-                    let _tokenprice
-                    if (linkDetails.tokenAddress == '0x0000000000000000000000000000000000000000') {
-                        _tokenprice = await fetchTokenPrice(
-                            '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
-                            linkDetails.chainId
-                        )
-                    } else {
-                        _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
-                    }
-
+                    const _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                     if (await isBridgePossible(linkDetails, _tokenprice ? Number(_tokenprice) : undefined)) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {

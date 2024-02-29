@@ -1,12 +1,10 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useEffect, useMemo, useState } from 'react'
-import { useAccount, useSwitchChain, useWalletClient } from 'wagmi'
-import { ethers } from 'ethers'
+import { useAccount, useSwitchChain } from 'wagmi'
+import { ethers } from 'ethersv5'
 import { useAtom } from 'jotai'
-import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
+import { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
-import { providers } from 'ethers'
-import { isMobile } from 'react-device-detect'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
 import * as global_components from '@/components/global'
@@ -228,7 +226,7 @@ export function ClaimView({
                         {tokenPrice
                             ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                             : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
-                        {tokenPrice ? 'in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
+                        {tokenPrice ? ' $' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                     </>
                 </h2>
             )}

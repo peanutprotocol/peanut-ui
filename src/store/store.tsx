@@ -1,24 +1,24 @@
 'use client'
-import { atom, useSetAtom } from 'jotai'
+import { atom, useAtom, useSetAtom } from 'jotai'
 import { useAccount } from 'wagmi'
 import { useEffect } from 'react'
 import { ethers } from 'ethersv5'
 import peanut from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
-import * as socketTech from '@socket.tech/socket-v2-sdk'
 import * as hooks from '@/hooks'
 
 export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
 export const defaultChainDetailsAtom = atom<any[]>([])
 export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 
-export const supportedChainsSocketTechAtom = atom<socketTech.ChainDetails[]>([])
+export const supportedMobulaChainsAtom = atom<{ chainId: string; name: string }[]>([])
 
 export function Store({ children }: { children: React.ReactNode }) {
-    const setUserBalances = useSetAtom(userBalancesAtom)
+    const [userBalances, setUserBalances] = useAtom(userBalancesAtom)
     const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
-    const setSupportedChainsSocketTech = useSetAtom(supportedChainsSocketTechAtom)
+
+    const [supportedMobulaChains, setSupportedMobulaChains] = useAtom(supportedMobulaChainsAtom)
     const gaEventTracker = hooks.useAnalyticsEventTracker('peanut-general')
 
     const { address: userAddr, isDisconnected } = useAccount()
@@ -38,18 +38,28 @@ export function Store({ children }: { children: React.ReactNode }) {
     }, [isDisconnected])
 
     useEffect(() => {
-        getSupportedChainsSocketTech()
+        getSupportedChainsMobula()
         getPeanutChainAndTokenDetails()
     }, [])
 
-    const getSupportedChainsSocketTech = async () => {
-        try {
-            const supportedChainsResponse = await socketTech.Supported.getAllSupportedChains()
-            if (supportedChainsResponse.success) {
-                setSupportedChainsSocketTech(supportedChainsResponse.result)
-            }
-        } catch (error) {
-            console.error('error loading supportedChainsSocketTech, ', error)
+    // Fetch supported chains from Mobula, use this to display supported peanut chains in the UI that arent supported by mobula
+    // Not needed to do in BFF since this api call doesnt need an API key
+    const getSupportedChainsMobula = async () => {
+        if (supportedMobulaChains.length == 0) {
+            const supportedChains = await fetch('https://api.mobula.io/api/1/blockchains', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+            const supportedChainsJson = await supportedChains.json()
+
+            //setting supported chains and mapping to simple object
+            setSupportedMobulaChains(
+                supportedChainsJson.data.map((chain: any) => {
+                    return { chainId: chain.chainId, name: chain.name }
+                })
+            )
         }
     }
 
@@ -65,71 +75,67 @@ export function Store({ children }: { children: React.ReactNode }) {
         }
     }
 
+    // Function to map the mobula response to the IUserBalance interface
+    function mapToUserBalances(data: any): interfaces.IUserBalance[] {
+        const userBalances: interfaces.IUserBalance[] = []
+        data.assets.forEach((asset: any) => {
+            const { name, symbol, logo } = asset.asset
+            Object.keys(asset.contracts_balances).forEach((chainKey) => {
+                const contractBalance = asset.contracts_balances[chainKey]
+                userBalances.push({
+                    chainId: contractBalance.chainId,
+                    address: contractBalance.address,
+                    name,
+                    symbol,
+                    decimals: contractBalance.decimals,
+                    price: asset.price,
+                    amount: contractBalance.balance,
+                    currency: 'USD',
+                    logoURI: logo,
+                })
+            })
+        })
+
+        return userBalances
+    }
+
     const loadUserBalances = async (address: string) => {
         try {
-            const userBalancesResponse: any = await socketTech.Balances.getBalances({
-                userAddress: address,
-            })
+            if (userBalances.length === 0) {
+                // TODO: also refetch when address changes
+                const mobulaResponse = await fetch('/api/mobula/fetch-wallet-balance', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        address,
+                    }),
+                })
 
-            // const usdcPolygonBalance = await socketTech.Balances.getBalance({
-            //     tokenAddress: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-            //     chainId: 137,
-            //     userAddress: address,
-            // }).then((res) => {
-            //     return {
-            //         chainId: res.result.chainId,
-            //         address: res.result.tokenAddress,
-            //         name: res.result.name,
-            //         symbol: res.result.symbol,
-            //         decimals: res.result.decimals,
-            //         chainAgnosticId: null,
-            //         icon: res.result.icon,
-            //         logoURI: res.result.icon,
-            //         amount: ethers.utils.formatUnits(Number(res.result.balance), res.result.decimals),
-            //         price: 0,
-            //         currency: null,
-            //     }
-            // })
+                const mobulaResponseJson = await mobulaResponse.json()
 
-            // const x = userBalancesResponse.result.concat([usdcPolygonBalance])
+                const mappedUserBalances = mapToUserBalances(mobulaResponseJson.data).sort(
+                    (a: interfaces.IUserBalance, b: interfaces.IUserBalance) => {
+                        if (a.chainId === b.chainId) {
+                            if (a.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return -1
+                            if (b.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return 1
 
-            const updatedBalances: interfaces.IUserBalance[] = userBalancesResponse.result
-                .map((balances: any) => {
-                    return {
-                        chainId: balances.chainId,
-                        symbol: balances.symbol,
-                        name: balances.name,
-                        address: balances.address,
-                        decimals: balances.decimals,
-                        amount: Number(balances.amount),
-                        price: 0,
-                        currency: balances.currency,
-                        //@ts-ignore
-                        logoURI: balances.logoURI,
+                            return b.amount - a.amount
+                        } else {
+                            return Number(a.chainId) - Number(b.chainId)
+                        }
                     }
-                })
-                .sort((a: interfaces.IUserBalance, b: interfaces.IUserBalance) => {
-                    if (a.chainId === b.chainId) {
-                        // If the address is the native currency, move it to the top
-                        if (a.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return -1
-                        if (b.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return 1
+                )
 
-                        // If 'chainId' is the same, sort by 'amount'
-                        return b.amount - a.amount
-                    } else {
-                        // Else sort by 'chainId'
-                        return Number(a.chainId) - Number(b.chainId)
-                    }
-                })
-
-            if (userBalancesResponse.success) {
-                setUserBalances((prev) => {
-                    return [...prev, ...updatedBalances]
-                })
-            } else {
-                setUserBalances([])
+                if (mobulaResponse.ok) {
+                    setUserBalances(mappedUserBalances)
+                } else {
+                    setUserBalances([])
+                }
             }
         } catch (error) {
+            console.log(error)
             console.error('error loading userBalances, ', error)
         }
     }

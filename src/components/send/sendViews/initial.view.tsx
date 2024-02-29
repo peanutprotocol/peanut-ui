@@ -53,7 +53,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [supportedChainsSocketTech] = useAtom(store.supportedChainsSocketTechAtom)
+    const [supportedMobulaChains] = useAtom(store.supportedMobulaChainsAtom)
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
     hooks.useConfirmRefresh(enableConfirmation)
 
@@ -72,22 +72,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        if (mantleCheck) {
-            return chainDetails.filter((chain) => chain.chainId == '5000' || chain.chainId == '5001')
-        }
         if (isConnected && userBalances.length > 0) {
-            const filteredChains = chainDetails.filter(
-                (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
-            )
-            return filteredChains.concat(
-                chainDetails.filter(
-                    (item1) => !supportedChainsSocketTech.some((item2) => item2.chainId === item1.chainId)
+            const filteredChains = chainDetails
+                .filter(
+                    (chain) =>
+                        chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
                 )
-            )
+                .concat(
+                    chainDetails.filter(
+                        (item1) => !supportedMobulaChains.some((item2) => item2.chainId === item1.chainId)
+                    )
+                )
+
+            return filteredChains
         } else {
             return chainDetails
         }
-    }, [isConnected, chainDetails, userBalances, supportedChainsSocketTech])
+    }, [isConnected, chainDetails, userBalances, supportedMobulaChains])
 
     const tokenList = useMemo(() => {
         if (isConnected) {
@@ -141,22 +142,30 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
         try {
-            const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                params: {
-                    tokenAddress: tokenAddress,
-                    chainId: chainId,
-                },
+            if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+            }
+
+            // Routing mobula api call through nextjs BFF
+            const mobulaResponse = await fetch('/api/mobula/fetch-token-price', {
+                method: 'POST',
                 headers: {
-                    accept: 'application/json',
-                    'API-KEY': process.env.SOCKET_API_KEY,
+                    'Content-Type': 'application/json',
                 },
+                body: JSON.stringify({
+                    tokenAddress,
+                    chainId,
+                }),
             })
-            setTokenPrice(response.data.result.tokenPrice)
-            return Number(response.data.result.tokenPrice)
+            const json = await mobulaResponse.json()
+
+            if (mobulaResponse.ok) {
+                setTokenPrice(json.data.price)
+                return json.data.price
+            }
         } catch (error) {
             console.log('error fetching token price for token ' + tokenAddress)
             setTokenPrice(undefined)
-            setInputDenomination('TOKEN')
         }
     }
 
@@ -632,11 +641,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 } else {
                     setShowGaslessAvailable(false)
                 }
-                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
-                    fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
-                } else {
-                    fetchTokenPrice(tokenAddress, formwatch.chainId)
-                }
+
+                fetchTokenPrice(tokenAddress, formwatch.chainId)
             }
         }
         if (formwatch.token) {
