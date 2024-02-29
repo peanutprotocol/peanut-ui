@@ -1,9 +1,11 @@
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useEffect, useMemo, useState } from 'react'
-import { useAccount, useSwitchChain } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain, useConfig } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
+
 import { ethers } from 'ethersv5'
 import { useAtom } from 'jotai'
-import { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
+import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 
@@ -26,6 +28,8 @@ export function ClaimView({
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
+    const { sendTransactionAsync } = useSendTransaction()
+    const config = useConfig()
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -79,27 +83,57 @@ export function ClaimView({
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
-                let claimTx
-                // if (claimDetails[0].chainId == '1') {
-                //     await checkNetwork(claimDetails[0].chainId)
+                if (claimDetails[0].chainId == '1') {
+                    console.log('claiming non gasless')
+                    await checkNetwork(claimDetails[0].chainId)
 
-                //     claimTx = await peanut.claimLink({
-                //         recipient: address,
-                //         link: claimLink[0],
-                //         structSigner: {
-                //             signer: _signer,
-                //         },
-                //     })
-                // } else {
-                claimTx = await claimLinkGasless({
-                    link: claimLink[0],
-                    recipientAddress: address,
-                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                    APIKey: 'doesnt-matter',
-                })
-                // }
-                verbose && console.log(claimTx)
-                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+                    const preparedClaimTx = await peanut.prepareClaimTx({
+                        link: claimLink[0],
+                        recipientAddress: address,
+                    })
+
+                    setLoadingStates('sign in wallet')
+                    let txOptions
+                    try {
+                        txOptions = await peanut.setFeeOptions({
+                            chainId: claimDetails[0].chainId,
+                        })
+                    } catch (error: any) {
+                        console.log('error setting fee options, fallback to default')
+                    }
+
+                    const tx = { ...preparedClaimTx, ...txOptions }
+
+                    const claimedTx = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                    })
+                    setLoadingStates('executing transaction')
+
+                    await waitForTransactionReceipt(config, {
+                        hash: claimedTx,
+                        chainId: Number(claimDetails[0].chainId),
+                    })
+
+                    verbose && console.log(claimedTx)
+                    setTxHash([claimedTx.toString()])
+                } else {
+                    const claimTx = await claimLinkGasless({
+                        link: claimLink[0],
+                        recipientAddress: address,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
+                    })
+                    verbose && console.log(claimTx)
+                    setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+                }
 
                 onNextScreen()
             }
@@ -172,15 +206,57 @@ export function ClaimView({
 
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
-                verbose && console.log('claiming link:' + claimLink)
-                const claimTx = await claimLinkGasless({
-                    link: claimLink[0],
-                    recipientAddress: data.address,
-                    baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                    APIKey: 'doesnt-matter',
-                })
+                if (claimDetails[0].chainId == '1') {
+                    console.log('claiming non gasless')
+                    await checkNetwork(claimDetails[0].chainId)
 
-                setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+                    const preparedClaimTx = await peanut.prepareClaimTx({
+                        link: claimLink[0],
+                        recipientAddress: data.address,
+                    })
+
+                    setLoadingStates('sign in wallet')
+                    let txOptions
+                    try {
+                        txOptions = await peanut.setFeeOptions({
+                            chainId: claimDetails[0].chainId,
+                        })
+                    } catch (error: any) {
+                        console.log('error setting fee options, fallback to default')
+                    }
+
+                    const tx = { ...preparedClaimTx, ...txOptions }
+
+                    const claimedTx = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                    })
+                    setLoadingStates('executing transaction')
+
+                    await waitForTransactionReceipt(config, {
+                        hash: claimedTx,
+                        chainId: Number(claimDetails[0].chainId),
+                    })
+
+                    verbose && console.log(claimedTx)
+                    setTxHash([claimedTx.toString()])
+                } else {
+                    verbose && console.log('claiming link:' + claimLink)
+                    const claimTx = await claimLinkGasless({
+                        link: claimLink[0],
+                        recipientAddress: data.address,
+                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                        APIKey: 'doesnt-matter',
+                    })
+                    setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
+                }
 
                 onNextScreen()
             }
