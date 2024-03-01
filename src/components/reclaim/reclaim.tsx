@@ -5,7 +5,7 @@ import * as store from '@/store'
 import * as consts from '@/consts'
 import { useAtom } from 'jotai'
 import { useState, useMemo } from 'react'
-import { useAccount, useSendTransaction, useConfig } from 'wagmi'
+import { useAccount, useSendTransaction, useConfig, useSwitchChain } from 'wagmi'
 import { useForm } from 'react-hook-form'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
@@ -15,11 +15,12 @@ export function Reclaim() {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { isConnected } = useAccount()
+    const { isConnected, chain: currentChain } = useAccount()
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const [claimedExploredUrlWithHash, setClaimedExplorerUrlWithHash] = useState<string | undefined>(undefined)
+    const { switchChainAsync } = useSwitchChain()
 
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
 
@@ -34,6 +35,27 @@ export function Reclaim() {
         },
     })
 
+    const checkNetwork = async (chainId: string) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            setLoadingStates('allow network switch')
+
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingStates('switching network')
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setLoadingStates('loading')
+            } catch (error) {
+                setLoadingStates('idle')
+                console.error('Error switching network:', error)
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Error switching network',
+                })
+            }
+        }
+    }
+
     async function reclaimDeposit(reclaimFormData: { chainId: string; transactionHash: string }) {
         try {
             if (reclaimFormData.chainId == '' || reclaimFormData.transactionHash == '') {
@@ -43,6 +65,9 @@ export function Reclaim() {
                 })
                 return
             }
+
+            checkNetwork(reclaimFormData.chainId)
+
             setLoadingStates('getting deposit details')
 
             const txReceipt = await peanut.getTxReceiptFromHash(
