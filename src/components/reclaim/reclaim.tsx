@@ -105,6 +105,10 @@ export function Reclaim() {
             ).explorers[0].url
             setClaimedExplorerUrlWithHash(`${explorerUrl}/tx/${hash}`)
         } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Something went wrong while claiming',
+            })
             console.error(error)
         } finally {
             setLoadingStates('idle')
