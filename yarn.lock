@@ -2221,11 +2221,10 @@
   resolved "https://registry.yarnpkg.com/@socket.io/component-emitter/-/component-emitter-3.1.0.tgz#96116f2a912e0c02817345b3c10751069920d553"
   integrity sha512-+9jVqKhRSpsc591z5vX+X5Yyw+he/HCB4iQ/RYxw35CEPaY1gnsNE43nf9n9AaYjAQrTiI/mOwKUKdUs9vf7Xg==
 
-
-"@squirrel-labs/peanut-sdk@0.4.9":
-  version "0.4.9"
-  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.9.tgz#7caf9fb0c07166f044c7b0bd9d703874316d254c"
-  integrity sha512-npJYmHc1dt5yuZxrz2TBZ4hmqjpw+qsQhQ43UmeJtr7wjQXrQa5Ag7W/Y5pN6zJpz95zlGEtB4xjm4TlSSdCEA==
+"@squirrel-labs/peanut-sdk@0.4.10":
+  version "0.4.10"
+  resolved "https://registry.yarnpkg.com/@squirrel-labs/peanut-sdk/-/peanut-sdk-0.4.10.tgz#498b7c29ef8342e0113c1ea68b88747aea5214ef"
+  integrity sha512-de5qrnjkLxkDqRmdrmHk8kc9wt06sFzPZSXSazpIIxixYIlRFRfN6DPTE42PmxkbjkClUVmxPK3Q9ltjc5qiUw==
   dependencies:
     ethersv5 "npm:ethers@^5"
 
