@@ -140,35 +140,6 @@ export function RaffleInitialView({
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
-        try {
-            if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
-                tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            }
-
-            // Routing mobula api call through nextjs BFF
-            const mobulaResponse = await fetch('/api/mobula/fetch-token-price', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    tokenAddress,
-                    chainId,
-                }),
-            })
-            const json = await mobulaResponse.json()
-
-            if (mobulaResponse.ok) {
-                setTokenPrice(json.data.price)
-                return json.data.price
-            }
-        } catch (error) {
-            console.log('error fetching token price for token ' + tokenAddress)
-            setTokenPrice(undefined)
-        }
-    }
-
     const checkForm = (sendFormData: _consts.ISendFormData, tokenAddress: string) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
@@ -488,11 +459,16 @@ export function RaffleInitialView({
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
+        async function fetchAndSet(tokenAddress: string, chainId: string) {
+            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
+            setTokenPrice(price)
+        }
+
         if (!isConnected) setTokenPrice(undefined)
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
-                fetchTokenPrice(tokenAddress, formwatch.chainId)
+                fetchAndSet(tokenAddress, formwatch.chainId)
             }
         }
         if (formwatch.token) {

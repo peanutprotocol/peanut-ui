@@ -140,35 +140,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
-        try {
-            if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
-                tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-            }
-
-            // Routing mobula api call through nextjs BFF
-            const mobulaResponse = await fetch('/api/mobula/fetch-token-price', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    tokenAddress,
-                    chainId,
-                }),
-            })
-            const json = await mobulaResponse.json()
-
-            if (mobulaResponse.ok) {
-                setTokenPrice(json.data.price)
-                return json.data.price
-            }
-        } catch (error) {
-            console.log('error fetching token price for token ' + tokenAddress)
-            setTokenPrice(undefined)
-        }
-    }
-
     const checkForm = (sendFormData: _consts.ISendFormData) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
@@ -215,7 +186,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (inputDenomination == 'USD') {
             var price: number | undefined = undefined
             try {
-                price = await fetchTokenPrice(
+                price = await utils.fetchTokenPrice(
                     tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
                     sendFormData.chainId
                 )
@@ -637,6 +608,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
+        async function fetchAndSet(tokenAddress: string, chainId: string) {
+            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
+            setTokenPrice(price)
+        }
+
         if (!isConnected) setTokenPrice(undefined)
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
@@ -646,11 +622,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 } else {
                     setShowGaslessAvailable(false)
                 }
-
-                fetchTokenPrice(tokenAddress, formwatch.chainId)
+                fetchAndSet(tokenAddress, formwatch.chainId)
             }
-        }
-        if (formwatch.token) {
         }
     }, [formwatch.token, formwatch.chainId, isConnected])
 

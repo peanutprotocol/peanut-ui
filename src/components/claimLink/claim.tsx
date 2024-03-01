@@ -8,6 +8,7 @@ import { createElement, useEffect, useState } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import peanutman_logo from '@/assets/peanutman-logo.svg'
 import * as hooks from '@/hooks'
+import * as utils from '@/utils'
 import * as store from '@/store'
 import { useAtom } from 'jotai'
 
@@ -126,36 +127,6 @@ export function Claim() {
         }
     }
 
-    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
-        try {
-            if (!tokenPrice) {
-                if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
-                    tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-                }
-
-                // Routing mobula api call through nextjs BFF
-                const mobulaResponse = await fetch('/api/mobula/fetch-token-price', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        tokenAddress,
-                        chainId,
-                    }),
-                })
-                const json = await mobulaResponse.json()
-                if (mobulaResponse.ok) {
-                    setTokenPrice(json.data.price)
-                    return json.data.price
-                }
-            } else return tokenPrice
-        } catch (error) {
-            console.log('error fetching token price for token ' + tokenAddress)
-            setTokenPrice(undefined)
-        }
-    }
-
     const checkLink = async (link: string) => {
         try {
             const promoList: {
@@ -202,8 +173,8 @@ export function Claim() {
                 if (Number(linkDetails.tokenAmount) <= 0 || linkDetails.claimed) {
                     setLinkState('ALREADY_CLAIMED')
                 } else {
-                    const _tokenprice = await fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
-
+                    const _tokenprice = await utils.fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
+                    setTokenPrice(_tokenprice)
                     if (await isBridgePossible(linkDetails, _tokenprice ? Number(_tokenprice) : undefined)) {
                         setLinkState('XCHAIN_CLAIM')
                     } else {
