@@ -302,7 +302,7 @@ export function ClaimView({
                         {tokenPrice
                             ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                             : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
-                        {tokenPrice ? 'in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
+                        {tokenPrice ? ' $' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                     </>
                 </h2>
             )}
@@ -329,30 +329,33 @@ export function ClaimView({
                     </a>
                 </div>
             )}
-            <button
-                type={isConnected ? 'submit' : 'button'}
-                className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
-                id="cta-btn"
-                onClick={() => {
-                    !isConnected ? open() : claim()
-                }}
-                disabled={isLoading}
-            >
-                {isLoading ? (
-                    <div className="flex justify-center gap-1">
-                        <label>{loadingStates} </label>
-                        <span className="bouncing-dots flex">
-                            <span className="dot">.</span>
-                            <span className="dot">.</span>
-                            <span className="dot">.</span>
-                        </span>
-                    </div>
-                ) : isConnected ? (
-                    'Claim'
-                ) : (
-                    'Connect Wallet'
-                )}
-            </button>
+            <div className="mx-auto mb-8 flex w-full flex-col items-center justify-center gap-1">
+                <button
+                    type={isConnected ? 'submit' : 'button'}
+                    className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                    id="cta-btn"
+                    onClick={() => {
+                        !isConnected ? open() : claim()
+                    }}
+                    disabled={isLoading}
+                >
+                    {isLoading ? (
+                        <div className="flex justify-center gap-1">
+                            <label>{loadingStates} </label>
+                            <span className="bouncing-dots flex">
+                                <span className="dot">.</span>
+                                <span className="dot">.</span>
+                                <span className="dot">.</span>
+                            </span>
+                        </div>
+                    ) : isConnected ? (
+                        'Claim'
+                    ) : (
+                        'Connect Wallet'
+                    )}
+                </button>
+                {claimDetails[0].chainId == '1' && <p>L1 gas fee not sponsored. </p>}
+            </div>
             <div
                 className="mt-2 flex cursor-pointer items-center justify-center"
                 onClick={() => {
