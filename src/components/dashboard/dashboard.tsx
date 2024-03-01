@@ -13,6 +13,7 @@ import * as interfaces from '@/interfaces'
 import * as store from '@/store'
 import * as hooks from '@/hooks'
 import * as consts from '@/consts'
+import Link from 'next/link'
 interface IDashboardLinkItemProps {
     hash: string
     chainId: string
@@ -452,6 +453,13 @@ export function Dashboard() {
                         ) : (
                             <div>Connect your wallet to view your links.</div>
                         )}
+                        <div className="mt-2 flex w-full items-center justify-center gap-1 p-2">
+                            Had a problem creating a link? Click{' '}
+                            <Link href={'/reclaim'} className="text-black">
+                                {' '}
+                                here
+                            </Link>
+                        </div>
                     </div>
                 )}
 
