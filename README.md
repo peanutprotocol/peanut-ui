@@ -12,7 +12,7 @@ yarn install
 
 Secondly, copy the .env.example to .env and fill in the values:
 there are 4 .env values:
-you can get WalletConnect, Socket.tech and GA (google analytics) from their docs, and reach out to us for the Peanut api key.
+you can get WalletConnect, GA (google analytics) from their docs, and reach out to us for the Peanut api key.
 
 ```bash
 cp .env.example .env

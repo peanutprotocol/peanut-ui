@@ -19,3 +19,33 @@ export async function fetchSendDiscordNotification({ message }: { message: strin
 
     return data
 }
+
+export const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
+    try {
+        if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
+            tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+        }
+
+        // Routing mobula api call through nextjs BFF
+        const mobulaResponse = await fetch('/api/mobula/fetch-token-price', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                tokenAddress,
+                chainId,
+            }),
+        })
+        const json = await mobulaResponse.json()
+
+        if (mobulaResponse.ok) {
+            return json.data.price
+        } else {
+            return undefined
+        }
+    } catch (error) {
+        console.log('error fetching token price for token ' + tokenAddress)
+        return undefined
+    }
+}

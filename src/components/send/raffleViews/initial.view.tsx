@@ -55,7 +55,7 @@ export function RaffleInitialView({
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
-    const [supportedChainsSocketTech] = useAtom(store.supportedChainsSocketTechAtom)
+    const [supportedMobulaChains] = useAtom(store.supportedMobulaChainsAtom)
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
     hooks.useConfirmRefresh(enableConfirmation)
 
@@ -83,14 +83,12 @@ export function RaffleInitialView({
                 (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
             )
             return filteredChains.concat(
-                chainDetails.filter(
-                    (item1) => !supportedChainsSocketTech.some((item2) => item2.chainId === item1.chainId)
-                )
+                chainDetails.filter((item1) => !supportedMobulaChains.some((item2) => item2.chainId === item1.chainId))
             )
         } else {
             return chainDetails
         }
-    }, [isConnected, chainDetails, userBalances, supportedChainsSocketTech])
+    }, [isConnected, chainDetails, userBalances, supportedMobulaChains])
 
     const tokenList = useMemo(() => {
         if (isConnected) {
@@ -141,26 +139,6 @@ export function RaffleInitialView({
                 })
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
-
-    const fetchTokenPrice = async (tokenAddress: string, chainId: string) => {
-        try {
-            const response = await axios.get('https://api.socket.tech/v2/token-price', {
-                params: {
-                    tokenAddress: tokenAddress,
-                    chainId: chainId,
-                },
-                headers: {
-                    accept: 'application/json',
-                    'API-KEY': process.env.SOCKET_API_KEY,
-                },
-            })
-            setTokenPrice(response.data.result.tokenPrice)
-            return Number(response.data.result.tokenPrice)
-        } catch (error) {
-            console.log('error fetching token price for token ' + tokenAddress)
-            setTokenPrice(undefined)
-        }
-    }
 
     const checkForm = (sendFormData: _consts.ISendFormData, tokenAddress: string) => {
         //check that the token and chainid are defined
@@ -481,15 +459,16 @@ export function RaffleInitialView({
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
+        async function fetchAndSet(tokenAddress: string, chainId: string) {
+            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
+            setTokenPrice(price)
+        }
+
         if (!isConnected) setTokenPrice(undefined)
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
-                if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
-                    fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
-                } else {
-                    fetchTokenPrice(tokenAddress, formwatch.chainId)
-                }
+                fetchAndSet(tokenAddress, formwatch.chainId)
             }
         }
         if (formwatch.token) {
