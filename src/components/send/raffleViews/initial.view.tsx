@@ -332,6 +332,7 @@ export function RaffleInitialView({
                 // Array of txHashes
                 const signedTxsResponse: string[] = []
 
+                let idx = 0
                 for (const tx of prepareTxsResponse.unsignedTxs) {
                     setLoadingStates('sign in wallet')
 
@@ -360,13 +361,18 @@ export function RaffleInitialView({
 
                     setLoadingStates('executing transaction')
 
-                    // Wait for the transaction to be mined using wagmi/actions
-                    await waitForTransactionReceipt(config, {
-                        confirmations: 2,
-                        hash: hash,
-                        chainId: Number(sendFormData.chainId),
-                    })
+                    if (prepareTxsResponse.unsignedTxs.length == 2 && idx == 0) {
+                        // Wait for the transaction to be mined using wagmi/actions
+                        // Only doing this for the approval transaction (the first tx)
+                        await waitForTransactionReceipt(config, {
+                            confirmations: 2,
+                            hash: hash,
+                            chainId: Number(sendFormData.chainId),
+                        })
+                    }
+
                     signedTxsResponse.push(hash.toString())
+                    idx++
                 }
 
                 setLoadingStates('creating link')
@@ -479,7 +485,7 @@ export function RaffleInitialView({
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
-                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
                 } else {
                     fetchTokenPrice(tokenAddress, formwatch.chainId)

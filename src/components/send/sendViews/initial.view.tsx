@@ -476,6 +476,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     // Array of txHashes
                     const signedTxsResponse: string[] = []
 
+                    let idx = 0
                     for (const tx of prepareTxsResponse.unsignedTxs) {
                         setLoadingStates('sign in wallet')
 
@@ -505,13 +506,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setLoadingStates('executing transaction')
                         console.log(hash)
 
-                        // Wait for the transaction to be mined using wagmi/actions
-                        await waitForTransactionReceipt(config, {
-                            confirmations: 2,
-                            hash: hash,
-                            chainId: Number(sendFormData.chainId),
-                        })
+                        if (prepareTxsResponse.unsignedTxs.length == 2 && idx == 0) {
+                            // Wait for the transaction to be mined using wagmi/actions
+                            // Only doing this for the approval transaction (the first tx)
+                            await waitForTransactionReceipt(config, {
+                                confirmations: 2,
+                                hash: hash,
+                                chainId: Number(sendFormData.chainId),
+                            })
+                        }
                         signedTxsResponse.push(hash.toString())
+                        idx++
                     }
 
                     setLoadingStates(advancedDropdownOpen ? 'creating links' : 'creating link')
@@ -632,7 +637,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 } else {
                     setShowGaslessAvailable(false)
                 }
-                if (tokenAddress == '0x0000000000000000000000000000000000000000') {
+                if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
                     fetchTokenPrice('0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee', formwatch.chainId)
                 } else {
                     fetchTokenPrice(tokenAddress, formwatch.chainId)
