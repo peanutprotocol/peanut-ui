@@ -66,7 +66,7 @@ export function Reclaim() {
                 return
             }
 
-            checkNetwork(reclaimFormData.chainId)
+            await checkNetwork(reclaimFormData.chainId)
 
             setLoadingStates('getting deposit details')
 
