@@ -1,3 +1,5 @@
+'use client'
+
 import * as consts from '@/consts'
 
 import { createWeb3Modal } from '@web3modal/wagmi/react'
