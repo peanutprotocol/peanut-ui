@@ -13,26 +13,15 @@ import peanut_logo from '@/assets/peanutman-logo.svg'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
-    const gaEventTracker = hooks.useAnalyticsEventTracker('header')
-
     const { open: web3modalOpen } = useWeb3Modal()
-
-    let timeout: any
-    const timeoutDuration = 0
-
     const buttonRef = useRef(null)
     const [openState, setOpenState] = useState(false)
 
-    const toggleMenu = (open: any) => {
-        setOpenState((openState) => !openState)
-        //@ts-ignore
-        buttonRef?.current?.click()
-    }
-
     const onHover = (open: any, action: string) => {
         if ((!open && !openState && action === 'onMouseEnter') || (open && openState && action === 'onMouseLeave')) {
-            clearTimeout(timeout)
-            timeout = setTimeout(() => toggleMenu(open), timeoutDuration)
+            setOpenState((openState) => !openState)
+            //@ts-ignore
+            buttonRef?.current?.click()
         }
     }
 
