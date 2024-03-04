@@ -73,7 +73,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                     }}
                                 >
                                     <img src={peanut_logo.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                                    <span className="inline lg:px-6">peanut protocol</span>
+                                    <span className="inline sm:px-6">peanut protocol</span>
                                 </div>
                                 <div className="hidden h-full items-center justify-center  sm:flex ">
                                     <div className="flex h-full items-center">
@@ -86,7 +86,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                 >
                                                     <Popover.Button
                                                         as="a"
-                                                        className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                                                        className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black md:px-8"
                                                         ref={buttonRef}
                                                     >
                                                         APP
@@ -129,7 +129,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                             key={'docs'}
                                             as="a"
                                             href={'/docs'}
-                                            className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                                            className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black md:px-8"
                                         >
                                             DOCS
                                         </Disclosure.Button>
