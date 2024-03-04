@@ -3,18 +3,13 @@ import Link from 'next/link'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { Fragment, useEffect, useRef, useState } from 'react'
-import { Disclosure, Menu, Popover, Transition } from '@headlessui/react'
-import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Disclosure, Popover, Transition } from '@headlessui/react'
+import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 
 import * as utils from '@/utils'
 import * as hooks from '@/hooks'
 
 import peanut_logo from '@/assets/peanutman-logo.svg'
-import triangle_svg from '@/assets/icons/triangle.svg'
-
-function classNames(...classes: any) {
-    return classes.filter(Boolean).join(' ')
-}
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
@@ -31,26 +26,14 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const toggleMenu = (open: any) => {
         setOpenState((openState) => !openState)
         //@ts-ignore
-        buttonRef?.current?.click() // eslint-disable-line
+        buttonRef?.current?.click()
     }
 
-    // Open the menu after a delay of timeoutDuration
     const onHover = (open: any, action: string) => {
-        // if the modal is currently closed, we need to open it
-        // OR
-        // if the modal is currently open, we need to close it
         if ((!open && !openState && action === 'onMouseEnter') || (open && openState && action === 'onMouseLeave')) {
-            // clear the old timeout, if any
             clearTimeout(timeout)
-            // open the modal after a timeout
             timeout = setTimeout(() => toggleMenu(open), timeoutDuration)
         }
-        // else: don't click! 😁
-    }
-
-    const handleClick = (open: any) => {
-        setOpenState(!open) // toggle open state in React state
-        clearTimeout(timeout) // stop the hover timer if it's running
     }
 
     const handleClickOutside = (event: any) => {
@@ -61,7 +44,6 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     }
     useEffect(() => {
         document.addEventListener('mousedown', handleClickOutside)
-
         return () => {
             document.removeEventListener('mousedown', handleClickOutside)
         }
