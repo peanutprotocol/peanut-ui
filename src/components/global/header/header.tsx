@@ -112,7 +112,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                                 Transfer
                                                             </Link>
                                                             <Link
-                                                                href="/create/raffle"
+                                                                href="/raffle/create"
                                                                 className={
                                                                     'hover: block bg-black px-4 py-2 text-base text-black text-white no-underline hover:bg-white hover:text-black'
                                                                 }
