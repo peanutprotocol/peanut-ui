@@ -7,6 +7,7 @@ import * as chain_logos from '@/assets/chains'
 import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
 import eco_logo from '@/assets/logos/integrators/eco-logo.png'
 import kofime_logo from '@/assets/logos/integrators/kofime-logo.png'
+import nazare_logo from '@/assets/logos/integrators/nazare-logo.svg'
 import hypersphere_logo from '@/assets/logos/investors/hypersphere-logo.png'
 import zeeprime_logo from '@/assets/logos/investors/zeeprime-logo.png'
 import wallet_connect_logo from '@/assets/logos/wallet-connect-logo.png'
@@ -23,7 +24,15 @@ import Lottie from 'react-lottie'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import { isMobile } from 'react-device-detect'
 
-const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
+const logoCloudLogos = [
+    hypersphere_logo,
+    zeeprime_logo,
+    wallet_connect_logo,
+    beam_logo,
+    eco_logo,
+    kofime_logo,
+    nazare_logo,
+]
 const logoLinks = {
     [hypersphere_logo.src]: 'https://hypersphere.ventures/',
     [zeeprime_logo.src]: 'https://zeeprime.capital/',
@@ -31,6 +40,7 @@ const logoLinks = {
     [beam_logo.src]: 'https://beam.eco/',
     [eco_logo.src]: 'https://eco.org/',
     [kofime_logo.src]: 'https://www.kofime.xyz/',
+    [nazare_logo.src]: 'https://nazare.io/',
 }
 
 const features = [

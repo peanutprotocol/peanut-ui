@@ -16,7 +16,7 @@ export function CardWrapper({
     return (
         <div
             className={
-                'center-xy brutalborder relative mx-auto mr-4 flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black sm:mr-auto lg:w-2/3 xl:w-1/2 ' +
+                'center-xy brutalborder relative mx-auto mr-6 flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black sm:mr-auto lg:w-2/3 xl:w-1/2 ' +
                 mb +
                 mt +
                 pt

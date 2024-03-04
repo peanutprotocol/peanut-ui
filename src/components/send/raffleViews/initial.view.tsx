@@ -508,8 +508,11 @@ export function RaffleInitialView({
     return (
         <>
             <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
-                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Raffle</h2>
-                <div className="my-0 w-4/5 font-normal">Create a raffle.</div>
+                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create Raffle</h2>
+                <div className="my-0 w-4/5 font-normal">
+                    Engage and reward your community with a raffle give-away. Simply fill out the form and you will
+                    receive a link that you can share.
+                </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
                 <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
@@ -584,7 +587,7 @@ export function RaffleInitialView({
                             </div>
                         </div>
                         <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">№ of Recipients *</div>
+                            <div className="font-normal">№ of Slots *</div>
                             <div className="flex flex-row items-center justify-between">
                                 <input
                                     onWheel={(e) => {

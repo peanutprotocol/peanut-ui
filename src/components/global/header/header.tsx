@@ -2,9 +2,9 @@
 import Link from 'next/link'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
-import { Fragment } from 'react'
-import { Disclosure, Menu, Transition } from '@headlessui/react'
-import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
+import { Fragment, useEffect, useRef, useState } from 'react'
+import { Disclosure, Menu, Popover, Transition } from '@headlessui/react'
+import { Bars3Icon, ChevronDownIcon, XMarkIcon } from '@heroicons/react/24/outline'
 
 import * as utils from '@/utils'
 import * as hooks from '@/hooks'
@@ -21,6 +21,51 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const gaEventTracker = hooks.useAnalyticsEventTracker('header')
 
     const { open: web3modalOpen } = useWeb3Modal()
+
+    let timeout: any
+    const timeoutDuration = 0
+
+    const buttonRef = useRef(null)
+    const [openState, setOpenState] = useState(false)
+
+    const toggleMenu = (open: any) => {
+        setOpenState((openState) => !openState)
+        //@ts-ignore
+        buttonRef?.current?.click() // eslint-disable-line
+    }
+
+    // Open the menu after a delay of timeoutDuration
+    const onHover = (open: any, action: string) => {
+        // if the modal is currently closed, we need to open it
+        // OR
+        // if the modal is currently open, we need to close it
+        if ((!open && !openState && action === 'onMouseEnter') || (open && openState && action === 'onMouseLeave')) {
+            // clear the old timeout, if any
+            clearTimeout(timeout)
+            // open the modal after a timeout
+            timeout = setTimeout(() => toggleMenu(open), timeoutDuration)
+        }
+        // else: don't click! 😁
+    }
+
+    const handleClick = (open: any) => {
+        setOpenState(!open) // toggle open state in React state
+        clearTimeout(timeout) // stop the hover timer if it's running
+    }
+
+    const handleClickOutside = (event: any) => {
+        //@ts-ignore
+        if (buttonRef.current && !buttonRef.current.contains(event.target)) {
+            event.stopPropagation()
+        }
+    }
+    useEffect(() => {
+        document.addEventListener('mousedown', handleClickOutside)
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    })
 
     return (
         <Disclosure as="nav" className="bg-black">
@@ -61,61 +106,53 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                 </div>
                                 <div className="hidden h-full items-center justify-center  sm:flex ">
                                     <div className="flex h-full items-center">
-                                        <Menu as="div" className="relative h-full items-center justify-center ">
-                                            <Menu.Button
-                                                as="a"
-                                                className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
-                                            >
-                                                APP
-                                            </Menu.Button>
-                                            <Transition
-                                                as={Fragment}
-                                                enter="transition ease-out duration-0"
-                                                enterFrom="transform opacity-0 scale-95"
-                                                enterTo="transform opacity-100 scale-100"
-                                                leave="transition ease-in duration-0"
-                                                leaveFrom="transform opacity-100 scale-100"
-                                                leaveTo="transform opacity-0 scale-95"
-                                            >
-                                                <Menu.Items className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                                                    {/* <img
-                                                        src={triangle_svg.src}
-                                                        className="absolute -top-4 left-8 h-4 w-4"
-                                                    /> */}
+                                        <Popover className={'h-full'}>
+                                            {({ open }) => (
+                                                <div
+                                                    onMouseEnter={() => onHover(open, 'onMouseEnter')}
+                                                    onMouseLeave={() => onHover(open, 'onMouseLeave')}
+                                                    className="relative h-full items-center justify-center "
+                                                >
+                                                    <Popover.Button
+                                                        as="a"
+                                                        className="flex h-full cursor-pointer items-center px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                                                        ref={buttonRef}
+                                                    >
+                                                        APP
+                                                    </Popover.Button>
 
-                                                    <Menu.Item>
-                                                        {({ active }) => (
+                                                    <Transition
+                                                        show={open}
+                                                        as={Fragment}
+                                                        enter="transition ease-out duration-0"
+                                                        enterFrom="transform opacity-0 scale-95"
+                                                        enterTo="transform opacity-100 scale-100"
+                                                        leave="transition ease-in duration-0"
+                                                        leaveFrom="transform opacity-100 scale-100"
+                                                        leaveTo="transform opacity-0 scale-95"
+                                                    >
+                                                        <Popover.Panel className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 uppercase text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                             <Link
                                                                 href="/send"
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-white text-black'
-                                                                        : 'bg-black text-white',
-                                                                    'block px-4 py-2 text-sm no-underline'
-                                                                )}
+                                                                className={
+                                                                    'hover: block bg-black px-4 py-2 text-base text-black text-white no-underline hover:bg-white hover:text-black'
+                                                                }
                                                             >
-                                                                Create link
+                                                                Transfer
                                                             </Link>
-                                                        )}
-                                                    </Menu.Item>
-                                                    <Menu.Item>
-                                                        {({ active }) => (
                                                             <Link
-                                                                href="/raffle/create"
-                                                                className={classNames(
-                                                                    active
-                                                                        ? 'bg-white text-black'
-                                                                        : 'bg-black text-white',
-                                                                    'block px-4 py-2 text-sm  no-underline'
-                                                                )}
+                                                                href="/create/raffle"
+                                                                className={
+                                                                    'hover: block bg-black px-4 py-2 text-base text-black text-white no-underline hover:bg-white hover:text-black'
+                                                                }
                                                             >
-                                                                Create raffle
+                                                                Raffle
                                                             </Link>
-                                                        )}
-                                                    </Menu.Item>
-                                                </Menu.Items>
-                                            </Transition>
-                                        </Menu>
+                                                        </Popover.Panel>
+                                                    </Transition>
+                                                </div>
+                                            )}
+                                        </Popover>
 
                                         <Disclosure.Button
                                             key={'docs'}
@@ -159,18 +196,18 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                         >
                                             App
                                         </Disclosure.Button>
-                                        <Disclosure.Panel className="space-y-1 px-2 py-3">
+                                        <Disclosure.Panel className="space-y-1 px-2 ">
                                             <a
                                                 href="/send"
                                                 className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
                                             >
-                                                Create Link
+                                                Transfer
                                             </a>
                                             <a
                                                 href="/raffle/create"
                                                 className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
                                             >
-                                                Create Raffle
+                                                Raffle
                                             </a>
                                         </Disclosure.Panel>
                                     </>
