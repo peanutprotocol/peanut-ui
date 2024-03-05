@@ -27,6 +27,7 @@ const config = defaultWagmiConfig({
     projectId, // required
     metadata, // required
     enableEmail: true, // Optional - true by default
+    ssr: true,
 })
 
 // 3. Create modal

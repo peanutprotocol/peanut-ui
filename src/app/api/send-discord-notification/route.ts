@@ -1,5 +1,4 @@
 import type { NextRequest } from 'next/server'
-import { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 
 export async function POST(request: NextRequest) {
     try {
