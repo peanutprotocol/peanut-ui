@@ -14,7 +14,7 @@ import peanut_logo from '@/assets/peanutman-logo.svg'
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
     const { open: web3modalOpen } = useWeb3Modal()
-    const buttonRef = useRef(null)
+    const buttonRef = useRef<HTMLButtonElement>(null)
     const [openState, setOpenState] = useState(false)
 
     const onHover = (open: any, action: string) => {
