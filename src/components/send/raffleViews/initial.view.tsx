@@ -459,7 +459,7 @@ export function RaffleInitialView({
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
-        async function fetchAndSet(tokenAddress: string, chainId: string) {
+        async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
             const price = await utils.fetchTokenPrice(tokenAddress, chainId)
             setTokenPrice(price)
         }
@@ -468,7 +468,7 @@ export function RaffleInitialView({
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
-                fetchAndSet(tokenAddress, formwatch.chainId)
+                fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
             }
         }
         if (formwatch.token) {

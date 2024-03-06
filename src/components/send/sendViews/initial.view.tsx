@@ -608,7 +608,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
-        async function fetchAndSet(tokenAddress: string, chainId: string) {
+        async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
             const price = await utils.fetchTokenPrice(tokenAddress, chainId)
             setTokenPrice(price)
             if (!price) {
@@ -625,7 +625,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 } else {
                     setShowGaslessAvailable(false)
                 }
-                fetchAndSet(tokenAddress, formwatch.chainId)
+                fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
             }
         }
     }, [formwatch.token, formwatch.chainId, isConnected])
