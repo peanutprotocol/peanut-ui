@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/consts/general.consts'
 
+export const maxDuration = 300 // vercel timeout
+
 /**
  * Proxy requests from the UI to the API.
  * To every request:
