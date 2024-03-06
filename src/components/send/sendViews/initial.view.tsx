@@ -611,6 +611,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         async function fetchAndSet(tokenAddress: string, chainId: string) {
             const price = await utils.fetchTokenPrice(tokenAddress, chainId)
             setTokenPrice(price)
+            if (!price) {
+                setInputDenomination('TOKEN')
+            }
         }
 
         if (!isConnected) setTokenPrice(undefined)
