@@ -2,7 +2,6 @@
 import '@/styles/globals.css'
 import { Inter } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/react'
-import type { Metadata } from 'next'
 
 import * as config from '@/config'
 import { Store } from '@/store/store'
@@ -35,12 +34,6 @@ var art = `%c
 ⠀⠀⠈⠻⣿⣿⣿⠖⢀⠐⠿⠟⠋⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 ⠀⠀⠀⠀⠈⠉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀
 `
-
-export const metadata: Metadata = {
-    // without a title, warpcast won't validate your frame
-    title: 'Peanut Protocol',
-    description: 'Send crypto with a link',
-}
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     const [ready, setReady] = useState(false)
