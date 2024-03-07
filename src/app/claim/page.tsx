@@ -19,7 +19,7 @@ import Link from 'next/link'
 
 import { headers } from 'next/headers'
 
-export function currentURL(pathname: string): URL {
+function currentURL(pathname: string): URL {
     const headersList = headers()
     const host = headersList.get('x-forwarded-host') || headersList.get('host')
     const protocol = headersList.get('x-forwarded-proto') || 'http'
@@ -29,9 +29,9 @@ export function currentURL(pathname: string): URL {
 
 const DEFAULT_DEBUGGER_URL = process.env.DEBUGGER_URL ?? 'http://localhost:3010/'
 
-export const DEFAULT_DEBUGGER_HUB_URL = new URL('/hub', DEFAULT_DEBUGGER_URL).toString()
+const DEFAULT_DEBUGGER_HUB_URL = new URL('/hub', DEFAULT_DEBUGGER_URL).toString()
 
-export function createDebugUrl(frameURL: string | URL): string {
+function createDebugUrl(frameURL: string | URL): string {
     const url = new URL('/', DEFAULT_DEBUGGER_URL)
 
     url.searchParams.set('url', frameURL.toString())
