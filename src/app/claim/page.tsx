@@ -27,18 +27,6 @@ function currentURL(pathname: string): URL {
     return new URL(pathname, `${protocol}://${host}`)
 }
 
-const DEFAULT_DEBUGGER_URL = process.env.DEBUGGER_URL ?? 'http://localhost:3010/'
-
-const DEFAULT_DEBUGGER_HUB_URL = new URL('/hub', DEFAULT_DEBUGGER_URL).toString()
-
-function createDebugUrl(frameURL: string | URL): string {
-    const url = new URL('/', DEFAULT_DEBUGGER_URL)
-
-    url.searchParams.set('url', frameURL.toString())
-
-    return url.toString()
-}
-
 type Props = {
     params: { id: string }
     searchParams: { [key: string]: string | string[] | undefined }
@@ -111,15 +99,13 @@ export default function ClaimPage({ params, searchParams }: Props) {
     const url = currentURL('/')
     const previousFrame = getPreviousFrame<State>(searchParams)
 
-    const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
+    const [state] = useFramesReducer<State>(reducer, initialState, previousFrame)
 
     return (
         <global_components.PageWrapper>
             <components.Claim />
-            <FrameContainer postUrl="/frames" pathname="/" state={state} previousFrame={previousFrame}>
-                {/* <FrameImage src="https://framesjs.org/og.png" /> */}
+            <FrameContainer postUrl="/frames" pathname="/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://peanut.to/claim-metadata-img.jpg" />
-
                 <FrameButton action="link" target={url.toString()}>
                     Claim
                 </FrameButton>
