@@ -48,16 +48,13 @@ export default function Home({ searchParams }: NextServerPageProps) {
     const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
 
     return (
-        <global_components.PageWrapper>
-            <components.welcomePage />
-            <FrameContainer postUrl="/frames" pathname="/" state={state} previousFrame={previousFrame}>
-                {/* <FrameImage src="https://framesjs.org/og.png" /> */}
-                <FrameImage aspectRatio="1.91:1" src="https://peanut.to/claim-metadata-img.jpg" />
+        <FrameContainer postUrl="/frames" pathname="/" state={state} previousFrame={previousFrame}>
+            {/* <FrameImage src="https://framesjs.org/og.png" /> */}
+            <FrameImage aspectRatio="1.91:1" src="https://peanut.to/claim-metadata-img.jpg" />
 
-                <FrameButton action="link" target={'/'}>
-                    Claim
-                </FrameButton>
-            </FrameContainer>
-        </global_components.PageWrapper>
+            <FrameButton action="link" target={'/'}>
+                Claim
+            </FrameButton>
+        </FrameContainer>
     )
 }
