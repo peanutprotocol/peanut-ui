@@ -13,21 +13,6 @@ import {
     useFramesReducer,
 } from 'frames.js/next/server'
 
-export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Send crypto with a link',
-    // metadataBase: new URL('https://peanut.to'),
-    // icons: {
-    //     icon: '/logo-favicon.png',
-    // },
-    // openGraph: {
-    //     images: [
-    //         {
-    //             url: '/metadata-img.png',
-    //         },
-    //     ],
-    // },
-}
 type State = {
     active: string
     total_button_presses: number
