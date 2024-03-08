@@ -266,7 +266,10 @@ export function RaffleInitialView({
 
                 const password = await peanut.getRandomString(16)
 
-                const baseUrl = `${window.location.origin}/raffle/claim`
+                let baseUrl = ''
+                if (typeof window !== 'undefined') {
+                    baseUrl = `${window.location.origin}/raffle/claim`
+                }
 
                 const linkDetails = {
                     chainId: sendFormData.chainId,

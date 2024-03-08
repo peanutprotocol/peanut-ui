@@ -336,13 +336,18 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     )
                 )
 
+                let baseUrl = ''
+                if (typeof window !== 'undefined') {
+                    baseUrl = `${window.location.origin}/claim`
+                }
+
                 const linkDetails = {
                     chainId: sendFormData.chainId,
                     tokenAmount: parseFloat(tokenAmount.toFixed(6)),
                     tokenType: tokenType,
                     tokenAddress: tokenAddress,
                     tokenDecimals: tokenDecimals,
-                    baseUrl: window.location.origin + '/claim',
+                    baseUrl: baseUrl,
                     trackId: 'ui',
                 }
 
