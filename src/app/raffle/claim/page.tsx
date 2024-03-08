@@ -63,6 +63,7 @@ export default function RafflePage({ searchParams }: NextServerPageProps) {
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://peanut.to/raffle-metadata-img.png" />
 
+                {/* TODO: update button target */}
                 <FrameButton action="link" target={'/'}>
                     Claim
                 </FrameButton>

@@ -16,7 +16,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         ReactGA.initialize(process.env.GA_KEY ?? '')
         peanut.toggleVerbose(true)
-        peanut.greeting()
     }, [])
 
     useInitWeb3InboxClient({
