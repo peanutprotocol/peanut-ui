@@ -40,7 +40,7 @@ export const metadata: Metadata = {
     },
 }
 
-export function currentURL(pathname: string): URL {
+function currentURL(pathname: string): URL {
     const headersList = headers()
     const host = headersList.get('x-forwarded-host') || headersList.get('host')
     const protocol = headersList.get('x-forwarded-proto') || 'http'
