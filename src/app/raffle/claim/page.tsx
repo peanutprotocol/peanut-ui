@@ -12,6 +12,7 @@ import {
     getPreviousFrame,
     useFramesReducer,
 } from 'frames.js/next/server'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
@@ -39,6 +40,14 @@ export const metadata: Metadata = {
     },
 }
 
+export function currentURL(pathname: string): URL {
+    const headersList = headers()
+    const host = headersList.get('x-forwarded-host') || headersList.get('host')
+    const protocol = headersList.get('x-forwarded-proto') || 'http'
+
+    return new URL(pathname, `${protocol}://${host}`)
+}
+
 type State = {
     active: string
     total_button_presses: number
@@ -54,17 +63,19 @@ const reducer: FrameReducer<State> = (state, action) => {
 }
 
 export default function RafflePage({ searchParams }: NextServerPageProps) {
+    const url = currentURL('/raffle/claim')
     const previousFrame = getPreviousFrame<State>(searchParams)
 
     const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
+
+    console.log(url.toString())
     return (
         <global_components.PageWrapper bgColor="bg-red">
             <components.RaffleClaim />
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
-                <FrameImage aspectRatio="1.91:1" src="https://peanut.to/raffle-metadata-img.png" />
+                <FrameImage aspectRatio="1.91:1" src="https://staging.peanut.to/raffle-metadata-img.png" />
 
-                {/* TODO: update button target */}
-                <FrameButton action="link" target={'/'}>
+                <FrameButton action="link" target={url.toString()}>
                     Claim
                 </FrameButton>
             </FrameContainer>
