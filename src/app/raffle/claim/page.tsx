@@ -54,7 +54,7 @@ function currentURL(pathname: string): URL {
 }
 
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
-    const baseURL = 'https://peanut.to/claim'
+    const baseURL = 'https://peanut.to/raffle/claim'
 
     const queryParams = new URLSearchParams()
 
@@ -66,10 +66,7 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
             queryParams.append(key, value)
         }
     })
-
-    encodeURIComponent(queryParams.toString())
-
-    return `${baseURL}?${encodeURIComponent(queryParams.toString())}`
+    return `${baseURL}?${queryParams.toString()}`
 }
 
 type State = {
