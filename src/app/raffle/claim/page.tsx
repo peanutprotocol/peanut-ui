@@ -99,7 +99,7 @@ export default async function RafflePage({ searchParams, params }: Props) {
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://staging.peanut.to/raffle-metadata-img.png" />
 
-                <FrameButton action="link" target={url.toString()}>
+                <FrameButton action="link" target={'https://staging.peanut.to/raffle/claim?c=137&v=v4.3&t=ui'}>
                     Claim
                 </FrameButton>
             </FrameContainer>
