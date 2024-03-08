@@ -39,13 +39,26 @@ export const metadata: Metadata = {
         ],
     },
 }
+type Props = {
+    params: { id: string }
+    searchParams: { [key: string]: string | string[] | undefined }
+}
 
-function currentURL(pathname: string): URL {
-    const headersList = headers()
-    const host = headersList.get('x-forwarded-host') || headersList.get('host')
-    const protocol = headersList.get('x-forwarded-proto') || 'http'
+function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
+    const baseURL = 'https://peanut.to/claim'
 
-    return new URL(pathname, `${protocol}://${host}`)
+    const queryParams = new URLSearchParams()
+
+    Object.keys(searchParams).forEach((key) => {
+        const value = searchParams[key]
+        if (Array.isArray(value)) {
+            value.forEach((item) => queryParams.append(key, item))
+        } else if (value) {
+            queryParams.append(key, value)
+        }
+    })
+
+    return `${baseURL}?${queryParams.toString()}`
 }
 
 type State = {
@@ -62,8 +75,8 @@ const reducer: FrameReducer<State> = (state, action) => {
     }
 }
 
-export default function RafflePage({ searchParams }: NextServerPageProps) {
-    const url = currentURL('/raffle/claim')
+export default function RafflePage({ searchParams }: Props) {
+    const url = createURL(searchParams)
     const previousFrame = getPreviousFrame<State>(searchParams)
 
     const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
@@ -76,9 +89,7 @@ export default function RafflePage({ searchParams }: NextServerPageProps) {
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://staging.peanut.to/raffle-metadata-img.png" />
 
-                <FrameButton action="link" target={url.toString()}>
-                    Claim
-                </FrameButton>
+                <FrameButton>Claim</FrameButton>
             </FrameContainer>
         </>
     )
