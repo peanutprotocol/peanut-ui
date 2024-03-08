@@ -90,14 +90,14 @@ export default async function RafflePage({ searchParams, params }: Props) {
 
     const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
 
-    console.log(url)
+    console.log(url.toString())
     return (
         <>
             <components.RaffleClaim />
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://staging.peanut.to/raffle-metadata-img.png" />
 
-                <FrameButton action="link" target={url}>
+                <FrameButton action="link" target={url.toString()}>
                     Claim
                 </FrameButton>
             </FrameContainer>
