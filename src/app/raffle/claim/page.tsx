@@ -67,7 +67,9 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
         }
     })
 
-    return `${baseURL}?${queryParams.toString()}`
+    encodeURIComponent(queryParams.toString())
+
+    return `${baseURL}?${encodeURIComponent(queryParams.toString())}`
 }
 
 type State = {
