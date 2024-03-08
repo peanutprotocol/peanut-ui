@@ -20,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-    return (
-        <global_components.PageWrapper>
-            <components.Privacy />
-        </global_components.PageWrapper>
-    )
+    return <components.Privacy />
 }

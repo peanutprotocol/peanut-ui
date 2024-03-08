@@ -70,7 +70,8 @@ export default function RafflePage({ searchParams }: NextServerPageProps) {
 
     console.log(url.toString())
     return (
-        <global_components.PageWrapper bgColor="bg-red">
+        <>
+            {' '}
             <components.RaffleClaim />
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://staging.peanut.to/raffle-metadata-img.png" />
@@ -79,6 +80,6 @@ export default function RafflePage({ searchParams }: NextServerPageProps) {
                     Claim
                 </FrameButton>
             </FrameContainer>
-        </global_components.PageWrapper>
+        </>
     )
 }

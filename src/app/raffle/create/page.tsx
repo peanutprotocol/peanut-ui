@@ -20,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function CreateRafflePage() {
-    return (
-        <global_components.PageWrapper bgColor="bg-red">
-            <components.Send type="raffle" />
-        </global_components.PageWrapper>
-    )
+    return <components.Send type="raffle" />
 }

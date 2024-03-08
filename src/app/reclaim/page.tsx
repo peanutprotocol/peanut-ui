@@ -19,10 +19,6 @@ export const metadata: Metadata = {
     },
 }
 
-export default function SendPage() {
-    return (
-        <global_components.PageWrapper>
-            <components.Reclaim />
-        </global_components.PageWrapper>
-    )
+export default function ReclaimPage() {
+    return <components.Reclaim />
 }

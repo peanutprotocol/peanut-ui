@@ -53,7 +53,7 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
     }, [address])
 
     return (
-        <>
+        <global_components.PageWrapper bgColor={type === 'raffle' ? ' bg-red' : undefined}>
             {type == 'normal' && (
                 <global_components.CardWrapper mt=" mt-16 " shadow>
                     {createElement(_consts.SEND_SCREEN_MAP[sendScreen.screen].comp, {
@@ -86,6 +86,6 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
                     } as _consts.ISendScreenProps)}
                 </global_components.CardWrapper>
             )}
-        </>
+        </global_components.PageWrapper>
     )
 }

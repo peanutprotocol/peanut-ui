@@ -18,9 +18,5 @@ export const metadata: Metadata = {
     },
 }
 export default function AboutPage() {
-    return (
-        <global_components.PageWrapper showMarquee={false} bgColor="bg-lightblue">
-            <components.About />
-        </global_components.PageWrapper>
-    )
+    return <components.About />
 }

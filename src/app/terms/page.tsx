@@ -20,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function TermsPage() {
-    return (
-        <global_components.PageWrapper>
-            <components.Terms />
-        </global_components.PageWrapper>
-    )
+    return <components.Terms />
 }

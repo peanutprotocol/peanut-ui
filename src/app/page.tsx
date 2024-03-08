@@ -19,9 +19,5 @@ export const metadata: Metadata = {
 }
 
 export default function Home() {
-    return (
-        <global_components.PageWrapper>
-            <components.welcomePage />
-        </global_components.PageWrapper>
-    )
+    return <components.welcomePage />
 }

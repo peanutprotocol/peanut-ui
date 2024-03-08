@@ -20,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function SendPage() {
-    return (
-        <global_components.PageWrapper>
-            <components.Send type="normal" />
-        </global_components.PageWrapper>
-    )
+    return <components.Send type="normal" />
 }

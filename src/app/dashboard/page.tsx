@@ -20,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function DashboardPage() {
-    return (
-        <global_components.PageWrapper>
-            <components.Dashboard />
-        </global_components.PageWrapper>
-    )
+    return <components.Dashboard />
 }

@@ -20,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function BlogPage() {
-    return (
-        <global_components.PageWrapper showMarquee={false} bgColor="bg-lightblue">
-            <components.Blog />
-        </global_components.PageWrapper>
-    )
+    return <components.Blog />
 }
