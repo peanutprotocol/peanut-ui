@@ -13,9 +13,11 @@ import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
+    const [isReady, setIsReady] = useState(false)
     useEffect(() => {
         ReactGA.initialize(process.env.GA_KEY ?? '')
         peanut.toggleVerbose(true)
+        setIsReady(true)
     }, [])
 
     useInitWeb3InboxClient({
@@ -30,12 +32,14 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-            <config.ContextProvider>
-                <Store>
-                    {children}
-                    <Analytics />
-                </Store>
-            </config.ContextProvider>
+            {isReady && (
+                <config.ContextProvider>
+                    <Store>
+                        {children}
+                        <Analytics />
+                    </Store>
+                </config.ContextProvider>
+            )}
         </>
     )
 }
