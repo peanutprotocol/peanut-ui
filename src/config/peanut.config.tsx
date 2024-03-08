@@ -6,6 +6,7 @@ import { Analytics } from '@vercel/analytics/react'
 import { useEffect, useState } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import ReactGA from 'react-ga4'
+import { useIsMounted } from 'usehooks-ts'
 
 import '../../sentry.client.config'
 import '../../sentry.server.config'
@@ -14,10 +15,11 @@ import 'react-tooltip/dist/react-tooltip.css'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     const [isReady, setIsReady] = useState(false)
+    const isMounted = useIsMounted()
     useEffect(() => {
         ReactGA.initialize(process.env.GA_KEY ?? '')
         peanut.toggleVerbose(true)
-        setIsReady(true)
+        isMounted() && setIsReady(true)
     }, [])
 
     useInitWeb3InboxClient({
