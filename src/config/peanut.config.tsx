@@ -29,13 +29,11 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
     })
 
     return (
-        <>
-            <config.ContextProvider>
-                <Store>
-                    {children}
-                    <Analytics />
-                </Store>
-            </config.ContextProvider>
-        </>
+        <config.ContextProvider>
+            <Store>
+                {children}
+                <Analytics />
+            </Store>
+        </config.ContextProvider>
     )
 }
