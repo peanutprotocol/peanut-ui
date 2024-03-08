@@ -44,6 +44,15 @@ type Props = {
     searchParams: { [key: string]: string | string[] | undefined }
 }
 
+function currentURL(pathname: string): URL {
+    const headersList = headers()
+    console.log(headersList)
+    const host = headersList.get('x-forwarded-host') || headersList.get('host')
+    const protocol = headersList.get('x-forwarded-proto') || 'http'
+
+    return new URL(pathname, `${protocol}://${host}`)
+}
+
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
     const baseURL = 'https://peanut.to/claim'
 
@@ -75,21 +84,22 @@ const reducer: FrameReducer<State> = (state, action) => {
     }
 }
 
-export default function RafflePage({ searchParams }: Props) {
+export default async function RafflePage({ searchParams, params }: Props) {
     const url = createURL(searchParams)
     const previousFrame = getPreviousFrame<State>(searchParams)
 
     const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
 
-    console.log(url.toString())
+    console.log(url)
     return (
         <>
-            {' '}
             <components.RaffleClaim />
             <FrameContainer postUrl="/frames" pathname="/raffle/claim" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://staging.peanut.to/raffle-metadata-img.png" />
 
-                <FrameButton>Claim</FrameButton>
+                <FrameButton action="link" target={url}>
+                    Claim
+                </FrameButton>
             </FrameContainer>
         </>
     )
