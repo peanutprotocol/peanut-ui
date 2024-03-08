@@ -3,10 +3,9 @@ import { useInitWeb3InboxClient } from '@web3inbox/widget-react'
 import * as config from '@/config'
 import { Store } from '@/store/store'
 import { Analytics } from '@vercel/analytics/react'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import ReactGA from 'react-ga4'
-import { useIsMounted } from 'usehooks-ts'
 
 import '../../sentry.client.config'
 import '../../sentry.server.config'
@@ -14,12 +13,9 @@ import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
-    const [isReady, setIsReady] = useState(false)
-    const isMounted = useIsMounted()
     useEffect(() => {
         ReactGA.initialize(process.env.GA_KEY ?? '')
         peanut.toggleVerbose(true)
-        isMounted() && setIsReady(true)
     }, [])
 
     useInitWeb3InboxClient({
@@ -34,14 +30,12 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <>
-            {isReady && (
-                <config.ContextProvider>
-                    <Store>
-                        {children}
-                        <Analytics />
-                    </Store>
-                </config.ContextProvider>
-            )}
+            <config.ContextProvider>
+                <Store>
+                    {children}
+                    <Analytics />
+                </Store>
+            </config.ContextProvider>
         </>
     )
 }
