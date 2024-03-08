@@ -60,7 +60,7 @@ export default function RafflePage({ searchParams }: NextServerPageProps) {
     return (
         <global_components.PageWrapper bgColor="bg-red">
             <components.RaffleClaim />
-            <FrameContainer postUrl="/frames" pathname="/" state={state} previousFrame={previousFrame}>
+            <FrameContainer postUrl="/frames" pathname="/raffle" state={state} previousFrame={previousFrame}>
                 <FrameImage aspectRatio="1.91:1" src="https://peanut.to/raffle-metadata-img.png" />
 
                 <FrameButton action="link" target={'/'}>
