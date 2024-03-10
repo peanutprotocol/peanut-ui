@@ -238,8 +238,6 @@ export function Store({ children }: { children: React.ReactNode }) {
 
                 const mobulaResponseJson = await mobulaResponse.json()
 
-                console.log(mobulaResponseJson)
-
                 const mappedUserBalances = mapToUserBalances(mobulaResponseJson.data).sort(
                     (a: interfaces.IUserBalance, b: interfaces.IUserBalance) => {
                         if (a.chainId === b.chainId) {
@@ -252,8 +250,6 @@ export function Store({ children }: { children: React.ReactNode }) {
                         }
                     }
                 )
-
-                console.log(mappedUserBalances)
 
                 if (mobulaResponse.ok) {
                     setUserBalances(mappedUserBalances)
