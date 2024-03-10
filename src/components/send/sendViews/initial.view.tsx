@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
-import { waitForTransactionReceipt, sendTransaction } from 'wagmi/actions'
+import { waitForTransactionReceipt, readContract } from 'wagmi/actions'
 
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
@@ -482,19 +482,33 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
                                 ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
                                 : undefined,
+                            chainId: Number(linkDetails.chainId), //TODO: chainId as number here
                         })
                         setLoadingStates('executing transaction')
                         console.log(hash)
 
-                        if (prepareTxsResponse.unsignedTxs.length == 2 && idx == 0) {
-                            // Wait for the transaction to be mined using wagmi/actions
-                            // Only doing this for the approval transaction (the first tx)
-                            await waitForTransactionReceipt(config, {
-                                confirmations: 2,
-                                hash: hash,
-                                chainId: Number(sendFormData.chainId),
-                            })
+                        // Wait for the transaction to be mined using wagmi/actions
+                        // Only doing this for the approval transaction (the first tx)
+                        // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
+                        if (prepareTxsResponse.unsignedTxs.length === 2 && idx === 0) {
+                            for (let attempt = 0; attempt < 3; attempt++) {
+                                try {
+                                    await waitForTransactionReceipt(config, {
+                                        confirmations: 4,
+                                        hash: hash,
+                                        chainId: Number(sendFormData.chainId),
+                                    })
+                                    break
+                                } catch (error) {
+                                    if (attempt < 2) {
+                                        await new Promise((resolve) => setTimeout(resolve, 500))
+                                    } else {
+                                        console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                                    }
+                                }
+                            }
                         }
+
                         signedTxsResponse.push(hash.toString())
                         idx++
                     }
