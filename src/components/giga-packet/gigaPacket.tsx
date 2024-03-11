@@ -17,8 +17,8 @@
 //     createMultiLinkFromLinks,
 //     validateUserName,
 // } from '@squirrel-labs/peanut-sdk'
-// import clipboard_svg from '@/assets/clipboard.svg'
-// import checkbox_svg from '@/assets/checkbox.svg'
+// import clipboard_svg from '@/assets/icons/clipboard.svg'
+// import checkbox_svg from '@/assets/icons/checkbox.svg'
 
 // import * as utils from '@/utils'
 // import * as consts from '@/consts'

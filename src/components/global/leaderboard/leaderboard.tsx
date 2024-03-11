@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as utils from '@/utils'
-import chevron from '@/assets/dropdown.svg'
+import chevron from '@/assets/icons/dropdown.svg'
 
 const mock = [
     {

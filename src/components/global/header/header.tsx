@@ -9,7 +9,7 @@ import { Bars3Icon, XMarkIcon } from '@heroicons/react/24/outline'
 import * as utils from '@/utils'
 import * as hooks from '@/hooks'
 
-import peanut_logo from '@/assets/peanutman-logo.svg'
+import peanut_logo from '@/assets/peanut/peanutman-logo.svg'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()

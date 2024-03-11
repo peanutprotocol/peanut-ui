@@ -1,4 +1,4 @@
-import peanutman_sad from '@/assets/peanutman-sad.svg'
+import peanutman_sad from '@/assets/peanut/peanutman-sad.svg'
 import * as global_components from '@/components/global'
 
 export function Blog() {

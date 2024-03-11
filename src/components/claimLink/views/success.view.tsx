@@ -6,7 +6,7 @@ import * as store from '@/store/'
 import * as global_components from '@/components/global'
 import * as hooks from '@/hooks'
 import * as utils from '@/utils'
-import dropdown_svg from '@/assets/dropdown.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 

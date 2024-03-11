@@ -12,10 +12,10 @@ import * as utils from '@/utils'
 import * as _consts from '../claim.consts'
 import * as store from '@/store'
 import * as consts from '@/consts'
-import dropdown_svg from '@/assets/dropdown.svg'
-import peanutman_logo from '@/assets/peanutman-logo.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
+import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
 import axios from 'axios'
-import checkbox from '@/assets/checkbox.svg'
+import checkbox from '@/assets/icons/checkbox.svg'
 
 export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setTxHash }: _consts.IClaimScreenProps) {
     const { isConnected, address } = useAccount()

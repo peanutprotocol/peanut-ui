@@ -14,7 +14,7 @@ import { useLottie } from 'lottie-react'
 import ReCAPTCHA from 'react-google-recaptcha'
 import { useAtom } from 'jotai'
 
-import dropdown_svg from '@/assets/dropdown.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 import * as global_components from '@/components/global'

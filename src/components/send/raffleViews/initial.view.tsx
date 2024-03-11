@@ -17,7 +17,7 @@ import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
-import dropdown_svg from '@/assets/dropdown.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
 
 export function RaffleInitialView({
     onNextScreen,

@@ -1,4 +1,4 @@
-import peanutman_happy from '@/assets/peanutman-happy.svg'
+import peanutman_happy from '@/assets/peanut/peanutman-happy.svg'
 import * as global_components from '@/components/global'
 
 export function Jobs() {

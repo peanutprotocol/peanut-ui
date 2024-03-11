@@ -1,8 +1,8 @@
 import * as global_components from '@/components/global'
-import smiley from '@/assets/smiley.svg'
+import smiley from '@/assets/icons/smiley.svg'
 import hugo_png from '@/assets/people/hugo0-no-bg.png'
 import konrad_png from '@/assets/people/kkonrad-no-bg.png'
-import peanutman_cheering from '@/assets/peanutman-cheering.svg'
+import peanutman_cheering from '@/assets/peanut/peanutman-cheering.svg'
 
 export function About() {
     return (
