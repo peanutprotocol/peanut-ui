@@ -179,7 +179,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
         //check if the amount is less than the user balance
         if (userBalances.length > 0) {
-            const userBalance = userBalances.find((balance) => balance.chainId == sendFormData.chainId)
+            const userBalance = userBalances.find(
+                (balance) => balance.chainId == sendFormData.chainId && balance.symbol == sendFormData.token
+            )
+
             if (userBalance) {
                 if (Number(sendFormData.amount) > userBalance.amount) {
                     setErrorState({
