@@ -518,30 +518,12 @@ export function xchainClaimView({
                                 decimals: possibleRoutesArray.find(
                                     (route) => route.route.params.toToken === selectedToken.address
                                 ).route.estimate.toToken.decimals,
-                            })
+                            }) * consts.xchainFeeMultiplier
                         )}{' '}
                         {
                             possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
                                 .route.estimate.toToken.name
                         }
-                        {/* {utils.formatAmount(
-                            utils.formatAmountWithDecimals({
-                                amount: possibleRoutesArray.find(
-                                    (route) => route.route.params.toToken === selectedToken.address
-                                ).route.estimate.toAmountMin,
-                                decimals: possibleRoutesArray.find(
-                                    (route) => route.route.params.toToken === selectedToken.address
-                                ).route.estimate.toToken.decimals,
-                            }) /
-                                possibleRoutesArray.find(
-                                    (route) => route.route.params.toToken === selectedToken.address
-                                ).route.estimate.exchangeRate
-                        )}{' '}
-                        in{' '}
-                        {
-                            possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
-                                .route.estimate.toToken.name
-                        }{' '} */}{' '}
                         on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
                     </h2>
                 )
@@ -642,8 +624,7 @@ export function xchainClaimView({
                     ) : (
                         'Connect Wallet'
                     )}
-                </button>
-                {selectedToken && <p>Cross-chain claims have a 2% fee. </p>}
+                </button>{' '}
             </div>
 
             <div

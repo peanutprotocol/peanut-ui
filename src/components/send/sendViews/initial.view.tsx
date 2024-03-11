@@ -177,6 +177,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { succes: 'false' }
         }
 
+        //check if the amount is less than the user balance
+        if (userBalances.length > 0) {
+            const userBalance = userBalances.find(
+                (balance) => balance.chainId == sendFormData.chainId && balance.symbol == sendFormData.token
+            )
+
+            if (userBalance) {
+                if (Number(sendFormData.amount) > userBalance.amount) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: "You don't have enough funds",
+                    })
+                    return { succes: 'false' }
+                }
+            }
+        }
+
         return { succes: 'true' }
     }
 
