@@ -1,4 +1,3 @@
-import * as global_components from '@/components/global'
 import * as components from '@/components'
 import { Metadata } from 'next'
 

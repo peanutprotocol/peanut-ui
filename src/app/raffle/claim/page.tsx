@@ -1,14 +1,10 @@
-import * as global_components from '@/components/global'
 import * as components from '@/components'
 import { Metadata } from 'next'
 import {
     FrameButton,
     FrameContainer,
     FrameImage,
-    FrameInput,
     FrameReducer,
-    NextServerPageProps,
-    getFrameMessage,
     getPreviousFrame,
     useFramesReducer,
 } from 'frames.js/next/server'
