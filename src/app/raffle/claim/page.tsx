@@ -41,10 +41,7 @@ type Props = {
 }
 
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
-    const headersList = headers()
-    const host = headersList.get('x-forwarded-host') || headersList.get('host')
-
-    const baseURL = `${host}/raffle/claim`
+    const baseURL = `https://peanut.to/raffle/claim`
 
     const queryParams = new URLSearchParams()
 
@@ -74,8 +71,14 @@ const reducer: FrameReducer<State> = (state, action) => {
 }
 
 export default async function RafflePage({ searchParams, params }: Props) {
-    const url = createURL(searchParams)
-    const previousFrame = getPreviousFrame<State>(searchParams)
+    let url = ''
+    let previousFrame: any = {}
+    try {
+        url = createURL(searchParams)
+        previousFrame = getPreviousFrame<State>(searchParams)
+    } catch (error) {
+        console.log('Error creating URL', error)
+    }
 
     const [state] = useFramesReducer<State>(reducer, initialState, previousFrame)
     return (
