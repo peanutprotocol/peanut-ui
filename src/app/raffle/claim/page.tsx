@@ -44,17 +44,11 @@ type Props = {
     searchParams: { [key: string]: string | string[] | undefined }
 }
 
-function currentURL(pathname: string): URL {
-    const headersList = headers()
-    console.log(headersList)
-    const host = headersList.get('x-forwarded-host') || headersList.get('host')
-    const protocol = headersList.get('x-forwarded-proto') || 'http'
-
-    return new URL(pathname, `${protocol}://${host}`)
-}
-
 function createURL(searchParams: { [key: string]: string | string[] | undefined }): string {
-    const baseURL = 'https://peanut.to/raffle/claim'
+    const headersList = headers()
+    const host = headersList.get('x-forwarded-host') || headersList.get('host')
+
+    const baseURL = `${host}/raffle/claim`
 
     const queryParams = new URLSearchParams()
 
@@ -87,9 +81,7 @@ export default async function RafflePage({ searchParams, params }: Props) {
     const url = createURL(searchParams)
     const previousFrame = getPreviousFrame<State>(searchParams)
 
-    const [state, dispatch] = useFramesReducer<State>(reducer, initialState, previousFrame)
-
-    console.log(url.toString())
+    const [state] = useFramesReducer<State>(reducer, initialState, previousFrame)
     return (
         <>
             <components.RaffleClaim />
