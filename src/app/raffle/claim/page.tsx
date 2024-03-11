@@ -44,7 +44,7 @@ function createURL(searchParams: { [key: string]: string | string[] | undefined 
     const headersList = headers()
     const host = headersList.get('x-forwarded-host') || headersList.get('host')
 
-    const baseURL = `${host}/raffle/claim`
+    const baseURL = `https://${host}/raffle/claim`
 
     const queryParams = new URLSearchParams()
 
