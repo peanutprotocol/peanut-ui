@@ -31,6 +31,7 @@
         "encoding": "^0.1.13",
         "eslint-config-next": "^14.1.1",
         "ethers": "5.7.2",
+        "frames.js": "^0.8.0",
         "jotai": "^2.2.2",
         "lokijs": "^1.5.12",
         "lottie-react": "^2.4.0",

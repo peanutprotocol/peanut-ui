@@ -1,4 +1,3 @@
-import * as global_components from '@/components/global'
 import * as components from '@/components'
 import { Metadata } from 'next'
 
@@ -19,9 +18,5 @@ export const metadata: Metadata = {
 }
 
 export default function Home() {
-    return (
-        <global_components.PageWrapper>
-            <components.welcomePage />
-        </global_components.PageWrapper>
-    )
+    return <components.welcomePage />
 }

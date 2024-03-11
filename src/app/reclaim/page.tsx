@@ -1,4 +1,3 @@
-import * as global_components from '@/components/global'
 import * as components from '@/components'
 import { Metadata } from 'next'
 
@@ -19,10 +18,6 @@ export const metadata: Metadata = {
     },
 }
 
-export default function SendPage() {
-    return (
-        <global_components.PageWrapper>
-            <components.Reclaim />
-        </global_components.PageWrapper>
-    )
+export default function ReclaimPage() {
+    return <components.Reclaim />
 }

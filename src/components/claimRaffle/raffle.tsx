@@ -122,51 +122,53 @@ export function RaffleClaim() {
     }, [])
 
     return (
-        <global_components.CardWrapper pt=" pt-16 ">
-            {raffleState === 'TIMEOUT' && (
-                <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
-                    <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
-                    <span className="text-center text-xl">
-                        Our services are under heavy load. Please try again later.
-                    </span>
-                </div>
-            )}
-            {raffleState === 'TOO_LATE' && (
-                <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
-                    <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
-                    <span className="text-center text-xl">You have already opened this raffle.</span>
-                </div>
-            )}
-            {raffleState === 'LOADING' && (
-                <div className="animate-spin pb-16 pt-16">
-                    <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />
-                    <span className="sr-only">Loading...</span>
-                </div>
-            )}
-            {raffleState === 'NOT_FOUND' && <views.RaffleNotFound />}
-            {raffleState === 'EMPTY' && <views.RaffleEmpty leaderboardInfo={leaderboardInfo ?? []} />}
+        <global_components.PageWrapper bgColor="bg-red">
+            <global_components.CardWrapper pt=" pt-16 ">
+                {raffleState === 'TIMEOUT' && (
+                    <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
+                        <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
+                        <span className="text-center text-xl">
+                            Our services are under heavy load. Please try again later.
+                        </span>
+                    </div>
+                )}
+                {raffleState === 'TOO_LATE' && (
+                    <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
+                        <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
+                        <span className="text-center text-xl">You have already opened this raffle.</span>
+                    </div>
+                )}
+                {raffleState === 'LOADING' && (
+                    <div className="animate-spin pb-16 pt-16">
+                        <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                )}
+                {raffleState === 'NOT_FOUND' && <views.RaffleNotFound />}
+                {raffleState === 'EMPTY' && <views.RaffleEmpty leaderboardInfo={leaderboardInfo ?? []} />}
 
-            {raffleState === 'FOUND' &&
-                createElement(_consts.RAFFLE_SCREEN_MAP[raffleScreen.screen].comp, {
-                    onNextScreen: handleOnNext,
-                    onCustomScreen: handleOnCustom,
-                    raffleLink,
-                    setRaffleLink,
-                    raffleInfo,
-                    setRaffleInfo,
-                    raffleClaimedInfo,
-                    setRaffleClaimedInfo,
-                    ensName,
-                    setEnsName,
-                    leaderboardInfo,
-                    setLeaderboardInfo,
-                    senderName,
-                    setSenderName,
-                    recipientName,
-                    setRecipientName,
-                    userStatus,
-                    setUserStatus,
-                } as _consts.IRaffleScreenProps)}
-        </global_components.CardWrapper>
+                {raffleState === 'FOUND' &&
+                    createElement(_consts.RAFFLE_SCREEN_MAP[raffleScreen.screen].comp, {
+                        onNextScreen: handleOnNext,
+                        onCustomScreen: handleOnCustom,
+                        raffleLink,
+                        setRaffleLink,
+                        raffleInfo,
+                        setRaffleInfo,
+                        raffleClaimedInfo,
+                        setRaffleClaimedInfo,
+                        ensName,
+                        setEnsName,
+                        leaderboardInfo,
+                        setLeaderboardInfo,
+                        senderName,
+                        setSenderName,
+                        recipientName,
+                        setRecipientName,
+                        userStatus,
+                        setUserStatus,
+                    } as _consts.IRaffleScreenProps)}
+            </global_components.CardWrapper>{' '}
+        </global_components.PageWrapper>
     )
 }

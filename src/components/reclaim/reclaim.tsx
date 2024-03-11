@@ -141,96 +141,99 @@ export function Reclaim() {
     }
 
     return (
-        <global_components.CardWrapper>
-            <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
-                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Reclaim</h2>
-                <div className="my-0 w-4/5 font-normal">
-                    This is a page specific for reclaiming links that failed while creating, but the funds did leave
-                    your wallet. Please provide the transaction hash and chainId, and you will be able to claim. Please
-                    note that you will have to be connected with the same wallet that you tried creating the link with.
-                </div>
-            </div>
-
-            <form className="w-full" onSubmit={reclaimForm.handleSubmit(reclaimDeposit)}>
-                <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
-                    <div className="grid grid-cols-2 items-center justify-center gap-2">
-                        <label>Chain</label>
-                        <select className="brutalborder p-1" {...reclaimForm.register('chainId')}>
-                            {chainDetails.map((detail: any) => {
-                                return (
-                                    <option key={detail.chainId} value={detail.chainId}>
-                                        {detail.name}
-                                    </option>
-                                )
-                            })}
-                        </select>
-
-                        <label>Transaction hash</label>
-                        <input
-                            placeholder="0x123..."
-                            className="brutalborder p-1"
-                            {...reclaimForm.register('transactionHash')}
-                        />
+        <global_components.PageWrapper>
+            <global_components.CardWrapper>
+                <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
+                    <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Reclaim</h2>
+                    <div className="my-0 w-4/5 font-normal">
+                        This is a page specific for reclaiming links that failed while creating, but the funds did leave
+                        your wallet. Please provide the transaction hash and chainId, and you will be able to claim.
+                        Please note that you will have to be connected with the same wallet that you tried creating the
+                        link with.
                     </div>
-                    <div
-                        className={
-                            errorState.showError || claimedExploredUrlWithHash
-                                ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
-                                : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
-                        }
-                    >
-                        <button
-                            type={isConnected ? 'submit' : 'button'}
-                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-1  text-2xl font-black sm:w-2/5 lg:w-1/2"
-                            id="cta-btn"
-                            onClick={() => {
-                                if (!isConnected) {
-                                    open()
-                                }
-                            }}
-                            disabled={isLoading || claimedExploredUrlWithHash ? true : false}
+                </div>
+
+                <form className="w-full" onSubmit={reclaimForm.handleSubmit(reclaimDeposit)}>
+                    <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
+                        <div className="grid grid-cols-2 items-center justify-center gap-2">
+                            <label>Chain</label>
+                            <select className="brutalborder p-1" {...reclaimForm.register('chainId')}>
+                                {chainDetails.map((detail: any) => {
+                                    return (
+                                        <option key={detail.chainId} value={detail.chainId}>
+                                            {detail.name}
+                                        </option>
+                                    )
+                                })}
+                            </select>
+
+                            <label>Transaction hash</label>
+                            <input
+                                placeholder="0x123..."
+                                className="brutalborder p-1"
+                                {...reclaimForm.register('transactionHash')}
+                            />
+                        </div>
+                        <div
+                            className={
+                                errorState.showError || claimedExploredUrlWithHash
+                                    ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
+                                    : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
+                            }
                         >
-                            {isLoading ? (
-                                <div className="flex justify-center gap-1">
-                                    <label>{loadingStates} </label>
-                                    <span className="bouncing-dots flex">
-                                        <span className="dot">.</span>
-                                        <span className="dot">.</span>
-                                        <span className="dot">.</span>
-                                    </span>
+                            <button
+                                type={isConnected ? 'submit' : 'button'}
+                                className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-1  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                id="cta-btn"
+                                onClick={() => {
+                                    if (!isConnected) {
+                                        open()
+                                    }
+                                }}
+                                disabled={isLoading || claimedExploredUrlWithHash ? true : false}
+                            >
+                                {isLoading ? (
+                                    <div className="flex justify-center gap-1">
+                                        <label>{loadingStates} </label>
+                                        <span className="bouncing-dots flex">
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                        </span>
+                                    </div>
+                                ) : !isConnected ? (
+                                    'Connect Wallet'
+                                ) : claimedExploredUrlWithHash ? (
+                                    'Success'
+                                ) : (
+                                    'Claim'
+                                )}
+                            </button>
+                            {claimedExploredUrlWithHash ? (
+                                <div className="flex flex-col items-center justify-center gap-1">
+                                    {' '}
+                                    Success! Your funds will be available in your wallet again shortly.
+                                    <p className="tx-sm">
+                                        <a
+                                            href={claimedExploredUrlWithHash ?? ''}
+                                            target="_blank"
+                                            className="cursor-pointer text-center text-sm text-black underline "
+                                        >
+                                            Your transaction hash
+                                        </a>
+                                    </p>
                                 </div>
-                            ) : !isConnected ? (
-                                'Connect Wallet'
-                            ) : claimedExploredUrlWithHash ? (
-                                'Success'
                             ) : (
-                                'Claim'
+                                errorState.showError && (
+                                    <div className="text-center">
+                                        <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                                    </div>
+                                )
                             )}
-                        </button>
-                        {claimedExploredUrlWithHash ? (
-                            <div className="flex flex-col items-center justify-center gap-1">
-                                {' '}
-                                Success! Your funds will be available in your wallet again shortly.
-                                <p className="tx-sm">
-                                    <a
-                                        href={claimedExploredUrlWithHash ?? ''}
-                                        target="_blank"
-                                        className="cursor-pointer text-center text-sm text-black underline "
-                                    >
-                                        Your transaction hash
-                                    </a>
-                                </p>
-                            </div>
-                        ) : (
-                            errorState.showError && (
-                                <div className="text-center">
-                                    <label className="font-bold text-red ">{errorState.errorMessage}</label>
-                                </div>
-                            )
-                        )}
+                        </div>
                     </div>
-                </div>
-            </form>
-        </global_components.CardWrapper>
+                </form>
+            </global_components.CardWrapper>{' '}
+        </global_components.PageWrapper>
     )
 }

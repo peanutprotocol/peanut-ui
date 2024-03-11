@@ -7,12 +7,12 @@ export const useConfirmRefresh = (enable: boolean) => {
             event.returnValue = '' // This is required for Chrome
         }
 
-        if (enable) {
+        if (enable && typeof window !== 'undefined') {
             window.addEventListener('beforeunload', handleBeforeUnload)
         }
 
         return () => {
-            if (enable) {
+            if (enable && typeof window !== 'undefined') {
                 window.removeEventListener('beforeunload', handleBeforeUnload)
             }
         }

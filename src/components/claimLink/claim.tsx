@@ -196,69 +196,71 @@ export function Claim() {
     }, [])
 
     return (
-        <global_components.CardWrapper>
-            {linkState === 'LOADING' && (
-                <div className="animate-spin">
-                    <img src={peanutman_logo.src} alt="logo" className="h-6 sm:h-10" />
-                    <span className="sr-only">Loading...</span>
-                </div>
-            )}
-            {linkState === 'NOT_FOUND' && <views.ClaimLinkNotFoundView />}
-            {linkState === 'ALREADY_CLAIMED' && <views.ClaimLinkAlreadyClaimedView claimDetails={claimDetails} />}
-            {linkState === 'CLAIM' &&
-                createElement(_consts.CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
-                    onNextScreen: handleOnNext,
-                    onCustomScreen: handleOnCustom,
-                    claimLink,
-                    setClaimLink,
-                    claimDetails,
-                    txHash,
-                    setTxHash,
-                    claimType,
-                    setClaimType,
-                    tokenPrice,
-                    setTokenPrice,
-                    senderAddress,
-                    setSenderAddress,
-                } as _consts.IClaimScreenProps)}
-            {linkState === 'MULTILINK_CLAIM' &&
-                createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
-                    onNextScreen: handleOnNext,
-                    onCustomScreen: handleOnCustom,
-                    claimLink,
-                    setClaimLink,
-                    claimDetails,
-                    txHash,
-                    setTxHash,
-                    claimType,
-                    setClaimType,
-                    tokenPrice,
-                    setTokenPrice,
-                    senderAddress,
-                    setSenderAddress,
-                } as _consts.IClaimScreenProps)}
-            {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
-                <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
-            )}
-            {linkState === 'XCHAIN_CLAIM' &&
-                createElement(_consts.XCHAIN_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
-                    onNextScreen: handleOnNext,
-                    onCustomScreen: handleOnCustom,
-                    claimLink,
-                    setClaimLink,
-                    claimDetails,
-                    txHash,
-                    setTxHash,
-                    claimType,
-                    setClaimType,
-                    tokenPrice,
-                    setTokenPrice,
-                    crossChainDetails,
-                    crossChainSuccess,
-                    setCrossChainSuccess,
-                    senderAddress,
-                    setSenderAddress,
-                } as _consts.IClaimScreenProps)}
-        </global_components.CardWrapper>
+        <global_components.PageWrapper>
+            <global_components.CardWrapper>
+                {linkState === 'LOADING' && (
+                    <div className="animate-spin">
+                        <img src={peanutman_logo.src} alt="logo" className="h-6 sm:h-10" />
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                )}
+                {linkState === 'NOT_FOUND' && <views.ClaimLinkNotFoundView />}
+                {linkState === 'ALREADY_CLAIMED' && <views.ClaimLinkAlreadyClaimedView claimDetails={claimDetails} />}
+                {linkState === 'CLAIM' &&
+                    createElement(_consts.CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
+                        onNextScreen: handleOnNext,
+                        onCustomScreen: handleOnCustom,
+                        claimLink,
+                        setClaimLink,
+                        claimDetails,
+                        txHash,
+                        setTxHash,
+                        claimType,
+                        setClaimType,
+                        tokenPrice,
+                        setTokenPrice,
+                        senderAddress,
+                        setSenderAddress,
+                    } as _consts.IClaimScreenProps)}
+                {linkState === 'MULTILINK_CLAIM' &&
+                    createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
+                        onNextScreen: handleOnNext,
+                        onCustomScreen: handleOnCustom,
+                        claimLink,
+                        setClaimLink,
+                        claimDetails,
+                        txHash,
+                        setTxHash,
+                        claimType,
+                        setClaimType,
+                        tokenPrice,
+                        setTokenPrice,
+                        senderAddress,
+                        setSenderAddress,
+                    } as _consts.IClaimScreenProps)}
+                {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
+                    <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
+                )}
+                {linkState === 'XCHAIN_CLAIM' &&
+                    createElement(_consts.XCHAIN_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
+                        onNextScreen: handleOnNext,
+                        onCustomScreen: handleOnCustom,
+                        claimLink,
+                        setClaimLink,
+                        claimDetails,
+                        txHash,
+                        setTxHash,
+                        claimType,
+                        setClaimType,
+                        tokenPrice,
+                        setTokenPrice,
+                        crossChainDetails,
+                        crossChainSuccess,
+                        setCrossChainSuccess,
+                        senderAddress,
+                        setSenderAddress,
+                    } as _consts.IClaimScreenProps)}
+            </global_components.CardWrapper>{' '}
+        </global_components.PageWrapper>
     )
 }

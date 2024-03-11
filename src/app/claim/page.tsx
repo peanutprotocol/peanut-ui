@@ -1,4 +1,3 @@
-import * as global_components from '@/components/global'
 import * as components from '@/components'
 import { Metadata, ResolvingMetadata } from 'next'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
@@ -60,9 +59,5 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 }
 
 export default function ClaimPage({ params, searchParams }: Props) {
-    return (
-        <global_components.PageWrapper>
-            <components.Claim />
-        </global_components.PageWrapper>
-    )
+    return <components.Claim />
 }

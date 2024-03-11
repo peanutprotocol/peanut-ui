@@ -59,7 +59,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
             console.log(isSubscribed)
             setIsLoading(false)
         }
-    }, [isSubscribed, address, window])
+    }, [isSubscribed, address])
 
     const handleRegistration = useCallback(async () => {
         if (!account) return

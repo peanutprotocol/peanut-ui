@@ -234,5 +234,9 @@ export function formatMessage(message: string) {
 }
 
 export const isMantleInUrl = (): boolean => {
-    return window.location.origin.includes('mantle') ? true : false
+    if (typeof window !== 'undefined') {
+        return window.location.origin.includes('mantle') ? true : false
+    } else {
+        return false
+    }
 }
