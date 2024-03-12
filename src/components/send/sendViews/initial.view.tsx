@@ -18,7 +18,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/icons/switch.svg'
 import dropdown_svg from '@/assets/icons/dropdown.svg'
-import peanut, { makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
+import peanut, { getTokenBalance, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -147,7 +147,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 showError: true,
                 errorMessage: 'Please select a chain and token',
             })
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
         //check if the amount is less than or equal to zero
@@ -156,7 +156,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
             })
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
         if (advancedDropdownOpen && !Number.isInteger(sendFormData.bulkAmount)) {
@@ -164,7 +164,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 showError: true,
                 errorMessage: 'Please define a non-decimal number of links',
             })
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
         //check if the bulkAmount is less than or equal to zero when bulk is selected
@@ -173,28 +173,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 showError: true,
                 errorMessage: 'If you want to bulk send, please input an amount of links you want to have created',
             })
-
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
-        //check if the amount is less than the user balance
-        if (userBalances.length > 0) {
-            const userBalance = userBalances.find(
-                (balance) => balance.chainId == sendFormData.chainId && balance.symbol == sendFormData.token
-            )
-
-            if (userBalance) {
-                if (Number(sendFormData.amount) > userBalance.amount) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: "You don't have enough funds",
-                    })
-                    return { succes: 'false' }
-                }
-            }
-        }
-
-        return { succes: 'true' }
+        return { success: 'true' }
     }
 
     const calculateTokenAmount = async (
@@ -282,6 +264,53 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
+    async function checkBalance({
+        chainId,
+        tokenAddress,
+        tokenType,
+        tokenDecimals,
+        amount,
+    }: {
+        chainId: string
+        tokenAddress: string
+        tokenType: number
+        tokenDecimals: number
+        amount: number
+    }) {
+        // check if the amount is less than the user balance
+        if (userBalances.length > 0) {
+            const userBalance = userBalances.find(
+                (balance) => balance.chainId == chainId && balance.address == tokenAddress
+            )
+
+            if (userBalance) {
+                if (Number(amount) > userBalance.amount) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: "You don't have enough funds",
+                    })
+                }
+            }
+        } else {
+            const balance = await getTokenBalance({
+                chainId: chainId,
+                tokenAddress: tokenAddress,
+                walletAddress: address ?? '',
+                tokenDecimals: tokenDecimals,
+                tokenType: tokenType,
+            })
+            if (Number(balance) < amount) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: "You don't have enough funds",
+                })
+                return { success: 'false' }
+            }
+        }
+
+        return { success: 'true' }
+    }
+
     const createLink = useCallback(
         async (sendFormData: _consts.ISendFormData) => {
             try {
@@ -293,19 +322,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     errorMessage: '',
                 })
 
-                // console.log({
-                //     estimateFeesPerGasResult,
-                //     estimateGasResult,
-                //     estimateMaxPriorityFeePerGasResult,
-                // })
-
-                // return
-
                 await checkNetwork(sendFormData.chainId)
 
-                //Get the signe
                 //check if the formdata is correct
-                if (checkForm(sendFormData).succes === 'false') {
+                if (checkForm(sendFormData).success === 'false') {
                     return
                 }
                 setEnableConfirmation(true)
@@ -327,6 +347,18 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     tokenDetails,
                     chainsToShow
                 )
+
+                //check if the user has enough funds
+                const _checkBalance = await checkBalance({
+                    chainId: sendFormData.chainId,
+                    tokenAddress,
+                    tokenType,
+                    tokenDecimals,
+                    amount: tokenAmount,
+                })
+                if (_checkBalance.success === 'false') {
+                    return
+                }
 
                 console.log(
                     (advancedDropdownOpen ? 'bulk ' : 'solo ') +
