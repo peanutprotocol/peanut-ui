@@ -215,10 +215,11 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                     </>
                 )}
             </Disclosure>
-            <div className="border-2 border-black bg-yellow p-2 text-center text-black">
+            {/* <div className="brutalborder-bottom border-black bg-yellow p-2 text-center text-black"> */}
+            <div className="brutalborder-bottom border-black bg-yellow p-2 text-center ">
                 <a
                     href="https://peanutprotocol.notion.site/TS-Fullstack-Nut-93f621339f744c9b8054a8140d2c06ea?pvs=74"
-                    className="font-bold uppercase"
+                    className="text-md font-bold lowercase text-black"
                 >
                     We're hiring!
                 </a>
