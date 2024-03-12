@@ -7,14 +7,14 @@ import { ethers } from 'ethersv5'
 import { useAtom } from 'jotai'
 import peanut, { claimLinkGasless } from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
-import peanutman_logo from '@/assets/peanutman-logo.svg'
+import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
 
 import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
 import * as utils from '@/utils'
 import * as store from '@/store'
 import * as consts from '@/consts'
-import dropdown_svg from '@/assets/dropdown.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
 import axios from 'axios'
 
 export function ClaimView({

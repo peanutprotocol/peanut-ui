@@ -1,47 +1,75 @@
 'use client'
-import * as global_components from '@/components/global'
-import smiley from '@/assets/smiley.svg'
-import peanutman_happy from '@/assets/peanutman-happy.svg'
-import sbf_image from '@/assets/people/sbf.jpeg'
-import * as chain_logos from '@/assets/chains'
-import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
-import eco_logo from '@/assets/logos/integrators/eco-logo.png'
-import kofime_logo from '@/assets/logos/integrators/kofime-logo.png'
-import nazare_logo from '@/assets/logos/integrators/nazare-logo.svg'
-import hypersphere_logo from '@/assets/logos/investors/hypersphere-logo.png'
-import zeeprime_logo from '@/assets/logos/investors/zeeprime-logo.png'
-import wallet_connect_logo from '@/assets/logos/wallet-connect-logo.png'
-import teal_wallet_one from '@/assets/mockups/teal-wallet-1.png'
-import teal_wallet_two from '@/assets/mockups/teal-wallet-2.png'
-import dropdown_svg from '@/assets/dropdown.svg'
-import derek from '@/assets/people/derek.png'
-import sharuk from '@/assets/people/sharuk.png'
-import kofime_icon from '@/assets/people/kofime-icon.jpeg'
 import { useState, useEffect } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 import Link from 'next/link'
 import Lottie from 'react-lottie'
-import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import { isMobile } from 'react-device-detect'
+import * as global_components from '@/components/global'
+
+//chains
+import * as chain_logos from '@/assets/chains'
+
+//testimonials
+import sbf_image from '@/assets/people/sbf.jpeg'
+import derek from '@/assets/people/derek.png'
+import sharuk from '@/assets/people/sharuk.png'
+import kofime_icon from '@/assets/people/kofime-icon.jpeg'
+
+//partners
+import wallet_connect_logo from '@/assets/logos/partners/wallet-connect-logo.png'
+import clave_logo from '@/assets/logos/integrators/clave-logo-2.jpeg'
+import brume_logo from '@/assets/logos/integrators/brume-logo.png'
+import eco_logo from '@/assets/logos/integrators/eco-logo.png'
+import mantle_logo from '@/assets/chains/mantle.svg'
+import bybit_logo from '@/assets/logos/partners/bybit-logo.jpeg'
+import woofi_logo from '@/assets/logos/partners/woofi-logo-2.webp'
+import timeswap_logo from '@/assets/logos/partners/timeswap-logo.jpeg'
+import cleo_logo from '@/assets/logos/partners/cleo-logo.jpeg'
+import ktx_logo from '@/assets/logos/partners/ktx-logo.jpeg'
+import lendle_logo from '@/assets/logos/partners/lendle-logo.jpeg'
+import izumi_logo from '@/assets/logos/partners/izumi-logo.jpeg'
+import logx_logo from '@/assets/logos/partners/logx-logo.jpeg'
+
+//investors
+import nazare_logo from '@/assets/logos/investors/nazare-logo.svg'
+import hypersphere_logo from '@/assets/logos/investors/hypersphere-logo-2.png'
+import zeeprime_logo from '@/assets/logos/investors/zeeprime-logo-3.png'
+import longhash_logo from '@/assets/logos/investors/longhash-logo-2.png'
+
+//mockups
+import teal_wallet_one from '@/assets/mockups/teal-wallet-1.png'
+import teal_wallet_two from '@/assets/mockups/teal-wallet-2.png'
+
+//icons
+import dropdown_svg from '@/assets/icons/dropdown.svg'
+import smiley from '@/assets/icons/smiley.svg'
+import peanutman_happy from '@/assets/peanut/peanutman-happy.svg'
+
+//lottie
+import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 
 const logoCloudLogos = [
-    hypersphere_logo,
-    zeeprime_logo,
-    wallet_connect_logo,
-    beam_logo,
-    eco_logo,
-    kofime_logo,
-    nazare_logo,
+    { icon: wallet_connect_logo, link: 'https://walletconnect.com/' },
+    { icon: clave_logo, link: 'https://www.getclave.io/' },
+    { icon: brume_logo, link: 'https://bento.me/brume' },
+    { icon: eco_logo, link: 'https://eco.org/?ref=com' },
+    { icon: mantle_logo, link: 'https://www.mantle.xyz/' },
+    { icon: woofi_logo, link: 'https://woo.org/' },
+    { icon: timeswap_logo, link: 'https://timeswap.io/' },
+    { icon: cleo_logo, link: 'https://cleo.exchange/swap' },
+    { icon: ktx_logo, link: 'https://ktx.finance/' },
+    { icon: lendle_logo, link: 'https://lendle.xyz/' },
+    { icon: izumi_logo, link: 'https://izumi.finance/' },
+    { icon: logx_logo, link: 'https://www.logx.trade/' },
+    { icon: bybit_logo, link: 'https://www.bybit.com/' },
 ]
-const logoLinks = {
-    [hypersphere_logo.src]: 'https://hypersphere.ventures/',
-    [zeeprime_logo.src]: 'https://zeeprime.capital/',
-    [wallet_connect_logo.src]: 'https://walletconnect.com/',
-    [beam_logo.src]: 'https://beam.eco/',
-    [eco_logo.src]: 'https://eco.org/',
-    [kofime_logo.src]: 'https://www.kofime.xyz/',
-    [nazare_logo.src]: 'https://nazare.io/',
-}
+
+const backedByLogos = [
+    { icon: hypersphere_logo, link: 'https://hypersphere.vc/' },
+    { icon: zeeprime_logo, link: 'https://zeeprime.capital/' },
+    { icon: longhash_logo, link: 'https://www.longhash.vc/' },
+    { icon: nazare_logo, link: 'https://nazare.capital/' },
+]
 
 const features = [
     {
@@ -102,13 +130,13 @@ const faqs = [
     },
     {
         question: 'What happens if I want to cancel or if I lose the link?',
-        answer: 'You can always withdraw or cancel your own links. See how ',
-        redirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/reclaiming-links',
+        answer: 'The only thing you need is the transaction hash! To see how, click ',
+        redirectUrl: 'https://peanut.to/reclaim',
         redirectText: 'here.',
     },
     {
         question: 'What are the fees?',
-        answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol, see ',
+        answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol for same-chain transactions, see ',
         redirectUrl: 'https://docs.peanut.to/overview/pricing',
         redirectText: 'here.',
     },
@@ -255,13 +283,19 @@ export function Welcome() {
                         </a>
                     </div>
 
-                    <div className="m-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-8 gap-y-8">
+                    <div className="mx-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-8 gap-y-8">
                         {logoCloudLogos.map((logo) => {
                             return (
-                                <a href={logoLinks[logo.src]} target="_blank" rel="noopener noreferrer" key={logo.src}>
+                                <a
+                                    href={logo.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    key={logo.icon.src}
+                                    className="group"
+                                >
                                     <img
-                                        className="h-12 object-contain grayscale hover:scale-90"
-                                        src={logo.src}
+                                        className="brutalborder spin-on-hover h-16 rounded-full object-contain"
+                                        src={logo.icon.src}
                                         alt="Logo"
                                         loading="eager"
                                     />
@@ -281,20 +315,46 @@ export function Welcome() {
             </div>
 
             {/* seperator */}
-            <div className="brutalborder-y">
+            {/* <div className="brutalborder-y">
                 <global_components.MarqueeWrapper backgroundColor="bg-white">
                     {Object.entries(chain_logos).map(([chain, logo]) => {
                         return (
                             <div className="pb-5 pl-3 pt-5" key={chain}>
-                                <img src={logo.default.src} className="h-16 w-16" />
+                                <img loading='eager'src={logo.default.src} className="h-16 w-16" />
                             </div>
                         )
                     })}
                 </global_components.MarqueeWrapper>
-            </div>
+            </div> */}
 
             {/* how it works */}
-            <div className=" flex flex-col gap-4 bg-white p-4">
+            <div className="brutalborder-y flex flex-col gap-4 bg-white p-4">
+                <div className="grid grid-cols-1 gap-4 overflow-hidden bg-white text-black sm:mx-0 lg:grid-cols-3">
+                    <div
+                        className={
+                            'brutalborder flex flex-col border-2 border-black bg-yellow p-4 text-center sm:p-6 sm:px-16'
+                        }
+                        id="app"
+                    >
+                        <h3 className="text-5xl font-black">200k Users</h3>
+                    </div>
+                    <div
+                        className={classNames(
+                            'brutalborder flex flex-col border-2 border-black bg-teal p-4 text-center sm:p-6 sm:px-16'
+                        )}
+                        id="app"
+                    >
+                        <h3 className="text-5xl font-black"> 500k Volume</h3>
+                    </div>
+                    <div
+                        className={classNames(
+                            'brutalborder flex flex-col border-2 border-black bg-red p-4 text-center sm:p-6 sm:px-16'
+                        )}
+                        id="app"
+                    >
+                        <h3 className="text-5xl font-black"> 23 Chains</h3>
+                    </div>
+                </div>
                 <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-red py-8 text-black sm:py-16 lg:flex-row-reverse">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
@@ -310,28 +370,26 @@ export function Welcome() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Raffles</h1>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Raffle links</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
                             Engage your audience with exciting raffles! Create the raffles easily using our APP or SDK.
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
+                            <a
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                data-cal-config='{"layout":"month_view"}'
+                                id="cta-btn"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                            >
+                                Let's talk!
+                            </a>
                             <Link
                                 href={'/raffle/create'}
-                                id="cta-btn"
-                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
-                            >
-                                Use app!
-                            </Link>
-
-                            <a
-                                href="https://peanutprotocol.notion.site/Red-Packets-Implementation-Guide-1af8ed4c6caa41cf8dc8ac66b39f639b?pvs=74"
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
-                                Integrate →
-                            </a>
+                                Use app →
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -348,14 +406,13 @@ export function Welcome() {
                     </div>
                     {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
-                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Go viral</h1>
+                        <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">P2P links</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
-                            Links are the easiest way to send crypto. Leverage your userbase to get more users. Let your
-                            users send tokens to their friends and get them onboarded, no matter whether they’re users
-                            already.
+                            Forget chains and wallet addresses. Do a peer 2 peer transfer with a trustless payment link,
+                            no matter whether the recipient has a wallet.
                         </div>
 
-                        <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
+                        <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
@@ -364,20 +421,16 @@ export function Welcome() {
                             >
                                 Let's talk!
                             </a>
-
-                            <a
-                                href="https://docs.peanut.to"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <Link
+                                href={'/send'}
                                 className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
-                                Integrate →
-                            </a>
+                                Use app →
+                            </Link>
                         </div>
                     </div>
                 </div>
-                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-fuchsia py-8 text-black sm:py-16 lg:flex-row-reverse">
-                    {/* right column */}
+                {/* <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-fuchsia py-8 text-black sm:py-16 lg:flex-row-reverse">
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
                         <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
                             <img
@@ -387,7 +440,6 @@ export function Welcome() {
                             />
                         </a>
                     </div>
-                    {/* left column */}
                     <div className=" flex w-full flex-col gap-2 text-center sm:gap-8 sm:px-6 lg:mx-0 lg:w-2/3 lg:max-w-none lg:px-0">
                         <h1 className="mx-auto my-0 w-3/4  pt-4 text-5xl font-black">Claim and send gaslessly</h1>
                         <div className="mx-auto w-3/4 pb-4 text-xl ">
@@ -414,22 +466,21 @@ export function Welcome() {
                             </a>
                         </div>
                     </div>
-                </div>
+                </div> */}
             </div>
 
             {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
-                <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        COOL
-                    </div>
-                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        THINGS
-                    </div>
-                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                </>
-            </global_components.MarqueeWrapper>
+            <div className="">
+                <global_components.MarqueeWrapper backgroundColor="bg-white" direction="right">
+                    {Object.entries(chain_logos).map(([chain, logo]) => {
+                        return (
+                            <div className="pb-5 pl-3 pt-5" key={chain}>
+                                <img loading="eager" src={logo.default.src} className="h-16 w-16" />
+                            </div>
+                        )
+                    })}
+                </global_components.MarqueeWrapper>
+            </div>
 
             {/* features */}
             <section className="lg:divide-y" id="features">
@@ -497,21 +548,49 @@ export function Welcome() {
             </section>
 
             {/* seperator */}
-            <global_components.MarqueeWrapper backgroundColor="bg-black">
+            <global_components.MarqueeWrapper backgroundColor="bg-black" direction="right">
                 <>
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         GO
                     </div>
-                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <img loading="eager" src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         NUTS
                     </div>
-                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                    <img loading="eager" src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
                 </>
             </global_components.MarqueeWrapper>
 
+            {/* backed by */}
+            <section className="lg:divide-y" id="backedby">
+                <div className="flex w-full flex-col items-center justify-center gap-4 bg-white py-6">
+                    <div>
+                        <h3 className="my-2 text-2xl font-black text-black">Backed by</h3>
+                    </div>
+                    <div className="brutalborder-y mx-4 grid grid-cols-1 gap-4 overflow-hidden bg-white py-8 text-black md:grid-cols-4">
+                        {backedByLogos.map((logo, index) => {
+                            return (
+                                <a
+                                    href={logo.link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    key={index}
+                                    className="flex h-6 items-center justify-center md:h-12"
+                                >
+                                    <img
+                                        className="h-auto max-h-full max-w-full object-contain"
+                                        src={logo.icon.src}
+                                        loading="eager"
+                                    />
+                                </a>
+                            )
+                        })}
+                    </div>
+                </div>
+            </section>
+
             {/* faq */}
-            <div className="flex flex-col gap-4 px-4 py-4 text-black">
+            <div className="brutalborder-top flex flex-col gap-4 px-4 py-4 text-black">
                 <h2 className="my-0 px-8 font-bold">FAQ</h2>
                 <div className="flex cursor-pointer flex-col gap-0">
                     {faqs.map((faq, idx) => (
@@ -576,11 +655,11 @@ export function Welcome() {
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         FRENS
                     </div>
-                    <img src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                    <img loading="eager" src={smiley.src} alt="logo" className=" mr-1 h-5 md:h-8" />
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                         FRENS
                     </div>
-                    <img src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                    <img loading="eager" src={smiley.src} alt="logo" className="mr-1 h-5 md:h-8" />
                 </>
             </global_components.MarqueeWrapper>
 

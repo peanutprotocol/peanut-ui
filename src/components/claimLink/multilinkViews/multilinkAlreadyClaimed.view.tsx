@@ -4,7 +4,7 @@ import * as global_components from '@/components/global'
 import * as _consts from '../claim.consts'
 import * as store from '@/store'
 import * as interfaces from '@/interfaces'
-import peanutman_logo from '@/assets/peanutman-logo.svg'
+import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
 
 export function multilinkAlreadyClaimedView({ claimDetails }: { claimDetails: interfaces.ILinkDetails[] }) {
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)

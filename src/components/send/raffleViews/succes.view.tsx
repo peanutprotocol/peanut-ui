@@ -2,8 +2,8 @@ import { useState } from 'react'
 import { isMobile } from 'react-device-detect'
 import { Tooltip } from 'react-tooltip'
 
-import peanutman_cheering from '@/assets/peanutman-cheering.png'
-import clipboard_svg from '@/assets/clipboard.svg'
+import peanutman_cheering from '@/assets/peanut/peanutman-cheering.png'
+import clipboard_svg from '@/assets/icons/clipboard.svg'
 import * as global_components from '@/components/global'
 import * as _consts from '../send.consts'
 

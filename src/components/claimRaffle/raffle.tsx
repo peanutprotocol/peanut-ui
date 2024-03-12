@@ -3,8 +3,8 @@ import { createElement, useEffect, useState } from 'react'
 import peanut, { getRaffleLeaderboard, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 
-import peanutman_logo from '@/assets/peanutman-logo.svg'
-import peanutman_sad from '@/assets/peanutman-sad.svg'
+import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
+import peanutman_sad from '@/assets/peanut/peanutman-sad.svg'
 import * as global_components from '@/components/global'
 
 import * as views from './views'

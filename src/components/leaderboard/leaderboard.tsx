@@ -4,7 +4,7 @@
 
 // import * as global_components from '@/components/global'
 // import * as utils from '@/utils'
-// import peanutman_logo from '@/assets/peanutman-logo.svg'
+// import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
 // import peanutman_red from '@/assets/peanutman-redpacket.svg'
 
 // const mock = [

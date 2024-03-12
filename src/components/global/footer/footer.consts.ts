@@ -1,7 +1,7 @@
-import twitter_logo from '@/assets/twitter-logo.svg'
-import discord_logo from '@/assets/discord-logo.svg'
-import gitbook_logo from '@/assets/logos/gitbook.png'
-import github_logo from '@/assets/logos/github-inverted.png'
+import twitter_logo from '@/assets/icons/twitter-logo.svg'
+import discord_logo from '@/assets/icons/discord-logo.svg'
+import gitbook_logo from '@/assets/icons//gitbook.png'
+import github_logo from '@/assets/icons//github-inverted.png'
 
 export const SOCIALS = [
     {

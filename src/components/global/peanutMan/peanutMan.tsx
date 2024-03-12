@@ -1,9 +1,9 @@
 'use client'
-import peanutman_sad from '@/assets/peanutman-sad.svg'
-import peanutman_presenting from '@/assets/peanutman-presenting.svg'
-import peanutman_cheering from '@/assets/peanutman-cheering.svg'
-import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
-import peanutman_mantle from '@/assets/peanut-holding-mantle-logo.svg'
+import peanutman_sad from '@/assets/peanut/peanutman-sad.svg'
+import peanutman_presenting from '@/assets/peanut/peanutman-presenting.svg'
+import peanutman_cheering from '@/assets/peanut/peanutman-cheering.svg'
+import peanutman_redpacket from '@/assets/peanut/peanutman-redpacket.svg'
+import peanutman_mantle from '@/assets/peanut/peanut-holding-mantle-logo.svg'
 import { useEffect, useState } from 'react'
 
 export function PeanutMan({ type }: { type: string }) {
