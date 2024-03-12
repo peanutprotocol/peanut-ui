@@ -10,12 +10,14 @@ import * as utils from '@/utils'
 import * as hooks from '@/hooks'
 
 import peanut_logo from '@/assets/peanut/peanutman-logo.svg'
+import { useRouter } from 'next/navigation'
 
 export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
     const { address, isConnected } = useAccount()
     const { open: web3modalOpen } = useWeb3Modal()
     const buttonRef = useRef<HTMLButtonElement>(null)
     const [openState, setOpenState] = useState(false)
+    const router = useRouter()
 
     const onHover = (open: any, action: string) => {
         if ((!open && !openState && action === 'onMouseEnter') || (open && openState && action === 'onMouseLeave')) {
@@ -85,6 +87,13 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                     <Popover.Button
                                                         className="flex h-full cursor-pointer items-center border-none bg-black px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black md:px-8"
                                                         ref={buttonRef}
+                                                        onClick={(event: any) => {
+                                                            if (event?.detail != 0) {
+                                                                router.push('/send')
+                                                                event.preventDefault()
+                                                            } else {
+                                                            }
+                                                        }}
                                                     >
                                                         APP
                                                     </Popover.Button>
