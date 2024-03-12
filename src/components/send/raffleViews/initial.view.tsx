@@ -7,7 +7,12 @@ import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
 import axios from 'axios'
 import { Switch } from '@headlessui/react'
-import peanut, { getRaffleLinkFromTx, setFeeOptions, validateUserName } from '@squirrel-labs/peanut-sdk'
+import peanut, {
+    getRaffleLinkFromTx,
+    getTokenBalance,
+    setFeeOptions,
+    validateUserName,
+} from '@squirrel-labs/peanut-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -177,21 +182,6 @@ export function RaffleInitialView({
             return { succes: 'false' }
         }
 
-        if (userBalances) {
-            const amount = userBalances.find(
-                (balance) => balance.chainId == sendFormData.chainId && balance.address == tokenAddress
-            )?.amount
-
-            if (amount && Number(sendFormData.amount) > amount) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Insufficient funds to complete this transaction.',
-                })
-
-                return { succes: 'false' }
-            }
-        }
-
         return { succes: 'true' }
     }
 
@@ -214,6 +204,53 @@ export function RaffleInitialView({
                 })
             }
         }
+    }
+
+    async function checkBalance({
+        chainId,
+        tokenAddress,
+        tokenType,
+        tokenDecimals,
+        amount,
+    }: {
+        chainId: string
+        tokenAddress: string
+        tokenType: number
+        tokenDecimals: number
+        amount: number
+    }) {
+        // check if the amount is less than the user balance
+        if (userBalances.length > 0) {
+            const userBalance = userBalances.find(
+                (balance) => balance.chainId == chainId && balance.address == tokenAddress
+            )
+
+            if (userBalance) {
+                if (Number(amount) > userBalance.amount) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: "You don't have enough funds",
+                    })
+                }
+            }
+        } else {
+            const balance = await getTokenBalance({
+                chainId: chainId,
+                tokenAddress: tokenAddress,
+                walletAddress: address ?? '',
+                tokenDecimals: tokenDecimals,
+                tokenType: tokenType,
+            })
+            if (Number(balance) < amount) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: "You don't have enough funds",
+                })
+                return { success: 'false' }
+            }
+        }
+
+        return { success: 'true' }
     }
 
     const createLink = useCallback(
@@ -253,6 +290,18 @@ export function RaffleInitialView({
                 if (checkForm(sendFormData, tokenAddress).succes === 'false') {
                     return
                 }
+
+                const _checkBalance = await checkBalance({
+                    chainId: sendFormData.chainId,
+                    tokenAddress,
+                    tokenType,
+                    tokenDecimals,
+                    amount: Number(sendFormData.amount),
+                })
+                if (_checkBalance.success === 'false') {
+                    return
+                }
+
                 setEnableConfirmation(true)
 
                 //Calculate the token amount
