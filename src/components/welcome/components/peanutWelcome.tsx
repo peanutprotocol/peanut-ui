@@ -376,22 +376,20 @@ export function Welcome() {
                         </div>
 
                         <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
+                            <a
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                data-cal-config='{"layout":"month_view"}'
+                                id="cta-btn"
+                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black md:w-3/5 lg:w-1/3"
+                            >
+                                Let's talk!
+                            </a>
                             <Link
                                 href={'/raffle/create'}
-                                id="cta-btn"
-                                className="mb-2 block cursor-pointer bg-white p-5 text-2xl font-black no-underline md:w-3/5 lg:w-1/3"
-                            >
-                                Use app!
-                            </Link>
-
-                            <a
-                                href="https://peanutprotocol.notion.site/Red-Packets-Implementation-Guide-1af8ed4c6caa41cf8dc8ac66b39f639b?pvs=74"
-                                target="_blank"
-                                rel="noopener noreferrer"
                                 className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
-                                Integrate →
-                            </a>
+                                Use app →
+                            </Link>
                         </div>
                     </div>
                 </div>
@@ -414,7 +412,7 @@ export function Welcome() {
                             no matter whether the recipient has a wallet.
                         </div>
 
-                        <div className="mt-8 flex justify-center gap-1 space-x-4 p-2 sm:gap-4">
+                        <div className="mt-8 flex justify-center space-x-4 p-2 sm:gap-4">
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
@@ -423,15 +421,12 @@ export function Welcome() {
                             >
                                 Let's talk!
                             </a>
-
-                            <a
-                                href="https://docs.peanut.to"
-                                target="_blank"
-                                rel="noopener noreferrer"
+                            <Link
+                                href={'/send'}
                                 className="p-5 text-xl font-black text-black hover:no-underline sm:text-2xl"
                             >
-                                Integrate →
-                            </a>
+                                Use app →
+                            </Link>
                         </div>
                     </div>
                 </div>
