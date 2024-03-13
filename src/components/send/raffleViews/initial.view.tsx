@@ -97,6 +97,7 @@ export function RaffleInitialView({
 
     const tokenList = useMemo(() => {
         if (isConnected) {
+            setFilteredTokenList(undefined)
             if (userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
                 return userBalances
                     .filter((balance) => balance.chainId == formwatch.chainId)
@@ -501,7 +502,7 @@ export function RaffleInitialView({
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Please allow the network switch in your wallet',
+                            errorMessage: 'Please confirm the request in your wallet',
                         })
                     } else if (error.toString().includes('NETWORK_ERROR')) {
                         setErrorState({
@@ -551,16 +552,20 @@ export function RaffleInitialView({
 
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
             const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
-            if (!isCurrent || formwatch.chainId !== tokenPriceResponse?.chainId) {
-                return // if landed here, fetch outdated so discard the result
-            }
-            if (tokenPriceResponse?.price) {
-                setTokenPrice(tokenPriceResponse.price)
-            } else {
+            if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
                 setTokenPrice(undefined)
+                return
+            } else {
+                if (!isCurrent || formwatch.chainId !== tokenPriceResponse?.chainId) {
+                    return // if landed here, fetch outdated so discard the result
+                }
+                if (tokenPriceResponse?.price) {
+                    setTokenPrice(tokenPriceResponse.price)
+                } else {
+                    setTokenPrice(undefined)
+                }
             }
         }
-
         if (!isConnected) setTokenPrice(undefined)
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
