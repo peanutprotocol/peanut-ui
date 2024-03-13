@@ -240,6 +240,7 @@ export function Store({ children }: { children: React.ReactNode }) {
                     body: JSON.stringify({
                         address,
                         chainIds,
+                        pnl: false,
                     }),
                 })
 
