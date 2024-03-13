@@ -561,7 +561,7 @@ export function RaffleInitialView({
                 setTokenPrice(undefined)
                 return
             } else {
-                if (!isCurrent || formwatch.chainId !== tokenPriceResponse?.chainId) {
+                if (!isCurrent) {
                     return // if landed here, fetch outdated so discard the result
                 }
                 if (tokenPriceResponse?.price) {

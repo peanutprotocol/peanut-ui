@@ -334,7 +334,7 @@ export function Welcome() {
                         className={
                             'brutalborder flex flex-col items-center justify-center bg-yellow p-4 text-center sm:p-4 sm:px-16'
                         }
-                        id="app1" // Ensure unique IDs
+                        id="Users"
                     >
                         <h3 className="text-4xl font-black">200k+ Users</h3>
                     </div>
@@ -342,7 +342,7 @@ export function Welcome() {
                         className={
                             'brutalborder flex flex-col items-center justify-center bg-teal p-4 text-center sm:p-4 sm:px-16'
                         }
-                        id="app2"
+                        id="wallets"
                     >
                         <h3 className="text-4xl font-black">105k+ Unique wallet addresses</h3>
                     </div>
@@ -350,7 +350,7 @@ export function Welcome() {
                         className={
                             'brutalborder flex flex-col items-center justify-center bg-red p-4 text-center sm:p-4 sm:px-16'
                         }
-                        id="app3"
+                        id="Chains"
                     >
                         <h3 className="text-4xl font-black">23 Chains</h3>
                     </div>

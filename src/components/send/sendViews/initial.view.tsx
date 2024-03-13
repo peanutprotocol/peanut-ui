@@ -276,11 +276,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }
 
-    useEffect(() => {
-        console.log(formwatch.amount)
-        console.log(tokenPrice)
-    }, [formwatch.amount])
-
     async function checkBalance({
         chainId,
         tokenAddress,
@@ -722,7 +717,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 return
             } else {
                 const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
-                if (!isCurrent || formwatch.chainId !== tokenPriceResponse?.chainId) {
+                if (!isCurrent) {
                     return // if landed here, fetch outdated so discard the result
                 }
                 if (tokenPriceResponse?.price) {
