@@ -138,7 +138,7 @@ const mobulaChains = [
 
 export function Store({ children }: { children: React.ReactNode }) {
     const [userBalances, setUserBalances] = useAtom(userBalancesAtom)
-    const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
+    const [defaultChainDetails, setDefaultChainDetails] = useAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
 
     const [supportedMobulaChains, setSupportedMobulaChains] = useAtom(supportedMobulaChainsAtom)
@@ -226,6 +226,12 @@ export function Store({ children }: { children: React.ReactNode }) {
     const loadUserBalances = async (address: string) => {
         try {
             if (userBalances.length === 0) {
+                const chainIds = defaultChainDetails
+                    .filter((detail) => detail.mainnet)
+                    .filter((detail) => supportedMobulaChains.map((chain) => chain.chainId).includes(detail.chainId))
+                    .map((detail) => detail.chainId)
+                    .join(',')
+
                 const mobulaResponse = await fetch('/api/mobula/fetch-wallet-balance', {
                     method: 'POST',
                     headers: {
@@ -233,6 +239,7 @@ export function Store({ children }: { children: React.ReactNode }) {
                     },
                     body: JSON.stringify({
                         address,
+                        chainIds,
                     }),
                 })
 
