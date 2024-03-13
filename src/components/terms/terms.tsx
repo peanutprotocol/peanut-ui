@@ -1,4 +1,4 @@
-import peanutman_presenting from '@/assets/peanutman-presenting.svg'
+import peanutman_presenting from '@/assets/peanut/peanutman-presenting.svg'
 import * as global_components from '@/components/global'
 
 export function Terms() {

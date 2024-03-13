@@ -1,43 +1,19 @@
 'use client'
 import * as global_components from '@/components/global'
 import * as components from '@/components'
-import smiley from '@/assets/smiley.svg'
-import peanutman_happy from '@/assets/peanutman-happy.svg'
-import peanutman_redpacket from '@/assets/peanutman-redpacket.svg'
-import peanutman_mantle from '@/assets/peanut-holding-mantle-logo.svg'
-import mantle_poster_1 from '@/assets/mantle-poster-1.jpg'
+import smiley from '@/assets/icons/smiley.svg'
 import sbf_image from '@/assets/people/sbf.jpeg'
-import * as chain_logos from '@/assets/chains'
-import beam_logo from '@/assets/logos/integrators/beam-logo.jpeg'
-import eco_logo from '@/assets/logos/integrators/eco-logo.png'
-import kofime_logo from '@/assets/logos/integrators/kofime-logo.png'
-import hypersphere_logo from '@/assets/logos/investors/hypersphere-logo.png'
-import zeeprime_logo from '@/assets/logos/investors/zeeprime-logo.png'
-import wallet_connect_logo from '@/assets/logos/wallet-connect-logo.png'
 import teal_wallet_one from '@/assets/mockups/teal-wallet-1.png'
-import teal_wallet_two from '@/assets/mockups/teal-wallet-2.png'
-import dropdown_svg from '@/assets/dropdown.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
 import derek from '@/assets/people/derek.png'
 import sharuk from '@/assets/people/sharuk.png'
 import kofime_icon from '@/assets/people/kofime-icon.jpeg'
 import { useState, useEffect, Fragment } from 'react'
 import { getCalApi } from '@calcom/embed-react'
-import Link from 'next/link'
 import Lottie from 'react-lottie'
 import redpacketLottie from '@/assets/lottie/redpacket-lottie.json'
 import { isMobile } from 'react-device-detect'
 import { Transition, Dialog } from '@headlessui/react'
-import { Widget } from '@typeform/embed-react'
-
-const logoCloudLogos = [hypersphere_logo, zeeprime_logo, wallet_connect_logo, beam_logo, eco_logo, kofime_logo]
-const logoLinks = {
-    [hypersphere_logo.src]: 'https://hypersphere.ventures/',
-    [zeeprime_logo.src]: 'https://zeeprime.capital/',
-    [wallet_connect_logo.src]: 'https://walletconnect.com/',
-    [beam_logo.src]: 'https://beam.eco/',
-    [eco_logo.src]: 'https://eco.org/',
-    [kofime_logo.src]: 'https://www.kofime.xyz/',
-}
 
 const features = [
     {

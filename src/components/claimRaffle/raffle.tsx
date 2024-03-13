@@ -3,8 +3,8 @@ import { createElement, useEffect, useState } from 'react'
 import peanut, { getRaffleLeaderboard, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 
-import peanutman_logo from '@/assets/peanutman-logo.svg'
-import peanutman_sad from '@/assets/peanutman-sad.svg'
+import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
+import peanutman_sad from '@/assets/peanut/peanutman-sad.svg'
 import * as global_components from '@/components/global'
 
 import * as views from './views'
@@ -77,8 +77,8 @@ export function RaffleClaim() {
                         idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
                     }))
                     setRaffleState('FOUND')
-                } else if (!address && userStatus.requiresCaptcha) {
-                    setRaffleState('TOO_LATE')
+                    // } else if (!address && userStatus.requiresCaptcha) {
+                    //     setRaffleState('TOO_LATE')
                 } else {
                     setSenderName(_raffleInfo.senderName)
                     setRaffleState('FOUND')
@@ -132,12 +132,12 @@ export function RaffleClaim() {
                         </span>
                     </div>
                 )}
-                {raffleState === 'TOO_LATE' && (
+                {/* {raffleState === 'TOO_LATE' && (
                     <div className="flex w-full flex-col items-center justify-center gap-4 pb-16 pt-16">
                         <img src={peanutman_sad.src} alt="logo" className="h-64 sm:h-64" />
                         <span className="text-center text-xl">You have already opened this raffle.</span>
                     </div>
-                )}
+                )} */}
                 {raffleState === 'LOADING' && (
                     <div className="animate-spin pb-16 pt-16">
                         <img src={peanutman_logo.src} alt="logo" className="h-8 sm:h-16" />

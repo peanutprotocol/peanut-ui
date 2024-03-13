@@ -5,7 +5,7 @@ import * as _consts from '../claim.consts'
 import * as store from '@/store/'
 import * as global_components from '@/components/global'
 import * as utils from '@/utils'
-import dropdown_svg from '@/assets/dropdown.svg'
+import dropdown_svg from '@/assets/icons/dropdown.svg'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 
