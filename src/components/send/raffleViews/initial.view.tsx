@@ -519,6 +519,11 @@ export function RaffleInitialView({
                             showError: true,
                             errorMessage: 'Please make sure your wallet is connected.',
                         })
+                    } else if (error.toString().includes('gas required exceeds allowance')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Gas required exceeds balance. Please confirm you have enough funds.',
+                        })
                     } else {
                         setErrorState({
                             showError: true,
