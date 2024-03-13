@@ -232,6 +232,21 @@ export function RaffleInitialView({
                         errorMessage: "You don't have enough funds",
                     })
                 }
+            } else {
+                const balance = await getTokenBalance({
+                    chainId: chainId,
+                    tokenAddress: tokenAddress,
+                    walletAddress: address ?? '',
+                    tokenDecimals: tokenDecimals,
+                    tokenType: tokenType,
+                })
+                if (Number(balance) < amount) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: "You don't have enough funds",
+                    })
+                    return { success: 'false' }
+                }
             }
         } else {
             const balance = await getTokenBalance({
