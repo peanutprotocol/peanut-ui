@@ -814,7 +814,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                 setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
                                             }}
                                             src={switch_svg.src}
-                                            className="relative z-50 h-4 cursor-pointer"
+                                            className="relative z-10 h-4 cursor-pointer"
                                         />
                                         <label className="ml-4 w-max pr-2 text-sm font-bold">
                                             {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
@@ -1101,7 +1101,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
-                    className="relative z-10 "
+                    className="relative z-20 "
                     onClose={() => {
                         setFormHasBeenTouched(true)
                         setIsTokenSelectorOpen(false)
@@ -1121,7 +1121,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
                     </Transition.Child>
 
-                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                    <div className="fixed inset-0 z-20 overflow-y-auto">
                         <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
                             <Transition.Child
                                 as={Fragment}
