@@ -316,7 +316,7 @@ export function ClaimView({
                         {tokenPrice
                             ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                             : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
-                        {tokenPrice ? ' $' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
+                        {tokenPrice ? ' in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                     </>
                 </h2>
             )}

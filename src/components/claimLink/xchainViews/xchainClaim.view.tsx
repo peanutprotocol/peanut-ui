@@ -493,9 +493,8 @@ export function xchainClaimView({
                     Claim{' '}
                     {tokenPrice
                         ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
-                        : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount)) +
-                          ' $' +
-                          claimDetails[0].tokenSymbol}
+                        : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
+                    {tokenPrice ? ' in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                 </h2>
             </div>
 
