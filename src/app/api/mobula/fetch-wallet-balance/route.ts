@@ -18,6 +18,8 @@ export async function POST(request: NextRequest) {
             }
         )
 
+        if (!mobulaResponse.ok) throw new Error('Mobula API failed')
+
         const mobulaResponseJson = await mobulaResponse.text()
 
         return new Response(mobulaResponseJson, {
