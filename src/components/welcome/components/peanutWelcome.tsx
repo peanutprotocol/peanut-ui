@@ -562,7 +562,7 @@ export function Welcome() {
             </global_components.MarqueeWrapper>
 
             {/* backed by */}
-            <section className="lg:divide-y" id="backedby">
+            {/* <section className="lg:divide-y" id="backedby">
                 <div className="flex w-full flex-col items-center justify-center gap-4 bg-white py-6">
                     <div>
                         <h3 className="my-2 text-2xl font-black text-black">Backed by</h3>
@@ -587,7 +587,7 @@ export function Welcome() {
                         })}
                     </div>
                 </div>
-            </section>
+            </section> */}
 
             {/* faq */}
             <div className="brutalborder-top flex flex-col gap-4 px-4 py-4 text-black">
