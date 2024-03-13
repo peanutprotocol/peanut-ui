@@ -159,6 +159,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { success: 'false' }
         }
 
+        //check if the amount is smaller than 0.00001
+        if (Number(sendFormData.amount) < 0.00001) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'The amount is too small',
+            })
+            return { success: 'false' }
+        }
+
         if (advancedDropdownOpen && !Number.isInteger(sendFormData.bulkAmount)) {
             setErrorState({
                 showError: true,

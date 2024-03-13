@@ -164,6 +164,15 @@ export function RaffleInitialView({
             return { succes: 'false' }
         }
 
+        //check if the amount is smaller than 0.00001
+        if (Number(sendFormData.amount) < 0.00001) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'The amount is too small',
+            })
+            return { success: 'false' }
+        }
+
         if (!sendFormData.numberOfrecipients || Number(sendFormData.numberOfrecipients) < 2) {
             setErrorState({
                 showError: true,
