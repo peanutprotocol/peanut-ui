@@ -92,7 +92,9 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                             ref={buttonRef}
                                                             onClick={(event: any) => {
                                                                 if (event?.detail != 0) {
-                                                                    router.push('/send')
+                                                                    if (window?.location.pathname == '/send')
+                                                                        window?.location.reload()
+                                                                    else router.push('/send')
                                                                     event.preventDefault()
                                                                 } else {
                                                                 }
