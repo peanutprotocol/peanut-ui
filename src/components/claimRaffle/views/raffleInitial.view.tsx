@@ -23,7 +23,6 @@ import * as utils from '@/utils'
 import * as store from '@/store'
 
 import * as _consts from '../raffle.consts'
-import * as _utils from '../raffle.utils'
 
 const defaultLottieOptions = {
     animationData: redpacketLottie,
@@ -201,7 +200,7 @@ export function RaffleInitialView({
         try {
             if (address.endsWith('.eth')) {
                 setLoadingStates('fetching address')
-                const resolvedAddress = await _utils.resolveFromEnsName(address)
+                const resolvedAddress = await utils.resolveFromEnsName(address)
                 if (resolvedAddress) {
                     address = resolvedAddress
                     setIsEnsName({ state: true, address })

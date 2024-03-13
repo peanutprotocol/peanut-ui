@@ -1,4 +1,5 @@
 import * as interfaces from '@/interfaces'
+import peanut from '@squirrel-labs/peanut-sdk'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
@@ -239,4 +240,11 @@ export const isMantleInUrl = (): boolean => {
     } else {
         return false
     }
+}
+
+export async function resolveFromEnsName(ensName: string): Promise<string | undefined> {
+    const provider = await peanut.getDefaultProvider('1')
+    const x = await provider.resolveName(ensName)
+
+    return x ? x : undefined
 }
