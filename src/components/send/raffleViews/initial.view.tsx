@@ -547,9 +547,18 @@ export function RaffleInitialView({
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
+        let isCurrent = true
+
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
-            setTokenPrice(price)
+            const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
+            if (!isCurrent || formwatch.chainId !== tokenPriceResponse?.chainId) {
+                return // if landed here, fetch outdated so discard the result
+            }
+            if (tokenPriceResponse?.price) {
+                setTokenPrice(tokenPriceResponse.price)
+            } else {
+                setTokenPrice(undefined)
+            }
         }
 
         if (!isConnected) setTokenPrice(undefined)
@@ -557,6 +566,9 @@ export function RaffleInitialView({
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
                 fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
+                return () => {
+                    isCurrent = false
+                }
             }
         }
         if (formwatch.token) {
@@ -565,21 +577,26 @@ export function RaffleInitialView({
 
     //update the chain and token when the user changes the chain in the wallet
     useEffect(() => {
-        if (mantleCheck) {
-            sendForm.setValue('chainId', '5000')
-            return
-        }
         if (
             currentChain &&
             currentChain?.id.toString() != formwatch.chainId &&
             !formHasBeenTouched &&
             chainDetails.some((chain) => chain.chainId == currentChain.id)
         ) {
+            // if the user is connected and the forms hasnt been touched by the user, we set the chain to the current chain and the token to native token on that chain
             sendForm.setValue(
                 'token',
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
+        } else if (userBalances.length > 0 && !userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
+            // if the user has balances but not on the current chain, we switch to the first chain the user has balances on and set the token to the first token on that chain
+            sendForm.setValue('chainId', userBalances[0].chainId)
+            sendForm.setValue('token', userBalances[0].symbol)
+        } else if (!currentChain) {
+            // if the user is not connected, we set the chain to the first chain to optimism and token to ETH
+            sendForm.setValue('chainId', '10')
+            sendForm.setValue('token', 'ETH')
         }
     }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
@@ -588,10 +605,6 @@ export function RaffleInitialView({
             setShowModal(true)
         }
     }, [formwatch.numberOfrecipients])
-
-    useEffect(() => {
-        if (ensName) sendForm.setValue('senderName', ensName)
-    }, [ensName])
 
     return (
         <>

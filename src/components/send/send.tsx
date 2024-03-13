@@ -4,14 +4,12 @@ import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
 import { useW3iAccount } from '@web3inbox/widget-react'
 import { useAccount } from 'wagmi'
-import peanut from '@squirrel-labs/peanut-sdk'
 
 export function Send({ type }: { type: 'normal' | 'raffle' }) {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')
     const [txHash, setTxHash] = useState<string>('')
     const [chainId, setChainId] = useState<string>('1')
-    const [ensName, setEnsName] = useState<string>('')
     const { setAccount } = useW3iAccount()
     const { address } = useAccount({})
 
@@ -35,19 +33,8 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
         }))
     }
 
-    async function getEnsName(address: string) {
-        const ensName = await peanut.resolveToENSName({
-            address: address,
-        })
-        if (ensName) {
-            setEnsName(ensName)
-        }
-    }
-
     useEffect(() => {
-        if (address) {
-            getEnsName(address)
-        } else if (!address) {
+        if (!address) {
             setAccount('')
         }
     }, [address])
@@ -65,8 +52,6 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
                         setTxHash,
                         chainId,
                         setChainId,
-                        ensName,
-                        setEnsName,
                     } as _consts.ISendScreenProps)}
                 </global_components.CardWrapper>
             )}
@@ -81,8 +66,6 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
                         setTxHash,
                         chainId,
                         setChainId,
-                        ensName,
-                        setEnsName,
                     } as _consts.ISendScreenProps)}
                 </global_components.CardWrapper>
             )}

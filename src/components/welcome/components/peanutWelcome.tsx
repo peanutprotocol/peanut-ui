@@ -488,6 +488,7 @@ export function Welcome() {
                     {features.map((feature, index) => {
                         return (
                             <div
+                                key={index}
                                 className={classNames(
                                     'brutalborder flex flex-col border-2 border-black p-4 text-center sm:p-12 sm:px-16 ',
                                     feature.bg
@@ -595,6 +596,7 @@ export function Welcome() {
                 <div className="flex cursor-pointer flex-col gap-0">
                     {faqs.map((faq, idx) => (
                         <div
+                            key={idx}
                             className={classNames(
                                 'brutalborder-left brutalborder-top brutalborder-right rounded-none bg-white text-black ',
                                 faqs.length - 1 === idx ? ' brutalborder-bottom' : ''

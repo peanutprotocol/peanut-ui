@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
+import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
@@ -194,10 +194,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (inputDenomination == 'USD') {
             var price: number | undefined = undefined
             try {
-                price = await utils.fetchTokenPrice(
+                const fetchPriceResponse = await utils.fetchTokenPrice(
                     tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
                     sendFormData.chainId
                 )
+                price = fetchPriceResponse?.price
             } catch (error) {
                 console.error(error)
                 setErrorState({
@@ -255,12 +256,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         latestContractVersion?: string
         chainId: string
     }) => {
-        if (latestContractVersion == undefined)
+        if (latestContractVersion == undefined) {
             latestContractVersion = peanut.getLatestContractVersion({
                 chainId: chainId,
                 type: 'normal',
                 experimental: true,
             })
+        }
         if (
             _utils.toLowerCaseKeys(peanut.EIP3009Tokens[chainId as keyof typeof peanut.EIP3009Tokens])[
                 tokenAddress.toLowerCase()
@@ -272,6 +274,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return false
         }
     }
+
+    useEffect(() => {
+        console.log(formwatch.amount)
+        console.log(tokenPrice)
+    }, [formwatch.amount])
 
     async function checkBalance({
         chainId,
@@ -700,10 +707,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
+        let isCurrent = true
+
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
-            setTokenPrice(price)
-            if (!price) {
+            const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
+            if (!isCurrent || formwatch.chainId !== tokenPriceResponse?.chainId) {
+                return // if landed here, fetch outdated so discard the result
+            }
+            if (tokenPriceResponse?.price) {
+                setTokenPrice(tokenPriceResponse.price)
+            } else {
+                setTokenPrice(undefined)
                 setInputDenomination('TOKEN')
             }
         }
@@ -718,32 +732,36 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     setShowGaslessAvailable(false)
                 }
                 fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
+                return () => {
+                    isCurrent = false
+                }
             }
         }
     }, [formwatch.token, formwatch.chainId, isConnected])
 
     useEffect(() => {
-        //update the chain and token when the user changes the chain in the wallet
-        if (mantleCheck) {
-            sendForm.setValue('chainId', '5000')
-            return
-        }
         if (
             currentChain &&
             currentChain?.id.toString() != formwatch.chainId &&
             !formHasBeenTouched &&
             chainDetails.some((chain) => chain.chainId == currentChain.id)
         ) {
+            // if the user is connected and the forms hasnt been touched by the user, we set the chain to the current chain and the token to native token on that chain
             sendForm.setValue(
                 'token',
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
-        } else if (chainsToShow.length > 0 && !formHasBeenTouched) {
-            sendForm.setValue('chainId', chainsToShow[0].chainId)
-            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
+        } else if (userBalances.length > 0 && !userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
+            // if the user has balances but not on the current chain, we switch to the first chain the user has balances on and set the token to the first token on that chain
+            sendForm.setValue('chainId', userBalances[0].chainId)
+            sendForm.setValue('token', userBalances[0].symbol)
+        } else if (!currentChain) {
+            // if the user is not connected, we set the chain to the first chain to optimism and token to ETH
+            sendForm.setValue('chainId', '10')
+            sendForm.setValue('token', 'ETH')
         }
-    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
+    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected, userBalances])
 
     return (
         <>
@@ -1147,6 +1165,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                             <img
                                                                 src={chain.icon.url}
                                                                 className="h-6 cursor-pointer bg-white"
+                                                                onError={(e: any) => {
+                                                                    e.target.onerror = null
+                                                                }}
                                                             />
 
                                                             <label className="flex cursor-pointer items-center">
@@ -1172,6 +1193,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         <img
                                                             src={chain.icon.url}
                                                             className="h-6 cursor-pointer bg-white"
+                                                            onError={(e: any) => {
+                                                                e.target.onerror = null
+                                                            }}
                                                         />
 
                                                         <label className="flex cursor-pointer items-center">
@@ -1249,7 +1273,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
-                                                      key={token.address}
+                                                      key={token.address + Math.random()}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1270,6 +1294,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                               src={token.logo}
                                                               className="h-6 bg-white"
                                                               loading="eager"
+                                                              onError={(e: any) => {
+                                                                  e.target.onerror = null
+                                                              }}
                                                           />
                                                           <div>{token.name}</div>
                                                       </div>
@@ -1284,7 +1311,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                               ))
                                             : tokenList.map((token) => (
                                                   <div
-                                                      key={token.address}
+                                                      key={token.address + Math.random()}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1305,6 +1332,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                               src={token.logo}
                                                               className="h-6 bg-white"
                                                               loading="eager"
+                                                              onError={(e: any) => {
+                                                                  e.target.onerror = null
+                                                              }}
                                                           />
                                                           <div>{token.name}</div>
                                                       </div>

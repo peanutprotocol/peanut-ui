@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
             }
         )
 
-        if (!mobulaResponse.ok) throw new Error('Mobula API failed')
+        if (!mobulaResponse.ok) return new Response('Internal Server Error', { status: 500 })
 
         const mobulaResponseJson = await mobulaResponse.text()
 
