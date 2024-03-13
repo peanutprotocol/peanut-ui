@@ -814,7 +814,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                 setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
                                             }}
                                             src={switch_svg.src}
-                                            className="h-4 cursor-pointer"
+                                            className="relative z-50 h-4 cursor-pointer"
                                         />
                                         <label className="ml-4 w-max pr-2 text-sm font-bold">
                                             {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
