@@ -864,6 +864,9 @@ export function RaffleInitialView({
                                                             <img
                                                                 src={chain.icon.url}
                                                                 className="h-6 cursor-pointer bg-white"
+                                                                onError={(e: any) => {
+                                                                    e.target.onerror = null
+                                                                }}
                                                             />
 
                                                             <label className="flex cursor-pointer items-center">
@@ -889,6 +892,9 @@ export function RaffleInitialView({
                                                         <img
                                                             src={chain.icon.url}
                                                             className="h-6 cursor-pointer bg-white"
+                                                            onError={(e: any) => {
+                                                                e.target.onerror = null
+                                                            }}
                                                         />
 
                                                         <label className="flex cursor-pointer items-center">
@@ -987,6 +993,9 @@ export function RaffleInitialView({
                                                               src={token.logo}
                                                               className="h-6 bg-white"
                                                               loading="eager"
+                                                              onError={(e: any) => {
+                                                                  e.target.onerror = null
+                                                              }}
                                                           />
                                                           <div>{token.name}</div>
                                                       </div>
@@ -1022,6 +1031,9 @@ export function RaffleInitialView({
                                                               src={token.logo}
                                                               className="h-6 bg-white"
                                                               loading="eager"
+                                                              onError={(e: any) => {
+                                                                  e.target.onerror = null
+                                                              }}
                                                           />
                                                           <div>{token.name}</div>
                                                       </div>

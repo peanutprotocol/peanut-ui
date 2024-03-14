@@ -149,7 +149,7 @@ export function Store({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setUserBalances([])
         if (userAddr) {
-            loadUserBalances(userAddr)
+            // loadUserBalances(userAddr)
             gaEventTracker('peanut-wallet-connected', userAddr)
         }
     }, [userAddr])

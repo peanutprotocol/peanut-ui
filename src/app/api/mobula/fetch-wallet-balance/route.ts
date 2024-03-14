@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
         if (!API_KEY) throw new Error('API_KEY not found in env')
 
         const mobulaResponse = await fetch(
-            `https://api.mobula.io/api/1/wallet/portfolio?wallet=${body.address}&blockchains=${body.chainIds}&pnl=${body.pnl}`,
+            `https://api.mobula.io/api/1/wallet/portfolio?wallet=${body.address}&blockchains=${body.chainIds}&pnl=${body.pnl}&cache=true&stale=30`,
             {
                 method: 'GET',
                 headers: {

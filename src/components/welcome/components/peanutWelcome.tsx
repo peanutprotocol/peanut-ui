@@ -352,7 +352,7 @@ export function Welcome() {
                         }
                         id="Chains"
                     >
-                        <h3 className="text-4xl font-black">23 Chains</h3>
+                        <h3 className="text-4xl font-black">300k+ Transactions</h3>
                     </div>
                 </div>
 
