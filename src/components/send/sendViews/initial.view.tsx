@@ -50,6 +50,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const verbose = true
     const mantleCheck = utils.isMantleInUrl()
 
+    const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
+
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -303,14 +305,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     })
                 }
             } else {
-                const balance = await getTokenBalance({
-                    chainId: chainId,
-                    tokenAddress: tokenAddress,
-                    walletAddress: address ?? '',
-                    tokenDecimals: tokenDecimals,
-                    tokenType: tokenType,
-                })
-                if (Number(balance) < amount) {
+                let _balance = tokenBalance
+                if (_balance == undefined) {
+                    _balance = Number(
+                        await getTokenBalance({
+                            chainId: chainId,
+                            tokenAddress: tokenAddress,
+                            walletAddress: address ?? '',
+                            tokenDecimals: tokenDecimals,
+                            tokenType: tokenType,
+                        })
+                    )
+                }
+                if (_balance < amount) {
                     setErrorState({
                         showError: true,
                         errorMessage: "You don't have enough funds",
@@ -319,14 +326,20 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 }
             }
         } else {
-            const balance = await getTokenBalance({
-                chainId: chainId,
-                tokenAddress: tokenAddress,
-                walletAddress: address ?? '',
-                tokenDecimals: tokenDecimals,
-                tokenType: tokenType,
-            })
-            if (Number(balance) < amount) {
+            let _balance = tokenBalance
+            if (_balance == undefined) {
+                _balance = Number(
+                    await getTokenBalance({
+                        chainId: chainId,
+                        tokenAddress: tokenAddress,
+                        walletAddress: address ?? '',
+                        tokenDecimals: tokenDecimals,
+                        tokenType: tokenType,
+                    })
+                )
+            }
+
+            if (_balance < amount) {
                 setErrorState({
                     showError: true,
                     errorMessage: "You don't have enough funds",
@@ -729,8 +742,32 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             }
         }
 
-        if (!isConnected) setTokenPrice(undefined)
-        else if (formwatch.token && formwatch.chainId) {
+        async function fetchAndSetTokenBalance(tokenAddress: string, chainId: string) {
+            if (isConnected) {
+                try {
+                    const balance = await getTokenBalance({
+                        chainId: chainId,
+                        tokenAddress: tokenAddress,
+                        walletAddress: address ?? '',
+                    })
+                    if (!isCurrent) {
+                        return // if landed here, fetch outdated so discard the result
+                    }
+
+                    setTokenBalance(Number(balance))
+                } catch (error) {
+                    console.log('error fetching token balance:', error)
+                    setTokenBalance(undefined)
+                }
+            }
+        }
+
+        setTokenBalance(undefined)
+
+        if (!isConnected) {
+            setTokenPrice(undefined)
+            setTokenBalance(undefined)
+        } else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
                 if (isGaslessDepositPossible({ tokenAddress, chainId: formwatch.chainId })) {
@@ -739,6 +776,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     setShowGaslessAvailable(false)
                 }
                 fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
+                fetchAndSetTokenBalance(tokenAddress, formwatch.chainId)
                 return () => {
                     isCurrent = false
                 }
@@ -842,7 +880,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             </div>
                         </div>
                         <div
-                            className="flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            className={
+                                ' flex w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1 ' +
+                                (isConnected ? '  h-[70px] ' : ' h-[58px] ')
+                            }
                             onClick={() => {
                                 if (isConnected && chainsToShow.length <= 0) {
                                     setErrorState({
@@ -863,6 +904,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                             {formwatch.token}
                                         </label>
+                                        {tokenBalance != undefined ? (
+                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
+                                                {utils.formatTokenAmount(tokenBalance, 4)}
+                                            </label>
+                                        ) : (
+                                            <div className="mb-1 flex justify-center gap-1">
+                                                <span className="bouncing-dots flex">
+                                                    <span className="dot">.</span>
+                                                    <span className="dot">.</span>
+                                                    <span className="dot">.</span>
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <label className="flex h-full items-center justify-center text-sm font-bold">
@@ -883,7 +937,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
-                            className=" flex h-[58px] w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1"
+                            className={
+                                ' flex w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1 ' +
+                                (isConnected ? '  h-[70px] ' : ' h-[58px] ')
+                            }
                             onClick={() => {
                                 if (isConnected && chainsToShow.length <= 0) {
                                     setErrorState({
@@ -904,6 +961,19 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         <label className=" self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
                                             {formwatch.token}
                                         </label>
+                                        {tokenBalance != undefined ? (
+                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
+                                                {utils.formatTokenAmount(tokenBalance, 4)}
+                                            </label>
+                                        ) : (
+                                            <div className="flex justify-center gap-1">
+                                                <span className="bouncing-dots flex">
+                                                    <span className="dot">.</span>
+                                                    <span className="dot">.</span>
+                                                    <span className="dot">.</span>
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
                                 ) : (
                                     <label className="flex h-full items-center justify-center text-sm font-bold">
