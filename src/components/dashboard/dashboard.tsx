@@ -49,168 +49,7 @@ export function Dashboard() {
     const router = useRouter()
     const [localStorageLinkData, setLocalStorageLinkData] = useState<interfaces.ILocalStorageItem[]>([])
     const [localStorageRaffleData, setLocalStorageRaffleData] = useState<interfaces.ILocalStorageItem[]>([])
-    const [dashboardLinkData, setDashboardLinkData] = useState<IDashboardLinkItemProps[]>([
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-        {
-            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
-            chainId: '137',
-            amount: '1.0',
-            token: 'MATIC',
-            date: '27/02/2024, 15:20:24',
-            claimed: true,
-            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
-            copied: false,
-        },
-    ])
+    const [dashboardLinkData, setDashboardLinkData] = useState<IDashboardLinkItemProps[]>([])
     const [dashboardRaffleData, setDashboardRaffleData] = useState<IDashboardRaffleItemProps[]>([])
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const [selectedDashboard, setSelectedDashboard] = useState<'normal' | 'raffle'>('normal')
@@ -391,7 +230,7 @@ export function Dashboard() {
                                     A list of all the links you have created.
                                 </div>
                                 <div className="mt-4 flex justify-between sm:ml-16 sm:mt-0 sm:flex-none ">
-                                    {true && 1 > 0 && (
+                                    {isConnected && localStorageLinkData.length > 0 && (
                                         <CSVLink
                                             className="brutalborder mr-2 inline-flex cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm font-medium text-white no-underline hover:bg-white hover:text-black sm:w-auto"
                                             data={dashboardLinkData}
@@ -421,8 +260,8 @@ export function Dashboard() {
                                     </button>
                                 </div>
                             </div>
-                            {true ? (
-                                1 > 0 ? (
+                            {isConnected ? (
+                                localStorageLinkData.length > 0 ? (
                                     dashboardLinkData.length > 0 ? (
                                         isMobile ? (
                                             <div className="mt-4 max-h-[420px] overflow-y-auto">
@@ -619,7 +458,9 @@ export function Dashboard() {
                                     </div>
                                 )
                             ) : (
-                                <div>Connect your wallet to view your links.</div>
+                                <div className="my-2 flex w-full items-center justify-center text-center font-bold">
+                                    Connect your wallet to view your links.
+                                </div>
                             )}
                             <div className="mt-2 flex w-full items-center justify-center text-center">
                                 <label className="">
