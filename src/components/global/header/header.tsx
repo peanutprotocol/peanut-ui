@@ -88,13 +88,14 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                         className="relative h-full items-center justify-center "
                                                     >
                                                         <Popover.Button
-                                                            className="flex h-full cursor-pointer items-center border-none bg-black px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black md:px-8"
+                                                            className="flex h-full cursor-pointer items-center border-none bg-black px-1 text-base font-bold uppercase text-white no-underline hover:bg-white hover:text-black focus:outline-none active:border-none md:px-8"
                                                             ref={buttonRef}
                                                             onClick={(event: any) => {
                                                                 if (event?.detail != 0) {
-                                                                    router.push('/send')
+                                                                    if (window?.location.pathname == '/send')
+                                                                        window?.location.reload()
+                                                                    else router.push('/send')
                                                                     event.preventDefault()
-                                                                } else {
                                                                 }
                                                             }}
                                                         >

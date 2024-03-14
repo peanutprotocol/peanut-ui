@@ -116,7 +116,20 @@ export function xchainClaimView({
                 errorMessage: '',
             })
 
-            if (!ethers.utils.isAddress(data.address)) {
+            if (data.address?.endsWith('.eth')) {
+                setLoadingStates('fetching address')
+
+                const resolvedEnsName = await utils.resolveFromEnsName(data.address)
+                if (resolvedEnsName) {
+                    data.address = resolvedEnsName
+                } else {
+                    setManualErrorState({
+                        showError: true,
+                        errorMessage: 'Unknown ens name',
+                    })
+                    return
+                }
+            } else if (!ethers.utils.isAddress(data.address)) {
                 setManualErrorState({
                     showError: true,
                     errorMessage: 'Please enter a valid address',
@@ -480,9 +493,8 @@ export function xchainClaimView({
                     Claim{' '}
                     {tokenPrice
                         ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
-                        : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount)) +
-                          ' $' +
-                          claimDetails[0].tokenSymbol}
+                        : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
+                    {tokenPrice ? ' in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                 </h2>
             </div>
 

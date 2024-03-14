@@ -40,7 +40,11 @@ export const fetchTokenPrice = async (tokenAddress: string, chainId: string) => 
         const json = await mobulaResponse.json()
 
         if (mobulaResponse.ok) {
-            return json.data.price
+            const data = {
+                price: json.data.price,
+                chainId: chainId,
+            }
+            return data
         } else {
             return undefined
         }

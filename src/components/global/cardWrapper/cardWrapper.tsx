@@ -1,3 +1,5 @@
+import { isMobile } from 'react-device-detect'
+
 export function CardWrapper({
     children,
     mb = ' mb-48 ',
@@ -16,17 +18,15 @@ export function CardWrapper({
     return (
         <div
             className={
-                'center-xy brutalborder relative mx-auto mr-6 flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black sm:mr-auto lg:w-2/3 xl:w-1/2 ' +
+                'center-xy brutalborder relative mx-auto flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black sm:mr-auto lg:w-2/3 xl:w-1/2 ' +
                 mb +
                 mt +
                 pt
             }
-            id={shadow ? 'cta-div' : ''}
+            id={!isMobile && shadow ? 'cta-div' : ''}
         >
             {redPacket ? (
-                <div className="brutalborder absolute -top-12 flex h-24 w-24 items-center justify-center rounded-full bg-gold text-6xl ">
-                    龙
-                </div>
+                <div className="brutalborder absolute -top-12 flex h-24 w-24 items-center justify-center rounded-full bg-gold text-6xl "></div>
             ) : (
                 ''
             )}{' '}

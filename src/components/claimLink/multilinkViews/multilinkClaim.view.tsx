@@ -130,13 +130,7 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 showError: false,
                 errorMessage: '',
             })
-            if (!ethers.utils.isAddress(data.address)) {
-                setManualErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter a valid address',
-                })
-                return
-            }
+
             if (!data.addressExists) {
                 setManualErrorState({
                     showError: true,
@@ -144,6 +138,28 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                 })
                 return
             }
+
+            if (data.address?.endsWith('.eth')) {
+                setLoadingStates('fetching address')
+
+                const resolvedEnsName = await utils.resolveFromEnsName(data.address)
+                if (resolvedEnsName) {
+                    data.address = resolvedEnsName
+                } else {
+                    setManualErrorState({
+                        showError: true,
+                        errorMessage: 'Unknown ens name',
+                    })
+                    return
+                }
+            } else if (!ethers.utils.isAddress(data.address)) {
+                setManualErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a valid address',
+                })
+                return
+            }
+
             setLoadingStates('executing transaction')
             if (claimLink && data.address) {
                 setLoadingStates('executing transaction')

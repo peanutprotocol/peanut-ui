@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
+import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
@@ -92,6 +92,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     const tokenList = useMemo(() => {
         if (isConnected) {
+            setFilteredTokenList(undefined)
             if (userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
                 return userBalances
                     .filter((balance) => balance.chainId == formwatch.chainId)
@@ -159,6 +160,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             return { success: 'false' }
         }
 
+        //check if the amount is smaller than 0.00001
+        if (Number(sendFormData.amount) < 0.00001) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'The amount is too small',
+            })
+            return { success: 'false' }
+        }
+
         if (advancedDropdownOpen && !Number.isInteger(sendFormData.bulkAmount)) {
             setErrorState({
                 showError: true,
@@ -185,10 +195,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         if (inputDenomination == 'USD') {
             var price: number | undefined = undefined
             try {
-                price = await utils.fetchTokenPrice(
+                const fetchPriceResponse = await utils.fetchTokenPrice(
                     tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
                     sendFormData.chainId
                 )
+                price = fetchPriceResponse?.price
             } catch (error) {
                 console.error(error)
                 setErrorState({
@@ -246,12 +257,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         latestContractVersion?: string
         chainId: string
     }) => {
-        if (latestContractVersion == undefined)
+        if (latestContractVersion == undefined) {
             latestContractVersion = peanut.getLatestContractVersion({
                 chainId: chainId,
                 type: 'normal',
                 experimental: true,
             })
+        }
         if (
             _utils.toLowerCaseKeys(peanut.EIP3009Tokens[chainId as keyof typeof peanut.EIP3009Tokens])[
                 tokenAddress.toLowerCase()
@@ -635,7 +647,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Please allow the network switch in your wallet',
+                            errorMessage: 'Please confirm the request in your wallet',
                         })
                     } else if (error.toString().includes('NETWORK_ERROR')) {
                         setErrorState({
@@ -651,6 +663,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         setErrorState({
                             showError: true,
                             errorMessage: 'Please make sure your wallet is connected.',
+                        })
+                    } else if (error.toString().includes('gas required exceeds allowance')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Gas required exceeds balance. Please confirm you have enough funds.',
                         })
                     } else {
                         setErrorState({
@@ -691,11 +708,24 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
+        let isCurrent = true
+
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
-            setTokenPrice(price)
-            if (!price) {
+            if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
+                setTokenPrice(undefined)
                 setInputDenomination('TOKEN')
+                return
+            } else {
+                const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
+                if (!isCurrent) {
+                    return // if landed here, fetch outdated so discard the result
+                }
+                if (tokenPriceResponse?.price) {
+                    setTokenPrice(tokenPriceResponse.price)
+                } else {
+                    setTokenPrice(undefined)
+                    setInputDenomination('TOKEN')
+                }
             }
         }
 
@@ -709,32 +739,36 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     setShowGaslessAvailable(false)
                 }
                 fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
+                return () => {
+                    isCurrent = false
+                }
             }
         }
     }, [formwatch.token, formwatch.chainId, isConnected])
 
     useEffect(() => {
-        //update the chain and token when the user changes the chain in the wallet
-        if (mantleCheck) {
-            sendForm.setValue('chainId', '5000')
-            return
-        }
         if (
             currentChain &&
             currentChain?.id.toString() != formwatch.chainId &&
             !formHasBeenTouched &&
             chainDetails.some((chain) => chain.chainId == currentChain.id)
         ) {
+            // if the user is connected and the forms hasnt been touched by the user, we set the chain to the current chain and the token to native token on that chain
             sendForm.setValue(
                 'token',
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
-        } else if (chainsToShow.length > 0 && !formHasBeenTouched) {
-            sendForm.setValue('chainId', chainsToShow[0].chainId)
-            sendForm.setValue('token', chainsToShow[0].nativeCurrency.symbol)
+        } else if (userBalances.length > 0 && !userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
+            // if the user has balances but not on the current chain, we switch to the first chain the user has balances on and set the token to the first token on that chain
+            sendForm.setValue('chainId', userBalances[0].chainId)
+            sendForm.setValue('token', userBalances[0].symbol)
+        } else if (!currentChain) {
+            // if the user is not connected, we set the chain to the first chain to optimism and token to ETH
+            sendForm.setValue('chainId', '10')
+            sendForm.setValue('token', 'ETH')
         }
-    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
+    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected, userBalances])
 
     return (
         <>
@@ -787,7 +821,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                 setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
                                             }}
                                             src={switch_svg.src}
-                                            className="h-4 cursor-pointer"
+                                            className="relative z-10 h-4 cursor-pointer"
                                         />
                                         <label className="ml-4 w-max pr-2 text-sm font-bold">
                                             {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
@@ -1074,7 +1108,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
-                    className="relative z-10 "
+                    className="relative z-20 "
                     onClose={() => {
                         setFormHasBeenTouched(true)
                         setIsTokenSelectorOpen(false)
@@ -1094,7 +1128,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
                     </Transition.Child>
 
-                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                    <div className="fixed inset-0 z-20 overflow-y-auto">
                         <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
                             <Transition.Child
                                 as={Fragment}
@@ -1138,6 +1172,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                             <img
                                                                 src={chain.icon.url}
                                                                 className="h-6 cursor-pointer bg-white"
+                                                                onError={(e: any) => {
+                                                                    e.target.onerror = null
+                                                                }}
                                                             />
 
                                                             <label className="flex cursor-pointer items-center">
@@ -1163,6 +1200,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         <img
                                                             src={chain.icon.url}
                                                             className="h-6 cursor-pointer bg-white"
+                                                            onError={(e: any) => {
+                                                                e.target.onerror = null
+                                                            }}
                                                         />
 
                                                         <label className="flex cursor-pointer items-center">
@@ -1240,7 +1280,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
-                                                      key={token.address}
+                                                      key={token.address + Math.random()}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1261,6 +1301,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                               src={token.logo}
                                                               className="h-6 bg-white"
                                                               loading="eager"
+                                                              onError={(e: any) => {
+                                                                  e.target.onerror = null
+                                                              }}
                                                           />
                                                           <div>{token.name}</div>
                                                       </div>
@@ -1275,7 +1318,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                               ))
                                             : tokenList.map((token) => (
                                                   <div
-                                                      key={token.address}
+                                                      key={token.address + Math.random()}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1296,6 +1339,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                               src={token.logo}
                                                               className="h-6 bg-white"
                                                               loading="eager"
+                                                              onError={(e: any) => {
+                                                                  e.target.onerror = null
+                                                              }}
                                                           />
                                                           <div>{token.name}</div>
                                                       </div>

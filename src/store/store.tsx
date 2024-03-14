@@ -138,7 +138,7 @@ const mobulaChains = [
 
 export function Store({ children }: { children: React.ReactNode }) {
     const [userBalances, setUserBalances] = useAtom(userBalancesAtom)
-    const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
+    const [defaultChainDetails, setDefaultChainDetails] = useAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
 
     const [supportedMobulaChains, setSupportedMobulaChains] = useAtom(supportedMobulaChainsAtom)
@@ -226,40 +226,62 @@ export function Store({ children }: { children: React.ReactNode }) {
     const loadUserBalances = async (address: string) => {
         try {
             if (userBalances.length === 0) {
-                const mobulaResponse = await fetch('/api/mobula/fetch-wallet-balance', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        address,
-                    }),
-                })
+                const chainIds = defaultChainDetails
+                    .filter((detail) => detail.mainnet)
+                    .filter((detail) => supportedMobulaChains.map((chain) => chain.chainId).includes(detail.chainId))
+                    .map((detail) => detail.chainId)
+                    .join(',')
 
-                const mobulaResponseJson = await mobulaResponse.json()
+                let attempts = 0
+                const maxAttempts = 3
+                let success = false
 
-                const mappedUserBalances = mapToUserBalances(mobulaResponseJson.data).sort(
-                    (a: interfaces.IUserBalance, b: interfaces.IUserBalance) => {
-                        if (a.chainId === b.chainId) {
-                            if (a.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return -1
-                            if (b.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee') return 1
+                while (!success && attempts < maxAttempts) {
+                    try {
+                        const mobulaResponse = await fetch('/api/mobula/fetch-wallet-balance', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                address,
+                                chainIds,
+                                pnl: false,
+                            }),
+                        })
 
-                            return b.amount - a.amount
+                        if (mobulaResponse.ok) {
+                            const mobulaResponseJson = await mobulaResponse.json()
+
+                            const mappedUserBalances = mapToUserBalances(mobulaResponseJson.data).sort((a, b) => {
+                                if (a.chainId === b.chainId) {
+                                    if (a.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+                                        return -1
+                                    if (b.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+                                        return 1
+
+                                    return b.amount - a.amount
+                                } else {
+                                    return Number(a.chainId) - Number(b.chainId)
+                                }
+                            })
+
+                            setUserBalances(mappedUserBalances)
+                            success = true
                         } else {
-                            return Number(a.chainId) - Number(b.chainId)
+                            throw new Error('API request failed')
+                        }
+                    } catch (error) {
+                        attempts += 1
+                        if (attempts >= maxAttempts) {
+                            console.log('Max retry attempts reached for fetching balances using mobula. Giving up.')
+                            setUserBalances([])
                         }
                     }
-                )
-
-                if (mobulaResponse.ok) {
-                    setUserBalances(mappedUserBalances)
-                } else {
-                    setUserBalances([])
                 }
             }
         } catch (error) {
-            console.log(error)
-            console.error('error loading userBalances, ', error)
+            console.error('Unexpected error loading userBalances: ', error)
         }
     }
 

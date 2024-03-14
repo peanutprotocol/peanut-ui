@@ -283,7 +283,7 @@ export function Welcome() {
                         </a>
                     </div>
 
-                    <div className="mx-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-8 gap-y-8">
+                    <div className="mx-5 mt-12 flex flex-row flex-wrap items-center justify-center gap-4 gap-y-8 sm:gap-8">
                         {logoCloudLogos.map((logo) => {
                             return (
                                 <a
@@ -294,7 +294,7 @@ export function Welcome() {
                                     className="group"
                                 >
                                     <img
-                                        className="brutalborder spin-on-hover h-16 rounded-full object-contain"
+                                        className="brutalborder spin-on-hover h-8 rounded-full object-contain sm:h-16"
                                         src={logo.icon.src}
                                         alt="Logo"
                                         loading="eager"
@@ -332,29 +332,30 @@ export function Welcome() {
                 <div className="grid grid-cols-1 gap-4 overflow-hidden bg-white text-black sm:mx-0 lg:grid-cols-3">
                     <div
                         className={
-                            'brutalborder flex flex-col border-2 border-black bg-yellow p-4 text-center sm:p-6 sm:px-16'
+                            'brutalborder flex flex-col items-center justify-center bg-yellow p-4 text-center sm:p-4 sm:px-16'
                         }
-                        id="app"
+                        id="Users"
                     >
-                        <h3 className="text-5xl font-black">200k Users</h3>
+                        <h3 className="text-4xl font-black">200k+ Users</h3>
                     </div>
                     <div
-                        className={classNames(
-                            'brutalborder flex flex-col border-2 border-black bg-teal p-4 text-center sm:p-6 sm:px-16'
-                        )}
-                        id="app"
+                        className={
+                            'brutalborder flex flex-col items-center justify-center bg-teal p-4 text-center sm:p-4 sm:px-16'
+                        }
+                        id="wallets"
                     >
-                        <h3 className="text-5xl font-black"> 500k Volume</h3>
+                        <h3 className="text-4xl font-black">105k+ Unique wallet addresses</h3>
                     </div>
                     <div
-                        className={classNames(
-                            'brutalborder flex flex-col border-2 border-black bg-red p-4 text-center sm:p-6 sm:px-16'
-                        )}
-                        id="app"
+                        className={
+                            'brutalborder flex flex-col items-center justify-center bg-red p-4 text-center sm:p-4 sm:px-16'
+                        }
+                        id="Chains"
                     >
-                        <h3 className="text-5xl font-black"> 23 Chains</h3>
+                        <h3 className="text-4xl font-black">23 Chains</h3>
                     </div>
                 </div>
+
                 <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-red py-8 text-black sm:py-16 lg:flex-row-reverse">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
@@ -488,6 +489,7 @@ export function Welcome() {
                     {features.map((feature, index) => {
                         return (
                             <div
+                                key={index}
                                 className={classNames(
                                     'brutalborder flex flex-col border-2 border-black p-4 text-center sm:p-12 sm:px-16 ',
                                     feature.bg
@@ -595,6 +597,7 @@ export function Welcome() {
                 <div className="flex cursor-pointer flex-col gap-0">
                     {faqs.map((faq, idx) => (
                         <div
+                            key={idx}
                             className={classNames(
                                 'brutalborder-left brutalborder-top brutalborder-right rounded-none bg-white text-black ',
                                 faqs.length - 1 === idx ? ' brutalborder-bottom' : ''

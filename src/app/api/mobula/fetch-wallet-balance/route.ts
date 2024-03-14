@@ -7,13 +7,18 @@ export async function POST(request: NextRequest) {
 
         if (!API_KEY) throw new Error('API_KEY not found in env')
 
-        const mobulaResponse = await fetch(`https://api.mobula.io/api/1/wallet/portfolio?wallet=${body.address}`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                authorization: API_KEY,
-            },
-        })
+        const mobulaResponse = await fetch(
+            `https://api.mobula.io/api/1/wallet/portfolio?wallet=${body.address}&blockchains=${body.chainIds}&pnl=${body.pnl}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    authorization: API_KEY,
+                },
+            }
+        )
+
+        if (!mobulaResponse.ok) return new Response('Internal Server Error', { status: 500 })
 
         const mobulaResponseJson = await mobulaResponse.text()
 

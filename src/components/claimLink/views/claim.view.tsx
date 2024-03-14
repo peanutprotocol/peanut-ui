@@ -196,7 +196,21 @@ export function ClaimView({
                 showError: false,
                 errorMessage: '',
             })
-            if (!ethers.utils.isAddress(data.address)) {
+
+            if (data.address?.endsWith('.eth')) {
+                setLoadingStates('fetching address')
+
+                const resolvedEnsName = await utils.resolveFromEnsName(data.address)
+                if (resolvedEnsName) {
+                    data.address = resolvedEnsName
+                } else {
+                    setManualErrorState({
+                        showError: true,
+                        errorMessage: 'Unknown ens name',
+                    })
+                    return
+                }
+            } else if (!ethers.utils.isAddress(data.address)) {
                 setManualErrorState({
                     showError: true,
                     errorMessage: 'Please enter a valid address',
@@ -302,7 +316,7 @@ export function ClaimView({
                         {tokenPrice
                             ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
                             : utils.formatTokenAmount(Number(claimDetails[0].tokenAmount))}{' '}
-                        {tokenPrice ? ' $' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
+                        {tokenPrice ? ' in ' + claimDetails[0].tokenSymbol : claimDetails[0].tokenSymbol}
                     </>
                 </h2>
             )}

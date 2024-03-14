@@ -120,7 +120,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                             {claimLink}
                         </div>
                         <div
-                            className="absolute right-0 top-0 flex h-full min-w-32 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                            className="absolute right-0 top-0 flex h-full min-w-6    cursor-pointer items-center justify-center border-none bg-white px-1 text-black sm:min-w-32 md:px-4"
                             onClick={() => {
                                 navigator.clipboard.writeText(claimLink[0])
                                 setIsCopied(true)
@@ -153,7 +153,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                                     </div>
 
                                     <div
-                                        className="absolute right-0 top-0 flex h-full min-w-32 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
+                                        className="absolute right-0 top-0 flex h-full min-w-6 cursor-pointer items-center justify-center border-none bg-white px-1 text-black sm:min-w-32 md:px-4"
                                         onClick={() => {
                                             navigator.clipboard.writeText(link)
                                             setCopiedLink([link])

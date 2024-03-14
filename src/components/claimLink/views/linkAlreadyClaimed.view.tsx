@@ -23,7 +23,7 @@ export function ClaimLinkAlreadyClaimedView({ claimDetails }: { claimDetails: in
                 Sorry, this link has been claimed already.
             </h2>
             <h3 className="mb-3 text-center">
-                This link previously held {claimDetails[0].tokenSymbol} on{' '}
+                This link previously contained {claimDetails[0].tokenSymbol} on{' '}
                 {chainDetails && chainDetails.find((chain) => chain.chainId == claimDetails[0].chainId)?.name}
             </h3>
 

@@ -97,6 +97,7 @@ export function RaffleInitialView({
 
     const tokenList = useMemo(() => {
         if (isConnected) {
+            setFilteredTokenList(undefined)
             if (userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
                 return userBalances
                     .filter((balance) => balance.chainId == formwatch.chainId)
@@ -162,6 +163,15 @@ export function RaffleInitialView({
                 errorMessage: 'Please put an amount that is greater than zero',
             })
             return { succes: 'false' }
+        }
+
+        //check if the amount is smaller than 0.00001
+        if (Number(sendFormData.amount) < 0.00001) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'The amount is too small',
+            })
+            return { success: 'false' }
         }
 
         if (!sendFormData.numberOfrecipients || Number(sendFormData.numberOfrecipients) < 2) {
@@ -492,7 +502,7 @@ export function RaffleInitialView({
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Please allow the network switch in your wallet',
+                            errorMessage: 'Please confirm the request in your wallet',
                         })
                     } else if (error.toString().includes('NETWORK_ERROR')) {
                         setErrorState({
@@ -508,6 +518,11 @@ export function RaffleInitialView({
                         setErrorState({
                             showError: true,
                             errorMessage: 'Please make sure your wallet is connected.',
+                        })
+                    } else if (error.toString().includes('gas required exceeds allowance')) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Gas required exceeds balance. Please confirm you have enough funds.',
                         })
                     } else {
                         setErrorState({
@@ -538,16 +553,32 @@ export function RaffleInitialView({
 
     //when the token has changed, fetch the tokenprice and display it
     useEffect(() => {
-        async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            const price = await utils.fetchTokenPrice(tokenAddress, chainId)
-            setTokenPrice(price)
-        }
+        let isCurrent = true
 
+        async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
+            const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
+            if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
+                setTokenPrice(undefined)
+                return
+            } else {
+                if (!isCurrent) {
+                    return // if landed here, fetch outdated so discard the result
+                }
+                if (tokenPriceResponse?.price) {
+                    setTokenPrice(tokenPriceResponse.price)
+                } else {
+                    setTokenPrice(undefined)
+                }
+            }
+        }
         if (!isConnected) setTokenPrice(undefined)
         else if (formwatch.token && formwatch.chainId) {
             const tokenAddress = tokenList.find((token) => token.symbol == formwatch.token)?.address ?? undefined
             if (tokenAddress) {
                 fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
+                return () => {
+                    isCurrent = false
+                }
             }
         }
         if (formwatch.token) {
@@ -556,21 +587,26 @@ export function RaffleInitialView({
 
     //update the chain and token when the user changes the chain in the wallet
     useEffect(() => {
-        if (mantleCheck) {
-            sendForm.setValue('chainId', '5000')
-            return
-        }
         if (
             currentChain &&
             currentChain?.id.toString() != formwatch.chainId &&
             !formHasBeenTouched &&
             chainDetails.some((chain) => chain.chainId == currentChain.id)
         ) {
+            // if the user is connected and the forms hasnt been touched by the user, we set the chain to the current chain and the token to native token on that chain
             sendForm.setValue(
                 'token',
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
+        } else if (userBalances.length > 0 && !userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
+            // if the user has balances but not on the current chain, we switch to the first chain the user has balances on and set the token to the first token on that chain
+            sendForm.setValue('chainId', userBalances[0].chainId)
+            sendForm.setValue('token', userBalances[0].symbol)
+        } else if (!currentChain) {
+            // if the user is not connected, we set the chain to the first chain to optimism and token to ETH
+            sendForm.setValue('chainId', '10')
+            sendForm.setValue('token', 'ETH')
         }
     }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
 
@@ -579,10 +615,6 @@ export function RaffleInitialView({
             setShowModal(true)
         }
     }, [formwatch.numberOfrecipients])
-
-    useEffect(() => {
-        if (ensName) sendForm.setValue('senderName', ensName)
-    }, [ensName])
 
     return (
         <>
