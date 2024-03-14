@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, Fragment, useRef } from 'react'
+import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
