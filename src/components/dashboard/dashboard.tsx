@@ -49,7 +49,168 @@ export function Dashboard() {
     const router = useRouter()
     const [localStorageLinkData, setLocalStorageLinkData] = useState<interfaces.ILocalStorageItem[]>([])
     const [localStorageRaffleData, setLocalStorageRaffleData] = useState<interfaces.ILocalStorageItem[]>([])
-    const [dashboardLinkData, setDashboardLinkData] = useState<IDashboardLinkItemProps[]>([])
+    const [dashboardLinkData, setDashboardLinkData] = useState<IDashboardLinkItemProps[]>([
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+        {
+            hash: '0x0d26f18f6daf93f0c1a80036518e512062146dca6cfce0db8b3a12d9904ba76a0',
+            chainId: '137',
+            amount: '1.0',
+            token: 'MATIC',
+            date: '27/02/2024, 15:20:24',
+            claimed: true,
+            link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2088&t=ui#p=PwGLUZ0gQIM1S6wZ',
+            copied: false,
+        },
+    ])
     const [dashboardRaffleData, setDashboardRaffleData] = useState<IDashboardRaffleItemProps[]>([])
     const [copiedLink, setCopiedLink] = useState<string[]>()
     const [selectedDashboard, setSelectedDashboard] = useState<'normal' | 'raffle'>('normal')
@@ -80,6 +241,7 @@ export function Dashboard() {
                             copied: false,
                         }
                         details.push(x)
+                        console.log(x)
                     } catch (error) {
                         console.error(error)
                     }
@@ -141,6 +303,7 @@ export function Dashboard() {
                             senderAddress: _raffleInfo.senderAddress,
                         } // TODO: add more details
 
+                        console.log(x)
                         details.push(x)
                     } catch (error) {
                         console.log(error)
@@ -190,13 +353,13 @@ export function Dashboard() {
         <global_components.PageWrapper>
             <div
                 className={
-                    'center-xy brutalborder relative mx-auto mr-4 mt-5 flex w-10/12 flex-col items-center bg-white px-4 py-6 text-black sm:mr-auto lg:w-2/3 xl:w-1/2'
+                    'center-xy relative mx-auto mt-[43px] flex w-10/12 flex-col items-center border-4 border-solid border-black bg-white px-4 py-6 pb-6 text-black sm:mr-auto sm:mt-[40px] lg:w-2/3 xl:w-1/2'
                 }
-                id={'cta-div'}
+                id={!isMobile ? 'cta-div' : ''}
             >
                 <div
                     className={
-                        'absolute -left-[5px] -top-[40px] cursor-pointer ' +
+                        'absolute -left-[5px] -top-[43px] cursor-pointer sm:-top-[40px] ' +
                         (selectedDashboard === 'normal' ? ' z-20 ' : ' z-0 ')
                     }
                     onClick={() => {
@@ -209,7 +372,7 @@ export function Dashboard() {
 
                 <div
                     className={
-                        'absolute -top-[40px] left-[132px] cursor-pointer ' +
+                        'absolute -top-[43px] left-[132px] cursor-pointer cursor-pointer sm:-top-[40px] ' +
                         (selectedDashboard === 'raffle' ? ' z-20 ' : ' z-0 ')
                     }
                     onClick={() => {
@@ -228,7 +391,7 @@ export function Dashboard() {
                                     A list of all the links you have created.
                                 </div>
                                 <div className="mt-4 flex justify-between sm:ml-16 sm:mt-0 sm:flex-none ">
-                                    {isConnected && localStorageLinkData.length > 0 && (
+                                    {true && 1 > 0 && (
                                         <CSVLink
                                             className="brutalborder mr-2 inline-flex cursor-pointer items-center justify-center bg-black px-4 py-2 text-sm font-medium text-white no-underline hover:bg-white hover:text-black sm:w-auto"
                                             data={dashboardLinkData}
@@ -258,14 +421,14 @@ export function Dashboard() {
                                     </button>
                                 </div>
                             </div>
-                            {isConnected ? (
-                                localStorageLinkData.length > 0 ? (
+                            {true ? (
+                                1 > 0 ? (
                                     dashboardLinkData.length > 0 ? (
                                         isMobile ? (
-                                            <div className="max-h-[420px] overflow-y-auto">
-                                                <table className="w-full min-w-full table-auto border-spacing-x-0 border-spacing-y-4 ">
+                                            <div className="mt-4 max-h-[420px] overflow-y-auto">
+                                                <table className=" w-full min-w-full table-auto border-spacing-x-0">
                                                     <thead className="sticky top-0 bg-black text-white">
-                                                        <tr>
+                                                        <tr className="m-0 p-0">
                                                             <th
                                                                 scope="col"
                                                                 className="px-1 py-3.5 pl-3 text-left font-semibold"
@@ -283,10 +446,10 @@ export function Dashboard() {
                                                             </th>
                                                         </tr>
                                                     </thead>
-                                                    <tbody>
+                                                    <tbody className="border-spacing-x-0 border-spacing-y-4">
                                                         {dashboardLinkData.map((item) => (
-                                                            <tr key={item.link}>
-                                                                <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                            <tr key={item.link} className="py-2">
+                                                                <td className="brutalborder-bottom h-8 cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1 py-2">
                                                                     {
                                                                         chainDetails.find(
                                                                             (chain) =>
@@ -296,14 +459,14 @@ export function Dashboard() {
                                                                     }
                                                                 </td>
 
-                                                                <td className="brutalborder-bottom h-8  cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1">
+                                                                <td className="brutalborder-bottom h-8  cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1 py-2">
                                                                     {Number(item.amount) > 0
                                                                         ? utils.formatTokenAmount(Number(item.amount))
                                                                         : 'Claimed'}{' '}
                                                                     {Number(item.amount) > 0 && item.token}
                                                                 </td>
                                                                 <td
-                                                                    className="brutalborder-bottom h-8 cursor-pointer px-1"
+                                                                    className="brutalborder-bottom h-8 cursor-pointer px-1 py-2"
                                                                     onClick={() => {
                                                                         gaEventTracker('link-copied', '')
                                                                         navigator.clipboard.writeText(item.link)
@@ -458,12 +621,13 @@ export function Dashboard() {
                             ) : (
                                 <div>Connect your wallet to view your links.</div>
                             )}
-                            <div className="mt-2 flex w-full items-center justify-center gap-1 p-2">
-                                Had a problem creating a link? Click{' '}
-                                <Link href={'/reclaim'} className="text-black">
-                                    {' '}
-                                    here
-                                </Link>
+                            <div className="mt-2 flex w-full items-center justify-center text-center">
+                                <label className="">
+                                    Had a problem creating a link? Click{' '}
+                                    <Link href={'/reclaim'} className="text-black">
+                                        here
+                                    </Link>
+                                </label>
                             </div>
                         </div>
                     )}
