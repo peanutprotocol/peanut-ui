@@ -155,9 +155,12 @@ export function Reclaim() {
 
                 <form className="w-full" onSubmit={reclaimForm.handleSubmit(reclaimDeposit)}>
                     <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
-                        <div className="grid grid-cols-2 items-center justify-center gap-2">
+                        <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
                             <label>Chain</label>
-                            <select className="brutalborder p-1" {...reclaimForm.register('chainId')}>
+                            <select
+                                className="brutalborder h-8 rounded-none bg-white p-1 text-black outline-none"
+                                {...reclaimForm.register('chainId')}
+                            >
                                 {chainDetails.map((detail: any) => {
                                     return (
                                         <option key={detail.chainId} value={detail.chainId}>
@@ -170,7 +173,7 @@ export function Reclaim() {
                             <label>Transaction hash</label>
                             <input
                                 placeholder="0x123..."
-                                className="brutalborder p-1"
+                                className="brutalborder h-8 rounded-none p-1 outline-none"
                                 {...reclaimForm.register('transactionHash')}
                             />
                         </div>

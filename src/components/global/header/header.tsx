@@ -171,7 +171,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                     {({ open }) => (
                                         <>
                                             <Disclosure.Button
-                                                className="flex h-full cursor-pointer items-center border-none bg-black px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                                                className="flex h-full w-full cursor-pointer items-center border-none bg-black px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
                                                 key="app"
                                             >
                                                 App

@@ -402,6 +402,7 @@ export function Welcome() {
                                 src={teal_wallet_one.src}
                                 className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
                                 alt="Peanutman Cheering"
+                                loading="eager"
                             />
                         </a>
                     </div>

@@ -23,6 +23,7 @@ import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
 import dropdown_svg from '@/assets/icons/dropdown.svg'
+import { isMobile } from 'react-device-detect'
 
 export function RaffleInitialView({
     onNextScreen,
@@ -306,8 +307,6 @@ export function RaffleInitialView({
                     }
                 }
 
-                await checkNetwork(sendFormData.chainId)
-
                 //get the token details
                 const { tokenAddress, tokenDecimals, tokenType } = _utils.getTokenDetails(
                     sendFormData,
@@ -337,6 +336,8 @@ export function RaffleInitialView({
                 if (_checkBalance.success === 'false') {
                     return
                 }
+
+                await checkNetwork(sendFormData.chainId)
 
                 setEnableConfirmation(true)
 
@@ -734,7 +735,8 @@ export function RaffleInitialView({
                                         const value = utils.formatAmountWithoutComma(e.target.value)
                                         sendForm.setValue('amount', value)
                                     }}
-                                    type="number"
+                                    type={isMobile ? '' : 'number'}
+                                    pattern={isMobile ? '[0-9]*[.,]?[0-9]*' : ''}
                                     inputMode="decimal"
                                     step="any"
                                     min="0"
