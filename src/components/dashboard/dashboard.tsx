@@ -422,7 +422,7 @@ export function Dashboard() {
                                             </div>
                                         )
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center">
+                                        <div className="my-4 flex h-full w-full items-center justify-center">
                                             <svg
                                                 aria-hidden="true"
                                                 className="inline h-6 w-6 animate-spin fill-white text-black dark:text-black"
@@ -590,7 +590,7 @@ export function Dashboard() {
                                             ))}
                                         </ul>
                                     ) : (
-                                        <div className="flex h-full w-full items-center justify-center">
+                                        <div className="my-4 flex h-full w-full items-center justify-center">
                                             <svg
                                                 aria-hidden="true"
                                                 className="inline h-6 w-6 animate-spin fill-white text-black dark:text-black"

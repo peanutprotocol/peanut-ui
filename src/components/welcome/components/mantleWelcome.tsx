@@ -20,15 +20,14 @@ const features = [
         name: 'Raffle ',
         description: '2-10k slots with random amounts per red pack',
         bg: 'bg-yellow',
-        primaryRedirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links', //TODO: update link
+        primaryRedirectUrl: 'https://docs.peanut.to/overview/case-studies/raffles-to-boost-uwas-and-transactions', //TODO: update link
         primaryRedirectText: 'Docs',
     },
     {
         name: 'ERC-20',
         description: 'Multiple ERC-20s tokens per red pack',
         bg: 'bg-teal',
-        primaryRedirectUrl:
-            'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly', //TODO: update link
+        primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/getting-started-with-the-sdk', //TODO: update link
         primaryRedirectText: 'Docs',
     },
     {
@@ -36,7 +35,7 @@ const features = [
         description: 'Use web app or white-label (self-service or integration fee)',
         bg: 'bg-red',
         calModal: true,
-        primaryRedirectUrl: 'https://docs.peanut.to/overview/use-cases', //TODO: update link
+        primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/branded-links', //TODO: update link
         primaryRedirectText: 'Case study',
     },
     {
@@ -45,7 +44,7 @@ const features = [
         bg: 'bg-lightblue',
         primaryRedirectUrl: 'https://experimental.peanut.to/send',
         primaryRedirectText: 'Try Now',
-        secondaryRedirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/x-chain-links',
+        secondaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-gasless',
         secondaryRedirectText: 'Learn more',
     },
     {
@@ -71,8 +70,8 @@ const faqs = [
     },
     {
         question: 'What happens if I want to cancel or if I lose the link?',
-        answer: 'You can always withdraw or cancel your own links. See how ',
-        redirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/reclaiming-links',
+        answer: 'You can always reclaim the link to the sender wallet. See ',
+        redirectUrl: 'https://peanut.to/reclaim',
         redirectText: 'here.',
     },
     {
@@ -90,7 +89,7 @@ const faqs = [
     {
         question: 'Are you audited?',
         answer: 'Yes! ',
-        redirectUrl: 'https://docs.peanut.to',
+        redirectUrl: 'https://docs.peanut.to/other/security-audit',
         redirectText: 'See our docs for more',
     },
     {

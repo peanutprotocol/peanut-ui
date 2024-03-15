@@ -77,7 +77,7 @@ const features = [
         description:
             'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
         bg: 'bg-yellow',
-        primaryRedirectUrl: 'https://docs.peanut.to/integrations/domain-agnostic-links',
+        primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/branded-links',
         primaryRedirectText: 'Docs',
     },
     {
@@ -85,8 +85,7 @@ const features = [
         description:
             'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim and send links solve the cold start problem.',
         bg: 'bg-teal',
-        primaryRedirectUrl:
-            'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/claiming-peanut-links-gaslessly',
+        primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-gasless',
         primaryRedirectText: 'Docs',
     },
     {
@@ -94,7 +93,7 @@ const features = [
         description: 'Send a welcome pack of NFT + gas + token to new or existing customers',
         bg: 'bg-red',
         calModal: true,
-        primaryRedirectUrl: 'https://docs.peanut.to/overview/use-cases',
+        primaryRedirectUrl: 'https://docs.peanut.to/overview/case-studies/sending-testnet-tokens-at-hackathons',
         primaryRedirectText: 'Case study',
     },
     {
@@ -104,7 +103,7 @@ const features = [
         bg: 'bg-lightblue',
         primaryRedirectUrl: 'https://experimental.peanut.to/send',
         primaryRedirectText: 'Try Now',
-        secondaryRedirectUrl: 'https://docs.peanut.to/sdk-documentation/building-with-the-sdk/x-chain-links',
+        secondaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-cross-chain',
         secondaryRedirectText: 'Learn more',
     },
     {
@@ -112,6 +111,8 @@ const features = [
         description: 'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.',
         bg: 'bg-fuchsia',
         calModal: true,
+        primaryRedirectUrl: 'https://docs.peanut.to/overview/case-studies/irl-events-marketing',
+        primaryRedirectText: 'Case study',
     },
     {
         name: 'Web2 Airdrops',
@@ -149,7 +150,7 @@ const faqs = [
     {
         question: 'Are you audited?',
         answer: 'Yes! ',
-        redirectUrl: 'https://docs.peanut.to',
+        redirectUrl: 'https://docs.peanut.to/other/security-audit',
         redirectText: 'See our docs for more',
     },
     {
@@ -359,7 +360,10 @@ export function Welcome() {
                 <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-red py-8 text-black sm:py-16 lg:flex-row-reverse">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
-                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
+                        <a
+                            href="https://docs.peanut.to/overview/case-studies/raffles-to-boost-uwas-and-transactions"
+                            target="_blank"
+                        >
                             <div className="brutalborder brutalshadow sm:h-600 h-400 mx-2 flex h-full items-center justify-center bg-white object-cover">
                                 <Lottie
                                     options={defaultLottieOptions}
@@ -397,11 +401,12 @@ export function Welcome() {
                 <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-teal py-8 text-black sm:py-16 lg:flex-row">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
-                        <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
+                        <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
                             <img
                                 src={teal_wallet_one.src}
                                 className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
                                 alt="Peanutman Cheering"
+                                loading="eager"
                             />
                         </a>
                     </div>
