@@ -37,7 +37,7 @@ createWeb3Modal({
     enableAnalytics: true, // Optional - defaults to your Cloud configuration
     themeVariables: {
         '--w3m-border-radius-master': '0px',
-        '--w3m-accent': 'white',
+        // '--w3m-accent': 'white',
         '--w3m-color-mix': 'white',
     },
 })
