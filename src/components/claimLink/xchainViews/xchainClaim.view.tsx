@@ -487,9 +487,9 @@ export function xchainClaimView({
     }, [possibleRoutesArray])
 
     return (
-        <>
+        <div className="px-2">
             <div className={'mt-4 flex w-full flex-col items-center text-center  '}>
-                <h2 className=" title-font bold my-0 text-2xl lg:text-5xl">
+                <h2 className=" title-font bold my-0 text-3xl lg:text-6xl">
                     Claim{' '}
                     {tokenPrice
                         ? '$' + utils.formatAmount(Number(tokenPrice) * Number(claimDetails[0].tokenAmount))
@@ -612,10 +612,10 @@ export function xchainClaimView({
                 </div>
             )}
 
-            <div className="mx-auto mb-8 flex w-full flex-col items-center justify-center gap-1">
+            <div className="mx-auto mb-6 flex w-full flex-col items-center justify-center gap-1">
                 <button
                     type={isConnected ? 'submit' : 'button'}
-                    className="block w-full cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                    className="block w-full cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                     id="cta-btn"
                     onClick={() => {
                         !isConnected ? open() : claim()
@@ -846,6 +846,6 @@ export function xchainClaimView({
                     </div>
                 </Dialog>
             </Transition.Root>
-        </>
+        </div>
     )
 }

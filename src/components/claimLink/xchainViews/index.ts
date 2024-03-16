@@ -1,2 +1,2 @@
 export * from './xchainClaim.view'
-export * from './xchainSucces.view'
+export * from './xchainSuccess.view'
