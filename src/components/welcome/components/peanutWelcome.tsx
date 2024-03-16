@@ -337,7 +337,7 @@ export function Welcome() {
                         }
                         id="Users"
                     >
-                        <h3 className="text-4xl font-black">200k+ Users</h3>
+                        <h3 className="text-4xl font-black">300k+ Transactions</h3>
                     </div>
                     <div
                         className={
@@ -353,7 +353,7 @@ export function Welcome() {
                         }
                         id="Chains"
                     >
-                        <h3 className="text-4xl font-black">300k+ Transactions</h3>
+                        <h3 className="text-4xl font-black">20+ Chains</h3>
                     </div>
                 </div>
 
