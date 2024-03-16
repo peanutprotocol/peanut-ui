@@ -466,7 +466,10 @@ export function RaffleInitialView({
                     withCaptcha: true,
                     baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
                     APIKey: 'doesnt-matter',
-                })
+                    withENS: false,
+                    withSignedMessage: false,
+                    withWeb3Email: false,
+                }) // TODO: update latest values here
                 // Remove indices since they are stored on the API anyway
                 const fullCreatedURL = new URL(fullCreatedLink)
                 fullCreatedURL.searchParams.delete('i')
@@ -692,11 +695,12 @@ export function RaffleInitialView({
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
+                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-xs font-bold">
                                                 {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="mb-1 flex justify-center gap-1">
+                                            <div className="text-xd mb-1 flex justify-center gap-1">
+                                                <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
                                                     <span className="dot">.</span>
