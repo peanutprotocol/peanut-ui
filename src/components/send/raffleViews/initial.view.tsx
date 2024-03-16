@@ -466,7 +466,10 @@ export function RaffleInitialView({
                     withCaptcha: true,
                     baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
                     APIKey: 'doesnt-matter',
-                })
+                    withENS: false,
+                    withSignedMessage: false,
+                    withWeb3Email: false,
+                }) // TODO: update latest values here
                 // Remove indices since they are stored on the API anyway
                 const fullCreatedURL = new URL(fullCreatedLink)
                 fullCreatedURL.searchParams.delete('i')
