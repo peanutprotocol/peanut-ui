@@ -535,7 +535,7 @@ export function xchainClaimView({
                         {
                             possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
                                 .route.estimate.toToken.name
-                        }
+                        }{' '}
                         on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
                     </h2>
                 )
