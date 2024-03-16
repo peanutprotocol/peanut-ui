@@ -343,10 +343,10 @@ export function ClaimView({
                     </a>
                 </div>
             )}
-            <div className="mx-auto mb-8 flex w-full flex-col items-center justify-center gap-1">
+            <div className="mx-auto mb-6 flex w-full flex-col items-center justify-center gap-1">
                 <button
                     type={isConnected ? 'submit' : 'button'}
-                    className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                    className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
                     id="cta-btn"
                     onClick={() => {
                         !isConnected ? open() : claim()
