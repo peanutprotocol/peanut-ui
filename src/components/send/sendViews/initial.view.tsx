@@ -906,10 +906,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                         </label>
                                         {tokenBalance != undefined ? (
                                             <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
-                                                {utils.formatTokenAmount(tokenBalance, 4)}
+                                                balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
                                             <div className="mb-1 flex justify-center gap-1">
+                                                <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
                                                     <span className="dot">.</span>
@@ -962,11 +963,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
-                                                {utils.formatTokenAmount(tokenBalance, 4)}
+                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-sm text-xs text-xs font-bold">
+                                                balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="flex justify-center gap-1">
+                                            <div className="flex justify-center gap-1 text-xs">
+                                                <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
                                                     <span className="dot">.</span>
