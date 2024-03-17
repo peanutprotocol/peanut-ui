@@ -521,7 +521,7 @@ export function xchainClaimView({
                         route.route?.params.toChain === selectedChain?.chainId
                 ) && (
                     <h2 className="my-2 mb-4 text-center text-base font-medium sm:text-xl  ">
-                        You will be claiming{' '}
+                        You will be claiming{' $'}
                         {utils.formatTokenAmount(
                             utils.formatAmountWithDecimals({
                                 amount: possibleRoutesArray.find(
@@ -532,11 +532,15 @@ export function xchainClaimView({
                                 ).route.estimate.toToken.decimals,
                             }) * consts.xchainFeeMultiplier
                         )}{' '}
-                        {
-                            possibleRoutesArray.find((route) => route.route.params.toToken === selectedToken.address)
-                                .route.estimate.toToken.name
-                        }{' '}
-                        on {chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}
+                        <strong>
+                            {
+                                possibleRoutesArray.find(
+                                    (route) => route.route.params.toToken === selectedToken.address
+                                ).route.estimate.toToken.name
+                            }
+                        </strong>{' '}
+                        on{' '}
+                        <strong>{chainList.find((chain) => chain.chainId == selectedChain.chainId)?.chainName}</strong>
                     </h2>
                 )
             )}
@@ -594,7 +598,7 @@ export function xchainClaimView({
 
             {selectedChain.chainId != claimDetails[0].chainId && (
                 <div
-                    className="mb-8 mt-1 cursor-pointer font-medium underline"
+                    className="mb-8 mt-2 flex cursor-pointer justify-center font-medium underline"
                     onClick={() => {
                         if (!isLoading) {
                             setSelectedChain({
