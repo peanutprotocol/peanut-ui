@@ -521,7 +521,7 @@ export function xchainClaimView({
                         route.route?.params.toChain === selectedChain?.chainId
                 ) && (
                     <h2 className="my-2 mb-4 text-center text-base font-medium sm:text-xl  ">
-                        You will be claiming{' $'}
+                        You will be claiming{' '}
                         {utils.formatTokenAmount(
                             utils.formatAmountWithDecimals({
                                 amount: possibleRoutesArray.find(
@@ -531,7 +531,8 @@ export function xchainClaimView({
                                     (route) => route.route.params.toToken === selectedToken.address
                                 ).route.estimate.toToken.decimals,
                             }) * consts.xchainFeeMultiplier
-                        )}{' '}
+                        )}
+                        {' $'}
                         <strong>
                             {
                                 possibleRoutesArray.find(
