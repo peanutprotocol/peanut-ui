@@ -8,14 +8,14 @@ import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
 import { useAccount, useSignMessage } from 'wagmi'
-import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
+import { , useWeb3InboxAccount } from '@web3inbox/react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
     //web3inbox stuff
     const { address } = useAccount({})
 
     const { signMessageAsync } = useSignMessage()
-    const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
+    const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useWeb3InboxAccount()
     const { isSubscribed, subscribe, isSubscribing } = useManageSubscription(`eip155:1:${address}`)
 
     const [isLoading, setIsLoading] = useState(false)

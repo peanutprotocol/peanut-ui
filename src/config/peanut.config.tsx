@@ -1,5 +1,5 @@
 'use client'
-import { useInitWeb3InboxClient } from '@web3inbox/widget-react'
+import { initWeb3InboxClient } from '@web3inbox/react'
 import * as config from '@/config'
 import { Store } from '@/store/store'
 import { Analytics } from '@vercel/analytics/react'
@@ -18,14 +18,13 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         peanut.toggleVerbose(true)
     }, [])
 
-    useInitWeb3InboxClient({
+    initWeb3InboxClient({
         // The project ID and domain you setup in the Domain Setup section
         projectId: process.env.WC_PROJECT_ID ?? '',
         domain: 'peanut.to',
 
-        // Allow localhost development with "unlimited" mode.
-        // This authorizes this dapp to control notification subscriptions for all domains (including `app.example.com`), not just `window.location.host`
-        isLimited: false,
+        allApps: false,
+        logLevel: 'info',
     })
 
     return (
