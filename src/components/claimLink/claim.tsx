@@ -37,6 +37,7 @@ export function Claim() {
     const [crossChainDetails, setCrossChainDetails] = useState<Array<Chain & { tokens: Token[] }>>()
     const [crossChainSuccess, setCrossChainSuccess] = useState<_consts.ICrossChainSuccess | undefined>(undefined)
     const [senderAddress, setSenderAddress] = useState<string>('')
+    const [recipientAddress, setRecipientAddress] = useState<string>('')
 
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
     const verbose = true
@@ -221,6 +222,8 @@ export function Claim() {
                         setTokenPrice,
                         senderAddress,
                         setSenderAddress,
+                        recipientAddress,
+                        setRecipientAddress,
                     } as _consts.IClaimScreenProps)}
                 {linkState === 'MULTILINK_CLAIM' &&
                     createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
@@ -237,6 +240,8 @@ export function Claim() {
                         setTokenPrice,
                         senderAddress,
                         setSenderAddress,
+                        recipientAddress,
+                        setRecipientAddress,
                     } as _consts.IClaimScreenProps)}
                 {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
                     <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
@@ -259,6 +264,8 @@ export function Claim() {
                         setCrossChainSuccess,
                         senderAddress,
                         setSenderAddress,
+                        recipientAddress,
+                        setRecipientAddress,
                     } as _consts.IClaimScreenProps)}
             </global_components.CardWrapper>{' '}
         </global_components.PageWrapper>

@@ -22,6 +22,7 @@ export function xchainClaimView({
     tokenPrice,
     crossChainDetails,
     setCrossChainSuccess,
+    setRecipientAddress,
 }: _consts.IClaimScreenProps) {
     const verbose = true
 
@@ -243,6 +244,7 @@ export function xchainClaimView({
             } else {
                 setCrossChainSuccess(undefined)
             }
+            setRecipientAddress(data.address)
             onNextScreen()
         } catch (error) {
             setErrorState({
@@ -361,6 +363,7 @@ export function xchainClaimView({
             } else {
                 setCrossChainSuccess(undefined)
             }
+            setRecipientAddress(address ?? '')
             onNextScreen()
         } catch (error) {
             setErrorState({
