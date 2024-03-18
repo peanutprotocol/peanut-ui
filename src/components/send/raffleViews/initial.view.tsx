@@ -697,8 +697,8 @@ export function RaffleInitialView({
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-xs font-bold">
-                                                {utils.formatTokenAmount(tokenBalance, 4)}
+                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-xs font-light">
+                                                <label>balance: </label> {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
                                             <div className="text-xd mb-1 flex justify-center gap-1 font-light">

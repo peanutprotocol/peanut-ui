@@ -1,5 +1,5 @@
 'use client'
-import { createElement, useEffect, useState } from 'react'
+import { createElement, useCallback, useEffect, useState } from 'react'
 import peanut, { getRaffleLeaderboard, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 
@@ -43,28 +43,46 @@ export function RaffleClaim() {
         }))
     }
 
-    const checkLink = async (link: string) => {
-        try {
-            const _raffleInfo = await peanut.getRaffleInfo({
-                link,
-                baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
-                APIKey: 'doesnt-matter',
-            })
-            const userStatus = await peanut.getUserRaffleStatus({
-                link,
-                userAddress: address,
-                baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
-                APIKey: 'doesnt-matter',
-            })
+    const checkLink = useCallback(
+        async (link: string, address: `0x${string}` | undefined) => {
+            try {
+                const _raffleInfo = await peanut.getRaffleInfo({
+                    link,
+                    baseUrl: `${consts.next_proxy_url}/get-raffle-info`,
+                    APIKey: 'doesnt-matter',
+                })
+                const userStatus = await peanut.getUserRaffleStatus({
+                    link,
+                    userAddress: address,
+                    baseUrl: `${consts.next_proxy_url}/user-raffle-status`,
+                    APIKey: 'doesnt-matter',
+                })
 
-            const hasAddressParticipated = userStatus.userResults !== null
+                const hasAddressParticipated = userStatus.userResults !== null
 
-            setRaffleInfo(_raffleInfo)
-            setRaffleLink(link)
-            setUserStatus(userStatus)
+                setRaffleInfo(_raffleInfo)
+                setRaffleLink(link)
+                setUserStatus(userStatus)
 
-            if (_raffleInfo.isActive) {
-                if (address && hasAddressParticipated && userStatus.requiresCaptcha) {
+                if (_raffleInfo.isActive) {
+                    if (address && hasAddressParticipated && userStatus.requiresCaptcha) {
+                        setLeaderboardInfo(
+                            await getRaffleLeaderboard({
+                                link: link,
+                                baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
+                                APIKey: 'doesnt-matter',
+                            })
+                        )
+                        setRaffleScreen(() => ({
+                            screen: 'SUCCESS',
+                            idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
+                        }))
+                        setRaffleState('FOUND')
+                    } else {
+                        setSenderName(_raffleInfo.senderName)
+                        setRaffleState('FOUND')
+                    }
+                } else {
                     setLeaderboardInfo(
                         await getRaffleLeaderboard({
                             link: link,
@@ -72,54 +90,37 @@ export function RaffleClaim() {
                             APIKey: 'doesnt-matter',
                         })
                     )
-                    setRaffleScreen(() => ({
-                        screen: 'SUCCESS',
-                        idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
-                    }))
-                    setRaffleState('FOUND')
-                    // } else if (!address && userStatus.requiresCaptcha) {
-                    //     setRaffleState('TOO_LATE')
-                } else {
-                    setSenderName(_raffleInfo.senderName)
-                    setRaffleState('FOUND')
+                    if (address && hasAddressParticipated) {
+                        setRaffleScreen(() => ({
+                            screen: 'SUCCESS',
+                            idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
+                        }))
+                        setRaffleState('FOUND')
+                    } else {
+                        setRaffleState('EMPTY')
+                    }
                 }
-            } else {
-                setLeaderboardInfo(
-                    await getRaffleLeaderboard({
-                        link: link,
-                        baseUrl: `${consts.next_proxy_url}/get-raffle-leaderboard`,
-                        APIKey: 'doesnt-matter',
-                    })
-                )
-                if (address && hasAddressParticipated) {
-                    setRaffleScreen(() => ({
-                        screen: 'SUCCESS',
-                        idx: _consts.RAFFLE_SCREEN_FLOW.indexOf('SUCCESS'),
-                    }))
-                    setRaffleState('FOUND')
-                } else {
-                    setRaffleState('EMPTY')
-                }
-            }
-        } catch (error: any) {
-            console.error(error)
-            setRaffleState('NOT_FOUND')
+            } catch (error: any) {
+                console.error(error)
+                setRaffleState('NOT_FOUND')
 
-            if (error.toString().includes('Service temporarily unavailable')) {
-                setRaffleState('TIMEOUT')
+                if (error.toString().includes('Service temporarily unavailable')) {
+                    setRaffleState('TIMEOUT')
+                }
+                if (error.toString().includes('FUNCTION_INVOCATION_TIMEOUT')) {
+                    setRaffleState('TIMEOUT')
+                }
             }
-            if (error.toString().includes('FUNCTION_INVOCATION_TIMEOUT')) {
-                setRaffleState('TIMEOUT')
-            }
-        }
-    }
+        },
+        [address]
+    )
 
     useEffect(() => {
         const pageUrl = typeof window !== 'undefined' ? window.location.href : undefined
         if (pageUrl) {
-            checkLink(pageUrl)
+            checkLink(pageUrl, address)
         }
-    }, [])
+    }, [address])
 
     return (
         <global_components.PageWrapper bgColor="bg-red">
