@@ -1,3 +1,5 @@
+import * as utils from '.'
+
 interface INotification {
     title: string
     body: string
@@ -14,7 +16,7 @@ export const sendNotification = async (
     const accounts = [`eip155:1:${senderAddress}` ?? '']
     const notification: INotification = {
         title: 'Peanut Protocol',
-        body: `Your link has been claimed on ${chainName} by ${recipientAddress ?? ''}`,
+        body: `Your link has been claimed on ${chainName} by ${utils.shortenAddressLong(recipientAddress ?? '')}`,
         url: undefined,
         type: '2aee6e5f-091d-444e-96cd-868ba2ddd0e7',
     }

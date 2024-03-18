@@ -10,7 +10,7 @@ import dropdown_svg from '@/assets/icons/dropdown.svg'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'
 
-export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
+export function ClaimSuccessView({ txHash, claimDetails, senderAddress, recipientAddress }: _consts.IClaimScreenProps) {
     const { address } = useAccount()
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
@@ -34,7 +34,7 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress }: _const
 
     const sendNotification = async () => {
         const chainName = chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.name
-        utils.sendNotification(senderAddress, address, chainName)
+        utils.sendNotification(senderAddress, recipientAddress ?? address, chainName)
     }
 
     return (

@@ -2,7 +2,7 @@
 import { createElement, useEffect, useState } from 'react'
 import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
-import { useW3iAccount } from '@web3inbox/widget-react'
+import { useWeb3InboxAccount } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 
 export function Send({ type }: { type: 'normal' | 'raffle' }) {
@@ -10,7 +10,7 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
     const [claimLink, setClaimLink] = useState<string | string[]>('')
     const [txHash, setTxHash] = useState<string>('')
     const [chainId, setChainId] = useState<string>('1')
-    const { setAccount } = useW3iAccount()
+    const { setAccount } = useWeb3InboxAccount()
     const { address } = useAccount({})
 
     useEffect(() => {

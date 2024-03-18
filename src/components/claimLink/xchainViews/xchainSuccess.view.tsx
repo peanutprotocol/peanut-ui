@@ -18,6 +18,7 @@ export function xchainSuccessView({
     crossChainSuccess,
     claimDetails,
     senderAddress,
+    recipientAddress,
 }: _consts.IClaimScreenProps) {
     const router = useRouter()
     const { address } = useAccount()
@@ -99,7 +100,7 @@ export function xchainSuccessView({
     const sendNotification = async () => {
         const destinationChainId = crossChainSuccess?.chainId || claimDetails[0].chainId
         const chainName = chainDetails.find((detail) => detail.chainId === destinationChainId)?.name
-        utils.sendNotification(senderAddress, address, chainName)
+        utils.sendNotification(senderAddress, recipientAddress ?? address, chainName)
     }
 
     return (

@@ -3,10 +3,17 @@ import peanut from '@squirrel-labs/peanut-sdk'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
-    const endingBit = address.substring(address.length - 4, address.length)
 
     return firstBit + '..'
 }
+
+export const shortenAddressLong = (address: string) => {
+    const firstBit = address.substring(0, 6)
+    const endingBit = address.substring(address.length - 4, address.length)
+
+    return firstBit + '...' + endingBit
+}
+
 export const shortenHash = (address: string) => {
     const firstBit = address.substring(0, 8)
     const endingBit = address.substring(address.length - 6, address.length)
