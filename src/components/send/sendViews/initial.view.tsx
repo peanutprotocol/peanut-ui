@@ -127,19 +127,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 )
             }
         } else {
-            return chainDetails
-                .filter((chain) => chain.chainId == formwatch.chainId)
-                .map((chain) => {
-                    return {
-                        symbol: chain.nativeCurrency.symbol,
-                        chainId: chain.chainId.toString(),
-                        amount: 0,
-                        address: '',
-                        decimals: 18,
-                        logo: '',
-                        name: chain.nativeCurrency.name,
-                    }
-                })
+            return (
+                tokenDetails
+                    .find((tokendetail) => tokendetail.chainId == formwatch.chainId.toString())
+                    ?.tokens.map((token) => {
+                        return {
+                            symbol: token.symbol,
+                            chainId: formwatch.chainId,
+                            amount: 0,
+                            address: token.address,
+                            decimals: token.decimals,
+                            logo: token.logoURI,
+                            name: token.name,
+                        }
+                    }) ?? []
+            )
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
