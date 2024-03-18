@@ -701,7 +701,7 @@ export function RaffleInitialView({
                                                 {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="text-xd mb-1 flex justify-center gap-1">
+                                            <div className="text-xd mb-1 flex justify-center gap-1 font-light">
                                                 <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>

@@ -2,7 +2,7 @@
 import { createElement, useEffect, useState } from 'react'
 import * as global_components from '@/components/global'
 import * as _consts from './send.consts'
-import { useWeb3InboxAccount } from '@web3inbox/react'
+import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 
 export function Send({ type }: { type: 'normal' | 'raffle' }) {
@@ -11,12 +11,14 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
     const [txHash, setTxHash] = useState<string>('')
     const [chainId, setChainId] = useState<string>('1')
     const { setAccount } = useWeb3InboxAccount()
+    const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
 
     useEffect(() => {
         if (!Boolean(address)) return
+        if (w3iClientIsLoading) return
         setAccount(`eip155:1:${address}`)
-    }, [address, setAccount])
+    }, [address, w3iClientIsLoading])
 
     const handleOnNext = () => {
         const newIdx = sendScreen.idx + 1
@@ -34,10 +36,10 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
     }
 
     useEffect(() => {
-        if (!address) {
+        if (!address && w3iClient) {
             setAccount('')
         }
-    }, [address])
+    }, [address, w3iClient])
 
     return (
         <global_components.PageWrapper bgColor={type === 'raffle' ? ' bg-red' : undefined}>

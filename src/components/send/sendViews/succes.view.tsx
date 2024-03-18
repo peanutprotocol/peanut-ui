@@ -193,7 +193,8 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
 
                 <div
                     className={
-                        ' flex flex-col items-center justify-center ' + (isSubscribed ? ' mt-2 gap-4 ' : ' mt-8 gap-6 ')
+                        ' flex flex-col items-center justify-center ' +
+                        (isSubscribed && isRegistered ? ' mt-2 gap-4 ' : ' mt-8 gap-6 ')
                     }
                 >
                     {!isRegistered || !isSubscribed ? (

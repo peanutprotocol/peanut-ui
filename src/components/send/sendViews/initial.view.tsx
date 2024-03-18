@@ -911,7 +911,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                 balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="mb-1 flex justify-center gap-1">
+                                            <div className="mb-1 flex justify-center gap-1 font-light">
                                                 <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
@@ -969,7 +969,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                 balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="flex justify-center gap-1 text-xs">
+                                            <div className="flex justify-center gap-1 text-xs font-light">
                                                 <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
