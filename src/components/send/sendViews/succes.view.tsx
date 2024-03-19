@@ -8,15 +8,25 @@ import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
 import { useAccount, useSignMessage } from 'wagmi'
-import { useManageSubscription, useW3iAccount } from '@web3inbox/widget-react'
+import {
+    useWeb3InboxAccount,
+    useRegister,
+    useSubscribe,
+    useSubscription,
+    usePrepareRegistration,
+} from '@web3inbox/react'
 
 export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: _consts.ISendScreenProps) {
     //web3inbox stuff
     const { address } = useAccount({})
 
     const { signMessageAsync } = useSignMessage()
-    const { account, setAccount, register: registerIdentity, identityKey, isRegistered } = useW3iAccount()
-    const { isSubscribed, subscribe, isSubscribing } = useManageSubscription(`eip155:1:${address}`)
+    const { data: account, setAccount, identityKey, isRegistered } = useWeb3InboxAccount()
+    const { register: registerIdentity } = useRegister()
+    const { subscribe, isLoading: isSubscribing } = useSubscribe()
+    const { data: subscription } = useSubscription()
+    const isSubscribed = Boolean(subscription)
+    const { prepareRegistration } = usePrepareRegistration()
 
     const [isLoading, setIsLoading] = useState(false)
     const [loadingText, setLoadingText] = useState('')
@@ -66,7 +76,9 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
         try {
             setIsLoading(true)
             setLoadingText('Confirm in wallet')
-            await registerIdentity(signMessage)
+            const { message, registerParams } = await prepareRegistration()
+            const signature = await signMessageAsync({ message: message })
+            await registerIdentity({ registerParams, signature })
                 .then(async () => {
                     await handleSubscribe(true)
                 })
@@ -181,7 +193,8 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
 
                 <div
                     className={
-                        ' flex flex-col items-center justify-center ' + (isSubscribed ? ' mt-2 gap-4 ' : ' mt-8 gap-6 ')
+                        ' flex flex-col items-center justify-center ' +
+                        (isSubscribed && isRegistered ? ' mt-2 gap-4 ' : ' mt-8 gap-6 ')
                     }
                 >
                     {!isRegistered || !isSubscribed ? (

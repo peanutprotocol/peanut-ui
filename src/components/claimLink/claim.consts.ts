@@ -66,6 +66,8 @@ export interface IClaimScreenProps {
     setCrossChainSuccess: (crossChainSuccess: ICrossChainSuccess | undefined) => void
     senderAddress: string
     setSenderAddress: (senderAddress: string) => void
+    recipientAddress: string
+    setRecipientAddress: (recipientAddress: string) => void
 }
 
 export const INIT_VIEW: IClaimScreenState = {

@@ -37,6 +37,7 @@ export function Claim() {
     const [crossChainDetails, setCrossChainDetails] = useState<Array<Chain & { tokens: Token[] }>>()
     const [crossChainSuccess, setCrossChainSuccess] = useState<_consts.ICrossChainSuccess | undefined>(undefined)
     const [senderAddress, setSenderAddress] = useState<string>('')
+    const [recipientAddress, setRecipientAddress] = useState<string>('')
 
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
     const verbose = true
@@ -83,18 +84,19 @@ export function Claim() {
     }
 
     const isBridgePossible = async (linkDetails: interfaces.ILinkDetails, tokenPrice: number | undefined) => {
-        let tokenPriceSufficient = false
+        let tokenPriceSufficient = true
 
-        if (tokenPrice) {
-            // if token price is available and higher then $5
-            if (Number(linkDetails.tokenAmount) * tokenPrice < 19.9) {
-                tokenPriceSufficient = false
-            } else {
-                tokenPriceSufficient = true
-            }
-        } else {
-            tokenPriceSufficient = true
-        }
+        // DISABLED for now: dencun made prices quite low
+        // if (tokenPrice) {
+        //     // if token price is available and higher then $5
+        //     if (Number(linkDetails.tokenAmount) * tokenPrice < 19.9) {
+        //         tokenPriceSufficient = false
+        //     } else {
+        //         tokenPriceSufficient = true
+        //     }
+        // } else {
+        //     tokenPriceSufficient = true
+        // }
 
         if (linkDetails.tokenType == '2') {
             // if token is not erc20
@@ -105,6 +107,7 @@ export function Claim() {
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
 
         try {
+            // TODO: get from API
             const crossChainDetails = await peanut.getXChainOptionsForLink({
                 isTestnet,
                 sourceChainId: linkDetails.chainId.toString(),
@@ -221,6 +224,8 @@ export function Claim() {
                         setTokenPrice,
                         senderAddress,
                         setSenderAddress,
+                        recipientAddress,
+                        setRecipientAddress,
                     } as _consts.IClaimScreenProps)}
                 {linkState === 'MULTILINK_CLAIM' &&
                     createElement(_consts.MULTILINK_CLAIM_SCREEN_MAP[claimScreen.screen].comp, {
@@ -237,6 +242,8 @@ export function Claim() {
                         setTokenPrice,
                         senderAddress,
                         setSenderAddress,
+                        recipientAddress,
+                        setRecipientAddress,
                     } as _consts.IClaimScreenProps)}
                 {linkState === 'MULTILINK_ALREADY_CLAIMED' && (
                     <multilinkViews.multilinkAlreadyClaimedView claimDetails={claimDetails} />
@@ -259,6 +266,8 @@ export function Claim() {
                         setCrossChainSuccess,
                         senderAddress,
                         setSenderAddress,
+                        recipientAddress,
+                        setRecipientAddress,
                     } as _consts.IClaimScreenProps)}
             </global_components.CardWrapper>{' '}
         </global_components.PageWrapper>

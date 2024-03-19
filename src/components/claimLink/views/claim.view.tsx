@@ -24,6 +24,7 @@ export function ClaimView({
     setTxHash,
     claimType,
     tokenPrice,
+    setRecipientAddress,
 }: _consts.IClaimScreenProps) {
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
@@ -134,7 +135,7 @@ export function ClaimView({
                     verbose && console.log(claimTx)
                     setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
                 }
-
+                setRecipientAddress(address)
                 onNextScreen()
             }
         } catch (error) {
@@ -271,7 +272,7 @@ export function ClaimView({
                     })
                     setTxHash([claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''])
                 }
-
+                setRecipientAddress(data.address)
                 onNextScreen()
             }
         } catch (error) {
