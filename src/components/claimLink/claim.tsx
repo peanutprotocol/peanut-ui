@@ -84,18 +84,19 @@ export function Claim() {
     }
 
     const isBridgePossible = async (linkDetails: interfaces.ILinkDetails, tokenPrice: number | undefined) => {
-        let tokenPriceSufficient = false
+        let tokenPriceSufficient = true
 
-        if (tokenPrice) {
-            // if token price is available and higher then $5
-            if (Number(linkDetails.tokenAmount) * tokenPrice < 19.9) {
-                tokenPriceSufficient = false
-            } else {
-                tokenPriceSufficient = true
-            }
-        } else {
-            tokenPriceSufficient = true
-        }
+        // DISABLED for now: dencun made prices quite low
+        // if (tokenPrice) {
+        //     // if token price is available and higher then $5
+        //     if (Number(linkDetails.tokenAmount) * tokenPrice < 19.9) {
+        //         tokenPriceSufficient = false
+        //     } else {
+        //         tokenPriceSufficient = true
+        //     }
+        // } else {
+        //     tokenPriceSufficient = true
+        // }
 
         if (linkDetails.tokenType == '2') {
             // if token is not erc20
@@ -106,6 +107,7 @@ export function Claim() {
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
 
         try {
+            // TODO: get from API
             const crossChainDetails = await peanut.getXChainOptionsForLink({
                 isTestnet,
                 sourceChainId: linkDetails.chainId.toString(),
