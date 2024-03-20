@@ -59,7 +59,7 @@ export function xchainSuccessView({
                     : 'https://v2.api.squidrouter.com/v2/status',
                 {
                     params: { transactionId: txHash },
-                    headers: { 'x-integrator-id': 'peanut-ui' },
+                    headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' },
                 }
             )
             return response.data
