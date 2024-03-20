@@ -1226,8 +1226,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                 (unfoldChains ? ' max-h-full ' : ' max-h-32 ')
                                             }
                                         >
-                                            {chainsToShow.map((chain) =>
-                                                !showTestnets ? (
+                                            {chainsToShow.map(
+                                                (chain) =>
                                                     chain.mainnet && (
                                                         <div
                                                             key={chain.chainId}
@@ -1256,73 +1256,66 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                             </label>
                                                         </div>
                                                     )
-                                                ) : (
-                                                    <div
-                                                        key={chain.chainId}
-                                                        className={
-                                                            'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                            (formwatch.chainId == chain.chainId
-                                                                ? 'bg-black text-white'
-                                                                : '')
-                                                        }
-                                                        onClick={() => {
-                                                            sendForm.setValue('chainId', chain.chainId)
-                                                            sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                            setFormHasBeenTouched(true)
-                                                        }}
-                                                    >
-                                                        <img
-                                                            src={chain.icon.url}
-                                                            className="h-6 cursor-pointer bg-white"
-                                                            onError={(e: any) => {
-                                                                e.target.onerror = null
+                                            )}
+                                            <div className="brutalborder flex w-full"></div>
+                                            {chainsToShow.map(
+                                                (chain) =>
+                                                    !chain.mainnet && (
+                                                        <div
+                                                            key={chain.chainId}
+                                                            className={
+                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                (formwatch.chainId == chain.chainId
+                                                                    ? 'bg-black text-white'
+                                                                    : '')
+                                                            }
+                                                            onClick={() => {
+                                                                sendForm.setValue('chainId', chain.chainId)
+                                                                sendForm.setValue('token', chain.nativeCurrency.symbol)
+                                                                setFormHasBeenTouched(true)
                                                             }}
-                                                        />
+                                                        >
+                                                            <img
+                                                                src={chain.icon.url}
+                                                                className="h-6 cursor-pointer bg-white"
+                                                                onError={(e: any) => {
+                                                                    e.target.onerror = null
+                                                                }}
+                                                            />
 
-                                                        <label className="flex cursor-pointer items-center">
-                                                            {chain.name.toUpperCase()}
-                                                        </label>
-                                                    </div>
-                                                )
+                                                            <label className="flex cursor-pointer items-center">
+                                                                {chain.name.toUpperCase()}
+                                                            </label>
+                                                        </div>
+                                                    )
                                             )}
                                         </div>
                                         <div className="flex w-full justify-between">
-                                            <div className=" cursor-pointer ">
-                                                <img
-                                                    style={{
-                                                        transform: unfoldChains ? 'scaleY(-1)' : 'none',
-                                                        transition: 'transform 0.3s ease-in-out',
-                                                    }}
-                                                    src={dropdown_svg.src}
-                                                    alt=""
-                                                    className={'h-9 '}
-                                                    onClick={() => {
-                                                        console.log('unfolded chains')
-
-                                                        setUnfoldChains(!unfoldChains)
-                                                    }}
-                                                />
-                                            </div>
-
-                                            <Switch.Group as="div" className="flex items-center p-0">
+                                            <Switch.Group
+                                                as="div"
+                                                className={classNames(
+                                                    'flex items-center p-0',
+                                                    unfoldChains ? 'mt-1' : 'mt-0'
+                                                )}
+                                            >
                                                 <Switch
-                                                    checked={showTestnets}
-                                                    onChange={setShowTestnets}
+                                                    checked={unfoldChains}
+                                                    onChange={setUnfoldChains}
                                                     className={classNames(
-                                                        showTestnets ? 'bg-teal' : 'bg-gray-200',
+                                                        unfoldChains ? 'bg-teal' : 'bg-gray-200',
                                                         'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
                                                     )}
                                                 >
                                                     <span
                                                         aria-hidden="true"
                                                         className={classNames(
-                                                            showTestnets ? 'translate-x-5' : 'translate-x-0',
+                                                            unfoldChains ? 'translate-x-5' : 'translate-x-0',
                                                             'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
                                                         )}
                                                     />
                                                 </Switch>
                                                 <Switch.Label as="span" className="ml-3">
-                                                    <span className="text-sm">show testnets</span>
+                                                    <span className="text-sm">show all</span>
                                                 </Switch.Label>
                                             </Switch.Group>
                                         </div>
