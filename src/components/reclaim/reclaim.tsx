@@ -153,7 +153,7 @@ export function Reclaim() {
                     </div>
                 </div>
 
-                <form className="w-full" onSubmit={reclaimForm.handleSubmit(reclaimDeposit)}>
+                <form className="w-4/5" onSubmit={reclaimForm.handleSubmit(reclaimDeposit)}>
                     <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
                         <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
                             <label>Chain</label>
