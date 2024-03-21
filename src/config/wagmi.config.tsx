@@ -40,6 +40,7 @@ createWeb3Modal({
         // '--w3m-accent': 'white',
         '--w3m-color-mix': 'white',
     },
+    enableOnramp: true,
 })
 
 export function ContextProvider({ children }: { children: React.ReactNode }) {
