@@ -1163,14 +1163,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             showGaslessAvailable && (
                                 <div className="flex flex-row items-center justify-center gap-1 text-center">
                                     <label className="font-bold text-black ">
-                                        Uncheck this box if you don't want to create a link gaslessly
+                                        All USDC links are created gasless and sponsored by peanut!
                                     </label>
-                                    <input
-                                        type="checkbox"
-                                        className="m-0 mt-1 h-5 rounded-none p-0 accent-black"
-                                        checked={createGasless}
-                                        onChange={() => setCreateGasless(!createGasless)}
-                                    />
                                 </div>
                             )
                         )}
