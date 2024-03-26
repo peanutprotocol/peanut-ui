@@ -924,7 +924,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
+                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs font-light">
                                                 balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
@@ -982,7 +982,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-sm text-xs text-xs font-bold">
+                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs font-light">
                                                 balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
