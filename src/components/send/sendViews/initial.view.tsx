@@ -55,6 +55,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+    const [supportedWalletconnectChains] = useAtom(store.supportedWalletconnectChainsAtom)
     const [supportedMobulaChains] = useAtom(store.supportedMobulaChainsAtom)
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
     hooks.useConfirmRefresh(enableConfirmation)
@@ -82,7 +83,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 )
                 .concat(
                     chainDetails.filter(
-                        (item1) => !supportedMobulaChains.some((item2) => item2.chainId === item1.chainId)
+                        (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
                     )
                 )
 
@@ -90,7 +91,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         } else {
             return chainDetails
         }
-    }, [isConnected, chainDetails, userBalances, supportedMobulaChains])
+    }, [isConnected, chainDetails, userBalances, supportedWalletconnectChains])
 
     const tokenList = useMemo(() => {
         if (isConnected) {
@@ -747,11 +748,23 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         async function fetchAndSetTokenBalance(tokenAddress: string, chainId: string) {
             if (isConnected) {
                 try {
-                    const balance = await getTokenBalance({
-                        chainId: chainId,
-                        tokenAddress: tokenAddress,
-                        walletAddress: address ?? '',
-                    })
+                    let balance = ''
+                    if (userBalances.length > 0) {
+                        const userBalance = userBalances.find(
+                            (balance) => balance.chainId == chainId && balance.address == tokenAddress
+                        )
+                        if (userBalance) {
+                            balance = userBalance.amount.toString()
+                        }
+                    } else {
+                        const _balance = await getTokenBalance({
+                            chainId: chainId,
+                            tokenAddress: tokenAddress,
+                            walletAddress: address ?? '',
+                        })
+                        balance = _balance.toString()
+                    }
+
                     if (!isCurrent) {
                         return // if landed here, fetch outdated so discard the result
                     }
@@ -799,7 +812,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
-        } else if (userBalances.length > 0 && !userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
+        } else if (
+            !formHasBeenTouched &&
+            userBalances.length > 0 &&
+            !userBalances.some((balance) => balance.chainId == formwatch.chainId)
+        ) {
             // if the user has balances but not on the current chain, we switch to the first chain the user has balances on and set the token to the first token on that chain
             sendForm.setValue('chainId', userBalances[0].chainId)
             sendForm.setValue('token', userBalances[0].symbol)
@@ -1239,7 +1256,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer bg-white"
+                                                                className="h-6 cursor-pointer rounded-full bg-white py-[1px]"
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
@@ -1271,7 +1288,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer bg-white"
+                                                                className="h-6 cursor-pointer rounded-full bg-white py-[1px]"
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
@@ -1360,7 +1377,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       <div className="flex items-center gap-2 ">
                                                           <img
                                                               src={token.logo}
-                                                              className="h-6 bg-white"
+                                                              className="h-6 rounded-full bg-white"
                                                               loading="eager"
                                                               onError={(e: any) => {
                                                                   e.target.onerror = null
@@ -1398,7 +1415,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       <div className="flex items-center gap-2 ">
                                                           <img
                                                               src={token.logo}
-                                                              className="h-6 bg-white"
+                                                              className="h-6 rounded-full bg-white"
                                                               loading="eager"
                                                               onError={(e: any) => {
                                                                   e.target.onerror = null
