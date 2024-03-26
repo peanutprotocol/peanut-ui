@@ -1256,7 +1256,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer rounded-full bg-white py-[1px]"
+                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white "
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
@@ -1288,7 +1288,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer rounded-full bg-white py-[1px]"
+                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white "
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}

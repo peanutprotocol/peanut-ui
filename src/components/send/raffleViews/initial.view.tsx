@@ -944,7 +944,7 @@ export function RaffleInitialView({
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer rounded-full bg-white"
+                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white"
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
@@ -976,7 +976,7 @@ export function RaffleInitialView({
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer rounded-full bg-white"
+                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white"
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
