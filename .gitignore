@@ -45,3 +45,5 @@ playground/
 # yarn and npm lockfiles
 package-lock.json
 yarn.lock
+# Sentry Config File
+.sentryclirc

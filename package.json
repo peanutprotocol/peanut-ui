@@ -12,7 +12,7 @@
         "@calcom/embed-react": "^1.3.0",
         "@headlessui/react": "^1.7.17",
         "@heroicons/react": "^2.1.1",
-        "@sentry/nextjs": "^7.70.0",
+        "@sentry/nextjs": "^7.105.0",
         "@squirrel-labs/peanut-sdk": "0.4.19",
         "@tanstack/react-query": "^5.28.6",
         "@typeform/embed-react": "^3.11.0",
