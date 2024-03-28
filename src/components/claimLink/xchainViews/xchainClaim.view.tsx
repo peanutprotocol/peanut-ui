@@ -651,6 +651,7 @@ export function xchainClaimView({
                     className="brutalborder w-max cursor-pointer bg-safe_green bg-white px-2 py-2 text-base font-normal"
                     onClick={() => {
                         console.log('clicked')
+                        console.log(encodeURIComponent(window.location.href))
                         console.log(
                             utils.generateSafeUrl({
                                 currentUrl: window.location.href,
