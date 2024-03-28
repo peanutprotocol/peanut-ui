@@ -17,9 +17,7 @@ import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/icons/switch.svg'
-import dropdown_svg from '@/assets/icons/dropdown.svg'
 import peanut, { getTokenBalance, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
-import { safe } from 'wagmi/connectors'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks

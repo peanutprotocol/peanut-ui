@@ -11,7 +11,7 @@ import * as utils from '@/utils'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import axios from 'axios'
 import checkbox from '@/assets/icons/checkbox.svg'
-import { useAccount } from 'wagmi'
+import { useAccount, useConnections, useSwitchChain } from 'wagmi'
 
 export function xchainSuccessView({
     txHash,
@@ -21,8 +21,10 @@ export function xchainSuccessView({
     recipientAddress,
 }: _consts.IClaimScreenProps) {
     const router = useRouter()
-    const { address } = useAccount()
+    const { isConnected, address, chain: currentChain } = useAccount()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
+    const connections = useConnections()
+    const { switchChainAsync } = useSwitchChain()
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(true)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -34,6 +36,13 @@ export function xchainSuccessView({
             txHash[0],
         [txHash, chainDetails]
     )
+
+    const isw3mEmailWallet = useMemo(() => {
+        return (
+            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id ==
+            'w3mEmail'
+        )
+    }, [connections, address])
 
     const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
         .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
@@ -88,6 +97,17 @@ export function xchainSuccessView({
         }, 5000)
     }
 
+    const checkNetwork = async (chainId: string) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+            } catch (error) {
+                console.error('Error switching network:', error)
+            }
+        }
+    }
+
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-x-chain-claimed', 'success')
@@ -96,6 +116,14 @@ export function xchainSuccessView({
             loopUntilSuccess(txHash[0])
         }
     }, [])
+
+    useEffect(() => {
+        if (isw3mEmailWallet && isConnected) {
+            const chainId =
+                crossChainSuccess && crossChainSuccess.chainId ? crossChainSuccess.chainId : claimDetails[0].chainId
+            checkNetwork(chainId)
+        }
+    }, [isw3mEmailWallet])
 
     const sendNotification = async () => {
         const destinationChainId = crossChainSuccess?.chainId || claimDetails[0].chainId

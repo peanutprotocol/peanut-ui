@@ -7,11 +7,13 @@ import * as global_components from '@/components/global'
 import * as utils from '@/utils'
 import dropdown_svg from '@/assets/icons/dropdown.svg'
 import { useRouter } from 'next/navigation'
-import { useAccount } from 'wagmi'
+import { useAccount, useConnections, useSwitchChain } from 'wagmi'
 
 export function multilinkSuccessView({ txHash, claimDetails, senderAddress }: _consts.IClaimScreenProps) {
     const router = useRouter()
-    const { address } = useAccount()
+    const { isConnected, address, chain: currentChain } = useAccount()
+    const connections = useConnections()
+    const { switchChainAsync } = useSwitchChain()
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -22,6 +24,30 @@ export function multilinkSuccessView({ txHash, claimDetails, senderAddress }: _c
             return chainDetail?.explorers[0].url + '/tx/' + hash
         })
     }, [chainDetails, claimDetails])
+
+    const isw3mEmailWallet = useMemo(() => {
+        return (
+            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id ==
+            'w3mEmail'
+        )
+    }, [connections, address])
+
+    const checkNetwork = async (chainId: string) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+            } catch (error) {
+                console.error('Error switching network:', error)
+            }
+        }
+    }
+
+    useEffect(() => {
+        if (isw3mEmailWallet && isConnected) {
+            checkNetwork(claimDetails[0].chainId)
+        }
+    }, [isw3mEmailWallet])
 
     useEffect(() => {
         router.prefetch('/send')
