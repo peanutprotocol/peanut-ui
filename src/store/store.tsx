@@ -213,11 +213,7 @@ export function Store({ children }: { children: React.ReactNode }) {
     ): interfaces.IUserBalance[] {
         return data.map((item) => ({
             chainId: item?.chainId ? item.chainId.split(':')[1] : '1',
-            address: item?.address
-                ? item.address.split(':')[2] === '0x0000000000000000000000000000000000001010'
-                    ? '0x0000000000000000000000000000000000000000'
-                    : item.address.split(':')[2]
-                : '0x0000000000000000000000000000000000000000',
+            address: item?.address ? item.address.split(':')[2] : '0x0000000000000000000000000000000000000000',
             name: item.name,
             symbol: item.symbol,
             decimals: parseInt(item.quantity.decimals),
