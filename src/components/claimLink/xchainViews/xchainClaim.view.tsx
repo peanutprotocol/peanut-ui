@@ -648,7 +648,7 @@ export function xchainClaimView({
                 <label>or</label>{' '}
                 <button
                     type={'button'}
-                    className="brutalborder bg-safe_green w-max cursor-pointer bg-white px-2 py-2 text-base font-normal"
+                    className="brutalborder w-max cursor-pointer bg-safe_green bg-white px-2 py-2 text-base font-normal"
                     onClick={() => {
                         console.log('clicked')
                         console.log(
