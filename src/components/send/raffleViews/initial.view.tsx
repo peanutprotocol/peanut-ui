@@ -156,6 +156,12 @@ export function RaffleInitialView({
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
+    const isSafeWallet = useMemo(() => {
+        return (
+            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id == 'safe'
+        )
+    }, [connections, address])
+
     const checkForm = (sendFormData: _consts.ISendFormData, tokenAddress: string) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
@@ -435,10 +441,6 @@ export function RaffleInitialView({
                     })
 
                     setLoadingStates('executing transaction')
-
-                    const isSafeWallet =
-                        connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector
-                            .id == 'safe'
 
                     console.log('isSafeWallet: ', isSafeWallet)
 
@@ -947,107 +949,115 @@ export function RaffleInitialView({
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
-                                    <div className="mb-8 ml-4 mr-4 sm:mb-2">
-                                        <div
-                                            className={
-                                                'flex  w-full flex-wrap gap-2 overflow-hidden text-black ' +
-                                                (unfoldChains ? ' max-h-full ' : ' max-h-32 ')
-                                            }
-                                        >
-                                            {chainsToShow.map(
-                                                (chain) =>
-                                                    chain.mainnet && (
-                                                        <div
-                                                            key={chain.chainId}
-                                                            className={
-                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                                (formwatch.chainId == chain.chainId
-                                                                    ? 'bg-black text-white'
-                                                                    : '')
-                                                            }
-                                                            onClick={() => {
-                                                                sendForm.setValue('chainId', chain.chainId)
-                                                                sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                                setFormHasBeenTouched(true)
-                                                            }}
-                                                        >
-                                                            <img
-                                                                src={chain.icon.url}
-                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white"
-                                                                onError={(e: any) => {
-                                                                    e.target.onerror = null
-                                                                }}
-                                                            />
-
-                                                            <label className="flex cursor-pointer items-center">
-                                                                {chain.name.toUpperCase()}
-                                                            </label>
-                                                        </div>
-                                                    )
-                                            )}
-                                            <div className="brutalborder flex w-full"></div>
-                                            {chainsToShow.map(
-                                                (chain) =>
-                                                    !chain.mainnet && (
-                                                        <div
-                                                            key={chain.chainId}
-                                                            className={
-                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                                (formwatch.chainId == chain.chainId
-                                                                    ? 'bg-black text-white'
-                                                                    : '')
-                                                            }
-                                                            onClick={() => {
-                                                                sendForm.setValue('chainId', chain.chainId)
-                                                                sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                                setFormHasBeenTouched(true)
-                                                            }}
-                                                        >
-                                                            <img
-                                                                src={chain.icon.url}
-                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white"
-                                                                onError={(e: any) => {
-                                                                    e.target.onerror = null
-                                                                }}
-                                                            />
-
-                                                            <label className="flex cursor-pointer items-center">
-                                                                {chain.name.toUpperCase()}
-                                                            </label>
-                                                        </div>
-                                                    )
-                                            )}
-                                        </div>
-                                        <div className="flex w-full justify-between">
-                                            <Switch.Group
-                                                as="div"
-                                                className={classNames(
-                                                    'flex items-center p-0',
-                                                    unfoldChains ? 'mt-1' : 'mt-0'
-                                                )}
+                                    {!isSafeWallet && (
+                                        <div className="mb-8 ml-4 mr-4 sm:mb-2">
+                                            <div
+                                                className={
+                                                    'flex  w-full flex-wrap gap-2 overflow-hidden text-black ' +
+                                                    (unfoldChains ? ' max-h-full ' : ' max-h-32 ')
+                                                }
                                             >
-                                                <Switch
-                                                    checked={unfoldChains}
-                                                    onChange={setUnfoldChains}
+                                                {chainsToShow.map(
+                                                    (chain) =>
+                                                        chain.mainnet && (
+                                                            <div
+                                                                key={chain.chainId}
+                                                                className={
+                                                                    'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                    (formwatch.chainId == chain.chainId
+                                                                        ? 'bg-black text-white'
+                                                                        : '')
+                                                                }
+                                                                onClick={() => {
+                                                                    sendForm.setValue('chainId', chain.chainId)
+                                                                    sendForm.setValue(
+                                                                        'token',
+                                                                        chain.nativeCurrency.symbol
+                                                                    )
+                                                                    setFormHasBeenTouched(true)
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={chain.icon.url}
+                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white"
+                                                                    onError={(e: any) => {
+                                                                        e.target.onerror = null
+                                                                    }}
+                                                                />
+
+                                                                <label className="flex cursor-pointer items-center">
+                                                                    {chain.name.toUpperCase()}
+                                                                </label>
+                                                            </div>
+                                                        )
+                                                )}
+                                                <div className="brutalborder flex w-full"></div>
+                                                {chainsToShow.map(
+                                                    (chain) =>
+                                                        !chain.mainnet && (
+                                                            <div
+                                                                key={chain.chainId}
+                                                                className={
+                                                                    'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                    (formwatch.chainId == chain.chainId
+                                                                        ? 'bg-black text-white'
+                                                                        : '')
+                                                                }
+                                                                onClick={() => {
+                                                                    sendForm.setValue('chainId', chain.chainId)
+                                                                    sendForm.setValue(
+                                                                        'token',
+                                                                        chain.nativeCurrency.symbol
+                                                                    )
+                                                                    setFormHasBeenTouched(true)
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={chain.icon.url}
+                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white"
+                                                                    onError={(e: any) => {
+                                                                        e.target.onerror = null
+                                                                    }}
+                                                                />
+
+                                                                <label className="flex cursor-pointer items-center">
+                                                                    {chain.name.toUpperCase()}
+                                                                </label>
+                                                            </div>
+                                                        )
+                                                )}
+                                            </div>
+                                            <div className="flex w-full justify-between">
+                                                <Switch.Group
+                                                    as="div"
                                                     className={classNames(
-                                                        unfoldChains ? 'bg-teal' : 'bg-gray-200',
-                                                        'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
+                                                        'flex items-center p-0',
+                                                        unfoldChains ? 'mt-1' : 'mt-0'
                                                     )}
                                                 >
-                                                    <span
-                                                        aria-hidden="true"
+                                                    <Switch
+                                                        checked={unfoldChains}
+                                                        onChange={setUnfoldChains}
                                                         className={classNames(
-                                                            unfoldChains ? 'translate-x-5' : 'translate-x-0',
-                                                            'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                                            unfoldChains ? 'bg-teal' : 'bg-gray-200',
+                                                            'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
                                                         )}
-                                                    />
-                                                </Switch>
-                                                <Switch.Label as="span" className="ml-3">
-                                                    <span className="text-sm">show all</span>
-                                                </Switch.Label>
-                                            </Switch.Group>
+                                                    >
+                                                        <span
+                                                            aria-hidden="true"
+                                                            className={classNames(
+                                                                unfoldChains ? 'translate-x-5' : 'translate-x-0',
+                                                                'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                                            )}
+                                                        />
+                                                    </Switch>
+                                                    <Switch.Label as="span" className="ml-3">
+                                                        <span className="text-sm">show all</span>
+                                                    </Switch.Label>
+                                                </Switch.Group>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">
                                         <input
