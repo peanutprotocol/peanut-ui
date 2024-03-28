@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useConfig, useSendTransaction, useSwitchChain } from 'wagmi'
+import { useAccount, useConfig, useSendTransaction, useSwitchChain, useConnections } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
@@ -13,6 +13,7 @@ import peanut, {
     setFeeOptions,
     validateUserName,
 } from '@squirrel-labs/peanut-sdk'
+import SafeAppsSDK, { TransactionStatus } from '@safe-global/safe-apps-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -38,6 +39,7 @@ export function RaffleInitialView({
     const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
+    const connections = useConnections()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -420,7 +422,7 @@ export function RaffleInitialView({
                     }
 
                     // Send the transaction using wagmi
-                    const hash = await sendTransactionAsync({
+                    let hash = await sendTransactionAsync({
                         to: (tx.to ? tx.to : '') as `0x${string}`,
                         value: tx.value ? BigInt(tx.value.toString()) : undefined,
                         data: tx.data ? (tx.data as `0x${string}`) : undefined,
@@ -433,6 +435,33 @@ export function RaffleInitialView({
                     })
 
                     setLoadingStates('executing transaction')
+
+                    const isSafeWallet =
+                        connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector
+                            .id == 'safe'
+
+                    console.log('isSafeWallet: ', isSafeWallet)
+
+                    if (isSafeWallet) {
+                        const sdk = new SafeAppsSDK({
+                            allowedDomains: [/app.safe.global$/],
+                            debug: false,
+                        })
+                        while (true) {
+                            const queued = await sdk.txs.getBySafeTxHash(hash)
+
+                            if (
+                                queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
+                                queued.txStatus === TransactionStatus.AWAITING_EXECUTION
+                            ) {
+                                console.log('waiting for safe tx')
+                                await new Promise((resolve) => setTimeout(resolve, 1000))
+                            } else if (queued.txHash) {
+                                hash = queued.txHash as `0x${string}`
+                                break
+                            }
+                        }
+                    }
 
                     // Wait for the transaction to be mined using wagmi/actions
                     // Only doing this for the approval transaction (the first tx)

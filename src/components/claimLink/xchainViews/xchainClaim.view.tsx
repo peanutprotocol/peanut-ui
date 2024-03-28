@@ -645,6 +645,30 @@ export function xchainClaimView({
                         'Connect Wallet'
                     )}
                 </button>{' '}
+                <label>or</label>{' '}
+                <button
+                    type={'button'}
+                    className="brutalborder bg-safe_green w-max cursor-pointer bg-white px-2 py-2 text-base font-normal"
+                    onClick={() => {
+                        console.log('clicked')
+                        console.log(
+                            utils.generateSafeUrl({
+                                currentUrl: window.location.href,
+                                chainId: Number(selectedChain.chainId),
+                            })
+                        )
+                        window.open(
+                            utils.generateSafeUrl({
+                                currentUrl: window.location.href,
+                                chainId: Number(selectedChain.chainId),
+                            }),
+                            '_blank'
+                        )
+                    }}
+                    disabled={isLoading || isRouteLoading}
+                >
+                    Claim using our Safe-app
+                </button>{' '}
             </div>
 
             <div

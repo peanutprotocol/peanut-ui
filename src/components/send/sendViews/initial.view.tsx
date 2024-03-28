@@ -1,13 +1,13 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
-import { waitForTransactionReceipt, readContract } from 'wagmi/actions'
+import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig, useConnections } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
-import axios from 'axios'
 import { Switch } from '@headlessui/react'
+import SafeAppsSDK, { TransactionStatus } from '@safe-global/safe-apps-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -19,6 +19,7 @@ import * as global_components from '@/components/global'
 import switch_svg from '@/assets/icons/switch.svg'
 import dropdown_svg from '@/assets/icons/dropdown.svg'
 import peanut, { getTokenBalance, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
+import { safe } from 'wagmi/connectors'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
@@ -28,6 +29,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const { sendTransactionAsync } = useSendTransaction()
     const { signTypedDataAsync } = useSignTypedData()
     const config = useConfig()
+    const connections = useConnections()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -567,7 +569,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             console.log('error setting fee options, fallback to default')
                         }
                         // Send the transaction using wagmi
-                        const hash = await sendTransactionAsync({
+                        let hash = await sendTransactionAsync({
                             to: (tx.to ? tx.to : '') as `0x${string}`,
                             value: tx.value ? BigInt(tx.value.toString()) : undefined,
                             data: tx.data ? (tx.data as `0x${string}`) : undefined,
@@ -582,7 +584,34 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             chainId: Number(linkDetails.chainId), //TODO: chainId as number here
                         })
                         setLoadingStates('executing transaction')
-                        console.log(hash)
+
+                        const isSafeWallet =
+                            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))
+                                ?.connector.id == 'safe'
+
+                        console.log('isSafeWallet: ', isSafeWallet)
+
+                        if (isSafeWallet) {
+                            const sdk = new SafeAppsSDK({
+                                allowedDomains: [/app.safe.global$/],
+                                debug: false,
+                            })
+                            while (true) {
+                                const queued = await sdk.txs.getBySafeTxHash(hash)
+
+                                if (
+                                    queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
+                                    queued.txStatus === TransactionStatus.AWAITING_EXECUTION
+                                ) {
+                                    console.log('waiting for safe tx')
+
+                                    await new Promise((resolve) => setTimeout(resolve, 1000))
+                                } else if (queued.txHash) {
+                                    hash = queued.txHash as `0x${string}`
+                                    break
+                                }
+                            }
+                        }
 
                         // Wait for the transaction to be mined using wagmi/actions
                         // Only doing this for the approval transaction (the first tx)
@@ -753,8 +782,15 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         const userBalance = userBalances.find(
                             (balance) => balance.chainId == chainId && balance.address == tokenAddress
                         )
-                        if (userBalance) {
+                        if (userBalance && userBalance.amount > 0) {
                             balance = userBalance.amount.toString()
+                        } else {
+                            const _balance = await getTokenBalance({
+                                chainId: chainId,
+                                tokenAddress: tokenAddress,
+                                walletAddress: address ?? '',
+                            })
+                            balance = _balance.toString()
                         }
                     } else {
                         const _balance = await getTokenBalance({

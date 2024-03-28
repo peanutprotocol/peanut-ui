@@ -255,3 +255,7 @@ export async function resolveFromEnsName(ensName: string): Promise<string | unde
 
     return x ? x : undefined
 }
+
+export function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; chainId: number }) {
+    return `https://app.safe.global/share/safe-app?appUrl=${currentUrl}&chain=${chainId}`
+}
