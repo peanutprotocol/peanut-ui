@@ -602,6 +602,13 @@ export function RaffleInitialView({
                         )
                         if (userBalance) {
                             balance = userBalance.amount.toString()
+                        } else {
+                            const _balance = await getTokenBalance({
+                                chainId: chainId,
+                                tokenAddress: tokenAddress,
+                                walletAddress: address ?? '',
+                            })
+                            balance = _balance.toString()
                         }
                     } else {
                         const _balance = await getTokenBalance({
