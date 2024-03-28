@@ -55,6 +55,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
+    const [supportedWalletconnectChains] = useAtom(store.supportedWalletconnectChainsAtom)
     const [supportedMobulaChains] = useAtom(store.supportedMobulaChainsAtom)
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
     hooks.useConfirmRefresh(enableConfirmation)
@@ -82,7 +83,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 )
                 .concat(
                     chainDetails.filter(
-                        (item1) => !supportedMobulaChains.some((item2) => item2.chainId === item1.chainId)
+                        (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
                     )
                 )
 
@@ -90,7 +91,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         } else {
             return chainDetails
         }
-    }, [isConnected, chainDetails, userBalances, supportedMobulaChains])
+    }, [isConnected, chainDetails, userBalances, supportedWalletconnectChains])
 
     const tokenList = useMemo(() => {
         if (isConnected) {
@@ -747,11 +748,30 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         async function fetchAndSetTokenBalance(tokenAddress: string, chainId: string) {
             if (isConnected) {
                 try {
-                    const balance = await getTokenBalance({
-                        chainId: chainId,
-                        tokenAddress: tokenAddress,
-                        walletAddress: address ?? '',
-                    })
+                    let balance = ''
+                    if (userBalances.length > 0) {
+                        const userBalance = userBalances.find(
+                            (balance) => balance.chainId == chainId && balance.address == tokenAddress
+                        )
+                        if (userBalance) {
+                            balance = userBalance.amount.toString()
+                        } else {
+                            const _balance = await getTokenBalance({
+                                chainId: chainId,
+                                tokenAddress: tokenAddress,
+                                walletAddress: address ?? '',
+                            })
+                            balance = _balance.toString()
+                        }
+                    } else {
+                        const _balance = await getTokenBalance({
+                            chainId: chainId,
+                            tokenAddress: tokenAddress,
+                            walletAddress: address ?? '',
+                        })
+                        balance = _balance.toString()
+                    }
+
                     if (!isCurrent) {
                         return // if landed here, fetch outdated so discard the result
                     }
@@ -799,7 +819,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 chainDetails.find((chain) => chain.chainId == currentChain.id)?.nativeCurrency.symbol ?? ''
             )
             sendForm.setValue('chainId', currentChain.id.toString())
-        } else if (userBalances.length > 0 && !userBalances.some((balance) => balance.chainId == formwatch.chainId)) {
+        } else if (
+            !formHasBeenTouched &&
+            userBalances.length > 0 &&
+            !userBalances.some((balance) => balance.chainId == formwatch.chainId)
+        ) {
             // if the user has balances but not on the current chain, we switch to the first chain the user has balances on and set the token to the first token on that chain
             sendForm.setValue('chainId', userBalances[0].chainId)
             sendForm.setValue('token', userBalances[0].symbol)
@@ -907,11 +931,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base font-bold">
+                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs font-light">
                                                 balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="mb-1 flex justify-center gap-1 font-light">
+                                            <div className="mb-1 flex justify-center gap-1 text-xs font-light">
                                                 <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
@@ -965,7 +989,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-sm text-xs text-xs font-bold">
+                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs font-light">
                                                 balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
@@ -1163,14 +1187,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             showGaslessAvailable && (
                                 <div className="flex flex-row items-center justify-center gap-1 text-center">
                                     <label className="font-bold text-black ">
-                                        Uncheck this box if you don't want to create a link gaslessly
+                                        All USDC links are created gasless and sponsored by peanut!
                                     </label>
-                                    <input
-                                        type="checkbox"
-                                        className="m-0 mt-1 h-5 rounded-none p-0 accent-black"
-                                        checked={createGasless}
-                                        onChange={() => setCreateGasless(!createGasless)}
-                                    />
                                 </div>
                             )
                         )}
@@ -1245,7 +1263,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer bg-white"
+                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white "
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
@@ -1277,7 +1295,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                         >
                                                             <img
                                                                 src={chain.icon.url}
-                                                                className="h-6 cursor-pointer bg-white"
+                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white "
                                                                 onError={(e: any) => {
                                                                     e.target.onerror = null
                                                                 }}
@@ -1366,7 +1384,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       <div className="flex items-center gap-2 ">
                                                           <img
                                                               src={token.logo}
-                                                              className="h-6 bg-white"
+                                                              className="h-6 rounded-full bg-white"
                                                               loading="eager"
                                                               onError={(e: any) => {
                                                                   e.target.onerror = null
@@ -1404,7 +1422,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                                       <div className="flex items-center gap-2 ">
                                                           <img
                                                               src={token.logo}
-                                                              className="h-6 bg-white"
+                                                              className="h-6 rounded-full bg-white"
                                                               loading="eager"
                                                               onError={(e: any) => {
                                                                   e.target.onerror = null

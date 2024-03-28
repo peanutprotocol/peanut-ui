@@ -3,26 +3,26 @@ import type { NextRequest } from 'next/server'
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const API_KEY = process.env.MOBULA_API_KEY ?? ''
+        const projectID = process.env.WC_PROJECT_ID ?? ''
 
-        if (!API_KEY) throw new Error('API_KEY not found in env')
+        if (!projectID) throw new Error('API_KEY not found in env')
 
-        const mobulaResponse = await fetch(
-            `https://api.mobula.io/api/1/wallet/portfolio?wallet=${body.address}&blockchains=${body.chainIds}&pnl=${body.pnl}&cache=true&stale=30`,
+        const apiResponse = await fetch(
+            `https://rpc.walletconnect.com/v1/account/${body.address}/balance?currency=usd&projectId=${projectID}`,
             {
                 method: 'GET',
+                // mode: 'no-cors', // Enable this locally
                 headers: {
                     'Content-Type': 'application/json',
-                    authorization: API_KEY,
                 },
             }
         )
 
-        if (!mobulaResponse.ok) return new Response('Internal Server Error', { status: 500 })
+        if (!apiResponse.ok) return new Response('Internal Server Error', { status: 500 })
 
-        const mobulaResponseJson = await mobulaResponse.text()
+        const apiResponseJson = await apiResponse.text()
 
-        return new Response(mobulaResponseJson, {
+        return new Response(apiResponseJson, {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',

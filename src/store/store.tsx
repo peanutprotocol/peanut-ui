@@ -11,9 +11,24 @@ export const userBalancesAtom = atom<interfaces.IUserBalance[]>([])
 export const defaultChainDetailsAtom = atom<any[]>([])
 export const defaultTokenDetailsAtom = atom<interfaces.IPeanutTokenDetail[]>([])
 
-export const supportedMobulaChainsAtom = atom<{ chainId: string; name: string }[]>([])
-
-const mobulaChains = [
+export const supportedWalletconnectChainsAtom = atom<{ chainId: string; name: string }[]>([
+    { chainId: '1', name: 'Ethereum' },
+    { chainId: '10', name: 'Optimism' },
+    { chainId: '56', name: 'Binance Smart Chain' },
+    { chainId: '100', name: 'Gnosis Chain' },
+    { chainId: '137', name: 'Polygon' },
+    { chainId: '324', name: 'zkSync Era' },
+    { chainId: '1101', name: 'Polygon Zkevm' },
+    { chainId: '5000', name: 'Mantle 1' },
+    { chainId: '8217', name: 'Klaytn Mainnet' },
+    { chainId: '8453', name: 'Base' },
+    { chainId: '42161', name: 'Arbitrum' },
+    { chainId: '42220', name: 'Celo' },
+    { chainId: '43114', name: 'Avalanche C-Chain' },
+    { chainId: '7777777', name: 'Zora 1' },
+    { chainId: '1313161554', name: 'Aurora 1' },
+])
+export const supportedMobulaChainsAtom = atom<{ name: string; chainId: string }[]>([
     {
         name: 'Fantom',
         chainId: '250',
@@ -134,14 +149,13 @@ const mobulaChains = [
         name: 'Alephium',
         chainId: 'alephium-0',
     },
-]
+])
 
 export function Store({ children }: { children: React.ReactNode }) {
     const [userBalances, setUserBalances] = useAtom(userBalancesAtom)
-    const [defaultChainDetails, setDefaultChainDetails] = useAtom(defaultChainDetailsAtom)
+    const setDefaultChainDetails = useSetAtom(defaultChainDetailsAtom)
     const setDefaultTokenDetails = useSetAtom(defaultTokenDetailsAtom)
 
-    const [supportedMobulaChains, setSupportedMobulaChains] = useAtom(supportedMobulaChainsAtom)
     const gaEventTracker = hooks.useAnalyticsEventTracker('peanut-general')
 
     const { address: userAddr, isDisconnected } = useAccount()
@@ -149,7 +163,7 @@ export function Store({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         setUserBalances([])
         if (userAddr) {
-            // loadUserBalances(userAddr)
+            loadUserBalances(userAddr)
             gaEventTracker('peanut-wallet-connected', userAddr)
         }
     }, [userAddr])
@@ -161,31 +175,8 @@ export function Store({ children }: { children: React.ReactNode }) {
     }, [isDisconnected])
 
     useEffect(() => {
-        getSupportedChainsMobula()
         getPeanutChainAndTokenDetails()
     }, [])
-
-    // Fetch supported chains from Mobula, use this to display supported peanut chains in the UI that arent supported by mobula
-    // Not needed to do in BFF since this api call doesnt need an API key
-    const getSupportedChainsMobula = async () => {
-        // if (supportedMobulaChains.length == 0) {
-        // const supportedChains = await fetch('https://api.mobula.io/api/1/blockchains', {
-        //     method: 'GET',
-        //     headers: {
-        //         'Content-Type': 'application/json',
-        //     },
-        // })
-        // const supportedChainsJson = await supportedChains.json()
-
-        // //setting supported chains and mapping to simple object
-        // setSupportedMobulaChains(
-        //     supportedChainsJson.data.map((chain: any) => {
-        //         return { chainId: chain.chainId, name: chain.name }
-        //     })
-        // )
-        setSupportedMobulaChains(mobulaChains)
-        // }
-    }
 
     const getPeanutChainAndTokenDetails = async () => {
         if (peanut) {
@@ -208,64 +199,60 @@ export function Store({ children }: { children: React.ReactNode }) {
     }
 
     // Function to map the mobula response to the IUserBalance interface
-    function mapToUserBalances(data: any): interfaces.IUserBalance[] {
-        const userBalances: interfaces.IUserBalance[] = []
-        data.assets.forEach((asset: any) => {
-            const { name, symbol, logo } = asset.asset
-            Object.keys(asset.contracts_balances).forEach((chainKey) => {
-                const contractBalance = asset.contracts_balances[chainKey]
-                userBalances.push({
-                    chainId: contractBalance.chainId,
-                    address: contractBalance.address,
-                    name,
-                    symbol,
-                    decimals: contractBalance.decimals,
-                    price: asset.price,
-                    amount: contractBalance.balance,
-                    currency: 'USD',
-                    logoURI: logo,
-                })
-            })
-        })
-
-        return userBalances
+    function convertToUserBalances(
+        data: Array<{
+            name: string
+            symbol: string
+            chainId: string
+            value: number
+            price: number
+            quantity: { decimals: string; numeric: string }
+            iconUrl: string
+            address?: string
+        }>
+    ): interfaces.IUserBalance[] {
+        return data.map((item) => ({
+            chainId: item?.chainId ? item.chainId.split(':')[1] : '1',
+            address: item?.address ? item.address.split(':')[2] : '0x0000000000000000000000000000000000000000',
+            name: item.name,
+            symbol: item.symbol,
+            decimals: parseInt(item.quantity.decimals),
+            price: item.price,
+            amount: parseFloat(item.quantity.numeric),
+            currency: 'usd',
+            logoURI: item.iconUrl,
+        }))
     }
 
     const loadUserBalances = async (address: string) => {
         try {
             if (userBalances.length === 0) {
-                const chainIds = defaultChainDetails
-                    .filter((detail) => detail.mainnet)
-                    .filter((detail) => supportedMobulaChains.map((chain) => chain.chainId).includes(detail.chainId))
-                    .map((detail) => detail.chainId)
-                    .join(',')
-
                 let attempts = 0
                 const maxAttempts = 3
                 let success = false
 
                 while (!success && attempts < maxAttempts) {
                     try {
-                        const mobulaResponse = await fetch('/api/mobula/fetch-wallet-balance', {
+                        const apiResponse = await fetch('/api/walletconnect/fetch-wallet-balance', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
                             },
                             body: JSON.stringify({
                                 address,
-                                chainIds,
-                                pnl: false,
                             }),
                         })
 
-                        if (mobulaResponse.ok) {
-                            const mobulaResponseJson = await mobulaResponse.json()
+                        if (apiResponse.ok) {
+                            const apiResponseJson = await apiResponse.json()
 
-                            const mappedUserBalances = mapToUserBalances(mobulaResponseJson.data).sort((a, b) => {
+                            const mappedUserBalances = convertToUserBalances(
+                                apiResponseJson.balances.filter((balance: any) => balance.value > 0.009)
+                            ).sort((a, b) => {
                                 if (a.chainId === b.chainId) {
-                                    if (a.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+                                    if (a.address.toLowerCase() === '0x0000000000000000000000000000000000000000')
                                         return -1
-                                    if (b.address.toLowerCase() === '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee')
+                                    if (b.address.toLowerCase() === '0x0000000000000000000000000000000000000000')
                                         return 1
 
                                     return b.amount - a.amount
@@ -280,9 +267,12 @@ export function Store({ children }: { children: React.ReactNode }) {
                             throw new Error('API request failed')
                         }
                     } catch (error) {
+                        console.log('Error fetching userBalances: ', error)
                         attempts += 1
                         if (attempts >= maxAttempts) {
-                            console.log('Max retry attempts reached for fetching balances using mobula. Giving up.')
+                            console.log(
+                                'Max retry attempts reached for fetching balances using walletconnect. Giving up.'
+                            )
                             setUserBalances([])
                         }
                     }

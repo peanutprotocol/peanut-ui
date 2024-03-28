@@ -1,27 +1,15 @@
+// This file configures the initialization of Sentry on the client.
+// The config you add here will be used whenever a users loads a page in their browser.
+// https://docs.sentry.io/platforms/javascript/guides/nextjs/
+
 import * as Sentry from '@sentry/nextjs'
-import { CaptureConsole } from '@sentry/integrations'
 
 Sentry.init({
     dsn: process.env.SENTRY_DSN,
-    integrations: [
-        new CaptureConsole({
-            levels: ['error'],
-        }),
-    ],
-    // Replay may only be enabled for the client-side
-    // Set tracesSampleRate to 1.0 to capture 100%
-    // of transactions for performance monitoring.
-    // We recommend adjusting this value in production
-    tracesSampleRate: 1.0,
+    enabled: process.env.NODE_ENV != 'development' ? true : false,
+    tracesSampleRate: 1,
+    debug: false,
 
-    // Capture Replay for 10% of all sessions,
-    // plus for 100% of sessions with an error
-    replaysSessionSampleRate: 0.1,
     replaysOnErrorSampleRate: 1.0,
-
-    // ...
-
-    // Note: if you want to override the automatic release value, do not set a
-    // `release` value here - use the environment variable `SENTRY_RELEASE`, so
-    // that it will also get attached to your source maps
+    replaysSessionSampleRate: 0.1,
 })
