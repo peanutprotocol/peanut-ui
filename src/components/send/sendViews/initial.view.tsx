@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig, useConnections } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import { useForm } from 'react-hook-form'
@@ -27,7 +27,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const { sendTransactionAsync } = useSendTransaction()
     const { signTypedDataAsync } = useSignTypedData()
     const config = useConfig()
-    const connections = useConnections()
+    const sdk = new SafeAppsSDK()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -43,12 +43,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
-    const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
-    const [showTestnets, setShowTestnets] = useState(false)
+    const [advancedDropdownOpen] = useState(false)
     const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
-    const [createGasless, setCreateGasless] = useState(true)
+    const [createGasless] = useState(true)
     const verbose = true
     const mantleCheck = utils.isMantleInUrl()
+    const [isSafeWallet, setIsSafeWallet] = useState(false)
 
     const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
 
@@ -146,11 +146,17 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const isSafeWallet = useMemo(() => {
-        return (
-            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id == 'safe'
-        )
-    }, [connections, address])
+    useEffect(() => {
+        ;(async () => {
+            try {
+                const info = await sdk.safe.getInfo()
+                setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
+            } catch (error) {
+                console.error('Failed to get wallet info:', error)
+                setIsSafeWallet(false)
+            }
+        })()
+    }, [address])
 
     const checkForm = (sendFormData: _consts.ISendFormData) => {
         //check that the token and chainid are defined

@@ -39,7 +39,7 @@ export function RaffleInitialView({
     const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const connections = useConnections()
+    const sdk = new SafeAppsSDK()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -60,6 +60,7 @@ export function RaffleInitialView({
     const mantleCheck = utils.isMantleInUrl()
     const verbose = true
     const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
+    const [isSafeWallet, setIsSafeWallet] = useState(false)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -156,11 +157,17 @@ export function RaffleInitialView({
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
 
-    const isSafeWallet = useMemo(() => {
-        return (
-            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id == 'safe'
-        )
-    }, [connections, address])
+    useEffect(() => {
+        ;(async () => {
+            try {
+                const info = await sdk.safe.getInfo()
+                setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
+            } catch (error) {
+                console.error('Failed to get wallet info:', error)
+                setIsSafeWallet(false)
+            }
+        })()
+    }, [address])
 
     const checkForm = (sendFormData: _consts.ISendFormData, tokenAddress: string) => {
         //check that the token and chainid are defined
