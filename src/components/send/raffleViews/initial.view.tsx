@@ -163,7 +163,7 @@ export function RaffleInitialView({
                 const info = await sdk.safe.getInfo()
                 setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
             } catch (error) {
-                console.error('Failed to get wallet info:', error)
+                console.log('Failed to get wallet info:', error)
                 setIsSafeWallet(false)
             }
         })()
