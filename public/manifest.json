@@ -1,0 +1,14 @@
+{
+    "short_name": "PEANUT",
+    "name": "Peanut Protocol",
+    "description": "Send funds with a link",
+    "icons": [
+        {
+            "src": "logo-favicon.png",
+            "sizes": "any",
+            "type": "image/png"
+        }
+    ],
+    "start_url": ".",
+    "display": "standalone"
+}

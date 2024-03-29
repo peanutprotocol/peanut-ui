@@ -6,7 +6,7 @@ import peanutman_cheering from '@/assets/peanut/peanutman-cheering.png'
 import clipboard_svg from '@/assets/icons/clipboard.svg'
 import * as global_components from '@/components/global'
 import * as _consts from '../send.consts'
-
+import * as utils from '@/utils'
 export function RaffleSuccessView({ claimLink, onCustomScreen }: _consts.ISendScreenProps) {
     const [isCopied, setIsCopied] = useState(false)
 
@@ -22,7 +22,8 @@ export function RaffleSuccessView({ claimLink, onCustomScreen }: _consts.ISendSc
                 <div
                     className="brutalborder relative flex w-4/5 cursor-pointer items-center bg-black py-1 text-white "
                     onClick={() => {
-                        navigator.clipboard.writeText(claimLink[0])
+                        utils.copyTextToClipboardWithFallback(claimLink[0])
+
                         setIsCopied(true)
                     }}
                 >
@@ -34,7 +35,7 @@ export function RaffleSuccessView({ claimLink, onCustomScreen }: _consts.ISendSc
                         <div
                             className="absolute right-0 top-0 flex h-full min-w-12 cursor-pointer items-center justify-center border-none bg-white px-1 text-black md:px-4"
                             onClick={() => {
-                                navigator.clipboard.writeText(claimLink[0])
+                                utils.copyTextToClipboardWithFallback(claimLink[0])
                                 setIsCopied(true)
                             }}
                             data-tooltip-id="my-tooltip"
@@ -61,7 +62,7 @@ export function RaffleSuccessView({ claimLink, onCustomScreen }: _consts.ISendSc
                         <div
                             className="absolute right-0 top-0 flex h-full min-w-6 cursor-pointer items-center justify-center border-none bg-white px-1 text-black sm:min-w-32 md:px-4"
                             onClick={() => {
-                                navigator.clipboard.writeText(claimLink[0])
+                                utils.copyTextToClipboardWithFallback(claimLink[0])
                                 setIsCopied(true)
                             }}
                         >

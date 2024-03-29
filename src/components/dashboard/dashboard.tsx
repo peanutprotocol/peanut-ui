@@ -316,7 +316,9 @@ export function Dashboard() {
                                                                             className="inline h-5 w-5"
                                                                             onClick={() => {
                                                                                 gaEventTracker('link-copied', '')
-                                                                                navigator.clipboard.writeText(item.link)
+                                                                                utils.copyTextToClipboardWithFallback(
+                                                                                    item.link
+                                                                                )
                                                                                 setCopiedLink([item.link])
                                                                             }}
                                                                         >
@@ -376,7 +378,7 @@ export function Dashboard() {
                                                             <tr
                                                                 key={item.hash ?? Math.random()}
                                                                 onClick={() => {
-                                                                    navigator.clipboard.writeText(item.link)
+                                                                    utils.copyTextToClipboardWithFallback(item.link)
                                                                     setCopiedLink([item.link])
                                                                     gaEventTracker('link-copied', '')
                                                                 }}
@@ -406,7 +408,7 @@ export function Dashboard() {
                                                                 <td
                                                                     className="brutalborder-bottom relative h-8 w-[68px] cursor-pointer overflow-hidden overflow-ellipsis whitespace-nowrap break-all px-1" // Adjust the width to accommodate the image
                                                                     onClick={() => {
-                                                                        navigator.clipboard.writeText(item.link)
+                                                                        utils.copyTextToClipboardWithFallback(item.link)
                                                                         setCopiedLink([item.link])
                                                                         gaEventTracker('link-copied', '')
                                                                     }}
@@ -573,7 +575,8 @@ export function Dashboard() {
                                                             <div className="brutalborder-right flex w-0 flex-1">
                                                                 <div
                                                                     onClick={() => {
-                                                                        navigator.clipboard.writeText(item.link)
+                                                                        utils.copyTextToClipboardWithFallback(item.link)
+
                                                                         setCopiedLink([item.link])
                                                                     }}
                                                                     className="relative -mr-px inline-flex w-0 flex-1 cursor-pointer items-center justify-center gap-x-3 rounded-bl-lg border border-transparent py-2 text-sm font-semibold text-gray-900"

@@ -8,12 +8,14 @@ import * as hooks from '@/hooks'
 import * as utils from '@/utils'
 import dropdown_svg from '@/assets/icons/dropdown.svg'
 import { useRouter } from 'next/navigation'
-import { useAccount } from 'wagmi'
+import { useAccount, useConnections, useSwitchChain } from 'wagmi'
 
 export function ClaimSuccessView({ txHash, claimDetails, senderAddress, recipientAddress }: _consts.IClaimScreenProps) {
-    const { address } = useAccount()
+    const { isConnected, address, chain: currentChain } = useAccount()
     const router = useRouter()
     const gaEventTracker = hooks.useAnalyticsEventTracker('claim-component')
+    const connections = useConnections()
+    const { switchChainAsync } = useSwitchChain()
 
     const [isDropdownOpen, setIsDropdownOpen] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
@@ -26,11 +28,35 @@ export function ClaimSuccessView({ txHash, claimDetails, senderAddress, recipien
         [txHash, chainDetails]
     )
 
+    const isw3mEmailWallet = useMemo(() => {
+        return (
+            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id ==
+            'w3mEmail'
+        )
+    }, [connections, address])
+
+    const checkNetwork = async (chainId: string) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+            } catch (error) {
+                console.error('Error switching network:', error)
+            }
+        }
+    }
+
     useEffect(() => {
         router.prefetch('/send')
         gaEventTracker('peanut-claimed', 'success')
         sendNotification()
     }, [])
+
+    useEffect(() => {
+        if (isw3mEmailWallet && isConnected) {
+            checkNetwork(claimDetails[0].chainId)
+        }
+    }, [isw3mEmailWallet])
 
     const sendNotification = async () => {
         const chainName = chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.name
