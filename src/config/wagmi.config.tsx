@@ -24,7 +24,7 @@ const metadata = {
     icons: [''], // TODO: add icon
 }
 
-const configx = createConfig({
+const config = createConfig({
     chains: consts.chains,
     connectors: [
         safe({
@@ -54,7 +54,7 @@ const configx = createConfig({
 
 // 3. Create modal
 createWeb3Modal({
-    wagmiConfig: configx,
+    wagmiConfig: config,
     projectId,
     enableAnalytics: true, // Optional - defaults to your Cloud configuration
     themeVariables: {
@@ -67,7 +67,7 @@ createWeb3Modal({
 
 export function ContextProvider({ children }: { children: React.ReactNode }) {
     return (
-        <WagmiProvider config={configx}>
+        <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </WagmiProvider>
     )
