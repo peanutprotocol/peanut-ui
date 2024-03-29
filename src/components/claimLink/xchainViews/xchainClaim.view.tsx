@@ -645,7 +645,7 @@ export function xchainClaimView({
                         'Connect Wallet'
                     )}
                 </button>{' '}
-                <label>or</label>{' '}
+                {/* <label>or</label>{' '}
                 <button
                     type={'button'}
                     className="brutalborder w-max cursor-pointer bg-safe_green bg-white px-2 py-2 text-base font-normal"
@@ -669,7 +669,7 @@ export function xchainClaimView({
                     disabled={isLoading || isRouteLoading}
                 >
                     Claim using our Safe-app
-                </button>{' '}
+                </button>{' '} */}
             </div>
 
             <div
