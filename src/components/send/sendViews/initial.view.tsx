@@ -2,12 +2,12 @@ import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
 import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
-import { waitForTransactionReceipt, readContract } from 'wagmi/actions'
+import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
-import axios from 'axios'
 import { Switch } from '@headlessui/react'
+import SafeAppsSDK, { TransactionStatus } from '@safe-global/safe-apps-sdk'
 
 import * as store from '@/store'
 import * as consts from '@/consts'
@@ -17,7 +17,6 @@ import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 import switch_svg from '@/assets/icons/switch.svg'
-import dropdown_svg from '@/assets/icons/dropdown.svg'
 import peanut, { getTokenBalance, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
 
 export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
@@ -28,6 +27,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const { sendTransactionAsync } = useSendTransaction()
     const { signTypedDataAsync } = useSignTypedData()
     const config = useConfig()
+    const sdk = new SafeAppsSDK()
 
     //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
@@ -43,12 +43,12 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
-    const [advancedDropdownOpen, setAdvancedDropdownOpen] = useState(false)
-    const [showTestnets, setShowTestnets] = useState(false)
+    const [advancedDropdownOpen] = useState(false)
     const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
-    const [createGasless, setCreateGasless] = useState(true)
+    const [createGasless] = useState(true)
     const verbose = true
     const mantleCheck = utils.isMantleInUrl()
+    const [isSafeWallet, setIsSafeWallet] = useState(false)
 
     const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
 
@@ -145,6 +145,18 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             )
         }
     }, [isConnected, userBalances, tokenDetails, formwatch.chainId, chainDetails])
+
+    useEffect(() => {
+        ;(async () => {
+            try {
+                const info = await sdk.safe.getInfo()
+                setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
+            } catch (error) {
+                console.log('Failed to get wallet info:', error)
+                setIsSafeWallet(false)
+            }
+        })()
+    }, [address])
 
     const checkForm = (sendFormData: _consts.ISendFormData) => {
         //check that the token and chainid are defined
@@ -567,7 +579,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             console.log('error setting fee options, fallback to default')
                         }
                         // Send the transaction using wagmi
-                        const hash = await sendTransactionAsync({
+                        let hash = await sendTransactionAsync({
                             to: (tx.to ? tx.to : '') as `0x${string}`,
                             value: tx.value ? BigInt(tx.value.toString()) : undefined,
                             data: tx.data ? (tx.data as `0x${string}`) : undefined,
@@ -582,7 +594,28 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             chainId: Number(linkDetails.chainId), //TODO: chainId as number here
                         })
                         setLoadingStates('executing transaction')
-                        console.log(hash)
+
+                        if (isSafeWallet) {
+                            const sdk = new SafeAppsSDK({
+                                allowedDomains: [/app.safe.global$/],
+                                debug: false,
+                            })
+                            while (true) {
+                                const queued = await sdk.txs.getBySafeTxHash(hash)
+
+                                if (
+                                    queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
+                                    queued.txStatus === TransactionStatus.AWAITING_EXECUTION
+                                ) {
+                                    console.log('waiting for safe tx')
+
+                                    await new Promise((resolve) => setTimeout(resolve, 1000))
+                                } else if (queued.txHash) {
+                                    hash = queued.txHash as `0x${string}`
+                                    break
+                                }
+                            }
+                        }
 
                         // Wait for the transaction to be mined using wagmi/actions
                         // Only doing this for the approval transaction (the first tx)
@@ -753,7 +786,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         const userBalance = userBalances.find(
                             (balance) => balance.chainId == chainId && balance.address == tokenAddress
                         )
-                        if (userBalance) {
+                        if (userBalance && userBalance.amount > 0) {
                             balance = userBalance.amount.toString()
                         } else {
                             const _balance = await getTokenBalance({
@@ -1237,107 +1270,115 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
-                                    <div className="mb-8 ml-4 mr-4 sm:mb-2">
-                                        <div
-                                            className={
-                                                'flex  w-full flex-wrap gap-2 overflow-hidden text-black ' +
-                                                (unfoldChains ? ' max-h-full ' : ' max-h-32 ')
-                                            }
-                                        >
-                                            {chainsToShow.map(
-                                                (chain) =>
-                                                    chain.mainnet && (
-                                                        <div
-                                                            key={chain.chainId}
-                                                            className={
-                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                                (formwatch.chainId == chain.chainId
-                                                                    ? 'bg-black text-white'
-                                                                    : '')
-                                                            }
-                                                            onClick={() => {
-                                                                sendForm.setValue('chainId', chain.chainId)
-                                                                sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                                setFormHasBeenTouched(true)
-                                                            }}
-                                                        >
-                                                            <img
-                                                                src={chain.icon.url}
-                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white "
-                                                                onError={(e: any) => {
-                                                                    e.target.onerror = null
-                                                                }}
-                                                            />
-
-                                                            <label className="flex cursor-pointer items-center">
-                                                                {chain.name.toUpperCase()}
-                                                            </label>
-                                                        </div>
-                                                    )
-                                            )}
-                                            <div className="brutalborder flex w-full"></div>
-                                            {chainsToShow.map(
-                                                (chain) =>
-                                                    !chain.mainnet && (
-                                                        <div
-                                                            key={chain.chainId}
-                                                            className={
-                                                                'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
-                                                                (formwatch.chainId == chain.chainId
-                                                                    ? 'bg-black text-white'
-                                                                    : '')
-                                                            }
-                                                            onClick={() => {
-                                                                sendForm.setValue('chainId', chain.chainId)
-                                                                sendForm.setValue('token', chain.nativeCurrency.symbol)
-                                                                setFormHasBeenTouched(true)
-                                                            }}
-                                                        >
-                                                            <img
-                                                                src={chain.icon.url}
-                                                                className="h-6 w-6 cursor-pointer rounded-full bg-white "
-                                                                onError={(e: any) => {
-                                                                    e.target.onerror = null
-                                                                }}
-                                                            />
-
-                                                            <label className="flex cursor-pointer items-center">
-                                                                {chain.name.toUpperCase()}
-                                                            </label>
-                                                        </div>
-                                                    )
-                                            )}
-                                        </div>
-                                        <div className="flex w-full justify-between">
-                                            <Switch.Group
-                                                as="div"
-                                                className={classNames(
-                                                    'flex items-center p-0',
-                                                    unfoldChains ? 'mt-1' : 'mt-0'
-                                                )}
+                                    {!isSafeWallet && (
+                                        <div className="mb-8 ml-4 mr-4 sm:mb-2">
+                                            <div
+                                                className={
+                                                    'flex  w-full flex-wrap gap-2 overflow-hidden text-black ' +
+                                                    (unfoldChains ? ' max-h-full ' : ' max-h-32 ')
+                                                }
                                             >
-                                                <Switch
-                                                    checked={unfoldChains}
-                                                    onChange={setUnfoldChains}
+                                                {chainsToShow.map(
+                                                    (chain) =>
+                                                        chain.mainnet && (
+                                                            <div
+                                                                key={chain.chainId}
+                                                                className={
+                                                                    'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                    (formwatch.chainId == chain.chainId
+                                                                        ? 'bg-black text-white'
+                                                                        : '')
+                                                                }
+                                                                onClick={() => {
+                                                                    sendForm.setValue('chainId', chain.chainId)
+                                                                    sendForm.setValue(
+                                                                        'token',
+                                                                        chain.nativeCurrency.symbol
+                                                                    )
+                                                                    setFormHasBeenTouched(true)
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={chain.icon.url}
+                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white "
+                                                                    onError={(e: any) => {
+                                                                        e.target.onerror = null
+                                                                    }}
+                                                                />
+
+                                                                <label className="flex cursor-pointer items-center">
+                                                                    {chain.name.toUpperCase()}
+                                                                </label>
+                                                            </div>
+                                                        )
+                                                )}
+                                                <div className="brutalborder flex w-full"></div>
+                                                {chainsToShow.map(
+                                                    (chain) =>
+                                                        !chain.mainnet && (
+                                                            <div
+                                                                key={chain.chainId}
+                                                                className={
+                                                                    'brutalborder flex h-full w-1/5 min-w-max grow cursor-pointer flex-row gap-2 px-2 py-1 sm:w-[12%] ' +
+                                                                    (formwatch.chainId == chain.chainId
+                                                                        ? 'bg-black text-white'
+                                                                        : '')
+                                                                }
+                                                                onClick={() => {
+                                                                    sendForm.setValue('chainId', chain.chainId)
+                                                                    sendForm.setValue(
+                                                                        'token',
+                                                                        chain.nativeCurrency.symbol
+                                                                    )
+                                                                    setFormHasBeenTouched(true)
+                                                                }}
+                                                            >
+                                                                <img
+                                                                    src={chain.icon.url}
+                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white "
+                                                                    onError={(e: any) => {
+                                                                        e.target.onerror = null
+                                                                    }}
+                                                                />
+
+                                                                <label className="flex cursor-pointer items-center">
+                                                                    {chain.name.toUpperCase()}
+                                                                </label>
+                                                            </div>
+                                                        )
+                                                )}
+                                            </div>
+                                            <div className="flex w-full justify-between">
+                                                <Switch.Group
+                                                    as="div"
                                                     className={classNames(
-                                                        unfoldChains ? 'bg-teal' : 'bg-gray-200',
-                                                        'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
+                                                        'flex items-center p-0',
+                                                        unfoldChains ? 'mt-1' : 'mt-0'
                                                     )}
                                                 >
-                                                    <span
-                                                        aria-hidden="true"
+                                                    <Switch
+                                                        checked={unfoldChains}
+                                                        onChange={setUnfoldChains}
                                                         className={classNames(
-                                                            unfoldChains ? 'translate-x-5' : 'translate-x-0',
-                                                            'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                                            unfoldChains ? 'bg-teal' : 'bg-gray-200',
+                                                            'relative m-0 inline-flex h-4 w-9 flex-shrink-0 cursor-pointer rounded-none border-2 border-black p-0 transition-colors duration-200 ease-in-out '
                                                         )}
-                                                    />
-                                                </Switch>
-                                                <Switch.Label as="span" className="ml-3">
-                                                    <span className="text-sm">show all</span>
-                                                </Switch.Label>
-                                            </Switch.Group>
+                                                    >
+                                                        <span
+                                                            aria-hidden="true"
+                                                            className={classNames(
+                                                                unfoldChains ? 'translate-x-5' : 'translate-x-0',
+                                                                'pointer-events-none m-0 inline-block h-3 w-3 transform rounded-none border-2 border-black bg-white shadow ring-0 transition duration-200 ease-in-out'
+                                                            )}
+                                                        />
+                                                    </Switch>
+                                                    <Switch.Label as="span" className="ml-3">
+                                                        <span className="text-sm">show all</span>
+                                                    </Switch.Label>
+                                                </Switch.Group>
+                                            </div>
                                         </div>
-                                    </div>
+                                    )}
 
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">
                                         <input

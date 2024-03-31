@@ -4,6 +4,7 @@ import QRCode from 'react-qr-code'
 import dropdown_svg from '@/assets/icons/dropdown.svg'
 
 import * as _consts from '../send.consts'
+import * as utils from '@/utils'
 import { useAtom } from 'jotai'
 import * as store from '@/store/store'
 import * as global_components from '@/components/global'
@@ -134,7 +135,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                         <div
                             className="absolute right-0 top-0 flex h-full min-w-6    cursor-pointer items-center justify-center border-none bg-white px-1 text-black sm:min-w-32 md:px-4"
                             onClick={() => {
-                                navigator.clipboard.writeText(claimLink[0])
+                                utils.copyTextToClipboardWithFallback(claimLink[0])
                                 setIsCopied(true)
                             }}
                         >
@@ -167,7 +168,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                                     <div
                                         className="absolute right-0 top-0 flex h-full min-w-6 cursor-pointer items-center justify-center border-none bg-white px-1 text-black sm:min-w-32 md:px-4"
                                         onClick={() => {
-                                            navigator.clipboard.writeText(link)
+                                            utils.copyTextToClipboardWithFallback(link)
                                             setCopiedLink([link])
                                         }}
                                     >
@@ -257,7 +258,8 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
                             <span
                                 className="cursor-pointer text-black underline"
                                 onClick={() => {
-                                    navigator.clipboard.writeText(claimLink.join('\n'))
+                                    utils.copyTextToClipboardWithFallback(claimLink.join('\n'))
+
                                     setCopiedAll(true)
                                 }}
                             >

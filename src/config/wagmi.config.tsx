@@ -3,10 +3,12 @@
 import * as consts from '@/consts'
 
 import { createWeb3Modal } from '@web3modal/wagmi/react'
-import { defaultWagmiConfig } from '@web3modal/wagmi/react/config'
 
-import { WagmiProvider } from 'wagmi'
+import { WagmiProvider, createConfig, http } from 'wagmi'
+import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
+import { emailConnector } from '@web3modal/wagmi'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { createClient } from 'viem'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -22,11 +24,31 @@ const metadata = {
     icons: [''], // TODO: add icon
 }
 
-const config = defaultWagmiConfig({
+const config = createConfig({
     chains: consts.chains,
-    projectId, // required
-    metadata, // required
-    enableEmail: true, // Optional - true by default
+    connectors: [
+        safe({
+            allowedDomains: [/app.safe.global$/],
+            shimDisconnect: true,
+        }),
+        walletConnect({
+            projectId,
+            metadata,
+            showQrModal: false,
+        }),
+        coinbaseWallet({
+            appName: 'Peanut Protocol',
+        }),
+        injected({ shimDisconnect: true }),
+        emailConnector({
+            options: {
+                projectId: projectId,
+            },
+        }),
+    ],
+    client({ chain }) {
+        return createClient({ chain, transport: http() })
+    },
     ssr: true,
 })
 

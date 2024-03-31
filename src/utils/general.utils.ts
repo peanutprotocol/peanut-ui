@@ -255,3 +255,34 @@ export async function resolveFromEnsName(ensName: string): Promise<string | unde
 
     return x ? x : undefined
 }
+
+export function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; chainId: number }) {
+    return `https://app.safe.global/share/safe-app?appUrl=${encodeURIComponent(currentUrl)}&chain=${chainId}`
+}
+
+// TODO: this is a hacky fix to copy in an iframe where the clipboard API is not supported/blocked
+export async function copyTextToClipboardWithFallback(text: string) {
+    if (navigator.clipboard && window.isSecureContext) {
+        try {
+            await navigator.clipboard.writeText(text)
+            return
+        } catch (err) {
+            console.error('Clipboard API failed, trying fallback method. Error:', err)
+        }
+    }
+
+    try {
+        const textarea = document.createElement('textarea')
+        textarea.value = text
+        textarea.setAttribute('readonly', '')
+        textarea.style.position = 'absolute'
+        textarea.style.left = '-9999px'
+        document.body.appendChild(textarea)
+        textarea.select()
+        const successful = document.execCommand('copy')
+        const msg = successful ? 'successful' : 'unsuccessful'
+        document.body.removeChild(textarea)
+    } catch (err) {
+        console.error('Fallback method failed. Error:', err)
+    }
+}
