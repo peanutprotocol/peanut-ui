@@ -1215,8 +1215,8 @@ export function RaffleInitialView({
                                 <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
                                     <div className="flex flex-col items-center justify-center gap-6 p-12 ">
                                         <div>
-                                            Henlo! That's a lot of recipients! If you're running a larger campaign, we'd
-                                            love to help.{' '}
+                                            Henlo! That's a lot of recipients! You can create raffle links with up to
+                                            250 slots. If you're running a larger campaign, we'd love to help.{' '}
                                             <a
                                                 href={'https://cal.com/kkonrad+hugo0/15min?duration=30'}
                                                 target="_blank"
