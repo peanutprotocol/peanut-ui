@@ -150,7 +150,9 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         ;(async () => {
             try {
                 const info = await sdk.safe.getInfo()
+                const envInfo = await sdk.safe.getEnvironmentInfo()
                 console.log(info)
+                console.log(envInfo)
                 setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
             } catch (error) {
                 console.log('Failed to get wallet info:', error)
