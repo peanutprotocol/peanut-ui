@@ -513,7 +513,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         signature: userDepositSignature,
                         baseUrl: `${consts.next_proxy_url}/deposit-3009`,
                         APIKey: 'doesnt-matter',
-                    })
+                    }) //TODO: for safe app, check if this tx hash is correct
 
                     passwords.map((password, idx) => {
                         const tempLink =
@@ -597,8 +597,8 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
 
                         if (isSafeWallet) {
                             const sdk = new SafeAppsSDK({
-                                allowedDomains: [/app.safe.global$/],
-                                debug: false,
+                                allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
+                                debug: true,
                             })
                             while (true) {
                                 const queued = await sdk.txs.getBySafeTxHash(hash)
