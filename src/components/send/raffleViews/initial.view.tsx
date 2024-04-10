@@ -453,8 +453,8 @@ export function RaffleInitialView({
 
                     if (isSafeWallet) {
                         const sdk = new SafeAppsSDK({
-                            allowedDomains: [/app.safe.global$/],
-                            debug: false,
+                            allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
+                            debug: true,
                         })
                         while (true) {
                             const queued = await sdk.txs.getBySafeTxHash(hash)
