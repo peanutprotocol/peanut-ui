@@ -60,7 +60,7 @@ export function RaffleInitialView({
     const mantleCheck = utils.isMantleInUrl()
     const verbose = true
     const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
-    const [isSafeWallet, setIsSafeWallet] = useState(false)
+    const [walletType, setWalletType] = useState<'blockscout' | 'safe' | undefined>(undefined)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -160,11 +160,19 @@ export function RaffleInitialView({
     useEffect(() => {
         ;(async () => {
             try {
-                const info = await sdk.safe.getInfo()
-                setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
+                const envInfo = await sdk.safe.getEnvironmentInfo()
+                if (envInfo.origin.includes('app.safe.global')) {
+                    // If its a safe wallet, we need a sep tx hash handler
+                    setWalletType('safe')
+                } else if (envInfo.origin.includes('blockscout.com')) {
+                    // If its a blockscout, we do not need a sep tx hash handler but should only display the funds on the connected chain
+                    setWalletType('blockscout')
+                } else {
+                    setWalletType(undefined)
+                }
             } catch (error) {
                 console.log('Failed to get wallet info:', error)
-                setIsSafeWallet(false)
+                setWalletType(undefined)
             }
         })()
     }, [address])
@@ -449,9 +457,7 @@ export function RaffleInitialView({
 
                     setLoadingStates('executing transaction')
 
-                    console.log('isSafeWallet: ', isSafeWallet)
-
-                    if (isSafeWallet) {
+                    if (walletType === 'safe') {
                         const sdk = new SafeAppsSDK({
                             allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
                             debug: true,
@@ -963,7 +969,7 @@ export function RaffleInitialView({
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
-                                    {!isSafeWallet && (
+                                    {!walletType && (
                                         <div className="mb-8 ml-4 mr-4 sm:mb-2">
                                             <div
                                                 className={
