@@ -49,6 +49,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     const verbose = true
     const mantleCheck = utils.isMantleInUrl()
     const [isSafeWallet, setIsSafeWallet] = useState(false)
+    const [isSafeLikeWallet, setIsSafeLikeWallet] = useState(false)
 
     const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
 
@@ -149,16 +150,21 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
     useEffect(() => {
         ;(async () => {
             try {
-                const info = await sdk.safe.getInfo()
                 const envInfo = await sdk.safe.getEnvironmentInfo()
                 if (envInfo.origin.includes('https://app.safe.global')) {
                     setIsSafeWallet(true)
+                    setIsSafeLikeWallet(true)
+                } else if (envInfo.origin.includes('blockscout')) {
+                    setIsSafeWallet(false)
+                    setIsSafeLikeWallet(true)
                 } else {
                     setIsSafeWallet(false)
+                    setIsSafeLikeWallet(false)
                 }
             } catch (error) {
                 console.log('Failed to get wallet info:', error)
                 setIsSafeWallet(false)
+                setIsSafeLikeWallet(false)
             }
         })()
     }, [address])
@@ -1275,7 +1281,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
-                                    {!isSafeWallet && (
+                                    {!isSafeLikeWallet && (
                                         <div className="mb-8 ml-4 mr-4 sm:mb-2">
                                             <div
                                                 className={
