@@ -61,6 +61,7 @@ export function RaffleInitialView({
     const verbose = true
     const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
     const [isSafeWallet, setIsSafeWallet] = useState(false)
+    const [isSafeLikeWallet, setIsSafeLikeWallet] = useState(false)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
@@ -160,11 +161,21 @@ export function RaffleInitialView({
     useEffect(() => {
         ;(async () => {
             try {
-                const info = await sdk.safe.getInfo()
-                setIsSafeWallet(info.safeAddress.toLowerCase() === (address ?? '').toLowerCase())
+                const envInfo = await sdk.safe.getEnvironmentInfo()
+                if (envInfo.origin.includes('https://app.safe.global')) {
+                    setIsSafeWallet(true)
+                    setIsSafeLikeWallet(true)
+                } else if (envInfo.origin.includes('blockscout')) {
+                    setIsSafeWallet(false)
+                    setIsSafeLikeWallet(true)
+                } else {
+                    setIsSafeWallet(false)
+                    setIsSafeLikeWallet(false)
+                }
             } catch (error) {
                 console.log('Failed to get wallet info:', error)
                 setIsSafeWallet(false)
+                setIsSafeLikeWallet(false)
             }
         })()
     }, [address])
@@ -963,7 +974,7 @@ export function RaffleInitialView({
                                             <rect width="128" height="6" />
                                         </svg>
                                     </div>
-                                    {!isSafeWallet && (
+                                    {!isSafeLikeWallet && (
                                         <div className="mb-8 ml-4 mr-4 sm:mb-2">
                                             <div
                                                 className={
