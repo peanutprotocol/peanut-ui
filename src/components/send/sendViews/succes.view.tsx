@@ -61,11 +61,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     )
 
     useEffect(() => {
-        if (!Boolean(address)) return
-        setAccount(`eip155:1:${address}`)
-    }, [signMessage, address, setAccount])
-
-    useEffect(() => {
         if (isSubscribed && isLoading) {
             console.log(isSubscribed)
             setIsLoading(false)
@@ -112,7 +107,9 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     useEffect(() => {
         if (!address) {
             setAccount('')
+            return
         }
+        setAccount(`eip155:1:${address}`)
     }, [address])
 
     return (

@@ -1228,7 +1228,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                             showGaslessAvailable && (
                                 <div className="flex flex-row items-center justify-center gap-1 text-center">
                                     <label className="font-bold text-black ">
-                                        All USDC links are created gasless and sponsored by peanut!
+                                        All USDC links are created gaslessly and sponsored by peanut!
                                     </label>
                                 </div>
                             )
