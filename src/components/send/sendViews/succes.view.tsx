@@ -61,7 +61,6 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     )
 
     useEffect(() => {
-        console.log('hierzo3')
         if (isSubscribed && isLoading) {
             console.log(isSubscribed)
             setIsLoading(false)
