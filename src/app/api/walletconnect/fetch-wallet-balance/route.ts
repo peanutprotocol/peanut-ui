@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
                 // mode: 'no-cors', // Enable this locally
                 headers: {
                     'Content-Type': 'application/json',
+                    'x-sdk-version': '4.1.5',
                 },
             }
         )
