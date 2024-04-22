@@ -113,7 +113,9 @@ export function Claim() {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-            if (crossChainDetails.length > 0 && linkDetails.contractVersion == peanut.LATEST_STABLE_CONTRACT_VERSION) {
+
+            const contractVersionCheck = utils.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
+            if (crossChainDetails.length > 0 && contractVersionCheck) {
                 // if there are cross chain options
                 setCrossChainDetails(crossChainDetails.filter((chain: any) => chain.chainId != '1'))
                 if (tokenPriceSufficient) {
