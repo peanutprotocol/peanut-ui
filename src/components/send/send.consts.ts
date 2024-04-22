@@ -1,7 +1,7 @@
 import React from 'react'
 import * as views from './sendViews'
 import * as raffleViews from './raffleViews'
-
+import * as batchViews from './batchViews'
 export interface ISendFormData {
     chainId: string
     token: string
@@ -57,4 +57,11 @@ export const RAFFLE_SEND_SCREEN_MAP: {
 } = {
     INITIAL: { comp: raffleViews.RaffleInitialView },
     SUCCESS: { comp: raffleViews.RaffleSuccessView },
+}
+
+export const BATCH_SEND_SCREEN_MAP: {
+    [key in SendScreens]: { comp: React.FC<any> }
+} = {
+    INITIAL: { comp: batchViews.batchInitialView },
+    SUCCESS: { comp: batchViews.BatchSuccessView },
 }
