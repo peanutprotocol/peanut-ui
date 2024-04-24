@@ -766,10 +766,11 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
     return (
         <>
             <div className="flex w-full flex-col items-center text-center  sm:mb-3">
-                <h2 className="title-font bold text-2xl lg:text-4xl">Send crypto with links</h2>
+                <h2 className="title-font bold text-2xl lg:text-4xl">Batch Transaction</h2>
                 <div className="w-4/5 font-normal">
-                    Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. They
-                    will be able to claim the funds in any token on any chain.
+                    Deposit the funds you want to send to many people. You will get a list of links that you can share
+                    via messenger, email or pidgeon post. The recipient will be able to claim the funds on any chain in
+                    any token.
                 </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
