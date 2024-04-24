@@ -14,7 +14,7 @@
         "@heroicons/react": "^2.1.1",
         "@safe-global/safe-apps-sdk": "^9.0.0",
         "@sentry/nextjs": "^7.105.0",
-        "@squirrel-labs/peanut-sdk": "^0.4.32",
+        "@squirrel-labs/peanut-sdk": "^0.4.33",
         "@tanstack/react-query": "^5.28.6",
         "@typeform/embed-react": "^3.11.0",
         "@types/node": "20.4.2",
