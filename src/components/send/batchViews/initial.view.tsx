@@ -204,6 +204,24 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
             return { success: 'false' }
         }
 
+        //check if the bulkAmount is greater than or equal to 2
+        if (Number(sendFormData.bulkAmount) >= 250) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Please input a number less than 250',
+            })
+            return { success: 'false' }
+        }
+
+        //check if the bulkAmount is greater than or equal to 2
+        if (Number(sendFormData.bulkAmount) < 2) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Please input a number greater than 1',
+            })
+            return { success: 'false' }
+        }
+
         return { success: 'true' }
     }
 
@@ -351,12 +369,12 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                     errorMessage: '',
                 })
 
-                await checkNetwork(sendFormData.chainId)
-
                 //check if the formdata is correct
                 if (checkForm(sendFormData).success === 'false') {
                     return
                 }
+
+                await checkNetwork(sendFormData.chainId)
                 setEnableConfirmation(true)
 
                 const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
@@ -1015,14 +1033,18 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
 
                             <input
                                 type="number"
-                                step="any"
+                                step="1"
                                 min="0"
                                 autoComplete="off"
                                 className="no-spin brutalborder block w-full appearance-none px-2 py-4 pl-4 text-lg font-bold outline-none placeholder:text-lg placeholder:font-bold placeholder:text-black "
                                 placeholder="0"
                                 aria-describedby="price-currency"
                                 onChange={(e) => {
-                                    sendForm.setValue('bulkAmount', Number(e.target.value))
+                                    // if e.target.value isnt a whole number, dont set the value
+                                    console.log(e.target.valueAsNumber)
+                                    if (!e.target.value.includes('.') || !e.target.value.includes('-')) {
+                                        sendForm.setValue('bulkAmount', e.target.valueAsNumber)
+                                    }
                                 }}
                             />
                         </div>
