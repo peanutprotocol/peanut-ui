@@ -5,12 +5,10 @@ import * as multilinkViews from './multilinkViews'
 import * as _consts from './claim.consts'
 import * as interfaces from '@/interfaces'
 import { createElement, useEffect, useState } from 'react'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { compareVersions } from '@squirrel-labs/peanut-sdk'
 import peanutman_logo from '@/assets/peanut/peanutman-logo.svg'
 import * as hooks from '@/hooks'
 import * as utils from '@/utils'
-import * as store from '@/store'
-import { useAtom } from 'jotai'
 
 //Todo: remove these chain and token interfaces and use the ones from the SDK
 interface Chain {
@@ -113,7 +111,9 @@ export function Claim() {
                 sourceChainId: linkDetails.chainId.toString(),
                 tokenType: linkDetails.tokenType,
             })
-            if (crossChainDetails.length > 0 && linkDetails.contractVersion == peanut.LATEST_STABLE_CONTRACT_VERSION) {
+
+            const contractVersionCheck = compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
+            if (crossChainDetails.length > 0 && contractVersionCheck) {
                 // if there are cross chain options
                 setCrossChainDetails(crossChainDetails.filter((chain: any) => chain.chainId != '1'))
                 if (tokenPriceSufficient) {

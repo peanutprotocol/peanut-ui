@@ -272,6 +272,7 @@ export function RaffleInitialView({
                         showError: true,
                         errorMessage: "You don't have enough funds",
                     })
+                    return { success: 'false' }
                 }
             } else {
                 let _balance = tokenBalance
