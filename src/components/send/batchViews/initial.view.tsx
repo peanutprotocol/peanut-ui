@@ -1,18 +1,15 @@
+'use client'
+
 import { useEffect, useState, useCallback, useMemo, Fragment } from 'react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAtom } from 'jotai'
-import { useAccount, useConfig, useSendTransaction, useSwitchChain, useConnections } from 'wagmi'
+import { useAccount, useSendTransaction, useSwitchChain, useSignTypedData, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
+import peanut, { getTokenBalance, makeDepositGasless, setFeeOptions } from '@squirrel-labs/peanut-sdk'
+
 import { useForm } from 'react-hook-form'
 import { Dialog, Transition } from '@headlessui/react'
-import axios from 'axios'
 import { Switch } from '@headlessui/react'
-import peanut, {
-    getRaffleLinkFromTx,
-    getTokenBalance,
-    setFeeOptions,
-    validateUserName,
-} from '@squirrel-labs/peanut-sdk'
 import SafeAppsSDK, { TransactionStatus } from '@safe-global/safe-apps-sdk'
 
 import * as store from '@/store'
@@ -23,51 +20,44 @@ import * as _utils from '../send.utils'
 import * as hooks from '@/hooks'
 import * as global_components from '@/components/global'
 
-import dropdown_svg from '@/assets/icons/dropdown.svg'
-import { isMobile } from 'react-device-detect'
+import switch_svg from '@/assets/icons/switch.svg'
 
-export function RaffleInitialView({
-    onNextScreen,
-    setClaimLink,
-    setTxHash,
-    setChainId,
-    ensName,
-}: _consts.ISendScreenProps) {
+export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setChainId }: _consts.ISendScreenProps) {
     //hooks
     const { open } = useWeb3Modal()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
+    const { signTypedDataAsync } = useSignTypedData()
     const config = useConfig()
     const sdk = new SafeAppsSDK()
 
-    //local states
     const [filteredTokenList, setFilteredTokenList] = useState<_consts.ITokenListItem[] | undefined>(undefined)
     const [formHasBeenTouched, setFormHasBeenTouched] = useState(false)
     const [isTokenSelectorOpen, setIsTokenSelectorOpen] = useState(false)
     const [enableConfirmation, setEnableConfirmation] = useState(false)
+    const [textFontSize, setTextFontSize] = useState('text-6xl')
     const [loadingStates, setLoadingStates] = useState<consts.LoadingStates>('idle')
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [tokenPrice, setTokenPrice] = useState<number | undefined>(undefined)
+    const [inputDenomination, setInputDenomination] = useState<'TOKEN' | 'USD'>('USD')
     const [unfoldChains, setUnfoldChains] = useState(false)
-    const [showTestnets, setShowTestnets] = useState(false)
-    const [showModal, setShowModal] = useState(false)
-    const [enteredEmail, setEnteredEmail] = useState('')
-    const [sentEmail, setSentEmail] = useState(false)
-    const mantleCheck = utils.isMantleInUrl()
+    const [advancedDropdownOpen] = useState(false)
+    const [showGaslessAvailable, setShowGaslessAvailable] = useState(false)
+    const [createGasless] = useState(true)
     const verbose = true
-    const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
     const [walletType, setWalletType] = useState<'blockscout' | 'safe' | undefined>(undefined)
+
+    const [tokenBalance, setTokenBalance] = useState<number | undefined>(undefined)
 
     //global states
     const [userBalances] = useAtom(store.userBalancesAtom)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const [supportedWalletconnectChains] = useAtom(store.supportedWalletconnectChainsAtom)
     const [supportedMobulaChains] = useAtom(store.supportedMobulaChainsAtom)
-
     const [tokenDetails] = useAtom(store.defaultTokenDetailsAtom)
     hooks.useConfirmRefresh(enableConfirmation)
 
@@ -75,11 +65,10 @@ export function RaffleInitialView({
     const sendForm = useForm<_consts.ISendFormData>({
         mode: 'onChange',
         defaultValues: {
-            chainId: mantleCheck ? '5000' : '10',
+            chainId: '10',
             amount: null,
-            token: mantleCheck ? 'MNT' : 'ETH',
-            numberOfrecipients: undefined,
-            senderName: undefined,
+            token: 'ETH',
+            bulkAmount: 0,
         },
     })
     const formwatch = sendForm.watch()
@@ -87,18 +76,19 @@ export function RaffleInitialView({
     //memo
     const isLoading = useMemo(() => loadingStates !== 'idle', [loadingStates])
     const chainsToShow = useMemo(() => {
-        if (mantleCheck) {
-            return chainDetails.filter((chain) => chain.chainId == '5000' || chain.chainId == '5001')
-        }
         if (isConnected && userBalances.length > 0) {
-            const filteredChains = chainDetails.filter(
-                (chain) => chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
-            )
-            return filteredChains.concat(
-                chainDetails.filter(
-                    (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
+            const filteredChains = chainDetails
+                .filter(
+                    (chain) =>
+                        chain.chainId === userBalances.find((balance) => balance.chainId === chain.chainId)?.chainId
                 )
-            )
+                .concat(
+                    chainDetails.filter(
+                        (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
+                    )
+                )
+
+            return filteredChains
         } else {
             return chainDetails
         }
@@ -177,14 +167,14 @@ export function RaffleInitialView({
         })()
     }, [address])
 
-    const checkForm = (sendFormData: _consts.ISendFormData, tokenAddress: string) => {
+    const checkForm = (sendFormData: _consts.ISendFormData) => {
         //check that the token and chainid are defined
         if (sendFormData.chainId == null || sendFormData.token == '') {
             setErrorState({
                 showError: true,
                 errorMessage: 'Please select a chain and token',
             })
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
         //check if the amount is less than or equal to zero
@@ -193,7 +183,7 @@ export function RaffleInitialView({
                 showError: true,
                 errorMessage: 'Please put an amount that is greater than zero',
             })
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
         //check if the amount is smaller than 0.00001
@@ -205,25 +195,54 @@ export function RaffleInitialView({
             return { success: 'false' }
         }
 
-        if (!sendFormData.numberOfrecipients || Number(sendFormData.numberOfrecipients) < 2) {
+        //check if the bulkAmount is less than or equal to zero when bulk is selected
+        if (Number(sendFormData.bulkAmount) <= 0) {
             setErrorState({
                 showError: true,
-                errorMessage: 'Minimum amount of recipients has to be larger than two',
+                errorMessage: 'Please input the amount of links you want to create',
             })
-
-            return { succes: 'false' }
+            return { success: 'false' }
         }
 
-        if (Number(sendFormData.numberOfrecipients) > 250) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Maximum amount of recipients is 250',
-            })
+        return { success: 'true' }
+    }
 
-            return { succes: 'false' }
+    const calculateTokenAmount = async (
+        sendFormData: _consts.ISendFormData
+    ): Promise<{ tokenAmount: number; status: string }> => {
+        if (inputDenomination == 'USD') {
+            var price: number | undefined = undefined
+            try {
+                const fetchPriceResponse = await utils.fetchTokenPrice(
+                    tokenList.find((token) => token.symbol == sendFormData.token)?.address ?? '',
+                    sendFormData.chainId
+                )
+                price = fetchPriceResponse?.price
+            } catch (error) {
+                console.error(error)
+                setErrorState({
+                    showError: true,
+                    errorMessage:
+                        'Something went wrong while fetching the token price, please change input denomination',
+                })
+                return { tokenAmount: 0, status: 'ERROR' }
+            }
+
+            if (price) {
+                if (advancedDropdownOpen) {
+                    return {
+                        tokenAmount: (Number(sendFormData.amount) * (sendFormData.bulkAmount ?? 0)) / price,
+                        status: 'SUCCESS',
+                    }
+                } else {
+                    return { tokenAmount: Number(sendFormData.amount) / price, status: 'SUCCESS' }
+                }
+            } else {
+                return { tokenAmount: 0, status: 'ERROR' }
+            }
+        } else {
+            return { tokenAmount: Number(sendFormData.amount) ?? 0, status: 'SUCCESS' }
         }
-
-        return { succes: 'true' }
     }
 
     const checkNetwork = async (chainId: string) => {
@@ -308,6 +327,7 @@ export function RaffleInitialView({
                     })
                 )
             }
+
             if (_balance < amount) {
                 setErrorState({
                     showError: true,
@@ -325,16 +345,27 @@ export function RaffleInitialView({
             try {
                 if (isLoading) return
 
-                if (sendFormData.senderName) {
-                    try {
-                        sendFormData.senderName = validateUserName(sendFormData.senderName)
-                    } catch (error) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'Please make sure the username is valid.',
-                        })
-                        return
-                    }
+                setLoadingStates('checking inputs')
+                setErrorState({
+                    showError: false,
+                    errorMessage: '',
+                })
+
+                await checkNetwork(sendFormData.chainId)
+
+                //check if the formdata is correct
+                if (checkForm(sendFormData).success === 'false') {
+                    return
+                }
+                setEnableConfirmation(true)
+
+                const { tokenAmount, status } = await calculateTokenAmount(sendFormData)
+                if (status == 'ERROR') {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Something went wrong while calculating the token amount',
+                    })
+                    return
                 }
 
                 //get the token details
@@ -345,46 +376,41 @@ export function RaffleInitialView({
                     chainsToShow
                 )
 
-                setLoadingStates('checking inputs')
-                setErrorState({
-                    showError: false,
-                    errorMessage: '',
-                })
-
-                //check if the formdata is correct
-                if (checkForm(sendFormData, tokenAddress).succes === 'false') {
-                    return
-                }
-
+                //check if the user has enough funds
                 const _checkBalance = await checkBalance({
                     chainId: sendFormData.chainId,
                     tokenAddress,
                     tokenType,
                     tokenDecimals,
-                    amount: Number(sendFormData.amount),
+                    amount: tokenAmount,
                 })
                 if (_checkBalance.success === 'false') {
                     return
                 }
 
-                await checkNetwork(sendFormData.chainId)
-
-                setEnableConfirmation(true)
-
-                //Calculate the token amount
-                const tokenAmount = Number(sendFormData.amount)
-
                 console.log(
-                    `creating raffle ${tokenAmount} ${sendFormData.token} on chain with id ${sendFormData.chainId} with token address: ${tokenAddress} with tokenType: ${tokenType} with tokenDecimals: ${tokenDecimals}`
+                    'bulk' +
+                        'sending ' +
+                        tokenAmount +
+                        ' ' +
+                        sendFormData.token +
+                        ' on chain with id ' +
+                        sendFormData.chainId +
+                        ' with token address: ' +
+                        tokenAddress +
+                        ' with tokenType: ' +
+                        tokenType +
+                        ' with tokenDecimals: ' +
+                        tokenDecimals
                 )
-                //when the user tries to refresh, show an alert
-                setEnableConfirmation(true)
 
-                const password = await peanut.getRandomString(16)
+                const passwords = await Promise.all(
+                    Array.from({ length: sendFormData.bulkAmount ?? 1 }, async () => peanut.getRandomString(16))
+                )
 
                 let baseUrl = ''
                 if (typeof window !== 'undefined') {
-                    baseUrl = `${window.location.origin}/raffle/claim`
+                    baseUrl = `${window.location.origin}/claim`
                 }
 
                 const linkDetails = {
@@ -399,33 +425,47 @@ export function RaffleInitialView({
 
                 setLoadingStates('preparing transaction')
 
+                let getLinksFromTxResponse
+                let txHash: string
                 const currentDateTime = new Date()
                 const tempLocalstorageKey =
-                    'saving temp raffle link without depositindex for address: ' + address + ' at ' + currentDateTime
+                    'saving temp link without depositindex for address: ' + address + ' at ' + currentDateTime
 
                 const latestContractVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
                     type: 'normal',
+                    experimental: false,
                 })
-                const prepareTxsResponse = await peanut.prepareRaffleDepositTxs({
-                    userAddress: address ?? '',
+
+                const latestBatcherVersion = peanut.getLatestContractVersion({
+                    chainId: sendFormData.chainId.toString(),
+                    type: 'batch',
+                })
+
+                console.log('latestContractVersion', latestContractVersion)
+                console.log('latestBatcherVersion', latestBatcherVersion)
+
+                const prepareTxsResponse = await peanut.prepareTxs({
+                    address: address ?? '',
                     linkDetails,
-                    password,
-                    withMFA: true,
-                    numberOfLinks: Number(sendFormData.numberOfrecipients),
+                    passwords: passwords,
+                    numberOfLinks: sendFormData.bulkAmount,
+                    batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
+                    peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
                 })
 
-                const tempLink =
-                    '/raffle/claim?c=' +
-                    linkDetails.chainId +
-                    '&v=' +
-                    latestContractVersion +
-                    '&i=?&p=' +
-                    password +
-                    '&t=ui'
-                utils.saveToLocalStorage(tempLocalstorageKey, tempLink)
+                passwords.map((password, idx) => {
+                    const tempLink =
+                        '/claim?c=' +
+                        linkDetails.chainId +
+                        '&v=' +
+                        latestContractVersion +
+                        '&i=?&p=' +
+                        password +
+                        '&t=ui'
+                    utils.saveToLocalStorage(tempLocalstorageKey + ' - ' + idx, tempLink)
+                })
 
-                // Array of txHashes
                 const signedTxsResponse: string[] = []
 
                 let idx = 0
@@ -441,7 +481,6 @@ export function RaffleInitialView({
                     } catch (error: any) {
                         console.log('error setting fee options, fallback to default')
                     }
-
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({
                         to: (tx.to ? tx.to : '') as `0x${string}`,
@@ -453,8 +492,8 @@ export function RaffleInitialView({
                         maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
                             ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
                             : undefined,
+                        chainId: Number(linkDetails.chainId), //TODO: chainId as number here
                     })
-
                     setLoadingStates('executing transaction')
 
                     if (walletType === 'safe') {
@@ -470,6 +509,7 @@ export function RaffleInitialView({
                                 queued.txStatus === TransactionStatus.AWAITING_EXECUTION
                             ) {
                                 console.log('waiting for safe tx')
+
                                 await new Promise((resolve) => setTimeout(resolve, 1000))
                             } else if (queued.txHash) {
                                 hash = queued.txHash as `0x${string}`
@@ -504,42 +544,32 @@ export function RaffleInitialView({
                     idx++
                 }
 
-                setLoadingStates('creating link')
+                setLoadingStates('creating links')
 
-                const { link: fullCreatedLink } = await getRaffleLinkFromTx({
+                getLinksFromTxResponse = await peanut.getLinksFromTx({
                     linkDetails,
                     txHash: signedTxsResponse[signedTxsResponse.length - 1],
-                    password: password,
-                    numberOfLinks: Number(sendFormData.numberOfrecipients),
-                    name: sendFormData.senderName ?? '',
-                    withMFA: true,
-                    withCaptcha: true,
-                    baseUrl: `${consts.next_proxy_url}/submit-raffle-link`,
-                    APIKey: 'doesnt-matter',
-                    withENS: false,
-                    withSignedMessage: false,
-                    withWeb3Email: false,
-                }) // TODO: update latest values here
-                // Remove indices since they are stored on the API anyway
-                const fullCreatedURL = new URL(fullCreatedLink)
-                fullCreatedURL.searchParams.delete('i')
-                const minimizedLink = fullCreatedURL.toString()
+                    passwords: passwords,
+                })
 
-                const txHash = signedTxsResponse[signedTxsResponse.length - 1]
+                txHash = signedTxsResponse[signedTxsResponse.length - 1]
 
-                verbose && console.log('Created raffle link:', { fullCreatedLink, minimizedLink })
+                verbose && console.log('Created links:', getLinksFromTxResponse.links)
                 verbose && console.log('Transaction hash:', txHash)
 
-                utils.delteFromLocalStorage(tempLocalstorageKey)
+                passwords.map((password, idx) => {
+                    utils.delteFromLocalStorage(tempLocalstorageKey + ' - ' + idx)
+                })
 
-                utils.saveToLocalStorage(address + ' - raffle - ' + txHash, minimizedLink)
+                getLinksFromTxResponse.links.forEach((link: any, index: any) => {
+                    utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
+                })
 
-                setClaimLink([minimizedLink])
+                setClaimLink(getLinksFromTxResponse.links)
                 setTxHash(txHash)
                 setChainId(sendFormData.chainId)
                 onNextScreen()
             } catch (error: any) {
-                console.error(error)
                 if (error instanceof peanut.interfaces.SDKStatus && !error.originalError) {
                     const errorMessage = utils.sdkErrorHandler(error)
                     setErrorState({
@@ -561,8 +591,7 @@ export function RaffleInitialView({
                     } else if (error.toString().includes('not deployed on chain')) {
                         setErrorState({
                             showError: true,
-                            errorMessage:
-                                'Creating a raffle is not possible on this chain yet, please try another chain',
+                            errorMessage: 'Bulk is not able on this chain, please try another chain',
                         })
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
@@ -601,7 +630,17 @@ export function RaffleInitialView({
                 setEnableConfirmation(false)
             }
         },
-        [currentChain, userBalances, onNextScreen, isLoading, address, tokenPrice]
+        [
+            currentChain,
+            userBalances,
+            onNextScreen,
+            isLoading,
+            address,
+            inputDenomination,
+            tokenPrice,
+            advancedDropdownOpen,
+            createGasless,
+        ]
     )
 
     function classNames(...classes: any) {
@@ -621,11 +660,12 @@ export function RaffleInitialView({
         let isCurrent = true
 
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
-            const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
             if (!supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
                 setTokenPrice(undefined)
+                setInputDenomination('TOKEN')
                 return
             } else {
+                const tokenPriceResponse = await utils.fetchTokenPrice(tokenAddress, chainId)
                 if (!isCurrent) {
                     return // if landed here, fetch outdated so discard the result
                 }
@@ -633,9 +673,11 @@ export function RaffleInitialView({
                     setTokenPrice(tokenPriceResponse.price)
                 } else {
                     setTokenPrice(undefined)
+                    setInputDenomination('TOKEN')
                 }
             }
         }
+
         async function fetchAndSetTokenBalance(tokenAddress: string, chainId: string) {
             if (isConnected) {
                 try {
@@ -644,7 +686,7 @@ export function RaffleInitialView({
                         const userBalance = userBalances.find(
                             (balance) => balance.chainId == chainId && balance.address == tokenAddress
                         )
-                        if (userBalance) {
+                        if (userBalance && userBalance.amount > 0) {
                             balance = userBalance.amount.toString()
                         } else {
                             const _balance = await getTokenBalance({
@@ -685,17 +727,13 @@ export function RaffleInitialView({
             if (tokenAddress) {
                 fetchAndSetTokenPrice(tokenAddress, formwatch.chainId)
                 fetchAndSetTokenBalance(tokenAddress, formwatch.chainId)
-
                 return () => {
                     isCurrent = false
                 }
             }
         }
-        if (formwatch.token) {
-        }
     }, [formwatch.token, formwatch.chainId, isConnected])
 
-    //update the chain and token when the user changes the chain in the wallet
     useEffect(() => {
         if (
             currentChain &&
@@ -722,26 +760,135 @@ export function RaffleInitialView({
             sendForm.setValue('chainId', '10')
             sendForm.setValue('token', 'ETH')
         }
-    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected])
-
-    useEffect(() => {
-        if (!sentEmail && Number(formwatch.numberOfrecipients) > 10) {
-            setShowModal(true)
-        }
-    }, [formwatch.numberOfrecipients])
+    }, [currentChain, chainDetails, chainsToShow, formHasBeenTouched, isConnected, userBalances])
 
     return (
         <>
-            <div className=" mb-6 mt-10 flex w-full flex-col items-center gap-2 text-center">
-                <h2 className="title-font bold my-0 text-2xl lg:text-4xl">Create Raffle</h2>
-                <div className="my-0 w-4/5 font-normal">
-                    Engage and reward your community with a raffle give-away. Simply fill out the form and you will
-                    receive a link that you can share.
+            <div className="flex w-full flex-col items-center text-center  sm:mb-3">
+                <h2 className="title-font bold text-2xl lg:text-4xl">Batch Transaction</h2>
+                <div className="w-4/5 font-normal">
+                    Deposit the funds you want to send to many people. You will get a list of links that you can share
+                    via messenger, email or pidgeon post. The recipient will be able to claim the funds on any chain in
+                    any token.
                 </div>
             </div>
             <form className="w-full" onSubmit={sendForm.handleSubmit(createLink)}>
-                <div className="flex w-full flex-col items-center gap-2 sm:gap-7">
-                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 ">
+                <div className="flex w-full flex-col items-center gap-0 sm:gap-5">
+                    <div className="hidden flex-row items-center justify-center gap-6 p-4 sm:flex sm:w-3/4">
+                        <div className="flex flex-col justify-end gap-0 pt-2 ">
+                            <div className="flex h-16 items-center justify-center">
+                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
+                                    {inputDenomination == 'USD' ? '$' : ' '}
+                                </label>
+                                <div className="w-full max-w-[160px] ">
+                                    <input
+                                        className={
+                                            'w-full border-none bg-transparent font-black tracking-wide text-black outline-none placeholder:font-black placeholder:text-black ' +
+                                            textFontSize
+                                        }
+                                        placeholder="0.00"
+                                        onChange={(e) => {
+                                            const value = utils.formatAmountWithoutComma(e.target.value)
+                                            setTextFontSize(_utils.textHandler(value))
+                                            sendForm.setValue('amount', value)
+                                        }}
+                                        type="number"
+                                        inputMode="decimal"
+                                        step="any"
+                                        min="0"
+                                        autoComplete="off"
+                                        onFocus={(e) => e.target.select()}
+                                        autoFocus
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                {tokenPrice ? (
+                                    <div>
+                                        <img
+                                            onClick={() => {
+                                                setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
+                                            }}
+                                            src={switch_svg.src}
+                                            className="relative z-10 h-4 cursor-pointer"
+                                        />
+                                        <label className="ml-4 w-max pr-2 text-sm font-bold">
+                                            {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
+                                                ? inputDenomination == 'USD'
+                                                    ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
+                                                      ' ' +
+                                                      formwatch.token
+                                                    : '$ ' +
+                                                      utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
+                                                : inputDenomination == 'USD'
+                                                  ? '0.00'
+                                                  : '$ 0.00'}
+                                        </label>
+                                    </div>
+                                ) : (
+                                    <div className="h-5"></div>
+                                )}
+                            </div>
+                        </div>
+                        <div
+                            className={
+                                ' flex w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1 ' +
+                                (isConnected ? '  h-[70px] ' : ' h-[58px] ')
+                            }
+                            onClick={() => {
+                                if (isConnected && chainsToShow.length <= 0) {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: 'No funds available',
+                                    })
+                                } else {
+                                    setIsTokenSelectorOpen(true)
+                                }
+                            }}
+                        >
+                            {isConnected ? (
+                                chainsToShow.length > 0 ? (
+                                    <div className="flex cursor-pointer flex-col items-center justify-center">
+                                        <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                            {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                        </label>{' '}
+                                        <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                            {formwatch.token}
+                                        </label>
+                                        {tokenBalance != undefined ? (
+                                            <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs font-light">
+                                                balance: {utils.formatTokenAmount(tokenBalance, 4)}
+                                            </label>
+                                        ) : (
+                                            <div className="mb-1 flex justify-center gap-1 text-xs font-light">
+                                                <label>balance: </label>
+                                                <span className="bouncing-dots flex">
+                                                    <span className="dot">.</span>
+                                                    <span className="dot">.</span>
+                                                    <span className="dot">.</span>
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <label className="flex h-full items-center justify-center text-sm font-bold">
+                                        No funds available
+                                    </label>
+                                )
+                            ) : (
+                                <div className="flex cursor-pointer flex-col items-center justify-center">
+                                    <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-sm font-bold">
+                                        {chainsToShow.find((chain) => chain.chainId == formwatch.chainId)?.name}
+                                    </label>{' '}
+                                    <label className=" cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xl font-bold">
+                                        {formwatch.token}
+                                    </label>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <div className="flex w-full flex-col items-center justify-center gap-6 p-4 sm:hidden ">
                         <div
                             className={
                                 ' flex w-[136px] cursor-pointer flex-col gap-2 border-4 border-solid !px-8 !py-1 ' +
@@ -768,11 +915,11 @@ export function RaffleInitialView({
                                             {formwatch.token}
                                         </label>
                                         {tokenBalance != undefined ? (
-                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-base text-xs font-light">
-                                                <label>balance: </label> {utils.formatTokenAmount(tokenBalance, 4)}
+                                            <label className="cursor-pointer self-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all text-xs font-light">
+                                                balance: {utils.formatTokenAmount(tokenBalance, 4)}
                                             </label>
                                         ) : (
-                                            <div className="text-xd mb-1 flex justify-center gap-1 font-light">
+                                            <div className="flex justify-center gap-1 text-xs font-light">
                                                 <label>balance: </label>
                                                 <span className="bouncing-dots flex">
                                                     <span className="dot">.</span>
@@ -798,97 +945,112 @@ export function RaffleInitialView({
                                 </div>
                             )}
                         </div>
-                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">${formwatch.token} Amount *</div>
-                            <div className="flex flex-row items-center justify-between">
+                        <div className="flex flex-col justify-end gap-0 pt-2">
+                            <div className="flex max-w-[280px] items-center self-end rounded border border-gray-400 px-2 ">
+                                <label className={'flex h-full items-center font-bold ' + textFontSize}>
+                                    {inputDenomination == 'USD' ? '$' : ' '}
+                                </label>
+
                                 <input
-                                    onWheel={(e) => {
-                                        // @ts-ignore
-                                        e.target.blur()
-                                    }}
-                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                    placeholder="100"
-                                    onChange={(e) => {
-                                        const value = utils.formatAmountWithoutComma(e.target.value)
-                                        sendForm.setValue('amount', value)
-                                    }}
-                                    type={isMobile ? '' : 'number'}
-                                    pattern={isMobile ? '[0-9]*[.,]?[0-9]*' : ''}
+                                    className={
+                                        'no-spin block w-full appearance-none border-none bg-none p-0 font-black outline-none placeholder:font-black placeholder:text-black ' +
+                                        textFontSize
+                                    }
+                                    placeholder="0.00"
                                     inputMode="decimal"
                                     step="any"
                                     min="0"
                                     autoComplete="off"
                                     onFocus={(e) => e.target.select()}
                                     autoFocus
-                                />
-
-                                {tokenPrice && (
-                                    <div className="flex min-w-max items-center text-xs font-normal ">
-                                        ${utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)}
-                                    </div>
-                                )}
-                            </div>
-                        </div>
-                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">№ of Slots *</div>
-                            <div className="flex flex-row items-center justify-between">
-                                <input
-                                    onWheel={(e) => {
-                                        // @ts-ignore
-                                        e.target.blur()
-                                    }}
-                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                    placeholder="5"
                                     onChange={(e) => {
-                                        sendForm.setValue('numberOfrecipients', e.target.value)
+                                        const value = utils.formatAmountWithoutComma(e.target.value)
+                                        setTextFontSize(_utils.textHandler(value))
+                                        sendForm.setValue('amount', value)
                                     }}
-                                    type="number"
-                                    inputMode="numeric"
-                                    step="any"
-                                    min="0"
-                                    autoComplete="off"
-                                    onFocus={(e) => e.target.select()}
-                                    onKeyDown={(event) => {
-                                        if (
-                                            !/[0-9]/.test(event.key) &&
-                                            ![
-                                                'Backspace',
-                                                'ArrowLeft',
-                                                'ArrowRight',
-                                                'ArrowUp',
-                                                'ArrowDown',
-                                                'Delete',
-                                                'End',
-                                                'Home',
-                                                'Tab',
-                                            ].includes(event.key)
-                                        ) {
-                                            event.preventDefault()
-                                        }
-                                    }}
+                                    pattern="[0-9]*[.,]?[0-9]*"
+                                    size={formwatch.amount ? formwatch.amount.length : 4}
                                 />
+                            </div>
 
-                                <label className=" display-block w-12 text-xs font-normal">{'No fee'}</label>
-                            </div>
-                        </div>
-                        <div className=" flex h-[58px] w-[248px] flex-col gap-2 border-4 border-solid !px-4 !py-1">
-                            <div className="font-normal">Display Name</div>
-                            <div className="flex flex-row items-center justify-between">
-                                <input
-                                    maxLength={15}
-                                    className="items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent p-0 text-xl font-bold outline-none"
-                                    placeholder="Chad"
-                                    type="text"
-                                    autoComplete="off"
-                                    onFocus={(e) => e.target.select()}
-                                    {...sendForm.register('senderName')}
-                                />
-                            </div>
+                            {tokenPrice ? (
+                                <div className="flex w-full items-center justify-center">
+                                    <img
+                                        onClick={() => {
+                                            setInputDenomination(inputDenomination == 'TOKEN' ? 'USD' : 'TOKEN')
+                                        }}
+                                        src={switch_svg.src}
+                                        className="h-4 cursor-pointer"
+                                    />
+                                    <label className="ml-4 w-max pr-2 text-sm font-bold">
+                                        {tokenPrice && formwatch.amount && Number(formwatch.amount) > 0
+                                            ? inputDenomination == 'USD'
+                                                ? utils.formatTokenAmount(Number(formwatch.amount) / tokenPrice) +
+                                                  ' ' +
+                                                  formwatch.token
+                                                : '$ ' + utils.formatTokenAmount(Number(formwatch.amount) * tokenPrice)
+                                            : '0.00 '}
+                                    </label>
+                                </div>
+                            ) : (
+                                <div className="h-5"></div>
+                            )}
                         </div>
                     </div>
+
+                    <div className="my-4 flex w-full flex-col items-center justify-center gap-2 sm:my-0 sm:w-3/5 lg:w-2/3">
+                        <div className="relative w-full px-2 sm:w-3/4">
+                            <div className="absolute inset-y-0 right-4 box-border flex items-center ">
+                                <span className="cursor-pointertext-lg align-center flex h-1/2 ">
+                                    <button
+                                        type="button"
+                                        className={
+                                            'relative inline-flex items-center border-none bg-white font-black text-black'
+                                        }
+                                    >
+                                        Links
+                                    </button>
+                                </span>
+                            </div>
+
+                            <input
+                                type="number"
+                                step="any"
+                                min="0"
+                                autoComplete="off"
+                                className="no-spin brutalborder block w-full appearance-none px-2 py-4 pl-4 text-lg font-bold outline-none placeholder:text-lg placeholder:font-bold placeholder:text-black "
+                                placeholder="0"
+                                aria-describedby="price-currency"
+                                onChange={(e) => {
+                                    sendForm.setValue('bulkAmount', Number(e.target.value))
+                                }}
+                            />
+                        </div>
+                        {formwatch.amount && formwatch.token && formwatch.bulkAmount ? (
+                            <div>
+                                <div className="flex text-center text-base">
+                                    {' '}
+                                    You will be sending {formwatch.bulkAmount} links. The total value will be{' '}
+                                    {inputDenomination == 'USD'
+                                        ? utils.formatTokenAmount(
+                                              Number(
+                                                  tokenPrice &&
+                                                      formwatch.amount &&
+                                                      (Number(formwatch.amount) / tokenPrice) * formwatch.bulkAmount
+                                              )
+                                          )
+                                        : utils.formatTokenAmount(formwatch.bulkAmount * Number(formwatch.amount))}{' '}
+                                    {formwatch.token}
+                                </div>
+                            </div>
+                        ) : (
+                            ''
+                        )}
+                    </div>
+
                     <div
                         className={
-                            errorState.showError
+                            errorState.showError || showGaslessAvailable
                                 ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
                                 : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
                         }
@@ -915,14 +1077,24 @@ export function RaffleInitialView({
                                 </div>
                             ) : !isConnected ? (
                                 'Connect Wallet'
+                            ) : advancedDropdownOpen ? (
+                                'Bulk Send'
                             ) : (
-                                'Create'
+                                'Send'
                             )}
                         </button>
-                        {errorState.showError && (
+                        {errorState.showError ? (
                             <div className="text-center">
                                 <label className="font-bold text-red ">{errorState.errorMessage}</label>
                             </div>
+                        ) : (
+                            showGaslessAvailable && (
+                                <div className="flex flex-row items-center justify-center gap-1 text-center">
+                                    <label className="font-bold text-black ">
+                                        All USDC links are created gaslessly and sponsored by peanut!
+                                    </label>
+                                </div>
+                            )
                         )}
                     </div>
                 </div>
@@ -932,7 +1104,7 @@ export function RaffleInitialView({
             <Transition.Root show={isTokenSelectorOpen} as={Fragment}>
                 <Dialog
                     as="div"
-                    className="relative z-10 "
+                    className="relative z-20 "
                     onClose={() => {
                         setFormHasBeenTouched(true)
                         setIsTokenSelectorOpen(false)
@@ -952,7 +1124,7 @@ export function RaffleInitialView({
                         <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
                     </Transition.Child>
 
-                    <div className="fixed inset-0 z-10 overflow-y-auto">
+                    <div className="fixed inset-0 z-20 overflow-y-auto">
                         <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
                             <Transition.Child
                                 as={Fragment}
@@ -999,7 +1171,7 @@ export function RaffleInitialView({
                                                             >
                                                                 <img
                                                                     src={chain.icon.url}
-                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white"
+                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white "
                                                                     onError={(e: any) => {
                                                                         e.target.onerror = null
                                                                     }}
@@ -1034,7 +1206,7 @@ export function RaffleInitialView({
                                                             >
                                                                 <img
                                                                     src={chain.icon.url}
-                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white"
+                                                                    className="h-6 w-6 cursor-pointer rounded-full bg-white "
                                                                     onError={(e: any) => {
                                                                         e.target.onerror = null
                                                                     }}
@@ -1105,7 +1277,7 @@ export function RaffleInitialView({
                                         {filteredTokenList
                                             ? filteredTokenList.map((token) => (
                                                   <div
-                                                      key={token.address}
+                                                      key={token.address + Math.random()}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1143,7 +1315,7 @@ export function RaffleInitialView({
                                               ))
                                             : tokenList.map((token) => (
                                                   <div
-                                                      key={token.address}
+                                                      key={token.address + Math.random()}
                                                       className={
                                                           'flex cursor-pointer flex-row justify-between px-2 py-2  ' +
                                                           (formwatch.token == token.symbol
@@ -1179,87 +1351,6 @@ export function RaffleInitialView({
                                                       </div>
                                                   </div>
                                               ))}
-                                    </div>
-                                </Dialog.Panel>
-                            </Transition.Child>
-                        </div>
-                    </div>
-                </Dialog>
-            </Transition.Root>
-
-            <Transition.Root show={showModal} as={Fragment}>
-                <Dialog
-                    as="div"
-                    className="relative z-10 "
-                    onClose={() => {
-                        setShowModal(false)
-                    }}
-                >
-                    <Transition.Child
-                        as={Fragment}
-                        enter="ease-out duration-300"
-                        enterFrom="opacity-0"
-                        enterTo="opacity-100"
-                        leave="ease-in duration-200"
-                        leaveFrom="opacity-100"
-                        leaveTo="opacity-0"
-                    >
-                        <div className="fixed inset-0 bg-black bg-opacity-75 transition-opacity" />
-                    </Transition.Child>
-
-                    <div className="fixed inset-0 z-10 overflow-y-auto">
-                        <div className="flex min-h-full min-w-full items-end justify-center text-center sm:items-center ">
-                            <Transition.Child
-                                as={Fragment}
-                                enter="ease-out duration-300"
-                                enterFrom="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                                enterTo="opacity-100 translate-y-0 sm:scale-100"
-                                leave="ease-in duration-200"
-                                leaveFrom="opacity-100 translate-y-0 sm:scale-100"
-                                leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-                            >
-                                <Dialog.Panel className="brutalborder relative h-max w-full transform overflow-hidden rounded-lg rounded-none bg-white pt-5 text-left text-black shadow-xl transition-all sm:mt-8  sm:w-auto sm:min-w-[420px] sm:max-w-[420px] ">
-                                    <div className="flex flex-col items-center justify-center gap-6 p-12 ">
-                                        <div>
-                                            Henlo! That's a lot of recipients! You can create raffle links with up to
-                                            250 slots. If you're running a larger campaign, we'd love to help.{' '}
-                                            <a
-                                                href={'https://cal.com/kkonrad+hugo0/15min?duration=30'}
-                                                target="_blank"
-                                                rel="noreferrer noopener"
-                                                className=" cursor-pointer text-black underline"
-                                            >
-                                                book
-                                            </a>{' '}
-                                            a meeting or share your email and we'll get in touch!
-                                        </div>
-
-                                        <input
-                                            className="brutalborder  w-3/4 items-center overflow-hidden overflow-ellipsis whitespace-nowrap break-all border-none bg-transparent text-xl font-bold outline-none"
-                                            onChange={(e) => {
-                                                setEnteredEmail(e.target.value)
-                                            }}
-                                        />
-
-                                        <button
-                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
-                                            id="cta-btn-2"
-                                            onClick={() => {
-                                                if (enteredEmail === '') {
-                                                    setSentEmail(true)
-                                                    const message = ` 🐿️ Someone has entered their email when creating a raffle link, 
-                                                tagging <@480931245107445760> <@833795975080181810>
-
-                                                email: ${enteredEmail}
-                                                `
-                                                    utils.fetchSendDiscordNotification({ message })
-                                                }
-                                                setShowModal(false)
-                                            }}
-                                            disabled={isLoading ? true : false}
-                                        >
-                                            Continue
-                                        </button>
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>

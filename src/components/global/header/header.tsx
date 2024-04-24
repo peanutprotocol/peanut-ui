@@ -129,6 +129,14 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                                 >
                                                                     Raffle
                                                                 </Link>
+                                                                <Link
+                                                                    href="/batch/create"
+                                                                    className={
+                                                                        'hover: block bg-black px-4 py-2 text-base text-black text-white no-underline hover:bg-white hover:text-black'
+                                                                    }
+                                                                >
+                                                                    Batch
+                                                                </Link>
                                                             </Popover.Panel>
                                                         </Transition>
                                                     </div>
@@ -188,6 +196,12 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                     className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
                                                 >
                                                     Raffle
+                                                </a>
+                                                <a
+                                                    href="/batch/create"
+                                                    className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
+                                                >
+                                                    Batch
                                                 </a>
                                             </Disclosure.Panel>
                                         </>

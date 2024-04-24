@@ -475,7 +475,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 const latestContractVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
                     type: 'normal',
-                    experimental: true,
                 })
 
                 console.log(createGasless)

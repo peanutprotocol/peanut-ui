@@ -5,7 +5,7 @@ import * as _consts from './send.consts'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 
-export function Send({ type }: { type: 'normal' | 'raffle' }) {
+export function Send({ type }: { type: 'normal' | 'raffle' | 'batch' }) {
     const [sendScreen, setSendScreen] = useState<_consts.ISendScreenState>(_consts.INIT_VIEW)
     const [claimLink, setClaimLink] = useState<string | string[]>('')
     const [txHash, setTxHash] = useState<string>('')
@@ -60,6 +60,20 @@ export function Send({ type }: { type: 'normal' | 'raffle' }) {
             {type == 'raffle' && (
                 <global_components.CardWrapper mt=" mt-16 " shadow>
                     {createElement(_consts.RAFFLE_SEND_SCREEN_MAP[sendScreen.screen].comp, {
+                        onNextScreen: handleOnNext,
+                        onCustomScreen: handleOnCustom,
+                        claimLink,
+                        setClaimLink,
+                        txHash,
+                        setTxHash,
+                        chainId,
+                        setChainId,
+                    } as _consts.ISendScreenProps)}
+                </global_components.CardWrapper>
+            )}
+            {type == 'batch' && (
+                <global_components.CardWrapper mt=" mt-16 " shadow>
+                    {createElement(_consts.BATCH_SEND_SCREEN_MAP[sendScreen.screen].comp, {
                         onNextScreen: handleOnNext,
                         onCustomScreen: handleOnCustom,
                         claimLink,
