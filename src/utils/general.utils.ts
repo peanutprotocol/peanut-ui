@@ -286,25 +286,3 @@ export async function copyTextToClipboardWithFallback(text: string) {
         console.error('Fallback method failed. Error:', err)
     }
 }
-
-// This is a helper function to compare versions, if version1 is greater than version2, it returns false, otherwise true
-// Always pass in the LTS version as version1
-// TODO: export this function from the SDK
-export function compareVersions(version1: string, version2: string, lead: string): boolean {
-    const v1 = version1.startsWith(lead) ? version1.substring(lead.length) : version1
-    const v2 = version2.startsWith(lead) ? version2.substring(lead.length) : version2
-
-    const parts1 = v1.split('.').map(Number)
-    const parts2 = v2.split('.').map(Number)
-
-    const maxLength = Math.max(parts1.length, parts2.length)
-
-    for (let i = 0; i < maxLength; i++) {
-        const part1 = i < parts1.length ? parts1[i] : 0
-        const part2 = i < parts2.length ? parts2[i] : 0
-
-        if (part1 > part2) return false
-        if (part1 < part2) return true
-    }
-    return true
-}
