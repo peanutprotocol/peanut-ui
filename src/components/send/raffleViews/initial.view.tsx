@@ -406,7 +406,6 @@ export function RaffleInitialView({
                 const latestContractVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
                     type: 'normal',
-                    experimental: true,
                 })
                 const prepareTxsResponse = await peanut.prepareRaffleDepositTxs({
                     userAddress: address ?? '',

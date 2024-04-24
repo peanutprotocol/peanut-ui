@@ -440,7 +440,6 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                 const latestBatcherVersion = peanut.getLatestContractVersion({
                     chainId: sendFormData.chainId.toString(),
                     type: 'batch',
-                    experimental: false,
                 })
 
                 console.log('latestContractVersion', latestContractVersion)
