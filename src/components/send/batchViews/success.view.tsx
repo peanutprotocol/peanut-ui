@@ -79,26 +79,20 @@ export function BatchSuccessView({
                             </li>
                         ))}
                 </ul>
-                <div
-                    className="flex cursor-pointer items-center justify-center"
-                    onClick={() => {
-                        setIsDropdownOpen(!isDropdownOpen)
-                    }}
-                >
-                    <div className="cursor-pointer border-none bg-white text-sm  ">More Info and QR code </div>
-                    <img
-                        style={{
-                            transform: isDropdownOpen ? 'scaleY(-1)' : 'none',
-                            transition: 'transform 0.3s ease-in-out',
-                        }}
-                        src={dropdown_svg.src}
-                        alt=""
-                        className={'h-6 '}
-                    />
+                <div className="mb-4 mt-0">
+                    <p className="tx-sm my-0">
+                        <a
+                            href={explorerUrlWithTx ?? ''}
+                            target="_blank"
+                            className="cursor-pointer text-center text-sm text-black underline "
+                        >
+                            Your transaction hash
+                        </a>
+                    </p>
                 </div>
-                <div className={' mt-8 flex flex-col items-center  justify-center gap-6 '}>
+                <div className={' flex flex-col items-center  justify-center gap-6 '}>
                     {!copiedAll ? (
-                        <div className="text-m border-none bg-white ">
+                        <div className="border-none bg-white text-lg ">
                             Click{' '}
                             <span
                                 className="cursor-pointer text-black underline"
@@ -116,51 +110,6 @@ export function BatchSuccessView({
                         <div className="text-m border-none bg-white ">Copied all links to clipboard!</div>
                     )}
                 </div>
-
-                {isDropdownOpen && (
-                    <div>
-                        <div className="h-42 w-42 mx-auto mb-6 mt-4">
-                            <div
-                                style={{
-                                    height: 'auto',
-                                    margin: '0 auto',
-                                    maxWidth: 192,
-                                    width: '100%',
-                                }}
-                            >
-                                <QRCode
-                                    size={256}
-                                    style={{ height: 'auto', maxWidth: '100%', width: '100%' }}
-                                    value={claimLink[0]}
-                                    viewBox={`0 0 256 256`}
-                                />
-                            </div>
-                        </div>
-                        <p className="tx-sm">
-                            <a
-                                href={explorerUrlWithTx ?? ''}
-                                target="_blank"
-                                className="cursor-pointer text-center text-sm text-black underline "
-                            >
-                                Your transaction hash
-                            </a>
-                        </p>
-                        <p className="text-m mt-4" id="to_address-description">
-                            {' '}
-                            Want to do it again? click{' '}
-                            <a
-                                onClick={() => {
-                                    onCustomScreen('INITIAL')
-                                }}
-                                target="_blank"
-                                className="cursor-pointer text-black underline"
-                            >
-                                here
-                            </a>{' '}
-                            to go back home!
-                        </p>
-                    </div>
-                )}
             </div>
 
             <global_components.PeanutMan type="presenting" />
