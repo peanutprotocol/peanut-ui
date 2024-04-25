@@ -451,7 +451,10 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 )
 
                 let baseUrl = ''
-                if (typeof window !== 'undefined') {
+                if (walletType === 'blockscout') {
+                    const envInfo = await sdk.safe.getEnvironmentInfo()
+                    baseUrl = `${envInfo.origin}/`
+                } else if (typeof window !== 'undefined') {
                     baseUrl = `${window.location.origin}/claim`
                 }
 
