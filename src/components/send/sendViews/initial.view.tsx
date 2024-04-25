@@ -453,7 +453,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 let baseUrl = ''
                 if (walletType === 'blockscout') {
                     const envInfo = await sdk.safe.getEnvironmentInfo()
-                    baseUrl = `${envInfo.origin}/`
+                    baseUrl = `${envInfo.origin}/apps/peanut-protocol`
                 } else if (typeof window !== 'undefined') {
                     baseUrl = `${window.location.origin}/claim`
                 }
