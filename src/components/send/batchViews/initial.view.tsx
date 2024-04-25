@@ -609,7 +609,7 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                     } else if (error.toString().includes('not deployed on chain')) {
                         setErrorState({
                             showError: true,
-                            errorMessage: 'Bulk is not able on this chain, please try another chain',
+                            errorMessage: 'Batch creating links is not possible on this chain.',
                         })
                     } else if (error.toString().includes('User rejected the request')) {
                         setErrorState({
