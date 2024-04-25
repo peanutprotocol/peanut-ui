@@ -32,28 +32,6 @@ export function BatchSuccessView({
                 setCopiedAll(false)
             }, 3000)
         }
-        setClaimLink([
-            'http://localhost:3000/claim?c=137&v=v4.4&i=72&t=ui#p=vvM3gfpJVZpgf8yx',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=73&t=ui#p=iSSHr6HMCvWjZUR7',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=74&t=ui#p=N9XjS7DbplWThg03',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=75&t=ui#p=IK7sb3TmranXimjo',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=76&t=ui#p=hhu4k6zfEbZrZkxY',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=77&t=ui#p=xwvRHJEfipaU1axt',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=78&t=ui#p=6BwOLE6XO1LLAzwI',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=79&t=ui#p=yI99JxMKrLSCULOu',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=80&t=ui#p=Xh3hfvjXk63W3k0d',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=81&t=ui#p=Qb5VnxgmskgA9jXc',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=82&t=ui#p=baRqiECz2vh9ln0F',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=83&t=ui#p=5O3NoMu4FIxXKpgq',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=84&t=ui#p=cVkmZkuSR7Yki56I',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=85&t=ui#p=TbNuaYQW7BeiF4uP',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=86&t=ui#p=nclwhlrvKGFM0lJO',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=87&t=ui#p=mXBo5Uyj9WrRoYRe',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=88&t=ui#p=pKQsUrpEdO3s8F1r',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=89&t=ui#p=rw0Ie72xxTdDNaVu',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=90&t=ui#p=KE4a4tdFKtjolZPQ',
-            'http://localhost:3000/claim?c=137&v=v4.4&i=91&t=ui#p=3BhQiG8eSrKMiUAt',
-        ])
     }, [])
 
     return (
