@@ -468,8 +468,8 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                     linkDetails,
                     passwords: passwords,
                     numberOfLinks: sendFormData.bulkAmount,
-                    batcherContractVersion: advancedDropdownOpen ? latestContractVersion : undefined,
-                    peanutContractVersion: advancedDropdownOpen ? undefined : latestContractVersion,
+                    batcherContractVersion: latestBatcherVersion,
+                    peanutContractVersion: latestContractVersion,
                 })
 
                 passwords.map((password, idx) => {
