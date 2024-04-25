@@ -427,7 +427,10 @@ export function batchInitialView({ onNextScreen, setClaimLink, setTxHash, setCha
                 )
 
                 let baseUrl = ''
-                if (typeof window !== 'undefined') {
+                if (walletType === 'blockscout') {
+                    const envInfo = await sdk.safe.getEnvironmentInfo()
+                    baseUrl = `${envInfo.origin}/`
+                } else if (typeof window !== 'undefined') {
                     baseUrl = `${window.location.origin}/claim`
                 }
 
