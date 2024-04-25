@@ -150,6 +150,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
         ;(async () => {
             try {
                 const envInfo = await sdk.safe.getEnvironmentInfo()
+                console.log(envInfo)
                 if (envInfo.origin.includes('app.safe.global')) {
                     // If its a safe wallet, we need a sep tx hash handler
                     setWalletType('safe')
