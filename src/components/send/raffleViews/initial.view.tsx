@@ -383,7 +383,10 @@ export function RaffleInitialView({
                 const password = await peanut.getRandomString(16)
 
                 let baseUrl = ''
-                if (typeof window !== 'undefined') {
+                if (walletType === 'blockscout') {
+                    const envInfo = await sdk.safe.getEnvironmentInfo()
+                    baseUrl = `${envInfo.origin}/apps/peanut-protocol`
+                } else if (typeof window !== 'undefined') {
                     baseUrl = `${window.location.origin}/raffle/claim`
                 }
 
