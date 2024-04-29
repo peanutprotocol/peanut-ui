@@ -286,14 +286,13 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             latestContractVersion = peanut.getLatestContractVersion({
                 chainId: chainId,
                 type: 'normal',
-                experimental: true,
             })
         }
         if (
             _utils.toLowerCaseKeys(peanut.EIP3009Tokens[chainId as keyof typeof peanut.EIP3009Tokens])[
                 tokenAddress.toLowerCase()
             ] &&
-            latestContractVersion == peanut.LATEST_EXPERIMENTAL_CONTRACT_VERSION
+            peanut.VAULT_CONTRACTS_WITH_EIP_3009.includes(latestContractVersion)
         ) {
             return true
         } else {
