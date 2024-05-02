@@ -551,7 +551,7 @@ export const Dashboard = () => {
                                 <td className="td-custom">{utils.shortenAddressLong(link.senderAddress)}</td>
                                 <td className="td-custom">
                                     {link.claimed ? (
-                                        <div className="border-green-3 text-green-3 border border-n-1 px-2 py-1 text-center">
+                                        <div className="border border-green-3 border-n-1 px-2 py-1 text-center text-green-3">
                                             claimed
                                         </div>
                                     ) : (
@@ -703,7 +703,7 @@ const MobileItem = ({ linkDetail, address }: { linkDetail: ILinkDetails; address
                 <div className="flex flex-col items-end justify-end gap-2 text-end">
                     <div>
                         {linkDetail.claimed ? (
-                            <div className="border-green-3 text-green-3 border border-n-1 px-2 py-1 text-center">
+                            <div className="border border-green-3 border-n-1 px-2 py-1 text-center text-green-3">
                                 claimed
                             </div>
                         ) : (

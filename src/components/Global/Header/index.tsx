@@ -10,7 +10,7 @@ import Link from 'next/link'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
 
-type HeaderProps = {};
+type HeaderProps = {}
 
 const apps = [
     {
@@ -25,7 +25,6 @@ const apps = [
         name: 'Batch',
         href: '/batch/create',
     },
-    
 ]
 
 const Header = ({}: HeaderProps) => {
@@ -55,9 +54,12 @@ const Header = ({}: HeaderProps) => {
     })
 
     return (
-        <Disclosure as="nav" className="dark:border-white z-20 border-b border-n-1 bg-background dark:bg-n-2 md:!bg-transparent">
-        {({ open }) => (
-            <>
+        <Disclosure
+            as="nav"
+            className="z-20 border-b border-n-1 bg-background dark:border-white dark:bg-n-2 md:!bg-transparent"
+        >
+            {({ open }) => (
+                <>
                     <div className="relative flex h-16 items-center justify-between">
                         <div className="absolute left-0 flex w-full items-center justify-between sm:hidden">
                             <div
@@ -68,16 +70,20 @@ const Header = ({}: HeaderProps) => {
                                 }}
                             >
                                 <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                                <span className="text-h5 inline px-2 sm:px-6">
-                                    peanut protocol
-                                </span>
+                                <span className="inline px-2 text-h5 sm:px-6">peanut protocol</span>
                             </div>
-                            <Disclosure.Button className="relative inline-flex items-center justify-center border-none bg-transparant p-2">
+                            <Disclosure.Button className="bg-transparant relative inline-flex items-center justify-center border-none p-2">
                                 <span className="sr-only">Open main menu</span>
                                 {open ? (
-                                    <XMarkIcon className="block h-6 w-6 stroke-black dark:stroke-white" aria-hidden="true" />
+                                    <XMarkIcon
+                                        className="block h-6 w-6 stroke-black dark:stroke-white"
+                                        aria-hidden="true"
+                                    />
                                 ) : (
-                                    <Bars3Icon className="block h-6 w-6 stroke-black dark:stroke-white" aria-hidden="true" />
+                                    <Bars3Icon
+                                        className="block h-6 w-6 stroke-black dark:stroke-white"
+                                        aria-hidden="true"
+                                    />
                                 )}
                             </Disclosure.Button>
                         </div>
@@ -90,7 +96,7 @@ const Header = ({}: HeaderProps) => {
                                 }}
                             >
                                 <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                                <span className="inline text-h4 font-bold px-6">peanut protocol</span>
+                                <span className="inline px-6 text-h4 font-bold">peanut protocol</span>
                             </div>
                             <div className="hidden h-full items-center justify-center  sm:flex ">
                                 <div className="flex h-full items-center">
@@ -102,7 +108,7 @@ const Header = ({}: HeaderProps) => {
                                                 className="relative h-full items-center justify-center "
                                             >
                                                 <Popover.Button
-                                                    className={`flex text-h6 h-full items-center border-none bg-transparant px-1 text-base hover:bg-black hover:text-white dark:hover:bg-background dark:hover:text-black focus:outline-none active:border-none md:px-8 ${open && 'bg-black text-white dark:bg-background dark:text-black'}`}
+                                                    className={`bg-transparant flex h-full items-center border-none px-1 text-base text-h6 hover:bg-black hover:text-white focus:outline-none active:border-none dark:hover:bg-background dark:hover:text-black md:px-8 ${open && 'bg-black text-white dark:bg-background dark:text-black'}`}
                                                     ref={buttonRef}
                                                     onClick={(event: any) => {
                                                         if (event?.detail != 0) {
@@ -126,20 +132,18 @@ const Header = ({}: HeaderProps) => {
                                                     leaveFrom="transform opacity-100 scale-100"
                                                     leaveTo="transform opacity-0 scale-95"
                                                 >
-                                                    <Popover.Panel className="absolute left-0 z-10 w-48 origin-top-right bg-black font-medium uppercase no-underline text-white p-0 shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                                                    <Popover.Panel className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                         {apps.map((app) => (
                                                             <Link
                                                                 key={app.name}
                                                                 href={app.href}
                                                                 className={
-                                                                    'block text-h7 font-bold bg-transparant px-4 py-2 hover:bg-background hover:text-black dark:hover:bg-background dark:hover:text-black'
-
-                                                                }>
+                                                                    'bg-transparant block px-4 py-2 text-h7 font-bold hover:bg-background hover:text-black dark:hover:bg-background dark:hover:text-black'
+                                                                }
+                                                            >
                                                                 {app.name}
-                                                                </Link>
+                                                            </Link>
                                                         ))}
-                                                       
-                                                           
                                                     </Popover.Panel>
                                                 </Transition>
                                             </div>
@@ -150,7 +154,7 @@ const Header = ({}: HeaderProps) => {
                                         key={'docs'}
                                         as="a"
                                         href={'/docs'}
-                                        className="flex h-full text-h6 items-center px-1 text-base hover:bg-black hover:text-white dark:hover:bg-background dark:hover:text-black md:px-8"
+                                        className="flex h-full items-center px-1 text-base text-h6 hover:bg-black hover:text-white dark:hover:bg-background dark:hover:text-black md:px-8"
                                     >
                                         DOCS
                                     </Disclosure.Button>
@@ -159,9 +163,7 @@ const Header = ({}: HeaderProps) => {
                         </div>
                         <div className="absolute inset-y-0 right-0 flex hidden items-center gap-2 pr-2 sm:flex">
                             <Link href={'/dashboard'} className="no-underline">
-                                <button className="btn-purple btn-large">
-                                    Dashboard
-                                </button>
+                                <button className="btn-purple btn-large">Dashboard</button>
                             </Link>
                             <button
                                 id="connectButton"
@@ -174,69 +176,65 @@ const Header = ({}: HeaderProps) => {
                             </button>
                         </div>
                     </div>
-                
 
-                <Disclosure.Panel className="sm:hidden">
-                    <div className="space-y-3 px-4 pb-4 text-h7 font-bold ">
-                        <Disclosure>
-                            {({ open }) => (
-                                <>
-                                    <Disclosure.Button
-                                        className="flex h-full w-full cursor-pointer items-center border-none bg-transparant"
-                                        key="app"
-                                    >
-                                        App
-                                    </Disclosure.Button>                                        
-                                    <Disclosure.Panel  className="space-y-3 px-4">
-
-                                    {apps.map((app) => (
-                                            <a
-                                                key={app.name}
-                                                href={app.href}
-                                                className="flex h-full cursor-pointer items-center "
-                                            >
-                                                {app.name}
-                                            </a>
-                                    ))}
+                    <Disclosure.Panel className="sm:hidden">
+                        <div className="space-y-3 px-4 pb-4 text-h7 font-bold ">
+                            <Disclosure>
+                                {({ open }) => (
+                                    <>
+                                        <Disclosure.Button
+                                            className="bg-transparant flex h-full w-full cursor-pointer items-center border-none"
+                                            key="app"
+                                        >
+                                            App
+                                        </Disclosure.Button>
+                                        <Disclosure.Panel className="space-y-3 px-4">
+                                            {apps.map((app) => (
+                                                <a
+                                                    key={app.name}
+                                                    href={app.href}
+                                                    className="flex h-full cursor-pointer items-center "
+                                                >
+                                                    {app.name}
+                                                </a>
+                                            ))}
                                         </Disclosure.Panel>
+                                    </>
+                                )}
+                            </Disclosure>
+                            <Disclosure.Button
+                                key="docs"
+                                as="a"
+                                href={'/docs'}
+                                className="flex h-full cursor-pointer items-center"
+                            >
+                                Docs
+                            </Disclosure.Button>
 
-                                </>
-                            )}
-                        </Disclosure>
-                        <Disclosure.Button
-                            key="docs"
-                            as="a"
-                            href={'/docs'}
-                            className="flex h-full cursor-pointer items-center"
-                        >
-                            Docs
-                        </Disclosure.Button>
+                            <Disclosure.Button
+                                key="dashboard"
+                                as="a"
+                                href={'/dashboard'}
+                                className="flex h-full cursor-pointer items-center"
+                            >
+                                Dashboard
+                            </Disclosure.Button>
+                            <Disclosure.Button
+                                key="connect"
+                                as="a"
+                                onClick={() => {
+                                    web3modalOpen()
+                                }}
+                                className="flex h-full cursor-pointer items-center"
+                            >
+                                {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                            </Disclosure.Button>
+                        </div>
+                    </Disclosure.Panel>
+                </>
+            )}
+        </Disclosure>
+    )
+}
 
-                        <Disclosure.Button
-                            key="dashboard"
-                            as="a"
-                            href={'/dashboard'}
-                            className="flex h-full cursor-pointer items-center"
-                        >
-                            Dashboard
-                        </Disclosure.Button>
-                        <Disclosure.Button
-                            key="connect"
-                            as="a"
-                            onClick={() => {
-                                web3modalOpen()
-                            }}
-                            className="flex h-full cursor-pointer items-center"
-                        >
-                            {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
-                        </Disclosure.Button>
-                    </div>
-                </Disclosure.Panel>
-            </>
-        )}
-    </Disclosure>
-    );
-};
-
-
-export default Header;
+export default Header
