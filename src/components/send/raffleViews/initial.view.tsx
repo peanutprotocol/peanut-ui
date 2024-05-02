@@ -382,12 +382,19 @@ export function RaffleInitialView({
 
                 const password = await peanut.getRandomString(16)
 
+                // TODO: uncomment this once blockscout has made the url params changes
+                // let baseUrl = ''
+                // if (walletType === 'blockscout') {
+                //     const envInfo = await sdk.safe.getEnvironmentInfo()
+                //     baseUrl = `${envInfo.origin}/apps/peanut-protocol`
+                // } else if (typeof window !== 'undefined') {
+                //     baseUrl = `${window.location.origin}/claim`
+                // }
+
+                // TODO: remove this once blockscout has made the url params
                 let baseUrl = ''
-                if (walletType === 'blockscout') {
-                    const envInfo = await sdk.safe.getEnvironmentInfo()
-                    baseUrl = `${envInfo.origin}/apps/peanut-protocol`
-                } else if (typeof window !== 'undefined') {
-                    baseUrl = `${window.location.origin}/raffle/claim`
+                if (typeof window !== 'undefined') {
+                    baseUrl = `${window.location.origin}/claim`
                 }
 
                 const linkDetails = {
