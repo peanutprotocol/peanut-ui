@@ -1,5 +1,7 @@
-import * as components from '@/components'
 import { Metadata } from 'next'
+
+import * as components from '@/components'
+import Layout from '@/components/Global/Layout'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -19,5 +21,9 @@ export const metadata: Metadata = {
 }
 
 export default function SendPage() {
-    return <components.Send type="normal" />
+    return (
+        <Layout>
+            <components.Create type="normal" />
+        </Layout>
+    )
 }

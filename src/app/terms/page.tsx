@@ -1,4 +1,6 @@
 import * as components from '@/components'
+import Layout from '@/components/Global/Layout'
+
 import { Metadata } from 'next'
 
 export const metadata: Metadata = {
@@ -19,5 +21,9 @@ export const metadata: Metadata = {
 }
 
 export default function TermsPage() {
-    return <components.Terms />
+    return (
+        <Layout>
+            <components.Terms />
+        </Layout>
+    )
 }

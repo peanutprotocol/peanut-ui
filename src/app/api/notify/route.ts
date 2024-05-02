@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-const projectId = process.env.WC_PROJECT_ID
+const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID
 if (!projectId) {
-    throw new Error('You need to provide WC_PROJECT_ID env variable')
+    throw new Error('You need to provide NEXT_PUBLIC_WC_PROJECT_ID env variable')
 }
 
 export async function POST(request: NextRequest, response: NextResponse) {
-    const notifyApiSecret = process.env.NOTIFY_API_SECRET
+    const notifyApiSecret = process.env.NEXT_PUBLIC_NOTIFY_API_SECRET
     if (!notifyApiSecret) {
         throw new Error('You need to provide NOTIFY_API_SECRET env variable')
     }

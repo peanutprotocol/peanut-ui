@@ -1,0 +1,129 @@
+'use client'
+
+import { useContext, useMemo, useState } from 'react'
+import { Menu, Transition } from '@headlessui/react'
+import Icon from '../Icon'
+import Search from '../Search'
+import { useBalance } from '@/hooks/useBalance'
+import { supportedWalletconnectChains, supportedPeanutChains } from '@/constants'
+import * as context from '@/context'
+import { IPeanutChainDetails } from '@/interfaces'
+type Chain = {
+    name: string
+    icon: {
+        url: string
+        format: string
+    }
+    mainnet: boolean
+}
+
+interface IChainSelectorProps {
+    chainsToDisplay?: IPeanutChainDetails[]
+}
+
+const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
+    const [, setVisible] = useState(false)
+    const [filterValue, setFilterValue] = useState('')
+
+    const { balances } = useBalance()
+    const { selectedChainID, setSelectedChainID } = useContext(context.tokenSelectorContext)
+
+    const _chainsToDisplay = useMemo(() => {
+        let chains
+        if (chainsToDisplay) {
+            chains = chainsToDisplay
+        } else {
+            chains = supportedPeanutChains
+        }
+        // if (balances.length > 0) {
+        //     chains = chains
+        //         .filter(
+        //             (chain) => chain.chainId === balances.find((balance) => balance.chainId === chain.chainId)?.chainId
+        //         )
+        //         .concat(
+        //             supportedPeanutChains.filter(
+        //                 (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
+        //             )
+        //         )
+        // }  // TODO: reorder but not filter
+        if (filterValue) {
+            chains = chains.filter(
+                (chain) =>
+                    chain.name.toLowerCase().includes(filterValue.toLowerCase()) ||
+                    chain.shortName.toLowerCase().includes(filterValue.toLowerCase())
+            )
+        }
+        return chains
+    }, [filterValue, balances, chainsToDisplay])
+
+    function setChain(chainId: string): void {
+        setSelectedChainID(chainId)
+        setVisible(false)
+    }
+
+    return (
+        <Menu className="relative " as="div">
+            {({ open }) => (
+                <>
+                    <Menu.Button className="btn-xl-fixed flex flex-row items-center justify-center gap-2 border border-n-1 dark:border-white">
+                        <img
+                            src={_chainsToDisplay.find((chain) => chain.chainId === selectedChainID)?.icon.url}
+                            alt={''}
+                            className="h-6 w-6"
+                        />
+                        <Icon
+                            name={'arrow-bottom'}
+                            className={`transition-transform dark:fill-white ${open ? 'rotate-180 ' : ''}`}
+                        />
+                    </Menu.Button>
+                    <Transition
+                        enter="transition duration-100 ease-out"
+                        enterFrom="transform scale-95 opacity-0"
+                        enterTo="transform scale-100 opacity-100"
+                        leave="transition duration-75 ease-out"
+                        leaveFrom="transform scale-100 opacity-100"
+                        leaveTo="transform scale-95 opacity-0"
+                    >
+                        <Menu.Items className=" shadow-primary-4 absolute right-0 top-full z-30 -mt-80 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1 sm:mt-2.5">
+                            <div className={'flex w-full items-center justify-center'}>
+                                <Search
+                                    className="px-1"
+                                    placeholder="Search by chain name"
+                                    value={filterValue}
+                                    onChange={(e: any) => setFilterValue(e.target.value)}
+                                    onSubmit={() => console.log('Submit')}
+                                    medium
+                                />
+                            </div>
+
+                            {_chainsToDisplay.map(
+                                (chain) =>
+                                    chain.mainnet && chainItem({ chain, setChain: () => setChain(chain.chainId) })
+                            )}
+                            <div className="w-full border border-n-2 dark:border-white"></div>
+                            {_chainsToDisplay.map(
+                                (chain) =>
+                                    !chain.mainnet && chainItem({ chain, setChain: () => setChain(chain.chainId) })
+                            )}
+                        </Menu.Items>
+                    </Transition>
+                </>
+            )}
+        </Menu>
+    )
+}
+
+const chainItem = ({ chain, setChain }: { chain: Chain; setChain: () => void }) => {
+    return (
+        <Menu.Item
+            as={'button'}
+            onClick={setChain}
+            className=" flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
+        >
+            <img src={chain.icon.url} alt={chain.name} className="h-6 w-6" />
+            <div className="text-h8">{chain.name}</div>
+        </Menu.Item>
+    )
+}
+
+export default ChainSelector

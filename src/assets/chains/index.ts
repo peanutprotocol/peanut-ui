@@ -1,11 +1,11 @@
-export * as Binance from './bsc.svg'
-export * as mainnet from './mainnet.svg'
-export * as Polygon from './matic.svg'
-export * as gnosis from './gnosis.svg'
-export * as arbitrum from './arbitrum.svg'
-export * as avalanche from './avalanche.svg'
-export * as base from './base.svg'
-export * as milkomeda from './milkomeda.svg'
-export * as optimism from './optimism.svg'
-export * as mantle from './mantle.svg'
-export * as manta from './manta-pacific.png'
+export { default as BINANCE_ICON } from "./bsc.svg";
+export { default as MAINNET_ICON } from "./mainnet.svg";
+export { default as POLYGON_ICON } from "./matic.svg";
+export { default as GNOSIS_ICON } from "./gnosis.svg";
+export { default as ARBITRUM_ICON } from "./arbitrum.svg";
+export { default as AVALANCHE_ICON } from "./avalanche.svg";
+export { default as BASE_ICON } from "./base.svg";
+export { default as MILKOMEDA_ICON } from "./milkomeda.svg";
+export { default as OPTIMISM_ICON } from "./optimism.svg";
+export { default as MANTLE_ICON } from "./mantle.svg";
+export { default as MANTA_ICON } from "./manta-pacific.png";

@@ -47,13 +47,15 @@ export interface IPeanutChainDetails {
 export interface IPeanutTokenDetail {
     chainId: string
     name: string
-    tokens: {
-        address: string
-        name: string
-        symbol: string
-        decimals: number
-        logoURI: string
-    }[]
+    tokens: IToken[]
+}
+
+export interface IToken {
+    address: string
+    name: string
+    symbol: string
+    decimals: number
+    logoURI: string
 }
 
 export interface ILocalStorageItem {
@@ -82,4 +84,17 @@ export interface ILinkDetails {
     tokenURI: any
     metadata: any
     rawOnchainDepositInfo: {}
+}
+
+export interface IChain {
+    chainId: string
+    axelarChainName: string
+    chainType: string
+}
+
+export interface IToken {
+    chainId: string
+    address: string
+    name: string
+    symbol: string
 }

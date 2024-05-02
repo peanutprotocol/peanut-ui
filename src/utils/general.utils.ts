@@ -216,8 +216,10 @@ export function formatAmount(amount: number) {
     return amount.toFixed(2)
 }
 
-export function formatTokenAmount(amount: number, maxFractionDigits?: number) {
+export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
+    if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
+
     const formattedAmount = amount.toLocaleString('en-US', {
         minimumFractionDigits: 0,
         maximumFractionDigits: maxFractionDigits,
@@ -285,4 +287,20 @@ export async function copyTextToClipboardWithFallback(text: string) {
     } catch (err) {
         console.error('Fallback method failed. Error:', err)
     }
+}
+
+export const isTestnetChain = (chainId: string) => {
+    const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
+        .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
+        .find((chain) => chain.chainId == chainId)?.mainnet
+
+    return isTestnet
+}
+
+export const compareTokenAddresses = (address1: string, address2: string) => {
+    if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+        address1 = '0x0000000000000000000000000000000000000000'
+    if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+        address2 = '0x0000000000000000000000000000000000000000'
+    return address1.toLowerCase() === address2.toLowerCase()
 }

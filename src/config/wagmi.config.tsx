@@ -1,6 +1,6 @@
 'use client'
 
-import * as consts from '@/consts'
+import * as consts from '@/constants'
 
 import { createWeb3Modal } from '@web3modal/wagmi/react'
 
@@ -14,7 +14,7 @@ import { createClient } from 'viem'
 const queryClient = new QueryClient()
 
 // 1. Get projectId at https://cloud.walletconnect.com
-const projectId = process.env.WC_PROJECT_ID ?? ''
+const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? ''
 
 // 2. Create wagmiConfig
 const metadata = {

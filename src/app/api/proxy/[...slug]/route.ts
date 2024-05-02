@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PEANUT_API_URL } from '@/consts/general.consts'
+import { PEANUT_API_URL } from '@/constants'
 
 export const maxDuration = 300 // vercel timeout
 
