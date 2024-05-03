@@ -1,30 +1,32 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Icon from '../Icon'
-
+import * as context from '@/context'
+import * as utils from '@/utils'
 interface TokenAmountInputProps {
     className?: string
+    tokenValue: string | undefined
+    setTokenValue: (tokenvalue: string | undefined) => void
 }
 
-const TokenAmountInput = ({ className }: TokenAmountInputProps) => {
-    const [inputDenomination, setInputDenomination] = useState<'USD' | 'TOKEN'>('TOKEN')
+const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountInputProps) => {
+    const { inputDenomination, setInputDenomination, selectedTokenPrice } = useContext(context.tokenSelectorContext)
     const inputRef = useRef<any>(null)
 
-    const [value, setValue] = useState('')
-    const onChange = (value: string) => {
-        setValue(value)
+    const onChange = (tokenvalue: string) => {
+        setTokenValue(tokenvalue)
     }
 
     useEffect(() => {
         if (inputRef.current) {
-            if (value.length != 0) {
-                inputRef.current.style.width = `${value.length + 1}ch`
+            if (tokenValue?.length != 0) {
+                inputRef.current.style.width = `${(tokenValue?.length ?? 0) + 1}ch`
             } else {
                 inputRef.current.style.width = `4ch`
             }
         }
-    }, [value]) // TODO: default width of inputRef to 4ch before render
+    }, [tokenValue])
 
     return (
         <form
@@ -33,7 +35,7 @@ const TokenAmountInput = ({ className }: TokenAmountInputProps) => {
         >
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1 ">
                 {inputDenomination === 'USD' ? (
-                    <label className={` text-h1 ${value ? 'text-black' : 'text-gray-2'}`}>$</label>
+                    <label className={` text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>$</label>
                 ) : (
                     <label className={`sr-only text-h1 `}>$</label>
                 )}
@@ -41,7 +43,7 @@ const TokenAmountInput = ({ className }: TokenAmountInputProps) => {
                     className={`h-12 w-[4ch] bg-transparent text-h1 outline-none transition-colors placeholder:text-h1 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white  dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                     type="number"
                     placeholder={'0.00'}
-                    value={value}
+                    value={tokenValue}
                     onChange={(e) => onChange(e.target.value)}
                     ref={inputRef}
                     inputMode="decimal"
@@ -51,11 +53,17 @@ const TokenAmountInput = ({ className }: TokenAmountInputProps) => {
                 />
             </div>
             <div className="flex w-full flex-row items-center justify-center gap-1">
-                <label className="text-base text-gray-1">{inputDenomination === 'USD' ? '0.00' : '$0.00'}</label>
+                <label className="text-base text-gray-1">
+                    {!tokenValue
+                        ? '0'
+                        : inputDenomination === 'USD'
+                          ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenPrice ?? 0))
+                          : utils.formatTokenAmount(Number(tokenValue) * (selectedTokenPrice ?? 0))}
+                </label>
                 <button
                     onClick={(e) => {
                         e.preventDefault()
-                        setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                        if (selectedTokenPrice) setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
                     }}
                 >
                     <Icon name={'switch'} className="rotate-90 cursor-pointer fill-gray-1" />

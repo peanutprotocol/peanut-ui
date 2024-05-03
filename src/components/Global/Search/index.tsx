@@ -48,7 +48,6 @@ const Search = ({ className, placeholder, value, onChange, onSubmit, large, medi
                 onChange={onChange}
                 autoFocus={false}
                 onFocus={(e) => {
-                    console.log('focus')
                     e.preventDefault()
                     // ref.current?.blur()
                 }}

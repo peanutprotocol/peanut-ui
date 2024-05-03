@@ -1,19 +1,23 @@
-import React, { createContext, useContext, useState } from 'react'
+'use client'
+import React, { createContext, useContext, useMemo, useState } from 'react'
 
 import * as consts from '@/constants'
 export const loadingStateContext = createContext({
-    loadingstate: '' as consts.LoadingStates,
+    loadingState: '' as consts.LoadingStates,
     setLoadingState: (state: consts.LoadingStates) => {},
+    isLoading: false as boolean,
 })
 
 export const LoadingStateContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [loadingstate, setLoadingState] = useState<consts.LoadingStates>('idle')
+    const [loadingState, setLoadingState] = useState<consts.LoadingStates>('idle')
+    const isLoading = useMemo(() => loadingState !== 'idle', [loadingState])
 
     return (
         <loadingStateContext.Provider
             value={{
-                loadingstate,
+                loadingState,
                 setLoadingState,
+                isLoading,
             }}
         >
             {children}

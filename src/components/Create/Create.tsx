@@ -1,12 +1,30 @@
 'use client'
 
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
+import Layout from '../Global/Layout'
 
 export const Create = ({ type }: { type: _consts.CreateType }) => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
     const [legacyStep, setLegacyStep] = useState<_consts.ICreateScreenStateLegacy>(_consts.INIT_VIEW_STATE_LEGACY)
+    const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
+
+    const [linkDetails, setLinkDetails] = useState<peanutInterfaces.IPeanutLinkDetails>()
+    const [password, setPassword] = useState<string>('')
+    const [transactionType, setTransactionType] = useState<'normal' | 'gasless'>('normal')
+
+    const [gaslessPayload, setGaslessPayload] = useState<peanutInterfaces.IGaslessDepositPayload | undefined>()
+    const [gaslessPayloadMessage, setGaslessPayloadMessage] = useState<
+        peanutInterfaces.IPreparedEIP712Message | undefined
+    >()
+    const [preparedDepositTxs, setPreparedDepositTxs] = useState<
+        peanutInterfaces.IPrepareDepositTxsResponse | undefined
+    >()
+
+    const [txHash, setTxHash] = useState<string>('')
+    const [link, setLink] = useState<string>('')
 
     const handleOnNext = (type: 'normal' | 'legacy') => {
         if (type === 'legacy') {
@@ -43,12 +61,31 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
             }))
         }
     }
+
     return (
         <div className="card">
             {type === 'normal' &&
                 createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                     onPrev: handleOnPrev,
                     onNext: handleOnNext,
+                    tokenValue: tokenValue,
+                    setTokenValue: setTokenValue,
+                    linkDetails: linkDetails,
+                    setLinkDetails: setLinkDetails,
+                    password: password,
+                    setPassword: setPassword,
+                    transactionType: transactionType,
+                    setTransactionType: setTransactionType,
+                    gaslessPayload: gaslessPayload,
+                    setGaslessPayload: setGaslessPayload,
+                    gaslessPayloadMessage: gaslessPayloadMessage,
+                    setGaslessPayloadMessage: setGaslessPayloadMessage,
+                    preparedDepositTxs: preparedDepositTxs,
+                    setPreparedDepositTxs: setPreparedDepositTxs,
+                    txHash: txHash,
+                    setTxHash: setTxHash,
+                    link: link,
+                    setLink: setLink,
                 } as _consts.ICreateScreenProps)}
             {type === 'batch' &&
                 createElement(_consts.BATCH_CREATE_SCREEN_MAP[legacyStep.screen].comp, {

@@ -1,4 +1,3 @@
-'use client'
 import '@/styles/globals.css'
 import { Roboto_Flex } from 'next/font/google'
 import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
@@ -15,11 +14,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body className={`${roboto.variable} font-sans`}>
-                <style jsx global>{`
-                    html {
-                        font-family: ${roboto.style.fontFamily};
-                    }
-                `}</style>
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="system"

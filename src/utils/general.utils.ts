@@ -1,4 +1,5 @@
 import * as interfaces from '@/interfaces'
+import * as consts from '@/constants'
 import peanut from '@squirrel-labs/peanut-sdk'
 
 export const shortenAddress = (address: string) => {
@@ -303,4 +304,10 @@ export const compareTokenAddresses = (address1: string, address2: string) => {
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
         address2 = '0x0000000000000000000000000000000000000000'
     return address1.toLowerCase() === address2.toLowerCase()
+}
+
+export const isNativeCurrency = (address: string) => {
+    if (consts.nativeCurrencyAddresses.includes(address.toLowerCase())) {
+        return true
+    } else return false
 }

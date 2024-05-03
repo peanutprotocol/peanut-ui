@@ -16,3 +16,7 @@ export type LoadingStates =
     | 'fetching address'
     | 'getting allowance'
     | 'getting deposit details'
+    | 'asserting values'
+    | 'generating details'
+
+// TODO: clean this

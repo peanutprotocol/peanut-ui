@@ -1,4 +1,5 @@
 import React from 'react'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as createLinkViews from './Link'
 import * as batchCreateLinkViews from './Batch'
@@ -36,6 +37,24 @@ export interface ICreateScreenProps {
     onPrev: (type: 'normal' | 'legacy') => void
     onNext: (type: 'normal' | 'legacy') => void
     onCustom: (screen: CreateScreens) => void
+    tokenValue: string | undefined
+    setTokenValue: (value: string | undefined) => void
+    linkDetails: peanutInterfaces.IPeanutLinkDetails
+    setLinkDetails: (value: peanutInterfaces.IPeanutLinkDetails) => void
+    password: string
+    setPassword: (value: string) => void
+    transactionType: 'normal' | 'gasless'
+    setTransactionType: (value: 'normal' | 'gasless') => void
+    gaslessPayload: peanutInterfaces.IGaslessDepositPayload | undefined
+    setGaslessPayload: (value: peanutInterfaces.IGaslessDepositPayload | undefined) => void
+    gaslessPayloadMessage: peanutInterfaces.IPreparedEIP712Message | undefined
+    setGaslessPayloadMessage: (value: peanutInterfaces.IPreparedEIP712Message | undefined) => void
+    preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse | undefined
+    setPreparedDepositTxs: (value: peanutInterfaces.IPrepareDepositTxsResponse | undefined) => void
+    txHash: string
+    setTxHash: (value: string) => void
+    link: string
+    setLink: (value: string) => void
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']

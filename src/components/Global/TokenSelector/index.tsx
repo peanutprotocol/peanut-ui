@@ -40,7 +40,7 @@ const TokenSelector = ({
     const { balances } = useBalance()
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID } = useContext(
         context.tokenSelectorContext
-    ) // TODO: change name tokenSelectorContext
+    )
 
     const _tokensToDisplay = useMemo(() => {
         let _tokens

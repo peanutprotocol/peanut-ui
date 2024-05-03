@@ -12,7 +12,7 @@ export const useClaimLink = () => {
     const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
-    const { loadingstate, setLoadingState } = useContext(context.loadingStateContext)
+    const { loadingState, setLoadingState } = useContext(context.loadingStateContext)
 
     const xchainFee = 0.02
     const normalFee = 0

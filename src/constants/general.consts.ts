@@ -162,3 +162,8 @@ export const supportedPeanutChains: interfaces.IPeanutChainDetails[] = Object.ke
 )
 
 export const peanutTokenDetails: interfaces.IPeanutTokenDetail[] = TOKEN_DETAILS
+
+export const nativeCurrencyAddresses: string[] = [
+    '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    '0x0000000000000000000000000000000000000000',
+]

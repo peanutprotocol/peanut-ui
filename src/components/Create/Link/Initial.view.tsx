@@ -1,8 +1,117 @@
+'use client'
+
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector'
-import * as _consts from '../Create.consts'
+import { useAccount } from 'wagmi'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useState, useEffect, useContext } from 'react'
+import { useCreateLink } from '../useCreateLink'
 
-export const CreateLinkInitialView = ({ onNext }: _consts.ICreateScreenProps) => {
+import * as _consts from '../Create.consts'
+import * as _utils from '../Create.utils'
+import * as context from '@/context'
+export const CreateLinkInitialView = ({
+    onNext,
+    tokenValue,
+    setTokenValue,
+    setLinkDetails,
+    setPassword,
+    setGaslessPayload,
+    setGaslessPayloadMessage,
+    setPreparedDepositTxs,
+    setTransactionType,
+}: _consts.ICreateScreenProps) => {
+    const [initiatedWalletConnection, setInitiatedWalletConnection] = useState(false)
+
+    const {
+        generateLinkDetails,
+        assertValues,
+        generatePassword,
+        makeGaslessDepositPayload,
+        prepareDepositTxs,
+        switchNetwork,
+    } = useCreateLink()
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
+        context.tokenSelectorContext
+    )
+    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+
+    const { isConnected } = useAccount()
+    const { open } = useWeb3Modal()
+
+    const handleConnectWallet = async () => {
+        open()
+        setInitiatedWalletConnection(true)
+    }
+
+    const handleOnNext = async () => {
+        try {
+            setLoadingState('loading')
+            let value: number = Number(tokenValue)
+            if (inputDenomination === 'USD' && tokenValue && selectedTokenPrice) {
+                value = _utils.convertUSDTokenValue({
+                    tokenPrice: selectedTokenPrice,
+                    tokenValue: Number(tokenValue),
+                })
+            }
+            setLoadingState('asserting values')
+            await assertValues({ tokenValue })
+            setLoadingState('generating details')
+            const linkDetails = generateLinkDetails({
+                tokenValue: tokenValue,
+            })
+            setLinkDetails(linkDetails)
+            const password = await generatePassword()
+            setPassword(password)
+
+            setLoadingState('preparing transaction')
+            if (
+                _utils.isGaslessDepositPossible({
+                    chainId: selectedChainID,
+                    tokenAddress: selectedTokenAddress,
+                })
+            ) {
+                console.log('gasless possible, creating gassles payload')
+                setTransactionType('gasless')
+
+                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+                    _linkDetails: linkDetails,
+                    _password: password,
+                })
+
+                if (
+                    !makeGaslessDepositResponse ||
+                    !makeGaslessDepositResponse.payload ||
+                    !makeGaslessDepositResponse.message
+                )
+                    return
+                setGaslessPayload(makeGaslessDepositResponse.payload)
+                setGaslessPayloadMessage(makeGaslessDepositResponse.message)
+            } else {
+                console.log('gasless not possible, creating normal payload')
+                const prepareDepositTxsResponse = await prepareDepositTxs({
+                    _linkDetails: linkDetails,
+                    _password: password,
+                })
+                setPreparedDepositTxs(prepareDepositTxsResponse)
+            }
+
+            await switchNetwork(selectedChainID)
+
+            onNext('normal')
+        } catch (error) {
+            console.log(error)
+        } finally {
+            setLoadingState('idle')
+        }
+    }
+
+    useEffect(() => {
+        if (initiatedWalletConnection && isConnected) {
+            handleOnNext()
+        }
+    }, [isConnected])
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
@@ -11,12 +120,19 @@ export const CreateLinkInitialView = ({ onNext }: _consts.ICreateScreenProps) =>
                 will be able to claim the funds in any token on any chain.
             </label>
             <div className="flex w-full flex-col items-center justify-center gap-3">
-                <TokenAmountInput className="w-full" />
+                <TokenAmountInput className="w-full" tokenValue={tokenValue} setTokenValue={setTokenValue} />
                 <TokenSelector classNameButton="w-full" />
             </div>
 
-            <button className="btn-purple btn-xl " onClick={() => onNext('normal')}>
-                Connect Wallet
+            <button
+                className="btn-purple btn-xl "
+                onClick={() => {
+                    if (!isConnected) handleConnectWallet()
+                    else handleOnNext()
+                }}
+                disabled={isLoading}
+            >
+                {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
             </button>
         </div>
     )

@@ -166,7 +166,6 @@ const Header = ({}: HeaderProps) => {
                                 <button className="btn-purple btn-large">Dashboard</button>
                             </Link>
                             <button
-                                id="connectButton"
                                 className="btn-purple btn-large"
                                 onClick={() => {
                                     web3modalOpen()
@@ -221,7 +220,6 @@ const Header = ({}: HeaderProps) => {
                             </Disclosure.Button>
                             <Disclosure.Button
                                 key="connect"
-                                as="a"
                                 onClick={() => {
                                     web3modalOpen()
                                 }}

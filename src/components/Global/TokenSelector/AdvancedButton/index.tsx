@@ -30,9 +30,6 @@ export const AdvancedTokenSelectorButton = ({
     isStatic = false,
     type = 'send',
 }: IAdvancedTokenSelectorButtonProps) => {
-    console.log(tokenLogoUri)
-    console.log(chainIconUri)
-
     return (
         <div
             className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
@@ -47,7 +44,7 @@ export const AdvancedTokenSelectorButton = ({
                         {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
                         {tokenSymbol}
                     </div>
-                    {type === 'send' && tokenBalance && (
+                    {type === 'send' && (
                         <p className="text-xs text-gray-1">Balance: {utils.formatTokenAmount(tokenBalance ?? 0, 4)}</p>
                     )}
                     {tokenAmount && tokenPrice && (
