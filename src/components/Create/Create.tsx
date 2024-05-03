@@ -5,6 +5,8 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
 import Layout from '../Global/Layout'
+import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
+import { useAccount } from 'wagmi'
 
 export const Create = ({ type }: { type: _consts.CreateType }) => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -25,6 +27,10 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
 
     const [txHash, setTxHash] = useState<string>('')
     const [link, setLink] = useState<string>('')
+
+    const { setAccount } = useWeb3InboxAccount()
+    const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
+    const { address } = useAccount({})
 
     const handleOnNext = (type: 'normal' | 'legacy') => {
         if (type === 'legacy') {
@@ -61,6 +67,18 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
             }))
         }
     }
+
+    useEffect(() => {
+        if (!Boolean(address)) return
+        if (w3iClientIsLoading) return
+        setAccount(`eip155:1:${address}`)
+    }, [address, w3iClientIsLoading])
+
+    useEffect(() => {
+        if (!address && w3iClient) {
+            setAccount('')
+        }
+    }, [address, w3iClient])
 
     return (
         <div className="card">

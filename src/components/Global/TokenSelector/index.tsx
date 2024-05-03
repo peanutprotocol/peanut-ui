@@ -176,7 +176,7 @@ export const simpleTokenDisplay = (tokens: interfaces.IToken[], setToken: (symbo
         <div className="flex flex-wrap gap-4">
             {tokens.slice(0, 6).map((token) => (
                 <div
-                    key={token.address}
+                    key={token.address + Math.random()}
                     className="flex w-max cursor-pointer flex-row items-center justify-center gap-1 border border-n-1 px-2 py-1 hover:bg-n-1/10 dark:border-white"
                     onClick={() => setToken(token.address)}
                 >
@@ -202,7 +202,7 @@ export const tokenDisplay = (
         >
             {tokens.map((token) => (
                 <li
-                    key={token.address}
+                    key={token.address + Math.random()}
                     className="flex items-center justify-between gap-x-6 px-4 py-2 hover:bg-n-1/10"
                     onClick={() => {
                         setToken(token.address)

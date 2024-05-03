@@ -119,6 +119,7 @@ const chainItem = ({ chain, setChain }: { chain: Chain; setChain: () => void }) 
             as={'button'}
             onClick={setChain}
             className=" flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
+            key={chain.name}
         >
             <img src={chain.icon.url} alt={chain.name} className="h-6 w-6" />
             <div className="text-h8">{chain.name}</div>

@@ -43,7 +43,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountI
                     className={`h-12 w-[4ch] bg-transparent text-h1 outline-none transition-colors placeholder:text-h1 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white  dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                     type="number"
                     placeholder={'0.00'}
-                    value={tokenValue}
+                    value={tokenValue ?? ''}
                     onChange={(e) => onChange(e.target.value)}
                     ref={inputRef}
                     inputMode="decimal"
