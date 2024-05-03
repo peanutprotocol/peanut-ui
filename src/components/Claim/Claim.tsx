@@ -19,6 +19,8 @@ export const Claim = ({}) => {
     const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
     const [tokenPrice, setTokenPrice] = useState<number>(0)
 
+    const [transactionHash, setTransactionHash] = useState<string>()
+
     const { selectedChainID, setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
     const handleOnNext = () => {
@@ -126,6 +128,8 @@ export const Claim = ({}) => {
                     setRecipientAddress,
                     tokenPrice,
                     setTokenPrice,
+                    transactionHash,
+                    setTransactionHash,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
             {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}

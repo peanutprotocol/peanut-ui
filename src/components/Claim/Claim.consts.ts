@@ -36,6 +36,8 @@ export interface IClaimScreenProps {
     setRecipientAddress: (address: string) => void
     tokenPrice: number
     setTokenPrice: (price: number) => void
+    transactionHash: string
+    setTransactionHash: (hash: string) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND'

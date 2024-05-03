@@ -16,24 +16,27 @@ export const ConfirmClaimLinkView = ({
     recipientAddress,
     tokenPrice,
     type,
+    setTransactionHash,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
     const { claimLink } = useClaimLink()
 
     const handleOnClaim = async () => {
         let _recipientAddress: string = ''
+        console.log(type)
         if (type === 'address') {
             _recipientAddress = recipientAddress ?? ''
         } else if (type === 'wallet') {
             _recipientAddress = address ?? ''
         }
 
-        const claimTx = await claimLink({
+        const claimTxHash = await claimLink({
             address: _recipientAddress,
             link: claimLinkData.link,
         })
 
-        if (claimTx) {
+        if (claimTxHash) {
+            setTransactionHash(claimTxHash)
             onCustom('SUCCESS')
         } else {
             console.log('Error claiming link')

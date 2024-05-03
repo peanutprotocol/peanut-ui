@@ -14,6 +14,7 @@ export const InitialClaimLinkView = ({
     setRecipientAddress,
     recipientAddress,
     tokenPrice,
+    setClaimType,
 }: _consts.IClaimScreenProps) => {
     const [initiatedWalletConnection, setInitiatedWalletConnection] = useState(false)
 
@@ -26,6 +27,7 @@ export const InitialClaimLinkView = ({
             setInitiatedWalletConnection(true)
         } else {
             setRecipientAddress('')
+            setClaimType('wallet')
             onNext()
         }
     }
@@ -33,6 +35,8 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (initiatedWalletConnection && isConnected) {
             setRecipientAddress('')
+            setClaimType('wallet')
+
             onNext()
         }
     }, [isConnected])
@@ -60,6 +64,7 @@ export const InitialClaimLinkView = ({
                     value={recipientAddress ?? ''}
                     onSubmit={(address: string) => {
                         setRecipientAddress(address)
+                        setClaimType('address')
                         console.log(address)
                         onNext()
                     }}

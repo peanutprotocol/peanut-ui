@@ -1,11 +1,20 @@
 import Icon from '@/components/Global/Icon'
 import * as _consts from '../Claim.consts'
 import * as utils from '@/utils'
+import * as consts from '@/constants'
+import * as context from '@/context'
 import useClaimLink from '../useClaimLink'
+import { useContext, useMemo } from 'react'
+import Link from 'next/link'
 
-export const SuccessClaimLinkView = ({ onNext }: _consts.IClaimScreenProps) => {
-    const { transactionHash } = useClaimLink()
+export const SuccessClaimLinkView = ({ onNext, transactionHash }: _consts.IClaimScreenProps) => {
+    const { selectedChainID } = useContext(context.tokenSelectorContext)
 
+    const explorerUrlWithTx = useMemo(
+        () =>
+            `${consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.explorers[0].url}/tx/${transactionHash}`,
+        [transactionHash, selectedChainID]
+    )
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
@@ -14,9 +23,9 @@ export const SuccessClaimLinkView = ({ onNext }: _consts.IClaimScreenProps) => {
                 <label className="text-h8 font-normal">Transaction details</label>
                 <div className="flex w-full flex-row items-center justify-start gap-1">
                     <label className="text-h9">Transaction hash:</label>
-                    <label className="cursor-pointer text-h9 font-normal underline">
+                    <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
                         {utils.shortenAddressLong(transactionHash ?? '')}
-                    </label>
+                    </Link>
                 </div>
             </div>
             <label className="text-h9 font-normal">

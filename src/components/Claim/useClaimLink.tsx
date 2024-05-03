@@ -8,7 +8,6 @@ import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 export const useClaimLink = () => {
-    const [transactionHash, setTransactionHash] = useState<string>()
     const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 
@@ -20,6 +19,8 @@ export const useClaimLink = () => {
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('executing transaction')
         try {
+            console.log('Claiming link:', link)
+            console.log('Recipient address:', address)
             const claimTx = await claimLinkGasless({
                 link,
                 recipientAddress: address,
@@ -27,7 +28,6 @@ export const useClaimLink = () => {
                 APIKey: 'doesnt-matter',
             })
 
-            setTransactionHash(claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? '')
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {
             console.log('Error claiming link:', error)
@@ -62,7 +62,6 @@ export const useClaimLink = () => {
                 APIKey: 'doesnt-matter',
             })
 
-            setTransactionHash(claimTx.txHash)
             return claimTx.txHash
         } catch (error) {
             console.log('Error claiming link:', error)
@@ -96,7 +95,6 @@ export const useClaimLink = () => {
     const sendNotification = async () => {}
 
     return {
-        transactionHash,
         xchainFee,
         normalFee,
         claimLink,
