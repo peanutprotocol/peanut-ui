@@ -50,6 +50,11 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountI
                     step="any"
                     min="0"
                     autoComplete="off"
+                    onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault()
+                        }
+                    }}
                 />
             </div>
             <div className="flex w-full flex-row items-center justify-center gap-1">

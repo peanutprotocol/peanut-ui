@@ -10,6 +10,7 @@ import { useCreateLink } from '../useCreateLink'
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
 import * as context from '@/context'
+import Loading from '@/components/Global/Loading'
 export const CreateLinkInitialView = ({
     onNext,
     tokenValue,
@@ -30,6 +31,7 @@ export const CreateLinkInitialView = ({
         makeGaslessDepositPayload,
         prepareDepositTxs,
         switchNetwork,
+        estimateGasFee,
     } = useCreateLink()
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
@@ -47,18 +49,25 @@ export const CreateLinkInitialView = ({
     const handleOnNext = async () => {
         try {
             setLoadingState('loading')
-            let value: number = Number(tokenValue)
+
+            // await estimateGasFee(selectedChainID)
+
+            // return
+
+            let value: string = tokenValue ?? ''
             if (inputDenomination === 'USD' && tokenValue && selectedTokenPrice) {
-                value = _utils.convertUSDTokenValue({
-                    tokenPrice: selectedTokenPrice,
-                    tokenValue: Number(tokenValue),
-                })
+                value = _utils
+                    .convertUSDTokenValue({
+                        tokenPrice: selectedTokenPrice,
+                        tokenValue: Number(tokenValue),
+                    })
+                    .toString()
             }
             setLoadingState('asserting values')
-            await assertValues({ tokenValue })
+            await assertValues({ tokenValue: value })
             setLoadingState('generating details')
             const linkDetails = generateLinkDetails({
-                tokenValue: tokenValue,
+                tokenValue: value,
             })
             setLinkDetails(linkDetails)
             const password = await generatePassword()
@@ -132,7 +141,15 @@ export const CreateLinkInitialView = ({
                 }}
                 disabled={isLoading}
             >
-                {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
+                {!isConnected ? (
+                    'Connect Wallet'
+                ) : isLoading ? (
+                    <div className="flex w-full flex-row items-center justify-center gap-2">
+                        <Loading /> {loadingState}
+                    </div>
+                ) : (
+                    'Confirm'
+                )}
             </button>
         </div>
     )

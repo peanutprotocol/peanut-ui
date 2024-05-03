@@ -46,11 +46,14 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
             >
                 Share link
             </div>
-            <Link className="self-start text-h8 font-bold text-gray-1 underline" href={`${explorerUrlWithTx}`}>
+            <Link
+                className="cursor-pointer self-start text-h8 font-bold text-gray-1 underline"
+                href={`${explorerUrlWithTx}`}
+            >
                 Transaction hash
             </Link>
 
-            <div className="absolute bottom-0 -mb-0.5 flex h-20 w-[27rem] w-full    flex-row items-center justify-between border border-black border-n-1 bg-purple-3  px-4.5 dark:text-black">
+            <div className="absolute bottom-0 -mb-0.5 flex h-20 w-[27rem] w-full flex-row items-center justify-between border border-black border-n-1 bg-purple-3  px-4.5 dark:text-black">
                 <div className="cursor-pointer border border-n-1 p-0 px-1">
                     <Icon name="email" className="-mt-0.5" />
                 </div>

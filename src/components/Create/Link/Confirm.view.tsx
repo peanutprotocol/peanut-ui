@@ -9,6 +9,7 @@ import * as _utils from '../Create.utils'
 import Icon from '@/components/Global/Icon'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import { useCreateLink } from '../useCreateLink'
+import Loading from '@/components/Global/Loading'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -98,7 +99,13 @@ export const CreateLinkConfirmView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <button className="btn-purple btn-xl" onClick={handleConfirm} disabled={isLoading}>
-                    {isLoading ? loadingState : 'Confirm'}
+                    {isLoading ? (
+                        <div className="flex w-full flex-row items-center justify-center gap-2">
+                            <Loading /> {loadingState}
+                        </div>
+                    ) : (
+                        'Confirm'
+                    )}
                 </button>
                 <button className="btn btn-xl" onClick={() => onPrev('normal')} disabled={isLoading}>
                     Return

@@ -9,6 +9,7 @@ import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as _utils from './Create.utils'
+import { ethers } from 'ethers'
 
 interface IAssertValuesProps {
     tokenValue: string | undefined
@@ -161,6 +162,17 @@ export const useCreateLink = () => {
             }
         }
     }
+    const estimateGasFee = async (chainId: string) => {
+        const feeOptions = await peanut.setFeeOptions({
+            chainId: chainId,
+        })
+
+        let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+        let transactionCostEth = ethers.utils.formatEther(transactionCostWei)
+        console.log(`Estimated transaction cost: ${transactionCostEth} ETH`)
+
+        console.log(feeOptions)
+    }
 
     // step 2
     const signTypedData = async ({ gaslessMessage }: { gaslessMessage: peanutInterfaces.IPreparedEIP712Message }) => {
@@ -311,5 +323,6 @@ export const useCreateLink = () => {
         sendTransactions,
         getLinkFromHash,
         switchNetwork,
+        estimateGasFee,
     }
 }
