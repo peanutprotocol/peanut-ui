@@ -394,7 +394,7 @@ export function RaffleInitialView({
                 // TODO: remove this once blockscout has made the url params
                 let baseUrl = ''
                 if (typeof window !== 'undefined') {
-                    baseUrl = `${window.location.origin}/claim`
+                    baseUrl = `${window.location.origin}/raffle/claim`
                 }
 
                 const linkDetails = {
