@@ -394,7 +394,7 @@ export function RaffleInitialView({
                 // TODO: remove this once blockscout has made the url params
                 let baseUrl = ''
                 if (typeof window !== 'undefined') {
-                    baseUrl = `${window.location.origin}/claim`
+                    baseUrl = `${window.location.origin}/raffle/claim`
                 }
 
                 const linkDetails = {
@@ -905,7 +905,7 @@ export function RaffleInitialView({
                     >
                         <button
                             type={isConnected ? 'submit' : 'button'}
-                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black sm:w-2/5 lg:w-1/2"
+                            className="mt-2 block w-[90%] cursor-pointer bg-white p-5 px-2  text-2xl font-black lg:w-1/2 sm:w-2/5"
                             id="cta-btn"
                             onClick={() => {
                                 if (!isConnected) {
@@ -1092,7 +1092,7 @@ export function RaffleInitialView({
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">
                                         <input
                                             placeholder="Search"
-                                            className="brutalborder w-full rounded-none px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal"
+                                            className="brutalborder focus:ring-teal w-full rounded-none px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2"
                                             onKeyUp={(e) => {
                                                 //@ts-ignore
                                                 const searchValue = e.target.value
@@ -1252,7 +1252,7 @@ export function RaffleInitialView({
                                         />
 
                                         <button
-                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black sm:w-2/5 lg:w-1/2"
+                                            className="mt-2 block w-[90%] cursor-pointer bg-white p-2 px-2 text-2xl font-black lg:w-1/2 sm:w-2/5"
                                             id="cta-btn-2"
                                             onClick={() => {
                                                 if (enteredEmail === '') {
