@@ -73,33 +73,43 @@ export const useCreateLink = () => {
         }
     }
     const generateLinkDetails = ({ tokenValue }: { tokenValue: string | undefined }) => {
-        // get tokenDetails (type and decimals)
-        const tokenDetails = _utils.getTokenDetails(selectedTokenAddress, selectedChainID, balances)
+        try {
+            // get tokenDetails (type and decimals)
+            const tokenDetails = _utils.getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
-        // baseUrl
-        let baseUrl = ''
-        if (typeof window !== 'undefined') {
-            baseUrl = `${window.location.origin}/claim`
+            // baseUrl
+            let baseUrl = ''
+            if (typeof window !== 'undefined') {
+                baseUrl = `${window.location.origin}/claim`
+            }
+
+            // create linkDetails and save to state
+            const linkDetails = {
+                chainId: selectedChainID,
+                tokenAmount: parseFloat(Number(tokenValue).toFixed(6)),
+                tokenType: tokenDetails.tokenType,
+                tokenAddress: selectedTokenAddress,
+                tokenDecimals: tokenDetails.tokenDecimals,
+                baseUrl: baseUrl,
+                trackId: 'ui',
+            }
+
+            return linkDetails
+        } catch (error) {
+            console.log(error)
+            throw new Error('Error getting the linkDetails.')
         }
-
-        // create linkDetails and save to state
-        const linkDetails = {
-            chainId: selectedChainID,
-            tokenAmount: parseFloat(Number(tokenValue).toFixed(6)),
-            tokenType: tokenDetails.tokenType,
-            tokenAddress: selectedTokenAddress,
-            tokenDecimals: tokenDetails.tokenDecimals,
-            baseUrl: baseUrl,
-            trackId: 'ui',
-        }
-
-        return linkDetails
     }
     const generatePassword = async () => {
-        //generate password and save to state
-        const password = await getRandomString(16)
+        try {
+            //generate password and save to state
+            const password = await getRandomString(16)
 
-        return password
+            return password
+        } catch (error) {
+            console.log(error)
+            throw new Error('Error generating the password.')
+        }
     }
     const makeGaslessDepositPayload = useCallback(
         async ({
@@ -109,21 +119,25 @@ export const useCreateLink = () => {
             _linkDetails: peanutInterfaces.IPeanutLinkDetails | undefined
             _password: string | undefined
         }) => {
-            if (!_linkDetails || !_password) return
+            try {
+                if (!_linkDetails || !_password) return
 
-            const latestContractVersion = peanut.getLatestContractVersion({
-                chainId: selectedChainID,
-                type: 'normal',
-            })
+                const latestContractVersion = peanut.getLatestContractVersion({
+                    chainId: selectedChainID,
+                    type: 'normal',
+                })
 
-            const { payload, message } = await peanut.makeGaslessDepositPayload({
-                linkDetails: _linkDetails,
-                password: _password,
-                address: address ?? '',
-                contractVersion: latestContractVersion,
-            })
+                const { payload, message } = await peanut.makeGaslessDepositPayload({
+                    linkDetails: _linkDetails,
+                    password: _password,
+                    address: address ?? '',
+                    contractVersion: latestContractVersion,
+                })
 
-            return { payload, message }
+                return { payload, message }
+            } catch (error) {
+                throw error
+            }
         },
         [address, selectedChainID, selectedTokenAddress, balances]
     )
@@ -135,15 +149,19 @@ export const useCreateLink = () => {
             _linkDetails: peanutInterfaces.IPeanutLinkDetails | undefined
             _password: string | undefined
         }) => {
-            if (!_linkDetails || !_password) return
+            try {
+                if (!_linkDetails || !_password) return
 
-            const prepareTxsResponse = await peanut.prepareTxs({
-                address: address ?? '',
-                linkDetails: _linkDetails,
-                passwords: [_password],
-            })
+                const prepareTxsResponse = await peanut.prepareTxs({
+                    address: address ?? '',
+                    linkDetails: _linkDetails,
+                    passwords: [_password],
+                })
 
-            return prepareTxsResponse
+                return prepareTxsResponse
+            } catch (error) {
+                throw error
+            }
         },
         [address, selectedChainID, selectedTokenAddress, balances]
     )
@@ -156,9 +174,7 @@ export const useCreateLink = () => {
                 await new Promise((resolve) => setTimeout(resolve, 2000))
                 setLoadingState('loading')
             } catch (error) {
-                setLoadingState('idle')
-                console.error('Error switching network:', error)
-                // TODO: handle error, either throw or return error
+                throw new Error('Error switching network.')
             }
         }
     }
@@ -176,22 +192,26 @@ export const useCreateLink = () => {
 
     // step 2
     const signTypedData = async ({ gaslessMessage }: { gaslessMessage: peanutInterfaces.IPreparedEIP712Message }) => {
-        const signature = await signTypedDataAsync({
-            domain: {
-                ...gaslessMessage.domain,
-                chainId: Number(gaslessMessage.domain.chainId), //TODO: non-evm chains wont work
-                verifyingContract: gaslessMessage.domain.verifyingContract as `0x${string}`,
-            },
-            types: gaslessMessage.types,
-            primaryType: gaslessMessage.primaryType,
-            message: {
-                ...gaslessMessage.values,
-                value: BigInt(gaslessMessage.values.value),
-                validAfter: BigInt(gaslessMessage.values.validAfter),
-                validBefore: BigInt(gaslessMessage.values.validBefore),
-            },
-        })
-        return signature
+        try {
+            const signature = await signTypedDataAsync({
+                domain: {
+                    ...gaslessMessage.domain,
+                    chainId: Number(gaslessMessage.domain.chainId), //TODO: non-evm chains wont work
+                    verifyingContract: gaslessMessage.domain.verifyingContract as `0x${string}`,
+                },
+                types: gaslessMessage.types,
+                primaryType: gaslessMessage.primaryType,
+                message: {
+                    ...gaslessMessage.values,
+                    value: BigInt(gaslessMessage.values.value),
+                    validAfter: BigInt(gaslessMessage.values.validAfter),
+                    validBefore: BigInt(gaslessMessage.values.validBefore),
+                },
+            })
+            return signature
+        } catch (error) {
+            throw error
+        }
     }
     const makeDepositGasless = async ({
         signature,
@@ -200,97 +220,105 @@ export const useCreateLink = () => {
         signature: string
         payload: peanutInterfaces.IGaslessDepositPayload
     }) => {
-        const response = await peanut.makeDepositGasless({
-            payload: payload,
-            signature: signature,
-            baseUrl: `${consts.next_proxy_url}/deposit-3009`,
-            APIKey: 'doesnt-matter',
-        }) //TODO: for safe app, check if this tx hash is correct
-        return response.txHash
+        try {
+            const response = await peanut.makeDepositGasless({
+                payload: payload,
+                signature: signature,
+                baseUrl: `${consts.next_proxy_url}/deposit-3009`,
+                APIKey: 'doesnt-matter',
+            }) //TODO: for safe app, check if this tx hash is correct
+            return response.txHash
+        } catch (error) {
+            throw error
+        }
     }
     const sendTransactions = useCallback(
         async ({ preparedDepositTxs }: { preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse }) => {
-            if (!preparedDepositTxs) return
+            try {
+                if (!preparedDepositTxs) return
 
-            let idx = 0
-            const signedTxsResponse: string[] = []
-            for (const tx of preparedDepositTxs.unsignedTxs) {
-                setLoadingState('sign in wallet')
+                let idx = 0
+                const signedTxsResponse: string[] = []
+                for (const tx of preparedDepositTxs.unsignedTxs) {
+                    setLoadingState('sign in wallet')
 
-                // Set fee options using our SDK
-                let txOptions
-                try {
-                    txOptions = await peanut.setFeeOptions({
-                        chainId: selectedChainID,
+                    // Set fee options using our SDK
+                    let txOptions
+                    try {
+                        txOptions = await peanut.setFeeOptions({
+                            chainId: selectedChainID,
+                        })
+                    } catch (error: any) {
+                        console.log('error setting fee options, fallback to default')
+                    }
+                    // Send the transaction using wagmi
+                    let hash = await sendTransactionAsync({
+                        to: (tx.to ? tx.to : '') as `0x${string}`,
+                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
+                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
+                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
+                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                            : undefined,
+                        chainId: Number(selectedChainID), //TODO: chainId as number here
                     })
-                } catch (error: any) {
-                    console.log('error setting fee options, fallback to default')
-                }
-                // Send the transaction using wagmi
-                let hash = await sendTransactionAsync({
-                    to: (tx.to ? tx.to : '') as `0x${string}`,
-                    value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                    data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                    gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
-                    gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
-                    maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
-                    maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
-                        ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
-                        : undefined,
-                    chainId: Number(selectedChainID), //TODO: chainId as number here
-                })
 
-                setLoadingState('executing transaction')
+                    setLoadingState('executing transaction')
 
-                // if (walletType === 'safe') {
-                //     const sdk = new SafeAppsSDK({
-                //         allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
-                //         debug: true,
-                //     })
-                //     while (true) {
-                //         const queued = await sdk.txs.getBySafeTxHash(hash)
+                    // if (walletType === 'safe') {
+                    //     const sdk = new SafeAppsSDK({
+                    //         allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
+                    //         debug: true,
+                    //     })
+                    //     while (true) {
+                    //         const queued = await sdk.txs.getBySafeTxHash(hash)
 
-                //         if (
-                //             queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
-                //             queued.txStatus === TransactionStatus.AWAITING_EXECUTION
-                //         ) {
-                //             console.log('waiting for safe tx')
+                    //         if (
+                    //             queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
+                    //             queued.txStatus === TransactionStatus.AWAITING_EXECUTION
+                    //         ) {
+                    //             console.log('waiting for safe tx')
 
-                //             await new Promise((resolve) => setTimeout(resolve, 1000))
-                //         } else if (queued.txHash) {
-                //             hash = queued.txHash as `0x${string}`
-                //             break
-                //         }
-                //     }
-                // } // TODO: fix this
+                    //             await new Promise((resolve) => setTimeout(resolve, 1000))
+                    //         } else if (queued.txHash) {
+                    //             hash = queued.txHash as `0x${string}`
+                    //             break
+                    //         }
+                    //     }
+                    // } // TODO: fix this when we decide to continue work on the safe app. Also do this within the gaslessDeposit stuff
 
-                // Wait for the transaction to be mined using wagmi/actions
-                // Only doing this for the approval transaction (the first tx)
-                // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
-                if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
-                    for (let attempt = 0; attempt < 3; attempt++) {
-                        try {
-                            await waitForTransactionReceipt(config, {
-                                confirmations: 4,
-                                hash: hash,
-                                chainId: Number(selectedChainID),
-                            })
-                            break
-                        } catch (error) {
-                            if (attempt < 2) {
-                                await new Promise((resolve) => setTimeout(resolve, 500))
-                            } else {
-                                console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                    // Wait for the transaction to be mined using wagmi/actions
+                    // Only doing this for the approval transaction (the first tx)
+                    // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
+                    if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
+                        for (let attempt = 0; attempt < 3; attempt++) {
+                            try {
+                                await waitForTransactionReceipt(config, {
+                                    confirmations: 4,
+                                    hash: hash,
+                                    chainId: Number(selectedChainID),
+                                })
+                                break
+                            } catch (error) {
+                                if (attempt < 2) {
+                                    await new Promise((resolve) => setTimeout(resolve, 500))
+                                } else {
+                                    console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                                }
                             }
                         }
                     }
+
+                    signedTxsResponse.push(hash.toString())
+                    idx++
                 }
 
-                signedTxsResponse.push(hash.toString())
-                idx++
+                return signedTxsResponse[signedTxsResponse.length - 1]
+            } catch (error) {
+                throw error
             }
-
-            return signedTxsResponse[signedTxsResponse.length - 1]
         },
         [selectedChainID, sendTransactionAsync, config]
     )
@@ -303,13 +331,17 @@ export const useCreateLink = () => {
         linkDetails: peanutInterfaces.IPeanutLinkDetails
         password: string
     }) => {
-        const getLinksFromTxResponse = await peanut.getLinksFromTx({
-            linkDetails,
-            txHash: hash,
-            passwords: [password],
-        })
+        try {
+            const getLinksFromTxResponse = await peanut.getLinksFromTx({
+                linkDetails,
+                txHash: hash,
+                passwords: [password],
+            })
 
-        return getLinksFromTxResponse.links
+            return getLinksFromTxResponse.links
+        } catch (error) {
+            throw error
+        }
     }
 
     return {

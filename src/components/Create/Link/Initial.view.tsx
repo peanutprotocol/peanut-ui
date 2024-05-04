@@ -10,6 +10,7 @@ import { useCreateLink } from '../useCreateLink'
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
 import * as context from '@/context'
+import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 export const CreateLinkInitialView = ({
     onNext,
@@ -37,6 +38,10 @@ export const CreateLinkInitialView = ({
         context.tokenSelectorContext
     )
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
 
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
@@ -49,6 +54,11 @@ export const CreateLinkInitialView = ({
     const handleOnNext = async () => {
         try {
             setLoadingState('loading')
+
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
 
             // await estimateGasFee(selectedChainID)
 
@@ -109,7 +119,11 @@ export const CreateLinkInitialView = ({
 
             onNext('normal')
         } catch (error) {
-            console.log(error)
+            const errorString = utils.ErrorHandler(error)
+            setErrorState({
+                showError: true,
+                errorMessage: errorString,
+            })
         } finally {
             setLoadingState('idle')
         }
@@ -133,24 +147,31 @@ export const CreateLinkInitialView = ({
                 <TokenSelector classNameButton="w-full" />
             </div>
 
-            <button
-                className="btn-purple btn-xl "
-                onClick={() => {
-                    if (!isConnected) handleConnectWallet()
-                    else handleOnNext()
-                }}
-                disabled={isLoading}
-            >
-                {!isConnected ? (
-                    'Connect Wallet'
-                ) : isLoading ? (
-                    <div className="flex w-full flex-row items-center justify-center gap-2">
-                        <Loading /> {loadingState}
+            <div className="flex w-full flex-col items-center justify-center gap-3">
+                <button
+                    className="btn-purple btn-xl "
+                    onClick={() => {
+                        if (!isConnected) handleConnectWallet()
+                        else handleOnNext()
+                    }}
+                    disabled={isLoading || !tokenValue}
+                >
+                    {!isConnected ? (
+                        'Connect Wallet'
+                    ) : isLoading ? (
+                        <div className="flex w-full flex-row items-center justify-center gap-2">
+                            <Loading /> {loadingState}
+                        </div>
+                    ) : (
+                        'Confirm'
+                    )}
+                </button>
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
                     </div>
-                ) : (
-                    'Confirm'
                 )}
-            </button>
+            </div>
         </div>
     )
 }

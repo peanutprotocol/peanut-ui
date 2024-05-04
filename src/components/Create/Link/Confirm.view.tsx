@@ -1,11 +1,12 @@
 'use client'
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
 
 import * as assets from '@/assets'
 import * as context from '@/context'
 import * as consts from '@/constants'
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
+import * as utils from '@/utils'
 import Icon from '@/components/Global/Icon'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import { useCreateLink } from '../useCreateLink'
@@ -27,12 +28,20 @@ export const CreateLinkConfirmView = ({
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
         context.tokenSelectorContext
     )
-
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
     const { sendTransactions, signTypedData, makeDepositGasless, getLinkFromHash } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const handleConfirm = async () => {
         setLoadingState('loading')
+
+        setErrorState({
+            showError: false,
+            errorMessage: '',
+        })
 
         try {
             let hash: string = ''
@@ -60,7 +69,11 @@ export const CreateLinkConfirmView = ({
 
             onNext('normal')
         } catch (error) {
-            console.log(error)
+            const errorString = utils.ErrorHandler(error)
+            setErrorState({
+                showError: true,
+                errorMessage: errorString,
+            })
         } finally {
             setLoadingState('idle')
         }
@@ -110,6 +123,11 @@ export const CreateLinkConfirmView = ({
                 <button className="btn btn-xl" onClick={() => onPrev('normal')} disabled={isLoading}>
                     Return
                 </button>
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )}
             </div>
         </div>
     )

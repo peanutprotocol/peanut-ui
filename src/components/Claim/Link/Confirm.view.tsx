@@ -7,6 +7,9 @@ import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import * as _consts from '../Claim.consts'
 import * as utils from '@/utils'
 import useClaimLink from '../useClaimLink'
+import * as context from '@/context'
+import { useContext, useState } from 'react'
+import Loading from '@/components/Global/Loading'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -21,25 +24,49 @@ export const ConfirmClaimLinkView = ({
     const { isConnected, address } = useAccount()
     const { claimLink } = useClaimLink()
 
-    const handleOnClaim = async () => {
-        let _recipientAddress: string = ''
-        console.log(type)
-        if (type === 'address') {
-            _recipientAddress = recipientAddress ?? ''
-        } else if (type === 'wallet') {
-            _recipientAddress = address ?? ''
-        }
+    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
 
-        const claimTxHash = await claimLink({
-            address: _recipientAddress,
-            link: claimLinkData.link,
+    const handleOnClaim = async () => {
+        setLoadingState('loading')
+
+        setErrorState({
+            showError: false,
+            errorMessage: '',
         })
 
-        if (claimTxHash) {
-            setTransactionHash(claimTxHash)
-            onCustom('SUCCESS')
-        } else {
-            console.log('Error claiming link')
+        try {
+            let _recipientAddress: string = ''
+            console.log(type)
+            if (type === 'address') {
+                _recipientAddress = recipientAddress ?? ''
+            } else if (type === 'wallet') {
+                _recipientAddress = address ?? ''
+            }
+
+            setLoadingState('executing transaction')
+            const claimTxHash = await claimLink({
+                address: _recipientAddress,
+                link: claimLinkData.link,
+            })
+
+            if (claimTxHash) {
+                setTransactionHash(claimTxHash)
+                onCustom('SUCCESS')
+            } else {
+                console.log('Error claiming link')
+            }
+        } catch (error) {
+            const errorString = utils.ErrorHandler(error)
+            setErrorState({
+                showError: true,
+                errorMessage: errorString,
+            })
+        } finally {
+            setLoadingState('idle')
         }
     }
     return (
@@ -90,22 +117,46 @@ export const ConfirmClaimLinkView = ({
 
             {isConnected && !recipientAddress && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <button className="btn-purple btn-xl" onClick={handleOnClaim}>
-                        Claim
+                    <button className="btn-purple btn-xl" onClick={handleOnClaim} disabled={isLoading}>
+                        {isLoading ? (
+                            <div className="flex w-full flex-row items-center justify-center gap-2">
+                                <Loading /> {loadingState}
+                            </div>
+                        ) : (
+                            'Claim'
+                        )}
                     </button>
-                    <button className="btn btn-xl dark:border-white dark:text-white" onClick={onNext}>
+                    <button className="btn btn-xl dark:border-white dark:text-white" disabled={true} onClick={onNext}>
                         Swap
                     </button>
                     <label className="cursor-pointer text-h8 font-normal text-purple-1" onClick={onPrev}>
                         Or paste your wallet or ENS address to claim.
                     </label>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
                 </div>
             )}
 
             {recipientAddress && (
-                <button className="btn-purple btn-xl" onClick={handleOnClaim}>
-                    Claim
-                </button>
+                <div className="flex w-full flex-col items-center justify-center gap-3">
+                    <button className="btn-purple btn-xl" onClick={handleOnClaim} disabled={isLoading}>
+                        {isLoading ? (
+                            <div className="flex w-full flex-row items-center justify-center gap-2">
+                                <Loading /> {loadingState}
+                            </div>
+                        ) : (
+                            'Claim'
+                        )}
+                    </button>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                </div>
             )}
         </div>
     )

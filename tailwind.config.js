@@ -198,7 +198,7 @@ module.exports = {
             })
             addComponents({
                 '.btn': {
-                    '@apply inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
                         {},
                 },
                 '.btn svg': {
