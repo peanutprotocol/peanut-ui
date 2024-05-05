@@ -37,7 +37,6 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     async function loopUntilSuccess(txHash: string) {
         let intervalId = setInterval(async () => {
             const result = await checkTransactionStatus(txHash)
-            console.log(result)
             //@ts-ignore
             if (result.squidTransactionStatus === 'success') {
                 setExplorerUrlDestChainWithTxHash({

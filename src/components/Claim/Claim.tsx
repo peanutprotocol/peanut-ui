@@ -80,14 +80,11 @@ export const Claim = ({}) => {
                 link,
             })
 
-            console.log(linkDetails)
-
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {
                 setLinkState('ALREADY_CLAIMED')
             } else {
                 const crossChainDetails = await getCrossChainDetails(linkDetails)
-                console.log(crossChainDetails)
                 setCrossChainDetails(crossChainDetails)
                 const tokenPrice = await utils.fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                 tokenPrice && setTokenPrice(tokenPrice?.price)

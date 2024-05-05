@@ -39,7 +39,6 @@ export const ConfirmClaimLinkView = ({
 
         try {
             let _recipientAddress: string = ''
-            console.log(type)
             if (type === 'address') {
                 _recipientAddress = recipientAddress ?? ''
             } else if (type === 'wallet') {

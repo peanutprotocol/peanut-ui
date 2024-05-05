@@ -18,8 +18,6 @@ export const useClaimLink = () => {
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('executing transaction')
         try {
-            console.log('Claiming link:', link)
-            console.log('Recipient address:', address)
             const claimTx = await claimLinkGasless({
                 link,
                 recipientAddress: address,
@@ -30,7 +28,8 @@ export const useClaimLink = () => {
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {
             console.log('Error claiming link:', error)
-            return undefined
+
+            throw error
         } finally {
             setLoadingState('idle')
         }
@@ -64,7 +63,7 @@ export const useClaimLink = () => {
             return claimTx.txHash
         } catch (error) {
             console.log('Error claiming link:', error)
-            return undefined
+            throw error
         } finally {
             setLoadingState('idle')
         }
