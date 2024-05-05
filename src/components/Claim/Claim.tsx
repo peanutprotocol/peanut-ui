@@ -8,6 +8,7 @@ import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import * as context from '@/context'
 import * as assets from '@/assets'
+import { useAccount } from 'wagmi'
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
@@ -22,6 +23,8 @@ export const Claim = ({}) => {
     const [transactionHash, setTransactionHash] = useState<string>()
 
     const { selectedChainID, setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
+
+    const { address } = useAccount()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -83,6 +86,8 @@ export const Claim = ({}) => {
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {
                 setLinkState('ALREADY_CLAIMED')
+            } else if (address && linkDetails.senderAddress === address) {
+                setLinkState('CLAIM_SENDER')
             } else {
                 const crossChainDetails = await getCrossChainDetails(linkDetails)
                 setCrossChainDetails(crossChainDetails)
@@ -130,6 +135,16 @@ export const Claim = ({}) => {
                 } as _consts.IClaimScreenProps)}
             {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
             {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}
+            {linkState === 'CLAIM_SENDER' && (
+                <genericViews.SenderClaimLinkView
+                    changeToRecipientView={() => {
+                        setLinkState('CLAIM')
+                    }}
+                    claimLinkData={claimLinkData}
+                    setTransactionHash={setTransactionHash}
+                    onCustom={handleOnCustom}
+                />
+            )}
         </div>
     )
 }

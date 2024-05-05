@@ -63,7 +63,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountI
                         ? '0'
                         : inputDenomination === 'USD'
                           ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenPrice ?? 0))
-                          : utils.formatTokenAmount(Number(tokenValue) * (selectedTokenPrice ?? 0))}
+                          : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenPrice ?? 0))}
                 </label>
                 <button
                     onClick={(e) => {

@@ -40,7 +40,7 @@ export const AdvancedTokenSelectorButton = ({
             <div className={'flex flex-row items-center justify-center gap-2'}>
                 <img src={tokenLogoUri} alt={''} className="h-6 w-6" />
                 <div className="flex flex-col items-start justify-center gap-1">
-                    <div className="text-h8">
+                    <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-h8">
                         {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0)}{' '}
                         {tokenSymbol}
                     </div>
@@ -57,12 +57,14 @@ export const AdvancedTokenSelectorButton = ({
             <div className="flex flex-row items-center justify-center gap-2">
                 <div className="text-h8 text-gray-1 ">{chainName}</div>
                 <img src={chainIconUri} alt={''} className="h-6 w-6" />
-                {!isStatic && (
-                    <Icon
-                        name={'arrow-bottom'}
-                        className={`transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
-                    />
-                )}
+                <div className="hidden sm:block">
+                    {!isStatic && (
+                        <Icon
+                            name={'arrow-bottom'}
+                            className={`transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
+                        />
+                    )}
+                </div>
             </div>
         </div>
     )

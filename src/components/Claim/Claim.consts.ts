@@ -40,4 +40,4 @@ export interface IClaimScreenProps {
     setTransactionHash: (hash: string) => void
 }
 
-export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND'
+export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'

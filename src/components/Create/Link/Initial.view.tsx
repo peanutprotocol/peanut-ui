@@ -59,10 +59,6 @@ export const CreateLinkInitialView = ({
                 errorMessage: '',
             })
 
-            //
-
-            // return
-
             let value: string = tokenValue ?? ''
             if (inputDenomination === 'USD' && tokenValue && selectedTokenPrice) {
                 value = _utils

@@ -152,7 +152,7 @@ export const SwapInitialClaimLinkView = ({
             fetchRoute()
             setRefetchXchainRoute(false)
         }
-    }, [claimLinkData, refetchXchainRoute])
+    }, [claimLinkData, refetchXchainRoute]) // TODO: move this function to useClaimLink
 
     const handleOnClaim = async () => {
         setLoadingState('loading')
