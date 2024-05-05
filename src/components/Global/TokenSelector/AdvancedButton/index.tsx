@@ -32,7 +32,7 @@ export const AdvancedTokenSelectorButton = ({
 }: IAdvancedTokenSelectorButtonProps) => {
     return (
         <div
-            className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
+            className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-14 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
             onClick={() => {
                 !isStatic && onClick()
             }}
@@ -41,7 +41,7 @@ export const AdvancedTokenSelectorButton = ({
                 <img src={tokenLogoUri} alt={''} className="h-6 w-6" />
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="text-h8">
-                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
+                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0)}{' '}
                         {tokenSymbol}
                     </div>
                     {type === 'send' && (

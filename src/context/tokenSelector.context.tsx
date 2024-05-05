@@ -16,6 +16,8 @@ export const tokenSelectorContext = createContext({
     setSelectedTokenPrice: (price: number | undefined) => {},
     inputDenomination: 'TOKEN' as inputDenominationType,
     setInputDenomination: (denomination: inputDenominationType) => {},
+    refetchXchainRoute: true as boolean,
+    setRefetchXchainRoute: (value: boolean) => {},
 })
 
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
@@ -23,6 +25,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [selectedChainID, setSelectedChainID] = useState('1')
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
+    const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(true)
 
     const { isConnected } = useAccount()
 
@@ -80,6 +83,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setSelectedTokenPrice,
                 inputDenomination,
                 setInputDenomination,
+                refetchXchainRoute,
+                setRefetchXchainRoute,
             }}
         >
             {children}

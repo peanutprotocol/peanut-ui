@@ -65,7 +65,6 @@ export const InitialClaimLinkView = ({
                     onSubmit={(address: string) => {
                         setRecipientAddress(address)
                         setClaimType('address')
-                        console.log(address)
                         onNext()
                     }}
                 />

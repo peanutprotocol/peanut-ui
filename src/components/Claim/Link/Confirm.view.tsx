@@ -32,7 +32,6 @@ export const ConfirmClaimLinkView = ({
 
     const handleOnClaim = async () => {
         setLoadingState('loading')
-
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -57,7 +56,7 @@ export const ConfirmClaimLinkView = ({
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
             } else {
-                console.log('Error claiming link')
+                throw new Error('Error claiming link')
             }
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
@@ -126,7 +125,7 @@ export const ConfirmClaimLinkView = ({
                             'Claim'
                         )}
                     </button>
-                    <button className="btn btn-xl dark:border-white dark:text-white" disabled={true} onClick={onNext}>
+                    <button className="btn btn-xl dark:border-white dark:text-white" onClick={onNext}>
                         Swap
                     </button>
                     <label className="cursor-pointer text-h8 font-normal text-purple-1" onClick={onPrev}>

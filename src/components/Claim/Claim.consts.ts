@@ -1,7 +1,7 @@
 import * as views from './Link'
 import * as interfaces from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-export type ClaimType = 'address' | 'wallet'
+export type ClaimType = 'address' | 'wallet' | 'wallet_xchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SWAP_INITIAL' | 'SUCCESS'
 

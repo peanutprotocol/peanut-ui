@@ -2,7 +2,7 @@
 
 import { useContext, useState } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
-import { claimLinkGasless, claimLinkXChainGasless } from '@squirrel-labs/peanut-sdk'
+import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -13,8 +13,7 @@ export const useClaimLink = () => {
 
     const { loadingState, setLoadingState } = useContext(context.loadingStateContext)
 
-    const xchainFee = 0.02
-    const normalFee = 0
+    const xchainFeeMultiplier = 0.98
 
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('executing transaction')
@@ -71,7 +70,15 @@ export const useClaimLink = () => {
         }
     }
 
-    const getSquidRoute = async (address: string) => {}
+    const getSquidRoute = async ({
+        linkDetails,
+        destinationChainId,
+        destinationToken,
+    }: {
+        linkDetails: interfaces.IPeanutLinkDetails
+        destinationChainId: string
+        destinationToken: string
+    }) => {}
 
     const switchNetwork = async (chainId: string) => {
         if (currentChain?.id.toString() !== chainId.toString()) {
@@ -95,8 +102,7 @@ export const useClaimLink = () => {
     const sendNotification = async () => {}
 
     return {
-        xchainFee,
-        normalFee,
+        xchainFeeMultiplier,
         claimLink,
         claimLinkXchain,
         getSquidRoute,

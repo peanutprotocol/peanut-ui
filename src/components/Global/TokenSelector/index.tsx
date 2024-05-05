@@ -38,9 +38,13 @@ const TokenSelector = ({
     const [filterValue, setFilterValue] = useState('')
 
     const { balances } = useBalance()
-    const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        setRefetchXchainRoute,
+    } = useContext(context.tokenSelectorContext)
 
     const _tokensToDisplay = useMemo(() => {
         let _tokens
@@ -86,6 +90,7 @@ const TokenSelector = ({
     }, [filterValue, selectedChainID])
 
     function setToken(address: string): void {
+        setRefetchXchainRoute(true)
         setSelectedTokenAddress(address)
         setTimeout(() => {
             setFilterValue('')

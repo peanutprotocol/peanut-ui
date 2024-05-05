@@ -221,8 +221,16 @@ export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6
 
+    // Convert number to string to count significant digits
+    const amountString = amount.toFixed(maxFractionDigits)
+    const significantDigits = amountString.replace(/^0+\./, '').replace(/\.$/, '').replace(/0+$/, '').length
+
+    // Calculate the number of fraction digits needed to have at least two significant digits
+    const fractionDigits = Math.max(2 - significantDigits, 0)
+
+    // Format the number with the calculated fraction digits
     const formattedAmount = amount.toLocaleString('en-US', {
-        minimumFractionDigits: 0,
+        minimumFractionDigits: fractionDigits,
         maximumFractionDigits: maxFractionDigits,
     })
     return formattedAmount
