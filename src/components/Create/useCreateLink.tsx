@@ -178,16 +178,25 @@ export const useCreateLink = () => {
             }
         }
     }
-    const estimateGasFee = async (chainId: string) => {
-        const feeOptions = await peanut.setFeeOptions({
-            chainId: chainId,
-        })
+    const estimateGasFee = async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
+        try {
+            const feeOptions = await peanut.setFeeOptions({
+                chainId: chainId,
+                unsignedTx: preparedTx,
+            })
 
-        let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
-        let transactionCostEth = ethers.utils.formatEther(transactionCostWei)
-        console.log(`Estimated transaction cost: ${transactionCostEth} ETH`)
+            let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+            let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
+            const nativeTokenPrice = await utils.fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
+            const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice?.price
 
-        console.log(feeOptions)
+            return {
+                feeOptions,
+                transactionCostUSD,
+            }
+        } catch (error) {
+            throw error
+        }
     }
 
     // step 2
@@ -233,7 +242,13 @@ export const useCreateLink = () => {
         }
     }
     const sendTransactions = useCallback(
-        async ({ preparedDepositTxs }: { preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse }) => {
+        async ({
+            preparedDepositTxs,
+            feeOptions,
+        }: {
+            preparedDepositTxs: peanutInterfaces.IPrepareDepositTxsResponse
+            feeOptions: any | undefined
+        }) => {
             try {
                 if (!preparedDepositTxs) return
 
@@ -243,24 +258,28 @@ export const useCreateLink = () => {
                     setLoadingState('sign in wallet')
 
                     // Set fee options using our SDK
-                    let txOptions
-                    try {
-                        txOptions = await peanut.setFeeOptions({
-                            chainId: selectedChainID,
-                        })
-                    } catch (error: any) {
-                        console.log('error setting fee options, fallback to default')
+                    if (!feeOptions) {
+                        try {
+                            feeOptions = await peanut.setFeeOptions({
+                                chainId: selectedChainID,
+                            })
+                        } catch (error: any) {
+                            console.log('error setting fee options, fallback to default')
+                        }
                     }
+
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({
                         to: (tx.to ? tx.to : '') as `0x${string}`,
                         value: tx.value ? BigInt(tx.value.toString()) : undefined,
                         data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                        gas: txOptions?.gas ? BigInt(txOptions.gas.toString()) : undefined,
-                        gasPrice: txOptions?.gasPrice ? BigInt(txOptions.gasPrice.toString()) : undefined,
-                        maxFeePerGas: txOptions?.maxFeePerGas ? BigInt(txOptions?.maxFeePerGas.toString()) : undefined,
-                        maxPriorityFeePerGas: txOptions?.maxPriorityFeePerGas
-                            ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
+                        gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
+                        gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
+                        maxFeePerGas: feeOptions?.maxFeePerGas
+                            ? BigInt(feeOptions?.maxFeePerGas.toString())
+                            : undefined,
+                        maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
+                            ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
                             : undefined,
                         chainId: Number(selectedChainID), //TODO: chainId as number here
                     })

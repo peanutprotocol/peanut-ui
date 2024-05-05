@@ -28,6 +28,9 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
     const [txHash, setTxHash] = useState<string>('')
     const [link, setLink] = useState<string>('')
 
+    const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
+    const [transactionCostUSD, setTransactionCostUSD] = useState<number | undefined>(undefined)
+
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
@@ -104,6 +107,10 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
                     setTxHash: setTxHash,
                     link: link,
                     setLink: setLink,
+                    feeOptions,
+                    setFeeOptions,
+                    transactionCostUSD,
+                    setTransactionCostUSD,
                 } as _consts.ICreateScreenProps)}
             {type === 'batch' &&
                 createElement(_consts.BATCH_CREATE_SCREEN_MAP[legacyStep.screen].comp, {

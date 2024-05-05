@@ -55,6 +55,10 @@ export interface ICreateScreenProps {
     setTxHash: (value: string) => void
     link: string
     setLink: (value: string) => void
+    feeOptions: any | undefined
+    setFeeOptions: (options: any | undefined) => void
+    transactionCostUSD: number | undefined
+    setTransactionCostUSD: (cost: number | undefined) => void
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']

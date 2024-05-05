@@ -24,6 +24,8 @@ export const CreateLinkConfirmView = ({
     setTxHash,
     setLink,
     tokenValue,
+    transactionCostUSD,
+    feeOptions,
 }: _consts.ICreateScreenProps) => {
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
         context.tokenSelectorContext
@@ -48,7 +50,8 @@ export const CreateLinkConfirmView = ({
 
             if (transactionType === 'normal') {
                 if (!preparedDepositTxs) return
-                hash = (await sendTransactions({ preparedDepositTxs: preparedDepositTxs })) ?? ''
+                hash =
+                    (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {
                 if (!gaslessPayload || !gaslessPayloadMessage) return
                 setLoadingState('sign in wallet')
@@ -106,7 +109,7 @@ export const CreateLinkConfirmView = ({
                 <label className="text-sm font-bold text-gray-1">Network cost</label>
                 <div className="flex flex-row items-center justify-center gap-1">
                     <Icon name={'gas'} className="h-4 fill-white" />
-                    <label className="text-sm leading-4">$0.68</label>
+                    <label className="text-sm leading-4">${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}</label>
                 </div>
             </div>
 

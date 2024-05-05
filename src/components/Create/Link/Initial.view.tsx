@@ -22,6 +22,8 @@ export const CreateLinkInitialView = ({
     setGaslessPayloadMessage,
     setPreparedDepositTxs,
     setTransactionType,
+    setTransactionCostUSD,
+    setFeeOptions,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -57,7 +59,7 @@ export const CreateLinkInitialView = ({
                 errorMessage: '',
             })
 
-            // await estimateGasFee(selectedChainID)
+            //
 
             // return
 
@@ -103,13 +105,30 @@ export const CreateLinkInitialView = ({
                     return
                 setGaslessPayload(makeGaslessDepositResponse.payload)
                 setGaslessPayloadMessage(makeGaslessDepositResponse.message)
+                setFeeOptions(undefined)
+                setTransactionCostUSD(undefined)
             } else {
                 console.log('gasless not possible, creating normal payload')
+                setTransactionType('normal')
+
                 const prepareDepositTxsResponse = await prepareDepositTxs({
                     _linkDetails: linkDetails,
                     _password: password,
                 })
                 setPreparedDepositTxs(prepareDepositTxsResponse)
+
+                try {
+                    const { feeOptions, transactionCostUSD } = await estimateGasFee({
+                        chainId: selectedChainID,
+                        preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                    })
+
+                    setFeeOptions(feeOptions)
+                    setTransactionCostUSD(transactionCostUSD)
+                } catch (error) {
+                    setFeeOptions(undefined)
+                    setTransactionCostUSD(undefined)
+                }
             }
 
             await switchNetwork(selectedChainID)
