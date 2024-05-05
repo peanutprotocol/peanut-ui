@@ -23,8 +23,6 @@ export const CreateLinkInitialView = ({
     setPreparedDepositTxs,
     setTransactionType,
 }: _consts.ICreateScreenProps) => {
-    const [initiatedWalletConnection, setInitiatedWalletConnection] = useState(false)
-
     const {
         generateLinkDetails,
         assertValues,
@@ -48,7 +46,6 @@ export const CreateLinkInitialView = ({
 
     const handleConnectWallet = async () => {
         open()
-        setInitiatedWalletConnection(true)
     }
 
     const handleOnNext = async () => {
@@ -129,12 +126,6 @@ export const CreateLinkInitialView = ({
         }
     }
 
-    useEffect(() => {
-        if (initiatedWalletConnection && isConnected) {
-            handleOnNext()
-        }
-    }, [isConnected])
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
@@ -154,7 +145,7 @@ export const CreateLinkInitialView = ({
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
                     }}
-                    disabled={isLoading || !tokenValue}
+                    disabled={isLoading || (isConnected && !tokenValue)}
                 >
                     {!isConnected ? (
                         'Connect Wallet'
