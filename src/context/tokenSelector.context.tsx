@@ -18,6 +18,7 @@ export const tokenSelectorContext = createContext({
     setInputDenomination: (denomination: inputDenominationType) => {},
     refetchXchainRoute: true as boolean,
     setRefetchXchainRoute: (value: boolean) => {},
+    resetTokenContextProvider: () => {},
 })
 
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
@@ -32,6 +33,12 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const updateSelectedChainID = (chainID: string) => {
         setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
         setSelectedChainID(chainID)
+    }
+
+    const resetTokenContextProvider = () => {
+        setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
+        setSelectedChainID('1')
+        setSelectedTokenPrice(undefined)
     }
 
     useEffect(() => {
@@ -85,6 +92,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setInputDenomination,
                 refetchXchainRoute,
                 setRefetchXchainRoute,
+                resetTokenContextProvider,
             }}
         >
             {children}

@@ -2,13 +2,15 @@ import Icon from '@/components/Global/Icon'
 import * as _consts from '../Claim.consts'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
+import * as context from '@/context'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const router = useRouter()
+    const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
 
     const explorerUrlWithTx = useMemo(
         () =>
@@ -53,6 +55,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     }
 
     useEffect(() => {
+        resetTokenContextProvider
         if (transactionHash && type === 'wallet_xchain') {
             loopUntilSuccess(transactionHash)
         }
