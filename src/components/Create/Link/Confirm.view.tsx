@@ -11,6 +11,7 @@ import Icon from '@/components/Global/Icon'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import { useCreateLink } from '../useCreateLink'
 import Loading from '@/components/Global/Loading'
+import { useAccount } from 'wagmi'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -36,6 +37,8 @@ export const CreateLinkConfirmView = ({
     }>({ showError: false, errorMessage: '' })
     const { sendTransactions, signTypedData, makeDepositGasless, getLinkFromHash } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+
+    const { address } = useAccount()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -66,6 +69,16 @@ export const CreateLinkConfirmView = ({
             setLoadingState('Creating link')
 
             const link = await getLinkFromHash({ hash, linkDetails, password })
+
+            utils.saveCreatedLinkToLocalStorage({
+                address: address ?? '',
+                data: {
+                    link: link[0],
+                    depositDate: new Date().toISOString(),
+                    USDTokenPrice: selectedTokenPrice ?? 0,
+                    ...linkDetails,
+                },
+            })
 
             setLink(link[0])
             console.log(link)

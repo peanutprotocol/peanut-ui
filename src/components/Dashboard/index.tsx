@@ -12,457 +12,9 @@ import { useAccount } from 'wagmi'
 import Search from '../Global/Search'
 import { ILinkDetails } from '@/interfaces'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
-
-export const linkDetails = [
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-    {
-        link: 'http://localhost:3000/claim?c=137&v=v4.3&i=2798&t=ui#p=eYjrgjdBejeYior5',
-        chainId: '137',
-        depositIndex: 2798,
-        contractVersion: 'v4.3',
-        password: 'eYjrgjdBejeYior5',
-        senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        tokenType: 0,
-        tokenAddress: '0x0000000000000000000000000000000000000000',
-        tokenDecimals: 18,
-        tokenSymbol: 'MATIC',
-        tokenName: 'MATIC',
-        tokenAmount: '0.151224',
-        tokenId: 0,
-        claimed: true,
-        depositDate: new Date('2024-04-30T13:26:35.000Z'),
-        tokenURI: null,
-        metadata: null,
-        rawOnchainDepositInfo: {
-            pubKey20: '0x187D565389c27c5EC6C20a9F5A3BE5b7f83F8b34',
-            amount: '151224000000000000',
-            tokenAddress: '0x0000000000000000000000000000000000000000',
-            contractType: '0',
-            claimed: 'true',
-            requiresMFA: 'false',
-            timestamp: '1714483595',
-            tokenId: '0',
-            senderAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-        },
-        recipient: undefined,
-        reclaimableAfter: undefined,
-    },
-]
+import Loading from '../Global/Loading'
+import { useRouter } from 'next/navigation'
+import { CSVDownload, CSVLink } from 'react-csv'
 
 const sortingTypes = [
     'Date: new to old',
@@ -473,80 +25,222 @@ const sortingTypes = [
     'Type: receive',
 ]
 
-const getLinkType = (link: string) => {}
-
 export const Dashboard = () => {
-    const itemsPerPage = 5
+    const itemsPerPage = 10
     const [filterValue, setFilterValue] = useState('')
     const [sortingValue, setSortingValue] = useState<string>(sortingTypes[0])
-    const [localStorageLinkData, setLocalStorageLinkData] = useState<interfaces.ILocalStorageItem[]>([])
-    const [dashboardLinkData, setDashboardLinkData] = useState<interfaces.ILinkDetails[]>([])
+    const [dashboardData, setDashboardData] = useState<interfaces.IDashboardItem[]>([])
+    const [filteredDashboardData, setFilteredDashboardData] = useState<interfaces.IDashboardItem[]>([])
+    const [fetchedLinks, setFetchedLinks] = useState(false)
     const [totalPages, setTotalPages] = useState<number>(0)
     const [currentPage, setCurrentPage] = useState<number>(0)
+    const [legacyLinks, setLegacyLinks] = useState<string[]>([])
 
     const { address } = useAccount()
+    const router = useRouter()
 
-    /**
-     * Fetches all the link details from the peanut SDK and sets the state
-     * @param localStorageData
-     */
-    const getAllLinkDetails = async (localStorageData: interfaces.ILocalStorageItem[]) => {
-        try {
-            let details: ILinkDetails[] = []
-            await Promise.all(
-                localStorageData.map(async (item) => {
-                    try {
-                        const linkDetails = await getLinkDetails({ link: item.link }) // TODO: change to fetch all at once (batch request)
-                        details.push(linkDetails)
-                        console.log(linkDetails)
-                    } catch (error) {
-                        console.error(error)
+    const fetchLinkDetailsAsync = async (data: interfaces.IDashboardItem[]) => {
+        //only fetching details for send links
+        const _data = data.filter((item) => item.type == 'send')
+
+        await Promise.all(
+            _data.map(async (item) => {
+                try {
+                    const linkDetails = await getLinkDetails({ link: item.link })
+                    item.status = linkDetails.claimed ? 'claimed' : 'pending'
+                } catch (error) {
+                    console.error(error)
+                }
+            })
+        )
+
+        setDashboardData(
+            [..._data, ...data.filter((item) => item.type == 'receive')].sort((a, b) => {
+                const dateA = new Date(a.date).getTime()
+                const dateB = new Date(b.date).getTime()
+                if (dateA === dateB) {
+                    // If dates are equal, sort by time
+                    return new Date(b.date).getTime() - new Date(a.date).getTime()
+                } else {
+                    // Otherwise, sort by date
+                    return dateB - dateA
+                }
+            })
+        )
+    }
+
+    const composeLinkDataArray = (
+        claimedLinks: interfaces.ILinkDetails[],
+        createdLinks: interfaces.IExtendedPeanutLinkDetails[]
+    ) => {
+        const linkData: interfaces.IDashboardItem[] = []
+
+        claimedLinks.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'receive',
+                amount: link.tokenAmount,
+                tokenSymbol: link.tokenSymbol,
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.depositDate.toString(),
+                address: link.senderAddress,
+                status: 'claimed',
+            })
+        })
+
+        createdLinks.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'send',
+                amount: link.tokenAmount.toString(),
+                tokenSymbol:
+                    consts.peanutTokenDetails
+                        .find((token) => token.chainId === link.chainId)
+                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress ?? ''))
+                        ?.symbol ?? '',
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.depositDate.toString(),
+                address: undefined,
+                status: undefined,
+            })
+        })
+
+        setTotalPages(Math.ceil(linkData.length / itemsPerPage))
+        setCurrentPage(1)
+        return linkData
+    }
+
+    const sortDashboardData = (sortingValue: string) => {
+        const _dashboardData = [...dashboardData]
+        switch (sortingValue) {
+            case 'Date: new to old':
+                _dashboardData.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime()
+                    const dateB = new Date(b.date).getTime()
+                    if (dateA === dateB) {
+                        // If dates are equal, sort by time
+                        return new Date(b.date).getTime() - new Date(a.date).getTime()
+                    } else {
+                        // Otherwise, sort by date
+                        return dateB - dateA
                     }
                 })
-            )
-            details.sort((a, b) => {
-                const parseDate = (dateStr: string) => {
-                    if (dateStr === 'Unavailable' || dateStr === 'undefined') {
-                        return new Date('1000-12-31T23:59:59Z')
-                    }
-                    const dateTimeRegex = /(\d{2})\/(\d{2})\/(\d{4}), (\d{2}):(\d{2}):(\d{2})/
-                    const match = dateStr.match(dateTimeRegex)
-                    if (match) {
-                        return new Date(`${match[3]}-${match[2]}-${match[1]}T${match[4]}:${match[5]}:${match[6]}Z`)
+                break
+            case 'Date: old to new':
+                _dashboardData.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime()
+                    const dateB = new Date(b.date).getTime()
+                    if (dateA === dateB) {
+                        // If dates are equal, sort by time
+                        return new Date(a.date).getTime() - new Date(b.date).getTime()
                     } else {
-                        return new Date('1000-12-31T23:59:59Z')
+                        // Otherwise, sort by date
+                        return dateA - dateB
                     }
-                }
-                const _dateA = new Date(a.depositDate).toLocaleString()
-                const _dateB = new Date(b.depositDate).toLocaleString()
-                const dateA = parseDate(_dateA)
-                const dateB = parseDate(_dateB)
-                return dateB.getTime() - dateA.getTime()
-            })
-            setDashboardLinkData(details)
+                })
+                break
 
-            setTotalPages(Math.ceil(details.length / itemsPerPage))
-            setCurrentPage(1)
-        } catch (error) {
-            console.log(error)
+            case 'Amount: low to high':
+                _dashboardData.sort((a, b) => {
+                    return Number(a.amount) - Number(b.amount)
+                })
+                break
+            case 'Amount: high to low':
+                _dashboardData.sort((a, b) => {
+                    return Number(b.amount) - Number(a.amount)
+                })
+                break
+            case 'Type: send':
+                _dashboardData.sort((a, b) => {
+                    return a.type === 'send' ? -1 : 1
+                })
+                break
+            case 'Type: receive':
+                _dashboardData.sort((a, b) => {
+                    return a.type === 'receive' ? -1 : 1
+                })
+                break
+            default:
+                break
         }
+        setDashboardData(_dashboardData)
+    }
+
+    const filterDashboardData = (filterValue: string) => {
+        const _dashboardData = [...dashboardData]
+        const filteredData = _dashboardData.filter((item) => {
+            return (
+                item.amount.includes(filterValue.toLowerCase()) ||
+                item.chain.toLowerCase().includes(filterValue.toLowerCase()) ||
+                item.date.includes(filterValue) ||
+                item.tokenSymbol.toLowerCase().includes(filterValue.toLowerCase()) ||
+                item.type.toLowerCase().includes(filterValue.toLowerCase()) ||
+                (item.address && item.address.toLowerCase().includes(filterValue.toLowerCase()))
+            )
+        })
+        setTotalPages(Math.ceil(filteredData.length / itemsPerPage))
+        setCurrentPage(1)
+        setFilteredDashboardData(filteredData)
     }
 
     useEffect(() => {
         if (address) {
-            const linkData = utils.getAllLinksFromLocalStorage({
-                address: address.toString(),
-            })
+            const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
+            const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })
 
-            linkData && setLocalStorageLinkData(linkData)
+            const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [])
+
+            setDashboardData(
+                linkData.sort((a, b) => {
+                    const dateA = new Date(a.date).getTime()
+                    const dateB = new Date(b.date).getTime()
+                    if (dateA === dateB) {
+                        // If dates are equal, sort by time
+                        return new Date(b.date).getTime() - new Date(a.date).getTime()
+                    } else {
+                        // Otherwise, sort by date
+                        return dateB - dateA
+                    }
+                })
+            )
+
+            const links: string[] = []
+            const legacyLinkObject = utils.getAllLinksFromLocalStorage({ address: address })
+            if (legacyLinkObject) {
+                legacyLinkObject.forEach((obj) => {
+                    links.push(obj.link)
+                })
+            }
+            const raffleLegacyLinkObject = utils.getAllRaffleLinksFromLocalstorage({ address: address })
+            if (raffleLegacyLinkObject) {
+                raffleLegacyLinkObject.forEach((obj) => {
+                    links.push(obj.link)
+                })
+            }
+            console.log(links)
+            setLegacyLinks(links)
         }
     }, [address])
 
     useEffect(() => {
-        if (localStorageLinkData.length > 0 && dashboardLinkData.length === 0) {
-            getAllLinkDetails(localStorageLinkData)
+        if (dashboardData.length > 0 && fetchedLinks === false) {
+            fetchLinkDetailsAsync(dashboardData)
+            setFetchedLinks(true)
         }
-    })
+    }, [dashboardData])
+
+    useEffect(() => {
+        if (sortingValue && dashboardData.length > 0) {
+            sortDashboardData(sortingValue)
+        }
+    }, [sortingValue])
+
+    // useEffect(() => {
+    //     if (filterValue && dashboardData.length > 0) {
+    //         filterDashboardData(filterValue)
+    //     }
+
+    // }, [filterValue])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 p-4">
@@ -571,7 +265,7 @@ export const Dashboard = () => {
                         buttonClassName="w-full sm:w-max"
                     />
 
-                    <Search
+                    {/* <Search
                         onChange={(e: any) => setFilterValue(e.target.value)}
                         onSubmit={() => {}}
                         placeholder="Search"
@@ -579,7 +273,7 @@ export const Dashboard = () => {
                         medium={true}
                         border={true}
                         className=" bg-white "
-                    />
+                    /> */}
                 </div>
                 <table className="table-custom hidden sm:table">
                     <thead>
@@ -591,11 +285,8 @@ export const Dashboard = () => {
                                 <Sorting title="Amount" />
                             </th>
                             <th className="th-custom">
-                                <Sorting title="Date Created" />
+                                <Sorting title="Date Created/Claimed" />
                             </th>
-                            {/* <th className="th-custom ">
-                                <Sorting title="Date Claimed" />
-                            </th> */}
                             <th className="th-custom ">
                                 <Sorting title="From" />
                             </th>
@@ -606,71 +297,46 @@ export const Dashboard = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {localStorageLinkData.length > 0 && dashboardLinkData.length === 0 ? (
-                            <tr className="h-16 text-h8 font-normal">
-                                <td className="td-custom">
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                </td>
-                                <td className="td-custom">
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                </td>{' '}
-                                <td className="td-custom">
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                </td>{' '}
-                                <td className="td-custom">
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                </td>{' '}
-                                <td className="td-custom">
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                </td>{' '}
-                                <td className="td-custom">
-                                    <div className="h-2 w-4 animate-pulse rounded bg-slate-700"></div>
-                                </td>
-                            </tr>
-                        ) : (
-                            dashboardLinkData
-                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                                .map((link) => (
-                                    <tr className="h-16 text-h8 font-normal" key={link.link}>
-                                        <td className="td-custom font-bold">
-                                            {link.senderAddress === address ? 'Send' : 'Receive'}
-                                        </td>
-                                        <td className="td-custom font-bold">
-                                            {utils.formatTokenAmount(Number(link.tokenAmount), 4)} {link.tokenSymbol}
-                                            {' - '}
-                                            {
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === link.chainId
-                                                )?.name
-                                            }
-                                        </td>
-                                        <td className="td-custom">{formatDate(link.depositDate)}</td>
-                                        {/* <td className="td-custom">{formatDate(link.depositDate)}</td> */}
-                                        <td className="td-custom">{utils.shortenAddressLong(link.senderAddress)}</td>
-                                        <td className="td-custom">
-                                            {link.claimed ? (
-                                                <div className="border border-green-3 px-2 py-1 text-center text-green-3">
-                                                    claimed
-                                                </div>
-                                            ) : (
-                                                <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                    pending
-                                                </div>
-                                            )}
-                                        </td>{' '}
-                                        <td className="td-custom text-center ">
-                                            <OptionsItem link={link.link} />
-                                        </td>
-                                    </tr>
-                                ))
-                        )}
+                        {dashboardData &&
+                            dashboardData.slice((currentPage - 1) * itemsPerPage).map((link) => (
+                                <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
+                                    <td className="td-custom font-bold">{link.type}</td>
+                                    <td className="td-custom font-bold">
+                                        {utils.formatTokenAmount(Number(link.amount), 4)} {link.tokenSymbol} -{' '}
+                                        {link.chain}
+                                    </td>
+                                    <td className="td-custom">{formatDate(new Date(link.date))}</td>
+                                    {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
+                                    <td className="td-custom">
+                                        {utils.shortenAddressLong(link.address ?? address ?? '')}
+                                    </td>
+                                    <td className="td-custom">
+                                        {!link.status ? (
+                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                <Loading />
+                                            </div>
+                                        ) : link.status === 'claimed' ? (
+                                            <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                claimed
+                                            </div>
+                                        ) : (
+                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                pending
+                                            </div>
+                                        )}
+                                    </td>{' '}
+                                    <td className="td-custom text-center ">
+                                        <OptionsItem link={link.link} type={link.type} />
+                                    </td>
+                                </tr>
+                            ))}
                     </tbody>
                 </table>
                 <div className="block w-full sm:hidden">
-                    {dashboardLinkData.length > 1 ? (
-                        dashboardLinkData
+                    {dashboardData.length > 1 ? (
+                        dashboardData
                             .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                            .map((link) => <MobileItem linkDetail={link} address={address ?? ''} />)
+                            .map((link) => <MobileItem linkDetail={link} />)
                     ) : (
                         <div className="flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black">
                             <div className="flex w-full flex-row items-center justify-between">
@@ -691,7 +357,13 @@ export const Dashboard = () => {
                         </div>
                     )}
                 </div>
-                <label className="cursor-pointer self-end text-purple-1">Download CSV</label>
+                <CSVLink
+                    data={legacyLinks ? legacyLinks.join('\n') : ''}
+                    filename="links.csv"
+                    className="cursor-pointer self-end text-purple-1"
+                >
+                    Download legacy links as CSV
+                </CSVLink>
             </div>
             <TablePagination
                 onNext={() => {
@@ -708,9 +380,14 @@ export const Dashboard = () => {
                 currentPage={currentPage}
             />
 
-            <button className="flex cursor-pointer flex-row items-center justify-center gap-1" onClick={() => {}}>
+            <button
+                className="flex cursor-pointer flex-row items-center justify-center gap-1"
+                onClick={() => {
+                    router.push('/reclaim')
+                }}
+            >
                 <Icon name={'question-circle'} />
-                <label>Click here if you had a problem creating a link.</label>
+                <label className="cursor-pointer">Click here if you had a problem creating a link.</label>
             </button>
         </div>
     )
@@ -759,7 +436,9 @@ const SortComponent = ({
     )
 }
 
-const OptionsItem = ({ link }: { link: string }) => {
+const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' }) => {
+    const router = useRouter()
+
     return (
         <Menu className="relative" as="div">
             <Menu.Button className={''}>
@@ -774,16 +453,17 @@ const OptionsItem = ({ link }: { link: string }) => {
                 leaveTo="transform scale-95 opacity-0"
             >
                 <Menu.Items className="shadow-primary-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
-                    <Menu.Item
-                        as={'button'}
-                        onClick={() => {
-                            console.log('clicked')
-                        }}
-                        className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        disabled={true}
-                    >
-                        <div className="text-h8">Reclaim</div>
-                    </Menu.Item>
+                    {type != 'receive' && (
+                        <Menu.Item
+                            as={'button'}
+                            onClick={() => {
+                                router.push(`/${link.split('://')[1].split('/')[1]}`)
+                            }}
+                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                        >
+                            <div className="text-h8">Reclaim</div>
+                        </Menu.Item>
+                    )}
                     <Menu.Item
                         as={'button'}
                         onClick={() => {
@@ -820,38 +500,107 @@ function formatDate(date: Date): string {
     return `${day} ${month} ${year} ${hours}:${minutes}:${seconds}`
 }
 
-const MobileItem = ({ linkDetail, address }: { linkDetail: ILinkDetails; address: string }) => {
+const MobileItem = ({ linkDetail }: { linkDetail: interfaces.IDashboardItem }) => {
     return (
         <div
             className=" flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
-            key={linkDetail.link}
+            key={linkDetail.link + Math.random()}
         >
             <div className="flex w-full flex-row items-center justify-between">
-                <label className="font-bold">{linkDetail.senderAddress === address ? 'Send' : 'Receive'}</label>
-                <label>{formatDate(linkDetail.depositDate)}</label>
+                <label className="font-bold">{linkDetail.type}</label>
+                <label>{formatDate(new Date(linkDetail.date))}</label>
             </div>
             <div className="flex w-full border-t border-dotted border-black" />
             <div className="flex w-full flex-row items-end justify-between">
                 <div className="flex flex-col items-start justify-end gap-2 text-start">
                     <label>
-                        {utils.formatTokenAmount(Number(linkDetail.tokenAmount), 4)} {linkDetail.tokenSymbol} [
-                        {consts.supportedPeanutChains.find((chain) => chain.chainId === linkDetail.chainId)?.name}]
+                        {utils.formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} [
+                        {linkDetail.chain}]
                     </label>
-                    <label>To: {utils.shortenAddressLong(linkDetail.senderAddress)}</label>
+                    {linkDetail.type === 'send' ? (
+                        <div className="justify-content flex flex-row items-center gap-1">
+                            To:{' '}
+                            {linkDetail.address ? (
+                                utils.shortenAddressLong(linkDetail.address ?? '')
+                            ) : (
+                                <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+                            )}
+                        </div>
+                    ) : (
+                        <label>From: {utils.shortenAddressLong(linkDetail.address ?? '')} </label>
+                    )}
                 </div>
                 <div className="flex flex-col items-end justify-end gap-2 text-end">
                     <div>
-                        {linkDetail.claimed ? (
+                        {linkDetail.status === 'claimed' ? (
                             <div className="border border-green-3 border-n-1 px-2 py-1 text-center text-green-3">
                                 claimed
                             </div>
                         ) : (
-                            <div className="border border-gray-1 border-n-1 p-2 text-gray-1">pending</div>
+                            <div className="border border-gray-1 border-n-1 px-2 py-1 text-gray-1">pending</div>
                         )}
                     </div>
-                    <div>{formatDate(linkDetail.depositDate)}</div>
                 </div>
             </div>
         </div>
     )
 }
+
+// {localStorageLinkData.length > 0 && dashboardLinkData.length === 0 ? (
+//     <tr className="h-16 text-h8 font-normal">
+//         <td className="td-custom">
+//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+//         </td>
+//         <td className="td-custom">
+//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+//         </td>{' '}
+//         <td className="td-custom">
+//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+//         </td>{' '}
+//         <td className="td-custom">
+//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+//         </td>{' '}
+//         <td className="td-custom">
+//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+//         </td>{' '}
+//         <td className="td-custom">
+//             <div className="h-2 w-4 animate-pulse rounded bg-slate-700"></div>
+//         </td>
+//     </tr>
+// ) : (
+//     dashboardLinkData
+//         .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+//         .map((link) => (
+//             <tr className="h-16 text-h8 font-normal" key={link.link}>
+//                 <td className="td-custom font-bold">
+//                     {link.senderAddress === address ? 'Send' : 'Receive'}
+//                 </td>
+//                 <td className="td-custom font-bold">
+//                     {utils.formatTokenAmount(Number(link.tokenAmount), 4)} {link.tokenSymbol}
+//                     {' - '}
+//                     {
+//                         consts.supportedPeanutChains.find(
+//                             (chain) => chain.chainId === link.chainId
+//                         )?.name
+//                     }
+//                 </td>
+//                 <td className="td-custom">{formatDate(link.depositDate)}</td>
+//                 {/* <td className="td-custom">{formatDate(link.depositDate)}</td> */}
+//                 <td className="td-custom">{utils.shortenAddressLong(link.senderAddress)}</td>
+//                 <td className="td-custom">
+//                     {link.claimed ? (
+//                         <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+//                             claimed
+//                         </div>
+//                     ) : (
+//                         <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+//                             pending
+//                         </div>
+//                     )}
+//                 </td>{' '}
+//                 <td className="td-custom text-center ">
+//                     <OptionsItem link={link.link} />
+//                 </td>
+//             </tr>
+//         ))
+// )}

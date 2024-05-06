@@ -1,3 +1,5 @@
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+
 export interface IUserBalance {
     chainId: string
     address: string
@@ -97,4 +99,25 @@ export interface IToken {
     address: string
     name: string
     symbol: string
+}
+
+export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLinkDetails {
+    link: string
+    depositDate: string
+    USDTokenPrice: number
+}
+
+export interface IDashboardItem {
+    link: string
+    type: 'send' | 'receive'
+    amount: string
+    tokenSymbol: string
+    date: string
+    chain: string
+    address: string | undefined
+    status: 'claimed' | 'pending' | undefined
+}
+
+export interface IExtendedLinkDetails extends ILinkDetails {
+    USDTokenPrice: number
 }

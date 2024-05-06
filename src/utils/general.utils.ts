@@ -1,6 +1,6 @@
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
-import peanut from '@squirrel-labs/peanut-sdk'
+import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
@@ -82,7 +82,8 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i)
 
-            if (key !== null && key?.includes(address)) {
+            if (key === `${address} - created links` || key === `${address} - claimed links`) {
+            } else if (key !== null && key?.includes(address)) {
                 const value = localStorage.getItem(key)
                 if (
                     value !== null &&
@@ -114,6 +115,7 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
         for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i)
 
+            if (key === `${address} - created links` || key === `${address} - claimed links`) return
             if (key !== null && key?.includes(address)) {
                 const value = localStorage.getItem(key)
 
@@ -204,31 +206,6 @@ export const getAllGigalinksFromLocalstorage = ({ address }: { address: string }
         return localStorageData
     } catch (error) {
         console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const addClaimLinkToLocalstorage = ({
-    address,
-    linkDetails,
-}: {
-    address: string
-    linkDetails: interfaces.ILinkDetails
-}) => {
-    try {
-        const key = `${address} - claimed links`
-
-        const storedData = localStorage.getItem(key)
-
-        let data: interfaces.ILinkDetails[] = []
-        if (storedData) {
-            data = JSON.parse(storedData) as interfaces.ILinkDetails[]
-        }
-
-        data.push(linkDetails)
-
-        localStorage.setItem(key, JSON.stringify(data))
-    } catch (error) {
-        console.error('Error adding data to localStorage:', error)
     }
 }
 
@@ -343,4 +320,135 @@ export const isNativeCurrency = (address: string) => {
     if (consts.nativeCurrencyAddresses.includes(address.toLowerCase())) {
         return true
     } else return false
+}
+
+export const saveClaimedLinkToLocalStorage = ({
+    address,
+    data,
+}: {
+    address: string
+    data: interfaces.IExtendedLinkDetails
+}) => {
+    try {
+        const key = `${address} - claimed links`
+
+        const storedData = localStorage.getItem(key)
+
+        let dataArr: interfaces.IExtendedLinkDetails[] = []
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as interfaces.IExtendedLinkDetails[]
+        }
+
+        dataArr.push(data)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved claimed link to localStorage:', data)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getClaimedLinksFromLocalStorage = ({ address }: { address: string }) => {
+    try {
+        const key = `${address} - claimed links`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: interfaces.IExtendedLinkDetails[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.IExtendedLinkDetails[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const saveCreatedLinkToLocalStorage = ({
+    address,
+    data,
+}: {
+    address: string
+    data: interfaces.IExtendedPeanutLinkDetails
+}) => {
+    try {
+        const key = `${address} - created links`
+
+        const storedData = localStorage.getItem(key)
+
+        let dataArr: interfaces.IExtendedPeanutLinkDetails[] = []
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as interfaces.IExtendedPeanutLinkDetails[]
+        }
+
+        dataArr.push(data)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved created link to localStorage:', data)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getCreatedLinksFromLocalStorage = ({ address }: { address: string }) => {
+    try {
+        const key = `${address} - created links`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: interfaces.IExtendedPeanutLinkDetails[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.IExtendedPeanutLinkDetails[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const updateCreatedLinksFromLocalStorage = ({
+    address,
+    data,
+}: {
+    address: string
+    data: interfaces.IExtendedPeanutLinkDetails[]
+}) => {
+    try {
+        const key = `${address} - created links`
+
+        localStorage.setItem(key, JSON.stringify(data))
+
+        console.log('Updated created links in localStorage:', data)
+    } catch (error) {
+        console.error('Error updating data in localStorage:', error)
+    }
+}
+
+export const addClaimLinkToLocalstorage = ({
+    address,
+    linkDetails,
+}: {
+    address: string
+    linkDetails: interfaces.ILinkDetails
+}) => {
+    try {
+        const key = `${address} - claimed links`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: interfaces.ILinkDetails[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.ILinkDetails[]
+        }
+
+        data.push(linkDetails)
+
+        localStorage.setItem(key, JSON.stringify(data))
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
 }

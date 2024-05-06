@@ -42,9 +42,9 @@ export const ConfirmClaimLinkView = ({
             if (type === 'address') {
                 _recipientAddress = recipientAddress ?? ''
             } else if (type === 'wallet') {
+                console.log(address)
                 _recipientAddress = address ?? ''
             }
-
             setLoadingState('Executing transaction')
             const claimTxHash = await claimLink({
                 address: _recipientAddress,
@@ -52,6 +52,10 @@ export const ConfirmClaimLinkView = ({
             })
 
             if (claimTxHash) {
+                utils.saveClaimedLinkToLocalStorage({
+                    address: address ?? '',
+                    data: { ...claimLinkData, depositDate: new Date(), USDTokenPrice: tokenPrice },
+                })
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
             } else {

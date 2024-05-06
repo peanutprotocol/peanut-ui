@@ -169,6 +169,10 @@ export const SwapInitialClaimLinkView = ({
                 destinationToken: selectedTokenAddress,
             })
             if (claimTxHash) {
+                utils.saveClaimedLinkToLocalStorage({
+                    address: address ?? '',
+                    data: { ...claimLinkData, depositDate: new Date(), USDTokenPrice: tokenPrice },
+                })
                 setClaimType('wallet_xchain')
                 setTransactionHash(claimTxHash)
                 onNext()
