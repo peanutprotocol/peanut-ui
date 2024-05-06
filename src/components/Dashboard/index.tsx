@@ -362,7 +362,7 @@ export const Dashboard = () => {
                     filename="links.csv"
                     className="cursor-pointer self-end text-purple-1"
                 >
-                    Download legacy links as CSV
+                    Download ({legacyLinks.length}) legacy links as CSV
                 </CSVLink>
             </div>
             <TablePagination
