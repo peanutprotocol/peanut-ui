@@ -58,7 +58,7 @@ export function About() {
     return (
         <div>
             <div className="bg-lightblue flex-grow">
-                <div className="brutalborder shadow-primary-4 mx-auto mb-8 mt-8 w-5/6 bg-white px-2 px-4 py-4 tracking-wide lg:w-1/2 md:py-8 sm:mb-16 sm:mt-16 sm:w-2/3 ">
+                <div className="brutalborder shadow-primary-4 mx-auto mb-8 mt-8 w-5/6 bg-white px-2 px-4 py-4 tracking-wide sm:mb-16 sm:mt-16 sm:w-2/3 md:py-8 lg:w-1/2 ">
                     <h2 className="mx-auto px-4 text-center text-xl font-black text-black lg:text-4xl">
                         <p>
                             Peanut Protocol. Bring currency back to cryptocurrency. Build a world where value flows

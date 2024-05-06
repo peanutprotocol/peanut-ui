@@ -182,7 +182,7 @@ export function Welcome() {
     return (
         <div className="flex w-full flex-col items-center justify-center gap-4 bg-white  dark:bg-black ">
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">
-                <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center lg:mx-0 lg:w-2/3 lg:px-0 sm:px-6 sm:py-16">
+                <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:px-0">
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         <div className="mx-auto flex w-3/4 flex-row items-center justify-center gap-2 text-h1">
                             Send{' '}
@@ -208,7 +208,7 @@ export function Welcome() {
                         <a
                             data-cal-link="kkonrad+hugo0/15min?duration=30"
                             data-cal-config='{"layout":"month_view"}'
-                            className="btn-purple btn-xl cursor-pointer px-4 text-h4 lg:w-1/3 md:w-3/5"
+                            className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                         >
                             Let's talk!
                         </a>
@@ -295,7 +295,7 @@ export function Welcome() {
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
-                                className="btn-purple btn-xl cursor-pointer px-4 text-h4 lg:w-1/3 md:w-3/5"
+                                className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                             >
                                 Let's talk!
                             </a>
@@ -329,7 +329,7 @@ export function Welcome() {
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
-                                className="btn-purple btn-xl cursor-pointer px-4 text-h4 lg:w-1/3 md:w-3/5"
+                                className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                             >
                                 Let's talk!
                             </a>
@@ -354,7 +354,7 @@ export function Welcome() {
             </div>
 
             <section className="lg:divide-y" id="features">
-                <div className="brutalborder-y grid grid-cols-1 gap-4 overflow-hidden bg-white p-4 text-black md:grid-cols-3 sm:mx-0 sm:grid-cols-2">
+                <div className="brutalborder-y grid grid-cols-1 gap-4 overflow-hidden bg-white p-4 text-black sm:mx-0 sm:grid-cols-2 md:grid-cols-3">
                     {features.map((feature, index) => {
                         return (
                             <div
@@ -505,7 +505,7 @@ export function Welcome() {
                 </MarqueeWrapper>
             </div>
 
-            <div role="list" className="grid:cols-1 grid gap-4 px-4 lg:grid-cols-4 md:grid-cols-2">
+            <div role="list" className="grid:cols-1 grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4">
                 {testimonials.map((testimonial, index) => (
                     <div
                         key={index}

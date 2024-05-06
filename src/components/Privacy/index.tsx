@@ -9,7 +9,7 @@ export function Privacy() {
                 <div>
                     <span className="font-bold">{'<'} Hey there! This is how we treat ur data.</span>
                 </div>
-                <div className="py-2 text-2xl font-bold  lg:text-8xl md:text-4xl">Privacy Policy</div>
+                <div className="py-2 text-2xl font-bold  md:text-4xl lg:text-8xl">Privacy Policy</div>
 
                 <div className="text-xl font-bold ">
                     We are no creeps! Full terms can be found{' '}

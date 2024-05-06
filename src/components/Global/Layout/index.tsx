@@ -36,7 +36,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         <Header />
                         <div className="flex grow">
                             <div
-                                className={`flex grow flex-col pb-2 pt-6 4xl:max-w-full 2xl:px-8 lg:px-6 md:px-5 sm:mx-auto sm:px-16 ${className}`}
+                                className={`4xl:max-w-full flex grow flex-col pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
                             >
                                 {children}
                             </div>

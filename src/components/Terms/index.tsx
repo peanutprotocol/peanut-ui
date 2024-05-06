@@ -9,7 +9,7 @@ export function Terms() {
                 <div>
                     <span className="font-bold">{'<'} Hey there! These are our TOS.</span>
                 </div>
-                <div className="py-2 text-2xl font-bold  lg:text-8xl md:text-4xl">Terms of Service</div>
+                <div className="py-2 text-2xl font-bold  md:text-4xl lg:text-8xl">Terms of Service</div>
 
                 <div className="text-xl font-bold ">
                     Don't do illegal stuff pls :( Full terms can be found{' '}
