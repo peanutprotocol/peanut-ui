@@ -6,22 +6,6 @@ module.exports = {
     darkMode: ['class', '[data-theme="dark"]'],
     content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
     theme: {
-        screens: {
-            '4xl': { min: '1719px' },
-            // => @media (min-width: 1719px) { ... }
-            '2xl': { min: '1419px' },
-            // => @media (min-width: 1419px) { ... }
-            xl: { min: '1259px' },
-            // => @media (min-width: 1259px) { ... }
-            xls: { min: '1179px' },
-            // => @media (min-width: 1179px) { ... }
-            lg: { min: '1023px' },
-            // => @media (min-width: 1023px) { ... }
-            md: { min: '767px' },
-            // => @media (min-width: 767px) { ... }
-            sm: { min: '480px' },
-            // => @media (min-width: 480px) { ... }
-        },
         extend: {
             colors: {
                 purple: {
@@ -57,6 +41,7 @@ module.exports = {
                 white: '#FFFFFF',
                 background: '#FAF4F0',
                 red: '#FF0000',
+                black: '#000000',
             },
             zIndex: {
                 1: '1',
