@@ -55,7 +55,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     }
 
     useEffect(() => {
-        resetTokenContextProvider
+        resetTokenContextProvider()
         if (transactionHash && type === 'wallet_xchain') {
             loopUntilSuccess(transactionHash)
         }

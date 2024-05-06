@@ -15,7 +15,7 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
 
     const [linkDetails, setLinkDetails] = useState<peanutInterfaces.IPeanutLinkDetails>()
     const [password, setPassword] = useState<string>('')
-    const [transactionType, setTransactionType] = useState<'normal' | 'gasless'>('normal')
+    const [transactionType, setTransactionType] = useState<'not-gasless' | 'gasless'>('not-gasless')
 
     const [gaslessPayload, setGaslessPayload] = useState<peanutInterfaces.IGaslessDepositPayload | undefined>()
     const [gaslessPayloadMessage, setGaslessPayloadMessage] = useState<

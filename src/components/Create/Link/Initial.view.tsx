@@ -52,7 +52,7 @@ export const CreateLinkInitialView = ({
 
     const handleOnNext = async () => {
         try {
-            setLoadingState('loading')
+            setLoadingState('Loading')
 
             setErrorState({
                 showError: false,
@@ -68,9 +68,9 @@ export const CreateLinkInitialView = ({
                     })
                     .toString()
             }
-            setLoadingState('asserting values')
+            setLoadingState('Asserting values')
             await assertValues({ tokenValue: value })
-            setLoadingState('generating details')
+            setLoadingState('Generating details')
             const linkDetails = generateLinkDetails({
                 tokenValue: value,
             })
@@ -78,7 +78,7 @@ export const CreateLinkInitialView = ({
             const password = await generatePassword()
             setPassword(password)
 
-            setLoadingState('preparing transaction')
+            setLoadingState('Preparing transaction')
             if (
                 _utils.isGaslessDepositPossible({
                     chainId: selectedChainID,
@@ -105,7 +105,7 @@ export const CreateLinkInitialView = ({
                 setTransactionCostUSD(undefined)
             } else {
                 console.log('gasless not possible, creating normal payload')
-                setTransactionType('normal')
+                setTransactionType('not-gasless')
 
                 const prepareDepositTxsResponse = await prepareDepositTxs({
                     _linkDetails: linkDetails,
@@ -137,7 +137,7 @@ export const CreateLinkInitialView = ({
                 errorMessage: errorString,
             })
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
 

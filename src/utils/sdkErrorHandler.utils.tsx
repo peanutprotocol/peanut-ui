@@ -46,17 +46,17 @@ export const ErrorHandler = (error: any) => {
     } else {
         console.log(error.toString())
         if (error.toString().includes('insufficient funds')) {
-            return "You don't have enough funds"
+            return "You don't have enough funds."
         } else if (error.toString().includes('user rejected transaction')) {
-            return 'Please confirm the transaction in your wallet'
+            return 'Please confirm the transaction in your wallet.'
         } else if (error.toString().includes('not deployed on chain')) {
-            return 'Bulk is not able on this chain, please try another chain'
+            return 'Bulk is not able on this chain, please try another chain.'
         } else if (error.toString().includes('User rejected the request')) {
-            return 'Please confirm the request in your wallet'
+            return 'Please confirm the request in your wallet.'
         } else if (error.toString().includes('NETWORK_ERROR')) {
-            return 'A network error occured. Please refresh and try again'
+            return 'A network error occured. Please refresh and try again.'
         } else if (error.toString().includes('NONCE_EXPIRED')) {
-            return 'Nonce expired, please try again'
+            return 'Nonce expired, please try again.'
         } else if (error.toString().includes('Failed to get wallet client')) {
             return 'Please make sure your wallet is connected.'
         } else if (error.toString().includes('gas required exceeds allowance')) {
@@ -68,17 +68,17 @@ export const ErrorHandler = (error: any) => {
                     'Something went wrong while fetching the token price. Please change the input denomination and try again'
                 )
         ) {
-            return 'Something went wrong while fetching the token price. Please change the input denomination and try again'
+            return 'Something went wrong while fetching the token price. Please change the input denomination and try again.'
         } else if (error.toString().includes('Please ensure that the correct token and chain are defined')) {
-            return 'Please ensure that the correct token and chain are defined'
+            return 'Please ensure that the correct token and chain are defined.'
         } else if (
             error
                 .toString()
                 .includes('Please ensure that you have sufficient balance of the token you are trying to send')
         ) {
-            return 'Please ensure that you have sufficient balance of the token you are trying to send'
+            return 'Please ensure that you have sufficient balance of the token you are trying to send.'
         } else if (error.toString().includes('The minimum amount to send is 0.0001')) {
-            return 'The minimum amount to send is 0.0001'
+            return 'The minimum amount to send is 0.0001.'
         } else if (error.toString().includes('Error getting the linkDetails')) {
             return 'Error getting the linkDetails.'
         } else if (error.toString().includes('Error generating the password.')) {
@@ -98,7 +98,7 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('Error getting the link with transactionHash')) {
             return error.message
         } else {
-            return 'Something failed while creating your link. Please try again'
+            return 'Something failed while creating your link. Please try again.'
         }
     }
 }

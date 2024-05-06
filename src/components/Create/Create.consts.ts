@@ -43,8 +43,8 @@ export interface ICreateScreenProps {
     setLinkDetails: (value: peanutInterfaces.IPeanutLinkDetails) => void
     password: string
     setPassword: (value: string) => void
-    transactionType: 'normal' | 'gasless'
-    setTransactionType: (value: 'normal' | 'gasless') => void
+    transactionType: 'not-gasless' | 'gasless'
+    setTransactionType: (value: 'not-gasless' | 'gasless') => void
     gaslessPayload: peanutInterfaces.IGaslessDepositPayload | undefined
     setGaslessPayload: (value: peanutInterfaces.IGaslessDepositPayload | undefined) => void
     gaslessPayloadMessage: peanutInterfaces.IPreparedEIP712Message | undefined

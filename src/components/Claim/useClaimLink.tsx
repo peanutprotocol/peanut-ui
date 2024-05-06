@@ -16,7 +16,7 @@ export const useClaimLink = () => {
     const xchainFeeMultiplier = 0.98
 
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
-        setLoadingState('executing transaction')
+        setLoadingState('Executing transaction')
         try {
             const claimTx = await claimLinkGasless({
                 link,
@@ -31,7 +31,7 @@ export const useClaimLink = () => {
 
             throw error
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
 
@@ -46,7 +46,7 @@ export const useClaimLink = () => {
         destinationChainId: string
         destinationToken: string
     }) => {
-        setLoadingState('executing transaction')
+        setLoadingState('Executing transaction')
         try {
             const isTestnet = utils.isTestnetChain(destinationChainId)
             const claimTx = await claimLinkXChainGasless({
@@ -65,7 +65,7 @@ export const useClaimLink = () => {
             console.log('Error claiming link:', error)
             throw error
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
 
@@ -81,15 +81,15 @@ export const useClaimLink = () => {
 
     const switchNetwork = async (chainId: string) => {
         if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('allow network switch')
+            setLoadingState('Allow network switch')
 
             try {
                 await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('switching network')
+                setLoadingState('Switching network')
                 await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('loading')
+                setLoadingState('Loading')
             } catch (error) {
-                setLoadingState('idle')
+                setLoadingState('Idle')
                 console.error('Error switching network:', error)
                 // TODO: handle error, either throw or return error
             }

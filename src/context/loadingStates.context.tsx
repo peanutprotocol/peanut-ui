@@ -9,8 +9,8 @@ export const loadingStateContext = createContext({
 })
 
 export const LoadingStateContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [loadingState, setLoadingState] = useState<consts.LoadingStates>('idle')
-    const isLoading = useMemo(() => loadingState !== 'idle', [loadingState])
+    const [loadingState, setLoadingState] = useState<consts.LoadingStates>('Idle')
+    const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
 
     return (
         <loadingStateContext.Provider

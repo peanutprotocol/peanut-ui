@@ -31,7 +31,7 @@ export const ConfirmClaimLinkView = ({
     }>({ showError: false, errorMessage: '' })
 
     const handleOnClaim = async () => {
-        setLoadingState('loading')
+        setLoadingState('Loading')
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -45,7 +45,7 @@ export const ConfirmClaimLinkView = ({
                 _recipientAddress = address ?? ''
             }
 
-            setLoadingState('executing transaction')
+            setLoadingState('Executing transaction')
             const claimTxHash = await claimLink({
                 address: _recipientAddress,
                 link: claimLinkData.link,
@@ -64,7 +64,7 @@ export const ConfirmClaimLinkView = ({
                 errorMessage: errorString,
             })
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
     return (

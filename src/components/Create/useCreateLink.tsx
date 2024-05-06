@@ -167,12 +167,12 @@ export const useCreateLink = () => {
     )
     const switchNetwork = async (chainId: string) => {
         if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('allow network switch')
+            setLoadingState('Allow network switch')
             try {
                 await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('switching network')
+                setLoadingState('Switching network')
                 await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('loading')
+                setLoadingState('Loading')
             } catch (error) {
                 throw new Error('Error switching network.')
             }
@@ -255,7 +255,7 @@ export const useCreateLink = () => {
                 let idx = 0
                 const signedTxsResponse: string[] = []
                 for (const tx of preparedDepositTxs.unsignedTxs) {
-                    setLoadingState('sign in wallet')
+                    setLoadingState('Sign in wallet')
 
                     // Set fee options using our SDK
                     if (!feeOptions) {
@@ -284,7 +284,7 @@ export const useCreateLink = () => {
                         chainId: Number(selectedChainID), //TODO: chainId as number here
                     })
 
-                    setLoadingState('executing transaction')
+                    setLoadingState('Executing transaction')
 
                     // if (walletType === 'safe') {
                     //     const sdk = new SafeAppsSDK({

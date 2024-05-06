@@ -155,7 +155,7 @@ export const SwapInitialClaimLinkView = ({
     }, [claimLinkData, refetchXchainRoute]) // TODO: move this function to useClaimLink
 
     const handleOnClaim = async () => {
-        setLoadingState('loading')
+        setLoadingState('Loading')
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -182,7 +182,7 @@ export const SwapInitialClaimLinkView = ({
                 errorMessage: errorString,
             })
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
 

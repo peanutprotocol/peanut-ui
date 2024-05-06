@@ -207,6 +207,31 @@ export const getAllGigalinksFromLocalstorage = ({ address }: { address: string }
     }
 }
 
+export const addClaimLinkToLocalstorage = ({
+    address,
+    linkDetails,
+}: {
+    address: string
+    linkDetails: interfaces.ILinkDetails
+}) => {
+    try {
+        const key = `${address} - claimed links`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: interfaces.ILinkDetails[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.ILinkDetails[]
+        }
+
+        data.push(linkDetails)
+
+        localStorage.setItem(key, JSON.stringify(data))
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
 export function formatAmountWithDecimals({ amount, decimals }: { amount: number; decimals: number }) {
     const divider = 10 ** decimals
     const formattedAmount = amount / divider

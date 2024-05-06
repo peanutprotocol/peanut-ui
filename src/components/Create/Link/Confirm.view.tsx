@@ -38,7 +38,7 @@ export const CreateLinkConfirmView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const handleConfirm = async () => {
-        setLoadingState('loading')
+        setLoadingState('Loading')
 
         setErrorState({
             showError: false,
@@ -48,22 +48,22 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            if (transactionType === 'normal') {
+            if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {
                 if (!gaslessPayload || !gaslessPayloadMessage) return
-                setLoadingState('sign in wallet')
+                setLoadingState('Sign in wallet')
                 const signature = await signTypedData({ gaslessMessage: gaslessPayloadMessage })
                 if (!signature) return
-                setLoadingState('executing transaction')
+                setLoadingState('Executing transaction')
                 hash = await makeDepositGasless({ signature, payload: gaslessPayload })
             }
 
             setTxHash(hash)
 
-            setLoadingState('creating link')
+            setLoadingState('Creating link')
 
             const link = await getLinkFromHash({ hash, linkDetails, password })
 
@@ -78,7 +78,7 @@ export const CreateLinkConfirmView = ({
                 errorMessage: errorString,
             })
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
 

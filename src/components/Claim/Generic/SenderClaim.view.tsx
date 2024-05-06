@@ -35,7 +35,7 @@ export const SenderClaimLinkView = ({
     }>({ showError: false, errorMessage: '' })
 
     const handleOnCancel = async () => {
-        setLoadingState('loading')
+        setLoadingState('Loading')
         setErrorState({
             showError: false,
             errorMessage: '',
@@ -45,7 +45,7 @@ export const SenderClaimLinkView = ({
         if (!claimLinkData) return
 
         try {
-            setLoadingState('executing transaction')
+            setLoadingState('Executing transaction')
             const claimTxHash = await claimLink({
                 address: address ?? '',
                 link: claimLinkData.link,
@@ -67,7 +67,7 @@ export const SenderClaimLinkView = ({
                 errorMessage: errorString,
             })
         } finally {
-            setLoadingState('idle')
+            setLoadingState('Idle')
         }
     }
 
