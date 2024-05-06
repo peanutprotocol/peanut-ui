@@ -36,7 +36,7 @@ export const Dashboard = () => {
     const [currentPage, setCurrentPage] = useState<number>(0)
     const [legacyLinks, setLegacyLinks] = useState<string[]>([])
 
-    const { address } = useAccount()
+    const { address, isConnected } = useAccount()
     const router = useRouter()
 
     const fetchLinkDetailsAsync = async (data: interfaces.IDashboardItem[]) => {
@@ -219,6 +219,9 @@ export const Dashboard = () => {
             }
             console.log(links)
             setLegacyLinks(links)
+        } else {
+            setDashboardData([])
+            setLegacyLinks([])
         }
     }, [address])
 
@@ -247,7 +250,13 @@ export const Dashboard = () => {
             <div className="flex w-full flex-row items-start justify-between">
                 <div className="flex flex-col items-start justify-center">
                     <label className="text-h2">Link History</label>
-                    <label className="text-h7 font-normal">Here are all the links you have created or claimed.</label>
+                    <label className="text-h7 font-normal">
+                        {!isConnected
+                            ? 'Connect your wallet to view all the links you have claimed/created '
+                            : dashboardData.length > 0
+                              ? 'Here are all the links you have created or claimed.'
+                              : 'You have not created or claimed any links yet.'}
+                    </label>
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Create Link
@@ -256,16 +265,17 @@ export const Dashboard = () => {
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-3">
-                <div className="flex w-full flex-col-reverse items-center justify-center gap-3 sm:flex-row sm:items-end sm:justify-between">
-                    <SortComponent
-                        sortingValue={sortingValue}
-                        setSortingValue={(sortingValue: string) => {
-                            setSortingValue(sortingValue)
-                        }}
-                        buttonClassName="w-full sm:w-max"
-                    />
+                {dashboardData.length > 0 && (
+                    <div className="flex w-full flex-col-reverse items-center justify-center gap-3 sm:flex-row sm:items-end sm:justify-between">
+                        <SortComponent
+                            sortingValue={sortingValue}
+                            setSortingValue={(sortingValue: string) => {
+                                setSortingValue(sortingValue)
+                            }}
+                            buttonClassName="w-full sm:w-max"
+                        />
 
-                    {/* <Search
+                        {/* <Search
                         onChange={(e: any) => setFilterValue(e.target.value)}
                         onSubmit={() => {}}
                         placeholder="Search"
@@ -274,111 +284,123 @@ export const Dashboard = () => {
                         border={true}
                         className=" bg-white "
                     /> */}
-                </div>
-                <table className="table-custom hidden sm:table">
-                    <thead>
-                        <tr>
-                            <th className="th-custom">
-                                <Sorting title="Type" />
-                            </th>
-                            <th className="th-custom">
-                                <Sorting title="Amount" />
-                            </th>
-                            <th className="th-custom">
-                                <Sorting title="Date Created/Claimed" />
-                            </th>
-                            <th className="th-custom ">
-                                <Sorting title="From" />
-                            </th>
-                            <th className="th-custom ">
-                                <Sorting title="Status" />
-                            </th>
-                            <th className="th-custom"></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {dashboardData &&
-                            dashboardData.slice((currentPage - 1) * itemsPerPage).map((link) => (
-                                <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
-                                    <td className="td-custom font-bold">{link.type}</td>
-                                    <td className="td-custom font-bold">
-                                        {utils.formatTokenAmount(Number(link.amount), 4)} {link.tokenSymbol} -{' '}
-                                        {link.chain}
-                                    </td>
-                                    <td className="td-custom">{formatDate(new Date(link.date))}</td>
-                                    {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
-                                    <td className="td-custom">
-                                        {utils.shortenAddressLong(link.address ?? address ?? '')}
-                                    </td>
-                                    <td className="td-custom">
-                                        {!link.status ? (
-                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                <Loading />
-                                            </div>
-                                        ) : link.status === 'claimed' ? (
-                                            <div className="border border-green-3 px-2 py-1 text-center text-green-3">
-                                                claimed
-                                            </div>
-                                        ) : (
-                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                pending
-                                            </div>
-                                        )}
-                                    </td>{' '}
-                                    <td className="td-custom text-center ">
-                                        <OptionsItem link={link.link} type={link.type} />
-                                    </td>
-                                </tr>
-                            ))}
-                    </tbody>
-                </table>
-                <div className="block w-full sm:hidden">
-                    {dashboardData.length > 1 ? (
-                        dashboardData
-                            .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                            .map((link) => <MobileItem linkDetail={link} />)
-                    ) : (
-                        <div className="flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black">
-                            <div className="flex w-full flex-row items-center justify-between">
-                                <label className="h-2 w-16 animate-pulse rounded bg-slate-700 font-bold"></label>
-                                <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
-                            </div>
-                            <div className="flex h-2 w-16 w-full animate-pulse rounded border-t border-dotted border-black bg-slate-700"></div>
-                            <div className="flex w-full flex-row items-end justify-between">
-                                <div className="flex flex-col items-start justify-end gap-2 text-start">
-                                    <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
-                                    <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
-                                </div>
-                                <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                    <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-                <CSVLink
-                    data={legacyLinks ? legacyLinks.join('\n') : ''}
-                    filename="links.csv"
-                    className="cursor-pointer self-end text-purple-1"
-                >
-                    Download ({legacyLinks.length}) legacy links as CSV
-                </CSVLink>
+                    </div>
+                )}
+                {!isConnected
+                    ? ''
+                    : dashboardData.length > 0 && (
+                          <>
+                              <table className="table-custom hidden sm:table">
+                                  <thead>
+                                      <tr>
+                                          <th className="th-custom">
+                                              <Sorting title="Type" />
+                                          </th>
+                                          <th className="th-custom">
+                                              <Sorting title="Amount" />
+                                          </th>
+                                          <th className="th-custom">
+                                              <Sorting title="Date Created/Claimed" />
+                                          </th>
+                                          <th className="th-custom ">
+                                              <Sorting title="From" />
+                                          </th>
+                                          <th className="th-custom ">
+                                              <Sorting title="Status" />
+                                          </th>
+                                          <th className="th-custom"></th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {dashboardData &&
+                                          dashboardData.slice((currentPage - 1) * itemsPerPage).map((link) => (
+                                              <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
+                                                  <td className="td-custom font-bold">{link.type}</td>
+                                                  <td className="td-custom font-bold">
+                                                      {utils.formatTokenAmount(Number(link.amount), 4)}{' '}
+                                                      {link.tokenSymbol} - {link.chain}
+                                                  </td>
+                                                  <td className="td-custom">{formatDate(new Date(link.date))}</td>
+                                                  {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
+                                                  <td className="td-custom">
+                                                      {utils.shortenAddressLong(link.address ?? address ?? '')}
+                                                  </td>
+                                                  <td className="td-custom">
+                                                      {!link.status ? (
+                                                          <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                              <Loading />
+                                                          </div>
+                                                      ) : link.status === 'claimed' ? (
+                                                          <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                              claimed
+                                                          </div>
+                                                      ) : (
+                                                          <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                              pending
+                                                          </div>
+                                                      )}
+                                                  </td>{' '}
+                                                  <td className="td-custom text-center ">
+                                                      <OptionsItem link={link.link} type={link.type} />
+                                                  </td>
+                                              </tr>
+                                          ))}
+                                  </tbody>
+                              </table>
+                              <div className="block w-full sm:hidden">
+                                  {dashboardData.length > 1 ? (
+                                      dashboardData
+                                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                          .map((link) => <MobileItem linkDetail={link} />)
+                                  ) : (
+                                      <div className="flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black">
+                                          <div className="flex w-full flex-row items-center justify-between">
+                                              <label className="h-2 w-16 animate-pulse rounded bg-slate-700 font-bold"></label>
+                                              <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
+                                          </div>
+                                          <div className="flex h-2 w-16 w-full animate-pulse rounded border-t border-dotted border-black bg-slate-700"></div>
+                                          <div className="flex w-full flex-row items-end justify-between">
+                                              <div className="flex flex-col items-start justify-end gap-2 text-start">
+                                                  <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
+                                                  <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
+                                              </div>
+                                              <div className="flex flex-col items-end justify-end gap-2 text-end">
+                                                  <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+                                                  <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
+                                              </div>
+                                          </div>
+                                      </div>
+                                  )}
+                              </div>
+                          </>
+                      )}
+
+                {legacyLinks.length > 0 && (
+                    <CSVLink
+                        data={legacyLinks ? legacyLinks.join('\n') : ''}
+                        filename="links.csv"
+                        className="cursor-pointer self-end text-purple-1"
+                    >
+                        Download ({legacyLinks.length}) legacy links as CSV
+                    </CSVLink>
+                )}
             </div>
-            <TablePagination
-                onNext={() => {
-                    if (currentPage < totalPages) {
-                        setCurrentPage(currentPage + 1)
-                    }
-                }}
-                onPrev={() => {
-                    if (currentPage > 1) {
-                        setCurrentPage(currentPage - 1)
-                    }
-                }}
-                totalPages={totalPages}
-                currentPage={currentPage}
-            />
+            {dashboardData.length > 0 && (
+                <TablePagination
+                    onNext={() => {
+                        if (currentPage < totalPages) {
+                            setCurrentPage(currentPage + 1)
+                        }
+                    }}
+                    onPrev={() => {
+                        if (currentPage > 1) {
+                            setCurrentPage(currentPage - 1)
+                        }
+                    }}
+                    totalPages={totalPages}
+                    currentPage={currentPage}
+                />
+            )}
 
             <button
                 className="flex cursor-pointer flex-row items-center justify-center gap-1"
