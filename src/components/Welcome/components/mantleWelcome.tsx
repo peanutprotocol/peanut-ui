@@ -209,7 +209,7 @@ export function WelcomeMantle() {
                         </a>
                     </div>
                 </div>
-                <div className="center-xy brutalborder-x z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden bg-fuchsia lg:flex ">
+                <div className="center-xy brutalborder-x z-index-1 bg-fuchsia relative hidden w-1/3 items-center justify-center overflow-hidden lg:flex ">
                     <Lottie options={defaultLottieOptions} height={isMobile ? 200 : 400} width={isMobile ? 125 : 250} />
                 </div>
             </div>
@@ -271,7 +271,7 @@ export function WelcomeMantle() {
                         </div>
                     </div>
                 </div>
-                <div className="brutalborder flex flex-col items-center justify-center gap-6 border-2 border-black bg-teal py-8 text-black sm:py-16 lg:flex-row">
+                <div className="brutalborder bg-teal flex flex-col items-center justify-center gap-6 border-2 border-black py-8 text-black sm:py-16 lg:flex-row">
                     {/* right column */}
                     <div className=" relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3   ">
                         <a href="https://docs.peanut.to/overview/wallet-integrations/figma-flow" target="_blank">
