@@ -22,11 +22,11 @@ export const Reclaim = () => {
     return (
         <div className="card">
             <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
-                <label className="text-h2">Reclaim</label>
+                <label className="text-h2">Refund</label>
                 <div className="max-w-96 text-start text-h8 font-light">
-                    This is a page specific for reclaiming links that failed while creating, but the funds did leave
-                    your wallet. Please provide the transaction hash and chainId, and you will be able to claim. Please
-                    note that you will have to be connected with the same wallet that you tried creating the link with.
+                    This is a page specific for refunding links that failed while creating, but the funds did leave your
+                    wallet. Please provide the transaction hash and chainId, and you will be able to claim. Please note
+                    that you will have to be connected with the same wallet that you tried creating the link with.
                 </div>
 
                 <form className="flex w-full flex-col items-center gap-2 px-4 sm:gap-7">
@@ -80,7 +80,7 @@ export const Reclaim = () => {
                             ) : (
                                 'Claim'
                             )} */}
-                            Claim
+                            Refund
                         </button>
                         {/* {claimedExploredUrlWithHash ? (
                             <div className="flex flex-col items-center justify-center gap-1">

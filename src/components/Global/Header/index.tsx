@@ -140,6 +140,12 @@ const Header = ({}: HeaderProps) => {
                                                                 className={
                                                                     'bg-transparant block px-4 py-2 text-h7 font-bold hover:bg-background hover:text-black dark:hover:bg-background dark:hover:text-black'
                                                                 }
+                                                                onClick={(event: any) => {
+                                                                    if (event?.detail != 0) {
+                                                                        if (window?.location.pathname == '/send')
+                                                                            window?.location.reload()
+                                                                    }
+                                                                }}
                                                             >
                                                                 {app.name}
                                                             </Link>

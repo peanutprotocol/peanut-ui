@@ -15,6 +15,7 @@ import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import Loading from '../Global/Loading'
 import { useRouter } from 'next/navigation'
 import { CSVDownload, CSVLink } from 'react-csv'
+import Modal from '../Global/Modal'
 
 const sortingTypes = [
     'Date: new to old',
@@ -467,7 +468,7 @@ const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' })
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                         >
-                            <div className="text-h8">Reclaim</div>
+                            <div className="text-h8">Refund</div>
                         </Menu.Item>
                     )}
                     <Menu.Item
@@ -478,16 +479,6 @@ const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' })
                         className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                     >
                         <div className="text-h8">Copy Link</div>
-                    </Menu.Item>
-                    <Menu.Item
-                        as={'button'}
-                        onClick={() => {
-                            console.log('clicked')
-                        }}
-                        className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                        disabled={true}
-                    >
-                        <div className="text-h8">Delete</div>
                     </Menu.Item>
                 </Menu.Items>
             </Transition>
@@ -507,10 +498,14 @@ function formatDate(date: Date): string {
 }
 
 const MobileItem = ({ linkDetail, address }: { linkDetail: interfaces.IDashboardItem; address: string }) => {
+    const [modalVisible, setModalVisible] = useState(false)
+    const router = useRouter()
+
     return (
         <div
             className=" flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
             key={linkDetail.link + Math.random()}
+            onClick={() => setModalVisible(true)}
         >
             <div className="flex w-full flex-row items-center justify-between">
                 <label className="font-bold">{linkDetail.type}</label>
@@ -529,74 +524,41 @@ const MobileItem = ({ linkDetail, address }: { linkDetail: interfaces.IDashboard
                 <div className="flex flex-col items-end justify-end gap-2 text-end">
                     <div>
                         {linkDetail.status === 'claimed' ? (
-                            <div className="border border-green-3 border-n-1 px-2 py-1 text-center text-green-3">
-                                claimed
-                            </div>
+                            <div className="border border-green-3 px-2 py-1 text-center text-green-3">claimed</div>
                         ) : (
                             <div className="border border-gray-1 border-n-1 px-2 py-1 text-gray-1">pending</div>
                         )}
                     </div>
                 </div>
             </div>
+            <Modal
+                visible={modalVisible}
+                onClose={() => setModalVisible(false)}
+                title="Options"
+                classWrap="bg-background"
+            >
+                <div className="flex w-full flex-col items-center justify-center p-2 "></div>
+                {linkDetail.type != 'receive' && (
+                    <div className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
+                        <div
+                            className="text-h8"
+                            onClick={() => {
+                                router.push(`/${linkDetail.link.split('://')[1].split('/')[1]}`)
+                            }}
+                        >
+                            Refund
+                        </div>
+                    </div>
+                )}
+                <div
+                    onClick={() => {
+                        utils.copyTextToClipboardWithFallback(linkDetail.link)
+                    }}
+                    className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                >
+                    <div className="text-h8">Copy Link</div>
+                </div>
+            </Modal>
         </div>
     )
 }
-
-// {localStorageLinkData.length > 0 && dashboardLinkData.length === 0 ? (
-//     <tr className="h-16 text-h8 font-normal">
-//         <td className="td-custom">
-//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-//         </td>
-//         <td className="td-custom">
-//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-//         </td>{' '}
-//         <td className="td-custom">
-//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-//         </td>{' '}
-//         <td className="td-custom">
-//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-//         </td>{' '}
-//         <td className="td-custom">
-//             <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-//         </td>{' '}
-//         <td className="td-custom">
-//             <div className="h-2 w-4 animate-pulse rounded bg-slate-700"></div>
-//         </td>
-//     </tr>
-// ) : (
-//     dashboardLinkData
-//         .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-//         .map((link) => (
-//             <tr className="h-16 text-h8 font-normal" key={link.link}>
-//                 <td className="td-custom font-bold">
-//                     {link.senderAddress === address ? 'Send' : 'Receive'}
-//                 </td>
-//                 <td className="td-custom font-bold">
-//                     {utils.formatTokenAmount(Number(link.tokenAmount), 4)} {link.tokenSymbol}
-//                     {' - '}
-//                     {
-//                         consts.supportedPeanutChains.find(
-//                             (chain) => chain.chainId === link.chainId
-//                         )?.name
-//                     }
-//                 </td>
-//                 <td className="td-custom">{formatDate(link.depositDate)}</td>
-//                 {/* <td className="td-custom">{formatDate(link.depositDate)}</td> */}
-//                 <td className="td-custom">{utils.shortenAddressLong(link.senderAddress)}</td>
-//                 <td className="td-custom">
-//                     {link.claimed ? (
-//                         <div className="border border-green-3 px-2 py-1 text-center text-green-3">
-//                             claimed
-//                         </div>
-//                     ) : (
-//                         <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-//                             pending
-//                         </div>
-//                     )}
-//                 </td>{' '}
-//                 <td className="td-custom text-center ">
-//                     <OptionsItem link={link.link} />
-//                 </td>
-//             </tr>
-//         ))
-// )}

@@ -1,6 +1,6 @@
 'use client'
 
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Modal from '../Modal'
 import Icon from '../Icon'
 import Search from '../Search'
@@ -36,6 +36,7 @@ const TokenSelector = ({
 }: TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
+    const focusButtonRef = useRef<HTMLButtonElement>(null)
 
     const { balances } = useBalance()
     const {
@@ -98,6 +99,12 @@ const TokenSelector = ({
         setVisible(false)
     }
 
+    useEffect(() => {
+        if (focusButtonRef.current) {
+            focusButtonRef.current.focus()
+        }
+    }, [visible])
+
     return (
         <>
             {simpleButton ? (
@@ -152,6 +159,7 @@ const TokenSelector = ({
                     setVisible(false)
                 }}
                 title={'Select Token'}
+                classNameWrapperDiv="px-5 pb-7 pt-8"
             >
                 <div className="flex h-full w-full flex-col gap-4">
                     <div className="flex w-full flex-row gap-4">
@@ -166,6 +174,7 @@ const TokenSelector = ({
                         />
                         <ChainSelector chainsToDisplay={data} />
                     </div>
+                    <button className="hidden" ref={focusButtonRef}></button>
 
                     {filterValue.length > 2
                         ? tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID, type)

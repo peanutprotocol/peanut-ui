@@ -13,23 +13,9 @@ type SearchProps = {
 }
 
 const Search = ({ className, placeholder, value, onChange, onSubmit, large, medium, border }: SearchProps) => {
-    const ref = useRef<HTMLInputElement>(null)
-
-    useEffect(() => {
-        // Ensure that the input does not automatically focus when rendered
-        if (ref.current) {
-            ref.current.blur()
-        }
-    }, [])
-
     return (
-        <form
-            className={`relative ${className} ${large ? 'shadow-primary-4 w-full' : ''}`}
-            action=""
-            onSubmit={onSubmit}
-        >
+        <div className={`relative ${className} ${large ? 'shadow-primary-4 w-full' : ''}`}>
             <input
-                ref={ref}
                 className={`w-full rounded-none bg-transparent text-base outline-none
                 transition-colors placeholder:text-base focus:border-purple-1 dark:border-white dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1 ${
                     large
@@ -42,7 +28,6 @@ const Search = ({ className, placeholder, value, onChange, onSubmit, large, medi
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
-                onFocus={(e) => e.target.blur()} // Keep input blurred on focus
             />
             <button
                 className={`absolute text-0 ${
@@ -52,8 +37,8 @@ const Search = ({ className, placeholder, value, onChange, onSubmit, large, medi
                 }`}
             >
                 <Icon className="dark:fill-white" name="search" />
-            </button>
-        </form>
+            </button>{' '}
+        </div>
     )
 }
 

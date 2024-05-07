@@ -15,6 +15,7 @@ type ModalProps = {
     children: React.ReactNode
     video?: boolean
     hideOverlay?: boolean
+    classNameWrapperDiv?: string
 }
 
 const Modal = ({
@@ -29,6 +30,7 @@ const Modal = ({
     children,
     video,
     hideOverlay,
+    classNameWrapperDiv,
 }: ModalProps) => {
     return (
         <Transition show={visible} as={Fragment}>
@@ -76,7 +78,7 @@ const Modal = ({
                                         <div className="border-b border-n-1 px-5 py-4 text-start text-h6 dark:border-white">
                                             {title}
                                         </div>
-                                        <div className="px-5 pb-7 pt-8">{children}</div>
+                                        <div className={classNameWrapperDiv}>{children}</div>
                                     </>
                                 ) : (
                                     children
