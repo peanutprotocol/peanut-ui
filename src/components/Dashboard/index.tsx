@@ -348,29 +348,11 @@ export const Dashboard = () => {
                                   </tbody>
                               </table>
                               <div className="block w-full sm:hidden">
-                                  {dashboardData.length > 1 ? (
-                                      dashboardData
-                                          .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                                          .map((link) => <MobileItem linkDetail={link} />)
-                                  ) : (
-                                      <div className="flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black">
-                                          <div className="flex w-full flex-row items-center justify-between">
-                                              <label className="h-2 w-16 animate-pulse rounded bg-slate-700 font-bold"></label>
-                                              <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
-                                          </div>
-                                          <div className="flex h-2 w-16 w-full animate-pulse rounded border-t border-dotted border-black bg-slate-700"></div>
-                                          <div className="flex w-full flex-row items-end justify-between">
-                                              <div className="flex flex-col items-start justify-end gap-2 text-start">
-                                                  <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
-                                                  <label className="h-2 w-16 animate-pulse rounded bg-slate-700"></label>
-                                              </div>
-                                              <div className="flex flex-col items-end justify-end gap-2 text-end">
-                                                  <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                                  <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                                              </div>
-                                          </div>
-                                      </div>
-                                  )}
+                                  {dashboardData
+                                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                      .map((link) => (
+                                          <MobileItem linkDetail={link} />
+                                      ))}
                               </div>
                           </>
                       )}

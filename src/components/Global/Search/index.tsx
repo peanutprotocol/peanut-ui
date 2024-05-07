@@ -1,4 +1,3 @@
-'use client'
 import Icon from '@/components/Global/Icon'
 import { useEffect, useRef, useState } from 'react'
 
@@ -14,28 +13,25 @@ type SearchProps = {
 }
 
 const Search = ({ className, placeholder, value, onChange, onSubmit, large, medium, border }: SearchProps) => {
-    const [initialRender, setInitialRender] = useState(true)
     const ref = useRef<HTMLInputElement>(null)
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            if (ref.current && initialRender) {
-                ref.current.blur()
-                setInitialRender(false)
-            }
-        }, 100) // Delays the blur slightly to ensure UI is ready
-        return () => clearTimeout(timer)
+        // Ensure that the input does not automatically focus when rendered
+        if (ref.current) {
+            ref.current.blur()
+        }
     }, [])
 
     return (
         <form
-            className={`relative  ${className} ${large ? 'shadow-primary-4 w-full' : ''}`}
+            className={`relative ${className} ${large ? 'shadow-primary-4 w-full' : ''}`}
             action=""
             onSubmit={onSubmit}
         >
             <input
-                className={`transition-color s w-full rounded-none bg-transparent text-base
-                outline-none placeholder:text-base focus:border-purple-1 dark:border-white dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1 ${
+                ref={ref}
+                className={`w-full rounded-none bg-transparent text-base outline-none
+                transition-colors placeholder:text-base focus:border-purple-1 dark:border-white dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1 ${
                     large
                         ? 'h-16 bg-white pl-6 pr-18 text-base font-medium dark:bg-n-1'
                         : medium
@@ -46,11 +42,7 @@ const Search = ({ className, placeholder, value, onChange, onSubmit, large, medi
                 placeholder={placeholder}
                 value={value}
                 onChange={onChange}
-                autoFocus={false}
-                onFocus={(e) => {
-                    e.preventDefault()
-                    // ref.current?.blur()
-                }}
+                onFocus={(e) => e.target.blur()} // Keep input blurred on focus
             />
             <button
                 className={`absolute text-0 ${
