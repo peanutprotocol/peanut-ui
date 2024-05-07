@@ -45,6 +45,21 @@ const nextConfig = {
                 destination: '/raffle/create',
                 permanent: true,
             },
+            {
+                source: '/batch/create',
+                destination: 'https://legacy.peanut.to/batch/create',
+                permanent: true,
+            },
+            {
+                source: '/raffle/create',
+                destination: 'https://legacy.peanut.to/raffle/create',
+                permanent: true,
+            },
+            {
+                source: '/raffle/claim',
+                destination: 'https://legacy.peanut.to/raffle/claim',
+                permanent: true,
+            },
         ]
     },
     async headers() {
