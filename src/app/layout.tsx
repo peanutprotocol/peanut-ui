@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <body className={`${roboto.variable} font-sans`}>
                 <ColorModeProvider>
                     <ColorModeScript
-                        initialColorMode="system"
+                        initialColorMode="light"
                         key="chakra-ui-no-flash"
                         storageKey="chakra-ui-color-mode"
                     />

@@ -268,7 +268,7 @@ export function Welcome() {
                 </label>
             </div>
 
-            <div className="w-full  px-4">
+            <div className="w-full px-4 text-black">
                 <div className="flex w-full flex-col items-center justify-between border border-n-2 bg-yellow-1 lg:flex-row-reverse ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a
@@ -306,7 +306,7 @@ export function Welcome() {
                     </div>
                 </div>
             </div>
-            <div className="w-full  px-4">
+            <div className="w-full px-4 text-black">
                 <div className="flex w-full flex-col items-center justify-between border border-n-2 bg-yellow-1 py-12 lg:flex-row ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
@@ -341,11 +341,11 @@ export function Welcome() {
                 </div>
             </div>
 
-            <div className="w-full border-y-[1px] border-black py-3">
+            <div className="w-full border-y-[1px] border-black bg-white py-3">
                 <MarqueeWrapper backgroundColor="bg-white" direction="right">
                     {Object.entries(chain_logos).map(([chain, logo]) => {
                         return (
-                            <div className="pl-3" key={chain}>
+                            <div className="pl-3 " key={chain}>
                                 <img loading="eager" src={logo.src} className="h-16 w-16" />
                             </div>
                         )
@@ -505,7 +505,7 @@ export function Welcome() {
                 </MarqueeWrapper>
             </div>
 
-            <div role="list" className="grid:cols-1 grid gap-4 px-4 md:grid-cols-2 lg:grid-cols-4">
+            <div role="list" className="grid:cols-1 grid gap-4 px-4 text-black md:grid-cols-2 lg:grid-cols-4">
                 {testimonials.map((testimonial, index) => (
                     <div
                         key={index}

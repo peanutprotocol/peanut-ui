@@ -42,9 +42,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <Footer />
-                        <div className="absolute bottom-[6px] right-[6px]">
-                            <ToggleTheme />
-                        </div>
                     </div>
                 </div>
             </>
