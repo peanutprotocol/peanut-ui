@@ -39,7 +39,7 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
         try {
             await navigator.share({
                 title: 'Peanut Protocol',
-                text: 'Peanut Protocol',
+                text: 'Claim your funds here: ',
                 url,
             })
         } catch (error: any) {

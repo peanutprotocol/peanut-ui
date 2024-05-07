@@ -351,7 +351,9 @@ export const Dashboard = () => {
                                   {dashboardData
                                       .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                       .map((link) => (
-                                          <MobileItem linkDetail={link} />
+                                          <div key={link.link + Math.random()}>
+                                              <MobileItem linkDetail={link} address={address ?? ''} />
+                                          </div>
                                       ))}
                               </div>
                           </>
@@ -446,7 +448,7 @@ const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' })
     return (
         <Menu className="relative" as="div">
             <Menu.Button className={''}>
-                <Icon name={'dots'} className="cursor-pointer" />
+                <Icon name={'dots'} className="cursor-pointer dark:fill-white" />
             </Menu.Button>
             <Transition
                 enter="transition duration-100 ease-out"
@@ -504,7 +506,7 @@ function formatDate(date: Date): string {
     return `${day} ${month} ${year} ${hours}:${minutes}:${seconds}`
 }
 
-const MobileItem = ({ linkDetail }: { linkDetail: interfaces.IDashboardItem }) => {
+const MobileItem = ({ linkDetail, address }: { linkDetail: interfaces.IDashboardItem; address: string }) => {
     return (
         <div
             className=" flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
@@ -521,18 +523,8 @@ const MobileItem = ({ linkDetail }: { linkDetail: interfaces.IDashboardItem }) =
                         {utils.formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} [
                         {linkDetail.chain}]
                     </label>
-                    {linkDetail.type === 'send' ? (
-                        <div className="justify-content flex flex-row items-center gap-1">
-                            To:{' '}
-                            {linkDetail.address ? (
-                                utils.shortenAddressLong(linkDetail.address ?? '')
-                            ) : (
-                                <div className="h-2 w-16 animate-pulse rounded bg-slate-700"></div>
-                            )}
-                        </div>
-                    ) : (
-                        <label>From: {utils.shortenAddressLong(linkDetail.address ?? '')} </label>
-                    )}
+
+                    <label>From: {utils.shortenAddressLong(linkDetail.address ?? address)}</label>
                 </div>
                 <div className="flex flex-col items-end justify-end gap-2 text-end">
                     <div>
