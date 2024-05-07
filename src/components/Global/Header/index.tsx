@@ -17,14 +17,14 @@ const apps = [
         name: 'Transfer',
         href: '/send',
     },
-    // {
-    //     name: 'Raffle',
-    //     href: '/raffle/create',
-    // },
-    // {
-    //     name: 'Batch',
-    //     href: '/batch/create',
-    // },
+    {
+        name: 'Raffle',
+        href: '/raffle/create',
+    },
+    {
+        name: 'Batch',
+        href: '/batch/create',
+    },
 ]
 
 const Header = ({}: HeaderProps) => {
