@@ -129,7 +129,7 @@ export const CreateLinkInitialView = ({
 
             await switchNetwork(selectedChainID)
 
-            onNext('normal')
+            onNext()
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({

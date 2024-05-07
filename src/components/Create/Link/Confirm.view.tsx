@@ -83,7 +83,7 @@ export const CreateLinkConfirmView = ({
             setLink(link[0])
             console.log(link)
 
-            onNext('normal')
+            onNext()
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({
@@ -136,7 +136,7 @@ export const CreateLinkConfirmView = ({
                         'Confirm'
                     )}
                 </button>
-                <button className="btn btn-xl" onClick={() => onPrev('normal')} disabled={isLoading}>
+                <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
                     Return
                 </button>
                 {errorState.showError && (
