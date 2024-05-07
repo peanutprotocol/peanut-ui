@@ -56,6 +56,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountI
                     ref={inputRef}
                     inputMode="decimal"
                     type={inputType}
+                    value={tokenValue}
                     step="any"
                     min="0"
                     autoComplete="off"
