@@ -86,14 +86,16 @@ export const Claim = ({}) => {
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {
                 setLinkState('ALREADY_CLAIMED')
-            } else if (address && linkDetails.senderAddress === address) {
-                setLinkState('CLAIM_SENDER')
             } else {
                 const crossChainDetails = await getCrossChainDetails(linkDetails)
                 setCrossChainDetails(crossChainDetails)
                 const tokenPrice = await utils.fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
                 tokenPrice && setTokenPrice(tokenPrice?.price)
-                setLinkState('CLAIM')
+                if (address && linkDetails.senderAddress === address) {
+                    setLinkState('CLAIM_SENDER')
+                } else {
+                    setLinkState('CLAIM')
+                }
             }
         } catch (error) {
             setLinkState('NOT_FOUND')

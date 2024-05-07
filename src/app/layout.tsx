@@ -15,7 +15,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="en">
             <body className={`${roboto.variable} font-sans`}>
                 <ColorModeProvider>
-                    <ColorModeScript initialColorMode="light" />
+                    <ColorModeScript
+                        initialColorMode="light"
+                        key="chakra-ui-no-flash"
+                        storageKey="chakra-ui-color-mode"
+                    />
                     <config.PeanutProvider>
                         <context.ContextProvider>{children}</context.ContextProvider>
                     </config.PeanutProvider>
