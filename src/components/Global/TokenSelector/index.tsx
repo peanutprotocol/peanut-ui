@@ -77,7 +77,7 @@ const TokenSelector = ({
         }
 
         //Filtering on name and symbol
-        if (filterValue && filterValue.length > 2) {
+        if (filterValue && filterValue.length > 0) {
             _tokens = _tokens.filter(
                 (token) =>
                     token.name.toLowerCase().includes(filterValue.toLowerCase()) ||
@@ -163,6 +163,7 @@ const TokenSelector = ({
             >
                 <div className="flex h-full w-full flex-col gap-4">
                     <div className="flex w-full flex-row gap-4">
+                        <button className="sr-only" autoFocus ref={focusButtonRef} />
                         <Search
                             className="w-full"
                             placeholder="Search by token name"
@@ -174,9 +175,8 @@ const TokenSelector = ({
                         />
                         <ChainSelector chainsToDisplay={data} />
                     </div>
-                    <button className="hidden" ref={focusButtonRef}></button>
 
-                    {filterValue.length > 2
+                    {filterValue.length > 0
                         ? tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID, type)
                         : simpleTokenDisplay(_tokensToDisplay, setToken)}
                 </div>
