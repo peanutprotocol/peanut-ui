@@ -4,11 +4,10 @@ import { createElement, useEffect, useState } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
-import Layout from '../Global/Layout'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 
-export const Create = ({ type }: { type: _consts.CreateType }) => {
+export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
 
@@ -29,6 +28,7 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
 
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const [transactionCostUSD, setTransactionCostUSD] = useState<number | undefined>(undefined)
+    const [estiamtedPoints, setEstimatedPoints] = useState<number | undefined>(undefined)
 
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
@@ -66,33 +66,34 @@ export const Create = ({ type }: { type: _consts.CreateType }) => {
 
     return (
         <div className="card">
-            {type === 'normal' &&
-                createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
-                    onPrev: handleOnPrev,
-                    onNext: handleOnNext,
-                    tokenValue: tokenValue,
-                    setTokenValue: setTokenValue,
-                    linkDetails: linkDetails,
-                    setLinkDetails: setLinkDetails,
-                    password: password,
-                    setPassword: setPassword,
-                    transactionType: transactionType,
-                    setTransactionType: setTransactionType,
-                    gaslessPayload: gaslessPayload,
-                    setGaslessPayload: setGaslessPayload,
-                    gaslessPayloadMessage: gaslessPayloadMessage,
-                    setGaslessPayloadMessage: setGaslessPayloadMessage,
-                    preparedDepositTxs: preparedDepositTxs,
-                    setPreparedDepositTxs: setPreparedDepositTxs,
-                    txHash: txHash,
-                    setTxHash: setTxHash,
-                    link: link,
-                    setLink: setLink,
-                    feeOptions,
-                    setFeeOptions,
-                    transactionCostUSD,
-                    setTransactionCostUSD,
-                } as _consts.ICreateScreenProps)}
+            {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+                onPrev: handleOnPrev,
+                onNext: handleOnNext,
+                tokenValue: tokenValue,
+                setTokenValue: setTokenValue,
+                linkDetails: linkDetails,
+                setLinkDetails: setLinkDetails,
+                password: password,
+                setPassword: setPassword,
+                transactionType: transactionType,
+                setTransactionType: setTransactionType,
+                gaslessPayload: gaslessPayload,
+                setGaslessPayload: setGaslessPayload,
+                gaslessPayloadMessage: gaslessPayloadMessage,
+                setGaslessPayloadMessage: setGaslessPayloadMessage,
+                preparedDepositTxs: preparedDepositTxs,
+                setPreparedDepositTxs: setPreparedDepositTxs,
+                txHash: txHash,
+                setTxHash: setTxHash,
+                link: link,
+                setLink: setLink,
+                feeOptions,
+                setFeeOptions,
+                transactionCostUSD,
+                setTransactionCostUSD,
+                estiamtedPoints,
+                setEstimatedPoints,
+            } as _consts.ICreateScreenProps)}
         </div>
     )
 }

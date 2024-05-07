@@ -42,6 +42,8 @@ export interface ICreateScreenProps {
     setFeeOptions: (options: any | undefined) => void
     transactionCostUSD: number | undefined
     setTransactionCostUSD: (cost: number | undefined) => void
+    estiamtedPoints: number | undefined
+    setEstimatedPoints: (points: number | undefined) => void
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']

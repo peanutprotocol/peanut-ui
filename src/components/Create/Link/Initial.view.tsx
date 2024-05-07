@@ -24,6 +24,7 @@ export const CreateLinkInitialView = ({
     setTransactionType,
     setTransactionCostUSD,
     setFeeOptions,
+    setEstimatedPoints,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -33,6 +34,7 @@ export const CreateLinkInitialView = ({
         prepareDepositTxs,
         switchNetwork,
         estimateGasFee,
+        estimatePoints,
     } = useCreateLink()
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
@@ -43,7 +45,7 @@ export const CreateLinkInitialView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
-    const { isConnected } = useAccount()
+    const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
 
     const handleConnectWallet = async () => {
@@ -118,6 +120,17 @@ export const CreateLinkInitialView = ({
                         chainId: selectedChainID,
                         preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                     })
+
+                    const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
+                    const estiamtedPoints = await estimatePoints({
+                        chainId: selectedChainID,
+                        address: address ?? '',
+                        amountUSD: USDValue,
+                        preparedTx:
+                            prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
+                    })
+
+                    if (estiamtedPoints) setEstimatedPoints(estiamtedPoints)
 
                     setFeeOptions(feeOptions)
                     setTransactionCostUSD(transactionCostUSD)

@@ -1,7 +1,8 @@
 import TokenSelector from '@/components/Global/TokenSelector'
 import * as consts from '@/constants'
 import * as _consts from '../Claim.consts'
-import * as interfaces from '@/interfaces'
+import * as _interfaces from '../Claim.interfaces'
+import * as _utils from '../Claim.utils'
 import * as context from '@/context'
 import * as utils from '@/utils'
 import { AdvancedTokenSelectorButton } from '@/components/Global/TokenSelector/AdvancedButton'
@@ -11,75 +12,6 @@ import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
 import useClaimLink from '../useClaimLink'
 import Loading from '@/components/Global/Loading'
-
-interface xchainDetail {
-    axelarChainName?: string
-    chainIconURI?: string
-    chainId?: string
-    chainType?: string
-}
-
-type SquidChainWithTokens = peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }
-
-interface CombinedType extends interfaces.IPeanutChainDetails {
-    tokens: interfaces.IToken[]
-}
-
-function mapToIPeanutChainDetailsArray(data: SquidChainWithTokens[] | undefined): CombinedType[] {
-    if (!data) return []
-
-    const combinedArray: CombinedType[] = []
-    data.forEach((chain) => {
-        const chainDetails: interfaces.IPeanutChainDetails = {
-            name: chain.axelarChainName || '',
-            chain: chain.chainType || '',
-            icon: {
-                url: chain.chainIconURI || '',
-                format: '',
-            },
-            rpc: [],
-            features: [],
-            faucets: [],
-            nativeCurrency: {
-                name: '',
-                symbol: '',
-                decimals: 0,
-            },
-            infoURL: '',
-            shortName: '',
-            chainId: chain.chainId || '',
-            networkId: 0,
-            slip44: 0,
-            ens: {
-                registry: '',
-            },
-            explorers: [],
-            mainnet: false,
-        }
-
-        const combinedObject: CombinedType = {
-            ...chainDetails,
-            tokens: [],
-        }
-
-        if (chain.tokens && chain.tokens.length > 0) {
-            chain.tokens.forEach((token) => {
-                combinedObject.tokens.push({
-                    address: token.address || '',
-                    name: token.name || '',
-                    symbol: token.symbol || '',
-                    decimals: 0,
-                    logoURI: token.logoURI || '',
-                    chainId: chain.chainId || '',
-                })
-            })
-        }
-
-        combinedArray.push(combinedObject) // Pushing the combined object for the chain
-    })
-
-    return combinedArray
-}
 
 export const SwapInitialClaimLinkView = ({
     onNext,
@@ -107,7 +39,7 @@ export const SwapInitialClaimLinkView = ({
         .find((detail) => detail.chainId === claimLinkData.chainId)
         ?.tokens.find((token) => token.address === claimLinkData.tokenAddress)
     const sourceChain = consts.supportedPeanutChains.find((detail) => detail.chainId === claimLinkData.chainId)
-    const mappedData: CombinedType[] = mapToIPeanutChainDetailsArray(crossChainDetails)
+    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
 
     useEffect(() => {
         const fetchRoute = async () => {

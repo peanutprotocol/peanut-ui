@@ -198,6 +198,35 @@ export const useCreateLink = () => {
             throw error
         }
     }
+    const estimatePoints = async ({
+        chainId,
+        preparedTx,
+        address,
+        amountUSD,
+    }: {
+        chainId: string
+        preparedTx: any
+        address: string
+        amountUSD: number
+    }) => {
+        // try {
+        //     const response = await fetch('api.peanut.to/calculate-points', {
+        //         method: 'GET',
+        //         headers: {
+        //             'Content-Type': 'application/json',
+        //         },
+        //         body: JSON.stringify({
+        //             chainId: chainId,
+        //             address: address,
+        //             amountUSD: amountUSD,
+        //         }),
+        //     })
+        // } catch (error) {
+
+        // }
+
+        return 300
+    }
 
     // step 2
     const signTypedData = async ({ gaslessMessage }: { gaslessMessage: peanutInterfaces.IPreparedEIP712Message }) => {
@@ -375,5 +404,6 @@ export const useCreateLink = () => {
         getLinkFromHash,
         switchNetwork,
         estimateGasFee,
+        estimatePoints,
     }
 }

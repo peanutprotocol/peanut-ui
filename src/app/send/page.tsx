@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function SendPage() {
     return (
         <Layout>
-            <components.Create type="normal" />
+            <components.Create />
         </Layout>
     )
 }
