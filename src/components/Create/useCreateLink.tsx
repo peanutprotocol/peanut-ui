@@ -198,6 +198,7 @@ export const useCreateLink = () => {
             throw error
         }
     }
+
     const estimatePoints = async ({
         chainId,
         preparedTx,
@@ -205,27 +206,40 @@ export const useCreateLink = () => {
         amountUSD,
     }: {
         chainId: string
-        preparedTx: any
+        preparedTx: any // This could be detailed further depending on the transaction structure
         address: string
         amountUSD: number
     }) => {
-        // try {
-        //     const response = await fetch('api.peanut.to/calculate-points', {
-        //         method: 'GET',
-        //         headers: {
-        //             'Content-Type': 'application/json',
-        //         },
-        //         body: JSON.stringify({
-        //             chainId: chainId,
-        //             address: address,
-        //             amountUSD: amountUSD,
-        //         }),
-        //     })
-        // } catch (error) {
-
-        // }
-
-        return 300
+        try {
+            console.log(preparedTx)
+            const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    actionType: 'CREATE',
+                    amountUsd: amountUSD,
+                    transaction: {
+                        from: preparedTx.from ? preparedTx.from.toString() : address,
+                        to: preparedTx.to ? preparedTx.to.toString() : '',
+                        data: preparedTx.data ? preparedTx.data.toString() : '',
+                        value: preparedTx.value ? preparedTx.value.toString() : '',
+                    },
+                    chainId: chainId,
+                    userAddress: address,
+                }),
+            })
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            const data = await response.json()
+            console.log(data.points)
+            return Math.round(data.points)
+        } catch (error) {
+            console.error('Failed to estimate points:', error)
+            return 0 // Returning 0 or another error handling strategy could be implemented here
+        }
     }
 
     // step 2
