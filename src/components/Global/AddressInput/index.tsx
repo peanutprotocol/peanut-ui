@@ -11,9 +11,10 @@ type AddressInputProps = {
     placeholder: string
     value: string
     onSubmit: any
+    _setIsValidAddress: any
 }
 
-const AddressInput = ({ placeholder, value, onSubmit }: AddressInputProps) => {
+const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress }: AddressInputProps) => {
     const [userInputAddress, setUserInputAddress] = useState<string>(value)
     const [address, setAddress] = useState<string>(value)
     const [debouncedAddress, setDebouncedAddress] = useState<string>('')
@@ -27,29 +28,35 @@ const AddressInput = ({ placeholder, value, onSubmit }: AddressInputProps) => {
                 if (resolvedAddress) {
                     address = resolvedAddress
                     setIsValidAddress(true)
+                    _setIsValidAddress(true)
                     setAddress(address)
                 } else {
                     setIsValidAddress(false)
+                    _setIsValidAddress(false)
                 }
             } else if (ethers.utils.isAddress(address)) {
                 setAddress(address)
                 setIsValidAddress(true)
+                _setIsValidAddress(true)
             } else {
                 setIsValidAddress(false)
+                _setIsValidAddress(false)
             }
         } catch (error) {
             console.error('Error while validating address input field:', error)
             setIsValidAddress(false)
+            _setIsValidAddress(false)
         } finally {
             setIsLoading(false)
         }
     }
 
-    const handleSubmit = () => {
-        if (address) {
+    useEffect(() => {
+        if (address && isValidAddress) {
             onSubmit(address)
+            _setIsValidAddress(true)
         }
-    }
+    }, [address])
 
     useEffect(() => {
         setIsLoading(true)
@@ -91,9 +98,10 @@ const AddressInput = ({ placeholder, value, onSubmit }: AddressInputProps) => {
                     e.preventDefault()
                 }}
                 onChange={(e) => {
-                    if (e.target.value.length > 0) {
+                    if (e.target.value) {
                         setUserInputAddress(e.target.value)
                     } else {
+                        _setIsValidAddress(false)
                         setUserInputAddress('')
                     }
                 }}
@@ -107,27 +115,18 @@ const AddressInput = ({ placeholder, value, onSubmit }: AddressInputProps) => {
                             role="status"
                         />
                     </div>
-                ) : isValidAddress ? (
-                    <button
-                        type="submit"
-                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center"
-                        onClick={(e) => {
-                            e.preventDefault()
-                            handleSubmit()
-                        }}
-                    >
-                        <Icon className="h-6 w-6  dark:fill-white" name="arrow-next" />
-                    </button>
                 ) : (
-                    <button
-                        onClick={(e) => {
-                            e.preventDefault()
-                            setUserInputAddress('')
-                        }}
-                        className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center"
-                    >
-                        <Icon className="h-6 w-6 dark:fill-white" name="close" />
-                    </button>
+                    !isValidAddress && (
+                        <button
+                            onClick={(e) => {
+                                e.preventDefault()
+                                setUserInputAddress('')
+                            }}
+                            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center"
+                        >
+                            <Icon className="h-6 w-6 dark:fill-white" name="close" />
+                        </button>
+                    )
                 )
             ) : null}
         </div>

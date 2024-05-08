@@ -80,6 +80,10 @@ export const CreateLinkConfirmView = ({
                     ...linkDetails,
                 },
             })
+            utils.updatePeanutPreferences({
+                chainId: selectedChainID,
+                tokenAddress: selectedTokenAddress,
+            })
 
             setLink(link[0])
             console.log(link)
@@ -130,15 +134,13 @@ export const CreateLinkConfirmView = ({
                     </label>
                 </div>
 
-                {estiamtedPoints && (
-                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                        <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Points</label>
-                        </div>
-                        <label className="text-sm font-normal leading-4">+{estiamtedPoints}</label>
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Points</label>
                     </div>
-                )}
+                    <label className="text-sm font-normal leading-4">+{estiamtedPoints ?? 0}</label>
+                </div>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">

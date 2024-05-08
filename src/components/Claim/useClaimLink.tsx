@@ -101,6 +101,7 @@ export const useClaimLink = () => {
     const sendNotification = async () => {}
 
     const estimatePoints = async ({ address, link }: { address: string; link: string }) => {
+        await new Promise((resolve) => setTimeout(resolve, 2000))
         return 420
     }
 

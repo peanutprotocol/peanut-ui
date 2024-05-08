@@ -29,6 +29,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(true)
 
     const { isConnected } = useAccount()
+    const preferences = utils.getPeanutPreferences()
 
     const updateSelectedChainID = (chainID: string) => {
         setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
@@ -36,8 +37,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     }
 
     const resetTokenContextProvider = () => {
-        setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
-        setSelectedChainID('1')
+        setSelectedTokenAddress(preferences?.tokenAddress ?? '0x0000000000000000000000000000000000000000')
+        setSelectedChainID(preferences?.chainId ?? '1')
         setSelectedTokenPrice(undefined)
     }
 
@@ -78,6 +79,14 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             }
         }
     }, [selectedTokenAddress, selectedChainID, isConnected])
+
+    useEffect(() => {
+        const prefs = utils.getPeanutPreferences()
+        if (prefs) {
+            setSelectedTokenAddress(prefs.tokenAddress)
+            setSelectedChainID(prefs.chainId)
+        }
+    }, [])
 
     return (
         <tokenSelectorContext.Provider

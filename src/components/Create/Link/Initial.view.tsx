@@ -103,6 +103,7 @@ export const CreateLinkInitialView = ({
                     return
                 setGaslessPayload(makeGaslessDepositResponse.payload)
                 setGaslessPayloadMessage(makeGaslessDepositResponse.message)
+
                 setFeeOptions(undefined)
                 setTransactionCostUSD(undefined)
             } else {

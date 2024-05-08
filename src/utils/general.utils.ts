@@ -452,3 +452,39 @@ export const addClaimLinkToLocalstorage = ({
         console.error('Error adding data to localStorage:', error)
     }
 }
+
+export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId: string; tokenAddress: string }) => {
+    try {
+        const key = `peanut-preferences`
+
+        let data = {
+            chainId: chainId,
+            tokenAddress: tokenAddress,
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getPeanutPreferences = () => {
+    try {
+        const key = `peanut-preferences`
+
+        const storedData = localStorage.getItem(key)
+
+        let data = {
+            chainId: '',
+            tokenAddress: '',
+        }
+
+        if (storedData) {
+            data = JSON.parse(storedData)
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}

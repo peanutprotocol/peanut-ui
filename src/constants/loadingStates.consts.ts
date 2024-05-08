@@ -10,3 +10,4 @@ export type LoadingStates =
     | 'Fetching route'
     | 'Asserting values'
     | 'Generating details'
+    | 'Estimating points'
