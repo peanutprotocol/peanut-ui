@@ -7,6 +7,11 @@ export type CreateType = 'normal'
 
 export type CreateScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
+export interface IAttachmentOptions {
+    fileUrl: string | undefined
+    message: string | undefined
+}
+
 export interface ICreateScreenState {
     screen: CreateScreens
     idx: number
@@ -44,8 +49,8 @@ export interface ICreateScreenProps {
     setTransactionCostUSD: (cost: number | undefined) => void
     estiamtedPoints: number | undefined
     setEstimatedPoints: (points: number | undefined) => void
-    fileUrl: string
-    setFileUrl: (url: string) => void
+    attachmentOptions: IAttachmentOptions
+    setAttachmentOptions: (options: IAttachmentOptions) => void
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']

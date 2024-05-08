@@ -1,42 +1,68 @@
-import { Uploader } from 'uploader'
-import { UploadButton } from 'react-uploader'
 import Icon from '../Icon'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface IFileUploadInputProps {
-    fileUrl: string
-    setFileUrl: (fileUrl: string) => void
+    attachmentOptions: {
+        fileUrl: string | undefined
+        message: string | undefined
+    }
+    setAttachmentOptions: (options: { fileUrl: string | undefined; message: string | undefined }) => void
 }
 
-export const FileUploadInput = ({ fileUrl, setFileUrl }: IFileUploadInputProps) => {
-    const uploader = Uploader({
-        apiKey: 'free', // TODO: API key?
-    })
-    const options = { multi: false }
+export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploadInputProps) => {
+    const [fileType, setFileType] = useState<string>('')
+
+    const handleFileChange = (e: any) => {
+        const file = e.target.files[0]
+        if (file) {
+            const url = URL.createObjectURL(file)
+
+            setAttachmentOptions({ message: attachmentOptions.message, fileUrl: url })
+        }
+    }
+
+    const checkifImageType = (type: string) => {
+        const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp']
+        if (imageTypes.includes(type)) return true
+        else return false
+    }
+
+    useEffect(() => {
+        if (attachmentOptions.fileUrl) {
+            fetch(attachmentOptions.fileUrl)
+                .then((response) => response.blob())
+                .then((blob) => {
+                    setFileType(blob.type)
+                })
+                .catch((error) => {
+                    console.error('Error fetching the blob from URL:', error)
+                    setFileType('') // Reset or handle the error state
+                })
+        }
+    }, [attachmentOptions.fileUrl])
 
     return (
         <div className="flex h-12 w-full max-w-96 flex-row items-center justify-center gap-2 border border-n-1 px-4 py-2">
-            <UploadButton
-                uploader={uploader}
-                options={options}
-                onComplete={(files) => {
-                    if (files.length === 0) return
-                    setFileUrl(files[0].fileUrl)
-                }}
-            >
-                {({ onClick }) => (
-                    <button onClick={onClick}>
-                        {fileUrl ? (
-                            <img src={fileUrl} className="h-4 w-4" />
+            <div>
+                <input type="file" onChange={handleFileChange} className="hidden" id="file-input" />
+                <label htmlFor="file-input" className="cursor-pointer">
+                    {attachmentOptions.fileUrl ? (
+                        checkifImageType(fileType) ? (
+                            <img src={attachmentOptions.fileUrl} alt="" className="h-8 w-8" />
                         ) : (
-                            <Icon name="paperclip" className="h-4 w-4" />
-                        )}
-                    </button>
-                )}
-            </UploadButton>
+                            <Icon name="check" className="h-4 w-4" />
+                        )
+                    ) : (
+                        <Icon name="paperclip" className="h-4 w-4" />
+                    )}
+                </label>
+            </div>
             <input
                 placeholder="Add reference or upload file (optional)"
                 className="h-full w-full focus:border-none focus:outline-none"
+                value={attachmentOptions.message}
+                maxLength={140}
+                onChange={(e) => setAttachmentOptions({ message: e.target.value, fileUrl: attachmentOptions.fileUrl })}
             />{' '}
         </div>
     )

@@ -50,7 +50,6 @@
         "react-lottie": "^1.2.4",
         "react-qr-code": "^2.0.11",
         "react-tooltip": "^5.21.5",
-        "react-uploader": "^3.43.0",
         "sharp": "^0.32.4",
         "tailwind-merge": "^1.12.0",
         "tailwind-scrollbar": "^3.1.0",
@@ -58,7 +57,6 @@
         "tap": "^18.4.2",
         "three": "^0.157.0",
         "typescript": "5.1.6",
-        "uploader": "^3.48.3",
         "viem": "^2.8.16",
         "wagmi": "^2.5.12",
         "web3": "^1.7.0"

@@ -128,9 +128,6 @@ dependencies:
   react-tooltip:
     specifier: ^5.21.5
     version: 5.26.3(react-dom@18.2.0)(react@18.2.0)
-  react-uploader:
-    specifier: ^3.43.0
-    version: 3.43.0(react@18.2.0)
   sharp:
     specifier: ^0.32.4
     version: 0.32.6
@@ -152,9 +149,6 @@ dependencies:
   typescript:
     specifier: 5.1.6
     version: 5.1.6
-  uploader:
-    specifier: ^3.48.3
-    version: 3.48.3
   viem:
     specifier: ^2.8.16
     version: 2.9.20(typescript@5.1.6)
@@ -5931,10 +5925,6 @@ packages:
 
   /@ungap/structured-clone@1.2.0:
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
-    dev: false
-
-  /@upload-io/upload-api-client-upload-js@2.18.0:
-    resolution: {integrity: sha512-yPwsRCecXSilYn4q5ZDD4fyI2PVyUcLimv2LQcfpV3hRyzc8t82NuWHYEYpRZa5K68zxw2RljDf30geT1vJN9g==}
     dev: false
 
   /@vercel/analytics@1.2.2(next@14.2.2)(react@18.2.0):
@@ -13626,10 +13616,6 @@ packages:
     engines: {node: '>= 0.6.0'}
     dev: false
 
-  /progress-smoother@1.7.0:
-    resolution: {integrity: sha512-ZIbSbPQ8SnEf5Sa0If9lfvn5URyrZfgTTh5DM+04j1GafiLIaWDWW+1AkYXzGl7JQvzAvCy5E1ZPOgx8XORyew==}
-    dev: false
-
   /progress@2.0.3:
     resolution: {integrity: sha512-7PiHtLll5LdnKIMw100I+8xJXR5gW2QwWYkT6iJva0bXitZKa/XMrSbdmg3r2Xnaidz9Qumd0VPaMrZlF9V9sA==}
     engines: {node: '>=0.4.0'}
@@ -14190,16 +14176,6 @@ packages:
       classnames: 2.5.1
       react: 18.2.0
       react-dom: 18.2.0(react@18.2.0)
-    dev: false
-
-  /react-uploader@3.43.0(react@18.2.0):
-    resolution: {integrity: sha512-RCaMSdRsfrIC6Mt2UDhk9G4A+mzcuumW2bOfuPyKwKktotNdlcj8ZqRDihtzXVy/K9PVvxnr2PxCfQuDXOkcyQ==}
-    peerDependencies:
-      react: '>=16.3.0'
-    dependencies:
-      lodash.isequal: 4.5.0
-      react: 18.2.0
-      uploader: 3.48.3
     dev: false
 
   /react@18.2.0:
@@ -16087,21 +16063,6 @@ packages:
       browserslist: 4.23.0
       escalade: 3.1.2
       picocolors: 1.0.0
-    dev: false
-
-  /upload-js@2.24.3:
-    resolution: {integrity: sha512-iiTowtr2uRw2coGXlqiN1ff/wfMPVMv2MqaZYqEYBSNGmxD1pLl9R9wU8BT/mK+Yn8fDx7utlPovXziS8PVaIA==}
-    dependencies:
-      '@upload-io/upload-api-client-upload-js': 2.18.0
-      progress-smoother: 1.7.0
-    dev: false
-
-  /uploader@3.48.3:
-    resolution: {integrity: sha512-BGXSS9O54m81TL5Ogn4OHISD/WPuIS3kvNCYomDl8cltPGzUMrHseU1sXHKGrFg65L28qJL6LnGA2fXUxpQVBQ==}
-    dependencies:
-      classnames: 2.5.1
-      preact: 10.20.2
-      upload-js: 2.24.3
     dev: false
 
   /uqr@0.1.2:

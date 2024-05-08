@@ -26,8 +26,8 @@ export const CreateLinkInitialView = ({
     setTransactionCostUSD,
     setFeeOptions,
     setEstimatedPoints,
-    fileUrl,
-    setFileUrl,
+    attachmentOptions,
+    setAttachmentOptions,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -159,6 +159,10 @@ export const CreateLinkInitialView = ({
         }
     }
 
+    useEffect(() => {
+        console.log(attachmentOptions)
+    }, [attachmentOptions])
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
@@ -169,7 +173,7 @@ export const CreateLinkInitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput className="w-full" tokenValue={tokenValue} setTokenValue={setTokenValue} />
                 <TokenSelector classNameButton="w-full" />
-                <FileUploadInput fileUrl={fileUrl} setFileUrl={setFileUrl} />
+                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
