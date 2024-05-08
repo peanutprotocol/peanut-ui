@@ -7,6 +7,7 @@ import Icon from '@/components/Global/Icon'
 import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import useClaimLink from '../useClaimLink'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -15,10 +16,13 @@ export const InitialClaimLinkView = ({
     recipientAddress,
     tokenPrice,
     setClaimType,
+    setEstimatedPoints,
 }: _consts.IClaimScreenProps) => {
     const [initiatedWalletConnection, setInitiatedWalletConnection] = useState(false)
 
-    const { isConnected } = useAccount()
+    const { estimatePoints } = useClaimLink()
+
+    const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
 
     const handleConnectWallet = async () => {
@@ -27,17 +31,24 @@ export const InitialClaimLinkView = ({
             setInitiatedWalletConnection(true)
         } else {
             setRecipientAddress('')
+            const estimatedPoints = await estimatePoints({ address: address ?? '', link: claimLinkData.link })
+            setEstimatedPoints(estimatedPoints)
             setClaimType('wallet')
             onNext()
         }
     }
 
+    const handleEnteredAddress = async (address: string) => {
+        setRecipientAddress(address)
+        const estimatedPoints = await estimatePoints({ address, link: claimLinkData.link })
+        setEstimatedPoints(estimatedPoints)
+        setClaimType('address')
+        onNext()
+    }
+
     useEffect(() => {
         if (initiatedWalletConnection && isConnected) {
-            setRecipientAddress('')
-            setClaimType('wallet')
-
-            onNext()
+            handleConnectWallet()
         }
     }, [isConnected])
 
@@ -63,9 +74,7 @@ export const InitialClaimLinkView = ({
                     placeholder="Paste wallet or ens address"
                     value={recipientAddress ?? ''}
                     onSubmit={(address: string) => {
-                        setRecipientAddress(address)
-                        setClaimType('address')
-                        onNext()
+                        handleEnteredAddress(address)
                     }}
                 />
                 <div className="flex flex-row items-center justify-center gap-1 px-2 text-h9 font-normal">

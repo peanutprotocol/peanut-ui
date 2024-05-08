@@ -21,6 +21,8 @@ export const SwapInitialClaimLinkView = ({
     crossChainDetails,
     setTransactionHash,
     setClaimType,
+    recipientAddress,
+    estimatedPoints,
 }: _consts.IClaimScreenProps) => {
     const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
         useContext(context.tokenSelectorContext)
@@ -68,7 +70,7 @@ export const SwapInitialClaimLinkView = ({
                         toToken: selectedTokenAddress,
                         slippage: 1,
                         fromAddress: claimLinkData.senderAddress,
-                        toAddress: address ?? '',
+                        toAddress: recipientAddress ? recipientAddress : address ?? '',
                     })
                     setRoutes([...routes, route])
                     setSelectedRoute(route)
@@ -95,14 +97,14 @@ export const SwapInitialClaimLinkView = ({
 
         try {
             const claimTxHash = await claimLinkXchain({
-                address: address ?? '',
+                address: recipientAddress ? recipientAddress : address ?? '',
                 link: claimLinkData.link,
                 destinationChainId: selectedChainID,
                 destinationToken: selectedTokenAddress,
             })
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: address ?? '',
+                    address: recipientAddress ? recipientAddress : address ?? '',
                     data: { ...claimLinkData, depositDate: new Date(), USDTokenPrice: tokenPrice },
                 })
                 setClaimType('wallet_xchain')
@@ -211,7 +213,7 @@ export const SwapInitialClaimLinkView = ({
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
-                    <label className="font-normal">+300</label>
+                    <label className="font-normal">+{estimatedPoints}</label>
                 </div>
             </div>
 

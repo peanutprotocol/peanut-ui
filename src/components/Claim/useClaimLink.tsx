@@ -100,6 +100,10 @@ export const useClaimLink = () => {
 
     const sendNotification = async () => {}
 
+    const estimatePoints = async ({ address, link }: { address: string; link: string }) => {
+        return 420
+    }
+
     return {
         xchainFeeMultiplier,
         claimLink,
@@ -108,6 +112,7 @@ export const useClaimLink = () => {
         switchNetwork,
         checkTxStatus,
         sendNotification,
+        estimatePoints,
     }
 }
 

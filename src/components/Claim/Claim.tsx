@@ -19,6 +19,7 @@ export const Claim = ({}) => {
     const [type, setType] = useState<_consts.ClaimType | undefined>(undefined)
     const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
     const [tokenPrice, setTokenPrice] = useState<number>(0)
+    const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
 
     const [transactionHash, setTransactionHash] = useState<string>()
 
@@ -134,6 +135,8 @@ export const Claim = ({}) => {
                     setTokenPrice,
                     transactionHash,
                     setTransactionHash,
+                    estimatedPoints,
+                    setEstimatedPoints,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
             {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}

@@ -20,10 +20,11 @@ export const ConfirmClaimLinkView = ({
     tokenPrice,
     type,
     setTransactionHash,
+    estimatedPoints,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
     const { claimLink } = useClaimLink()
-
+    const { setRefetchXchainRoute } = useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -113,53 +114,41 @@ export const ConfirmClaimLinkView = ({
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
-                    <label className="font-normal">+300</label>
+                    <label className="font-normal">+{estimatedPoints}</label>
                 </div>
             </div>
 
-            {isConnected && !recipientAddress && (
-                <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <button className="btn-purple btn-xl" onClick={handleOnClaim} disabled={isLoading}>
-                        {isLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : (
-                            'Claim'
-                        )}
-                    </button>
-                    <button className="btn btn-xl dark:border-white dark:text-white" onClick={onNext}>
-                        Swap
-                    </button>
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                <button className="btn-purple btn-xl" onClick={handleOnClaim} disabled={isLoading}>
+                    {isLoading ? (
+                        <div className="flex w-full flex-row items-center justify-center gap-2">
+                            <Loading /> {loadingState}
+                        </div>
+                    ) : (
+                        'Claim'
+                    )}
+                </button>
+                <button
+                    className="btn btn-xl dark:border-white dark:text-white"
+                    onClick={() => {
+                        onNext()
+                        setRefetchXchainRoute(true)
+                    }}
+                >
+                    Swap
+                </button>
+                {isConnected && !recipientAddress && (
                     <label className="cursor-pointer text-h8 font-normal text-purple-1" onClick={onPrev}>
                         Or paste your wallet or ENS address to claim.
                     </label>
-                    {errorState.showError && (
-                        <div className="text-center">
-                            <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
-                </div>
-            )}
+                )}
 
-            {recipientAddress && (
-                <div className="flex w-full flex-col items-center justify-center gap-3">
-                    <button className="btn-purple btn-xl" onClick={handleOnClaim} disabled={isLoading}>
-                        {isLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : (
-                            'Claim'
-                        )}
-                    </button>
-                    {errorState.showError && (
-                        <div className="text-center">
-                            <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
-                </div>
-            )}
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
