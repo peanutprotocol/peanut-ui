@@ -29,7 +29,7 @@ export const Create = () => {
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const [transactionCostUSD, setTransactionCostUSD] = useState<number | undefined>(undefined)
     const [estiamtedPoints, setEstimatedPoints] = useState<number | undefined>(undefined)
-
+    const [fileUrl, setFileUrl] = useState<string>('')
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
@@ -93,6 +93,8 @@ export const Create = () => {
                 setTransactionCostUSD,
                 estiamtedPoints,
                 setEstimatedPoints,
+                fileUrl,
+                setFileUrl,
             } as _consts.ICreateScreenProps)}
         </div>
     )
