@@ -138,7 +138,7 @@ export const ConfirmClaimLinkView = ({
                     className="btn btn-xl dark:border-white dark:text-white"
                     onClick={() => {
                         onNext()
-                        setRefetchXchainRoute(true)
+                        setRefetchXchainRoute(false)
                     }}
                 >
                     Swap

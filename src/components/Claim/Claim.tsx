@@ -16,6 +16,10 @@ export const Claim = ({}) => {
     const [crossChainDetails, setCrossChainDetails] = useState<
         Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
     >(undefined)
+    const [attachment, setAttachment] = useState<{ message: string | undefined; attachmentUrl: string | undefined }>({
+        message: undefined,
+        attachmentUrl: undefined,
+    })
     const [type, setType] = useState<_consts.ClaimType | undefined>(undefined)
     const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
     const [tokenPrice, setTokenPrice] = useState<number>(0)
@@ -83,6 +87,11 @@ export const Claim = ({}) => {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
                 link,
             })
+            const attachmentInfo = {
+                message: 'Hello fren. I sent u som money',
+                attachmentUrl: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/main/package.json',
+            }
+            setAttachment(attachmentInfo)
 
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {
@@ -137,6 +146,8 @@ export const Claim = ({}) => {
                     setTransactionHash,
                     estimatedPoints,
                     setEstimatedPoints,
+                    attachment,
+                    setAttachment,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
             {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}
