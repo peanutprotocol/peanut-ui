@@ -36,6 +36,7 @@ export const Dashboard = () => {
     const [totalPages, setTotalPages] = useState<number>(0)
     const [currentPage, setCurrentPage] = useState<number>(0)
     const [legacyLinks, setLegacyLinks] = useState<string[]>([])
+    const [points, setPoints] = useState<number | undefined>(undefined)
 
     const { address, isConnected } = useAccount()
     const router = useRouter()
@@ -184,6 +185,31 @@ export const Dashboard = () => {
         setFilteredDashboardData(filteredData)
     }
 
+    const handleOnGetPoints = async () => {
+        try {
+            const response = await fetch('https://api.staging.peanut.to/get-user-stats', {
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    address,
+                    apiKey: 'vIAde1H9KihgAHTW3E5e9ALydUnGWEm9',
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            console.log(data.points)
+            setPoints(data.points)
+        } catch (error) {
+            console.error('Error fetching user stats:', error)
+            throw error // or handle error as needed
+        }
+    }
+
     useEffect(() => {
         if (address) {
             const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
@@ -258,7 +284,14 @@ export const Dashboard = () => {
                               ? 'Here are all the links you have created or claimed.'
                               : 'You have not created or claimed any links yet.'}
                     </label>
-                    <button className=" btn-purple btn-stroke btn-shadow btn-xl my-2">points</button>
+                    <button
+                        onClick={() => {
+                            if (!points) handleOnGetPoints()
+                        }}
+                        className=" btn-purple btn-stroke btn-shadow btn-xl my-2"
+                    >
+                        {points ? points : 'Get Points'}
+                    </button>
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Create Link
