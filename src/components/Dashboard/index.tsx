@@ -258,6 +258,7 @@ export const Dashboard = () => {
                               ? 'Here are all the links you have created or claimed.'
                               : 'You have not created or claimed any links yet.'}
                     </label>
+                    <button className=" btn-purple btn-stroke btn-shadow btn-xl my-2">points</button>
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Create Link
@@ -340,7 +341,7 @@ export const Dashboard = () => {
                                                               pending
                                                           </div>
                                                       )}
-                                                  </td>{' '}
+                                                  </td>
                                                   <td className="td-custom text-center ">
                                                       <OptionsItem link={link.link} type={link.type} />
                                                   </td>
