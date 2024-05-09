@@ -1,6 +1,6 @@
 import Icon from '../Icon'
 import { useEffect, useState } from 'react'
-
+import * as utils from '@/utils'
 interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
@@ -19,12 +19,6 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
 
             setAttachmentOptions({ message: attachmentOptions.message, fileUrl: url })
         }
-    }
-
-    const checkifImageType = (type: string) => {
-        const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp']
-        if (imageTypes.includes(type)) return true
-        else return false
     }
 
     useEffect(() => {
@@ -47,7 +41,7 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
                 <input type="file" onChange={handleFileChange} className="hidden" id="file-input" />
                 <label htmlFor="file-input" className="cursor-pointer">
                     {attachmentOptions.fileUrl ? (
-                        checkifImageType(fileType) ? (
+                        utils.checkifImageType(fileType) ? (
                             <img src={attachmentOptions.fileUrl} alt="" className="h-8 w-8" />
                         ) : (
                             <Icon name="check" className="h-4 w-4" />

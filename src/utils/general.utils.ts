@@ -488,3 +488,9 @@ export const getPeanutPreferences = () => {
         console.error('Error getting data from localStorage:', error)
     }
 }
+
+export const checkifImageType = (type: string) => {
+    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp']
+    if (imageTypes.includes(type)) return true
+    else return false
+}

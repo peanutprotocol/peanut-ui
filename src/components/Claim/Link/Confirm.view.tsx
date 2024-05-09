@@ -8,7 +8,7 @@ import * as _consts from '../Claim.consts'
 import * as utils from '@/utils'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import Loading from '@/components/Global/Loading'
 
 export const ConfirmClaimLinkView = ({
@@ -21,6 +21,7 @@ export const ConfirmClaimLinkView = ({
     type,
     setTransactionHash,
     estimatedPoints,
+    attachment,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
     const { claimLink } = useClaimLink()
@@ -30,6 +31,7 @@ export const ConfirmClaimLinkView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [fileType, setFileType] = useState<string>('')
 
     const handleOnClaim = async () => {
         setLoadingState('Loading')
@@ -72,6 +74,21 @@ export const ConfirmClaimLinkView = ({
             setLoadingState('Idle')
         }
     }
+
+    useEffect(() => {
+        if (attachment?.attachmentUrl) {
+            fetch(attachment?.attachmentUrl)
+                .then((response) => response.blob())
+                .then((blob) => {
+                    setFileType(blob.type)
+                })
+                .catch((error) => {
+                    console.error('Error fetching the blob from URL:', error)
+                    setFileType('') // Reset or handle the error state
+                })
+        }
+    }, [attachment?.attachmentUrl])
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">You're claiming</label>
@@ -83,6 +100,41 @@ export const ConfirmClaimLinkView = ({
                 selectedTokenAddress={claimLinkData.tokenAddress}
             />
 
+            {attachment.message || attachment.attachmentUrl ? (
+                <>
+                    {' '}
+                    <div className="flex w-full border-t border-dotted border-black" />
+                    <div
+                        className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                    >
+                        {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
+                            <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
+                        ) : (
+                            <a
+                                href={attachment.attachmentUrl}
+                                download
+                                target="_blank"
+                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h8 underline "
+                            >
+                                <Icon name={'download'} />
+                                Download attachment
+                            </a>
+                        )}
+                        {attachment.message && (
+                            <label className="text-h8 font-normal text-gray-1">{attachment.message}</label>
+                        )}
+                    </div>
+                    <div className="flex w-full border-t border-dotted border-black" />
+                </>
+            ) : (
+                isConnected &&
+                !recipientAddress && (
+                    <label className="w-full px-2 text-start text-h8 font-normal">
+                        You have successfully connected you wallet. Choose to claim or swap the funds.
+                    </label>
+                )
+            )}
+
             {recipientAddress && (
                 <div className="flex w-full flex-row items-center justify-between px-2 ">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -93,11 +145,6 @@ export const ConfirmClaimLinkView = ({
                         Edit
                     </label>
                 </div>
-            )}
-            {isConnected && !recipientAddress && (
-                <label className="w-full px-2 text-start text-h8 font-normal">
-                    You have successfully connected you wallet. Choose to claim or swap the funds.
-                </label>
             )}
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
