@@ -55,7 +55,13 @@ export const ConfirmClaimLinkView = ({
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
                     address: address ?? '',
-                    data: { ...claimLinkData, depositDate: new Date(), USDTokenPrice: tokenPrice },
+                    data: {
+                        ...claimLinkData,
+                        depositDate: new Date(),
+                        USDTokenPrice: tokenPrice,
+                        points: estimatedPoints,
+                        txHash: claimTxHash,
+                    },
                 })
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')

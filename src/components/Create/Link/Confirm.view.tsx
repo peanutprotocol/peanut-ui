@@ -77,6 +77,10 @@ export const CreateLinkConfirmView = ({
                     link: link[0],
                     depositDate: new Date().toISOString(),
                     USDTokenPrice: selectedTokenPrice ?? 0,
+                    points: estiamtedPoints ?? 0,
+                    txHash: hash,
+                    message: '', // TODO: update this
+                    hasAttachment: false, // TODO: update this
                     ...linkDetails,
                 },
             })

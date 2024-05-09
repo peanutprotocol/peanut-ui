@@ -105,6 +105,10 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
     link: string
     depositDate: string
     USDTokenPrice: number
+    points: number
+    txHash: string
+    message: string
+    hasAttachment: boolean
 }
 
 export interface IDashboardItem {
@@ -120,4 +124,6 @@ export interface IDashboardItem {
 
 export interface IExtendedLinkDetails extends ILinkDetails {
     USDTokenPrice: number
+    points: number
+    txHash: string
 }
