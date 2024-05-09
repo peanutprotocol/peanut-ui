@@ -193,7 +193,7 @@ export const Dashboard = () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     address,
-                    apiKey: 'vIAde1H9KihgAHTW3E5e9ALydUnGWEm9',
+                    apiKey: '',
                 }),
             })
 
