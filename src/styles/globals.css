@@ -62,3 +62,44 @@ Firefox input[type='number'] {
 .spin-on-hover:hover {
     animation: spin 2s linear infinite;
 }
+
+.animate-gradient {
+    background-size: 300%;
+    -webkit-animation: animatedgradient 6s ease infinite alternate;
+    -moz-animation: animatedgradient 6s ease infinite alternate;
+    animation: animatedgradient 6s ease infinite alternate;
+}
+
+@keyframes animatedgradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.gradient-text {
+    font-size: 2rem; /* Adjust font size as needed */
+    font-weight: bold; /* Make the text bold */
+    height: auto;
+    width: 100%;
+    background: linear-gradient(to right, #9747ff, #ff90e8); /* Gradient direction and colors */
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent; /* Make the text color transparent */
+    animation: slide 3s linear infinite; /* Animation named 'slide', adjust timing as needed */
+}
+
+@keyframes slide {
+    0%,
+    100% {
+        background-position: 0 0;
+    }
+    50% {
+        background-position: 100% 0;
+    }
+}
