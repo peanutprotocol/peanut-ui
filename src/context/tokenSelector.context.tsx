@@ -37,8 +37,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     }
 
     const resetTokenContextProvider = () => {
-        setSelectedTokenAddress(preferences?.tokenAddress ?? '0x0000000000000000000000000000000000000000')
-        setSelectedChainID(preferences?.chainId ?? '1')
+        setSelectedChainID(preferences?.tokenAddress ? preferences.chainId : '1')
+        setSelectedTokenAddress(
+            preferences?.tokenAddress ? preferences.tokenAddress : '0x0000000000000000000000000000000000000000'
+        )
         setSelectedTokenPrice(undefined)
     }
 
@@ -82,7 +84,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         const prefs = utils.getPeanutPreferences()
-        if (prefs) {
+        if (prefs && prefs.tokenAddress && prefs.chainId) {
             setSelectedTokenAddress(prefs.tokenAddress)
             setSelectedChainID(prefs.chainId)
         }
