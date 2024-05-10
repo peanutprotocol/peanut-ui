@@ -287,24 +287,26 @@ export const Dashboard = () => {
                               : 'You have not created or claimed any links yet.'}
                     </label>
 
-                    <div
-                        style={{
-                            backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
-                            WebkitBackgroundClip: 'text',
-                            backgroundClip: 'text',
-                            color: 'transparent',
-                        }}
-                        className="animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
-                    >
-                        <div className="jusityf-center flex flex-row items-center gap-2">
-                            <label className="text-h4">Points: </label>
-                            <label className="text-h3">{points ? points : '0'}</label>
+                    {isConnected && (
+                        <div
+                            style={{
+                                backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
+                                WebkitBackgroundClip: 'text',
+                                backgroundClip: 'text',
+                                color: 'transparent',
+                            }}
+                            className="animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
+                        >
+                            <div className="jusityf-center flex flex-row items-center gap-2">
+                                <label className="text-h4">Points: </label>
+                                <label className="text-h3">{points ? points : '0'}</label>
+                            </div>
+                            <div className="jusityf-center flex flex-row items-center gap-2">
+                                <Icon name={'arrow-up-right'} />
+                                <label className="text-h4">1.3X boost</label>
+                            </div>
                         </div>
-                        <div className="jusityf-center flex flex-row items-center gap-2">
-                            <Icon name={'arrow-up-right'} className="fill-clip-text opacity-0" />
-                            <label className="text-h4">1.3X boost</label>
-                        </div>
-                    </div>
+                    )}
                     {/* <button
                         onClick={() => {
                             if (!points) handleOnGetPoints()
