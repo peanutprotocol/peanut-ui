@@ -1,5 +1,5 @@
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-
+import * as utils from '@/utils'
 export async function fetchSendDiscordNotification({ message }: { message: string }) {
     const response = await fetch('/api/send-discord-notification', {
         method: 'POST',
@@ -40,9 +40,12 @@ export const fetchTokenPrice = async (tokenAddress: string, chainId: string) => 
         const json = await mobulaResponse.json()
 
         if (mobulaResponse.ok) {
-            const data = {
+            let data = {
                 price: json.data.price,
                 chainId: chainId,
+            }
+            if (utils.estimateStableCoin(json.data.price)) {
+                data.price = 1
             }
             return data
         } else {

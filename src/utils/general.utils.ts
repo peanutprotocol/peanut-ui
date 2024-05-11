@@ -488,3 +488,12 @@ export const getPeanutPreferences = () => {
         console.error('Error getting data from localStorage:', error)
     }
 }
+
+export const estimateStableCoin = (tokenPrice: number) => {
+    // if the tokenprice is between .995 and 1.005, return 1
+    if (tokenPrice >= 0.995 && tokenPrice <= 1.005) {
+        return true
+    } else {
+        return false
+    }
+}
