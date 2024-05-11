@@ -1,6 +1,7 @@
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { exportTraceState } from 'next/dist/trace'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
@@ -495,5 +496,16 @@ export const estimateStableCoin = (tokenPrice: number) => {
         return true
     } else {
         return false
+    }
+}
+
+export const getExplorerUrl = (chainId: string) => {
+    const explorers = consts.supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
+
+    // if the explorers array has blockscout, return the blockscout url, else return the first one
+    if (explorers?.find((explorer) => explorer.name === 'blockscout')) {
+        return explorers?.find((explorer) => explorer.name === 'blockscout')?.url
+    } else {
+        return explorers?.[0].url
     }
 }

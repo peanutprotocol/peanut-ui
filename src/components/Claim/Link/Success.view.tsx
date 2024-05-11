@@ -13,8 +13,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
 
     const explorerUrlWithTx = useMemo(
-        () =>
-            `${consts.supportedPeanutChains.find((detail) => detail.chainId === claimLinkData.chainId)?.explorers[0].url}/tx/${transactionHash}`,
+        () => `${utils.getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
         [transactionHash, claimLinkData.chainId]
     )
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
