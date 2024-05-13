@@ -159,10 +159,6 @@ export const CreateLinkInitialView = ({
         }
     }
 
-    useEffect(() => {
-        console.log(attachmentOptions)
-    }, [attachmentOptions])
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>

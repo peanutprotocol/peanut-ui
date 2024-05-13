@@ -45,7 +45,6 @@ export const ConfirmClaimLinkView = ({
             if (type === 'address') {
                 _recipientAddress = recipientAddress ?? ''
             } else if (type === 'wallet') {
-                console.log(address)
                 _recipientAddress = address ?? ''
             }
             setLoadingState('Executing transaction')
@@ -63,6 +62,8 @@ export const ConfirmClaimLinkView = ({
                         USDTokenPrice: tokenPrice,
                         points: estimatedPoints,
                         txHash: claimTxHash,
+                        message: attachment.message ? attachment.message : undefined,
+                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
                     },
                 })
                 setTransactionHash(claimTxHash)

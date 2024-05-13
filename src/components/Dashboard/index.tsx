@@ -72,7 +72,7 @@ export const Dashboard = () => {
     }
 
     const composeLinkDataArray = (
-        claimedLinks: interfaces.ILinkDetails[],
+        claimedLinks: interfaces.IExtendedLinkDetails[],
         createdLinks: interfaces.IExtendedPeanutLinkDetails[]
     ) => {
         const linkData: interfaces.IDashboardItem[] = []
@@ -87,6 +87,8 @@ export const Dashboard = () => {
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
                 status: 'claimed',
+                message: link.message,
+                attachmentUrl: link.attachmentUrl,
             })
         })
 
@@ -104,8 +106,13 @@ export const Dashboard = () => {
                 date: link.depositDate.toString(),
                 address: undefined,
                 status: undefined,
+                message: link.message,
+                attachmentUrl: link.attachmentUrl,
             })
         })
+
+        console.log(claimedLinks)
+        console.log(createdLinks)
 
         setTotalPages(Math.ceil(linkData.length / itemsPerPage))
         setCurrentPage(1)
@@ -307,14 +314,6 @@ export const Dashboard = () => {
                             </div>
                         </div>
                     )}
-                    {/* <button
-                        onClick={() => {
-                            if (!points) handleOnGetPoints()
-                        }}
-                        className=" btn-purple btn-stroke btn-shadow btn-xl my-2"
-                    >
-                        {points ? points : 'Get Points'}
-                    </button> */}
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Create Link
@@ -364,6 +363,9 @@ export const Dashboard = () => {
                                               <Sorting title="From" />
                                           </th>
                                           <th className="th-custom ">
+                                              <Sorting title="Ref." />
+                                          </th>
+                                          <th className="th-custom ">
                                               <Sorting title="Status" />
                                           </th>
                                           <th className="th-custom"></th>
@@ -383,6 +385,15 @@ export const Dashboard = () => {
                                                   <td className="td-custom">
                                                       {utils.shortenAddressLong(link.address ?? address ?? '')}
                                                   </td>
+                                                  <td className="td-custom max-w-32">
+                                                      <span
+                                                          className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                                                          title={link.message ? link.message : ''}
+                                                      >
+                                                          {link.message ? link.message : ''}
+                                                      </span>
+                                                  </td>
+
                                                   <td className="td-custom">
                                                       {!link.status ? (
                                                           <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
@@ -399,7 +410,7 @@ export const Dashboard = () => {
                                                       )}
                                                   </td>
                                                   <td className="td-custom text-center ">
-                                                      <OptionsItem link={link.link} type={link.type} />
+                                                      <OptionsItem item={link} />
                                                   </td>
                                               </tr>
                                           ))}
@@ -500,7 +511,7 @@ const SortComponent = ({
     )
 }
 
-const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' }) => {
+const OptionsItem = ({ item }: { item: interfaces.IDashboardItem }) => {
     const router = useRouter()
 
     return (
@@ -517,11 +528,11 @@ const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' })
                 leaveTo="transform scale-95 opacity-0"
             >
                 <Menu.Items className="shadow-primary-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
-                    {type != 'receive' && (
+                    {item.type != 'receive' && (
                         <Menu.Item
                             as={'button'}
                             onClick={() => {
-                                router.push(`/${link.split('://')[1].split('/')[1]}`)
+                                router.push(`/${item.link.split('://')[1].split('/')[1]}`)
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                         >
@@ -531,12 +542,23 @@ const OptionsItem = ({ link, type }: { link: string; type: 'send' | 'receive' })
                     <Menu.Item
                         as={'button'}
                         onClick={() => {
-                            utils.copyTextToClipboardWithFallback(link)
+                            utils.copyTextToClipboardWithFallback(item.link)
                         }}
                         className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                     >
                         <div className="text-h8">Copy Link</div>
                     </Menu.Item>
+                    {item.attachmentUrl && (
+                        <Menu.Item
+                            as={'a'}
+                            href={item.attachmentUrl}
+                            download
+                            target="_blank"
+                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                        >
+                            <div className="text-h8">Download attachment</div>
+                        </Menu.Item>
+                    )}
                 </Menu.Items>
             </Transition>
         </Menu>

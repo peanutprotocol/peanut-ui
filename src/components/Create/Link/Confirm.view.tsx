@@ -40,7 +40,14 @@ export const CreateLinkConfirmView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { sendTransactions, signTypedData, makeDepositGasless, getLinkFromHash } = useCreateLink()
+    const {
+        sendTransactions,
+        signTypedData,
+        makeDepositGasless,
+        getLinkFromHash,
+        submitLinkAttachments,
+        confirmSubmitLinkAttachments,
+    } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const { address } = useAccount()
@@ -55,6 +62,14 @@ export const CreateLinkConfirmView = ({
 
         try {
             let hash: string = ''
+
+            let fileUrl = await submitLinkAttachments({
+                userAddress: address ?? '',
+                attachmentOptions: {
+                    attachmentUrl: attachmentOptions.fileUrl,
+                    message: attachmentOptions.message,
+                },
+            })
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
@@ -75,6 +90,11 @@ export const CreateLinkConfirmView = ({
 
             const link = await getLinkFromHash({ hash, linkDetails, password })
 
+            fileUrl = await confirmSubmitLinkAttachments({
+                userAddress: address ?? '',
+                link: link[0],
+            })
+
             utils.saveCreatedLinkToLocalStorage({
                 address: address ?? '',
                 data: {
@@ -83,8 +103,8 @@ export const CreateLinkConfirmView = ({
                     USDTokenPrice: selectedTokenPrice ?? 0,
                     points: estiamtedPoints ?? 0,
                     txHash: hash,
-                    message: '', // TODO: update this
-                    hasAttachment: false, // TODO: update this
+                    message: attachmentOptions.message ?? '',
+                    attachmentUrl: fileUrl,
                     ...linkDetails,
                 },
             })
