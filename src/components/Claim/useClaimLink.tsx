@@ -100,7 +100,17 @@ export const useClaimLink = () => {
 
     const sendNotification = async () => {}
 
-    const estimatePoints = async ({ address, link }: { address: string; link: string }) => {
+    const estimatePoints = async ({
+        address,
+        link,
+        chainId,
+        amountUSD,
+    }: {
+        address: string
+        link: string
+        chainId: string
+        amountUSD: number
+    }) => {
         try {
             const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
                 method: 'POST',
@@ -111,6 +121,8 @@ export const useClaimLink = () => {
                     actionType: 'CLAIM',
                     link: link,
                     userAddress: address,
+                    chainId: chainId,
+                    amountUsd: amountUSD,
                 }),
             })
             if (!response.ok) {
@@ -121,7 +133,7 @@ export const useClaimLink = () => {
             return Math.round(data.points)
         } catch (error) {
             console.error('Failed to estimate points:', error)
-            return 0 // Returning 0 or another error handling strategy could be implemented here
+            return 0
         }
     }
 

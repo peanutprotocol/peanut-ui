@@ -34,7 +34,14 @@ export const InitialClaimLinkView = ({
             setInitiatedWalletConnection(true)
         } else {
             setRecipientAddress('')
-            const estimatedPoints = await estimatePoints({ address: address ?? '', link: claimLinkData.link })
+            const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
+
+            const estimatedPoints = await estimatePoints({
+                address: address ?? '',
+                link: claimLinkData.link,
+                chainId: claimLinkData.chainId,
+                amountUSD: USDValue,
+            })
             setEstimatedPoints(estimatedPoints)
             setClaimType('wallet')
             onNext()
@@ -44,7 +51,14 @@ export const InitialClaimLinkView = ({
     const handleEnteredAddress = async (address: string) => {
         try {
             setLoadingState('Estimating points')
-            const estimatedPoints = await estimatePoints({ address, link: claimLinkData.link })
+            const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
+
+            const estimatedPoints = await estimatePoints({
+                address: address ?? '',
+                link: claimLinkData.link,
+                chainId: claimLinkData.chainId,
+                amountUSD: USDValue,
+            })
             setEstimatedPoints(estimatedPoints)
             setClaimType('address')
             onNext()
