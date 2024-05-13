@@ -6,6 +6,7 @@ import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import * as _consts from '../Create.consts'
 import * as consts from '@/constants'
+import * as utils from '@/utils'
 import * as context from '@/context'
 import {
     useWeb3InboxAccount,
@@ -31,8 +32,7 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
     const [isLoading, setIsLoading] = useState(false)
 
     const explorerUrlWithTx = useMemo(
-        () =>
-            `${consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.explorers[0].url}/tx/${txHash}`,
+        () => `${utils.getExplorerUrl(selectedChainID)}/tx/${txHash}`,
         [txHash, selectedChainID]
     )
     const share = async (url: string) => {

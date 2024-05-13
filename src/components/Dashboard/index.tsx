@@ -36,6 +36,7 @@ export const Dashboard = () => {
     const [totalPages, setTotalPages] = useState<number>(0)
     const [currentPage, setCurrentPage] = useState<number>(0)
     const [legacyLinks, setLegacyLinks] = useState<string[]>([])
+    const [points, setPoints] = useState<number | undefined>(undefined)
 
     const { address, isConnected } = useAccount()
     const router = useRouter()
@@ -184,6 +185,31 @@ export const Dashboard = () => {
         setFilteredDashboardData(filteredData)
     }
 
+    const fetchPoints = async () => {
+        try {
+            const response = await fetch('https://api.staging.peanut.to/get-user-stats', {
+                method: 'POST',
+
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    address,
+                    apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+
+            const data = await response.json()
+            console.log(data.points)
+            setPoints(data.points)
+        } catch (error) {
+            console.error('Error fetching user stats:', error)
+            throw error // or handle error as needed
+        }
+    }
+
     useEffect(() => {
         if (address) {
             const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
@@ -220,6 +246,8 @@ export const Dashboard = () => {
             }
             console.log(links)
             setLegacyLinks(links)
+
+            fetchPoints()
         } else {
             setDashboardData([])
             setLegacyLinks([])
@@ -258,6 +286,35 @@ export const Dashboard = () => {
                               ? 'Here are all the links you have created or claimed.'
                               : 'You have not created or claimed any links yet.'}
                     </label>
+
+                    {isConnected && (
+                        <div
+                            style={{
+                                backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
+                                WebkitBackgroundClip: 'text',
+                                backgroundClip: 'text',
+                                color: 'transparent',
+                            }}
+                            className="animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
+                        >
+                            <div className="jusityf-center flex flex-row items-center gap-2">
+                                <label className="text-h4">Points: </label>
+                                <label className="text-h3">{points ? points : '0'}</label>
+                            </div>
+                            <div className="jusityf-center flex flex-row items-center gap-2">
+                                <Icon name={'arrow-up-right'} />
+                                <label className="text-h4">1.3X boost</label>
+                            </div>
+                        </div>
+                    )}
+                    {/* <button
+                        onClick={() => {
+                            if (!points) handleOnGetPoints()
+                        }}
+                        className=" btn-purple btn-stroke btn-shadow btn-xl my-2"
+                    >
+                        {points ? points : 'Get Points'}
+                    </button> */}
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Create Link
@@ -340,7 +397,7 @@ export const Dashboard = () => {
                                                               pending
                                                           </div>
                                                       )}
-                                                  </td>{' '}
+                                                  </td>
                                                   <td className="td-custom text-center ">
                                                       <OptionsItem link={link.link} type={link.type} />
                                                   </td>

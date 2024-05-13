@@ -1,9 +1,10 @@
 'use client'
 
-import { createElement, useEffect, useState } from 'react'
+import { createElement, useContext, useEffect, useState } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
+import * as context from '@/context'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 
@@ -38,6 +39,8 @@ export const Create = () => {
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
 
+    const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
+
     const handleOnNext = () => {
         if (step.idx === _consts.CREATE_SCREEN_FLOW.length - 1) return
         const newIdx = step.idx + 1
@@ -67,6 +70,10 @@ export const Create = () => {
             setAccount('')
         }
     }, [address, w3iClient])
+
+    useEffect(() => {
+        resetTokenContextProvider()
+    }, [])
 
     return (
         <div className="card">

@@ -127,7 +127,7 @@ export const CreateLinkInitialView = ({
                     })
 
                     const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
-                    const estiamtedPoints = await estimatePoints({
+                    const estimatedPoints = await estimatePoints({
                         chainId: selectedChainID,
                         address: address ?? '',
                         amountUSD: USDValue,
@@ -135,7 +135,7 @@ export const CreateLinkInitialView = ({
                             prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
                     })
 
-                    if (estiamtedPoints) setEstimatedPoints(estiamtedPoints)
+                    if (estimatedPoints) setEstimatedPoints(estimatedPoints)
 
                     setFeeOptions(feeOptions)
                     setTransactionCostUSD(transactionCostUSD)

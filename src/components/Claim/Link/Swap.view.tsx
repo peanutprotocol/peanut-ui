@@ -36,7 +36,7 @@ export const SwapInitialClaimLinkView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { address } = useAccount()
-
+    const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
     const sourceToken = consts.peanutTokenDetails
         .find((detail) => detail.chainId === claimLinkData.chainId)
         ?.tokens.find((token) => token.address === claimLinkData.tokenAddress)
@@ -46,6 +46,11 @@ export const SwapInitialClaimLinkView = ({
     useEffect(() => {
         const fetchRoute = async () => {
             setIsXchainLoading(true)
+            setHasFetchedRoute(true)
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
             try {
                 const existingRoute = routes.find(
                     (route) =>
@@ -78,6 +83,10 @@ export const SwapInitialClaimLinkView = ({
             } catch (error) {
                 setSelectedRoute(undefined)
                 console.error('Error fetching route:', error)
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'No route found for the given token pair.',
+                })
             }
             setIsXchainLoading(false)
         }
@@ -105,7 +114,13 @@ export const SwapInitialClaimLinkView = ({
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
                     address: recipientAddress ? recipientAddress : address ?? '',
-                    data: { ...claimLinkData, depositDate: new Date(), USDTokenPrice: tokenPrice },
+                    data: {
+                        ...claimLinkData,
+                        depositDate: new Date(),
+                        USDTokenPrice: tokenPrice,
+                        points: estimatedPoints,
+                        txHash: claimTxHash,
+                    },
                 })
                 setClaimType('wallet_xchain')
                 setTransactionHash(claimTxHash)
@@ -178,7 +193,9 @@ export const SwapInitialClaimLinkView = ({
                                 : ''
                         }
                         xchainTokenPrice={selectedRoute ? selectedRoute.route.estimate.toToken.usdPrice : 0}
-                        classNameButton={!selectedRoute ? 'border-n-1 border-red dark:border-red' : ''}
+                        classNameButton={
+                            hasFetchedRoute && !selectedRoute ? 'border-n-1 border-red dark:border-red' : ''
+                        }
                     />
                 )}
             </div>
