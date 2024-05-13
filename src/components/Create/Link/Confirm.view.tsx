@@ -162,7 +162,7 @@ export const CreateLinkConfirmView = ({
                 </button>
                 {errorState.showError && (
                     <div className="text-center">
-                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
             </div>

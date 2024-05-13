@@ -7,9 +7,10 @@ interface TokenAmountInputProps {
     className?: string
     tokenValue: string | undefined
     setTokenValue: (tokenvalue: string | undefined) => void
+    onSubmit?: () => void
 }
 
-const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountInputProps) => {
+const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: TokenAmountInputProps) => {
     const { inputDenomination, setInputDenomination, selectedTokenPrice } = useContext(context.tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
@@ -63,6 +64,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue }: TokenAmountI
                     onKeyDown={(e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault()
+                            if (onSubmit) onSubmit()
                         }
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}

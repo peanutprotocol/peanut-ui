@@ -358,7 +358,10 @@ export const Dashboard = () => {
                                               <Sorting title="Amount" />
                                           </th>
                                           <th className="th-custom">
-                                              <Sorting title="Date Created/Claimed" />
+                                              <Sorting title="Chain" />
+                                          </th>
+                                          <th className="th-custom">
+                                              <Sorting title="Date" />
                                           </th>
                                           <th className="th-custom ">
                                               <Sorting title="From" />
@@ -375,9 +378,10 @@ export const Dashboard = () => {
                                               <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
                                                   <td className="td-custom font-bold">{link.type}</td>
                                                   <td className="td-custom font-bold">
-                                                      {utils.formatTokenAmount(Number(link.amount), 4)}{' '}
-                                                      {link.tokenSymbol} - {link.chain}
+                                                      {utils.formatTokenAmount(Number(link.amount), 4)} $
+                                                      {link.tokenSymbol}
                                                   </td>
+                                                  <td className="td-custom font-bold">{link.chain}</td>
                                                   <td className="td-custom">{formatDate(new Date(link.date))}</td>
                                                   {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
                                                   <td className="td-custom">
@@ -571,8 +575,8 @@ const MobileItem = ({ linkDetail, address }: { linkDetail: interfaces.IDashboard
             <div className="flex w-full border-t border-dotted border-black" />
             <div className="flex w-full flex-row items-end justify-between">
                 <div className="flex flex-col items-start justify-end gap-2 text-start">
-                    <label>
-                        {utils.formatTokenAmount(Number(linkDetail.amount), 4)} {linkDetail.tokenSymbol} [
+                    <label className="font-bold">
+                        {utils.formatTokenAmount(Number(linkDetail.amount), 4)} ${linkDetail.tokenSymbol} - [
                         {linkDetail.chain}]
                     </label>
 

@@ -13,7 +13,7 @@ const QRCodeWrapper = ({ url }: QRCodeWrapperProps) => {
                 maxWidth: 192,
                 width: '100%',
             }}
-            className="border border-black border-n-1 dark:border-white "
+            className=""
         >
             <QRCode
                 value={url}

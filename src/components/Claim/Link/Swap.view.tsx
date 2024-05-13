@@ -39,7 +39,7 @@ export const SwapInitialClaimLinkView = ({
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
     const sourceToken = consts.peanutTokenDetails
         .find((detail) => detail.chainId === claimLinkData.chainId)
-        ?.tokens.find((token) => token.address === claimLinkData.tokenAddress)
+        ?.tokens.find((token) => token.address.toLowerCase() === claimLinkData.tokenAddress.toLowerCase())
     const sourceChain = consts.supportedPeanutChains.find((detail) => detail.chainId === claimLinkData.chainId)
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
 
@@ -55,9 +55,9 @@ export const SwapInitialClaimLinkView = ({
                 const existingRoute = routes.find(
                     (route) =>
                         route.fromChain === claimLinkData.chainId &&
-                        route.fromToken === claimLinkData.tokenAddress &&
+                        route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                         route.toChain === selectedChainID &&
-                        route.toToken === selectedTokenAddress
+                        route.toToken.toLowerCase() === selectedTokenAddress.toLowerCase()
                 )
                 if (existingRoute) {
                     setSelectedRoute(existingRoute)
@@ -69,7 +69,7 @@ export const SwapInitialClaimLinkView = ({
                     const route = await getSquidRouteRaw({
                         squidRouterUrl: 'https://v2.api.squidrouter.com/v2/route',
                         fromChain: claimLinkData.chainId.toString(),
-                        fromToken: claimLinkData.tokenAddress,
+                        fromToken: claimLinkData.tokenAddress.toLowerCase(),
                         fromAmount: tokenAmount,
                         toChain: selectedChainID.toString(),
                         toToken: selectedTokenAddress,
@@ -253,7 +253,7 @@ export const SwapInitialClaimLinkView = ({
                 </button>
                 {errorState.showError && (
                     <div className="text-center">
-                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
             </div>

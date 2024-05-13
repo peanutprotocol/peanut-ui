@@ -99,7 +99,10 @@ export const Claim = ({}) => {
             } else {
                 const crossChainDetails = await getCrossChainDetails(linkDetails)
                 setCrossChainDetails(crossChainDetails)
-                const tokenPrice = await utils.fetchTokenPrice(linkDetails.tokenAddress, linkDetails.chainId)
+                const tokenPrice = await utils.fetchTokenPrice(
+                    linkDetails.tokenAddress.toLowerCase(),
+                    linkDetails.chainId
+                )
                 tokenPrice && setTokenPrice(tokenPrice?.price)
                 if (address && linkDetails.senderAddress === address) {
                     setLinkState('CLAIM_SENDER')

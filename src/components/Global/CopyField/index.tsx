@@ -18,7 +18,7 @@ const CopyField = ({ text }: CopyFieldProps) => {
                     utils.copyTextToClipboardWithFallback(text)
                     setIsCopied(true)
                 }}
-                className="w-24 cursor-pointer border-l-2 border-black py-1 text-center text-sm dark:border-white"
+                className="w-24 cursor-pointer border-l-[1px] border-black py-1 text-center text-sm dark:border-white"
             >
                 {isCopied ? 'Copied' : 'Copy'}
             </label>

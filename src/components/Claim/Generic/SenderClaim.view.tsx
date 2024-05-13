@@ -73,7 +73,7 @@ export const SenderClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Hello, creator!</label>
+            <label className="text-h2">Hello, {utils.shortenAddress(address ?? '')}</label>
             <label className="text-h8 font-bold ">
                 This is a link that you have created. You can cancel it to reclaim the funds or go to the recipient
                 view.
@@ -98,7 +98,7 @@ export const SenderClaimLinkView = ({
                 </button>
                 {errorState.showError && (
                     <div className="text-center">
-                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
             </div>
@@ -112,7 +112,7 @@ export const SenderClaimLinkView = ({
                     Discord!
                 </a>
             </label>
-            <div className="absolute bottom-0 -mb-0.5 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border border-black border-n-1 bg-purple-3  px-4.5 dark:text-black">
+            <div className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black">
                 <div
                     className="cursor-pointer border border-n-1 p-0 px-1"
                     onClick={() => {

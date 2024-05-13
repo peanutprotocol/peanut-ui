@@ -54,6 +54,9 @@ export const CreateLinkInitialView = ({
 
     const handleOnNext = async () => {
         try {
+            console.log('handleOnNext')
+            if (isLoading || (isConnected && !tokenValue)) return
+
             setLoadingState('Loading')
 
             setErrorState({
@@ -163,7 +166,12 @@ export const CreateLinkInitialView = ({
                 will be able to claim the funds in any token on any chain.
             </label>
             <div className="flex w-full flex-col items-center justify-center gap-3">
-                <TokenAmountInput className="w-full" tokenValue={tokenValue} setTokenValue={setTokenValue} />
+                <TokenAmountInput
+                    className="w-full"
+                    tokenValue={tokenValue}
+                    setTokenValue={setTokenValue}
+                    onSubmit={handleOnNext}
+                />
                 <TokenSelector classNameButton="w-full" />
             </div>
 
@@ -188,7 +196,7 @@ export const CreateLinkInitialView = ({
                 </button>
                 {errorState.showError && (
                     <div className="text-center">
-                        <label className=" text-h8 text-red ">{errorState.errorMessage}</label>
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
             </div>
