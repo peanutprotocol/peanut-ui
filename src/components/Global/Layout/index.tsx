@@ -90,6 +90,11 @@ const Layout = ({ children, className }: LayoutProps) => {
                                     onChange={(e) => {
                                         setAccessCode(e.target.value)
                                     }}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            handleSubmit()
+                                        }
+                                    }}
                                 />
 
                                 <button className="btn-purple btn-xl" onClick={handleSubmit}>
