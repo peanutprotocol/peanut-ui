@@ -31,16 +31,20 @@ const Layout = ({ children, className }: LayoutProps) => {
 
     useEffect(() => {
         const accessCode = utils.getPeanutAccessCode()
-        if (accessCode && accessCode.accessCode === 'ilovepeanuts') {
+        console.log(process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE)
+        if (
+            accessCode &&
+            accessCode.accessCode.toLowerCase() === process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase()
+        ) {
             setAccessCodeVisible(false)
-            setAccessCode(accessCode.accessCode)
+            setAccessCode(accessCode.accessCode.toLowerCase())
         }
     }, [])
 
     const handleSubmit = () => {
-        if (accessCode && accessCode === 'ilovepeanuts') {
+        if (accessCode && accessCode.toLowerCase() === process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase()) {
             setAccessCodeVisible(false)
-            utils.updatePeanutAccessCode(accessCode)
+            utils.updatePeanutAccessCode(accessCode.toLowerCase())
         } else {
             setValidAccessCode(false)
         }
@@ -78,6 +82,8 @@ const Layout = ({ children, className }: LayoutProps) => {
                             }}
                             classNameWrapperDiv="px-5 pb-7 pt-8"
                             title="Input Access Code"
+                            classButtonClose="hidden"
+                            className="z-50"
                         >
                             <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
                                 <label className="text-h6">
