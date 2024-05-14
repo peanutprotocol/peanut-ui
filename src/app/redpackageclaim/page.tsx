@@ -34,7 +34,8 @@ export default function ClaimPage() {
             >
                 {' '}
                 <div>PUT CONTENT HERE KONRAD</div>
-gi            </div>
+                gi{' '}
+            </div>
         </global_components.PageWrapper>
     )
 }

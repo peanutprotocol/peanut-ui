@@ -7,41 +7,45 @@ module.exports = {
     content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
     theme: {
         extend: {
-            "colors": {
-                "purple": { // rename to fuchsia
+            colors: {
+                purple: {
+                    // rename to fuchsia
                     1: '#FF90E8',
                     2: '#dc78b5',
-                    3: '#fffae8'
+                    3: '#fffae8',
                 },
-                "yellow": {  // changed values but keep name the same
+                yellow: {
+                    // changed values but keep name the same
                     1: '#F1F333',
-                    2: '#f5ff7c'
+                    2: '#f5ff7c',
                 },
-                "pink": { // rename to lightblue
+                pink: {
+                    // rename to lightblue
                     1: '#90A8ED',
-                    2: '#a2faff'
+                    2: '#a2faff',
                 },
-                "green": { // rename to teal
+                green: {
+                    // rename to teal
                     1: '#23A094',
                     2: '#75b2d7',
-                    3: '#00577d'
+                    3: '#00577d',
                 },
-                "gray": {
+                gray: {
                     1: '#5F646D',
                     2: '#9CA3AF',
                     3: '#e5e7eb',
-                    4: '#d1d5db'
+                    4: '#d1d5db',
                 },
-                "n": {
+                n: {
                     1: '#000000',
                     2: '#161616',
                     3: '#5F646D',
-                    4: '#E7E8E9'
+                    4: '#E7E8E9',
                 },
-                "white": '#FFFFFF',
-                "background": '#FAF4F0',
-                "red": '#FF0000',
-                "black": '#000000'
+                white: '#FFFFFF',
+                background: '#FAF4F0',
+                red: '#FF0000',
+                black: '#000000',
             },
             zIndex: {
                 1: '1',
