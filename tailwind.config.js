@@ -7,41 +7,41 @@ module.exports = {
     content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
     theme: {
         extend: {
-            colors: {
-                purple: {
-                    1: '#AE7AFF',
-                    2: '#8B62CC',
-                    3: '#EFE4FF',
+            "colors": {
+                "purple": { // rename to fuchsia
+                    1: '#FF90E8',
+                    2: '#dc78b5',
+                    3: '#fffae8'
                 },
-                yellow: {
-                    1: '#FAE8A4',
-                    2: '#FEFAED',
+                "yellow": {  // changed values but keep name the same
+                    1: '#F1F333',
+                    2: '#f5ff7c'
                 },
-                pink: {
-                    1: '#E99898',
-                    2: '#FBEAEA',
+                "pink": { // rename to lightblue
+                    1: '#90A8ED',
+                    2: '#a2faff'
                 },
-                green: {
-                    1: '#98E9AB',
-                    2: '#EAFBEE',
-                    3: '#22A094',
+                "green": { // rename to teal
+                    1: '#23A094',
+                    2: '#75b2d7',
+                    3: '#00577d'
                 },
-                n: {
-                    1: '#000000',
-                    2: '#161616',
-                    3: '#5F646D',
-                    4: '#E7E8E9',
-                },
-                gray: {
+                "gray": {
                     1: '#5F646D',
                     2: '#9CA3AF',
                     3: '#e5e7eb',
-                    4: '#d1d5db',
+                    4: '#d1d5db'
                 },
-                white: '#FFFFFF',
-                background: '#FAF4F0',
-                red: '#FF0000',
-                black: '#000000',
+                "n": {
+                    1: '#000000',
+                    2: '#161616',
+                    3: '#5F646D',
+                    4: '#E7E8E9'
+                },
+                "white": '#FFFFFF',
+                "background": '#FAF4F0',
+                "red": '#FF0000',
+                "black": '#000000'
             },
             zIndex: {
                 1: '1',
