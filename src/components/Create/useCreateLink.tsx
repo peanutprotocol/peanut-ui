@@ -68,7 +68,7 @@ export const useCreateLink = () => {
         }
 
         // the selected tokenvalue has to be a number higher then .0001
-        if (!tokenValue || (tokenValue && Number(tokenValue) <= 0.0001)) {
+        if (!tokenValue || (tokenValue && Number(tokenValue) < 0.0001)) {
             throw new Error('The minimum amount to send is 0.0001')
         }
     }

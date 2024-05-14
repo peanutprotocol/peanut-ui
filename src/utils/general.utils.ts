@@ -454,7 +454,7 @@ export const addClaimLinkToLocalstorage = ({
     }
 }
 
-export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId: string; tokenAddress: string }) => {
+export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: string; tokenAddress?: string }) => {
     try {
         const key = `peanut-preferences`
 
@@ -495,6 +495,40 @@ export const checkifImageType = (type: string) => {
     if (imageTypes.includes(type)) return true
     else return false
 }
+export const getPeanutAccessCode = () => {
+    try {
+        const key = `peanut-access-code`
+
+        const storedData = localStorage.getItem(key)
+
+        let data = {
+            accessCode: '',
+        }
+
+        if (storedData) {
+            data = JSON.parse(storedData)
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const updatePeanutAccessCode = (accessCode?: string) => {
+    try {
+        const key = `peanut-access-code`
+
+        let data = {
+            accessCode: accessCode ? accessCode : '',
+        }
+
+        localStorage.setItem(key, JSON.stringify(data))
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
 export const estimateStableCoin = (tokenPrice: number) => {
     // if the tokenprice is between .995 and 1.005, return 1
     if (tokenPrice >= 0.995 && tokenPrice <= 1.005) {

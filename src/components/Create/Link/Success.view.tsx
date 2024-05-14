@@ -126,37 +126,31 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
             >
                 Share link
             </div>
-            <Link
-                className="cursor-pointer self-start text-h8 font-bold text-gray-1 underline"
-                href={`${explorerUrlWithTx}`}
-            >
+            <Link className="cursor-pointer text-h8 font-bold text-gray-1 underline" href={`${explorerUrlWithTx}`}>
                 Transaction hash
             </Link>
 
-            <div className="absolute bottom-0 -mb-0.5 flex h-20 w-[27rem] w-full flex-row items-center justify-center gap-2  border border-black border-n-1 bg-purple-3  px-4.5 dark:text-black">
-                <div
-                    className="cursor-pointer border border-n-1 p-0 px-1"
-                    onClick={() => {
-                        if (!isRegistered) {
-                            handleRegistration()
-                        } else if (!isSubscribed) {
-                            handleSubscribe()
-                        }
-                    }}
-                >
+            <div
+                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                onClick={() => {
+                    if (!isRegistered) {
+                        handleRegistration()
+                    } else if (!isSubscribed) {
+                        handleSubscribe()
+                    } else {
+                        window.open('https://app.web3inbox.com/notifications/peanut.to', '_blank')
+                    }
+                }}
+            >
+                <div className=" border border-n-1 p-0 px-1">
                     <Icon name="email" className="-mt-0.5" />
                 </div>
                 {isRegistered && isSubscribed ? (
-                    <label className="text-sm font-bold">
-                        {' '}
-                        Click{' '}
-                        <Link className="underline" href={'https://app.web3inbox.com'}>
-                            here
-                        </Link>{' '}
-                        to see your notifications{' '}
-                    </label>
+                    <label className="cursor-pointer text-sm font-bold"> Click here to see your notifications </label>
                 ) : (
-                    <label className="text-sm font-bold">Subscribe to get notified when you link gets claimed!</label>
+                    <label className="cursor-pointer text-sm font-bold">
+                        Subscribe to get notified when you link gets claimed!
+                    </label>
                 )}
             </div>
         </div>
