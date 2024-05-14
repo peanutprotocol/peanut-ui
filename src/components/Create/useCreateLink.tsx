@@ -198,7 +198,6 @@ export const useCreateLink = () => {
             throw error
         }
     }
-
     const estimatePoints = async ({
         chainId,
         preparedTx,
@@ -211,7 +210,6 @@ export const useCreateLink = () => {
         amountUSD: number
     }) => {
         try {
-            console.log(preparedTx)
             const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
                 method: 'POST',
                 headers: {
@@ -234,11 +232,77 @@ export const useCreateLink = () => {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
-            console.log(data.points)
             return Math.round(data.points)
         } catch (error) {
             console.error('Failed to estimate points:', error)
             return 0 // Returning 0 or another error handling strategy could be implemented here
+        }
+    }
+    const submitLinkAttachments = async ({
+        userAddress,
+        attachmentOptions,
+    }: {
+        userAddress: string
+        attachmentOptions: {
+            message?: string
+            attachmentUrl?: string
+        }
+    }) => {
+        // TODO: update this once endpoints are ready
+        try {
+            // const response = await fetch('https://api.staging.peanut.to/submit-claim-link', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         link: link ,
+            //         apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
+            //         reference: attachmentOptions.message,
+            //     }),
+            //     file: attachmentOptions.attachmentUrl,
+            // })
+            // if (!response.ok) {
+            //     throw new Error(`HTTP error! status: ${response.status}`)
+            // }
+            // const data = await response.json()
+            // return Math.round(data.points)
+
+            // return fileUrl
+
+            return 'https://raw.githubusercontent.com/trustwallet/assets/8ee07e9d791bec6c3ada3cfac73ddfdc4f4a40b7/blockchains/optimism/info/logo.png'
+        } catch (error) {
+            console.error('Failed to estimate points:', error)
+            return ''
+        }
+    }
+    const confirmSubmitLinkAttachments = async ({ link, userAddress }: { link: string; userAddress: string }) => {
+        try {
+            // TODO: update this once endpoints are ready
+            // const response = await fetch('https://api.staging.peanut.to/submit-claim-link', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         link: link ,
+            //         apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
+            //         reference: attachmentOptions.message,
+            //     }),
+            //     file: attachmentOptions.attachmentUrl,
+            // })
+            // if (!response.ok) {
+            //     throw new Error(`HTTP error! status: ${response.status}`)
+            // }
+            // const data = await response.json()
+            // return Math.round(data.points)
+
+            // return fileUrl
+
+            return 'https://raw.githubusercontent.com/trustwallet/assets/8ee07e9d791bec6c3ada3cfac73ddfdc4f4a40b7/blockchains/optimism/info/logo.png'
+        } catch (error) {
+            console.error('Failed to estimate points:', error)
+            return ''
         }
     }
 
@@ -419,5 +483,7 @@ export const useCreateLink = () => {
         switchNetwork,
         estimateGasFee,
         estimatePoints,
+        submitLinkAttachments,
+        confirmSubmitLinkAttachments,
     }
 }

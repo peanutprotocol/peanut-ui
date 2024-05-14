@@ -10,6 +10,7 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
+import * as utils from '@/utils'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -18,10 +19,12 @@ export const InitialClaimLinkView = ({
     tokenPrice,
     setClaimType,
     setEstimatedPoints,
+    attachment,
 }: _consts.IClaimScreenProps) => {
     const [initiatedWalletConnection, setInitiatedWalletConnection] = useState(false)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [isValidAddress, setIsValidAddress] = useState(false)
+    const [fileType, setFileType] = useState<string>('')
 
     const { estimatePoints } = useClaimLink()
 
@@ -74,6 +77,19 @@ export const InitialClaimLinkView = ({
             handleConnectWallet()
         }
     }, [isConnected])
+    useEffect(() => {
+        if (attachment?.attachmentUrl) {
+            fetch(attachment?.attachmentUrl)
+                .then((response) => response.blob())
+                .then((blob) => {
+                    setFileType(blob.type)
+                })
+                .catch((error) => {
+                    console.error('Error fetching the blob from URL:', error)
+                    setFileType('') // Reset or handle the error state
+                })
+        }
+    }, [attachment?.attachmentUrl])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
@@ -86,10 +102,38 @@ export const InitialClaimLinkView = ({
                 selectedTokenAddress={claimLinkData.tokenAddress}
             />
 
-            <label className="max-w-96 px-2 text-start text-h8 font-light">
-                Manually enter your wallet or ENS address below or connect your wallet to claim the fund. You can also
-                swap after connecting your wallet!
-            </label>
+            {attachment.message || attachment.attachmentUrl ? (
+                <>
+                    {' '}
+                    <div className="flex w-full border-t border-dotted border-black" />
+                    <div
+                        className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                    >
+                        {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
+                            <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
+                        ) : (
+                            <a
+                                href={attachment.attachmentUrl}
+                                download
+                                target="_blank"
+                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h8 underline "
+                            >
+                                <Icon name={'download'} />
+                                Download attachment
+                            </a>
+                        )}
+                        {attachment.message && (
+                            <label className="text-h8 font-normal text-gray-1">{attachment.message}</label>
+                        )}
+                    </div>
+                    <div className="flex w-full border-t border-dotted border-black" />
+                </>
+            ) : (
+                <label className="max-w-96 px-2 text-start text-h8 font-light">
+                    Manually enter your wallet or ENS address below or connect your wallet to claim the fund. You can
+                    also swap after connecting your wallet!
+                </label>
+            )}
 
             <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 <AddressInput

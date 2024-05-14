@@ -40,6 +40,8 @@ export interface IClaimScreenProps {
     setTransactionHash: (hash: string) => void
     estimatedPoints: number
     setEstimatedPoints: (points: number) => void
+    attachment: { message: string | undefined; attachmentUrl: string | undefined }
+    setAttachment: (attachment: { message: string | undefined; attachmentUrl: string | undefined }) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'

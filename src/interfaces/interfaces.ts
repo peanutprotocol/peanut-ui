@@ -107,8 +107,8 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
     USDTokenPrice: number
     points: number
     txHash: string
-    message: string
-    hasAttachment: boolean
+    message: string | undefined
+    attachmentUrl: string | undefined
 }
 
 export interface IDashboardItem {
@@ -120,10 +120,14 @@ export interface IDashboardItem {
     chain: string
     address: string | undefined
     status: 'claimed' | 'pending' | undefined
+    message: string | undefined
+    attachmentUrl: string | undefined
 }
 
 export interface IExtendedLinkDetails extends ILinkDetails {
     USDTokenPrice: number
     points: number
     txHash: string
+    message: string | undefined
+    attachmentUrl: string | undefined
 }

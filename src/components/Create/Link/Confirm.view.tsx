@@ -28,15 +28,26 @@ export const CreateLinkConfirmView = ({
     transactionCostUSD,
     feeOptions,
     estiamtedPoints,
+    attachmentOptions,
 }: _consts.ICreateScreenProps) => {
+    const [showMessage, setShowMessage] = useState(false)
+
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
         context.tokenSelectorContext
     )
+
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const { sendTransactions, signTypedData, makeDepositGasless, getLinkFromHash } = useCreateLink()
+    const {
+        sendTransactions,
+        signTypedData,
+        makeDepositGasless,
+        getLinkFromHash,
+        submitLinkAttachments,
+        confirmSubmitLinkAttachments,
+    } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const { address } = useAccount()
@@ -51,6 +62,14 @@ export const CreateLinkConfirmView = ({
 
         try {
             let hash: string = ''
+
+            let fileUrl = await submitLinkAttachments({
+                userAddress: address ?? '',
+                attachmentOptions: {
+                    attachmentUrl: attachmentOptions.fileUrl,
+                    message: attachmentOptions.message,
+                },
+            })
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
@@ -71,6 +90,11 @@ export const CreateLinkConfirmView = ({
 
             const link = await getLinkFromHash({ hash, linkDetails, password })
 
+            fileUrl = await confirmSubmitLinkAttachments({
+                userAddress: address ?? '',
+                link: link[0],
+            })
+
             utils.saveCreatedLinkToLocalStorage({
                 address: address ?? '',
                 data: {
@@ -79,8 +103,8 @@ export const CreateLinkConfirmView = ({
                     USDTokenPrice: selectedTokenPrice ?? 0,
                     points: estiamtedPoints ?? 0,
                     txHash: hash,
-                    message: '', // TODO: update this
-                    hasAttachment: false, // TODO: update this
+                    message: attachmentOptions.message ?? '',
+                    attachmentUrl: fileUrl,
                     ...linkDetails,
                 },
             })
@@ -128,6 +152,43 @@ export const CreateLinkConfirmView = ({
             />
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
+                {attachmentOptions.fileUrl && (
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="flex w-max flex-row items-center justify-center gap-1">
+                            <Icon name={'paperclip'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Attachment</label>
+                        </div>
+                        <a href={attachmentOptions.fileUrl} download target="_blank">
+                            <Icon name={'download'} className="h-4 fill-gray-1" />
+                        </a>
+                    </div>
+                )}
+                {attachmentOptions.message && (
+                    <div className="flex w-full flex-col items-center justify-center gap-1">
+                        <div
+                            className="flex w-full  flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1"
+                            onClick={() => {
+                                setShowMessage(!showMessage)
+                            }}
+                        >
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'paperclip'} className="h-4 fill-gray-1 " />
+                                <label className=" font-bold">Message</label>
+                            </div>
+                            <Icon
+                                name={'arrow-bottom'}
+                                className={`h-4 cursor-pointer fill-gray-1 transition-transform ${showMessage && ' rotate-180'}`}
+                            />
+                        </div>
+                        {showMessage && (
+                            <div className="flex w-full flex-col items-center justify-center gap-1 px-2 text-h8 text-gray-1">
+                                <label className="w-full text-end text-sm font-normal leading-4">
+                                    {attachmentOptions.message}
+                                </label>
+                            </div>
+                        )}
+                    </div>
+                )}
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'gas'} className="h-4 fill-gray-1" />

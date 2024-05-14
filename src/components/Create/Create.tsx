@@ -30,6 +30,10 @@ export const Create = () => {
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const [transactionCostUSD, setTransactionCostUSD] = useState<number | undefined>(undefined)
     const [estiamtedPoints, setEstimatedPoints] = useState<number | undefined>(undefined)
+    const [attachmentOptions, setAttachmentOptions] = useState<_consts.IAttachmentOptions>({
+        fileUrl: undefined,
+        message: undefined,
+    })
 
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
@@ -100,6 +104,8 @@ export const Create = () => {
                 setTransactionCostUSD,
                 estiamtedPoints,
                 setEstimatedPoints,
+                attachmentOptions,
+                setAttachmentOptions,
             } as _consts.ICreateScreenProps)}
         </div>
     )

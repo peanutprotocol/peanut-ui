@@ -12,6 +12,7 @@ import * as _utils from '../Create.utils'
 import * as context from '@/context'
 import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
+import FileUploadInput from '@/components/Global/FileUploadInput'
 export const CreateLinkInitialView = ({
     onNext,
     tokenValue,
@@ -25,6 +26,8 @@ export const CreateLinkInitialView = ({
     setTransactionCostUSD,
     setFeeOptions,
     setEstimatedPoints,
+    attachmentOptions,
+    setAttachmentOptions,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -39,6 +42,7 @@ export const CreateLinkInitialView = ({
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
     )
+
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -173,8 +177,8 @@ export const CreateLinkInitialView = ({
                     onSubmit={handleOnNext}
                 />
                 <TokenSelector classNameButton="w-full" />
+                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
             </div>
-
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
                     className="btn-purple btn-xl "

@@ -490,6 +490,11 @@ export const getPeanutPreferences = () => {
     }
 }
 
+export const checkifImageType = (type: string) => {
+    const imageTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/svg+xml', 'image/webp']
+    if (imageTypes.includes(type)) return true
+    else return false
+}
 export const getPeanutAccessCode = () => {
     try {
         const key = `peanut-access-code`

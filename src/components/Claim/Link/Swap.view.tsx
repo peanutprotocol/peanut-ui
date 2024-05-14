@@ -23,6 +23,7 @@ export const SwapInitialClaimLinkView = ({
     setClaimType,
     recipientAddress,
     estimatedPoints,
+    attachment,
 }: _consts.IClaimScreenProps) => {
     const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
         useContext(context.tokenSelectorContext)
@@ -40,6 +41,7 @@ export const SwapInitialClaimLinkView = ({
     const sourceToken = consts.peanutTokenDetails
         .find((detail) => detail.chainId === claimLinkData.chainId)
         ?.tokens.find((token) => token.address.toLowerCase() === claimLinkData.tokenAddress.toLowerCase())
+
     const sourceChain = consts.supportedPeanutChains.find((detail) => detail.chainId === claimLinkData.chainId)
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
 
@@ -120,6 +122,8 @@ export const SwapInitialClaimLinkView = ({
                         USDTokenPrice: tokenPrice,
                         points: estimatedPoints,
                         txHash: claimTxHash,
+                        message: attachment.message ? attachment.message : undefined,
+                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
                     },
                 })
                 setClaimType('wallet_xchain')
