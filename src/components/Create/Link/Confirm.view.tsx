@@ -12,6 +12,8 @@ import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import { useCreateLink } from '../useCreateLink'
 import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
+import { estimateContractGas } from 'viem/actions'
+import MoreInfo from '@/components/Global/MoreInfo'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -27,7 +29,7 @@ export const CreateLinkConfirmView = ({
     tokenValue,
     transactionCostUSD,
     feeOptions,
-    estiamtedPoints,
+    estimatedPoints,
     attachmentOptions,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
@@ -101,7 +103,7 @@ export const CreateLinkConfirmView = ({
                     link: link[0],
                     depositDate: new Date().toISOString(),
                     USDTokenPrice: selectedTokenPrice ?? 0,
-                    points: estiamtedPoints ?? 0,
+                    points: estimatedPoints ?? 0,
                     txHash: hash,
                     message: attachmentOptions.message ?? '',
                     attachmentUrl: fileUrl,
@@ -132,8 +134,8 @@ export const CreateLinkConfirmView = ({
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
             <label className="max-w-96 text-start text-h8 font-light">
-                Choose the chain, set the amount, confirm the transaction. You’ll get a trustless payment link. They
-                will be able to claim the funds in any token on any chain.
+                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
+                be able to claim the funds in any token on any chain from the link.
             </label>
             <ConfirmDetails
                 selectedChainID={selectedChainID}
@@ -194,8 +196,17 @@ export const CreateLinkConfirmView = ({
                         <Icon name={'gas'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Network cost</label>
                     </div>
-                    <label className="text-sm font-normal leading-4">
+                    <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         ${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}
+                        <MoreInfo
+                            text={
+                                transactionCostUSD
+                                    ? transactionCostUSD > 0
+                                        ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
+                                        : 'This transaction is sponsored by peanut! Enjoy!'
+                                    : 'Something went wrong while calculating the transaction cost.'
+                            }
+                        />
                     </label>
                 </div>
 
@@ -204,7 +215,18 @@ export const CreateLinkConfirmView = ({
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
-                    <label className="text-sm font-normal leading-4">+{estiamtedPoints ?? 0}</label>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        +{estimatedPoints ?? 0}{' '}
+                        <MoreInfo
+                            text={
+                                estimatedPoints
+                                    ? estimatedPoints > 0
+                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                        : 'This transaction will not add any points to your total points balance'
+                                    : 'This transaction will not add any points to your total points balance'
+                            }
+                        />
+                    </span>
                 </div>
             </div>
 

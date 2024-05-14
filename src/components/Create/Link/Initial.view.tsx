@@ -166,8 +166,8 @@ export const CreateLinkInitialView = ({
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
             <label className="max-w-96 text-start text-h8 font-light">
-                Choose the chain, set the amount, confirm the transaction. You’ll get a trustless payment link. They
-                will be able to claim the funds in any token on any chain.
+                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
+                be able to claim the funds in any token on any chain from the link.
             </label>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput

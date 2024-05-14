@@ -12,6 +12,7 @@ import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
 import useClaimLink from '../useClaimLink'
 import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
 
 export const SwapInitialClaimLinkView = ({
     onNext,
@@ -210,7 +211,7 @@ export const SwapInitialClaimLinkView = ({
                         <Icon name={'gas'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Fees</label>
                     </div>
-                    <label className="font-normal">
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {isXchainLoading ? (
                             <div className="h-2 w-12 animate-pulse rounded bg-slate-700"></div>
                         ) : selectedRoute ? (
@@ -226,7 +227,21 @@ export const SwapInitialClaimLinkView = ({
                         ) : (
                             '$0.00'
                         )}
-                    </label>
+                        <MoreInfo
+                            text={
+                                selectedRoute
+                                    ? `This transaction will cost you $${utils.formatTokenAmount(
+                                          utils.formatAmountWithDecimals({
+                                              amount: selectedRoute.route.estimate.toAmountMin,
+                                              decimals: selectedRoute.route.estimate.toToken.decimals,
+                                          }) *
+                                              selectedRoute.route.estimate.toToken.usdPrice *
+                                              (1 - xchainFeeMultiplier)
+                                      )} in network fees.`
+                                    : 'Something went wrong while calculating the transaction cost.'
+                            }
+                        />
+                    </span>
                 </div>
 
                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
@@ -234,7 +249,18 @@ export const SwapInitialClaimLinkView = ({
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
-                    <label className="font-normal">+{estimatedPoints}</label>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        +{estimatedPoints}
+                        <MoreInfo
+                            text={
+                                estimatedPoints
+                                    ? estimatedPoints > 0
+                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                        : 'This transaction will not add any points to your total points balance'
+                                    : 'This transaction will not add any points to your total points balance'
+                            }
+                        />
+                    </span>
                 </div>
             </div>
 

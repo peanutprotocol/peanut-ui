@@ -29,7 +29,7 @@ export const Create = () => {
 
     const [feeOptions, setFeeOptions] = useState<any | undefined>(undefined)
     const [transactionCostUSD, setTransactionCostUSD] = useState<number | undefined>(undefined)
-    const [estiamtedPoints, setEstimatedPoints] = useState<number | undefined>(undefined)
+    const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(undefined)
     const [attachmentOptions, setAttachmentOptions] = useState<_consts.IAttachmentOptions>({
         fileUrl: undefined,
         message: undefined,
@@ -102,7 +102,7 @@ export const Create = () => {
                 setFeeOptions,
                 transactionCostUSD,
                 setTransactionCostUSD,
-                estiamtedPoints,
+                estimatedPoints,
                 setEstimatedPoints,
                 attachmentOptions,
                 setAttachmentOptions,

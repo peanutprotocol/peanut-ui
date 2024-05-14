@@ -14,7 +14,7 @@ import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import * as _utils from './Dashboard.utils'
 import * as _consts from './Dashboard.consts'
-import * as components from './components'
+import * as components from './Components'
 import Modal from '../Global/Modal'
 
 export const Dashboard = () => {
@@ -277,12 +277,12 @@ export const Dashboard = () => {
         <div className="flex w-full flex-col items-center justify-center gap-6 p-4">
             <div className="flex w-full flex-row items-start justify-between">
                 <div className="flex flex-col items-start justify-center">
-                    <label className="text-h2">Link History</label>
+                    <label className="text-h2">Dashboard</label>
                     <label className="text-h7 font-normal">
                         {!isConnected
                             ? 'Connect your wallet to view all the links you have claimed/created '
                             : dashboardData.length > 0
-                              ? 'Here are all the links you have created or claimed.'
+                              ? `See all links created and claimed with ${utils.shortenAddressLong(address ?? '')}`
                               : 'You have not created or claimed any links yet.'}
                     </label>
 
@@ -467,7 +467,7 @@ export const Dashboard = () => {
                 }}
             >
                 <Icon name={'question-circle'} />
-                <label className="cursor-pointer">Click here if you had a problem creating a link.</label>
+                <label className="cursor-pointer">Had an issue creating a link? click here to reclaim the funds.</label>
             </button>
 
             <Modal
