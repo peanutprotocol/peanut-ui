@@ -63,7 +63,7 @@ const features = [
     {
         name: 'Get Physical',
         description: 'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.',
-        bg: 'bg-purple-3',
+        bg: 'bg-purple-2',
         calModal: true,
         primaryRedirectUrl: 'https://docs.peanut.to/overview/case-studies/irl-events-marketing',
         primaryRedirectText: 'Case study',
@@ -71,7 +71,7 @@ const features = [
     {
         name: 'Web2 Airdrops',
         description: 'Airdrop your web2 audience (think Discord, Mailchimp, Twitter)',
-        bg: 'bg-yellow-2',
+        bg: 'bg-yellow-1',
         calModal: true,
     },
 ]
@@ -148,7 +148,7 @@ const testimonials = [
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',
         detail: 'Probably FTX',
-        bgColorClass: 'bg-yellow-2',
+        bgColorClass: 'bg-yellow-1',
     },
 ]
 const defaultLottieOptions = {
@@ -245,7 +245,7 @@ export function Welcome() {
                     </div>
                 </div>
 
-                <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-pink-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
+                <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-purple-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
                         src={assets.PEANUTMAN_HAPPY.src}
                         className="absolute duration-200 hover:rotate-12"
@@ -307,7 +307,7 @@ export function Welcome() {
                 </div>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="flex w-full flex-col items-center justify-between border border-n-2 bg-yellow-1 py-12 lg:flex-row ">
+                <div className="flex w-full flex-col items-center justify-between border border-n-2 bg-purple-1 py-12 lg:flex-row ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
                             <img
