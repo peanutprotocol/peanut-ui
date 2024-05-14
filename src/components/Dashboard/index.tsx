@@ -3,33 +3,24 @@ import { useEffect, useState } from 'react'
 import Icon from '../Global/Icon'
 import Sorting from '../Global/Sorting'
 import TablePagination from '../Global/TablePagination'
-import { Menu, Transition } from '@headlessui/react'
+import { useAccount } from 'wagmi'
+import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import Loading from '../Global/Loading'
+import { useRouter } from 'next/navigation'
+import { CSVLink } from 'react-csv'
 
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
-import { useAccount } from 'wagmi'
-import Search from '../Global/Search'
-import { ILinkDetails } from '@/interfaces'
-import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
-import Loading from '../Global/Loading'
-import { useRouter } from 'next/navigation'
-import { CSVDownload, CSVLink } from 'react-csv'
+import * as _utils from './Dashboard.utils'
+import * as _consts from './Dashboard.consts'
+import * as components from './components'
 import Modal from '../Global/Modal'
-
-const sortingTypes = [
-    'Date: new to old',
-    'Date: old to new',
-    'Amount: low to high',
-    'Amount: high to low',
-    'Type: send',
-    'Type: receive',
-]
 
 export const Dashboard = () => {
     const itemsPerPage = 10
     const [filterValue, setFilterValue] = useState('')
-    const [sortingValue, setSortingValue] = useState<string>(sortingTypes[0])
+    const [sortingValue, setSortingValue] = useState<string>(_consts.sortingTypes[0])
     const [dashboardData, setDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [filteredDashboardData, setFilteredDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [fetchedLinks, setFetchedLinks] = useState(false)
@@ -37,6 +28,7 @@ export const Dashboard = () => {
     const [currentPage, setCurrentPage] = useState<number>(0)
     const [legacyLinks, setLegacyLinks] = useState<string[]>([])
     const [points, setPoints] = useState<number | undefined>(undefined)
+    const [isPointsModalVisible, setIsPointsModalVisible] = useState(false)
 
     const { address, isConnected } = useAccount()
     const router = useRouter()
@@ -302,15 +294,19 @@ export const Dashboard = () => {
                                 backgroundClip: 'text',
                                 color: 'transparent',
                             }}
-                            className="animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
+                            className="animate-gradient flex w-full cursor-pointer flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
+                            onClick={() => {
+                                setIsPointsModalVisible(true)
+                            }}
                         >
                             <div className="jusityf-center flex flex-row items-center gap-2">
-                                <label className="text-h4">Points: </label>
-                                <label className="text-h3">{points ? points : '0'}</label>
+                                <label className="cursor-pointer text-h4">Points: </label>
+                                <label className="cursor-pointer text-h3">{points ? points : '0'}</label>
                             </div>
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <Icon name={'arrow-up-right'} />
-                                <label className="text-h4">1.3X boost</label>
+                                <label className="cursor-pointer text-h4">1.3X boost</label>
+                                <Icon name={'info'} className="" />
                             </div>
                         </div>
                     )}
@@ -324,7 +320,7 @@ export const Dashboard = () => {
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 {dashboardData.length > 0 && (
                     <div className="flex w-full flex-col-reverse items-center justify-center gap-3 sm:flex-row sm:items-end sm:justify-between">
-                        <SortComponent
+                        <components.SortComponent
                             sortingValue={sortingValue}
                             setSortingValue={(sortingValue: string) => {
                                 setSortingValue(sortingValue)
@@ -384,7 +380,9 @@ export const Dashboard = () => {
                                                       {link.tokenSymbol}
                                                   </td>
                                                   <td className="td-custom font-bold">{link.chain}</td>
-                                                  <td className="td-custom">{formatDate(new Date(link.date))}</td>
+                                                  <td className="td-custom">
+                                                      {_utils.formatDate(new Date(link.date))}
+                                                  </td>
                                                   {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
                                                   <td className="td-custom">
                                                       {utils.shortenAddressLong(link.address ?? address ?? '')}
@@ -414,7 +412,7 @@ export const Dashboard = () => {
                                                       )}
                                                   </td>
                                                   <td className="td-custom text-center ">
-                                                      <OptionsItem item={link} />
+                                                      <components.OptionsItemComponent item={link} />
                                                   </td>
                                               </tr>
                                           ))}
@@ -425,7 +423,10 @@ export const Dashboard = () => {
                                       .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                       .map((link) => (
                                           <div key={link.link + Math.random()}>
-                                              <MobileItem linkDetail={link} address={address ?? ''} />
+                                              <components.MobileItemComponent
+                                                  linkDetail={link}
+                                                  address={address ?? ''}
+                                              />
                                           </div>
                                       ))}
                               </div>
@@ -468,178 +469,42 @@ export const Dashboard = () => {
                 <Icon name={'question-circle'} />
                 <label className="cursor-pointer">Click here if you had a problem creating a link.</label>
             </button>
-        </div>
-    )
-}
 
-const SortComponent = ({
-    sortingValue,
-    setSortingValue,
-    buttonClassName,
-}: {
-    sortingValue: string
-    setSortingValue: any
-    buttonClassName: string
-}) => {
-    return (
-        <Menu className="relative w-full" as="div">
-            <Menu.Button
-                className={`btn-purple-2 flex h-max flex-row items-center justify-center px-4 py-2 text-h8 font-normal ${buttonClassName}`}
-            >
-                Sort by: {sortingValue}
-            </Menu.Button>
-            <Transition
-                enter="transition duration-100 ease-out"
-                enterFrom="transform scale-95 opacity-0"
-                enterTo="transform scale-100 opacity-100"
-                leave="transition duration-75 ease-out"
-                leaveFrom="transform scale-100 opacity-100"
-                leaveTo="transform scale-95 opacity-0"
-            >
-                <Menu.Items className=" shadow-primary-4 absolute left-0 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1 ">
-                    {sortingTypes.map((type) => (
-                        <Menu.Item
-                            as={'button'}
-                            onClick={() => {
-                                setSortingValue(type)
-                            }}
-                            className=" flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
-                            key={type}
-                        >
-                            <div className="text-h8">{type}</div>
-                        </Menu.Item>
-                    ))}
-                </Menu.Items>
-            </Transition>
-        </Menu>
-    )
-}
-
-const OptionsItem = ({ item }: { item: interfaces.IDashboardItem }) => {
-    const router = useRouter()
-
-    return (
-        <Menu className="relative" as="div">
-            <Menu.Button className={''}>
-                <Icon name={'dots'} className="cursor-pointer dark:fill-white" />
-            </Menu.Button>
-            <Transition
-                enter="transition duration-100 ease-out"
-                enterFrom="transform scale-95 opacity-0"
-                enterTo="transform scale-100 opacity-100"
-                leave="transition duration-75 ease-out"
-                leaveFrom="transform scale-100 opacity-100"
-                leaveTo="transform scale-95 opacity-0"
-            >
-                <Menu.Items className="shadow-primary-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
-                    {item.type != 'receive' && (
-                        <Menu.Item
-                            as={'button'}
-                            onClick={() => {
-                                router.push(`/${item.link.split('://')[1].split('/')[1]}`)
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            <div className="text-h8">Refund</div>
-                        </Menu.Item>
-                    )}
-                    <Menu.Item
-                        as={'button'}
-                        onClick={() => {
-                            utils.copyTextToClipboardWithFallback(item.link)
-                        }}
-                        className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                    >
-                        <div className="text-h8">Copy Link</div>
-                    </Menu.Item>
-                    {item.attachmentUrl && (
-                        <Menu.Item
-                            as={'a'}
-                            href={item.attachmentUrl}
-                            download
-                            target="_blank"
-                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                        >
-                            <div className="text-h8">Download attachment</div>
-                        </Menu.Item>
-                    )}
-                </Menu.Items>
-            </Transition>
-        </Menu>
-    )
-}
-
-function formatDate(date: Date): string {
-    const day = date.getDate().toString().padStart(2, '0')
-    const month = (date.getMonth() + 1).toString().padStart(2, '0') // JavaScript months are zero-indexed
-    const year = date.getFullYear()
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    const seconds = date.getSeconds().toString().padStart(2, '0')
-
-    return `${day} ${month} ${year} ${hours}:${minutes}:${seconds}`
-}
-
-const MobileItem = ({ linkDetail, address }: { linkDetail: interfaces.IDashboardItem; address: string }) => {
-    const [modalVisible, setModalVisible] = useState(false)
-    const router = useRouter()
-
-    return (
-        <div
-            className=" flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
-            key={linkDetail.link + Math.random()}
-            onClick={() => setModalVisible(true)}
-        >
-            <div className="flex w-full flex-row items-center justify-between">
-                <label className="font-bold">{linkDetail.type}</label>
-                <label>{formatDate(new Date(linkDetail.date))}</label>
-            </div>
-            <div className="flex w-full border-t border-dotted border-black" />
-            <div className="flex w-full flex-row items-end justify-between">
-                <div className="flex flex-col items-start justify-end gap-2 text-start">
-                    <label className="font-bold">
-                        {utils.formatTokenAmount(Number(linkDetail.amount), 4)} ${linkDetail.tokenSymbol} - [
-                        {linkDetail.chain}]
-                    </label>
-
-                    <label>From: {utils.shortenAddressLong(linkDetail.address ?? address)}</label>
-                </div>
-                <div className="flex flex-col items-end justify-end gap-2 text-end">
-                    <div>
-                        {linkDetail.status === 'claimed' ? (
-                            <div className="border border-green-3 px-2 py-1 text-center text-green-3">claimed</div>
-                        ) : (
-                            <div className="border border-gray-1 border-n-1 px-2 py-1 text-gray-1">pending</div>
-                        )}
-                    </div>
-                </div>
-            </div>
             <Modal
-                visible={modalVisible}
-                onClose={() => setModalVisible(false)}
-                title="Options"
-                classWrap="bg-background"
+                title="Go nuts with points"
+                visible={isPointsModalVisible}
+                onClose={() => {
+                    setIsPointsModalVisible(false)
+                }}
             >
-                <div className="flex w-full flex-col items-center justify-center p-2 "></div>
-                {linkDetail.type != 'receive' && (
-                    <div className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
-                        <div
-                            className="text-h8"
-                            onClick={() => {
-                                router.push(`/${linkDetail.link.split('://')[1].split('/')[1]}`)
-                            }}
-                        >
-                            Refund
-                        </div>
+                <div className="flex flex-col items-start justify-center gap-4 p-4 text-h8">
+                    <div className="flex flex-col items-start justify-center gap-2">
+                        <label>You have gained {points} points by:</label>
+                        <ul className="list-outside list-disc space-y-1 pl-4 font-normal">
+                            <li>Creating 10 links. </li>
+                            <li>Onboarding 10 people this week. (you got 10% of their points 2137 points)</li>
+                            <li>
+                                Having an{' '}
+                                <em>
+                                    <strong> early fren </strong>
+                                </em>{' '}
+                                multiplier of 1.5X.
+                            </li>
+                        </ul>
                     </div>
-                )}
-                <div
-                    onClick={() => {
-                        utils.copyTextToClipboardWithFallback(linkDetail.link)
-                    }}
-                    className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                >
-                    <div className="text-h8">Copy Link</div>
+                    <div className="flex flex-col items-start justify-center gap-2">
+                        <label className="">More more more! How?</label>
+                        <ul className="list-outside list-disc space-y-1 pl-4 font-normal">
+                            <li>Sending links that get claimed.</li>
+                            <li>Claiming links</li>
+                        </ul>
+                    </div>
+                    <div className="flex flex-col items-start justify-center gap-2">
+                        <label className="">Multiplier!</label>
+                        <ul className="list-outside list-disc space-y-1 pl-4 font-normal">
+                            <li>Onboard new users and you will get 10% of the points they get!</li>
+                        </ul>
+                    </div>
                 </div>
             </Modal>
         </div>
