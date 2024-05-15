@@ -25,7 +25,7 @@ export const Dashboard = () => {
     const [filteredDashboardData, setFilteredDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [fetchedLinks, setFetchedLinks] = useState(false)
     const [totalPages, setTotalPages] = useState<number>(0)
-    const [currentPage, setCurrentPage] = useState<number>(0)
+    const [currentPage, setCurrentPage] = useState<number>(1)
     const [legacyLinks, setLegacyLinks] = useState<string[]>([])
     const [points, setPoints] = useState<number | undefined>(undefined)
     const [isPointsModalVisible, setIsPointsModalVisible] = useState(false)
@@ -33,32 +33,29 @@ export const Dashboard = () => {
     const { address, isConnected } = useAccount()
     const router = useRouter()
 
-    const fetchLinkDetailsAsync = async (data: interfaces.IDashboardItem[]) => {
-        //only fetching details for send links
-        const _data = data.filter((item) => item.type == 'send')
+    const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
+        // only fetching details for send links that are visible on the current page
+        const _data = visibleData.filter((item) => item.type == 'send')
+        try {
+            await Promise.all(
+                _data.map(async (item) => {
+                    try {
+                        const linkDetails = await getLinkDetails({ link: item.link })
+                        item.status = linkDetails.claimed ? 'claimed' : 'pending'
+                    } catch (error) {
+                        console.error(error)
+                    }
+                })
+            )
+        } catch (error) {
+            console.log('Error fetching link details:', error)
+        }
 
-        await Promise.all(
-            _data.map(async (item) => {
-                try {
-                    const linkDetails = await getLinkDetails({ link: item.link })
-                    item.status = linkDetails.claimed ? 'claimed' : 'pending'
-                } catch (error) {
-                    console.error(error)
-                }
-            })
-        )
-
-        setDashboardData(
-            [..._data, ...data.filter((item) => item.type == 'receive')].sort((a, b) => {
-                const dateA = new Date(a.date).getTime()
-                const dateB = new Date(b.date).getTime()
-                if (dateA === dateB) {
-                    // If dates are equal, sort by time
-                    return new Date(b.date).getTime() - new Date(a.date).getTime()
-                } else {
-                    // Otherwise, sort by date
-                    return dateB - dateA
-                }
+        // Update the dashboard data with fetched statuses
+        setDashboardData((prevData) =>
+            prevData.map((item) => {
+                const updatedItem = _data.find((updated) => updated.link === item.link)
+                return updatedItem ? { ...item, status: updatedItem.status } : item
             })
         )
     }
@@ -254,24 +251,25 @@ export const Dashboard = () => {
     }, [address])
 
     useEffect(() => {
-        if (dashboardData.length > 0 && fetchedLinks === false) {
-            fetchLinkDetailsAsync(dashboardData)
-            setFetchedLinks(true)
-        }
-    }, [dashboardData])
-
-    useEffect(() => {
         if (sortingValue && dashboardData.length > 0) {
             sortDashboardData(sortingValue)
         }
     }, [sortingValue])
 
-    // useEffect(() => {
-    //     if (filterValue && dashboardData.length > 0) {
-    //         filterDashboardData(filterValue)
-    //     }
+    useEffect(() => {
+        const visibleData = dashboardData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+        if (visibleData.length > 0) {
+            fetchLinkDetailsAsync(visibleData)
+        }
+    }, [currentPage, dashboardData])
 
-    // }, [filterValue])
+    useEffect(() => {
+        if (filterValue) {
+            filterDashboardData(filterValue)
+        } else {
+            setFilteredDashboardData(dashboardData)
+        }
+    }, [filterValue, dashboardData])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 p-4">
@@ -341,7 +339,7 @@ export const Dashboard = () => {
                 )}
                 {!isConnected
                     ? ''
-                    : dashboardData.length > 0 && (
+                    : filteredDashboardData.length > 0 && (
                           <>
                               <table className="table-custom hidden sm:table">
                                   <thead>
@@ -371,55 +369,60 @@ export const Dashboard = () => {
                                       </tr>
                                   </thead>
                                   <tbody>
-                                      {dashboardData &&
-                                          dashboardData.slice((currentPage - 1) * itemsPerPage).map((link) => (
-                                              <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
-                                                  <td className="td-custom font-bold">{link.type}</td>
-                                                  <td className="td-custom font-bold">
-                                                      {utils.formatTokenAmount(Number(link.amount), 4)} $
-                                                      {link.tokenSymbol}
-                                                  </td>
-                                                  <td className="td-custom font-bold">{link.chain}</td>
-                                                  <td className="td-custom">
-                                                      {_utils.formatDate(new Date(link.date))}
-                                                  </td>
-                                                  {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
-                                                  <td className="td-custom">
-                                                      {utils.shortenAddressLong(link.address ?? address ?? '')}
-                                                  </td>
-                                                  <td className="td-custom max-w-32">
-                                                      <span
-                                                          className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                                                          title={link.message ? link.message : ''}
-                                                      >
-                                                          {link.message ? link.message : ''}
-                                                      </span>
-                                                  </td>
+                                      {filteredDashboardData &&
+                                          filteredDashboardData
+                                              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                              .map((link) => (
+                                                  <tr
+                                                      className="h-16 text-h8 font-normal"
+                                                      key={link.link + Math.random()}
+                                                  >
+                                                      <td className="td-custom font-bold">{link.type}</td>
+                                                      <td className="td-custom font-bold">
+                                                          {utils.formatTokenAmount(Number(link.amount), 4)} $
+                                                          {link.tokenSymbol}
+                                                      </td>
+                                                      <td className="td-custom font-bold">{link.chain}</td>
+                                                      <td className="td-custom">
+                                                          {_utils.formatDate(new Date(link.date))}
+                                                      </td>
+                                                      {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
+                                                      <td className="td-custom">
+                                                          {utils.shortenAddressLong(link.address ?? address ?? '')}
+                                                      </td>
+                                                      <td className="td-custom max-w-32">
+                                                          <span
+                                                              className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                                                              title={link.message ? link.message : ''}
+                                                          >
+                                                              {link.message ? link.message : ''}
+                                                          </span>
+                                                      </td>
 
-                                                  <td className="td-custom">
-                                                      {!link.status ? (
-                                                          <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                              <Loading />
-                                                          </div>
-                                                      ) : link.status === 'claimed' ? (
-                                                          <div className="border border-green-3 px-2 py-1 text-center text-green-3">
-                                                              claimed
-                                                          </div>
-                                                      ) : (
-                                                          <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                              pending
-                                                          </div>
-                                                      )}
-                                                  </td>
-                                                  <td className="td-custom text-center ">
-                                                      <components.OptionsItemComponent item={link} />
-                                                  </td>
-                                              </tr>
-                                          ))}
+                                                      <td className="td-custom">
+                                                          {!link.status ? (
+                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                                  <Loading />
+                                                              </div>
+                                                          ) : link.status === 'claimed' ? (
+                                                              <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                                  claimed
+                                                              </div>
+                                                          ) : (
+                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                                  pending
+                                                              </div>
+                                                          )}
+                                                      </td>
+                                                      <td className="td-custom text-center ">
+                                                          <components.OptionsItemComponent item={link} />
+                                                      </td>
+                                                  </tr>
+                                              ))}
                                   </tbody>
                               </table>
                               <div className="block w-full sm:hidden">
-                                  {dashboardData
+                                  {filteredDashboardData
                                       .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                       .map((link) => (
                                           <div key={link.link + Math.random()}>
@@ -443,7 +446,7 @@ export const Dashboard = () => {
                     </CSVLink>
                 )}
             </div>
-            {dashboardData.length > 0 && (
+            {filteredDashboardData.length > 0 && (
                 <TablePagination
                     onNext={() => {
                         if (currentPage < totalPages) {
