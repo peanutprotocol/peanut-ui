@@ -9,7 +9,8 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
-export const Claim_legacy = ({}) => {
+import useClaimLink from './useClaimLink'
+export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
     const [claimLinkData, setClaimLinkData] = useState<interfaces.ILinkDetails | undefined>(undefined)
@@ -24,12 +25,14 @@ export const Claim_legacy = ({}) => {
     const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
-
+    const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
+    const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 
-    const { selectedChainID, setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
     const { address } = useAccount()
+    const { estimatePoints } = useClaimLink()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -70,8 +73,8 @@ export const Claim_legacy = ({}) => {
             const contractVersionCheck = peanut.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
             if (crossChainDetails.length > 0 && contractVersionCheck) {
                 const xchainDetails = crossChainDetails.filter((chain: any) => chain.chainId != '1')
-                setSelectedChainID(xchainDetails[0].chainId) // TODO: dont do this
-                setSelectedTokenAddress(xchainDetails[0].tokens[0].address) // TODO: dont do this
+                // setSelectedChainID(xchainDetails[0].chainId) // TODO: dont do this
+                // setSelectedTokenAddress(xchainDetails[0].tokens[0].address) // TODO: dont do this
                 return xchainDetails
             } else {
                 return undefined
@@ -104,6 +107,18 @@ export const Claim_legacy = ({}) => {
                     linkDetails.chainId
                 )
                 tokenPrice && setTokenPrice(tokenPrice?.price)
+
+                if (address) {
+                    setRecipientAddress(address)
+                    const estimatedPoints = await estimatePoints({
+                        address: address ?? '',
+                        chainId: linkDetails.chainId,
+                        link: linkDetails.link,
+                        amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+                    })
+                    setEstimatedPoints(estimatedPoints)
+                }
+
                 if (address && linkDetails.senderAddress === address) {
                     setLinkState('CLAIM_SENDER')
                 } else {
@@ -151,6 +166,10 @@ export const Claim_legacy = ({}) => {
                     setEstimatedPoints,
                     attachment,
                     setAttachment,
+                    selectedRoute,
+                    setSelectedRoute,
+                    hasFetchedRoute,
+                    setHasFetchedRoute,
                 } as _consts.IClaimScreenProps)}
             {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
             {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}

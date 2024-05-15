@@ -310,9 +310,9 @@ export const isTestnetChain = (chainId: string) => {
 }
 
 export const compareTokenAddresses = (address1: string, address2: string) => {
-    if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+    if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
         address1 = '0x0000000000000000000000000000000000000000'
-    if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE')
+    if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
         address2 = '0x0000000000000000000000000000000000000000'
     return address1.toLowerCase() === address2.toLowerCase()
 }
