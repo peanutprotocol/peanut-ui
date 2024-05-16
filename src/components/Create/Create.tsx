@@ -33,6 +33,7 @@ export const Create = () => {
     const [attachmentOptions, setAttachmentOptions] = useState<_consts.IAttachmentOptions>({
         fileUrl: undefined,
         message: undefined,
+        rawFile: undefined,
     })
 
     const { setAccount } = useWeb3InboxAccount()

@@ -9,6 +9,7 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
+import useClaimLink from './useClaimLink'
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
@@ -30,6 +31,7 @@ export const Claim = ({}) => {
     const { selectedChainID, setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
     const { address } = useAccount()
+    const { getAttachmentInfo } = useClaimLink()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -87,11 +89,11 @@ export const Claim = ({}) => {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
                 link,
             })
-            const attachmentInfo = {
-                message: 'Hello fren. I sent u som money',
-                attachmentUrl: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/main/package.json',
-            }
-            setAttachment(attachmentInfo)
+            const attachmentInfo = await getAttachmentInfo(linkDetails.link)
+            setAttachment({
+                message: attachmentInfo?.message,
+                attachmentUrl: attachmentInfo?.fileUrl,
+            })
 
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {

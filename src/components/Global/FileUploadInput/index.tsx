@@ -5,8 +5,13 @@ interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
         message: string | undefined
+        rawFile: File | undefined
     }
-    setAttachmentOptions: (options: { fileUrl: string | undefined; message: string | undefined }) => void
+    setAttachmentOptions: (options: {
+        fileUrl: string | undefined
+        message: string | undefined
+        rawFile: File | undefined
+    }) => void
 }
 
 export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploadInputProps) => {
@@ -17,7 +22,7 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
         if (file) {
             const url = URL.createObjectURL(file)
 
-            setAttachmentOptions({ message: attachmentOptions.message, fileUrl: url })
+            setAttachmentOptions({ message: attachmentOptions.message, fileUrl: url, rawFile: file })
         }
     }
 
@@ -56,7 +61,13 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
                 className="h-full w-full focus:border-none focus:outline-none"
                 value={attachmentOptions.message}
                 maxLength={140}
-                onChange={(e) => setAttachmentOptions({ message: e.target.value, fileUrl: attachmentOptions.fileUrl })}
+                onChange={(e) =>
+                    setAttachmentOptions({
+                        message: e.target.value,
+                        fileUrl: attachmentOptions.fileUrl,
+                        rawFile: attachmentOptions.rawFile,
+                    })
+                }
             />{' '}
         </div>
     )
