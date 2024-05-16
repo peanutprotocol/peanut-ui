@@ -10,6 +10,8 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
+import * as consts from '@/constants'
+
 import * as utils from '@/utils'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import MoreInfo from '@/components/Global/MoreInfo'
@@ -229,82 +231,87 @@ export const InitialClaimLinkView = ({
                     <div className="flex w-full border-t border-dotted border-black" />
                 </>
             )}
-            <label className="text-h2">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
-            <ConfirmDetails
-                tokenAmount={claimLinkData.tokenAmount}
-                tokenPrice={tokenPrice}
-                selectedChainID={claimLinkData.chainId}
-                selectedTokenAddress={claimLinkData.tokenAddress}
-            />
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
+                {tokenPrice ? (
+                    <label className="text-h2">
+                        $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                    </label>
+                ) : (
+                    <label className="text-h2 ">
+                        {claimLinkData.tokenAmount} ${claimLinkData.tokenSymbol}
+                    </label>
+                )}
+            </div>
             <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 {isXchainLoading ? (
-                    <div className=" flex h-14 w-full max-w-96 animate-pulse flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white">
-                        <div className="flex flex-row items-center justify-center gap-2">
-                            <div className="h-6 w-6 rounded-full bg-slate-700"></div>
-                            <div className="flex flex-col items-start justify-center gap-2">
-                                <div className="h-2 w-16 rounded bg-slate-700"></div>
-                                <div className="h-2 w-12 rounded bg-slate-700"></div>
-                            </div>
-                        </div>
-                        <div className="flex flex-row items-center justify-center gap-2">
-                            <div className="h-2 w-16 rounded bg-slate-700"></div>
-                            <div className="h-6 w-6 rounded-full bg-slate-700"></div>
-                        </div>
+                    <div className=" flex h-6 w-full max-w-96 animate-pulse flex-row items-center justify-center gap-1 ">
+                        <div className="h-3 w-24 rounded-full bg-slate-700"></div>
                     </div>
                 ) : (
-                    <TokenSelectorXChain
-                        staticData={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? undefined
-                                    : {
-                                          tokenAmount: '0',
-                                          tokenSymbol:
-                                              mappedData
-                                                  .find((data) => data.chainId === selectedChainID)
-                                                  ?.tokens?.find((token) =>
-                                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
-                                                  )?.symbol ?? '',
-                                          tokenAddress: selectedTokenAddress,
-                                          chainId: selectedChainID,
-                                      }
-                                : {
-                                      tokenAmount: claimLinkData.tokenAmount,
-                                      tokenSymbol: claimLinkData.tokenSymbol,
-                                      tokenAddress: claimLinkData.tokenAddress,
-                                      chainId: claimLinkData.chainId,
-                                  }
-                        }
-                        data={mappedData}
-                        xchainTokenAmount={
-                            selectedRoute
-                                ? utils
-                                      .formatAmountWithDecimals({
-                                          amount: selectedRoute.route.estimate.toAmountMin * xchainFeeMultiplier,
-                                          decimals: selectedRoute.route.estimate.toToken.decimals,
-                                      })
-                                      .toString()
-                                : ''
-                        }
-                        xchainTokenPrice={selectedRoute ? selectedRoute.route.estimate.toToken.usdPrice : 0}
-                        classNameButton={
-                            hasFetchedRoute && !selectedRoute ? 'border-n-1 border-red dark:border-red' : ''
-                        }
-                    />
-                )}
-                {hasFetchedRoute && !isXchainLoading && (
-                    <div
-                        className="w-full cursor-pointer text-center text-h9 text-gray-1 underline"
-                        onClick={() => {
-                            setSelectedRoute(null)
-                            setHasFetchedRoute(false)
-                            setErrorState({
-                                showError: false,
-                                errorMessage: '',
-                            })
-                        }}
-                    >
-                        Reset to origin chain
+                    <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                        <div>
+                            {hasFetchedRoute ? (
+                                selectedRoute ? (
+                                    <div>
+                                        {utils.formatTokenAmount(
+                                            utils.formatAmountWithDecimals({
+                                                amount: selectedRoute.route.estimate.toAmountMin,
+                                                decimals: selectedRoute.route.estimate.toToken.decimals,
+                                            })
+                                        )}{' '}
+                                        {selectedRoute.route.estimate.toToken.symbol} on{' '}
+                                        {
+                                            mappedData.find(
+                                                (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                            )?.name
+                                        }
+                                    </div>
+                                ) : (
+                                    <div>
+                                        {mappedData
+                                            .find((data) => data.chainId === selectedChainID)
+                                            ?.tokens?.find((token) =>
+                                                utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                            )?.symbol ?? ''}{' '}
+                                        on{' '}
+                                        {
+                                            consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === selectedChainID
+                                            )?.name
+                                        }
+                                    </div>
+                                )
+                            ) : (
+                                <div>
+                                    {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))}{' '}
+                                    {claimLinkData.tokenSymbol} on{' '}
+                                    {
+                                        consts.supportedPeanutChains.find(
+                                            (chain) => chain.chainId === claimLinkData.chainId
+                                        )?.name
+                                    }
+                                </div>
+                            )}
+                        </div>
+                        {isValidAddress &&
+                            (hasFetchedRoute || selectedRoute ? (
+                                <label
+                                    className="cursor-pointer font-bold text-purple-1"
+                                    onClick={() => {
+                                        setSelectedRoute(null)
+                                        setHasFetchedRoute(false)
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    }}
+                                >
+                                    (reset)
+                                </label>
+                            ) : (
+                                <TokenSelectorXChain data={mappedData} />
+                            ))}
                     </div>
                 )}
                 <AddressInput
@@ -320,6 +327,50 @@ export const InitialClaimLinkView = ({
                 />
                 {recipientAddress && isValidAddress && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
+                        {selectedRoute && (
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Route</label>
+                                </div>
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {isXchainLoading ? (
+                                        <div className="h-2 w-12 animate-pulse rounded bg-slate-700"></div>
+                                    ) : (
+                                        selectedRoute && (
+                                            <>
+                                                {
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) =>
+                                                            chain.chainId === selectedRoute.route.params.fromChain
+                                                    )?.name
+                                                }
+                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                {
+                                                    mappedData.find(
+                                                        (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                                    )?.name
+                                                }
+                                                <MoreInfo
+                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                        consts.supportedPeanutChains.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.fromChain
+                                                        )?.name
+                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                        mappedData.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.toChain
+                                                        )?.name
+                                                    }.`}
+                                                />
+                                            </>
+                                        )
+                                    )}
+                                </span>
+                            </div>
+                        )}
+
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-gray-1" />
@@ -387,7 +438,7 @@ export const InitialClaimLinkView = ({
                 <button
                     className="btn-purple btn-xl"
                     onClick={() => {
-                        if (hasFetchedRoute && selectedRoute) {
+                        if ((hasFetchedRoute && selectedRoute) || recipientAddress !== address) {
                             onNext()
                         } else {
                             handleClaimLink()
@@ -399,25 +450,25 @@ export const InitialClaimLinkView = ({
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
                         </div>
-                    ) : hasFetchedRoute && selectedRoute ? (
-                        'Confirm bridge'
+                    ) : (hasFetchedRoute && selectedRoute) || recipientAddress !== address ? (
+                        'Proceed'
                     ) : (
-                        'Claim'
+                        'Claim now'
                     )}
                 </button>
-                <div
-                    className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h9 text-purple-1"
-                    onClick={() => {
-                        handleConnectWallet()
-                    }}
-                >
-                    <img src={assets.WALLETCONNECT_LOGO.src} className="h-4 w-4" />
-                    <label className="cursor-pointer">
-                        {isConnected
-                            ? 'Or claim/swap to your connected wallet'
-                            : 'Or connect your wallet to claim or swap.'}
-                    </label>
-                </div>
+                {!isValidAddress && (
+                    <div
+                        className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h7 text-purple-1"
+                        onClick={() => {
+                            handleConnectWallet()
+                        }}
+                    >
+                        <img src={assets.WALLETCONNECT_LOGO.src} className="h-4 w-4" />
+                        <label className="cursor-pointer">
+                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Or connect your wallet'}
+                        </label>
+                    </div>
+                )}
                 {errorState.showError && (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>

@@ -13,13 +13,7 @@ import * as _consts from './TokenSelector.consts'
 import * as consts from '@/constants'
 import Icon from '../Icon'
 
-const TokenSelectorXChain = ({
-    classNameButton,
-    data,
-    xchainTokenAmount,
-    xchainTokenPrice,
-    staticData,
-}: _consts.TokenSelectorXChainProps) => {
+const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXChainProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const focusButtonRef = useRef<HTMLButtonElement>(null)
@@ -71,78 +65,13 @@ const TokenSelectorXChain = ({
 
     return (
         <>
-            <div
-                className={`flex h-14 w-full max-w-96  cursor-pointer flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
-                onClick={() => {
-                    setVisible(!visible)
-                }}
-            >
-                <div className={'flex flex-row items-center justify-center gap-2'}>
-                    <img
-                        src={
-                            staticData
-                                ? consts.peanutTokenDetails
-                                      .find((detail) => detail.chainId === staticData.chainId)
-                                      ?.tokens.find((token) =>
-                                          utils.compareTokenAddresses(token.address, staticData.tokenAddress)
-                                      )?.logoURI ??
-                                  _tokensToDisplay.find((token) =>
-                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
-                                  )?.logoURI ??
-                                  ''
-                                : _tokensToDisplay.find((token) =>
-                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
-                                  )?.logoURI ?? ''
-                        }
-                        alt={''}
-                        className="h-6 w-6"
-                    />
-                    <div className="flex flex-col items-start justify-center gap-1">
-                        <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                            {staticData
-                                ? staticData.tokenAmount
-                                : xchainTokenAmount && utils.formatTokenAmount(Number(xchainTokenAmount) ?? 0)}{' '}
-                            {staticData
-                                ? staticData.tokenSymbol
-                                : _tokensToDisplay.find((token) =>
-                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
-                                  )?.symbol ?? ''}
-                        </div>
-                        {!staticData && (
-                            <p className="text-xs text-gray-1">
-                                ${utils.formatTokenAmount(Number(xchainTokenAmount ?? 0) * (xchainTokenPrice ?? 0), 4)}
-                            </p>
-                        )}
-                    </div>
-                </div>
-                <div className="flex flex-row items-center justify-center gap-2">
-                    <div className="text-h8 text-gray-1 ">
-                        {staticData
-                            ? supportedPeanutChains.find((chain) => chain.chainId === staticData.chainId)?.name ??
-                              data?.find((chain) => chain.chainId === selectedChainID)?.name ??
-                              ''
-                            : supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.name ?? ''}
-                    </div>
-                    <img
-                        src={
-                            staticData
-                                ? supportedPeanutChains.find((chain) => chain.chainId === staticData.chainId)?.icon
-                                      .url ??
-                                  data?.find((chain) => chain.chainId === selectedChainID)?.icon.url ??
-                                  ''
-                                : supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.icon.url ??
-                                  ''
-                        }
-                        alt={''}
-                        className="h-6 w-6"
-                    />
-                    <div className="hidden sm:block">
-                        <Icon
-                            name={'arrow-bottom'}
-                            className={`transition-transform dark:fill-white ${visible ? 'rotate-180 ' : ''}`}
-                        />
-                    </div>
-                </div>
+            <div>
+                <button
+                    className={`flex items-center justify-center gap-2 font-bold text-purple-1  ${classNameButton}`}
+                    onClick={() => setVisible(true)}
+                >
+                    (edit)
+                </button>
             </div>
             <Modal
                 visible={visible}

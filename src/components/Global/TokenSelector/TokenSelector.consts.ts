@@ -11,13 +11,4 @@ export interface TokenSelectorProps {
 
 export interface TokenSelectorXChainProps extends TokenSelectorProps {
     data?: CombinedType[]
-    type?: 'send' | 'xchain'
-    xchainTokenAmount?: string
-    xchainTokenPrice?: number
-    staticData?: {
-        chainId: string
-        tokenSymbol: string
-        tokenAddress: string
-        tokenAmount: string
-    }
 }

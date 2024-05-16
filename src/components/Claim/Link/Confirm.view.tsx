@@ -13,6 +13,8 @@ import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
+import * as consts from '@/constants'
+
 export const ConfirmClaimLinkView = ({
     onNext,
     onPrev,
@@ -106,29 +108,8 @@ export const ConfirmClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">You're claiming</label>
-
-            <ConfirmDetails
-                data={mappedData}
-                tokenAmount={
-                    selectedRoute
-                        ? utils
-                              .formatAmountWithDecimals({
-                                  amount: selectedRoute.route.estimate.toAmountMin * xchainFeeMultiplier,
-                                  decimals: selectedRoute.route.estimate.toToken.decimals,
-                              })
-                              .toString()
-                        : ''
-                }
-                tokenPrice={selectedRoute.route.estimate.toToken.usdPrice ?? 0}
-                selectedChainID={selectedChainID}
-                selectedTokenAddress={selectedTokenAddress}
-            />
-
             {(attachment.message || attachment.attachmentUrl) && (
                 <>
-                    {' '}
-                    <div className="flex w-full border-t border-dotted border-black" />
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                     >
@@ -150,6 +131,45 @@ export const ConfirmClaimLinkView = ({
                     <div className="flex w-full border-t border-dotted border-black" />
                 </>
             )}
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
+                {tokenPrice ? (
+                    <label className="text-h2">
+                        $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                    </label>
+                ) : (
+                    <label className="text-h2 ">
+                        {claimLinkData.tokenAmount} ${claimLinkData.tokenSymbol}
+                    </label>
+                )}
+            </div>
+            <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                {selectedRoute ? (
+                    <div>
+                        {utils.formatTokenAmount(
+                            utils.formatAmountWithDecimals({
+                                amount: selectedRoute.route.estimate.toAmountMin,
+                                decimals: selectedRoute.route.estimate.toToken.decimals,
+                            })
+                        )}{' '}
+                        {selectedRoute.route.estimate.toToken.symbol} on{' '}
+                        {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
+                    </div>
+                ) : (
+                    <div>
+                        {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
+                        {consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name}
+                    </div>
+                )}
+                <label
+                    className="cursor-pointer font-bold text-purple-1"
+                    onClick={() => {
+                        onPrev()
+                    }}
+                >
+                    (Edit)
+                </label>
+            </div>
 
             <div className="flex w-full flex-row items-center justify-between px-2 ">
                 <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -157,42 +177,84 @@ export const ConfirmClaimLinkView = ({
                     <label className="text-h7">{utils.shortenAddressLong(recipientAddress ?? '')}</label>
                 </div>
                 <label className="cursor-pointer text-h8 font-normal text-purple-1" onClick={onPrev}>
-                    Edit
+                    (Edit)
                 </label>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
+                {selectedRoute && (
+                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-max flex-row items-center justify-center gap-1">
+                            <Icon name={'forward'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Route</label>
+                        </div>
+                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            {selectedRoute && (
+                                <>
+                                    {
+                                        consts.supportedPeanutChains.find(
+                                            (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                        )?.name
+                                    }
+                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                    {
+                                        mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
+                                            ?.name
+                                    }
+                                    <MoreInfo
+                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                            consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                            )?.name
+                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                            mappedData.find(
+                                                (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                            )?.name
+                                        }.`}
+                                    />
+                                </>
+                            )}
+                        </span>
+                    </div>
+                )}
+
                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'gas'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Fees</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        <>
-                            {'$' +
-                                utils.formatTokenAmount(
-                                    utils.formatAmountWithDecimals({
-                                        amount: selectedRoute.route.estimate.toAmountMin,
-                                        decimals: selectedRoute.route.estimate.toToken.decimals,
-                                    }) *
-                                        selectedRoute.route.estimate.toToken.usdPrice *
-                                        (1 - xchainFeeMultiplier)
-                                )}
-                            <MoreInfo
-                                text={
-                                    selectedRoute
-                                        ? `This transaction will cost you $${utils.formatTokenAmount(
-                                              utils.formatAmountWithDecimals({
-                                                  amount: selectedRoute.route.estimate.toAmountMin,
-                                                  decimals: selectedRoute.route.estimate.toToken.decimals,
-                                              }) *
-                                                  selectedRoute.route.estimate.toToken.usdPrice *
-                                                  (1 - xchainFeeMultiplier)
-                                          )} in network fees.`
-                                        : 'Something went wrong while calculating the transaction cost.'
-                                }
-                            />
-                        </>
+                        {selectedRoute ? (
+                            <>
+                                {'$' +
+                                    utils.formatTokenAmount(
+                                        utils.formatAmountWithDecimals({
+                                            amount: selectedRoute.route.estimate.toAmountMin,
+                                            decimals: selectedRoute.route.estimate.toToken.decimals,
+                                        }) *
+                                            selectedRoute.route.estimate.toToken.usdPrice *
+                                            (1 - xchainFeeMultiplier)
+                                    )}
+                                <MoreInfo
+                                    text={
+                                        selectedRoute
+                                            ? `This transaction will cost you $${utils.formatTokenAmount(
+                                                  utils.formatAmountWithDecimals({
+                                                      amount: selectedRoute.route.estimate.toAmountMin,
+                                                      decimals: selectedRoute.route.estimate.toToken.decimals,
+                                                  }) *
+                                                      selectedRoute.route.estimate.toToken.usdPrice *
+                                                      (1 - xchainFeeMultiplier)
+                                              )} in network fees.`
+                                            : 'Something went wrong while calculating the transaction cost.'
+                                    }
+                                />
+                            </>
+                        ) : (
+                            <>
+                                $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                            </>
+                        )}
                     </span>
                 </div>
 
