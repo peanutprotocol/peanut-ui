@@ -2,7 +2,13 @@
 
 import { useContext, useState } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
-import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
+import {
+    claimLinkGasless,
+    claimLinkXChainGasless,
+    generateKeysFromString,
+    getRawParamsFromLink,
+    interfaces,
+} from '@squirrel-labs/peanut-sdk'
 
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -137,48 +143,35 @@ export const useClaimLink = () => {
         }
     }
 
-    const estimatePodints = async ({
-        chainId,
-        preparedTx,
-        address,
-        amountUSD,
-    }: {
-        chainId: string
-        preparedTx: any // This could be detailed further depending on the transaction structure
-        address: string
-        amountUSD: number
-    }) => {
+    const getAttachmentInfo = async (link: string) => {
+        const params = getRawParamsFromLink(link)
+        const { address: pubKey } = generateKeysFromString(params.password)
+
         try {
-            console.log(preparedTx)
-            const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
+            const response = await fetch('https://api.staging.peanut.to/get-link-details', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    actionType: 'CREATE',
-                    amountUsd: amountUSD,
-                    transaction: {
-                        from: preparedTx.from ? preparedTx.from.toString() : address,
-                        to: preparedTx.to ? preparedTx.to.toString() : '',
-                        data: preparedTx.data ? preparedTx.data.toString() : '',
-                        value: preparedTx.value ? preparedTx.value.toString() : '',
-                    },
-                    chainId: chainId,
-                    userAddress: address,
+                    pubKey,
+                    apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
                 }),
             })
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
-            console.log(data.points)
-            return Math.round(data.points)
+
+            return {
+                fileUrl: data.attachment,
+                message: data.reference,
+            }
         } catch (error) {
-            console.error('Failed to estimate points:', error)
-            return 0 // Returning 0 or another error handling strategy could be implemented here
+            console.error('Failed to get attachment:', error)
         }
     }
+
     return {
         xchainFeeMultiplier,
         claimLink,
@@ -188,6 +181,7 @@ export const useClaimLink = () => {
         checkTxStatus,
         sendNotification,
         estimatePoints,
+        getAttachmentInfo,
     }
 }
 

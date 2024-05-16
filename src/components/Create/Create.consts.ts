@@ -10,6 +10,7 @@ export type CreateScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 export interface IAttachmentOptions {
     fileUrl: string | undefined
     message: string | undefined
+    rawFile: File | undefined
 }
 
 export interface ICreateScreenState {

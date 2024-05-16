@@ -1,6 +1,11 @@
 'use client'
 import { useCallback, useContext, useEffect, useState, useRef } from 'react'
-import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, {
+    generateKeysFromString,
+    getRandomString,
+    getRawParamsFromLink,
+    interfaces as peanutInterfaces,
+} from '@squirrel-labs/peanut-sdk'
 import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
@@ -238,70 +243,92 @@ export const useCreateLink = () => {
             return 0 // Returning 0 or another error handling strategy could be implemented here
         }
     }
-    const submitLinkAttachments = async ({
-        userAddress,
+    const submitLinkAttachmentInit = async ({
         attachmentOptions,
+        password,
     }: {
-        userAddress: string
+        password: string
         attachmentOptions: {
             message?: string
-            attachmentUrl?: string
+            attachmentFile?: File
         }
     }) => {
-        // TODO: update this once endpoints are ready
         try {
-            // const response = await fetch('https://api.staging.peanut.to/submit-claim-link', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({
-            //         link: link ,
-            //         apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
-            //         reference: attachmentOptions.message,
-            //     }),
-            //     file: attachmentOptions.attachmentUrl,
-            // })
-            // if (!response.ok) {
-            //     throw new Error(`HTTP error! status: ${response.status}`)
-            // }
-            // const data = await response.json()
-            // return Math.round(data.points)
+            const { address: pubKey } = generateKeysFromString(password)
+            console.log(attachmentOptions.attachmentFile)
 
-            // return fileUrl
+            // Create a FormData object
+            const formData = new FormData()
+            formData.append('pubKey', pubKey)
+            formData.append('apiKey', process.env.NEXT_PUBLIC_PEANUT_API_KEY ?? '')
+            if (attachmentOptions.message) {
+                formData.append('reference', attachmentOptions.message)
+            }
+            if (attachmentOptions.attachmentFile) {
+                formData.append('file', attachmentOptions.attachmentFile)
+            }
 
-            return 'https://raw.githubusercontent.com/trustwallet/assets/8ee07e9d791bec6c3ada3cfac73ddfdc4f4a40b7/blockchains/optimism/info/logo.png'
+            const response = await fetch('https://api.staging.peanut.to/submit-claim-link/init', {
+                method: 'POST',
+                body: formData,
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            const data = await response.json()
+            console.log(data)
+
+            // check if statuscode is 200, else throw error
+            if (data.statusCode !== 200) {
+                throw new Error(`HTTP error! status: ${data.statusCode}`)
+            }
+
+            return data.linkEntry.fileUrl
         } catch (error) {
-            console.error('Failed to estimate points:', error)
+            console.error('Failed to publish file (init):', error)
             return ''
         }
     }
-    const confirmSubmitLinkAttachments = async ({ link, userAddress }: { link: string; userAddress: string }) => {
+    const submitLinkAttachmentConfirm = async ({
+        link,
+        password,
+        txHash,
+        chainId,
+    }: {
+        link: string
+        password: string
+        txHash: string
+        chainId: string
+    }) => {
         try {
-            // TODO: update this once endpoints are ready
-            // const response = await fetch('https://api.staging.peanut.to/submit-claim-link', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({
-            //         link: link ,
-            //         apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
-            //         reference: attachmentOptions.message,
-            //     }),
-            //     file: attachmentOptions.attachmentUrl,
-            // })
-            // if (!response.ok) {
-            //     throw new Error(`HTTP error! status: ${response.status}`)
-            // }
-            // const data = await response.json()
-            // return Math.round(data.points)
+            const { address: pubKey } = generateKeysFromString(password)
 
-            // return fileUrl
+            const response = await fetch('https://api.staging.peanut.to/submit-claim-link/complete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    pubKey: pubKey,
+                    apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
+                    txHash: txHash,
+                    chainId: chainId,
+                    link: link,
+                    signature: '',
+                }),
+            })
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+            const data = await response.json()
 
-            return 'https://raw.githubusercontent.com/trustwallet/assets/8ee07e9d791bec6c3ada3cfac73ddfdc4f4a40b7/blockchains/optimism/info/logo.png'
+            // check if statuscode is 200, else throw error
+            if (data.statusCode !== 200) {
+                throw new Error(`HTTP error! status: ${data.statusCode}`)
+            }
         } catch (error) {
-            console.error('Failed to estimate points:', error)
+            console.error('Failed to publish file (init):', error)
             return ''
         }
     }
@@ -483,7 +510,7 @@ export const useCreateLink = () => {
         switchNetwork,
         estimateGasFee,
         estimatePoints,
-        submitLinkAttachments,
-        confirmSubmitLinkAttachments,
+        submitLinkAttachmentInit,
+        submitLinkAttachmentConfirm,
     }
 }

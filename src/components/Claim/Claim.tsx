@@ -32,7 +32,7 @@ export const Claim = ({}) => {
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
     const { address } = useAccount()
-    const { estimatePoints } = useClaimLink()
+    const { getAttachmentInfo, estimatePoints } = useClaimLink()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -90,11 +90,11 @@ export const Claim = ({}) => {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
                 link,
             })
-            const attachmentInfo = {
-                message: 'Hello fren. I sent u som money',
-                attachmentUrl: 'https://raw.githubusercontent.com/peanutprotocol/peanut-ui/main/package.json',
-            }
-            setAttachment(attachmentInfo)
+            const attachmentInfo = await getAttachmentInfo(linkDetails.link)
+            setAttachment({
+                message: attachmentInfo?.message,
+                attachmentUrl: attachmentInfo?.fileUrl,
+            })
 
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {

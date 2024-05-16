@@ -47,8 +47,8 @@ export const CreateLinkConfirmView = ({
         signTypedData,
         makeDepositGasless,
         getLinkFromHash,
-        submitLinkAttachments,
-        confirmSubmitLinkAttachments,
+        submitLinkAttachmentInit,
+        submitLinkAttachmentConfirm,
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
@@ -65,10 +65,10 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            let fileUrl = await submitLinkAttachments({
-                userAddress: address ?? '',
+            let fileUrl = await submitLinkAttachmentInit({
+                password: password ?? '',
                 attachmentOptions: {
-                    attachmentUrl: attachmentOptions.fileUrl,
+                    attachmentFile: attachmentOptions.rawFile,
                     message: attachmentOptions.message,
                 },
             })
@@ -92,9 +92,11 @@ export const CreateLinkConfirmView = ({
 
             const link = await getLinkFromHash({ hash, linkDetails, password })
 
-            fileUrl = await confirmSubmitLinkAttachments({
-                userAddress: address ?? '',
+            await submitLinkAttachmentConfirm({
+                chainId: selectedChainID,
                 link: link[0],
+                password: password ?? '',
+                txHash: hash,
             })
 
             utils.saveCreatedLinkToLocalStorage({
