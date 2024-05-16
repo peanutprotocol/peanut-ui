@@ -206,17 +206,8 @@ export const InitialClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">You've received</label>
-            <ConfirmDetails
-                tokenAmount={claimLinkData.tokenAmount}
-                tokenPrice={tokenPrice}
-                selectedChainID={claimLinkData.chainId}
-                selectedTokenAddress={claimLinkData.tokenAddress}
-            />
             {(attachment.message || attachment.attachmentUrl) && (
                 <>
-                    {' '}
-                    <div className="flex w-full border-t border-dotted border-black" />
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                     >
@@ -238,6 +229,13 @@ export const InitialClaimLinkView = ({
                     <div className="flex w-full border-t border-dotted border-black" />
                 </>
             )}
+            <label className="text-h2">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
+            <ConfirmDetails
+                tokenAmount={claimLinkData.tokenAmount}
+                tokenPrice={tokenPrice}
+                selectedChainID={claimLinkData.chainId}
+                selectedTokenAddress={claimLinkData.tokenAddress}
+            />
             <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 {isXchainLoading ? (
                     <div className=" flex h-14 w-full max-w-96 animate-pulse flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white">
@@ -320,7 +318,7 @@ export const InitialClaimLinkView = ({
                         setIsValidAddress(valid)
                     }}
                 />
-                {recipientAddress && isValidAddress ? (
+                {recipientAddress && isValidAddress && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -383,27 +381,6 @@ export const InitialClaimLinkView = ({
                             </span>
                         </div>
                     </div>
-                ) : (
-                    <>
-                        <div className="flex flex-row items-center justify-center gap-1 text-h9 font-normal">
-                            <Icon name={'warning'} />
-                            <label>You will lose your funds if you enter a wrong address.</label>
-                        </div>
-
-                        <div
-                            className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h9 text-purple-1"
-                            onClick={() => {
-                                handleConnectWallet()
-                            }}
-                        >
-                            <img src={assets.WALLETCONNECT_LOGO.src} className="h-4 w-4" />
-                            <label className="cursor-pointer">
-                                {isConnected
-                                    ? 'Or claim/swap to your connected wallet'
-                                    : 'Or connect your wallet to claim or swap.'}
-                            </label>
-                        </div>
-                    </>
                 )}
             </div>{' '}
             <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -428,6 +405,19 @@ export const InitialClaimLinkView = ({
                         'Claim'
                     )}
                 </button>
+                <div
+                    className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h9 text-purple-1"
+                    onClick={() => {
+                        handleConnectWallet()
+                    }}
+                >
+                    <img src={assets.WALLETCONNECT_LOGO.src} className="h-4 w-4" />
+                    <label className="cursor-pointer">
+                        {isConnected
+                            ? 'Or claim/swap to your connected wallet'
+                            : 'Or connect your wallet to claim or swap.'}
+                    </label>
+                </div>
                 {errorState.showError && (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
