@@ -204,12 +204,6 @@ export const InitialClaimLinkView = ({
         }
     }, [claimLinkData, refetchXchainRoute])
 
-    useEffect(() => {
-        if (mappedData.length > 0) {
-            setSelectedChainID(mappedData[0].chainId)
-        }
-    }, [])
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">You've received</label>

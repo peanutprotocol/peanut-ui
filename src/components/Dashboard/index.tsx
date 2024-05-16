@@ -14,7 +14,7 @@ import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import * as _utils from './Dashboard.utils'
 import * as _consts from './Dashboard.consts'
-import * as components from './components'
+import * as components from './Components'
 import Modal from '../Global/Modal'
 
 export const Dashboard = () => {

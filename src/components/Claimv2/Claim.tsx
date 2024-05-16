@@ -73,8 +73,8 @@ export const Claim = ({}) => {
             const contractVersionCheck = peanut.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
             if (crossChainDetails.length > 0 && contractVersionCheck) {
                 const xchainDetails = crossChainDetails.filter((chain: any) => chain.chainId != '1')
-                // setSelectedChainID(xchainDetails[0].chainId) // TODO: dont do this
-                // setSelectedTokenAddress(xchainDetails[0].tokens[0].address) // TODO: dont do this
+                setSelectedChainID(xchainDetails[0].chainId)
+                setSelectedTokenAddress(xchainDetails[0].tokens[0].address)
                 return xchainDetails
             } else {
                 return undefined
