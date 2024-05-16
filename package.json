@@ -20,6 +20,7 @@
         "@sentry/nextjs": "^7.105.0",
         "@squirrel-labs/peanut-sdk": "^0.4.36",
         "@tanstack/react-query": "^5.28.6",
+        "@typeform/embed-react": "^3.17.0",
         "@vercel/analytics": "^1.1.2",
         "@web3inbox/core": "^1.2.0",
         "@web3inbox/react": "^1.2.0",
