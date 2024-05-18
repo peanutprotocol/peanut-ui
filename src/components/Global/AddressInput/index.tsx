@@ -81,20 +81,20 @@ const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress, setIsV
 
     return (
         <div
-            className={`border-n-1 relative w-full border dark:border-white${
+            className={`relative w-full border border-n-1 dark:border-white${
                 userInputAddress && !isLoading && isValidAddress
-                    ? ' border-n-1 border dark:border-white'
+                    ? ' border border-n-1 dark:border-white'
                     : userInputAddress && !isLoading && !isValidAddress
                       ? ' border-n-1 border-red dark:border-red'
                       : ''
             }`}
         >
-            <div className="text-h8 absolute left-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white font-medium">
+            <div className="absolute left-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
                 To:
             </div>
             <input
-                className={`transition-color text-h8 focus:border-purple-1 dark:bg-n-1 dark:focus:border-purple-1
-                h-12 w-full rounded-none bg-transparent bg-white px-6 pl-9 font-medium outline-none placeholder:text-sm dark:border-white dark:text-white dark:placeholder:text-white/75`}
+                className={`transition-color h-12 w-full rounded-none bg-transparent
+                bg-white px-6 pl-9 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                 type="text"
                 placeholder={placeholder}
                 value={userInputAddress}

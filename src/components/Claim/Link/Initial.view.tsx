@@ -225,7 +225,7 @@ export const InitialClaimLinkView = ({
                                 href={attachment.attachmentUrl}
                                 download
                                 target="_blank"
-                                className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
+                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
                             >
                                 <Icon name={'download'} />
                                 Download attachment
@@ -250,10 +250,10 @@ export const InitialClaimLinkView = ({
             <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 {isXchainLoading ? (
                     <div className=" flex h-6 w-full max-w-96 animate-pulse flex-row items-center justify-center gap-1 ">
-                        <div className="bg-slate-700 h-3 w-24 rounded-full"></div>
+                        <div className="h-3 w-24 rounded-full bg-slate-700"></div>
                     </div>
                 ) : (
-                    <div className="text-h7 flex w-full flex-row items-start justify-center gap-1">
+                    <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
                         <div>
                             {hasFetchedRoute ? (
                                 selectedRoute ? (
@@ -301,7 +301,7 @@ export const InitialClaimLinkView = ({
                         {isValidAddress &&
                             (hasFetchedRoute || selectedRoute ? (
                                 <label
-                                    className="text-purple-1 cursor-pointer font-bold"
+                                    className="cursor-pointer font-bold text-purple-1"
                                     onClick={() => {
                                         setSelectedRoute(null)
                                         setHasFetchedRoute(false)
@@ -337,14 +337,14 @@ export const InitialClaimLinkView = ({
                 {recipientAddress && isValidAddress && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
-                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'forward'} className="fill-gray-1 h-4" />
+                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Route</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
-                                        <div className="bg-slate-700 h-2 w-12 animate-pulse rounded"></div>
+                                        <div className="h-2 w-12 animate-pulse rounded bg-slate-700"></div>
                                     ) : (
                                         selectedRoute && (
                                             <>
@@ -354,7 +354,7 @@ export const InitialClaimLinkView = ({
                                                             chain.chainId === selectedRoute.route.params.fromChain
                                                     )?.name
                                                 }
-                                                <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
+                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                                 {
                                                     mappedData.find(
                                                         (chain) => chain.chainId === selectedRoute.route.params.toChain
@@ -380,14 +380,14 @@ export const InitialClaimLinkView = ({
                             </div>
                         )}
 
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="fill-gray-1 h-4" />
+                                <Icon name={'gas'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Fees</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {isXchainLoading ? (
-                                    <div className="bg-slate-700 h-2 w-12 animate-pulse rounded"></div>
+                                    <div className="h-2 w-12 animate-pulse rounded bg-slate-700"></div>
                                 ) : selectedRoute ? (
                                     <>
                                         {'$' +
@@ -422,9 +422,9 @@ export const InitialClaimLinkView = ({
                             </span>
                         </div>
 
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
+                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -473,7 +473,7 @@ export const InitialClaimLinkView = ({
                 </button>
                 {!isValidAddress && (
                     <div
-                        className="text-h7 text-purple-1 flex cursor-pointer flex-row items-center justify-center gap-1 self-center"
+                        className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h7 text-purple-1"
                         onClick={() => {
                             handleConnectWallet()
                         }}
