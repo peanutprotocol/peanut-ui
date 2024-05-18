@@ -2,8 +2,6 @@
 import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
 
-import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
-
 import * as _consts from '../Claim.consts'
 import * as utils from '@/utils'
 import useClaimLink from '../useClaimLink'
@@ -18,7 +16,7 @@ import * as consts from '@/constants'
 export const ConfirmClaimLinkView = ({
     onNext,
     onPrev,
-    onCustom,
+    setClaimType,
     claimLinkData,
     recipientAddress,
     tokenPrice,
@@ -30,7 +28,7 @@ export const ConfirmClaimLinkView = ({
     crossChainDetails,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
-    const { claimLink, xchainFeeMultiplier } = useClaimLink()
+    const { claimLinkXchain, xchainFeeMultiplier } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
         useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -53,15 +51,15 @@ export const ConfirmClaimLinkView = ({
         })
 
         try {
-            setLoadingState('Executing transaction')
-            const claimTxHash = await claimLink({
-                address: recipientAddress,
+            const claimTxHash = await claimLinkXchain({
+                address: recipientAddress ? recipientAddress : address ?? '',
                 link: claimLinkData.link,
+                destinationChainId: selectedChainID,
+                destinationToken: selectedTokenAddress,
             })
-
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: address ?? '',
+                    address: recipientAddress ? recipientAddress : address ?? '',
                     data: {
                         ...claimLinkData,
                         depositDate: new Date(),
@@ -72,8 +70,9 @@ export const ConfirmClaimLinkView = ({
                         attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
                     },
                 })
+                setClaimType('claimxchain')
                 setTransactionHash(claimTxHash)
-                onCustom('SUCCESS')
+                onNext()
             } else {
                 throw new Error('Error claiming link')
             }
@@ -121,7 +120,7 @@ export const ConfirmClaimLinkView = ({
                                 href={attachment.attachmentUrl}
                                 download
                                 target="_blank"
-                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
                             >
                                 <Icon name={'download'} />
                                 Download attachment
@@ -143,49 +142,34 @@ export const ConfirmClaimLinkView = ({
                     </label>
                 )}
             </div>
-            <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
-                {selectedRoute ? (
-                    <div>
-                        {utils.formatTokenAmount(
-                            utils.formatAmountWithDecimals({
-                                amount: selectedRoute.route.estimate.toAmountMin,
-                                decimals: selectedRoute.route.estimate.toToken.decimals,
-                            })
-                        )}{' '}
-                        {selectedRoute.route.estimate.toToken.symbol} on{' '}
-                        {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
-                    </div>
-                ) : (
-                    <div>
-                        {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
-                        {consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name}
-                    </div>
-                )}
-                <label
-                    className="cursor-pointer font-bold text-purple-1"
-                    onClick={() => {
-                        onPrev()
-                    }}
-                >
-                    (Edit)
-                </label>
-            </div>
-
-            <div className="flex w-full flex-row items-center justify-between px-2 ">
-                <div className="flex w-max flex-row items-center justify-center gap-1">
-                    <label className="text-h7 font-normal">Claiming to:</label>
-                    <label className="text-h7">{utils.shortenAddressLong(recipientAddress ?? '')}</label>
+            {selectedRoute ? (
+                <div className="text-h7 flex w-full flex-row items-start justify-center gap-1">
+                    {utils.formatTokenAmount(
+                        utils.formatAmountWithDecimals({
+                            amount: selectedRoute.route.estimate.toAmountMin,
+                            decimals: selectedRoute.route.estimate.toToken.decimals,
+                        })
+                    )}{' '}
+                    {selectedRoute.route.estimate.toToken.symbol} on{' '}
+                    {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
                 </div>
-                <label className="cursor-pointer text-h8 font-normal text-purple-1" onClick={onPrev}>
-                    (Edit)
-                </label>
+            ) : (
+                <div>
+                    {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
+                    {consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name}
+                </div>
+            )}
+
+            <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
+                <label className="text-h7 font-normal">Claiming to:</label>
+                <label className="text-h7">{utils.shortenAddressLong(recipientAddress ?? '')}</label>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {selectedRoute && (
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'forward'} className="h-4 fill-gray-1" />
+                            <Icon name={'forward'} className="fill-gray-1 h-4" />
                             <label className="font-bold">Route</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -196,7 +180,7 @@ export const ConfirmClaimLinkView = ({
                                             (chain) => chain.chainId === selectedRoute.route.params.fromChain
                                         )?.name
                                     }
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                    <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
                                     {
                                         mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
                                             ?.name
@@ -218,9 +202,9 @@ export const ConfirmClaimLinkView = ({
                     </div>
                 )}
 
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'gas'} className="h-4 fill-gray-1" />
+                        <Icon name={'gas'} className="fill-gray-1 h-4" />
                         <label className="font-bold">Fees</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -258,9 +242,9 @@ export const ConfirmClaimLinkView = ({
                     </span>
                 </div>
 
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                        <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
