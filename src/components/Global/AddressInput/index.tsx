@@ -12,9 +12,10 @@ type AddressInputProps = {
     value: string
     onSubmit: any
     _setIsValidAddress: any
+    setIsValueChanging?: any
 }
 
-const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress }: AddressInputProps) => {
+const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress, setIsValueChanging }: AddressInputProps) => {
     const [userInputAddress, setUserInputAddress] = useState<string>(value)
     const [address, setAddress] = useState<string>(value)
     const [debouncedAddress, setDebouncedAddress] = useState<string>('')
@@ -88,9 +89,12 @@ const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress }: Addr
                       : ''
             }`}
         >
+            <div className="absolute left-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
+                To:
+            </div>
             <input
                 className={`transition-color h-12 w-full rounded-none bg-transparent
-                bg-white px-6  text-base text-base font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
+                bg-white px-6 pl-9 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                 type="text"
                 placeholder={placeholder}
                 value={userInputAddress}
@@ -98,6 +102,7 @@ const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress }: Addr
                     e.preventDefault()
                 }}
                 onChange={(e) => {
+                    setIsValueChanging(true)
                     if (e.target.value) {
                         setUserInputAddress(e.target.value)
                     } else {

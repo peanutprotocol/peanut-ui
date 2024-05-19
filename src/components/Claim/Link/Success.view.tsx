@@ -55,7 +55,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
 
     useEffect(() => {
         resetTokenContextProvider()
-        if (transactionHash && type === 'wallet_xchain') {
+        if (transactionHash && type === 'claimxchain') {
             loopUntilSuccess(transactionHash)
         }
     }, [])
@@ -66,7 +66,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
             <label className="text-h8 font-bold ">You have successfully claimed your funds!</label>
             <div className="flex w-full flex-col items-start justify-center gap-1.5">
                 <label className="text-h8 font-normal text-gray-1">Transaction details</label>
-                {type === 'wallet_xchain' ? (
+                {type === 'claimxchain' ? (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
                         <div className="flex w-full flex-row items-center justify-start gap-1">
                             <label className="">Source chain:</label>

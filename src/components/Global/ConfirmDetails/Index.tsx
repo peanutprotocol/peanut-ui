@@ -7,6 +7,7 @@ interface IConfirmDetailsProps {
     tokenAmount: string
     tokenPrice?: number
     title?: string
+    data?: any
 }
 
 export const ConfirmDetails = ({
@@ -15,6 +16,7 @@ export const ConfirmDetails = ({
     title,
     tokenAmount,
     tokenPrice,
+    data,
 }: IConfirmDetailsProps) => {
     return (
         <div className="flex w-full max-w-96 flex-col items-center justify-center gap-3">
@@ -23,23 +25,33 @@ export const ConfirmDetails = ({
                 <div className="flex flex-row items-center justify-center gap-2">
                     <img
                         src={
-                            consts.peanutTokenDetails
-                                .find((detail) => detail.chainId === selectedChainID)
-                                ?.tokens.find(
-                                    (token) => token.address.toLowerCase() === selectedTokenAddress.toLowerCase()
-                                )?.logoURI
+                            data
+                                ? data
+                                      .find((chain: any) => chain.chainId === selectedChainID)
+                                      ?.tokens.find((token: any) =>
+                                          utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                      )?.logoURI
+                                : consts.peanutTokenDetails
+                                      .find((detail) => detail.chainId === selectedChainID)
+                                      ?.tokens.find((token) =>
+                                          utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                      )?.logoURI
                         }
                         className="h-6 w-6"
                     />
                     <label className="text-h3">
-                        {utils.formatTokenAmount(Number(tokenAmount))}{' '}
-                        {
-                            consts.peanutTokenDetails
-                                .find((detail) => detail.chainId === selectedChainID)
-                                ?.tokens.find(
-                                    (token) => token.address.toLowerCase() === selectedTokenAddress.toLowerCase()
-                                )?.symbol
-                        }
+                        {utils.formatTokenAmount(Number(tokenAmount))} $
+                        {data
+                            ? data
+                                  .find((chain: any) => chain.chainId === selectedChainID)
+                                  ?.tokens.find((token: any) =>
+                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                  )?.symbol
+                            : consts.peanutTokenDetails
+                                  .find((detail) => detail.chainId === selectedChainID)
+                                  ?.tokens.find((token) =>
+                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                  )?.symbol}
                     </label>
                 </div>
                 {tokenPrice && (
@@ -50,11 +62,18 @@ export const ConfirmDetails = ({
             </div>
             <div className="flex flex-row items-center justify-center gap-2">
                 <img
-                    src={consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.icon.url}
+                    src={
+                        data
+                            ? data.find((chain: any) => chain.chainId === selectedChainID)?.icon.url
+                            : consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.icon
+                                  .url
+                    }
                     className="h-6 w-6"
                 />
                 <label className="text-sm font-bold text-gray-1">
-                    {consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.name}
+                    {data
+                        ? data.find((chain: any) => chain.chainId === selectedChainID)?.name
+                        : consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.name}
                 </label>
             </div>
         </div>

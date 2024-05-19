@@ -1,7 +1,7 @@
 'use client'
 
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import TokenSelector from '@/components/Global/TokenSelector'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useEffect, useContext } from 'react'

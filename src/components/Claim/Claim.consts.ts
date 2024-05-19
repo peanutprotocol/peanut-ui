@@ -1,9 +1,9 @@
 import * as views from './Link'
 import * as interfaces from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-export type ClaimType = 'address' | 'wallet' | 'wallet_xchain'
+export type ClaimType = 'claim' | 'claimxchain'
 
-export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SWAP_INITIAL' | 'SUCCESS'
+export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
 export interface IClaimScreenState {
     screen: ClaimScreens
@@ -15,12 +15,11 @@ export const INIT_VIEW_STATE: IClaimScreenState = {
     idx: 0,
 }
 
-export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SWAP_INITIAL', 'SUCCESS']
+export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
 
 export const CLAIM_SCREEN_MAP: { [key in ClaimScreens]: { comp: React.FC<any> } } = {
     INITIAL: { comp: views.InitialClaimLinkView },
     CONFIRM: { comp: views.ConfirmClaimLinkView },
-    SWAP_INITIAL: { comp: views.SwapInitialClaimLinkView },
     SUCCESS: { comp: views.SuccessClaimLinkView },
 }
 
@@ -42,6 +41,10 @@ export interface IClaimScreenProps {
     setEstimatedPoints: (points: number) => void
     attachment: { message: string | undefined; attachmentUrl: string | undefined }
     setAttachment: (attachment: { message: string | undefined; attachmentUrl: string | undefined }) => void
+    selectedRoute: any
+    setSelectedRoute: (route: any) => void
+    hasFetchedRoute: boolean
+    setHasFetchedRoute: (fetched: boolean) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
