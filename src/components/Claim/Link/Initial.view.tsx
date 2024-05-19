@@ -212,7 +212,7 @@ export const InitialClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            {(attachment.message || attachment.attachmentUrl) && (
+            {/* {(attachment.message || attachment.attachmentUrl) && (
                 <>
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
@@ -234,7 +234,7 @@ export const InitialClaimLinkView = ({
                     </div>
                     <div className="flex w-full border-t border-dotted border-black" />
                 </>
-            )}
+            )} */}
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
                 {tokenPrice ? (
@@ -246,14 +246,12 @@ export const InitialClaimLinkView = ({
                         {claimLinkData.tokenAmount} ${claimLinkData.tokenSymbol}
                     </label>
                 )}
-            </div>
-            <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 {isXchainLoading ? (
                     <div className=" flex h-6 w-full max-w-96 animate-pulse flex-row items-center justify-center gap-1 ">
-                        <div className="h-3 w-24 rounded-full bg-slate-700"></div>
+                        <div className="bg-slate-700 h-3 w-24 rounded-full"></div>
                     </div>
                 ) : (
-                    <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                    <div className="text-h7 flex w-full flex-row items-start justify-center gap-1">
                         <div>
                             {hasFetchedRoute ? (
                                 selectedRoute ? (
@@ -301,7 +299,7 @@ export const InitialClaimLinkView = ({
                         {isValidAddress &&
                             (hasFetchedRoute || selectedRoute ? (
                                 <label
-                                    className="cursor-pointer font-bold text-purple-1"
+                                    className="text-purple-1 cursor-pointer font-bold"
                                     onClick={() => {
                                         setSelectedRoute(null)
                                         setHasFetchedRoute(false)
@@ -318,6 +316,8 @@ export const InitialClaimLinkView = ({
                             ))}
                     </div>
                 )}
+            </div>
+            <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 <AddressInput
                     className="px-1"
                     placeholder="Paste wallet address or ENS name"
@@ -337,14 +337,14 @@ export const InitialClaimLinkView = ({
                 {recipientAddress && isValidAddress && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                    <Icon name={'forward'} className="fill-gray-1 h-4" />
                                     <label className="font-bold">Route</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-pulse rounded bg-slate-700"></div>
+                                        <div className="bg-slate-700 h-2 w-12 animate-pulse rounded"></div>
                                     ) : (
                                         selectedRoute && (
                                             <>
@@ -354,7 +354,7 @@ export const InitialClaimLinkView = ({
                                                             chain.chainId === selectedRoute.route.params.fromChain
                                                     )?.name
                                                 }
-                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
                                                 {
                                                     mappedData.find(
                                                         (chain) => chain.chainId === selectedRoute.route.params.toChain
@@ -380,14 +380,14 @@ export const InitialClaimLinkView = ({
                             </div>
                         )}
 
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                <Icon name={'gas'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Fees</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {isXchainLoading ? (
-                                    <div className="h-2 w-12 animate-pulse rounded bg-slate-700"></div>
+                                    <div className="bg-slate-700 h-2 w-12 animate-pulse rounded"></div>
                                 ) : selectedRoute ? (
                                     <>
                                         {'$' +
@@ -422,9 +422,9 @@ export const InitialClaimLinkView = ({
                             </span>
                         </div>
 
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Points</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -473,7 +473,7 @@ export const InitialClaimLinkView = ({
                 </button>
                 {!isValidAddress && (
                     <div
-                        className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h7 text-purple-1"
+                        className="text-h7 text-purple-1 flex cursor-pointer flex-row items-center justify-center gap-1 self-center"
                         onClick={() => {
                             handleConnectWallet()
                         }}
