@@ -40,7 +40,6 @@ export const SenderClaimLinkView = ({
             showError: false,
             errorMessage: '',
         })
-        console.log('claimLinkData', claimLinkData)
 
         if (!claimLinkData) return
 
@@ -75,8 +74,7 @@ export const SenderClaimLinkView = ({
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Hello, {utils.shortenAddress(address ?? '')}</label>
             <label className="text-h8 font-bold ">
-                This is a link that you have created. You can cancel it to reclaim the funds or go to the recipient
-                view.
+                This is a link that you have created. You can refund it or go to the recipient view.
             </label>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -86,7 +84,7 @@ export const SenderClaimLinkView = ({
                             <Loading /> {loadingState}
                         </div>
                     ) : (
-                        'Cancel'
+                        'Refund'
                     )}
                 </button>
                 <button
@@ -112,9 +110,9 @@ export const SenderClaimLinkView = ({
                     Discord!
                 </a>
             </label>
-            <div className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black">
+            <div className="bg-purple-3 px-4.5 absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px]  border-black dark:text-black">
                 <div
-                    className="cursor-pointer border border-n-1 p-0 px-1"
+                    className="border-n-1 cursor-pointer border p-0 px-1"
                     onClick={() => {
                         router.push('/dashboard')
                     }}

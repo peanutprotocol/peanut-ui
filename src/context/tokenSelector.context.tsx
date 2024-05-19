@@ -37,6 +37,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     }
 
     const resetTokenContextProvider = () => {
+        if (preferences && preferences.tokenAddress == selectedTokenAddress && preferences.chainId == selectedChainID)
+            return
         setSelectedChainID(preferences?.tokenAddress ? preferences.chainId : '1')
         setSelectedTokenAddress(
             preferences?.tokenAddress ? preferences.tokenAddress : '0x0000000000000000000000000000000000000000'

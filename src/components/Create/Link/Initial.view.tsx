@@ -165,7 +165,7 @@ export const CreateLinkInitialView = ({
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
-            <label className="max-w-96 text-start text-h8 font-light">
+            <label className="text-h8 max-w-96 text-start font-light">
                 Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
                 be able to claim the funds in any token on any chain from the link.
             </label>
@@ -177,7 +177,7 @@ export const CreateLinkInitialView = ({
                     onSubmit={handleOnNext}
                 />
                 <TokenSelector classNameButton="w-full" />
-                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
+                {/* <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} /> */}
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button

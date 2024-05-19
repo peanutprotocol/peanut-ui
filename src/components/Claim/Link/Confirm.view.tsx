@@ -110,10 +110,6 @@ export const ConfirmClaimLinkView = ({
         }
     }, [attachment?.attachmentUrl])
 
-    useEffect(() => {
-        console.log(selectedRoute)
-    }, [selectedRoute])
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             {/* {(attachment.message || attachment.attachmentUrl) && (
@@ -165,7 +161,7 @@ export const ConfirmClaimLinkView = ({
                     </label>
                 )}
                 {selectedRoute ? (
-                    <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                    <div className="text-h7 flex w-full flex-row items-start justify-center gap-1">
                         {utils.formatTokenAmount(
                             utils.formatAmountWithDecimals({
                                 amount: selectedRoute.route.estimate.toAmountMin,
@@ -176,7 +172,7 @@ export const ConfirmClaimLinkView = ({
                         {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
                     </div>
                 ) : (
-                    <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                    <div className="text-h7 flex w-full flex-row items-start justify-center gap-1">
                         {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name}
                     </div>
@@ -190,9 +186,9 @@ export const ConfirmClaimLinkView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {selectedRoute && (
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'forward'} className="h-4 fill-gray-1" />
+                            <Icon name={'forward'} className="fill-gray-1 h-4" />
                             <label className="font-bold">Route</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -203,7 +199,7 @@ export const ConfirmClaimLinkView = ({
                                             (chain) => chain.chainId === selectedRoute.route.params.fromChain
                                         )?.name
                                     }
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                    <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
                                     {
                                         mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
                                             ?.name
@@ -225,9 +221,9 @@ export const ConfirmClaimLinkView = ({
                     </div>
                 )}
 
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'gas'} className="h-4 fill-gray-1" />
+                        <Icon name={'gas'} className="fill-gray-1 h-4" />
                         <label className="font-bold">Fees</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -265,9 +261,9 @@ export const ConfirmClaimLinkView = ({
                     </span>
                 </div>
 
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                        <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

@@ -41,9 +41,6 @@ const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXCh
             return _tokens
         }
 
-        console.log(_tokens)
-        console.log(selectedTokenAddress)
-
         //only return the first 6 tokens if not filtering
         return _tokens // TODO: fix styling to be three three and bigger (same size no matter of symbol)
     }, [filterValue, selectedChainID])
@@ -67,7 +64,7 @@ const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXCh
         <>
             <div>
                 <button
-                    className={`flex items-center justify-center gap-2 font-bold text-purple-1  ${classNameButton}`}
+                    className={`text-purple-1 flex items-center justify-center gap-2 font-bold  ${classNameButton}`}
                     onClick={() => setVisible(true)}
                 >
                     (edit)

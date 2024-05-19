@@ -255,7 +255,6 @@ export const useCreateLink = () => {
     }) => {
         try {
             const { address: pubKey } = generateKeysFromString(password)
-            console.log(attachmentOptions.attachmentFile)
 
             // Create a FormData object
             const formData = new FormData()
@@ -277,7 +276,6 @@ export const useCreateLink = () => {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
-            console.log(data)
 
             // check if statuscode is 200, else throw error
             if (data.statusCode !== 200) {
