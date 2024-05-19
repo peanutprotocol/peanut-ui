@@ -38,17 +38,17 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
 
     return (
         <form
-            className={`border-n-1 relative max-w-96 rounded-none border px-2 py-4 dark:border-white ${className}`}
+            className={`relative max-w-96 rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}
             action=""
         >
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1 ">
                 {inputDenomination === 'USD' ? (
                     <label className={` text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>$</label>
                 ) : (
-                    <label className={`text-h1 sr-only `}>$</label>
+                    <label className={`sr-only text-h1 `}>$</label>
                 )}
                 <input
-                    className={`text-h1 placeholder:text-h1 focus:border-purple-1 dark:bg-n-1 dark:focus:border-purple-1 h-12 w-[4ch] max-w-80 bg-transparent outline-none transition-colors dark:border-white  dark:text-white dark:placeholder:text-white/75`}
+                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-h1 outline-none transition-colors placeholder:text-h1 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white  dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
                         const value = utils.formatAmountWithoutComma(e.target.value)
@@ -71,7 +71,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                 />
             </div>
             <div className="flex w-full flex-row items-center justify-center gap-1">
-                <label className="text-gray-1 text-base">
+                <label className="text-base text-gray-1">
                     {!tokenValue
                         ? '0'
                         : inputDenomination === 'USD'
@@ -84,7 +84,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                         if (selectedTokenPrice) setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
                     }}
                 >
-                    <Icon name={'switch'} className="fill-gray-1 rotate-90 cursor-pointer" />
+                    <Icon name={'switch'} className="rotate-90 cursor-pointer fill-gray-1" />
                 </button>
             </div>
         </form>

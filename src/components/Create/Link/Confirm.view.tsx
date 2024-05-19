@@ -135,7 +135,7 @@ export const CreateLinkConfirmView = ({
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto with a link</label>
-            <label className="text-h8 max-w-96 text-start font-light">
+            <label className="max-w-96 text-start text-h8 font-light">
                 Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
                 be able to claim the funds in any token on any chain from the link.
             </label>
@@ -193,9 +193,9 @@ export const CreateLinkConfirmView = ({
                         )}
                     </div>
                 )} */}
-                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'gas'} className="fill-gray-1 h-4" />
+                        <Icon name={'gas'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Network cost</label>
                     </div>
                     <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -212,9 +212,9 @@ export const CreateLinkConfirmView = ({
                     </label>
                 </div>
 
-                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
+                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

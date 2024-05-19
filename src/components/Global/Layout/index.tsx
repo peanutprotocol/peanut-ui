@@ -90,7 +90,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                                     below and click submit. If not, reach out to us and we might give you one :){' '}
                                 </label>
                                 <input
-                                    className={`border-n-1 w-full border px-4 py-2 focus:outline-none ${accessCode.length > 0 && !validAccessCode ? 'border-red' : ''}`}
+                                    className={`w-full border border-n-1 px-4 py-2 focus:outline-none ${accessCode.length > 0 && !validAccessCode ? 'border-red' : ''}`}
                                     value={accessCode}
                                     onChange={(e) => {
                                         setAccessCode(e.target.value)

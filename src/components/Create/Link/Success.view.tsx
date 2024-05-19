@@ -118,19 +118,19 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
                 <CopyField text={link} />
             </div>
             <div
-                className="border-n-1 text-h8 w-full border px-2 py-1 font-normal sm:hidden"
+                className="w-full border border-n-1 px-2 py-1 text-h8 font-normal sm:hidden"
                 onClick={() => {
                     share(link)
                 }}
             >
                 Share link
             </div>
-            <Link className="text-h8 text-gray-1 cursor-pointer font-bold underline" href={`${explorerUrlWithTx}`}>
+            <Link className="cursor-pointer text-h8 font-bold text-gray-1 underline" href={`${explorerUrlWithTx}`}>
                 Transaction hash
             </Link>
 
             <div
-                className="bg-purple-3 px-4.5 absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px]  border-black dark:text-black"
+                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
                 onClick={() => {
                     if (!isRegistered) {
                         handleRegistration()
@@ -141,7 +141,7 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
                     }
                 }}
             >
-                <div className=" border-n-1 border p-0 px-1">
+                <div className=" border border-n-1 p-0 px-1">
                     <Icon name="email" className="-mt-0.5" />
                 </div>
                 {isRegistered && isSubscribed ? (

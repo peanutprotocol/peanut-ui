@@ -295,12 +295,12 @@ export const Dashboard = () => {
                             }}
                         >
                             <div className="jusityf-center flex flex-row items-center gap-2">
-                                <label className="text-h4 cursor-pointer">Points: </label>
-                                <label className="text-h3 cursor-pointer">{points ? points : '0'}</label>
+                                <label className="cursor-pointer text-h4">Points: </label>
+                                <label className="cursor-pointer text-h3">{points ? points : '0'}</label>
                             </div>
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <Icon name={'arrow-up-right'} />
-                                <label className="text-h4 cursor-pointer">1.3X boost</label>
+                                <label className="cursor-pointer text-h4">1.3X boost</label>
                                 <Icon name={'info'} className="" />
                             </div>
                         </div>
@@ -371,7 +371,7 @@ export const Dashboard = () => {
                                               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                               .map((link) => (
                                                   <tr
-                                                      className="text-h8 h-16 font-normal"
+                                                      className="h-16 text-h8 font-normal"
                                                       key={link.link + Math.random()}
                                                   >
                                                       <td className="td-custom font-bold">{link.type}</td>
@@ -398,15 +398,15 @@ export const Dashboard = () => {
 
                                                       <td className="td-custom">
                                                           {!link.status ? (
-                                                              <div className="border-gray-1 text-gray-1 border px-2 py-1 text-center">
+                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
                                                                   <Loading />
                                                               </div>
                                                           ) : link.status === 'claimed' ? (
-                                                              <div className="border-green-3 text-green-3 border px-2 py-1 text-center">
+                                                              <div className="border border-green-3 px-2 py-1 text-center text-green-3">
                                                                   claimed
                                                               </div>
                                                           ) : (
-                                                              <div className="border-gray-1 text-gray-1 border px-2 py-1 text-center">
+                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
                                                                   pending
                                                               </div>
                                                           )}
@@ -437,7 +437,7 @@ export const Dashboard = () => {
                     <CSVLink
                         data={legacyLinks ? legacyLinks.join('\n') : ''}
                         filename="links.csv"
-                        className="text-purple-1 cursor-pointer self-end"
+                        className="cursor-pointer self-end text-purple-1"
                     >
                         Download ({legacyLinks.length}) legacy links as CSV
                     </CSVLink>
@@ -477,7 +477,7 @@ export const Dashboard = () => {
                     setIsPointsModalVisible(false)
                 }}
             >
-                <div className="text-h8 flex flex-col items-start justify-center gap-4 p-4">
+                <div className="flex flex-col items-start justify-center gap-4 p-4 text-h8">
                     <div className="flex flex-col items-start justify-center gap-2">
                         <label>You have gained {points} points by:</label>
                         <ul className="list-outside list-disc space-y-1 pl-4 font-normal">

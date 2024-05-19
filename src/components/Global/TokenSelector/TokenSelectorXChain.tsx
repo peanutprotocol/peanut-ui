@@ -64,7 +64,7 @@ const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXCh
         <>
             <div>
                 <button
-                    className={`text-purple-1 flex items-center justify-center gap-2 font-bold  ${classNameButton}`}
+                    className={`flex items-center justify-center gap-2 font-bold text-purple-1  ${classNameButton}`}
                     onClick={() => setVisible(true)}
                 >
                     (edit)

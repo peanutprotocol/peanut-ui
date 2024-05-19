@@ -110,9 +110,9 @@ export const SenderClaimLinkView = ({
                     Discord!
                 </a>
             </label>
-            <div className="bg-purple-3 px-4.5 absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px]  border-black dark:text-black">
+            <div className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black">
                 <div
-                    className="border-n-1 cursor-pointer border p-0 px-1"
+                    className="cursor-pointer border border-n-1 p-0 px-1"
                     onClick={() => {
                         router.push('/dashboard')
                     }}
