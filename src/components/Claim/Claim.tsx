@@ -147,10 +147,19 @@ export const Claim = ({}) => {
         }
     }
 
+    const checkAccess = async () => {
+        const accessCode = utils.getPeanutAccessCode()
+        if (accessCode?.accessCode !== 'ilovepeanuts') {
+            utils.updatePeanutAccessCode('ilovepeanuts')
+            window.location.reload()
+        }
+    }
+
     useEffect(() => {
         const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
         if (pageUrl) {
             checkLink(pageUrl)
+            checkAccess()
         }
     }, [])
 
