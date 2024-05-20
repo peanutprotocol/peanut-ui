@@ -1,4 +1,5 @@
 'use client'
+import '@/styles/globals.css'
 import { useEffect, useState } from 'react'
 import { getCalApi } from '@calcom/embed-react'
 import Lottie from 'react-lottie'
@@ -267,7 +268,40 @@ export function Welcome() {
                     20+ Chains
                 </label>
             </div>
+            <div className="w-full px-4 text-black">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-purple-1 py-8 lg:flex-row ">
+                    <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
+                        <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
+                            <img
+                                src={assets.TEAL_MOCKUP_1.src}
+                                className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
+                                alt="Peanutman Cheering"
+                                loading="eager"
+                            />
+                        </a>
+                    </div>
+                    <div className="flex w-full flex-col items-center justify-center gap-4 px-8 text-center">
+                        <h1 className="text-h1">P2P links</h1>
+                        <div className="w-3/4 text-h5 font-normal ">
+                            Forget chains and wallet addresses. Do a peer 2 peer transfer with a trustless payment link,
+                            no matter whether the recipient has a wallet.{' '}
+                        </div>
 
+                        <div className="mt-4 flex w-full items-center justify-center gap-4">
+                            <a
+                                data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                data-cal-config='{"layout":"month_view"}'
+                                className="btn-purple-2 btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
+                            >
+                                Let's talk!
+                            </a>
+                            <Link href={'/send'} className="text-h4 underline">
+                                Use app →
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
             <div className="w-full px-4 text-black">
                 <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-yellow-1 py-8 lg:flex-row-reverse ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
@@ -300,40 +334,6 @@ export function Welcome() {
                                 Let's talk!
                             </a>
                             <Link href={'/raffle/create'} className="text-h4 underline">
-                                Use app →
-                            </Link>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div className="w-full px-4 text-black">
-                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-purple-1 py-8 lg:flex-row ">
-                    <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
-                        <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
-                            <img
-                                src={assets.TEAL_MOCKUP_1.src}
-                                className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
-                                alt="Peanutman Cheering"
-                                loading="eager"
-                            />
-                        </a>
-                    </div>
-                    <div className="flex w-full flex-col items-center justify-center gap-4 px-8 text-center">
-                        <h1 className="text-h1">P2P links</h1>
-                        <div className="w-3/4 text-h5 font-normal ">
-                            Forget chains and wallet addresses. Do a peer 2 peer transfer with a trustless payment link,
-                            no matter whether the recipient has a wallet.{' '}
-                        </div>
-
-                        <div className="mt-4 flex w-full items-center justify-center gap-4">
-                            <a
-                                data-cal-link="kkonrad+hugo0/15min?duration=30"
-                                data-cal-config='{"layout":"month_view"}'
-                                className="btn-purple-2 btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
-                            >
-                                Let's talk!
-                            </a>
-                            <Link href={'/send'} className="text-h4 underline">
                                 Use app →
                             </Link>
                         </div>
