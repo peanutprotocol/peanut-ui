@@ -7,8 +7,8 @@ export default function PioneersPage() {
         <global_components.PageWrapper>
             <Widget
                 id="lTEp058W"
-                style={{ width: '75%', height: '600px' }}
-                className="center-xy items-center self-center"
+                style={{ width: '100%', height: '100%' }}
+                className="center-xy min-h-screen items-center self-center"
             />
         </global_components.PageWrapper>
     )
