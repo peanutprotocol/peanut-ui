@@ -20,7 +20,7 @@ export const ConfirmDetails = ({
 }: IConfirmDetailsProps) => {
     return (
         <div className="flex w-full max-w-96 flex-col items-center justify-center gap-3">
-            {title && <label className="text-h7 self-start font-normal">{title}</label>}
+            {title && <label className="self-start text-h7 font-normal">{title}</label>}
             <div>
                 <div className="flex flex-row items-center justify-center gap-2">
                     <img
@@ -55,7 +55,7 @@ export const ConfirmDetails = ({
                     </label>
                 </div>
                 {tokenPrice && (
-                    <label className="text-h7 text-gray-1 font-bold">
+                    <label className="text-h7 font-bold text-gray-1">
                         $ {utils.formatTokenAmount(Number(tokenAmount) * tokenPrice)}
                     </label>
                 )}
@@ -70,7 +70,7 @@ export const ConfirmDetails = ({
                     }
                     className="h-6 w-6"
                 />
-                <label className="text-gray-1 text-sm font-bold">
+                <label className="text-sm font-bold text-gray-1">
                     {data
                         ? data.find((chain: any) => chain.chainId === selectedChainID)?.name
                         : consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.name}
