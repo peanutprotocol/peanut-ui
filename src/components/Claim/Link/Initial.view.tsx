@@ -125,15 +125,17 @@ export const InitialClaimLinkView = ({
 
     useEffect(() => {
         if (attachment?.attachmentUrl) {
-            fetch(attachment?.attachmentUrl)
-                .then((response) => response.blob())
-                .then((blob) => {
-                    setFileType(blob.type)
-                })
-                .catch((error) => {
-                    console.error('Error fetching the blob from URL:', error)
-                    setFileType('') // Reset or handle the error state
-                })
+            try {
+                fetch(attachment?.attachmentUrl)
+                    .then((response) => response.blob())
+                    .then((blob) => {
+                        setFileType(blob.type)
+                    })
+                    .catch((error) => {
+                        console.error('Error fetching the blob from URL:', error)
+                        setFileType('') // Reset or handle the error state
+                    })
+            } catch (error) {}
         }
     }, [attachment?.attachmentUrl])
 

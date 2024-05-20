@@ -35,7 +35,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                 >
                     <Icon name="send" className="-mt-0.5" />
                 </div>
-                <label className=" text-sm font-bold">Generate a payment link yourself!</label>
+                <label className=" text-sm font-bold">Make a payment yourself!</label>
             </div>
         </div>
     )
