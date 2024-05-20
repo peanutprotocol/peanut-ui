@@ -281,7 +281,7 @@ export const Dashboard = () => {
                               : 'You have not created or claimed any links yet.'}
                     </label>
 
-                    {isConnected && (
+                    {/* {isConnected && (
                         <div
                             style={{
                                 backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
@@ -304,7 +304,7 @@ export const Dashboard = () => {
                                 <Icon name={'info'} className="" />
                             </div>
                         </div>
-                    )}
+                    )} */}
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Create Link
@@ -371,7 +371,7 @@ export const Dashboard = () => {
                                               .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                               .map((link) => (
                                                   <tr
-                                                      className="h-16 text-h8 font-normal"
+                                                      className="text-h8 h-16 font-normal"
                                                       key={link.link + Math.random()}
                                                   >
                                                       <td className="td-custom font-bold">{link.type}</td>
@@ -398,15 +398,15 @@ export const Dashboard = () => {
 
                                                       <td className="td-custom">
                                                           {!link.status ? (
-                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                              <div className="border-gray-1 text-gray-1 border px-2 py-1 text-center">
                                                                   <Loading />
                                                               </div>
                                                           ) : link.status === 'claimed' ? (
-                                                              <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                              <div className="border-green-3 text-green-3 border px-2 py-1 text-center">
                                                                   claimed
                                                               </div>
                                                           ) : (
-                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                              <div className="border-gray-1 text-gray-1 border px-2 py-1 text-center">
                                                                   pending
                                                               </div>
                                                           )}
@@ -437,7 +437,7 @@ export const Dashboard = () => {
                     <CSVLink
                         data={legacyLinks ? legacyLinks.join('\n') : ''}
                         filename="links.csv"
-                        className="cursor-pointer self-end text-purple-1"
+                        className="text-purple-1 cursor-pointer self-end"
                     >
                         Download ({legacyLinks.length}) legacy links as CSV
                     </CSVLink>
@@ -461,13 +461,12 @@ export const Dashboard = () => {
             )}
 
             <button
-                className="flex cursor-pointer flex-row items-center justify-center gap-1"
+                className=""
                 onClick={() => {
                     router.push('/reclaim')
                 }}
             >
-                <Icon name={'question-circle'} />
-                <label className="cursor-pointer">Had an issue creating a link? click here to reclaim the funds.</label>
+                <Icon name={'question-circle'} /> Had an issue creating a link? click here to reclaim the funds.
             </button>
 
             <Modal
@@ -477,7 +476,7 @@ export const Dashboard = () => {
                     setIsPointsModalVisible(false)
                 }}
             >
-                <div className="flex flex-col items-start justify-center gap-4 p-4 text-h8">
+                <div className="text-h8 flex flex-col items-start justify-center gap-4 p-4">
                     <div className="flex flex-col items-start justify-center gap-2">
                         <label>You have gained {points} points by:</label>
                         <ul className="list-outside list-disc space-y-1 pl-4 font-normal">
