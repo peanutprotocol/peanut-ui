@@ -111,8 +111,9 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
             <QRCodeWrapper url={link} />
-            <label className="text-h8 font-bold ">
-                Scan the QR code above or send this link to your friends so they can claim their funds.
+            <label className="text-h8 ">
+                Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any
+                token.
             </label>
             <div className="hidden w-full md:block">
                 <CopyField text={link} />

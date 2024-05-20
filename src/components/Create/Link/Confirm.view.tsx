@@ -134,7 +134,7 @@ export const CreateLinkConfirmView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto with a link</label>
+            <label className="text-h2">Send crypto via link</label>
             <label className="max-w-96 text-start text-h8 font-light">
                 Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
                 be able to claim the funds in any token on any chain from the link.
@@ -186,7 +186,7 @@ export const CreateLinkConfirmView = ({
                         </div>
                         {showMessage && (
                             <div className="flex w-full flex-col items-center justify-center gap-1 px-2 text-h8 text-gray-1">
-                                <label className="w-full text-end text-sm font-normal leading-4">
+                                <label className="w-full text-start text-sm font-normal leading-4">
                                     {attachmentOptions.message}
                                 </label>
                             </div>

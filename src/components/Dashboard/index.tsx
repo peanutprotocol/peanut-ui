@@ -307,7 +307,7 @@ export const Dashboard = () => {
                     )} */}
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
-                    Create Link
+                    Make Payment
                     <Icon name={'plus-circle'} className="h-4 fill-white" />
                 </button>
             </div>
@@ -439,7 +439,7 @@ export const Dashboard = () => {
                         filename="links.csv"
                         className="cursor-pointer self-end text-purple-1"
                     >
-                        Download ({legacyLinks.length}) legacy links as CSV
+                        Download {legacyLinks.length} legacy links as CSV
                     </CSVLink>
                 )}
             </div>
