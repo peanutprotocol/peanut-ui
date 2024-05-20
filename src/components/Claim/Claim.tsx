@@ -8,6 +8,7 @@ import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import * as context from '@/context'
 import * as assets from '@/assets'
+import * as consts from '@/constants'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
 export const Claim = ({}) => {
@@ -72,7 +73,11 @@ export const Claim = ({}) => {
 
             const contractVersionCheck = peanut.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
             if (crossChainDetails.length > 0 && contractVersionCheck) {
-                const xchainDetails = crossChainDetails.filter((chain: any) => chain.chainId != '1')
+                const xchainDetails = sortCrossChainDetails(
+                    crossChainDetails.filter((chain: any) => chain.chainId != '1'),
+                    consts.supportedPeanutChains
+                )
+
                 setSelectedChainID(xchainDetails[0].chainId)
                 setSelectedTokenAddress(xchainDetails[0].tokens[0].address)
                 return xchainDetails
@@ -83,6 +88,18 @@ export const Claim = ({}) => {
             console.log('error fetching cross chain details: ' + error)
             return undefined
         }
+    }
+
+    const sortCrossChainDetails = (details: any[], order: any[]) => {
+        const orderMap = new Map(order.map((item, index) => [item.chainId, index]))
+        return details.sort((a, b) => {
+            const indexA = orderMap.get(a.chainId)
+            const indexB = orderMap.get(b.chainId)
+            if (indexA === undefined || indexB === undefined) {
+                return 0 // Default to no order if not found
+            }
+            return indexA - indexB
+        })
     }
 
     const checkLink = async (link: string) => {
