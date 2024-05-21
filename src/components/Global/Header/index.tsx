@@ -175,7 +175,6 @@ const Header = ({}: HeaderProps) => {
                                 className="btn-purple btn-large"
                                 onClick={() => {
                                     console.log('connect')
-
                                     web3modalOpen()
                                     console.log('connect2')
                                 }}
