@@ -227,7 +227,9 @@ const Header = ({}: HeaderProps) => {
                             <Disclosure.Button
                                 key="connect"
                                 onClick={() => {
+                                    console.log('connect')
                                     web3modalOpen()
+                                    console.log('connect2')
                                 }}
                                 className="flex h-full cursor-pointer items-center"
                             >
