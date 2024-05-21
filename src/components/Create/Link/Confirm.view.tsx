@@ -156,7 +156,7 @@ export const CreateLinkConfirmView = ({
             />
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                {/* {attachmentOptions.fileUrl && (
+                {attachmentOptions.fileUrl && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'paperclip'} className="h-4 fill-gray-1" />
@@ -192,7 +192,7 @@ export const CreateLinkConfirmView = ({
                             </div>
                         )}
                     </div>
-                )} */}
+                )}
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'gas'} className="h-4 fill-gray-1" />

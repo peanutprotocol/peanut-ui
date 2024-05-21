@@ -114,7 +114,7 @@ export const ConfirmClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            {/* {(attachment.message || attachment.attachmentUrl) && (
+            {(attachment.message || attachment.attachmentUrl) && (
                 <>
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
@@ -136,7 +136,7 @@ export const ConfirmClaimLinkView = ({
                     </div>
                     <div className="flex w-full border-t border-dotted border-black" />
                 </>
-            )} */}
+            )}
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
                 {tokenPrice ? (

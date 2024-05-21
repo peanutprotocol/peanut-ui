@@ -126,13 +126,17 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (attachment?.attachmentUrl) {
             try {
+                console.log('attachmentUrl', attachment?.attachmentUrl)
                 fetch(attachment?.attachmentUrl)
-                    .then((response) => response.blob())
+                    .then((response) => {
+                        console.log(response)
+                        return response.blob()
+                    })
                     .then((blob) => {
                         setFileType(blob.type)
                     })
                     .catch((error) => {
-                        console.error('Error fetching the blob from URL:', error)
+                        console.log('Error fetching the blob from URL:', error)
                         setFileType('') // Reset or handle the error state
                     })
             } catch (error) {}
@@ -214,7 +218,7 @@ export const InitialClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            {/* {(attachment.message || attachment.attachmentUrl) && (
+            {(attachment.message || attachment.attachmentUrl) && (
                 <>
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
@@ -236,7 +240,7 @@ export const InitialClaimLinkView = ({
                     </div>
                     <div className="flex w-full border-t border-dotted border-black" />
                 </>
-            )} */}
+            )}
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
                 {tokenPrice ? (

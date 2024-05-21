@@ -177,7 +177,7 @@ export const CreateLinkInitialView = ({
                     onSubmit={handleOnNext}
                 />
                 <TokenSelector classNameButton="w-full" />
-                {/* <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} /> */}
+                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button

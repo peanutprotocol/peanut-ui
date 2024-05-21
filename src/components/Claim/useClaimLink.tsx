@@ -162,10 +162,11 @@ export const useClaimLink = () => {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
+            console.log(data)
 
             return {
-                fileUrl: data.attachment,
-                message: data.reference,
+                fileUrl: data.linkInfo.file_url,
+                message: data.linkInfo.text_content,
             }
         } catch (error) {
             console.error('Failed to get attachment:', error)
