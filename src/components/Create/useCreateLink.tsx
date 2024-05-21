@@ -277,12 +277,7 @@ export const useCreateLink = () => {
             }
             const data = await response.json()
 
-            // check if statuscode is 200, else throw error
-            if (data.statusCode !== 200) {
-                throw new Error(`HTTP error! status: ${data.statusCode}`)
-            }
-
-            return data.linkEntry.fileUrl
+            return data.linkEntry.file_url
         } catch (error) {
             console.error('Failed to publish file (init):', error)
             return ''

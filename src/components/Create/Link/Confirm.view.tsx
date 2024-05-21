@@ -65,7 +65,7 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            let fileUrl = await submitLinkAttachmentInit({
+            const fileUrl = await submitLinkAttachmentInit({
                 password: password ?? '',
                 attachmentOptions: {
                     attachmentFile: attachmentOptions.rawFile,
