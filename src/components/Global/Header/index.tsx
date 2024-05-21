@@ -174,7 +174,10 @@ const Header = ({}: HeaderProps) => {
                             <button
                                 className="btn-purple btn-large"
                                 onClick={() => {
+                                    console.log('connect')
+
                                     web3modalOpen()
+                                    console.log('connect2')
                                 }}
                             >
                                 {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
