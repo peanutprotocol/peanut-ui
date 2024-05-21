@@ -16,6 +16,7 @@ import * as _utils from './Dashboard.utils'
 import * as _consts from './Dashboard.consts'
 import * as components from './components'
 import Modal from '../Global/Modal'
+import { Menu, Transition } from '@headlessui/react'
 
 export const Dashboard = () => {
     const itemsPerPage = 10
@@ -297,27 +298,56 @@ export const Dashboard = () => {
                     </label>
 
                     {isConnected && (
-                        <div
-                            style={{
-                                backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
-                                WebkitBackgroundClip: 'text',
-                                backgroundClip: 'text',
-                                color: 'transparent',
-                            }}
-                            className="animate-gradient flex w-full cursor-pointer flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
-                            onClick={() => {
-                                setIsPointsModalVisible(true)
-                            }}
-                        >
-                            <div className="jusityf-center flex flex-row items-center gap-2">
+                        <div className="flex w-full flex-row items-center justify-center gap-2 py-2 sm:w-max">
+                            <div
+                                style={{
+                                    backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
+                                    WebkitBackgroundClip: 'text',
+                                    backgroundClip: 'text',
+                                    color: 'transparent',
+                                }}
+                                className="animate-gradient  flex w-max flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
+                                onClick={() => {
+                                    // setIsPointsModalVisible(true)
+                                }}
+                            >
+                                {/* <div className="flex flex-row items-center justify-center gap-2"> */}
                                 <label className="cursor-pointer text-h4">Points: </label>
-                                <label className="cursor-pointer text-h3">{points ? points : '0'}</label>
+                                {/* <label className="cursor-pointer text-h3">{points ? points : '0'}</label> */}
+                                {/* <label className="cursor-pointer text-h3">Coming Soon!</label> */}
+                                {/* </div> */}
+                                {/* <div className="jusityf-center flex flex-row items-center gap-2"> */}
+                                {/* <Icon name={'arrow-up-right'} />
+                                <label className="cursor-pointer text-h4">2.0X boost</label> */}
+                                {/* <Icon name={'info'} className="" /> */}
+                                {/* </div> */}
                             </div>
-                            <div className="jusityf-center flex flex-row items-center gap-2">
-                                <Icon name={'arrow-up-right'} />
-                                <label className="cursor-pointer text-h4">2.0X boost</label>
-                                <Icon name={'info'} className="" />
-                            </div>
+
+                            <Menu className="relative w-full" as="div">
+                                <Menu.Button
+                                    style={{
+                                        backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
+                                    }}
+                                    className="btn btn-purple btn-shadow h-8 w-32 w-full text-white"
+                                >
+                                    Claim now!
+                                </Menu.Button>
+                                <Transition
+                                    enter="transition-opacity duration-150 ease-out"
+                                    enterFrom="opacity-0"
+                                    enterTo="opacity-100"
+                                    leave="transition-opacity duration-100 ease-out"
+                                    leaveFrom="opacity-100"
+                                    leaveTo="opacity-0"
+                                >
+                                    <Menu.Items className="shadow-primary-4 absolute bottom-full left-0 z-30 mb-2 w-48 border border-n-1 bg-white px-4 py-2 text-h8 sm:left-28 sm:w-64">
+                                        <Menu.Item as={'label'} className={'text-h8 font-normal'}>
+                                            You will be awarded points retroactively in a few days. You will receive a
+                                            2X boost for being so early with us!
+                                        </Menu.Item>
+                                    </Menu.Items>
+                                </Transition>
+                            </Menu>
                         </div>
                     )}
                 </div>
