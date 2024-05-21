@@ -45,6 +45,7 @@ export const saveToLocalStorage = (key: string, data: any) => {
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = JSON.stringify(data)
+        if (typeof localStorage === 'undefined') return
         localStorage.setItem(key, serializedData)
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
@@ -54,6 +55,7 @@ export const saveToLocalStorage = (key: string, data: any) => {
 
 export const getFromLocalStorage = (key: string) => {
     try {
+        if (typeof localStorage === 'undefined') return
         const data = localStorage.getItem(key)
         if (data === null) {
             console.log(`No data found in localStorage for ${key}`)
@@ -69,6 +71,7 @@ export const getFromLocalStorage = (key: string) => {
 
 export const delteFromLocalStorage = (key: string) => {
     try {
+        if (typeof localStorage === 'undefined') return
         localStorage.removeItem(key)
         console.log(`Removed ${key} from localStorage`)
     } catch (error) {
@@ -78,6 +81,8 @@ export const delteFromLocalStorage = (key: string) => {
 
 export const getAllLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const localStorageData: interfaces.ILocalStorageItem[] = []
 
         for (let i = 0; i < localStorage.length; i++) {
@@ -111,6 +116,8 @@ export const getAllLinksFromLocalStorage = ({ address }: { address: string }) =>
 
 export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const localStorageData: interfaces.ILocalStorageItem[] = []
 
         for (let i = 0; i < localStorage.length; i++) {
@@ -186,6 +193,8 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
 
 export const getAllGigalinksFromLocalstorage = ({ address }: { address: string }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const localStorageData: interfaces.ILocalStorageItem[] = []
 
         for (let i = 0; i < localStorage.length; i++) {
@@ -331,6 +340,8 @@ export const saveClaimedLinkToLocalStorage = ({
     data: interfaces.IExtendedLinkDetails
 }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `${address} - claimed links`
 
         const storedData = localStorage.getItem(key)
@@ -352,6 +363,8 @@ export const saveClaimedLinkToLocalStorage = ({
 
 export const getClaimedLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `${address} - claimed links`
 
         const storedData = localStorage.getItem(key)
@@ -375,6 +388,8 @@ export const saveCreatedLinkToLocalStorage = ({
     data: interfaces.IExtendedPeanutLinkDetails
 }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `${address} - created links`
 
         const storedData = localStorage.getItem(key)
@@ -396,6 +411,8 @@ export const saveCreatedLinkToLocalStorage = ({
 
 export const getCreatedLinksFromLocalStorage = ({ address }: { address: string }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `${address} - created links`
 
         const storedData = localStorage.getItem(key)
@@ -419,6 +436,8 @@ export const updateCreatedLinksFromLocalStorage = ({
     data: interfaces.IExtendedPeanutLinkDetails[]
 }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `${address} - created links`
 
         localStorage.setItem(key, JSON.stringify(data))
@@ -437,6 +456,8 @@ export const addClaimLinkToLocalstorage = ({
     linkDetails: interfaces.ILinkDetails
 }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `${address} - claimed links`
 
         const storedData = localStorage.getItem(key)
@@ -456,6 +477,8 @@ export const addClaimLinkToLocalstorage = ({
 
 export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: string; tokenAddress?: string }) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `peanut-preferences`
 
         let data = {
@@ -471,6 +494,8 @@ export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: s
 
 export const getPeanutPreferences = () => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `peanut-preferences`
 
         const storedData = localStorage.getItem(key)
@@ -498,6 +523,7 @@ export const checkifImageType = (type: string) => {
 export const getPeanutAccessCode = () => {
     try {
         const key = `peanut-access-code`
+        if (typeof localStorage === 'undefined') return
 
         const storedData = localStorage.getItem(key)
 
@@ -517,6 +543,8 @@ export const getPeanutAccessCode = () => {
 
 export const updatePeanutAccessCode = (accessCode?: string) => {
     try {
+        if (typeof localStorage === 'undefined') return
+
         const key = `peanut-access-code`
 
         let data = {
