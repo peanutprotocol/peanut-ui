@@ -34,7 +34,7 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
                     setFileType(blob.type)
                 })
                 .catch((error) => {
-                    console.error('Error fetching the blob from URL:', error)
+                    console.log('Error fetching the blob from URL:', error)
                     setFileType('') // Reset or handle the error state
                 })
         }

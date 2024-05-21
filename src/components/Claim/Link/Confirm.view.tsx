@@ -96,21 +96,21 @@ export const ConfirmClaimLinkView = ({
         }
     }
 
-    useEffect(() => {
-        if (attachment?.attachmentUrl) {
-            try {
-                fetch(attachment?.attachmentUrl)
-                    .then((response) => response.blob())
-                    .then((blob) => {
-                        setFileType(blob.type)
-                    })
-                    .catch((error) => {
-                        console.error('Error fetching the blob from URL:', error)
-                        setFileType('') // Reset or handle the error state
-                    })
-            } catch (error) {}
-        }
-    }, [attachment?.attachmentUrl])
+    // useEffect(() => {
+    //     if (attachment?.attachmentUrl) {
+    //         try {
+    //             fetch(attachment?.attachmentUrl)
+    //                 .then((response) => response.blob())
+    //                 .then((blob) => {
+    //                     setFileType(blob.type)
+    //                 })
+    //                 .catch((error) => {
+    //                     console.error('Error fetching the blob from URL:', error)
+    //                     setFileType('') // Reset or handle the error state
+    //                 })
+    //         } catch (error) {}
+    //     }
+    // }, [attachment?.attachmentUrl])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">

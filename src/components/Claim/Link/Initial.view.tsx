@@ -123,25 +123,25 @@ export const InitialClaimLinkView = ({
         setEstimatedPoints(estimatedPoints)
     }
 
-    useEffect(() => {
-        if (attachment?.attachmentUrl) {
-            try {
-                console.log('attachmentUrl', attachment?.attachmentUrl)
-                fetch(attachment?.attachmentUrl)
-                    .then((response) => {
-                        console.log(response)
-                        return response.blob()
-                    })
-                    .then((blob) => {
-                        setFileType(blob.type)
-                    })
-                    .catch((error) => {
-                        console.log('Error fetching the blob from URL:', error)
-                        setFileType('') // Reset or handle the error state
-                    })
-            } catch (error) {}
-        }
-    }, [attachment?.attachmentUrl])
+    // useEffect(() => {
+    //     if (attachment?.attachmentUrl) {
+    //         try {
+    //             console.log('attachmentUrl', attachment?.attachmentUrl)
+    //             fetch(attachment?.attachmentUrl)
+    //                 .then((response) => {
+    //                     console.log(response)
+    //                     return response.blob()
+    //                 })
+    //                 .then((blob) => {
+    //                     setFileType(blob.type)
+    //                 })
+    //                 .catch((error) => {
+    //                     console.log('Error fetching the blob from URL:', error)
+    //                     setFileType('') // Reset or handle the error state
+    //                 })
+    //         } catch (error) {}
+    //     }
+    // }, [attachment?.attachmentUrl])
 
     useEffect(() => {
         if (recipientAddress) {
