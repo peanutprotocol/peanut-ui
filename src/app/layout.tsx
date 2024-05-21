@@ -16,7 +16,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body className={`${roboto.variable} font-sans`}>
-                {/* <Script
+                <Script
                     id="mouseflow-script"
                     strategy="afterInteractive"
                     dangerouslySetInnerHTML={{
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             })();
           `,
                     }}
-                /> */}
+                />
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"

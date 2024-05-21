@@ -172,11 +172,9 @@ const Header = ({}: HeaderProps) => {
                                 <button className="btn-purple btn-large">Dashboard</button>
                             </Link>
                             <button
-                                className="btn-purple btn-large"
+                                className="wc-disable-mf btn-purple btn-large"
                                 onClick={() => {
-                                    console.log('connect')
                                     web3modalOpen()
-                                    console.log('connect2')
                                 }}
                             >
                                 {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
@@ -229,9 +227,7 @@ const Header = ({}: HeaderProps) => {
                             <Disclosure.Button
                                 key="connect"
                                 onClick={() => {
-                                    console.log('connect')
                                     web3modalOpen()
-                                    console.log('connect2')
                                 }}
                                 className="flex h-full cursor-pointer items-center"
                             >

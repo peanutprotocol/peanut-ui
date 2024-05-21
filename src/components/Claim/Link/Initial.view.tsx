@@ -488,7 +488,7 @@ export const InitialClaimLinkView = ({
                 </button>
                 {!isValidAddress && (
                     <div
-                        className="flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h7 text-purple-1"
+                        className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h7 text-purple-1"
                         onClick={() => {
                             handleConnectWallet()
                         }}

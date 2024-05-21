@@ -181,7 +181,7 @@ export const CreateLinkInitialView = ({
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
-                    className="btn-purple btn-xl "
+                    className="wc-disable-mf btn-purple btn-xl "
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
