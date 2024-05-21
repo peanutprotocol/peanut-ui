@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react'
 
 export const useBalance = () => {
     const [balances, setBalances] = useState<interfaces.IUserBalance[]>([])
+    const [valuePerChain, setValuePerChain] = useState<interfaces.ChainValue[]>([])
     const { address } = useAccount()
 
     useEffect(() => {
@@ -39,6 +40,42 @@ export const useBalance = () => {
             currency: 'usd',
             logoURI: item.iconUrl,
         }))
+    }
+
+    function calculateValuePerChain(
+        balances: {
+            name: string
+            symbol: string
+            chainId: string
+            value: number
+            price: number
+            quantity: { decimals: string; numeric: string }
+            iconUrl: string
+            address?: string
+        }[]
+    ): interfaces.ChainValue[] {
+        let result: interfaces.ChainValue[] = []
+
+        try {
+            const chainValueMap: { [key: string]: number } = {}
+            balances.forEach((balance) => {
+                const chainId = balance?.chainId ? balance.chainId.split(':')[1] : '1'
+                if (!chainValueMap[chainId]) {
+                    chainValueMap[chainId] = 0
+                }
+                chainValueMap[chainId] += balance.value
+            })
+
+            result = Object.keys(chainValueMap).map((chainId) => ({
+                chainId,
+                valuePerChain: chainValueMap[chainId],
+            }))
+
+            result.sort((a, b) => b.valuePerChain - a.valuePerChain)
+        } catch (error) {
+            console.log('Error calculating value per chain: ', error)
+        }
+        return result
     }
 
     const fetchBalances = async (address: string) => {
@@ -76,6 +113,8 @@ export const useBalance = () => {
                             }
                         })
 
+                        const valuePerChain = calculateValuePerChain(apiResponseJson.balances)
+                        setValuePerChain(valuePerChain)
                         success = true
                     } else {
                         throw new Error('API request failed')
@@ -95,5 +134,5 @@ export const useBalance = () => {
         }
     }
 
-    return { balances, fetchBalances }
+    return { balances, fetchBalances, valuePerChain }
 }

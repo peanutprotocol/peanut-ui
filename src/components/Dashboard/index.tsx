@@ -78,6 +78,7 @@ export const Dashboard = () => {
                 status: 'claimed',
                 message: link.message,
                 attachmentUrl: link.attachmentUrl,
+                points: link.points,
             })
         })
 
@@ -97,6 +98,7 @@ export const Dashboard = () => {
                 status: undefined,
                 message: link.message,
                 attachmentUrl: link.attachmentUrl,
+                points: link.points,
             })
         })
 
@@ -202,13 +204,26 @@ export const Dashboard = () => {
         }
     }
 
+    const calculatePoints = (data: interfaces.IDashboardItem[]) => {
+        let points = 0
+
+        data.forEach((item) => {
+            if (item.points) {
+                points += item.points
+            }
+        })
+
+        return points * 2
+    }
+
     useEffect(() => {
         if (address) {
             const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
             const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })
 
             const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [])
-
+            const calculatedPoints = calculatePoints(linkData)
+            setPoints(calculatedPoints)
             setDashboardData(
                 linkData.sort((a, b) => {
                     const dateA = new Date(a.date).getTime()
@@ -238,7 +253,7 @@ export const Dashboard = () => {
             }
             setLegacyLinks(links)
 
-            fetchPoints()
+            // fetchPoints()
         } else {
             setDashboardData([])
             setLegacyLinks([])
@@ -281,7 +296,7 @@ export const Dashboard = () => {
                               : 'You have not created or claimed any links yet.'}
                     </label>
 
-                    {/* {isConnected && (
+                    {isConnected && (
                         <div
                             style={{
                                 backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
@@ -300,11 +315,11 @@ export const Dashboard = () => {
                             </div>
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <Icon name={'arrow-up-right'} />
-                                <label className="cursor-pointer text-h4">1.3X boost</label>
+                                <label className="cursor-pointer text-h4">2.0X boost</label>
                                 <Icon name={'info'} className="" />
                             </div>
                         </div>
-                    )} */}
+                    )}
                 </div>
                 <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex">
                     Make Payment

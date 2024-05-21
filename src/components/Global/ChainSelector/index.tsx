@@ -8,6 +8,7 @@ import { useBalance } from '@/hooks/useBalance'
 import { supportedWalletconnectChains, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { IPeanutChainDetails } from '@/interfaces'
+import * as utils from '@/utils'
 type Chain = {
     name: string
     icon: {
@@ -25,7 +26,7 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
     const [, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
 
-    const { balances } = useBalance()
+    const { balances, valuePerChain } = useBalance()
     const { selectedChainID, setSelectedChainID } = useContext(context.tokenSelectorContext)
 
     const _chainsToDisplay = useMemo(() => {
@@ -35,17 +36,14 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
         } else {
             chains = supportedPeanutChains
         }
-        // if (balances.length > 0) {
-        //     chains = chains
-        //         .filter(
-        //             (chain) => chain.chainId === balances.find((balance) => balance.chainId === chain.chainId)?.chainId
-        //         )
-        //         .concat(
-        //             supportedPeanutChains.filter(
-        //                 (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
-        //             )
-        //         )
-        // }  // TODO: reorder but not filter
+        if (valuePerChain.length > 0) {
+            // Sort the chains based on the value
+            chains = chains.sort((a, b) => {
+                const aValue = valuePerChain.find((value) => value.chainId === a.chainId)?.valuePerChain || 0
+                const bValue = valuePerChain.find((value) => value.chainId === b.chainId)?.valuePerChain || 0
+                return bValue - aValue
+            })
+        }
         if (filterValue) {
             chains = chains.filter(
                 (chain) =>
@@ -54,7 +52,7 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
             )
         }
         return chains
-    }, [filterValue, balances, chainsToDisplay])
+    }, [filterValue, valuePerChain, chainsToDisplay])
 
     function setChain(chainId: string): void {
         setSelectedChainID(chainId)
@@ -98,13 +96,24 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
 
                             {_chainsToDisplay.map(
                                 (chain) =>
-                                    chain.mainnet && chainItem({ chain, setChain: () => setChain(chain.chainId) })
+                                    chain.mainnet &&
+                                    chainItem({
+                                        chain,
+                                        setChain: () => setChain(chain.chainId),
+                                        valuePerChain: valuePerChain.find((value) => value.chainId === chain.chainId)
+                                            ?.valuePerChain,
+                                    })
                             )}
-                            <div className="w-full border border-n-2 dark:border-white"></div>
+                            {/* TODO: hide testnets */}
+                            {/* <div className="w-full border border-n-2 dark:border-white"></div>
                             {_chainsToDisplay.map(
                                 (chain) =>
-                                    !chain.mainnet && chainItem({ chain, setChain: () => setChain(chain.chainId) })
-                            )}
+                                    !chain.mainnet &&
+                                    chainItem({
+                                        chain,
+                                        setChain: () => setChain(chain.chainId),
+                                    })
+                            )} */}
                         </Menu.Items>
                     </Transition>
                 </>
@@ -113,16 +122,27 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
     )
 }
 
-const chainItem = ({ chain, setChain }: { chain: Chain; setChain: () => void }) => {
+const chainItem = ({
+    chain,
+    setChain,
+    valuePerChain,
+}: {
+    chain: Chain
+    setChain: () => void
+    valuePerChain?: number
+}) => {
     return (
         <Menu.Item
             as={'button'}
             onClick={setChain}
-            className=" flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
+            className=" flex h-12 w-full items-center justify-between gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
             key={chain.name}
         >
-            <img src={chain.icon.url} alt={chain.name} className="h-6 w-6" />
-            <div className="text-h8">{chain.name}</div>
+            <div className="flex w-max flex-row items-center justify-center gap-2">
+                <img src={chain.icon.url} alt={chain.name} className="h-6 w-6" />
+                <div className="text-h8">{chain.name}</div>
+            </div>
+            {valuePerChain && <div className="text-h9 text-gray-1">${utils.formatTokenAmount(valuePerChain, 2)}</div>}
         </Menu.Item>
     )
 }

@@ -25,7 +25,7 @@ export const supportedWalletconnectChains = <{ chainId: string; name: string }[]
     { chainId: '137', name: 'Polygon' },
     { chainId: '324', name: 'zkSync Era' },
     { chainId: '1101', name: 'Polygon Zkevm' },
-    { chainId: '5000', name: 'Mantle 1' },
+    { chainId: '5000', name: 'Mantle 1' }, //
     { chainId: '8217', name: 'Klaytn Mainnet' },
     { chainId: '8453', name: 'Base' },
     { chainId: '42161', name: 'Arbitrum' },

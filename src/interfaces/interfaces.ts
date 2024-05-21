@@ -122,6 +122,7 @@ export interface IDashboardItem {
     status: 'claimed' | 'pending' | undefined
     message: string | undefined
     attachmentUrl: string | undefined
+    points: number
 }
 
 export interface IExtendedLinkDetails extends ILinkDetails {
@@ -130,4 +131,9 @@ export interface IExtendedLinkDetails extends ILinkDetails {
     txHash: string
     message: string | undefined
     attachmentUrl: string | undefined
+}
+
+export type ChainValue = {
+    chainId: string
+    valuePerChain: number
 }
