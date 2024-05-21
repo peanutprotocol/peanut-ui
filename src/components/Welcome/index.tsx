@@ -367,7 +367,7 @@ export function Welcome() {
                                 <div className="flex-grow"></div>
                                 <div className="center-xy flex-end my-6 flex items-center justify-around">
                                     {feature.calModal && (
-                                        <button className="btn btn-purple btn-xl cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
+                                        <button className="btn btn-shadow btn-xl cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
                                             <a
                                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                                 data-cal-config='{"layout":"month_view"}'
@@ -386,7 +386,7 @@ export function Welcome() {
                                                 {feature.primaryRedirectText} →
                                             </a>
                                         ) : (
-                                            <button className="brutalborder brutalshadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
+                                            <button className="brutalborder brutalshadow btn-shadow cursor-pointer bg-white p-4 px-4 text-2xl font-black ">
                                                 <a
                                                     href={feature.primaryRedirectUrl}
                                                     target="_blank"
