@@ -16,21 +16,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body className={`${roboto.variable} font-sans`}>
-                {/* <Script
+                <Script
                     id="mouseflow-script"
                     strategy="afterInteractive"
                     dangerouslySetInnerHTML={{
                         __html: `
-            window._mfq = window._mfq || [];
-            (function() {
-              var mf = document.createElement("script");
-              mf.type = "text/javascript"; mf.defer = true;
-              mf.src = "//cdn.mouseflow.com/projects/03231380-1dcb-4e9e-86a8-47d064372cbe.js";
-              document.getElementsByTagName("head")[0].appendChild(mf);
-            })();
-          `,
+                            window._mfq = window._mfq || [];
+                            (function() {
+                            var mf = document.createElement("script");
+                            mf.type = "text/javascript"; mf.defer = true;
+                            mf.src = "//cdn.mouseflow.com/projects/03231380-1dcb-4e9e-86a8-47d064372cbe.js";
+                            document.getElementsByTagName("head")[0].appendChild(mf);
+                            })();
+                        `,
                     }}
-                /> */}
+                />
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"
