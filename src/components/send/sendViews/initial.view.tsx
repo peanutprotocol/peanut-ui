@@ -676,7 +676,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 })
 
                 let link: string[] = getLinksFromTxResponse.links
-                if (walletType !== 'blockscout') {
+                if (walletType === 'blockscout') {
                     const _link = link[0]
                     const urlObj = new URL(_link)
                     urlObj.searchParams.append('path', 'claim')
