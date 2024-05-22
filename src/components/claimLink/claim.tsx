@@ -148,7 +148,10 @@ export function Claim() {
             }
 
             if (getLinktype(localLink).type === 'multilink') {
+                console.log(localLink)
+                localLink = localLink.replace('%23', '#')
                 verbose && console.log('getting multi link details ' + localLink)
+
                 const links = await peanut.getLinksFromMultilink(localLink)
                 const linkDetails: interfaces.ILinkDetails[] = await Promise.all(
                     links.map(async (link: string) => {
