@@ -448,7 +448,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     )
                 )
 
-                // TODO: uncomment this once blockscout has made the url params changes
                 let baseUrl = ''
                 if (walletType === 'blockscout') {
                     const envInfo = await sdk.safe.getEnvironmentInfo()
@@ -456,12 +455,6 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                 } else if (typeof window !== 'undefined') {
                     baseUrl = `${window.location.origin}/claim`
                 }
-
-                // TODO: remove this once blockscout has made the url params
-                // let baseUrl = ''
-                // if (typeof window !== 'undefined') {
-                //     baseUrl = `${window.location.origin}/claim`
-                // }
 
                 const linkDetails = {
                     chainId: sendFormData.chainId,
@@ -682,7 +675,16 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                     utils.saveToLocalStorage(address + ' - ' + txHash + ' - ' + index, link)
                 })
 
-                setClaimLink(getLinksFromTxResponse.links)
+                let link: string[] = getLinksFromTxResponse.links
+                if (walletType !== 'blockscout') {
+                    const _link = link[0]
+                    const urlObj = new URL(_link)
+                    urlObj.searchParams.append('path', 'claim')
+                    const newUrl = urlObj.toString()
+                    link = [newUrl]
+                }
+
+                setClaimLink(link)
                 setTxHash(txHash)
                 setChainId(sendFormData.chainId)
                 onNextScreen()
@@ -889,7 +891,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
             <div className="flex w-full flex-col items-center text-center  sm:mb-3">
                 <h2 className="title-font bold text-2xl lg:text-4xl">
                     Send crypto with a link
-                    <span className="ml-2 text-lg font-bold text-teal lg:text-2xl">BETA</span>
+                    <span className="text-teal ml-2 text-lg font-bold lg:text-2xl">BETA</span>
                 </h2>
                 <div className="w-4/5 font-normal">
                     Choose the chain, set the amount, confirm the transaction. You'll get a trustless payment link. They
@@ -1400,7 +1402,7 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                                     <div className="mb-8 ml-4 mr-4 sm:mb-4">
                                         <input
                                             placeholder="Search"
-                                            className="brutalborder w-full rounded-none px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2 focus:ring-teal"
+                                            className="brutalborder focus:ring-teal w-full rounded-none px-1 py-2 text-lg focus:border-transparent focus:outline-none focus:ring-2"
                                             onKeyUp={(e) => {
                                                 //@ts-ignore
                                                 const searchValue = e.target.value
