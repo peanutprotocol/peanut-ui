@@ -16,6 +16,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         ReactGA.initialize(process.env.NEXT_PUBLIC_GA_KEY ?? '')
         peanut.toggleVerbose(true)
+        LogRocket.init('x2zwq1/peanut-protocol')
     }, [])
 
     initWeb3InboxClient({
@@ -26,7 +27,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         allApps: false,
         logLevel: 'info',
     })
-    LogRocket.init('x2zwq1/peanut-protocol')
 
     return (
         <config.ContextProvider>
