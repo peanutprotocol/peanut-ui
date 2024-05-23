@@ -5,7 +5,7 @@ import * as config from '@/config'
 import * as context from '@/context'
 import Head from 'next/head'
 import Hotjar from '@hotjar/browser'
-import LogRocket from 'logrocket';
+import LogRocket from 'logrocket'
 
 const roboto = Roboto_Flex({
     weight: ['400', '500', '700', '800'],
@@ -18,7 +18,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const hotjarVersion = 6
     Hotjar.init(siteId, hotjarVersion)
 
-    LogRocket.init('x2zwq1/peanut-protocol');
+    LogRocket.init('x2zwq1/peanut-protocol')
 
     return (
         <html lang="en">
