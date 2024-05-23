@@ -44,7 +44,7 @@ const config = createConfig({
             chains: consts.chains,
             options: { projectId },
             email: true,
-          })
+        }),
     ],
     client({ chain }) {
         return createClient({ chain, transport: http() })
