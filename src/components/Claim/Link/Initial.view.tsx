@@ -249,7 +249,7 @@ export const InitialClaimLinkView = ({
                     </label>
                 ) : (
                     <label className="text-h2 ">
-                        {claimLinkData.tokenAmount} ${claimLinkData.tokenSymbol}
+                        {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
                     </label>
                 )}
                 {isXchainLoading ? (

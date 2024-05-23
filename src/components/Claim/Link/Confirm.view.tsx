@@ -159,7 +159,7 @@ export const ConfirmClaimLinkView = ({
                     )
                 ) : (
                     <label className="text-h2 ">
-                        {claimLinkData.tokenAmount} ${claimLinkData.tokenSymbol}
+                        {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
                     </label>
                 )}
                 {selectedRoute ? (

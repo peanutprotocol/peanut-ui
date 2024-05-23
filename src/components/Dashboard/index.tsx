@@ -421,7 +421,7 @@ export const Dashboard = () => {
                                                   >
                                                       <td className="td-custom font-bold">{link.type}</td>
                                                       <td className="td-custom font-bold">
-                                                          {utils.formatTokenAmount(Number(link.amount), 4)} $
+                                                          {utils.formatTokenAmount(Number(link.amount), 4)} 
                                                           {link.tokenSymbol}
                                                       </td>
                                                       <td className="td-custom font-bold">{link.chain}</td>
