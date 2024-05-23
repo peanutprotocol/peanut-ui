@@ -15,22 +15,23 @@ const roboto = Roboto_Flex({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
+            <Head>
+          {/* Smartlook Tracking Code */}
+          <script
+            dangerouslySetInnerHTML={{
+              __html: `
+                window.smartlook||(function(d) {
+                var o=smartlook=function(){ o.api.push(arguments)},h=d.getElementsByTagName('head')[0];
+                var c=d.createElement('script');o.api=new Array();c.async=true;c.type='text/javascript';
+                c.charset='utf-8';c.src='https://rec.smartlook.com/recorder.js';h.appendChild(c);
+                })(document);
+                smartlook('init', '88a7f1ea0bfad16890146518515b80a666bc58c3');
+              `,
+            }}
+          />
+        </Head>
             <body className={`${roboto.variable} font-sans`}>
-                {/* <Script
-                    id="mouseflow-script"
-                    strategy="afterInteractive"
-                    dangerouslySetInnerHTML={{
-                        __html: `
-                            window._mfq = window._mfq || [];
-                            (function() {
-                            var mf = document.createElement("script");
-                            mf.type = "text/javascript"; mf.defer = true;
-                            mf.src = "//cdn.mouseflow.com/projects/03231380-1dcb-4e9e-86a8-47d064372cbe.js";
-                            document.getElementsByTagName("head")[0].appendChild(mf);
-                            })();
-                        `,
-                    }}
-                /> */}
+               
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"
