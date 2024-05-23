@@ -19,10 +19,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <Head>
-          {/* Smartlook Tracking Code */}
-          <script
-            dangerouslySetInnerHTML={{
-              __html: `
+                {/* Smartlook Tracking Code */}
+                <script
+                    dangerouslySetInnerHTML={{
+                        __html: `
               window.smartlook||(function(d) {
                 var o=smartlook=function(){ o.api.push(arguments)},h=d.getElementsByTagName('head')[0];
                 var c=d.createElement('script');o.api=new Array();c.async=true;c.type='text/javascript';
@@ -30,11 +30,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 })(document);
                 smartlook('init', '88a7f1ea0bfad16890146518515b80a666bc58c3', { region: 'eu' });
               `,
-            }}
-          />
-        </Head>
+                    }}
+                />
+            </Head>
             <body className={`${roboto.variable} font-sans`}>
-               
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"
