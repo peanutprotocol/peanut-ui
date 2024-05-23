@@ -10,6 +10,7 @@ import '../../sentry.client.config'
 import '../../sentry.server.config'
 import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
+import LogRocket from 'logrocket'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
@@ -25,6 +26,8 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         allApps: false,
         logLevel: 'info',
     })
+    LogRocket.init('x2zwq1/peanut-protocol')
+
 
     return (
         <config.ContextProvider>
