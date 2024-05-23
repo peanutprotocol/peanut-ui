@@ -8,7 +8,7 @@ import { WagmiProvider, createConfig, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createClient } from 'viem'
-import { emailConnector } from '@web3modal/wagmi'
+import { authConnector } from '@web3modal/wagmi'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -40,11 +40,11 @@ const config = createConfig({
             appName: 'Peanut Protocol',
         }),
         injected({ shimDisconnect: true }),
-        emailConnector({
-            options: {
-                projectId: projectId,
-            },
-        }),
+        authConnector({
+            chains: consts.chains,
+            options: { projectId },
+            email: true,
+          })
     ],
     client({ chain }) {
         return createClient({ chain, transport: http() })
