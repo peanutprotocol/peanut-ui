@@ -33,6 +33,7 @@
         "ethers": "5.7.2",
         "frames.js": "^0.15.2",
         "jotai": "^2.2.2",
+        "logrocket": "^8.1.0",
         "lokijs": "^1.5.12",
         "lottie-react": "^2.4.0",
         "next": "^14.2.3",
