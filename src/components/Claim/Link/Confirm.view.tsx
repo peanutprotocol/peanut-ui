@@ -175,7 +175,7 @@ export const ConfirmClaimLinkView = ({
                     </div>
                 ) : (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
-                        {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))}{' '} {claimLinkData.tokenSymbol} on{' '}
+                        {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))} {claimLinkData.tokenSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name}
                     </div>
                 )}
