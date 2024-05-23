@@ -4,7 +4,7 @@ import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
 import * as config from '@/config'
 import * as context from '@/context'
 import Head from 'next/head'
-import Script from 'next/script'
+import Hotjar from '@hotjar/browser'
 
 const roboto = Roboto_Flex({
     weight: ['400', '500', '700', '800'],
@@ -13,6 +13,9 @@ const roboto = Roboto_Flex({
     variable: '--font-roboto',
 })
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+    const siteId = 4995627
+    const hotjarVersion = 6
+    Hotjar.init(siteId, hotjarVersion)
     return (
         <html lang="en">
             <Head>
@@ -20,12 +23,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <script
             dangerouslySetInnerHTML={{
               __html: `
-                window.smartlook||(function(d) {
+              window.smartlook||(function(d) {
                 var o=smartlook=function(){ o.api.push(arguments)},h=d.getElementsByTagName('head')[0];
                 var c=d.createElement('script');o.api=new Array();c.async=true;c.type='text/javascript';
-                c.charset='utf-8';c.src='https://rec.smartlook.com/recorder.js';h.appendChild(c);
+                c.charset='utf-8';c.src='https://web-sdk.smartlook.com/recorder.js';h.appendChild(c);
                 })(document);
-                smartlook('init', '88a7f1ea0bfad16890146518515b80a666bc58c3');
+                smartlook('init', '88a7f1ea0bfad16890146518515b80a666bc58c3', { region: 'eu' });
               `,
             }}
           />
