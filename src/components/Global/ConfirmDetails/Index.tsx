@@ -40,7 +40,7 @@ export const ConfirmDetails = ({
                         className="h-6 w-6"
                     />
                     <label className="text-h5 sm:text-h3">
-                        {utils.formatTokenAmount(Number(tokenAmount))} 
+                        {utils.formatTokenAmount(Number(tokenAmount))}{' '}
                         {data
                             ? data
                                   .find((chain: any) => chain.chainId === selectedChainID)
