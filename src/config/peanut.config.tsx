@@ -28,7 +28,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
     })
     LogRocket.init('x2zwq1/peanut-protocol')
 
-
     return (
         <config.ContextProvider>
             {children}

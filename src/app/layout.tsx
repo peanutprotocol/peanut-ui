@@ -17,7 +17,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     const hotjarVersion = 6
     Hotjar.init(siteId, hotjarVersion)
 
-
     return (
         <html lang="en">
             <Head>
