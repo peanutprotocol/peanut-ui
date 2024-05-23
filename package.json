@@ -15,6 +15,7 @@
         "@headlessui/react": "^1.7.17",
         "@headlessui/tailwindcss": "^0.2.0",
         "@heroicons/react": "^2.1.1",
+        "@hotjar/browser": "^1.0.9",
         "@n8tb1t/use-scroll-position": "^2.0.3",
         "@safe-global/safe-apps-sdk": "^9.0.0",
         "@sentry/nextjs": "^7.105.0",
