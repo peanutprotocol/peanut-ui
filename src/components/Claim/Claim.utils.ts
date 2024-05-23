@@ -32,7 +32,7 @@ export function mapToIPeanutChainDetailsArray(
                 registry: '',
             },
             explorers: [],
-            mainnet: false,
+            mainnet: true,
         }
 
         const combinedObject: _interfaces.CombinedType = {

@@ -100,8 +100,8 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
                                     chainItem({
                                         chain,
                                         setChain: () => setChain(chain.chainId),
-                                        valuePerChain: valuePerChain.find((value) => value.chainId === chain.chainId)
-                                            ?.valuePerChain,
+                                        valuePerChain: !chainsToDisplay ? valuePerChain.find((value) => value.chainId === chain.chainId)
+                                            ?.valuePerChain : undefined,
                                     })
                             )}
                             {/* TODO: hide testnets */}
