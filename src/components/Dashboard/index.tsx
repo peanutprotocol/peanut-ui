@@ -350,9 +350,12 @@ export const Dashboard = () => {
                         </div>
                     )}
                 </div>
-                <button className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex" onClick={()=>{
-                    router.push('/send')
-                }}>
+                <button
+                    className="btn-purple btn-xl hidden w-max flex-row items-center justify-center px-4 sm:flex"
+                    onClick={() => {
+                        router.push('/send')
+                    }}
+                >
                     Make Payment
                     <Icon name={'plus-circle'} className="h-4 fill-white" />
                 </button>
