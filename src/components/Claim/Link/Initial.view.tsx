@@ -302,7 +302,8 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
                         </div>
-                        {isValidAddress &&
+                        {crossChainDetails &&
+                            isValidAddress &&
                             (hasFetchedRoute || selectedRoute ? (
                                 <label
                                     className="cursor-pointer font-bold text-purple-1"

@@ -62,11 +62,20 @@ export const useCreateLink = () => {
 
         // if the userbalances are know, the user must have a balance of the selected token
         if (balances.length > 0) {
-            const balance = balances.find(
+            let balance = balances.find(
                 (balance) =>
                     utils.compareTokenAddresses(balance.address, selectedTokenAddress) &&
                     balance.chainId === selectedChainID
             )?.amount
+            if (!balance) {
+                balance = Number(
+                    await peanut.getTokenBalance({
+                        tokenAddress: selectedTokenAddress,
+                        chainId: selectedChainID,
+                        walletAddress: address ?? '',
+                    })
+                )
+            }
             if (!balance || (balance && balance <= Number(tokenValue))) {
                 throw new Error('Please ensure that you have sufficient balance of the token you are trying to send')
             }

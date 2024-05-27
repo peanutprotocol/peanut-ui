@@ -63,7 +63,7 @@ export const useBalance = () => {
                 if (!chainValueMap[chainId]) {
                     chainValueMap[chainId] = 0
                 }
-                chainValueMap[chainId] += balance.value
+                if (balance.value) chainValueMap[chainId] += balance.value
             })
 
             result = Object.keys(chainValueMap).map((chainId) => ({

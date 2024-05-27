@@ -75,8 +75,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
         if (!isConnected) {
             setSelectedTokenPrice(undefined)
+            setInputDenomination('TOKEN')
         } else if (selectedTokenAddress && selectedChainID) {
             setSelectedTokenPrice(undefined)
+            setInputDenomination('TOKEN')
             fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
             return () => {
                 isCurrent = false

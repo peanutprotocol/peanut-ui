@@ -1,5 +1,9 @@
+import { useContext, useEffect, useState } from 'react'
 import Icon from '../../Icon'
 import * as utils from '@/utils'
+import * as context from '@/context'
+import peanut from '@squirrel-labs/peanut-sdk'
+import { useAccount } from 'wagmi'
 
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
@@ -30,6 +34,34 @@ export const AdvancedTokenSelectorButton = ({
     isStatic = false,
     type = 'send',
 }: IAdvancedTokenSelectorButtonProps) => {
+    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { address } = useAccount()
+
+    const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
+
+    const getTokenBalance = async () => {
+        const balance = Number(
+            await peanut.getTokenBalance({
+                chainId: selectedChainID,
+                tokenAddress: selectedTokenAddress,
+                walletAddress: address ?? '',
+            })
+        )
+
+        if (balance) {
+            _setTokenBalance(balance)
+        } else {
+            _setTokenBalance(tokenBalance)
+        }
+    }
+
+    useEffect(() => {
+        _setTokenBalance(tokenBalance)
+        if ((tokenBalance === 0 || !tokenBalance) && address) {
+            getTokenBalance()
+        }
+    }, [tokenBalance, selectedChainID, selectedTokenAddress, address])
+
     return (
         <div
             className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-14 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
@@ -45,7 +77,7 @@ export const AdvancedTokenSelectorButton = ({
                         {tokenSymbol}
                     </div>
                     {type === 'send' && (
-                        <p className="text-xs text-gray-1">Balance: {utils.formatTokenAmount(tokenBalance ?? 0, 4)}</p>
+                        <p className="text-xs text-gray-1">Balance: {utils.formatTokenAmount(_tokenBalance ?? 0, 4)}</p>
                     )}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">

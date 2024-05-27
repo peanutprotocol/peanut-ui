@@ -185,7 +185,7 @@ export const CreateLinkConfirmView = ({
                             />
                         </div>
                         {showMessage && (
-                            <div className="flex w-full flex-col items-center justify-center gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-col items-center justify-center gap-1 pl-7 text-h8 text-gray-1">
                                 <label className="w-full text-start text-sm font-normal leading-4">
                                     {attachmentOptions.message}
                                 </label>
@@ -203,10 +203,9 @@ export const CreateLinkConfirmView = ({
                         <MoreInfo
                             text={
                                 transactionCostUSD
-                                    ? transactionCostUSD > 0
+                                    
                                         ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
                                         : 'This transaction is sponsored by peanut! Enjoy!'
-                                    : 'Something went wrong while calculating the transaction cost.'
                             }
                         />
                     </label>

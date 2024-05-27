@@ -36,6 +36,10 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
         return 'auto'
     }, [])
 
+    useEffect(() => {
+        console.log(tokenValue)
+    }, [tokenValue])
+
     return (
         <form
             className={`relative max-w-96 rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}
@@ -70,23 +74,25 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                     style={{ maxWidth: `${parentWidth}px` }}
                 />
             </div>
-            <div className="flex w-full flex-row items-center justify-center gap-1">
-                <label className="text-base text-gray-1">
-                    {!tokenValue
-                        ? '0'
-                        : inputDenomination === 'USD'
-                          ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenPrice ?? 0))
-                          : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenPrice ?? 0))}
-                </label>
-                <button
-                    onClick={(e) => {
-                        e.preventDefault()
-                        if (selectedTokenPrice) setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
-                    }}
-                >
-                    <Icon name={'switch'} className="rotate-90 cursor-pointer fill-gray-1" />
-                </button>
-            </div>
+            {selectedTokenPrice && (
+                <div className="flex w-full flex-row items-center justify-center gap-1">
+                    <label className="text-base text-gray-1">
+                        {!tokenValue
+                            ? '0'
+                            : inputDenomination === 'USD'
+                              ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenPrice ?? 0))
+                              : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenPrice ?? 0))}
+                    </label>
+                    <button
+                        onClick={(e) => {
+                            e.preventDefault()
+                            if (selectedTokenPrice) setInputDenomination(inputDenomination === 'USD' ? 'TOKEN' : 'USD')
+                        }}
+                    >
+                        <Icon name={'switch'} className="rotate-90 cursor-pointer fill-gray-1" />
+                    </button>
+                </div>
+            )}
         </form>
     )
 }

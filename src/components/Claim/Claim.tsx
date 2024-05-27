@@ -1,6 +1,6 @@
 'use client'
 import { createElement, useEffect, useState, useContext } from 'react'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as genericViews from './Generic'
 import * as _consts from './Claim.consts'
