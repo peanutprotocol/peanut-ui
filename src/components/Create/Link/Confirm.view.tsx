@@ -203,9 +203,8 @@ export const CreateLinkConfirmView = ({
                         <MoreInfo
                             text={
                                 transactionCostUSD
-                                    
-                                        ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                        : 'This transaction is sponsored by peanut! Enjoy!'
+                                    ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
+                                    : 'This transaction is sponsored by peanut! Enjoy!'
                             }
                         />
                     </label>
