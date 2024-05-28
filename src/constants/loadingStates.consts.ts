@@ -11,3 +11,4 @@ export type LoadingStates =
     | 'Asserting values'
     | 'Generating details'
     | 'Estimating points'
+    | 'Getting deposit details'
