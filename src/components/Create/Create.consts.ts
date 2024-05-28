@@ -3,9 +3,9 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as createLinkViews from './Link'
 
-export type CreateType = 'normal'
+export type CreateType = 'link' | 'direct' | 'email_link' | 'sms_link' | undefined
 
-export type CreateScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
+export type CreateScreens = 'INITIAL' | 'INPUT' | 'CONFIRM' | 'SUCCESS'
 
 export interface IAttachmentOptions {
     fileUrl: string | undefined
@@ -52,12 +52,15 @@ export interface ICreateScreenProps {
     setEstimatedPoints: (points: number | undefined) => void
     attachmentOptions: IAttachmentOptions
     setAttachmentOptions: (options: IAttachmentOptions) => void
+    createType: CreateType
+    setCreateType: (type: CreateType) => void
 }
 
-export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
+export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'INPUT', 'CONFIRM', 'SUCCESS']
 
 export const CREATE_SCREEN_MAP: { [key in CreateScreens]: { comp: React.FC<any> } } = {
     INITIAL: { comp: createLinkViews.CreateLinkInitialView },
+    INPUT: { comp: createLinkViews.CreateLinkInputView },
     CONFIRM: { comp: createLinkViews.CreateLinkConfirmView },
     SUCCESS: { comp: createLinkViews.CreateLinkSuccessView },
 }

@@ -36,6 +36,8 @@ export const Create = () => {
         rawFile: undefined,
     })
 
+    const [createType, setCreateType] = useState<_consts.CreateType>(undefined)
+
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
@@ -107,6 +109,8 @@ export const Create = () => {
                 setEstimatedPoints,
                 attachmentOptions,
                 setAttachmentOptions,
+                createType,
+                setCreateType,
             } as _consts.ICreateScreenProps)}
         </div>
     )

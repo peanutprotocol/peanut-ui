@@ -67,7 +67,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                     <div className="flex min-h-screen flex-col ">
                         <Header />
                         <div className="flex grow justify-center">
-                            Ò
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
                             >
