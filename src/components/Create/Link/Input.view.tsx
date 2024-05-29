@@ -29,6 +29,7 @@ export const CreateLinkInputView = ({
     setEstimatedPoints,
     attachmentOptions,
     setAttachmentOptions,
+    createType,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -178,7 +179,12 @@ export const CreateLinkInputView = ({
                     onSubmit={handleOnNext}
                 />
                 <TokenSelector classNameButton="w-full" />
-                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
+                {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
+                    <FileUploadInput
+                        attachmentOptions={attachmentOptions}
+                        setAttachmentOptions={setAttachmentOptions}
+                    />
+                )}
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button

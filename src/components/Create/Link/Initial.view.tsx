@@ -22,7 +22,6 @@ export const CreateLinkInitialView = ({ onNext, createType, setCreateType }: _co
         if (validator.isEmail(value)) setCreateType('email_link')
         //phone number check
         else if (phoneNumber && phoneNumber.isValid()) {
-            console.log(phoneNumber.formatInternational()) // +1 213 373 4253
             setCreateType('sms_link')
         } //TODO: Add more validation checks for normal numbers without country code
         //address check
@@ -44,10 +43,10 @@ export const CreateLinkInitialView = ({ onNext, createType, setCreateType }: _co
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto via link</label>
+            <label className="text-h2">Send crypto</label>
             <label className="max-w-96 text-start text-h8 font-light">
-                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
-                be able to claim the funds in any token on any chain from the link.
+                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
+                dolore magna aliqua.
             </label>
             <div className="flex w-full  flex-col items-center justify-center gap-2">
                 <RecipientInput placeholder="email/phone/ens/address" value={inputValue} setValue={setInputValue} />
