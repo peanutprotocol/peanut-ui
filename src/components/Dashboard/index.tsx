@@ -285,7 +285,7 @@ export const Dashboard = () => {
     }, [filterValue, dashboardData])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 p-4">
+        <div className="flex h-full w-full flex-col items-center justify-start gap-6 p-4">
             <div className="flex w-full flex-row items-start justify-between">
                 <div className="flex flex-col items-start justify-center">
                     <label className="text-h2">Dashboard</label>
