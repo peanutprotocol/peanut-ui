@@ -15,6 +15,7 @@ import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 export const CreateLinkInputView = ({
     onNext,
+    onPrev,
     tokenValue,
     setTokenValue,
     setLinkDetails,
@@ -197,6 +198,9 @@ export const CreateLinkInputView = ({
                     ) : (
                         'Confirm'
                     )}
+                </button>
+                <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
+                    Return
                 </button>
                 {errorState.showError && (
                     <div className="text-center">
