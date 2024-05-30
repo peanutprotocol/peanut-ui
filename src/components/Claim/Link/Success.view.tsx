@@ -7,10 +7,15 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import axios from 'axios'
+import { useAccount, useConnections, useSwitchChain } from 'wagmi'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const router = useRouter()
-    const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
+    const connections = useConnections()
+    const { isConnected, address, chain: currentChain } = useAccount()
+    const { switchChainAsync } = useSwitchChain()
+
+    const { resetTokenContextProvider, selectedChainID } = useContext(context.tokenSelectorContext)
 
     const explorerUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(claimLinkData.chainId)}/tx/${transactionHash}`,
@@ -21,6 +26,14 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
         { transactionId: string; transactionUrl: string } | undefined
     >(undefined)
+
+    const isw3mEmailWallet = useMemo(() => {
+        console.log(connections)
+        return (
+            connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id ==
+            'w3mAuth'
+        )
+    }, [connections, address])
 
     async function checkTransactionStatus(txHash: string): Promise<void> {
         try {
@@ -53,12 +66,30 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
         }, 5000)
     }
 
+    const checkNetwork = async (chainId: string) => {
+        //check if the user is on the correct chain
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+            } catch (error) {
+                console.error('Error switching network:', error)
+            }
+        }
+    }
+
     useEffect(() => {
         resetTokenContextProvider()
         if (transactionHash && type === 'claimxchain') {
             loopUntilSuccess(transactionHash)
         }
     }, [])
+
+    useEffect(() => {
+        if (isw3mEmailWallet && isConnected) {
+            const chainId = type === 'claimxchain' ? selectedChainID : claimLinkData.chainId
+            checkNetwork(chainId)
+        }
+    }, [isw3mEmailWallet])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
