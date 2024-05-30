@@ -54,6 +54,8 @@ export interface ICreateScreenProps {
     setAttachmentOptions: (options: IAttachmentOptions) => void
     createType: CreateType
     setCreateType: (type: CreateType) => void
+    recipient: string
+    setRecipient: (address: string) => void
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'INPUT', 'CONFIRM', 'SUCCESS']

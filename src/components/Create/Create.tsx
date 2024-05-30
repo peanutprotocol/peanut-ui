@@ -37,6 +37,7 @@ export const Create = () => {
     })
 
     const [createType, setCreateType] = useState<_consts.CreateType>(undefined)
+    const [recipient, setRecipient] = useState<string>('')
 
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
@@ -111,6 +112,8 @@ export const Create = () => {
                 setAttachmentOptions,
                 createType,
                 setCreateType,
+                recipient,
+                setRecipient,
             } as _consts.ICreateScreenProps)}
         </div>
     )

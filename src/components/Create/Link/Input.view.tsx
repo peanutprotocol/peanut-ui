@@ -30,6 +30,7 @@ export const CreateLinkInputView = ({
     attachmentOptions,
     setAttachmentOptions,
     createType,
+    recipient,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -166,10 +167,22 @@ export const CreateLinkInputView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto via link</label>
+            <label className="text-h2">
+                {createType == 'link'
+                    ? 'Send crypto via link'
+                    : createType == 'direct'
+                      ? `Send to ${utils.shortenAddressLong(recipient)}`
+                      : `Send to ${recipient}`}
+            </label>
             <label className="max-w-96 text-start text-h8 font-light">
-                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
-                be able to claim the funds in any token on any chain from the link.
+                {createType === 'link' &&
+                    'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
+                {createType === 'email_link' &&
+                    `You will send an email to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                {createType === 'sms_link' &&
+                    `You will send a text message to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                {createType === 'direct' &&
+                    `You will do a direct blockchain transaction to ${recipient.endsWith('.eth') ? recipient : recipient}. Ensure the recipient address is correct, else the funds might be lost.`}
             </label>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput

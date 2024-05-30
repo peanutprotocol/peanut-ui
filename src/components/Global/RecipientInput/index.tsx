@@ -6,9 +6,10 @@ type RecipientInputProps = {
     placeholder: string
     value: string
     setValue: (value: string) => void
+    onEnter?: () => void
 }
 
-const RecipientInput = ({ placeholder, value, setValue }: RecipientInputProps) => {
+const RecipientInput = ({ placeholder, value, setValue, onEnter }: RecipientInputProps) => {
     return (
         <div className={`relative w-full border border-n-1 dark:border-white`}>
             <div className="absolute left-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
@@ -22,6 +23,11 @@ const RecipientInput = ({ placeholder, value, setValue }: RecipientInputProps) =
                 spellCheck="false"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' && onEnter) {
+                        onEnter()
+                    }
+                }}
             />
             {value.length > 0 ? (
                 <button

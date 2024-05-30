@@ -1,44 +1,108 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import validator from 'validator'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
 import * as utils from '@/utils'
+import * as context from '@/context'
 import RecipientInput from '@/components/Global/RecipientInput'
 import Icon from '@/components/Global/Icon'
 import { ethers } from 'ethers'
 import peanut from '@squirrel-labs/peanut-sdk'
+import Loading from '@/components/Global/Loading'
 
-export const CreateLinkInitialView = ({ onNext, createType, setCreateType }: _consts.ICreateScreenProps) => {
+export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _consts.ICreateScreenProps) => {
     const [inputValue, setInputValue] = useState('')
-    const [address, setAddress] = useState<string | undefined>(undefined)
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
 
-    const handleInputValidation = (value: string) => {
+    const handleInputValidation = async (value: string) => {
         const phoneNumber = parsePhoneNumberFromString(value)
         //email check
-        if (validator.isEmail(value)) setCreateType('email_link')
+        if (validator.isEmail(value)) {
+            return 'email_link'
+        }
         //phone number check
         else if (phoneNumber && phoneNumber.isValid()) {
-            setCreateType('sms_link')
+            return 'sms_link'
         } //TODO: Add more validation checks for normal numbers without country code
         //address check
-        else if (ethers.utils.isAddress(value)) setCreateType('direct')
+        else if (ethers.utils.isAddress(value)) {
+            return 'direct'
+        }
         //ENS check
         else if (value.endsWith('.eth')) {
-            setCreateType('direct')
-            utils.resolveFromEnsName(value).then((resolvedAddress) => {
-                if (resolvedAddress) setAddress(resolvedAddress)
-            })
+            return 'direct'
         } else {
-            setCreateType(undefined)
+            return undefined
+        }
+    }
+
+    const handleOnNext = async () => {
+        setLoadingState('Loading')
+        try {
+            let type: string | undefined = undefined
+            if (inputValue) {
+                type = await handleInputValidation(inputValue)
+            }
+
+            if (!type) {
+                setErrorState({
+                    showError: true,
+                    errorMessage:
+                        'Invalid recipient. You can send to an ENS name, wallet address, phone number or email address.',
+                })
+                setLoadingState('Idle')
+                return
+            } else {
+                setErrorState({ showError: false, errorMessage: '' })
+            }
+
+            setRecipient(inputValue)
+            switch (type) {
+                case 'email_link':
+                    setCreateType('email_link')
+                    setRecipient(inputValue)
+                    setLoadingState('Idle')
+                    break
+                case 'sms_link':
+                    setCreateType('sms_link')
+                    setRecipient(inputValue)
+                    setLoadingState('Idle')
+                    break
+                case 'direct':
+                    setCreateType('direct')
+                    if (inputValue.endsWith('.eth')) {
+                        const _address = await utils.resolveFromEnsName(inputValue)
+                        if (_address) setRecipient(_address)
+                        else {
+                            setErrorState({
+                                showError: true,
+                                errorMessage: 'Please enter a valid address or ENS name.',
+                            })
+                            setLoadingState('Idle')
+                            return
+                        }
+                    } else {
+                        setRecipient(inputValue)
+                    }
+                    setLoadingState('Idle')
+                    break
+            }
+            onNext()
+        } catch (error) {
+            setLoadingState('Idle')
         }
     }
 
     useEffect(() => {
-        handleInputValidation(inputValue)
+        setErrorState({ showError: false, errorMessage: '' })
     }, [inputValue])
 
     return (
@@ -49,10 +113,16 @@ export const CreateLinkInitialView = ({ onNext, createType, setCreateType }: _co
                 dolore magna aliqua.
             </label>
             <div className="flex w-full  flex-col items-center justify-center gap-2">
-                <RecipientInput placeholder="email/phone/ens/address" value={inputValue} setValue={setInputValue} />
+                <RecipientInput
+                    placeholder="email/phone/ens/address"
+                    value={inputValue}
+                    setValue={setInputValue}
+                    onEnter={() => {
+                        if (inputValue.length > 0) handleOnNext()
+                    }}
+                />
                 {inputValue.length === 0 && (
                     <>
-                        {' '}
                         or
                         <button
                             onClick={() => {
@@ -67,41 +137,27 @@ export const CreateLinkInitialView = ({ onNext, createType, setCreateType }: _co
                 )}
             </div>
             {inputValue.length > 0 && (
-                <div className="flex w-full flex-col items-start justify-center gap-2">
+                <div className="flex w-full flex-col items-start  justify-center gap-2">
                     <label className="text-h7 font-bold text-gray-2">Search results</label>
                     <div
-                        className={`flex w-full cursor-pointer flex-row items-center justify-start gap-2 border border-n-1 p-1 px-2 ${
-                            !createType && 'border-red'
-                        }`}
+                        className="flex w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2"
                         onClick={() => {
-                            switch (createType) {
-                                case 'email_link':
-                                    setCreateType('email_link')
-                                    onNext()
-                                    break
-                                case 'sms_link':
-                                    setCreateType('sms_link')
-                                    onNext()
-                                    break
-                                case 'direct':
-                                    setCreateType('direct')
-                                    onNext()
-                                    break
-                            }
+                            handleOnNext()
                         }}
                     >
-                        <div className="rounded-full border border-n-1">
-                            {createType === 'email_link' && <Icon name="email" className="h-6 w-6 dark:fill-white" />}
-                            {createType === 'sms_link' && <Icon name="mobile" className="h-6 w-6 dark:fill-white" />}
-                            {createType === 'direct' && (
-                                <Icon name="send" className="h-6 w-6 -rotate-45 dark:fill-white" />
-                            )}
-                            {!createType && <Icon name="close" className="h-6 w-6 dark:fill-white" />}
+                        <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                            <div className="rounded-full border border-n-1">
+                                <Icon name="profile" className="h-6 w-6" />
+                            </div>
+                            <div className="truncate">{inputValue}</div>
                         </div>
-                        <div>
-                            <label className="text-h7 "> {inputValue}</label>
-                        </div>
+                        {isLoading && <Loading />}
                     </div>
+                    {errorState.showError && (
+                        <div className="w-full text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
