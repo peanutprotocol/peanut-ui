@@ -108,7 +108,23 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto</label>
-            <a href="sms:+1234567890?body=Hello%20there!%20This%20is%20a%20predefined%20message.">Send SMS</a>
+            <button
+                onClick={() => {
+                    utils.shareToSms('+32475385638', 'link')
+                }}
+                className="btn h-max w-full cursor-pointer py-1 text-h1"
+            >
+                test sms
+            </button>
+            <button
+                onClick={() => {
+                    utils.shareToEmail('borcherd@me.com', 'link')
+                }}
+                className="btn h-max w-full cursor-pointer py-1 text-h1"
+            >
+                test email
+            </button>
+
             <label className="max-w-96 text-start text-h8 font-light">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
                 dolore magna aliqua.

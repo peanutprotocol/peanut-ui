@@ -608,3 +608,20 @@ export const getExplorerUrl = (chainId: string) => {
         return explorers?.[0].url
     }
 }
+
+export const shareToEmail = (email: string, link: string) => {
+    const encodedSubject = encodeURIComponent('Money inside!')
+    const encodedBody = encodeURIComponent(`Claim your funds here: ${link}`)
+    const mailtoUrl = `mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`
+    if (typeof window !== 'undefined') {
+        window.location.href = mailtoUrl
+    }
+} // TODO: update subject & body
+
+export const shareToSms = (phone: string, link: string) => {
+    const message = encodeURIComponent(`Claim your funds here: ${link}`)
+    const sms = `sms:${phone}?body=${message}`
+    if (typeof window !== 'undefined') {
+        window.location.href = sms
+    }
+} // TODO: update body
