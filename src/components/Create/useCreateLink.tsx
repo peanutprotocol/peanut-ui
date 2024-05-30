@@ -21,7 +21,7 @@ import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as _utils from './Create.utils'
-import { ethers } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 
 interface IAssertValuesProps {
     tokenValue: string | undefined
@@ -341,6 +341,7 @@ export const useCreateLink = () => {
             return ''
         }
     }
+
     const prepareDirectSendTx = ({
         recipient,
         tokenValue,
@@ -355,6 +356,7 @@ export const useCreateLink = () => {
         let transactionRequest
 
         if (!utils.isNativeCurrency(tokenAddress)) {
+            // ERC20 Token transfer
             const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
             const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
             const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
@@ -362,10 +364,11 @@ export const useCreateLink = () => {
             transactionRequest = {
                 to: tokenAddress,
                 data,
-                value: 0,
+                value: BigInt(0), // Convert to BigInt
             }
         } else {
-            const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
+            // Native token transfer
+            const amount = ethers.utils.parseEther(tokenValue).toBigInt() // Convert to BigInt
             transactionRequest = {
                 to: recipient,
                 value: amount,
@@ -443,6 +446,7 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
+                    console.log(tx.value)
 
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({

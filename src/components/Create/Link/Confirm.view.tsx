@@ -32,6 +32,7 @@ export const CreateLinkConfirmView = ({
     estimatedPoints,
     attachmentOptions,
     createType,
+    recipient,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
 
@@ -79,6 +80,7 @@ export const CreateLinkConfirmView = ({
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
+                console.log(preparedDepositTxs)
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {
@@ -94,9 +96,8 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            let link = ['']
             if (createType != 'direct') {
-                link = await getLinkFromHash({ hash, linkDetails, password })
+                const link = await getLinkFromHash({ hash, linkDetails, password })
 
                 await submitLinkAttachmentConfirm({
                     chainId: selectedChainID,
@@ -142,10 +143,22 @@ export const CreateLinkConfirmView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto via link</label>
+            <label className="text-h2">
+                {createType == 'link'
+                    ? 'Send crypto via link'
+                    : createType == 'direct'
+                      ? `Send to ${recipient.endsWith('.eth') ? recipient : utils.shortenAddressLong(recipient)}`
+                      : `Send to ${recipient}`}
+            </label>
             <label className="max-w-96 text-start text-h8 font-light">
-                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
-                be able to claim the funds in any token on any chain from the link.
+                {createType === 'link' &&
+                    'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
+                {createType === 'email_link' &&
+                    `You will send an email to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                {createType === 'sms_link' &&
+                    `You will send a text message to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                {createType === 'direct' &&
+                    `You will do a direct blockchain transaction to ${recipient}. Ensure the recipient address is correct, else the funds might be lost.`}
             </label>
             <ConfirmDetails
                 selectedChainID={selectedChainID}

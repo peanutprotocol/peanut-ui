@@ -17,7 +17,7 @@ import {
 } from '@web3inbox/react'
 import { useAccount, useSignMessage } from 'wagmi'
 
-export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenProps) => {
+export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _consts.ICreateScreenProps) => {
     const { selectedChainID } = useContext(context.tokenSelectorContext)
 
     const { address } = useAccount({})
@@ -108,24 +108,32 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
     }, [address])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
+        <div
+            className={`flex w-full flex-col items-center justify-center gap-6 py-2 text-center ${link ? 'pb-20' : 'pb-2'}`}
+        >
             <label className="text-h2">Yay!</label>
-            <QRCodeWrapper url={link} />
+            {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">
-                Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any
-                token.
+                {createType === 'direct'
+                    ? `You have successfully sent the funds to ${recipient.endsWith('.eth') ? recipient : utils.shortenAddressLong(recipient)}.`
+                    : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
-            <div className="hidden w-full md:block">
-                <CopyField text={link} />
-            </div>
-            <div
-                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal sm:hidden"
-                onClick={() => {
-                    share(link)
-                }}
-            >
-                Share link
-            </div>
+            {link && (
+                <>
+                    <div className="hidden w-full md:block">
+                        <CopyField text={link} />
+                    </div>
+                    <div
+                        className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal sm:hidden"
+                        onClick={() => {
+                            share(link)
+                        }}
+                    >
+                        Share link
+                    </div>
+                </>
+            )}
+
             <Link
                 className="cursor-pointer text-h8 font-bold text-gray-1 underline"
                 target="_blank"
@@ -134,29 +142,34 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
                 Transaction hash
             </Link>
 
-            <div
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                onClick={() => {
-                    if (!isRegistered) {
-                        handleRegistration()
-                    } else if (!isSubscribed) {
-                        handleSubscribe()
-                    } else {
-                        window.open('https://app.web3inbox.com/notifications/peanut.to', '_blank')
-                    }
-                }}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="email" className="-mt-0.5" />
+            {link && (
+                <div
+                    className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                    onClick={() => {
+                        if (!isRegistered) {
+                            handleRegistration()
+                        } else if (!isSubscribed) {
+                            handleSubscribe()
+                        } else {
+                            window.open('https://app.web3inbox.com/notifications/peanut.to', '_blank')
+                        }
+                    }}
+                >
+                    <div className=" border border-n-1 p-0 px-1">
+                        <Icon name="email" className="-mt-0.5" />
+                    </div>
+                    {isRegistered && isSubscribed ? (
+                        <label className="cursor-pointer text-sm font-bold">
+                            {' '}
+                            Click here to see your notifications{' '}
+                        </label>
+                    ) : (
+                        <label className="cursor-pointer text-sm font-bold">
+                            Subscribe to get notified when you link gets claimed!
+                        </label>
+                    )}
                 </div>
-                {isRegistered && isSubscribed ? (
-                    <label className="cursor-pointer text-sm font-bold"> Click here to see your notifications </label>
-                ) : (
-                    <label className="cursor-pointer text-sm font-bold">
-                        Subscribe to get notified when you link gets claimed!
-                    </label>
-                )}
-            </div>
+            )}
         </div>
     )
 }

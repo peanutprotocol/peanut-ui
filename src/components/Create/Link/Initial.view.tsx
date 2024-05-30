@@ -108,6 +108,7 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto</label>
+            <a href="sms:+1234567890?body=Hello%20there!%20This%20is%20a%20predefined%20message.">Send SMS</a>
             <label className="max-w-96 text-start text-h8 font-light">
                 Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
                 dolore magna aliqua.

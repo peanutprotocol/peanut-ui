@@ -171,12 +171,9 @@ export const CreateLinkInputView = ({
                                 tokenAddress: selectedTokenAddress,
                                 tokenDecimals: linkDetails.tokenDecimals,
                             }),
-                            value: undefined,
                         },
                     ],
                 }
-
-                console.log('preparedTxs', preparedTxs)
 
                 setPreparedDepositTxs(preparedTxs)
 
@@ -213,7 +210,7 @@ export const CreateLinkInputView = ({
                 {createType == 'link'
                     ? 'Send crypto via link'
                     : createType == 'direct'
-                      ? `Send to ${utils.shortenAddressLong(recipient)}`
+                      ? `Send to ${recipient.endsWith('.eth') ? recipient : utils.shortenAddressLong(recipient)}`
                       : `Send to ${recipient}`}
             </label>
             <label className="max-w-96 text-start text-h8 font-light">
@@ -224,7 +221,7 @@ export const CreateLinkInputView = ({
                 {createType === 'sms_link' &&
                     `You will send a text message to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
                 {createType === 'direct' &&
-                    `You will do a direct blockchain transaction to ${recipient.endsWith('.eth') ? recipient : recipient}. Ensure the recipient address is correct, else the funds might be lost.`}
+                    `You will do a direct blockchain transaction to ${recipient}. Ensure the recipient address is correct, else the funds might be lost.`}
             </label>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput
