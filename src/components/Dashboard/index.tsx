@@ -218,27 +218,27 @@ export const Dashboard = () => {
     }
 
     useEffect(() => {
+        const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
+        const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })
+
+        const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [])
+        // const calculatedPoints = calculatePoints(linkData)
+        // setPoints(calculatedPoints)
+        setDashboardData(
+            linkData.sort((a, b) => {
+                const dateA = new Date(a.date).getTime()
+                const dateB = new Date(b.date).getTime()
+                if (dateA === dateB) {
+                    // If dates are equal, sort by time
+                    return new Date(b.date).getTime() - new Date(a.date).getTime()
+                } else {
+                    // Otherwise, sort by date
+                    return dateB - dateA
+                }
+            })
+        )
+
         if (address) {
-            const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
-            const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })
-
-            const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [])
-            const calculatedPoints = calculatePoints(linkData)
-            setPoints(calculatedPoints)
-            setDashboardData(
-                linkData.sort((a, b) => {
-                    const dateA = new Date(a.date).getTime()
-                    const dateB = new Date(b.date).getTime()
-                    if (dateA === dateB) {
-                        // If dates are equal, sort by time
-                        return new Date(b.date).getTime() - new Date(a.date).getTime()
-                    } else {
-                        // Otherwise, sort by date
-                        return dateB - dateA
-                    }
-                })
-            )
-
             const links: string[] = []
             const legacyLinkObject = utils.getAllLinksFromLocalStorage({ address: address })
             if (legacyLinkObject) {
@@ -253,12 +253,11 @@ export const Dashboard = () => {
                 })
             }
             setLegacyLinks(links)
-
-            // fetchPoints()
         } else {
-            setDashboardData([])
             setLegacyLinks([])
         }
+
+        // fetchPoints()
     }, [address])
 
     useEffect(() => {
@@ -285,16 +284,14 @@ export const Dashboard = () => {
     }, [filterValue, dashboardData])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 p-4">
+        <div className="flex h-full w-full flex-col items-center justify-start gap-6 p-4">
             <div className="flex w-full flex-row items-start justify-between">
                 <div className="flex flex-col items-start justify-center">
                     <label className="text-h2">Dashboard</label>
                     <label className="text-h7 font-normal">
-                        {!isConnected
-                            ? 'Connect your wallet to view all the links you have claimed/created '
-                            : dashboardData.length > 0
-                              ? `See all links created and claimed with ${utils.shortenAddressLong(address ?? '')}`
-                              : 'You have not created or claimed any links yet.'}
+                        {dashboardData.length > 0
+                            ? `See all links created and claimed  ${address ? `with ${utils.shortenAddressLong(address)}` : 'on this device'}`
+                            : 'You have not created or claimed any links yet.'}
                     </label>
 
                     {isConnected && (
@@ -383,104 +380,93 @@ export const Dashboard = () => {
                     /> */}
                     </div>
                 )}
-                {!isConnected
-                    ? ''
-                    : filteredDashboardData.length > 0 && (
-                          <>
-                              <table className="table-custom hidden sm:table">
-                                  <thead>
-                                      <tr>
-                                          <th className="th-custom">
-                                              <Sorting title="Type" />
-                                          </th>
-                                          <th className="th-custom">
-                                              <Sorting title="Amount" />
-                                          </th>
-                                          <th className="th-custom">
-                                              <Sorting title="Chain" />
-                                          </th>
-                                          <th className="th-custom">
-                                              <Sorting title="Date" />
-                                          </th>
-                                          <th className="th-custom ">
-                                              <Sorting title="From" />
-                                          </th>
-                                          <th className="th-custom ">
-                                              <Sorting title="Ref." />
-                                          </th>
-                                          <th className="th-custom ">
-                                              <Sorting title="Status" />
-                                          </th>
-                                          <th className="th-custom"></th>
-                                      </tr>
-                                  </thead>
-                                  <tbody>
-                                      {filteredDashboardData &&
-                                          filteredDashboardData
-                                              .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                                              .map((link) => (
-                                                  <tr
-                                                      className="h-16 text-h8 font-normal"
-                                                      key={link.link + Math.random()}
-                                                  >
-                                                      <td className="td-custom font-bold">{link.type}</td>
-                                                      <td className="td-custom font-bold">
-                                                          {utils.formatTokenAmount(Number(link.amount), 4)}{' '}
-                                                          {link.tokenSymbol}
-                                                      </td>
-                                                      <td className="td-custom font-bold">{link.chain}</td>
-                                                      <td className="td-custom">
-                                                          {_utils.formatDate(new Date(link.date))}
-                                                      </td>
-                                                      {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
-                                                      <td className="td-custom">
-                                                          {utils.shortenAddressLong(link.address ?? address ?? '')}
-                                                      </td>
-                                                      <td className="td-custom max-w-32">
-                                                          <span
-                                                              className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                                                              title={link.message ? link.message : ''}
-                                                          >
-                                                              {link.message ? link.message : ''}
-                                                          </span>
-                                                      </td>
+                {filteredDashboardData.length > 0 && (
+                    <>
+                        <table className="table-custom hidden sm:table">
+                            <thead>
+                                <tr>
+                                    <th className="th-custom">
+                                        <Sorting title="Type" />
+                                    </th>
+                                    <th className="th-custom">
+                                        <Sorting title="Amount" />
+                                    </th>
+                                    <th className="th-custom">
+                                        <Sorting title="Chain" />
+                                    </th>
+                                    <th className="th-custom">
+                                        <Sorting title="Date" />
+                                    </th>
+                                    <th className="th-custom ">
+                                        <Sorting title="From" />
+                                    </th>
+                                    <th className="th-custom ">
+                                        <Sorting title="Ref." />
+                                    </th>
+                                    <th className="th-custom ">
+                                        <Sorting title="Status" />
+                                    </th>
+                                    <th className="th-custom"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {filteredDashboardData &&
+                                    filteredDashboardData
+                                        .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                        .map((link) => (
+                                            <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
+                                                <td className="td-custom font-bold">{link.type}</td>
+                                                <td className="td-custom font-bold">
+                                                    {utils.formatTokenAmount(Number(link.amount), 4)} {link.tokenSymbol}
+                                                </td>
+                                                <td className="td-custom font-bold">{link.chain}</td>
+                                                <td className="td-custom">{_utils.formatDate(new Date(link.date))}</td>
+                                                {/* <td className="td-custom">{formatDate(new Date(link.date))}</td> */}
+                                                <td className="td-custom">
+                                                    {utils.shortenAddressLong(link.address ?? address ?? '')}
+                                                </td>
+                                                <td className="td-custom max-w-32">
+                                                    <span
+                                                        className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                                                        title={link.message ? link.message : ''}
+                                                    >
+                                                        {link.message ? link.message : ''}
+                                                    </span>
+                                                </td>
 
-                                                      <td className="td-custom">
-                                                          {!link.status ? (
-                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                                  <Loading />
-                                                              </div>
-                                                          ) : link.status === 'claimed' ? (
-                                                              <div className="border border-green-3 px-2 py-1 text-center text-green-3">
-                                                                  claimed
-                                                              </div>
-                                                          ) : (
-                                                              <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                                                  pending
-                                                              </div>
-                                                          )}
-                                                      </td>
-                                                      <td className="td-custom text-center ">
-                                                          <components.OptionsItemComponent item={link} />
-                                                      </td>
-                                                  </tr>
-                                              ))}
-                                  </tbody>
-                              </table>
-                              <div className="block w-full sm:hidden">
-                                  {filteredDashboardData
-                                      .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
-                                      .map((link) => (
-                                          <div key={link.link + Math.random()}>
-                                              <components.MobileItemComponent
-                                                  linkDetail={link}
-                                                  address={address ?? ''}
-                                              />
-                                          </div>
-                                      ))}
-                              </div>
-                          </>
-                      )}
+                                                <td className="td-custom">
+                                                    {!link.status ? (
+                                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                            <Loading />
+                                                        </div>
+                                                    ) : link.status === 'claimed' ? (
+                                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                            claimed
+                                                        </div>
+                                                    ) : (
+                                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                            pending
+                                                        </div>
+                                                    )}
+                                                </td>
+                                                <td className="td-custom text-center ">
+                                                    <components.OptionsItemComponent item={link} />
+                                                </td>
+                                            </tr>
+                                        ))}
+                            </tbody>
+                        </table>
+                        <div className="block w-full sm:hidden">
+                            {filteredDashboardData
+                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                .map((link) => (
+                                    <div key={link.link + Math.random()}>
+                                        <components.MobileItemComponent linkDetail={link} address={address ?? ''} />
+                                    </div>
+                                ))}
+                        </div>
+                    </>
+                )}
 
                 {legacyLinks.length > 0 && (
                     <CSVLink

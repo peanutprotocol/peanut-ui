@@ -93,13 +93,3 @@ Firefox input[type='number'] {
     color: transparent; /* Make the text color transparent */
     animation: slide 3s linear infinite; /* Animation named 'slide', adjust timing as needed */
 }
-
-@keyframes slide {
-    0%,
-    100% {
-        background-position: 0 0;
-    }
-    50% {
-        background-position: 100% 0;
-    }
-}

@@ -361,13 +361,29 @@ export const saveClaimedLinkToLocalStorage = ({
     }
 }
 
-export const getClaimedLinksFromLocalStorage = ({ address }: { address: string }) => {
+export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const key = `${address} - claimed links`
+        let storedData
+        if (address) {
+            const key = `${address} - claimed links`
+            storedData = localStorage.getItem(key)
+        } else {
+            const partialKey = 'claimed links'
+            const matchingItems = []
 
-        const storedData = localStorage.getItem(key)
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key && key.includes(partialKey)) {
+                    const item = localStorage.getItem(key)
+                    if (!item) break
+                    const value = JSON.parse(item)
+                    matchingItems.push(...value)
+                }
+            }
+            storedData = JSON.stringify(matchingItems)
+        }
 
         let data: interfaces.IExtendedLinkDetails[] = []
         if (storedData) {
@@ -409,13 +425,29 @@ export const saveCreatedLinkToLocalStorage = ({
     }
 }
 
-export const getCreatedLinksFromLocalStorage = ({ address }: { address: string }) => {
+export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const key = `${address} - created links`
+        let storedData
+        if (address) {
+            const key = `${address} - created links`
+            storedData = localStorage.getItem(key)
+        } else {
+            const partialKey = 'created links'
+            const matchingItems = []
 
-        const storedData = localStorage.getItem(key)
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key && key.includes(partialKey)) {
+                    const item = localStorage.getItem(key)
+                    if (!item) break
+                    const value = JSON.parse(item)
+                    matchingItems.push(...value)
+                }
+            }
+            storedData = JSON.stringify(matchingItems)
+        }
 
         let data: interfaces.IExtendedPeanutLinkDetails[] = []
         if (storedData) {
