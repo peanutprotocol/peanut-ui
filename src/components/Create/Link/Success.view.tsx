@@ -119,7 +119,33 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
             {link && (
-                <>
+                <div className="flex w-full flex-col items-center justify-center gap-2 ">
+                    {createType === 'email_link' && (
+                        <>
+                            <button
+                                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
+                                onClick={() => {
+                                    utils.shareToEmail(recipient, link)
+                                }}
+                            >
+                                Share via email
+                            </button>
+                            or
+                        </>
+                    )}
+                    {createType === 'sms_link' && (
+                        <>
+                            <button
+                                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
+                                onClick={() => {
+                                    utils.shareToEmail(recipient, link)
+                                }}
+                            >
+                                Share via SMS
+                            </button>
+                            or
+                        </>
+                    )}
                     <div className="hidden w-full md:block">
                         <CopyField text={link} />
                     </div>
@@ -131,7 +157,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _
                     >
                         Share link
                     </div>
-                </>
+                </div>
             )}
 
             <Link
