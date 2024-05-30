@@ -31,6 +31,7 @@ export const CreateLinkConfirmView = ({
     feeOptions,
     estimatedPoints,
     attachmentOptions,
+    createType,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
 
@@ -65,13 +66,16 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            const fileUrl = await submitLinkAttachmentInit({
-                password: password ?? '',
-                attachmentOptions: {
-                    attachmentFile: attachmentOptions.rawFile,
-                    message: attachmentOptions.message,
-                },
-            })
+            let fileUrl
+            if (createType != 'direct') {
+                fileUrl = await submitLinkAttachmentInit({
+                    password: password ?? '',
+                    attachmentOptions: {
+                        attachmentFile: attachmentOptions.rawFile,
+                        message: attachmentOptions.message,
+                    },
+                })
+            }
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
@@ -90,35 +94,39 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            const link = await getLinkFromHash({ hash, linkDetails, password })
+            let link = ['']
+            if (createType != 'direct') {
+                link = await getLinkFromHash({ hash, linkDetails, password })
 
-            await submitLinkAttachmentConfirm({
-                chainId: selectedChainID,
-                link: link[0],
-                password: password ?? '',
-                txHash: hash,
-            })
-
-            utils.saveCreatedLinkToLocalStorage({
-                address: address ?? '',
-                data: {
+                await submitLinkAttachmentConfirm({
+                    chainId: selectedChainID,
                     link: link[0],
-                    depositDate: new Date().toISOString(),
-                    USDTokenPrice: selectedTokenPrice ?? 0,
-                    points: estimatedPoints ?? 0,
+                    password: password ?? '',
                     txHash: hash,
-                    message: attachmentOptions.message ?? '',
-                    attachmentUrl: fileUrl,
-                    ...linkDetails,
-                },
-            })
+                })
+
+                utils.saveCreatedLinkToLocalStorage({
+                    address: address ?? '',
+                    data: {
+                        link: link[0],
+                        depositDate: new Date().toISOString(),
+                        USDTokenPrice: selectedTokenPrice ?? 0,
+                        points: estimatedPoints ?? 0,
+                        txHash: hash,
+                        message: attachmentOptions.message ?? '',
+                        attachmentUrl: fileUrl,
+                        ...linkDetails,
+                    },
+                })
+
+                setLink(link[0])
+                console.log(link)
+            }
+
             utils.updatePeanutPreferences({
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-
-            setLink(link[0])
-            console.log(link)
 
             onNext()
         } catch (error) {

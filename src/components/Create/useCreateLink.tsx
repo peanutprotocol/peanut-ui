@@ -6,7 +6,14 @@ import peanut, {
     getRawParamsFromLink,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
-import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
+import {
+    useAccount,
+    useSendTransaction,
+    useSignTypedData,
+    useSwitchChain,
+    useConfig,
+    usePrepareTransactionRequest,
+} from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import { useBalance } from '@/hooks/useBalance'
@@ -334,6 +341,39 @@ export const useCreateLink = () => {
             return ''
         }
     }
+    const prepareDirectSendTx = ({
+        recipient,
+        tokenValue,
+        tokenAddress,
+        tokenDecimals,
+    }: {
+        recipient: string
+        tokenValue: string
+        tokenAddress: string
+        tokenDecimals: number
+    }) => {
+        let transactionRequest
+
+        if (!utils.isNativeCurrency(tokenAddress)) {
+            const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
+            const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
+            const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
+
+            transactionRequest = {
+                to: tokenAddress,
+                data,
+                value: 0,
+            }
+        } else {
+            const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
+            transactionRequest = {
+                to: recipient,
+                value: amount,
+            }
+        }
+
+        return transactionRequest
+    }
 
     // step 2
     const signTypedData = async ({ gaslessMessage }: { gaslessMessage: peanutInterfaces.IPreparedEIP712Message }) => {
@@ -514,5 +554,6 @@ export const useCreateLink = () => {
         estimatePoints,
         submitLinkAttachmentInit,
         submitLinkAttachmentConfirm,
+        prepareDirectSendTx,
     }
 }

@@ -13,6 +13,7 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
@@ -41,6 +42,7 @@ export const CreateLinkInputView = ({
         switchNetwork,
         estimateGasFee,
         estimatePoints,
+        prepareDirectSendTx,
     } = useCreateLink()
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
@@ -61,7 +63,6 @@ export const CreateLinkInputView = ({
 
     const handleOnNext = async () => {
         try {
-            console.log('handleOnNext')
             if (isLoading || (isConnected && !tokenValue)) return
 
             setLoadingState('Loading')
@@ -87,73 +88,114 @@ export const CreateLinkInputView = ({
                 tokenValue: value,
             })
             setLinkDetails(linkDetails)
-            const password = await generatePassword()
-            setPassword(password)
 
-            setLoadingState('Preparing transaction')
-            if (
-                _utils.isGaslessDepositPossible({
-                    chainId: selectedChainID,
-                    tokenAddress: selectedTokenAddress,
-                })
-            ) {
-                console.log('gasless possible, creating gassles payload')
-                setTransactionType('gasless')
+            if (createType !== 'direct') {
+                const password = await generatePassword()
+                setPassword(password)
 
-                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-
+                setLoadingState('Preparing transaction')
                 if (
-                    !makeGaslessDepositResponse ||
-                    !makeGaslessDepositResponse.payload ||
-                    !makeGaslessDepositResponse.message
-                )
-                    return
-                setGaslessPayload(makeGaslessDepositResponse.payload)
-                setGaslessPayloadMessage(makeGaslessDepositResponse.message)
+                    _utils.isGaslessDepositPossible({
+                        chainId: selectedChainID,
+                        tokenAddress: selectedTokenAddress,
+                    })
+                ) {
+                    console.log('gasless possible, creating gassles payload')
+                    setTransactionType('gasless')
 
-                setFeeOptions(undefined)
-                setTransactionCostUSD(undefined)
+                    const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+                        _linkDetails: linkDetails,
+                        _password: password,
+                    })
+
+                    if (
+                        !makeGaslessDepositResponse ||
+                        !makeGaslessDepositResponse.payload ||
+                        !makeGaslessDepositResponse.message
+                    )
+                        return
+                    setGaslessPayload(makeGaslessDepositResponse.payload)
+                    setGaslessPayloadMessage(makeGaslessDepositResponse.message)
+
+                    setFeeOptions(undefined)
+                    setTransactionCostUSD(undefined)
+                } else {
+                    console.log('gasless not possible, creating normal payload')
+                    setTransactionType('not-gasless')
+
+                    const prepareDepositTxsResponse = await prepareDepositTxs({
+                        _linkDetails: linkDetails,
+                        _password: password,
+                    })
+
+                    console.log('prepareDepositTxsResponse', prepareDepositTxsResponse)
+                    setPreparedDepositTxs(prepareDepositTxsResponse)
+
+                    try {
+                        const { feeOptions, transactionCostUSD } = await estimateGasFee({
+                            chainId: selectedChainID,
+                            preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                        })
+
+                        const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
+                        const estimatedPoints = await estimatePoints({
+                            chainId: selectedChainID,
+                            address: address ?? '',
+                            amountUSD: USDValue,
+                            preparedTx:
+                                prepareDepositTxsResponse?.unsignedTxs[
+                                    prepareDepositTxsResponse?.unsignedTxs.length - 1
+                                ],
+                        })
+
+                        if (estimatedPoints) setEstimatedPoints(estimatedPoints)
+
+                        setFeeOptions(feeOptions)
+                        setTransactionCostUSD(transactionCostUSD)
+                    } catch (error) {
+                        setFeeOptions(undefined)
+                        setTransactionCostUSD(undefined)
+                    }
+                }
+
+                await switchNetwork(selectedChainID)
+
+                onNext()
             } else {
-                console.log('gasless not possible, creating normal payload')
-                setTransactionType('not-gasless')
+                const preparedTxs: interfaces.IPrepareDepositTxsResponse = {
+                    unsignedTxs: [
+                        {
+                            ...prepareDirectSendTx({
+                                tokenValue: value,
+                                recipient,
+                                tokenAddress: selectedTokenAddress,
+                                tokenDecimals: linkDetails.tokenDecimals,
+                            }),
+                            value: undefined,
+                        },
+                    ],
+                }
 
-                const prepareDepositTxsResponse = await prepareDepositTxs({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-                setPreparedDepositTxs(prepareDepositTxsResponse)
+                console.log('preparedTxs', preparedTxs)
+
+                setPreparedDepositTxs(preparedTxs)
 
                 try {
                     const { feeOptions, transactionCostUSD } = await estimateGasFee({
                         chainId: selectedChainID,
-                        preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                        preparedTx: preparedTxs?.unsignedTxs[0],
                     })
-
-                    const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
-                    const estimatedPoints = await estimatePoints({
-                        chainId: selectedChainID,
-                        address: address ?? '',
-                        amountUSD: USDValue,
-                        preparedTx:
-                            prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
-                    })
-
-                    if (estimatedPoints) setEstimatedPoints(estimatedPoints)
-
                     setFeeOptions(feeOptions)
                     setTransactionCostUSD(transactionCostUSD)
+                    setEstimatedPoints(0)
                 } catch (error) {
                     setFeeOptions(undefined)
                     setTransactionCostUSD(undefined)
                 }
+
+                await switchNetwork(selectedChainID)
+                onNext()
             }
-
-            await switchNetwork(selectedChainID)
-
-            onNext()
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({
