@@ -24,12 +24,13 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
 
     const handleInputValidation = async (value: string) => {
         const phoneNumber = parsePhoneNumberFromString(value)
+
         //email check
         if (validator.isEmail(value)) {
             return 'email_link'
         }
         //phone number check
-        else if (phoneNumber && phoneNumber.isValid()) {
+        else if (utils.isNumeric(value) && value.length > 4) {
             return 'sms_link'
         } //TODO: Add more validation checks for normal numbers without country code
         //address check
@@ -126,8 +127,7 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
             </button> */}
 
             <label className="max-w-96 text-start text-h8 font-light">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et
-                dolore magna aliqua.
+                Transfer tokens via link or to an email, phone number, ENS, or wallet address.
             </label>
             <div className="flex w-full  flex-col items-center justify-center gap-2">
                 <RecipientInput

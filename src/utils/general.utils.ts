@@ -625,3 +625,8 @@ export const shareToSms = (phone: string, link: string) => {
         window.location.href = sms
     }
 } // TODO: update body
+
+export function isNumeric(input: string): boolean {
+    const numericRegex = /^[0-9]+$/
+    return numericRegex.test(input)
+}
