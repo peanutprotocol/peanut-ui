@@ -96,7 +96,19 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            if (createType != 'direct') {
+            if (createType === 'direct') {
+                utils.saveDirectSendToLocalStorage({
+                    address: address ?? '',
+                    data: {
+                        chainId: selectedChainID,
+                        tokenAddress: selectedTokenAddress,
+                        tokenAmount: tokenValue ?? '0',
+                        date: new Date().toISOString(),
+                        points: estimatedPoints ?? 0,
+                        txHash: hash,
+                    },
+                })
+            } else {
                 const link = await getLinkFromHash({ hash, linkDetails, password })
 
                 await submitLinkAttachmentConfirm({

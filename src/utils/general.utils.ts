@@ -460,50 +460,67 @@ export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { addre
     }
 }
 
-export const updateCreatedLinksFromLocalStorage = ({
+export const saveDirectSendToLocalStorage = ({
     address,
     data,
 }: {
     address: string
-    data: interfaces.IExtendedPeanutLinkDetails[]
+    data: interfaces.IDirectSendDetails
 }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const key = `${address} - created links`
-
-        localStorage.setItem(key, JSON.stringify(data))
-
-        console.log('Updated created links in localStorage:', data)
-    } catch (error) {
-        console.error('Error updating data in localStorage:', error)
-    }
-}
-
-export const addClaimLinkToLocalstorage = ({
-    address,
-    linkDetails,
-}: {
-    address: string
-    linkDetails: interfaces.ILinkDetails
-}) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `${address} - claimed links`
+        const key = `${address} - direct sends`
 
         const storedData = localStorage.getItem(key)
 
-        let data: interfaces.ILinkDetails[] = []
+        let dataArr: interfaces.IDirectSendDetails[] = []
         if (storedData) {
-            data = JSON.parse(storedData) as interfaces.ILinkDetails[]
+            dataArr = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
         }
 
-        data.push(linkDetails)
+        dataArr.push(data)
 
-        localStorage.setItem(key, JSON.stringify(data))
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved direct send to localStorage:', data)
     } catch (error) {
         console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getDirectSendFromLocalStorage = ({ address = undefined }: { address?: string }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        let storedData
+        if (address) {
+            const key = `${address} - direct sends`
+            storedData = localStorage.getItem(key)
+        } else {
+            const partialKey = 'direct sends'
+            const matchingItems = []
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key && key.includes(partialKey)) {
+                    const item = localStorage.getItem(key)
+                    if (!item) break
+                    const value = JSON.parse(item)
+                    matchingItems.push(...value)
+                }
+            }
+            storedData = JSON.stringify(matchingItems)
+        }
+
+        let data: interfaces.IDirectSendDetails[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
     }
 }
 

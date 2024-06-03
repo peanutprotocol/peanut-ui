@@ -39,6 +39,7 @@
         "logrocket": "^8.1.0",
         "lokijs": "^1.5.12",
         "lottie-react": "^2.4.0",
+        "multicoin-address-validator": "^0.5.18",
         "next": "^14.2.3",
         "node-fetch": "^3.3.2",
         "pino-pretty": "^10.0.1",
@@ -65,6 +66,7 @@
         "web3": "^1.7.0"
     },
     "devDependencies": {
+        "@types/multicoin-address-validator": "^0.5.3",
         "@types/node": "20.4.2",
         "@types/react": "^18.2.22",
         "@types/react-csv": "^1.1.3",

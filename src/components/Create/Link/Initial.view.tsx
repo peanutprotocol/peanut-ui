@@ -10,9 +10,10 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import RecipientInput from '@/components/Global/RecipientInput'
 import Icon from '@/components/Global/Icon'
-import { ethers } from 'ethers'
+import { errors, ethers } from 'ethers'
 import peanut from '@squirrel-labs/peanut-sdk'
 import Loading from '@/components/Global/Loading'
+import { validate } from 'multicoin-address-validator'
 
 export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _consts.ICreateScreenProps) => {
     const [inputValue, setInputValue] = useState('')
@@ -40,7 +41,39 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
         //ENS check
         else if (value.endsWith('.eth')) {
             return 'direct'
+        } else if (validate(value, 'sol')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Solana. Reach out if you would like us to add support!',
+            })
+            return undefined
+        } else if (validate(value, 'btc')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Bitcoin. Reach out if you would like us to add support!',
+            })
+
+            return undefined
+        } else if (validate(value, 'ltc')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Litecoin. Reach out if you would like us to add support!',
+            })
+
+            return undefined
+        } else if (validate(value, 'trx')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Tron. Reach out if you would like us to add support!',
+            })
+
+            return undefined
         } else {
+            setErrorState({
+                showError: true,
+                errorMessage:
+                    'Invalid recipient. You can send to an ENS name, wallet address, phone number or email address.',
+            })
             return undefined
         }
     }
@@ -54,11 +87,6 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
             }
 
             if (!type) {
-                setErrorState({
-                    showError: true,
-                    errorMessage:
-                        'Invalid recipient. You can send to an ENS name, wallet address, phone number or email address.',
-                })
                 setLoadingState('Idle')
                 return
             } else {
@@ -130,28 +158,24 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
                 Transfer tokens via link or to an email, phone number, ENS, or wallet address.
             </label>
             <div className="flex w-full  flex-col items-center justify-center gap-2">
+                <button
+                    onClick={() => {
+                        setCreateType('link')
+                        onNext()
+                    }}
+                    className="btn btn-purple h-10 w-full px-2 text-lg "
+                >
+                    Send via link
+                </button>
+                or
                 <RecipientInput
-                    placeholder="email/phone/ens/address"
+                    placeholder="Email / Phone / ENS / wallet address"
                     value={inputValue}
                     setValue={setInputValue}
                     onEnter={() => {
                         if (inputValue.length > 0) handleOnNext()
                     }}
                 />
-                {inputValue.length === 0 && (
-                    <>
-                        or
-                        <button
-                            onClick={() => {
-                                setCreateType('link')
-                                onNext()
-                            }}
-                            className="btn h-max w-full cursor-pointer py-1"
-                        >
-                            Create link
-                        </button>
-                    </>
-                )}
             </div>
             {inputValue.length > 0 && (
                 <div className="flex w-full flex-col items-start  justify-center gap-2">
@@ -171,9 +195,20 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
                         {isLoading && <Loading />}
                     </div>
                     {errorState.showError && (
-                        <div className="w-full text-center">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
+                        <>
+                            <div className="w-full text-center">
+                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                            {errorState.errorMessage.includes('We currently dont support ') && (
+                                <a
+                                    href={'https://peanut.to/pioneers'}
+                                    target={'_blank'}
+                                    className="btn btn-purple h-8 w-full cursor-pointer px-2"
+                                >
+                                    Reach out!
+                                </a>
+                            )}
+                        </>
                     )}
                 </div>
             )}

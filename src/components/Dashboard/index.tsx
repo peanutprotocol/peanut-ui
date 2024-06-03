@@ -41,7 +41,7 @@ export const Dashboard = () => {
             await Promise.all(
                 _data.map(async (item) => {
                     try {
-                        const linkDetails = await getLinkDetails({ link: item.link })
+                        const linkDetails = await getLinkDetails({ link: item.link ?? '' })
                         item.status = linkDetails.claimed ? 'claimed' : 'pending'
                     } catch (error) {
                         console.error(error)
@@ -63,7 +63,8 @@ export const Dashboard = () => {
 
     const composeLinkDataArray = (
         claimedLinks: interfaces.IExtendedLinkDetails[],
-        createdLinks: interfaces.IExtendedPeanutLinkDetails[]
+        createdLinks: interfaces.IExtendedPeanutLinkDetails[],
+        directSends: interfaces.IDirectSendDetails[]
     ) => {
         const linkData: interfaces.IDashboardItem[] = []
 
@@ -80,6 +81,7 @@ export const Dashboard = () => {
                 message: link.message,
                 attachmentUrl: link.attachmentUrl,
                 points: link.points,
+                txHash: link.txHash,
             })
         })
 
@@ -100,6 +102,28 @@ export const Dashboard = () => {
                 message: link.message,
                 attachmentUrl: link.attachmentUrl,
                 points: link.points,
+                txHash: link.txHash,
+            })
+        })
+
+        directSends.forEach((link) => {
+            linkData.push({
+                link: undefined,
+                type: 'transfer',
+                amount: link.tokenAmount.toString(),
+                tokenSymbol:
+                    consts.peanutTokenDetails
+                        .find((token) => token.chainId === link.chainId)
+                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.symbol ?? '',
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.date.toString(),
+                address: undefined,
+                status: 'transfer',
+                message: undefined,
+                attachmentUrl: undefined,
+                points: link.points,
+                txHash: link.txHash,
             })
         })
 
@@ -220,8 +244,9 @@ export const Dashboard = () => {
     useEffect(() => {
         const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
         const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })
+        const directSends = utils.getDirectSendFromLocalStorage({ address: address })
 
-        const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [])
+        const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [], directSends ?? [])
         // const calculatedPoints = calculatePoints(linkData)
         // setPoints(calculatedPoints)
         setDashboardData(
@@ -414,7 +439,10 @@ export const Dashboard = () => {
                                     filteredDashboardData
                                         .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                         .map((link) => (
-                                            <tr className="h-16 text-h8 font-normal" key={link.link + Math.random()}>
+                                            <tr
+                                                className="h-16 text-h8 font-normal"
+                                                key={link.link ?? link.txHash ?? '' + Math.random()}
+                                            >
                                                 <td className="td-custom font-bold">{link.type}</td>
                                                 <td className="td-custom font-bold">
                                                     {utils.formatTokenAmount(Number(link.amount), 4)} {link.tokenSymbol}
@@ -443,6 +471,10 @@ export const Dashboard = () => {
                                                         <div className="border border-green-3 px-2 py-1 text-center text-green-3">
                                                             claimed
                                                         </div>
+                                                    ) : link.status === 'transfer' ? (
+                                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                            sent
+                                                        </div>
                                                     ) : (
                                                         <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
                                                             pending
@@ -460,7 +492,7 @@ export const Dashboard = () => {
                             {filteredDashboardData
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((link) => (
-                                    <div key={link.link + Math.random()}>
+                                    <div key={link.link ?? link.txHash ?? '' + Math.random()}>
                                         <components.MobileItemComponent linkDetail={link} address={address ?? ''} />
                                     </div>
                                 ))}
