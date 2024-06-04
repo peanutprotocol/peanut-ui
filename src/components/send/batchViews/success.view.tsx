@@ -22,7 +22,7 @@ export function BatchSuccessView({
     const [copiedAll, setCopiedAll] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const explorerUrlWithTx = useMemo(
-        () => chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url + '/tx/' + txHash,
+        () => utils.getExplorerUrl(chainDetails, chainId) + '/tx/' + txHash,
         [txHash, chainId]
     )
 
