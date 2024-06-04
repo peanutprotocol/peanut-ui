@@ -63,6 +63,30 @@ export const AdvancedTokenSelectorButton = ({
     }, [tokenBalance, selectedChainID, selectedTokenAddress, address])
 
     return (
+        // <div
+        //     className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-14 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
+        //     onClick={() => {
+        //         !isStatic && onClick()
+        //     }}
+        // >
+        //     <div className="flex w-full flex-row items-center justify-between py-2 text-h7 font-normal ">
+        //         <div className="flex flex-row items-center justify-center gap-1">
+        //             <div className="relative mr-2 h-6 w-6">
+        //                 <img src={tokenLogoUri} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
+        //                 <img
+        //                     src={chainIconUri}
+        //                     className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
+        //                     alt="logo"
+        //                 />
+        //             </div>
+        //             <div className="flex flex-col items-center justify-center">
+        //                 <div className="">{utils.formatTokenAmount(_tokenBalance ?? 0, 4)}</div>
+        //             </div>
+        //             <div className="">{tokenSymbol}</div>
+        //         </div>
+        //         <div className="">{chainName}</div>
+        //     </div>
+        // </div>
         <div
             className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-14 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
             onClick={() => {

@@ -6,7 +6,6 @@ export interface CombinedType extends interfaces.IPeanutChainDetails {
 
 export interface TokenSelectorProps {
     classNameButton?: string
-    simpleButton?: boolean
 }
 
 export interface TokenSelectorXChainProps extends TokenSelectorProps {
