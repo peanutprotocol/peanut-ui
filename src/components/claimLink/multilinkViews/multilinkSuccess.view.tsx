@@ -20,8 +20,7 @@ export function multilinkSuccessView({ txHash, claimDetails, senderAddress }: _c
 
     const explorerUrlWithTx = useMemo(() => {
         return txHash.map((hash, idx) => {
-            const chainDetail = chainDetails.find((cd) => cd.chainId === claimDetails[idx].chainId)
-            return chainDetail?.explorers[0].url + '/tx/' + hash
+            return utils.getExplorerUrl(chainDetails, claimDetails[idx].chainId) + +'/tx/' + hash
         })
     }, [chainDetails, claimDetails])
 

@@ -30,10 +30,7 @@ export function xchainSuccessView({
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     const explorerUrlSrcChainWithTxHash = useMemo(
-        () =>
-            chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
-            '/tx/' +
-            txHash[0],
+        () => utils.getExplorerUrl(chainDetails, claimDetails[0].chainId) + '/tx/' + txHash[0],
         [txHash, chainDetails]
     )
 

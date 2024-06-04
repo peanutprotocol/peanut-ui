@@ -3,6 +3,7 @@ import * as global_components from '@/components/global'
 import peanut, { setFeeOptions } from '@squirrel-labs/peanut-sdk'
 import * as store from '@/store'
 import * as consts from '@/consts'
+import * as utils from '@/utils'
 import { useAtom } from 'jotai'
 import { useState, useMemo } from 'react'
 import { useAccount, useSendTransaction, useConfig, useSwitchChain } from 'wagmi'
@@ -125,9 +126,7 @@ export function Reclaim() {
                 chainId: Number(reclaimFormData.chainId),
             })
 
-            const explorerUrl = chainDetails.find(
-                (chain) => chain.chainId.toString() == reclaimFormData.chainId.toString()
-            ).explorers[0].url
+            const explorerUrl = utils.getExplorerUrl(chainDetails, reclaimFormData.chainId.toString())
             setClaimedExplorerUrlWithHash(`${explorerUrl}/tx/${hash}`)
         } catch (error) {
             setErrorState({

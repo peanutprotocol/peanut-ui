@@ -96,7 +96,10 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                 chainId: tx.details.chain.toString(),
                                 tokenAddress: tx.details.token,
                                 txHash: tx.txHash,
-                                explorerUrl: chainDetail?.explorers[0].url + '/tx/' + tx.txHash,
+                                explorerUrl:
+                                    utils.getExplorerUrl(chainDetails, tx.details.chain.toString()) +
+                                    '/tx/' +
+                                    tx.txHash,
                             },
                         ])
                     }
@@ -200,12 +203,14 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                                 chainId: tx.details.chain.toString(),
                                 tokenAddress: tx.details.token,
                                 txHash: tx.txHash,
-                                explorerUrl: chainDetail?.explorers[0].url + '/tx/' + tx.txHash,
+                                explorerUrl:
+                                    utils.getExplorerUrl(chainDetails, tx.details.chain.toString()) +
+                                    '/tx/' +
+                                    tx.txHash,
                             },
                         ])
                     }
                 })
-
 
                 console.log('awaited all tx')
                 console.log(validClaimTxs)
