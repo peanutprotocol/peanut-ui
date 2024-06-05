@@ -39,6 +39,7 @@ export const useBalance = () => {
             amount: parseFloat(item.quantity.numeric),
             currency: 'usd',
             logoURI: item.iconUrl,
+            value: item.value.toString(),
         }))
     }
 
@@ -102,16 +103,31 @@ export const useBalance = () => {
 
                         userBalances = convertToUserBalances(
                             apiResponseJson.balances.filter((balance: any) => balance.value > 0.009)
-                        ).sort((a, b) => {
-                            if (a.chainId === b.chainId) {
-                                if (a.address.toLowerCase() === '0x0000000000000000000000000000000000000000') return -1
-                                if (b.address.toLowerCase() === '0x0000000000000000000000000000000000000000') return 1
+                        )
+                            .map((balance) =>
+                                balance.chainId === '8508132'
+                                    ? { ...balance, chainId: '534352' }
+                                    : balance.chainId === '81032'
+                                      ? { ...balance, chainId: '81457' }
+                                      : balance.chainId === '59160'
+                                        ? { ...balance, chainId: '59144' }
+                                        : balance
+                            )
+                            .sort((a, b) => {
+                                const valueA = parseFloat(a.value)
+                                const valueB = parseFloat(b.value)
 
-                                return b.amount - a.amount
-                            } else {
-                                return Number(a.chainId) - Number(b.chainId)
-                            }
-                        })
+                                if (valueA === valueB) {
+                                    if (a.address.toLowerCase() === '0x0000000000000000000000000000000000000000')
+                                        return -1
+                                    if (b.address.toLowerCase() === '0x0000000000000000000000000000000000000000')
+                                        return 1
+
+                                    return b.amount - a.amount
+                                } else {
+                                    return valueB - valueA
+                                }
+                            })
 
                         const valuePerChain = calculateValuePerChain(apiResponseJson.balances)
                         setValuePerChain(valuePerChain)

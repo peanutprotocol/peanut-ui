@@ -36,10 +36,6 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
         return 'auto'
     }, [])
 
-    useEffect(() => {
-        console.log(tokenValue)
-    }, [tokenValue])
-
     return (
         <form
             className={`relative max-w-96 rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}

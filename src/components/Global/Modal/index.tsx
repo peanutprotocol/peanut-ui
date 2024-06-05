@@ -16,6 +16,8 @@ type ModalProps = {
     video?: boolean
     hideOverlay?: boolean
     classNameWrapperDiv?: string
+    showPrev?: boolean
+    onPrev?: () => void
 }
 
 const Modal = ({
@@ -31,6 +33,8 @@ const Modal = ({
     video,
     hideOverlay,
     classNameWrapperDiv,
+    showPrev,
+    onPrev,
 }: ModalProps) => {
     return (
         <Transition show={visible} as={Fragment}>
@@ -73,9 +77,21 @@ const Modal = ({
                     >
                         {!hideOverlay ? (
                             <>
+                                {showPrev && (
+                                    <button
+                                        className={twMerge(
+                                            ` absolute left-5 top-4.5 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 `
+                                        )}
+                                        onClick={onPrev}
+                                    >
+                                        <Icon className="fill-inherit transition-colors" name="arrow-prev" />
+                                    </button>
+                                )}
                                 {title ? (
                                     <>
-                                        <div className="border-b border-n-1 px-5 py-4 text-start text-h6 dark:border-white">
+                                        <div
+                                            className={`border-b border-n-1 px-5 py-4 text-h6 dark:border-white ${showPrev ? 'text-center' : 'text-start'}`}
+                                        >
                                             {title}
                                         </div>
                                         <div className={classNameWrapperDiv}>{children}</div>

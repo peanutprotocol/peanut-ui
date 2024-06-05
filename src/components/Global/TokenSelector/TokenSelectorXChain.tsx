@@ -86,7 +86,7 @@ const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXCh
                             placeholder="Search by token name"
                             value={filterValue}
                             onChange={(e: any) => setFilterValue(e.target.value)}
-                            onSubmit={() => console.log('Submit')}
+                            onSubmit={() => {}}
                             medium
                             border
                         />
