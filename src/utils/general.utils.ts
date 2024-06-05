@@ -626,17 +626,27 @@ export const getExplorerUrl = (chainId: string) => {
     }
 }
 
-export const shareToEmail = (email: string, link: string) => {
+export const shareToEmail = (email: string, link: string, usdAmount?: string) => {
+    if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
     const encodedSubject = encodeURIComponent('Money inside!')
-    const encodedBody = encodeURIComponent(`Claim your funds here: ${link}`)
+    const encodedBody = encodeURIComponent(
+        usdAmount
+            ? `You have received $${usdAmount}! Click the link to claim: ${link}`
+            : `You received money! Click the link to claim: ${link}`
+    )
     const mailtoUrl = `mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`
     if (typeof window !== 'undefined') {
         window.location.href = mailtoUrl
     }
 } // TODO: update subject & body
 
-export const shareToSms = (phone: string, link: string) => {
-    const message = encodeURIComponent(`Claim your funds here: ${link}`)
+export const shareToSms = (phone: string, link: string, usdAmount?: string) => {
+    if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
+    const message = encodeURIComponent(
+        usdAmount
+            ? `You have received $${usdAmount}! Click the link to claim: ${link}`
+            : `You received money! Click the link to claim: ${link}`
+    )
     const sms = `sms:${phone}?body=${message}`
     if (typeof window !== 'undefined') {
         window.location.href = sms
@@ -646,4 +656,42 @@ export const shareToSms = (phone: string, link: string) => {
 export function isNumeric(input: string): boolean {
     const numericRegex = /^[0-9]+$/
     return numericRegex.test(input)
+}
+
+interface TransferDetails {
+    id: string
+    timestamp: string
+    chain: string
+    details: any
+}
+
+interface Portfolio {
+    id: string
+    ownerAddress: string
+    assetActivities: TransferDetails[]
+}
+
+export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
+    const addressInteractions: any = {}
+
+    portfolios.forEach((portfolio) => {
+        portfolio.assetActivities.forEach((activity) => {
+            const { to, from, type } = activity.details
+            const { timestamp } = activity
+
+            if (!addressInteractions[to]) {
+                addressInteractions[to] = { count: 0, mostRecentInteraction: timestamp }
+            }
+            addressInteractions[to].count += 1
+            if (timestamp > addressInteractions[to].mostRecentInteraction) {
+                addressInteractions[to].mostRecentInteraction = timestamp
+            }
+        })
+    })
+
+    const rankedAddresses = Object.entries(addressInteractions) //@ts-ignore
+        .map(([address, { count, mostRecentInteraction }]) => ({ address, count, mostRecentInteraction }))
+        .sort((a, b) => b.mostRecentInteraction - a.mostRecentInteraction)
+
+    return rankedAddresses
 }

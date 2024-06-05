@@ -134,8 +134,15 @@ export const CreateLinkConfirmView = ({
 
                 setLink(link[0])
                 console.log(link)
-                if (createType === 'email_link') utils.shareToEmail(recipient, link[0])
-                if (createType === 'sms_link') utils.shareToSms(recipient, link[0])
+                let value
+                if (inputDenomination == 'TOKEN') {
+                    if (selectedTokenPrice && tokenValue) {
+                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                    } else value = undefined
+                } else value = tokenValue
+
+                if (createType === 'email_link') utils.shareToEmail(recipient, link[0], value)
+                if (createType === 'sms_link') utils.shareToSms(recipient, link[0], value)
             }
 
             utils.updatePeanutPreferences({

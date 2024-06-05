@@ -17,8 +17,16 @@ import {
 } from '@web3inbox/react'
 import { useAccount, useSignMessage } from 'wagmi'
 
-export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _consts.ICreateScreenProps) => {
-    const { selectedChainID } = useContext(context.tokenSelectorContext)
+export const CreateLinkSuccessView = ({
+    link,
+    txHash,
+    createType,
+    recipient,
+    tokenValue,
+}: _consts.ICreateScreenProps) => {
+    const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
+        context.tokenSelectorContext
+    )
 
     const { address } = useAccount({})
     const { signMessageAsync } = useSignMessage()
@@ -30,6 +38,8 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _
     const { prepareRegistration } = usePrepareRegistration()
 
     const [isLoading, setIsLoading] = useState(false)
+
+    const [txUsdValue, setTxUsdValue] = useState<string | undefined>(undefined)
 
     const explorerUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(selectedChainID)}/tx/${txHash}`,
@@ -107,6 +117,19 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _
         setAccount(`eip155:1:${address}`)
     }, [address])
 
+    useEffect(() => {
+        let value
+        if (inputDenomination == 'TOKEN') {
+            if (selectedTokenPrice && tokenValue) {
+                value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+            } else value = undefined
+        } else value = tokenValue
+
+        if (value) {
+            setTxUsdValue(value)
+        }
+    }, [])
+
     return (
         <div
             className={`flex w-full flex-col items-center justify-center gap-6 py-2 text-center ${link ? 'pb-20' : 'pb-2'}`}
@@ -125,7 +148,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _
                             <button
                                 className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
                                 onClick={() => {
-                                    utils.shareToEmail(recipient, link)
+                                    utils.shareToEmail(recipient, link, txUsdValue)
                                 }}
                             >
                                 Share via email
@@ -138,7 +161,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient }: _
                             <button
                                 className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
                                 onClick={() => {
-                                    utils.shareToEmail(recipient, link)
+                                    utils.shareToSms(recipient, link, txUsdValue)
                                 }}
                             >
                                 Share via SMS

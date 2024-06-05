@@ -15,7 +15,12 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
 
-export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _consts.ICreateScreenProps) => {
+export const CreateLinkInitialView = ({
+    onNext,
+    setCreateType,
+    setRecipient,
+    recentRecipients,
+}: _consts.ICreateScreenProps) => {
     const [inputValue, setInputValue] = useState('')
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -24,8 +29,6 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
 
     const handleInputValidation = async (value: string) => {
-        const phoneNumber = parsePhoneNumberFromString(value)
-
         //email check
         if (validator.isEmail(value)) {
             return 'email_link'
@@ -78,12 +81,14 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
         }
     }
 
-    const handleOnNext = async () => {
+    const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
         try {
             let type: string | undefined = undefined
-            if (inputValue) {
+            if (inputValue.length > 0) {
                 type = await handleInputValidation(inputValue)
+            } else if (_inputValue) {
+                type = await handleInputValidation(_inputValue)
             }
 
             if (!type) {
@@ -119,7 +124,11 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
                             return
                         }
                     } else {
-                        setRecipient(inputValue)
+                        if (inputValue.length > 0) {
+                            setRecipient(inputValue)
+                        } else if (_inputValue) {
+                            setRecipient(_inputValue)
+                        }
                     }
                     setLoadingState('Idle')
                     break
@@ -177,7 +186,7 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
                     }}
                 />
             </div>
-            {inputValue.length > 0 && (
+            {inputValue.length > 0 ? (
                 <div className="flex w-full flex-col items-start  justify-center gap-2">
                     <label className="text-h7 font-bold text-gray-2">Search results</label>
                     <div
@@ -194,23 +203,59 @@ export const CreateLinkInitialView = ({ onNext, setCreateType, setRecipient }: _
                         </div>
                         {isLoading && <Loading />}
                     </div>
-                    {errorState.showError && (
-                        <>
-                            <div className="w-full text-center">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                            </div>
-                            {errorState.errorMessage.includes('We currently dont support ') && (
-                                <a
-                                    href={'https://peanut.to/pioneers'}
-                                    target={'_blank'}
-                                    className="btn btn-purple h-8 w-full cursor-pointer px-2"
-                                >
-                                    Reach out!
-                                </a>
-                            )}
-                        </>
-                    )}
                 </div>
+            ) : recentRecipients.length > 0 ? (
+                <div className="flex w-full flex-col items-start  justify-center gap-2">
+                    <label className="text-h7 font-bold text-gray-2">Recents</label>
+                    {recentRecipients.map((recipient) => (
+                        <div
+                            key={recipient.address}
+                            className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
+                            onClick={() => {
+                                handleOnNext(recipient.address)
+                            }}
+                        >
+                            <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                                <div className="rounded-full border border-n-1">
+                                    <Icon name="profile" className="h-6 w-6" />
+                                </div>
+                                <div className="truncate">{recipient.address}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <div className="flex w-full flex-col items-start  justify-center gap-2">
+                    <label className="text-h7 font-bold text-gray-2">Recents</label>
+                    {[0, 1, 2].map((idx) => (
+                        <div
+                            key={idx}
+                            className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
+                        >
+                            <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                                <div className="h-6 w-6 animate-pulse rounded-full bg-slate-700" />
+
+                                <div className="h-6 w-24 animate-pulse rounded-full bg-slate-700" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+            {errorState.showError && (
+                <>
+                    <div className="w-full text-center">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    </div>
+                    {errorState.errorMessage.includes('We currently dont support ') && (
+                        <a
+                            href={'https://peanut.to/pioneers'}
+                            target={'_blank'}
+                            className="btn btn-purple h-8 w-full cursor-pointer px-2"
+                        >
+                            Reach out!
+                        </a>
+                    )}
+                </>
             )}
         </div>
     )

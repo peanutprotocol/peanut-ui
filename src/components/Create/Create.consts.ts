@@ -56,6 +56,18 @@ export interface ICreateScreenProps {
     setCreateType: (type: CreateType) => void
     recipient: string
     setRecipient: (address: string) => void
+    recentRecipients: {
+        address: string
+        count: any
+        mostRecentInteraction: any
+    }[]
+    setRecentRecipients: (
+        recipients: {
+            address: string
+            count: any
+            mostRecentInteraction: any
+        }[]
+    ) => void
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'INPUT', 'CONFIRM', 'SUCCESS']
