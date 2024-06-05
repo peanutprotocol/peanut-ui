@@ -138,7 +138,7 @@ export const CreateLinkSuccessView = ({
             {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">
                 {createType === 'direct'
-                    ? `You have successfully sent the funds to ${recipient.endsWith('.eth') ? recipient : utils.shortenAddressLong(recipient)}.`
+                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}.`
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
             {link && (
@@ -148,7 +148,7 @@ export const CreateLinkSuccessView = ({
                             <button
                                 className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
                                 onClick={() => {
-                                    utils.shareToEmail(recipient, link, txUsdValue)
+                                    utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
                                 }}
                             >
                                 Share via email
@@ -161,7 +161,7 @@ export const CreateLinkSuccessView = ({
                             <button
                                 className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
                                 onClick={() => {
-                                    utils.shareToSms(recipient, link, txUsdValue)
+                                    utils.shareToSms(recipient.name ?? '', link, txUsdValue)
                                 }}
                             >
                                 Share via SMS

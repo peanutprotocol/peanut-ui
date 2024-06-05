@@ -54,8 +54,8 @@ export interface ICreateScreenProps {
     setAttachmentOptions: (options: IAttachmentOptions) => void
     createType: CreateType
     setCreateType: (type: CreateType) => void
-    recipient: string
-    setRecipient: (address: string) => void
+    recipient: { address: string | undefined; name: string | undefined }
+    setRecipient: (recipient: { address: string | undefined; name: string | undefined }) => void
     recentRecipients: {
         address: string
         count: any

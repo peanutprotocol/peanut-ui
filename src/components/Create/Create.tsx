@@ -38,7 +38,10 @@ export const Create = () => {
     })
 
     const [createType, setCreateType] = useState<_consts.CreateType>(undefined)
-    const [recipient, setRecipient] = useState<string>('')
+    const [recipient, setRecipient] = useState<{ address: string | undefined; name: string | undefined }>({
+        address: undefined,
+        name: undefined,
+    })
 
     const [recentRecipients, setRecentRecipients] = useState<
         {

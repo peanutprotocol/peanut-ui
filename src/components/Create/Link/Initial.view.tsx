@@ -98,23 +98,22 @@ export const CreateLinkInitialView = ({
                 setErrorState({ showError: false, errorMessage: '' })
             }
 
-            setRecipient(inputValue)
             switch (type) {
                 case 'email_link':
                     setCreateType('email_link')
-                    setRecipient(inputValue)
+                    setRecipient({ name: inputValue, address: undefined })
                     setLoadingState('Idle')
                     break
                 case 'sms_link':
                     setCreateType('sms_link')
-                    setRecipient(inputValue)
+                    setRecipient({ name: inputValue, address: undefined })
                     setLoadingState('Idle')
                     break
                 case 'direct':
                     setCreateType('direct')
                     if (inputValue.endsWith('.eth')) {
                         const _address = await utils.resolveFromEnsName(inputValue)
-                        if (_address) setRecipient(_address)
+                        if (_address) setRecipient({ name: inputValue, address: _address })
                         else {
                             setErrorState({
                                 showError: true,
@@ -125,9 +124,9 @@ export const CreateLinkInitialView = ({
                         }
                     } else {
                         if (inputValue.length > 0) {
-                            setRecipient(inputValue)
+                            setRecipient({ name: undefined, address: inputValue })
                         } else if (_inputValue) {
-                            setRecipient(_inputValue)
+                            setRecipient({ name: undefined, address: _inputValue })
                         }
                     }
                     setLoadingState('Idle')

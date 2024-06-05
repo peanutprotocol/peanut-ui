@@ -141,8 +141,8 @@ export const CreateLinkConfirmView = ({
                     } else value = undefined
                 } else value = tokenValue
 
-                if (createType === 'email_link') utils.shareToEmail(recipient, link[0], value)
-                if (createType === 'sms_link') utils.shareToSms(recipient, link[0], value)
+                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], value)
+                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], value)
             }
 
             utils.updatePeanutPreferences({
@@ -168,18 +168,18 @@ export const CreateLinkConfirmView = ({
                 {createType == 'link'
                     ? 'Send crypto via link'
                     : createType == 'direct'
-                      ? `Send to ${recipient.endsWith('.eth') ? recipient : utils.shortenAddressLong(recipient)}`
-                      : `Send to ${recipient}`}
+                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
+                      : `Send to ${recipient.name}`}
             </label>
             <label className="max-w-96 text-start text-h8 font-light">
                 {createType === 'link' &&
                     'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                 {createType === 'email_link' &&
-                    `You will send an email to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                    `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
                 {createType === 'sms_link' &&
-                    `You will send a text message to ${recipient} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                    `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
                 {createType === 'direct' &&
-                    `You will do a direct blockchain transaction to ${recipient}. Ensure the recipient address is correct, else the funds might be lost.`}
+                    `You will do a direct blockchain transaction to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
             </label>
             <ConfirmDetails
                 selectedChainID={selectedChainID}
