@@ -25,7 +25,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                         <Menu.Item
                             as={'button'}
                             onClick={() => {
-                                router.push(`/${item.link.split('://')[1].split('/')[1]}`)
+                                router.push(`/${item.link ?? ''.split('://')[1].split('/')[1]}`)
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                         >
@@ -35,7 +35,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                     <Menu.Item
                         as={'button'}
                         onClick={() => {
-                            utils.copyTextToClipboardWithFallback(item.link)
+                            utils.copyTextToClipboardWithFallback(item.link ?? '')
                         }}
                         className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                     >

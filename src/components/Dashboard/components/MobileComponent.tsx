@@ -18,7 +18,7 @@ export const MobileItemComponent = ({
     return (
         <div
             className=" flex flex w-full flex-col gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
-            key={linkDetail.link + Math.random()}
+            key={linkDetail?.link ?? linkDetail.txHash ?? '' + Math.random()}
             onClick={() => setModalVisible(true)}
         >
             <div className="flex w-full flex-row items-center justify-between">
@@ -69,7 +69,9 @@ export const MobileItemComponent = ({
                         <div
                             className="text-h8"
                             onClick={() => {
-                                router.push(`/${linkDetail.link.split('://')[1].split('/')[1]}`)
+                                router.push(
+                                    `/${linkDetail?.link ?? linkDetail.txHash ?? ''.split('://')[1].split('/')[1]}`
+                                )
                             }}
                         >
                             Refund
@@ -78,7 +80,7 @@ export const MobileItemComponent = ({
                 )}
                 <div
                     onClick={() => {
-                        utils.copyTextToClipboardWithFallback(linkDetail.link)
+                        utils.copyTextToClipboardWithFallback(linkDetail?.link ?? linkDetail.txHash ?? '')
                     }}
                     className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                 >
