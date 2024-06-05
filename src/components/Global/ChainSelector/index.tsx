@@ -89,7 +89,7 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
                                     placeholder="Search by chain name"
                                     value={filterValue}
                                     onChange={(e: any) => setFilterValue(e.target.value)}
-                                    onSubmit={() => console.log('Submit')}
+                                    onSubmit={() => {}}
                                     medium
                                 />
                             </div>

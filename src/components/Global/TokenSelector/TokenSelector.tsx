@@ -138,8 +138,12 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                             Create or Connect wallet
                         </button>
                         <div className="flex w-full flex-col gap-2 text-center text-h8 font-normal">
-                            We support 30+ chains and a 1000+ tokens.
-                            <a href="https://docs.peanut.to" target="_blank" className="underline">
+                            We support 30+ chains and 1000+ tokens.
+                            <a
+                                href="https://docs.peanut.to/learn/supported-chains-and-tokens"
+                                target="_blank"
+                                className="underline"
+                            >
                                 See the full list
                             </a>
                         </div>
@@ -241,7 +245,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                 placeholder="Search by token name"
                                 value={filterValue}
                                 onChange={(e: any) => setFilterValue(e.target.value)}
-                                onSubmit={() => console.log('Submit')}
+                                onSubmit={() => {}}
                                 medium
                                 border
                             />

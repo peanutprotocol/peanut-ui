@@ -135,7 +135,6 @@ export const useClaimLink = () => {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
-            console.log(data.points)
             return Math.round(data.points)
         } catch (error) {
             console.error('Failed to estimate points:', error)
@@ -162,7 +161,6 @@ export const useClaimLink = () => {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
             const data = await response.json()
-            console.log(data)
 
             return {
                 fileUrl: data.linkInfo.file_url,

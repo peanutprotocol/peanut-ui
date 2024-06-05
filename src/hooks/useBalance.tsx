@@ -101,13 +101,17 @@ export const useBalance = () => {
                     if (apiResponse.ok) {
                         const apiResponseJson = await apiResponse.json()
 
-                        console.log(apiResponseJson.balances)
-
                         userBalances = convertToUserBalances(
                             apiResponseJson.balances.filter((balance: any) => balance.value > 0.009)
                         )
                             .map((balance) =>
-                                balance.chainId === '8508132' ? { ...balance, chainId: '534352' } : balance
+                                balance.chainId === '8508132'
+                                    ? { ...balance, chainId: '534352' }
+                                    : balance.chainId === '81032'
+                                      ? { ...balance, chainId: '81457' }
+                                      : balance.chainId === '59160'
+                                        ? { ...balance, chainId: '59144' }
+                                        : balance
                             )
                             .sort((a, b) => {
                                 const valueA = parseFloat(a.value)
@@ -124,8 +128,6 @@ export const useBalance = () => {
                                     return valueB - valueA
                                 }
                             })
-
-                        console.log(userBalances)
 
                         const valuePerChain = calculateValuePerChain(apiResponseJson.balances)
                         setValuePerChain(valuePerChain)
