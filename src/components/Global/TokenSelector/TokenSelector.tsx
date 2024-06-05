@@ -151,7 +151,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                 ) : !showFallback ? (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
                         {/* <label className="text-center text-h5">Select a token to send</label> */}
-                        <div className="max-h-64 w-full overflow-auto">
+                        <div className="h-full max-h-96 min-h-64 w-full overflow-auto">
                             <table className="w-full divide-y divide-black">
                                 <tbody className="divide-y divide-black bg-white">
                                     {balances.length === 0
@@ -174,7 +174,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                         : balances.map((balance, idx) => (
                                               <tr
                                                   key={idx}
-                                                  className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 `}
+                                                  className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
                                                   onClick={() => {
                                                       setSelectedChainID(balance.chainId)
                                                       setToken(balance.address)
@@ -235,7 +235,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                         >
                             Explore & buy more tokens
                         </button>
-                    </div>
+                    </div> // TODO: create components out of this
                 ) : (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
                         <div className="flex w-full flex-row gap-4">

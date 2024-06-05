@@ -113,17 +113,18 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
 }
 
 export interface IDashboardItem {
-    link: string
-    type: 'send' | 'receive'
+    link: string | undefined
+    type: 'send' | 'receive' | 'transfer'
     amount: string
     tokenSymbol: string
     date: string
     chain: string
     address: string | undefined
-    status: 'claimed' | 'pending' | undefined
+    status: 'claimed' | 'pending' | 'transfer' | undefined
     message: string | undefined
     attachmentUrl: string | undefined
     points: number
+    txHash: string | undefined
 }
 
 export interface IExtendedLinkDetails extends ILinkDetails {
@@ -137,4 +138,13 @@ export interface IExtendedLinkDetails extends ILinkDetails {
 export type ChainValue = {
     chainId: string
     valuePerChain: number
+}
+
+export interface IDirectSendDetails {
+    chainId: string
+    tokenAmount: string
+    tokenAddress: string
+    date: string
+    points: number
+    txHash: string
 }

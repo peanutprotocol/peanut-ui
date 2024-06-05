@@ -31,6 +31,8 @@ export const CreateLinkConfirmView = ({
     feeOptions,
     estimatedPoints,
     attachmentOptions,
+    createType,
+    recipient,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
 
@@ -65,16 +67,20 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            const fileUrl = await submitLinkAttachmentInit({
-                password: password ?? '',
-                attachmentOptions: {
-                    attachmentFile: attachmentOptions.rawFile,
-                    message: attachmentOptions.message,
-                },
-            })
+            let fileUrl
+            if (createType != 'direct') {
+                fileUrl = await submitLinkAttachmentInit({
+                    password: password ?? '',
+                    attachmentOptions: {
+                        attachmentFile: attachmentOptions.rawFile,
+                        message: attachmentOptions.message,
+                    },
+                })
+            }
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
+                console.log(preparedDepositTxs)
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {
@@ -90,35 +96,59 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            const link = await getLinkFromHash({ hash, linkDetails, password })
+            if (createType === 'direct') {
+                utils.saveDirectSendToLocalStorage({
+                    address: address ?? '',
+                    data: {
+                        chainId: selectedChainID,
+                        tokenAddress: selectedTokenAddress,
+                        tokenAmount: tokenValue ?? '0',
+                        date: new Date().toISOString(),
+                        points: estimatedPoints ?? 0,
+                        txHash: hash,
+                    },
+                })
+            } else {
+                const link = await getLinkFromHash({ hash, linkDetails, password })
 
-            await submitLinkAttachmentConfirm({
-                chainId: selectedChainID,
-                link: link[0],
-                password: password ?? '',
-                txHash: hash,
-            })
-
-            utils.saveCreatedLinkToLocalStorage({
-                address: address ?? '',
-                data: {
+                await submitLinkAttachmentConfirm({
+                    chainId: selectedChainID,
                     link: link[0],
-                    depositDate: new Date().toISOString(),
-                    USDTokenPrice: selectedTokenPrice ?? 0,
-                    points: estimatedPoints ?? 0,
+                    password: password ?? '',
                     txHash: hash,
-                    message: attachmentOptions.message ?? '',
-                    attachmentUrl: fileUrl,
-                    ...linkDetails,
-                },
-            })
+                })
+
+                utils.saveCreatedLinkToLocalStorage({
+                    address: address ?? '',
+                    data: {
+                        link: link[0],
+                        depositDate: new Date().toISOString(),
+                        USDTokenPrice: selectedTokenPrice ?? 0,
+                        points: estimatedPoints ?? 0,
+                        txHash: hash,
+                        message: attachmentOptions.message ?? '',
+                        attachmentUrl: fileUrl,
+                        ...linkDetails,
+                    },
+                })
+
+                setLink(link[0])
+                console.log(link)
+                let value
+                if (inputDenomination == 'TOKEN') {
+                    if (selectedTokenPrice && tokenValue) {
+                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                    } else value = undefined
+                } else value = tokenValue
+
+                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], value)
+                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], value)
+            }
+
             utils.updatePeanutPreferences({
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-
-            setLink(link[0])
-            console.log(link)
 
             onNext()
         } catch (error) {
@@ -134,10 +164,22 @@ export const CreateLinkConfirmView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto via link</label>
+            <label className="text-h2">
+                {createType == 'link'
+                    ? 'Send crypto via link'
+                    : createType == 'direct'
+                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
+                      : `Send to ${recipient.name}`}
+            </label>
             <label className="max-w-96 text-start text-h8 font-light">
-                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
-                be able to claim the funds in any token on any chain from the link.
+                {createType === 'link' &&
+                    'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
+                {createType === 'email_link' &&
+                    `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                {createType === 'sms_link' &&
+                    `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                {createType === 'direct' &&
+                    `You will do a direct blockchain transaction to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
             </label>
             <ConfirmDetails
                 selectedChainID={selectedChainID}
@@ -193,41 +235,26 @@ export const CreateLinkConfirmView = ({
                         )}
                     </div>
                 )}
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'gas'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Network cost</label>
+                {transactionCostUSD && (
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="flex w-max flex-row items-center justify-center gap-1">
+                            <Icon name={'gas'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Network cost</label>
+                        </div>
+                        <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            {transactionCostUSD < 0.01
+                                ? '$<0.01'
+                                : `$${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
+                            <MoreInfo
+                                text={
+                                    transactionCostUSD
+                                        ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
+                                        : 'This transaction is sponsored by peanut! Enjoy!'
+                                }
+                            />
+                        </label>
                     </div>
-                    <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        ${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}
-                        <MoreInfo
-                            text={
-                                transactionCostUSD
-                                    ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                    : 'This transaction is sponsored by peanut! Enjoy!'
-                            }
-                        />
-                    </label>
-                </div>
-
-                {/* <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Points</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        +{estimatedPoints ?? 0}{' '}
-                        <MoreInfo
-                            text={
-                                estimatedPoints
-                                    ? estimatedPoints > 0
-                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                        : 'This transaction will not add any points to your total points balance'
-                                    : 'This transaction will not add any points to your total points balance'
-                            }
-                        />
-                    </span>
-                </div> */}
+                )}
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max  flex-row items-center justify-center gap-1">
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />

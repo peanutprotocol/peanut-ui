@@ -1,209 +1,266 @@
 'use client'
 
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useState, useEffect, useContext } from 'react'
-import { useCreateLink } from '../useCreateLink'
+import { useContext, useEffect, useState } from 'react'
+import validator from 'validator'
+import { parsePhoneNumberFromString } from 'libphonenumber-js'
 
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
-import * as context from '@/context'
 import * as utils from '@/utils'
+import * as context from '@/context'
+import RecipientInput from '@/components/Global/RecipientInput'
+import Icon from '@/components/Global/Icon'
+import { errors, ethers } from 'ethers'
+import peanut from '@squirrel-labs/peanut-sdk'
 import Loading from '@/components/Global/Loading'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import { validate } from 'multicoin-address-validator'
+import { useAccount } from 'wagmi'
+
 export const CreateLinkInitialView = ({
     onNext,
-    tokenValue,
-    setTokenValue,
-    setLinkDetails,
-    setPassword,
-    setGaslessPayload,
-    setGaslessPayloadMessage,
-    setPreparedDepositTxs,
-    setTransactionType,
-    setTransactionCostUSD,
-    setFeeOptions,
-    setEstimatedPoints,
-    attachmentOptions,
-    setAttachmentOptions,
+    setCreateType,
+    setRecipient,
+    recentRecipients,
 }: _consts.ICreateScreenProps) => {
-    const {
-        generateLinkDetails,
-        assertValues,
-        generatePassword,
-        makeGaslessDepositPayload,
-        prepareDepositTxs,
-        switchNetwork,
-        estimateGasFee,
-        estimatePoints,
-    } = useCreateLink()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
-
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [inputValue, setInputValue] = useState('')
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { isConnected } = useAccount()
 
-    const { isConnected, address } = useAccount()
-    const { open } = useWeb3Modal()
-
-    const handleConnectWallet = async () => {
-        open()
-    }
-
-    const handleOnNext = async () => {
-        try {
-            console.log('handleOnNext')
-            if (isLoading || (isConnected && !tokenValue)) return
-
-            setLoadingState('Loading')
-
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-
-            let value: string = tokenValue ?? ''
-            if (inputDenomination === 'USD' && tokenValue && selectedTokenPrice) {
-                value = _utils
-                    .convertUSDTokenValue({
-                        tokenPrice: selectedTokenPrice,
-                        tokenValue: Number(tokenValue),
-                    })
-                    .toString()
-            }
-            setLoadingState('Asserting values')
-            await assertValues({ tokenValue: value })
-            setLoadingState('Generating details')
-            const linkDetails = generateLinkDetails({
-                tokenValue: value,
-            })
-            setLinkDetails(linkDetails)
-            const password = await generatePassword()
-            setPassword(password)
-
-            setLoadingState('Preparing transaction')
-            if (
-                _utils.isGaslessDepositPossible({
-                    chainId: selectedChainID,
-                    tokenAddress: selectedTokenAddress,
-                })
-            ) {
-                console.log('gasless possible, creating gassles payload')
-                setTransactionType('gasless')
-
-                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-
-                if (
-                    !makeGaslessDepositResponse ||
-                    !makeGaslessDepositResponse.payload ||
-                    !makeGaslessDepositResponse.message
-                )
-                    return
-                setGaslessPayload(makeGaslessDepositResponse.payload)
-                setGaslessPayloadMessage(makeGaslessDepositResponse.message)
-
-                setFeeOptions(undefined)
-                setTransactionCostUSD(undefined)
-            } else {
-                console.log('gasless not possible, creating normal payload')
-                setTransactionType('not-gasless')
-
-                const prepareDepositTxsResponse = await prepareDepositTxs({
-                    _linkDetails: linkDetails,
-                    _password: password,
-                })
-                setPreparedDepositTxs(prepareDepositTxsResponse)
-
-                try {
-                    const { feeOptions, transactionCostUSD } = await estimateGasFee({
-                        chainId: selectedChainID,
-                        preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
-                    })
-
-                    const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
-                    const estimatedPoints = await estimatePoints({
-                        chainId: selectedChainID,
-                        address: address ?? '',
-                        amountUSD: USDValue,
-                        preparedTx:
-                            prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
-                    })
-
-                    if (estimatedPoints) setEstimatedPoints(estimatedPoints)
-
-                    setFeeOptions(feeOptions)
-                    setTransactionCostUSD(transactionCostUSD)
-                } catch (error) {
-                    setFeeOptions(undefined)
-                    setTransactionCostUSD(undefined)
-                }
-            }
-
-            await switchNetwork(selectedChainID)
-
-            onNext()
-        } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+    const handleInputValidation = async (value: string) => {
+        //email check
+        if (validator.isEmail(value)) {
+            return 'email_link'
+        }
+        //phone number check
+        else if (utils.isNumeric(value) && value.length > 4) {
+            return 'sms_link'
+        } //TODO: Add more validation checks for normal numbers without country code
+        //address check
+        else if (ethers.utils.isAddress(value)) {
+            return 'direct'
+        }
+        //ENS check
+        else if (value.endsWith('.eth')) {
+            return 'direct'
+        } else if (validate(value, 'sol')) {
             setErrorState({
                 showError: true,
-                errorMessage: errorString,
+                errorMessage: 'We currently dont support Solana. Reach out if you would like us to add support!',
             })
-        } finally {
+            return undefined
+        } else if (validate(value, 'btc')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Bitcoin. Reach out if you would like us to add support!',
+            })
+
+            return undefined
+        } else if (validate(value, 'ltc')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Litecoin. Reach out if you would like us to add support!',
+            })
+
+            return undefined
+        } else if (validate(value, 'trx')) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'We currently dont support Tron. Reach out if you would like us to add support!',
+            })
+
+            return undefined
+        } else {
+            setErrorState({
+                showError: true,
+                errorMessage:
+                    'Invalid recipient. You can send to an ENS name, wallet address, phone number or email address.',
+            })
+            return undefined
+        }
+    }
+
+    const handleOnNext = async (_inputValue?: string) => {
+        setLoadingState('Loading')
+        try {
+            let type: string | undefined = undefined
+            if (inputValue.length > 0) {
+                type = await handleInputValidation(inputValue)
+            } else if (_inputValue) {
+                type = await handleInputValidation(_inputValue)
+            }
+
+            if (!type) {
+                setLoadingState('Idle')
+                return
+            } else {
+                setErrorState({ showError: false, errorMessage: '' })
+            }
+
+            switch (type) {
+                case 'email_link':
+                    setCreateType('email_link')
+                    setRecipient({ name: inputValue, address: undefined })
+                    setLoadingState('Idle')
+                    break
+                case 'sms_link':
+                    setCreateType('sms_link')
+                    setRecipient({ name: inputValue, address: undefined })
+                    setLoadingState('Idle')
+                    break
+                case 'direct':
+                    setCreateType('direct')
+                    if (inputValue.endsWith('.eth')) {
+                        const _address = await utils.resolveFromEnsName(inputValue)
+                        if (_address) setRecipient({ name: inputValue, address: _address })
+                        else {
+                            setErrorState({
+                                showError: true,
+                                errorMessage: 'Please enter a valid address or ENS name.',
+                            })
+                            setLoadingState('Idle')
+                            return
+                        }
+                    } else {
+                        if (inputValue.length > 0) {
+                            setRecipient({ name: undefined, address: inputValue })
+                        } else if (_inputValue) {
+                            setRecipient({ name: undefined, address: _inputValue })
+                        }
+                    }
+                    setLoadingState('Idle')
+                    break
+            }
+            onNext()
+        } catch (error) {
             setLoadingState('Idle')
         }
     }
 
+    useEffect(() => {
+        setErrorState({ showError: false, errorMessage: '' })
+    }, [inputValue])
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto via link</label>
+            <label className="text-h2">Send crypto</label>
+            {/* <button
+                onClick={() => {
+                    utils.shareToSms('+32475385638', 'link')
+                }}
+                className="btn h-max w-full cursor-pointer py-1 text-h1"
+            >
+                test sms
+            </button>
+            <button
+                onClick={() => {
+                    utils.shareToEmail('borcherd@me.com', 'link')
+                }}
+                className="btn h-max w-full cursor-pointer py-1 text-h1"
+            >
+                test email
+            </button> */}
+
             <label className="max-w-96 text-start text-h8 font-light">
-                Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will
-                be able to claim the funds in any token on any chain from the link.
+                Transfer tokens via link or to an email, phone number, ENS, or wallet address.
             </label>
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-                <TokenAmountInput
-                    className="w-full"
-                    tokenValue={tokenValue}
-                    setTokenValue={setTokenValue}
-                    onSubmit={handleOnNext}
-                />
-                <TokenSelector classNameButton="w-full" />
-                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
-            </div>
-            <div className="flex w-full flex-col items-center justify-center gap-3">
+            <div className="flex w-full  flex-col items-center justify-center gap-2">
                 <button
-                    className="wc-disable-mf btn-purple btn-xl "
                     onClick={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
+                        setCreateType('link')
+                        onNext()
                     }}
-                    disabled={isLoading || (isConnected && !tokenValue)}
+                    className="btn btn-purple h-10 w-full px-2 text-lg "
                 >
-                    {!isConnected ? (
-                        'Connect Wallet'
-                    ) : isLoading ? (
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {loadingState}
-                        </div>
-                    ) : (
-                        'Confirm'
-                    )}
+                    Send via link
                 </button>
-                {errorState.showError && (
-                    <div className="text-center">
+                or
+                <RecipientInput
+                    placeholder="Email / Phone / ENS / wallet address"
+                    value={inputValue}
+                    setValue={setInputValue}
+                    onEnter={() => {
+                        if (inputValue.length > 0) handleOnNext()
+                    }}
+                />
+            </div>
+            {inputValue.length > 0 ? (
+                <div className="flex w-full flex-col items-start  justify-center gap-2">
+                    <label className="text-h7 font-bold text-gray-2">Search results</label>
+                    <div
+                        className="flex w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2"
+                        onClick={() => {
+                            handleOnNext()
+                        }}
+                    >
+                        <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                            <div className="rounded-full border border-n-1">
+                                <Icon name="profile" className="h-6 w-6" />
+                            </div>
+                            <div className="truncate">{inputValue}</div>
+                        </div>
+                        {isLoading && <Loading />}
+                    </div>
+                </div>
+            ) : (
+                isConnected &&
+                (recentRecipients.length > 0 ? (
+                    <div className="flex w-full flex-col items-start  justify-center gap-2">
+                        <label className="text-h7 font-bold text-gray-2">Recents</label>
+                        {recentRecipients.map((recipient) => (
+                            <div
+                                key={recipient.address}
+                                className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
+                                onClick={() => {
+                                    handleOnNext(recipient.address)
+                                }}
+                            >
+                                <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                                    <div className="rounded-full border border-n-1">
+                                        <Icon name="profile" className="h-6 w-6" />
+                                    </div>
+                                    <div className="truncate">{recipient.address}</div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex w-full flex-col items-start  justify-center gap-2">
+                        <label className="text-h7 font-bold text-gray-2">Recents</label>
+                        {[0, 1, 2].map((idx) => (
+                            <div
+                                key={idx}
+                                className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
+                            >
+                                <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                                    <div className="h-6 w-6 animate-pulse rounded-full bg-slate-700" />
+
+                                    <div className="h-6 w-24 animate-pulse rounded-full bg-slate-700" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ))
+            )}
+            {errorState.showError && (
+                <>
+                    <div className="w-full text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
-                )}
-            </div>
+                    {errorState.errorMessage.includes('We currently dont support ') && (
+                        <a
+                            href={'https://peanut.to/pioneers'}
+                            target={'_blank'}
+                            className="btn btn-purple h-8 w-full cursor-pointer px-2"
+                        >
+                            Reach out!
+                        </a>
+                    )}
+                </>
+            )}
         </div>
     )
 }

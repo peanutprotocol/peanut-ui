@@ -6,7 +6,14 @@ import peanut, {
     getRawParamsFromLink,
     interfaces as peanutInterfaces,
 } from '@squirrel-labs/peanut-sdk'
-import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
+import {
+    useAccount,
+    useSendTransaction,
+    useSignTypedData,
+    useSwitchChain,
+    useConfig,
+    usePrepareTransactionRequest,
+} from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import { useBalance } from '@/hooks/useBalance'
@@ -14,7 +21,7 @@ import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as _utils from './Create.utils'
-import { ethers } from 'ethers'
+import { BigNumber, ethers } from 'ethers'
 
 interface IAssertValuesProps {
     tokenValue: string | undefined
@@ -335,6 +342,42 @@ export const useCreateLink = () => {
         }
     }
 
+    const prepareDirectSendTx = ({
+        recipient,
+        tokenValue,
+        tokenAddress,
+        tokenDecimals,
+    }: {
+        recipient: string
+        tokenValue: string
+        tokenAddress: string
+        tokenDecimals: number
+    }) => {
+        let transactionRequest
+
+        if (!utils.isNativeCurrency(tokenAddress)) {
+            // ERC20 Token transfer
+            const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
+            const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
+            const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
+
+            transactionRequest = {
+                to: tokenAddress,
+                data,
+                value: BigInt(0), // Convert to BigInt
+            }
+        } else {
+            // Native token transfer
+            const amount = ethers.utils.parseEther(tokenValue).toBigInt() // Convert to BigInt
+            transactionRequest = {
+                to: recipient,
+                value: amount,
+            }
+        }
+
+        return transactionRequest
+    }
+
     // step 2
     const signTypedData = async ({ gaslessMessage }: { gaslessMessage: peanutInterfaces.IPreparedEIP712Message }) => {
         try {
@@ -403,6 +446,7 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
+                    console.log(tx.value)
 
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({
@@ -514,5 +558,6 @@ export const useCreateLink = () => {
         estimatePoints,
         submitLinkAttachmentInit,
         submitLinkAttachmentConfirm,
+        prepareDirectSendTx,
     }
 }

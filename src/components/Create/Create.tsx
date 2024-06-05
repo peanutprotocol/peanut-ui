@@ -5,6 +5,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
 import * as context from '@/context'
+import * as utils from '@/utils'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 
@@ -36,6 +37,20 @@ export const Create = () => {
         rawFile: undefined,
     })
 
+    const [createType, setCreateType] = useState<_consts.CreateType>(undefined)
+    const [recipient, setRecipient] = useState<{ address: string | undefined; name: string | undefined }>({
+        address: undefined,
+        name: undefined,
+    })
+
+    const [recentRecipients, setRecentRecipients] = useState<
+        {
+            address: string
+            count: any
+            mostRecentInteraction: any
+        }[]
+    >([])
+
     const { setAccount } = useWeb3InboxAccount()
     const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
@@ -60,6 +75,21 @@ export const Create = () => {
         }))
     }
 
+    const fetchRecentTransactions = async () => {
+        const response = await fetch('/api/recent-transactions', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                address: address,
+            }),
+        })
+        const data = await response.json()
+        const recentRanked = (await utils.rankAddressesByInteractions(data.data.portfolios)).slice(0, 3)
+        setRecentRecipients(recentRanked)
+    }
+
     useEffect(() => {
         if (!Boolean(address)) return
         if (w3iClientIsLoading) return
@@ -75,6 +105,14 @@ export const Create = () => {
     useEffect(() => {
         resetTokenContextProvider()
     }, [])
+
+    useEffect(() => {
+        if (address) {
+            fetchRecentTransactions()
+        } else {
+            setRecentRecipients([])
+        }
+    }, [address])
 
     return (
         <div className="card">
@@ -107,6 +145,11 @@ export const Create = () => {
                 setEstimatedPoints,
                 attachmentOptions,
                 setAttachmentOptions,
+                createType,
+                setCreateType,
+                recipient,
+                setRecipient,
+                recentRecipients,
             } as _consts.ICreateScreenProps)}
         </div>
     )

@@ -460,50 +460,67 @@ export const getCreatedLinksFromLocalStorage = ({ address = undefined }: { addre
     }
 }
 
-export const updateCreatedLinksFromLocalStorage = ({
+export const saveDirectSendToLocalStorage = ({
     address,
     data,
 }: {
     address: string
-    data: interfaces.IExtendedPeanutLinkDetails[]
+    data: interfaces.IDirectSendDetails
 }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const key = `${address} - created links`
-
-        localStorage.setItem(key, JSON.stringify(data))
-
-        console.log('Updated created links in localStorage:', data)
-    } catch (error) {
-        console.error('Error updating data in localStorage:', error)
-    }
-}
-
-export const addClaimLinkToLocalstorage = ({
-    address,
-    linkDetails,
-}: {
-    address: string
-    linkDetails: interfaces.ILinkDetails
-}) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `${address} - claimed links`
+        const key = `${address} - direct sends`
 
         const storedData = localStorage.getItem(key)
 
-        let data: interfaces.ILinkDetails[] = []
+        let dataArr: interfaces.IDirectSendDetails[] = []
         if (storedData) {
-            data = JSON.parse(storedData) as interfaces.ILinkDetails[]
+            dataArr = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
         }
 
-        data.push(linkDetails)
+        dataArr.push(data)
 
-        localStorage.setItem(key, JSON.stringify(data))
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved direct send to localStorage:', data)
     } catch (error) {
         console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getDirectSendFromLocalStorage = ({ address = undefined }: { address?: string }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        let storedData
+        if (address) {
+            const key = `${address} - direct sends`
+            storedData = localStorage.getItem(key)
+        } else {
+            const partialKey = 'direct sends'
+            const matchingItems = []
+
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i)
+                if (key && key.includes(partialKey)) {
+                    const item = localStorage.getItem(key)
+                    if (!item) break
+                    const value = JSON.parse(item)
+                    matchingItems.push(...value)
+                }
+            }
+            storedData = JSON.stringify(matchingItems)
+        }
+
+        let data: interfaces.IDirectSendDetails[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
     }
 }
 
@@ -607,4 +624,73 @@ export const getExplorerUrl = (chainId: string) => {
     } else {
         return explorers?.[0].url
     }
+}
+
+export const shareToEmail = (email: string, link: string, usdAmount?: string) => {
+    if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
+    const encodedSubject = encodeURIComponent('Money inside!')
+    const encodedBody = encodeURIComponent(
+        usdAmount
+            ? `You have received $${usdAmount}! Click the link to claim: ${link}`
+            : `You received money! Click the link to claim: ${link}`
+    )
+    const mailtoUrl = `mailto:${email}?subject=${encodedSubject}&body=${encodedBody}`
+    if (typeof window !== 'undefined') {
+        window.location.href = mailtoUrl
+    }
+}
+export const shareToSms = (phone: string, link: string, usdAmount?: string) => {
+    if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
+    const message = encodeURIComponent(
+        usdAmount
+            ? `You have received $${usdAmount}! Click the link to claim: ${link}`
+            : `You received money! Click the link to claim: ${link}`
+    )
+    const sms = `sms:${phone}?body=${message}`
+    if (typeof window !== 'undefined') {
+        window.location.href = sms
+    }
+}
+
+export function isNumeric(input: string): boolean {
+    const numericRegex = /^[0-9]+$/
+    return numericRegex.test(input)
+}
+
+interface TransferDetails {
+    id: string
+    timestamp: string
+    chain: string
+    details: any
+}
+
+interface Portfolio {
+    id: string
+    ownerAddress: string
+    assetActivities: TransferDetails[]
+}
+
+export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
+    const addressInteractions: any = {}
+
+    portfolios.forEach((portfolio) => {
+        portfolio.assetActivities.forEach((activity) => {
+            const { to, from, type } = activity.details
+            const { timestamp } = activity
+
+            if (!addressInteractions[to]) {
+                addressInteractions[to] = { count: 0, mostRecentInteraction: timestamp }
+            }
+            addressInteractions[to].count += 1
+            if (timestamp > addressInteractions[to].mostRecentInteraction) {
+                addressInteractions[to].mostRecentInteraction = timestamp
+            }
+        })
+    })
+
+    const rankedAddresses = Object.entries(addressInteractions) //@ts-ignore
+        .map(([address, { count, mostRecentInteraction }]) => ({ address, count, mostRecentInteraction }))
+        .sort((a, b) => b.mostRecentInteraction - a.mostRecentInteraction)
+
+    return rankedAddresses
 }

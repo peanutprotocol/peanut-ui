@@ -17,8 +17,16 @@ import {
 } from '@web3inbox/react'
 import { useAccount, useSignMessage } from 'wagmi'
 
-export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenProps) => {
-    const { selectedChainID } = useContext(context.tokenSelectorContext)
+export const CreateLinkSuccessView = ({
+    link,
+    txHash,
+    createType,
+    recipient,
+    tokenValue,
+}: _consts.ICreateScreenProps) => {
+    const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
+        context.tokenSelectorContext
+    )
 
     const { address } = useAccount({})
     const { signMessageAsync } = useSignMessage()
@@ -30,6 +38,8 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
     const { prepareRegistration } = usePrepareRegistration()
 
     const [isLoading, setIsLoading] = useState(false)
+
+    const [txUsdValue, setTxUsdValue] = useState<string | undefined>(undefined)
 
     const explorerUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(selectedChainID)}/tx/${txHash}`,
@@ -107,25 +117,72 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
         setAccount(`eip155:1:${address}`)
     }, [address])
 
+    useEffect(() => {
+        let value
+        if (inputDenomination == 'TOKEN') {
+            if (selectedTokenPrice && tokenValue) {
+                value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+            } else value = undefined
+        } else value = tokenValue
+
+        if (value) {
+            setTxUsdValue(value)
+        }
+    }, [])
+
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
+        <div
+            className={`flex w-full flex-col items-center justify-center gap-6 py-2 text-center ${link ? 'pb-20' : 'pb-2'}`}
+        >
             <label className="text-h2">Yay!</label>
-            <QRCodeWrapper url={link} />
+            {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">
-                Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any
-                token.
+                {createType === 'direct'
+                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}.`
+                    : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
-            <div className="hidden w-full md:block">
-                <CopyField text={link} />
-            </div>
-            <div
-                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal sm:hidden"
-                onClick={() => {
-                    share(link)
-                }}
-            >
-                Share link
-            </div>
+            {link && (
+                <div className="flex w-full flex-col items-center justify-center gap-2 ">
+                    {createType === 'email_link' && (
+                        <>
+                            <button
+                                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
+                                onClick={() => {
+                                    utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
+                                }}
+                            >
+                                Share via email
+                            </button>
+                            or
+                        </>
+                    )}
+                    {createType === 'sms_link' && (
+                        <>
+                            <button
+                                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
+                                onClick={() => {
+                                    utils.shareToSms(recipient.name ?? '', link, txUsdValue)
+                                }}
+                            >
+                                Share via SMS
+                            </button>
+                            or
+                        </>
+                    )}
+                    <div className="hidden w-full md:block">
+                        <CopyField text={link} />
+                    </div>
+                    <div
+                        className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal sm:hidden"
+                        onClick={() => {
+                            share(link)
+                        }}
+                    >
+                        Share link
+                    </div>
+                </div>
+            )}
+
             <Link
                 className="cursor-pointer text-h8 font-bold text-gray-1 underline"
                 target="_blank"
@@ -134,29 +191,34 @@ export const CreateLinkSuccessView = ({ link, txHash }: _consts.ICreateScreenPro
                 Transaction hash
             </Link>
 
-            <div
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                onClick={() => {
-                    if (!isRegistered) {
-                        handleRegistration()
-                    } else if (!isSubscribed) {
-                        handleSubscribe()
-                    } else {
-                        window.open('https://app.web3inbox.com/notifications/peanut.to', '_blank')
-                    }
-                }}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="email" className="-mt-0.5" />
+            {link && (
+                <div
+                    className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                    onClick={() => {
+                        if (!isRegistered) {
+                            handleRegistration()
+                        } else if (!isSubscribed) {
+                            handleSubscribe()
+                        } else {
+                            window.open('https://app.web3inbox.com/notifications/peanut.to', '_blank')
+                        }
+                    }}
+                >
+                    <div className=" border border-n-1 p-0 px-1">
+                        <Icon name="email" className="-mt-0.5" />
+                    </div>
+                    {isRegistered && isSubscribed ? (
+                        <label className="cursor-pointer text-sm font-bold">
+                            {' '}
+                            Click here to see your notifications{' '}
+                        </label>
+                    ) : (
+                        <label className="cursor-pointer text-sm font-bold">
+                            Subscribe to get notified when you link gets claimed!
+                        </label>
+                    )}
                 </div>
-                {isRegistered && isSubscribed ? (
-                    <label className="cursor-pointer text-sm font-bold"> Click here to see your notifications </label>
-                ) : (
-                    <label className="cursor-pointer text-sm font-bold">
-                        Subscribe to get notified when you link gets claimed!
-                    </label>
-                )}
-            </div>
+            )}
         </div>
     )
 }

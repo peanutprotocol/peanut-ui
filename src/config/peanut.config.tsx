@@ -11,6 +11,8 @@ import '../../sentry.server.config'
 import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
 import LogRocket from 'logrocket'
+import { ChakraProvider } from '@chakra-ui/react'
+import * as styles from '@/styles/theme'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
@@ -30,7 +32,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <config.ContextProvider>
-            {children}
+            <ChakraProvider theme={styles.theme}> {children}</ChakraProvider>
             <Analytics />
         </config.ContextProvider>
     )
