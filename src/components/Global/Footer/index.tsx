@@ -11,16 +11,12 @@ const Footer = ({}: FooterProps) => {
 
     return (
         <footer>
-            <div className="my-2 flex w-full flex-col gap-2 border-t border-n-1 bg-background pt-4 dark:border-white dark:bg-n-2 md:!bg-transparent">
+            <div className="flex w-full flex-col gap-2 border-t border-n-1 bg-black py-2 pt-4 text-white dark:border-white  dark:bg-n-2">
                 <div className="flex justify-center gap-4">
                     {_consts.SOCIALS.map((social) => {
                         return (
                             <Link key={social.name} href={social.url} target="_blank">
-                                <img
-                                    src={colorMode === 'dark' ? social.invertedLogoSrc : social.logoSrc}
-                                    className="h-6"
-                                    alt="twitter"
-                                />
+                                <img src={social.logoSrc} className="h-6" alt="twitter" />
                             </Link>
                         )
                     })}
