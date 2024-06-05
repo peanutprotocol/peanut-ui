@@ -119,11 +119,15 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                     )
                 }}
                 title={'Select Token'}
-                classNameWrapperDiv="px-5 pb-7 pt-8"
+                classNameWrapperDiv="px-2 pb-7 pt-8"
                 classWrap="max-w-[32rem]"
+                showPrev={showFallback}
+                onPrev={() => {
+                    setShowFallback(false)
+                }}
             >
                 {!isConnected ? (
-                    <div className="flex h-full w-full flex-col items-center justify-center gap-4 ">
+                    <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-2 ">
                         <label className="text-center text-h5">Connect a wallet to select a token to send.</label>
                         <button
                             className="btn btn-purple btn-xl w-full"
@@ -141,7 +145,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                         </div>
                     </div>
                 ) : !showFallback ? (
-                    <div className="flex h-full w-full flex-col gap-4">
+                    <div className="flex h-full w-full flex-col gap-4 px-2">
                         {/* <label className="text-center text-h5">Select a token to send</label> */}
                         <div className="max-h-64 w-full overflow-auto">
                             <table className="w-full divide-y divide-black">
@@ -173,7 +177,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                                   }}
                                               >
                                                   <td className="py-2 pr-2">
-                                                      <div className="flex flex-row items-center justify-center gap-2">
+                                                      <div className="flex flex-row items-center justify-center gap-2 pl-1">
                                                           <div className="relative h-6 w-6">
                                                               <img
                                                                   src={balance.logoURI}
@@ -206,7 +210,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                                       ${utils.formatTokenAmount(parseFloat(balance.value), 2)}
                                                   </td>
                                                   <td className="y-2">
-                                                      <div className="flex flex-row items-center justify-end gap-2">
+                                                      <div className="flex flex-row items-center justify-end gap-2 pr-1">
                                                           <div className="text-h8 text-gray-1 ">
                                                               {consts.supportedPeanutChains.find(
                                                                   (chain) => chain.chainId === balance.chainId
@@ -229,7 +233,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                         </button>
                     </div>
                 ) : (
-                    <div className="flex h-full w-full flex-col gap-4">
+                    <div className="flex h-full w-full flex-col gap-4 px-2">
                         <div className="flex w-full flex-row gap-4">
                             <button className="sr-only" autoFocus ref={focusButtonRef} />
                             <Search
@@ -246,14 +250,14 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
 
                         {filterValue.length > 0 &&
                             components.tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID)}
-                        <button
+                        {/* <button
                             className="text-h8 font-normal underline"
                             onClick={() => {
                                 setShowFallback(true)
                             }}
                         >
                             Explore & buy more tokens
-                        </button>
+                        </button> */}
                     </div>
                 )}
             </Modal>
