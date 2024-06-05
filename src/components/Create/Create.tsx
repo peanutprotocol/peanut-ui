@@ -109,6 +109,8 @@ export const Create = () => {
     useEffect(() => {
         if (address) {
             fetchRecentTransactions()
+        } else {
+            setRecentRecipients([])
         }
     }, [address])
 

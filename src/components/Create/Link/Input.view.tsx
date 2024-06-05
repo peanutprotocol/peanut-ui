@@ -117,8 +117,8 @@ export const CreateLinkInputView = ({
                     setGaslessPayload(makeGaslessDepositResponse.payload)
                     setGaslessPayloadMessage(makeGaslessDepositResponse.message)
 
-                    setFeeOptions(undefined)
-                    setTransactionCostUSD(undefined)
+                    setFeeOptions(0)
+                    setTransactionCostUSD(0)
                 } else {
                     console.log('gasless not possible, creating normal payload')
                     setTransactionType('not-gasless')
@@ -132,6 +132,7 @@ export const CreateLinkInputView = ({
                     setPreparedDepositTxs(prepareDepositTxsResponse)
 
                     try {
+                        console.log(prepareDepositTxsResponse?.unsignedTxs[0])
                         const { feeOptions, transactionCostUSD } = await estimateGasFee({
                             chainId: selectedChainID,
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
@@ -153,6 +154,7 @@ export const CreateLinkInputView = ({
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
                     } catch (error) {
+                        console.error(error)
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
                     }
@@ -186,6 +188,7 @@ export const CreateLinkInputView = ({
                     setTransactionCostUSD(transactionCostUSD)
                     setEstimatedPoints(0)
                 } catch (error) {
+                    console.error(error)
                     setFeeOptions(undefined)
                     setTransactionCostUSD(undefined)
                 }
@@ -228,7 +231,10 @@ export const CreateLinkInputView = ({
                     className="w-full"
                     tokenValue={tokenValue}
                     setTokenValue={setTokenValue}
-                    onSubmit={handleOnNext}
+                    onSubmit={() => {
+                        if (!isConnected) handleConnectWallet()
+                        else handleOnNext()
+                    }}
                 />
                 <TokenSelector classNameButton="w-full" />
                 {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (

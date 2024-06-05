@@ -14,6 +14,7 @@ import { errors, ethers } from 'ethers'
 import peanut from '@squirrel-labs/peanut-sdk'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
+import { useAccount } from 'wagmi'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -27,6 +28,7 @@ export const CreateLinkInitialView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
+    const { isConnected } = useAccount()
 
     const handleInputValidation = async (value: string) => {
         //email check
@@ -203,42 +205,45 @@ export const CreateLinkInitialView = ({
                         {isLoading && <Loading />}
                     </div>
                 </div>
-            ) : recentRecipients.length > 0 ? (
-                <div className="flex w-full flex-col items-start  justify-center gap-2">
-                    <label className="text-h7 font-bold text-gray-2">Recents</label>
-                    {recentRecipients.map((recipient) => (
-                        <div
-                            key={recipient.address}
-                            className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
-                            onClick={() => {
-                                handleOnNext(recipient.address)
-                            }}
-                        >
-                            <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
-                                <div className="rounded-full border border-n-1">
-                                    <Icon name="profile" className="h-6 w-6" />
-                                </div>
-                                <div className="truncate">{recipient.address}</div>
-                            </div>
-                        </div>
-                    ))}
-                </div>
             ) : (
-                <div className="flex w-full flex-col items-start  justify-center gap-2">
-                    <label className="text-h7 font-bold text-gray-2">Recents</label>
-                    {[0, 1, 2].map((idx) => (
-                        <div
-                            key={idx}
-                            className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
-                        >
-                            <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
-                                <div className="h-6 w-6 animate-pulse rounded-full bg-slate-700" />
-
-                                <div className="h-6 w-24 animate-pulse rounded-full bg-slate-700" />
+                isConnected &&
+                (recentRecipients.length > 0 ? (
+                    <div className="flex w-full flex-col items-start  justify-center gap-2">
+                        <label className="text-h7 font-bold text-gray-2">Recents</label>
+                        {recentRecipients.map((recipient) => (
+                            <div
+                                key={recipient.address}
+                                className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
+                                onClick={() => {
+                                    handleOnNext(recipient.address)
+                                }}
+                            >
+                                <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                                    <div className="rounded-full border border-n-1">
+                                        <Icon name="profile" className="h-6 w-6" />
+                                    </div>
+                                    <div className="truncate">{recipient.address}</div>
+                                </div>
                             </div>
-                        </div>
-                    ))}
-                </div>
+                        ))}
+                    </div>
+                ) : (
+                    <div className="flex w-full flex-col items-start  justify-center gap-2">
+                        <label className="text-h7 font-bold text-gray-2">Recents</label>
+                        {[0, 1, 2].map((idx) => (
+                            <div
+                                key={idx}
+                                className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
+                            >
+                                <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
+                                    <div className="h-6 w-6 animate-pulse rounded-full bg-slate-700" />
+
+                                    <div className="h-6 w-24 animate-pulse rounded-full bg-slate-700" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                ))
             )}
             {errorState.showError && (
                 <>
