@@ -638,8 +638,7 @@ export const shareToEmail = (email: string, link: string, usdAmount?: string) =>
     if (typeof window !== 'undefined') {
         window.location.href = mailtoUrl
     }
-} // TODO: update subject & body
-
+}
 export const shareToSms = (phone: string, link: string, usdAmount?: string) => {
     if (usdAmount) usdAmount = formatTokenAmount(parseFloat(usdAmount), 2)
     const message = encodeURIComponent(
@@ -651,7 +650,7 @@ export const shareToSms = (phone: string, link: string, usdAmount?: string) => {
     if (typeof window !== 'undefined') {
         window.location.href = sms
     }
-} // TODO: update body
+}
 
 export function isNumeric(input: string): boolean {
     const numericRegex = /^[0-9]+$/
