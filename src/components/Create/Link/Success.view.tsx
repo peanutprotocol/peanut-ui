@@ -173,7 +173,7 @@ export const CreateLinkSuccessView = ({
                         <CopyField text={link} />
                     </div>
                     <div
-                        className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal sm:hidden"
+                        className={`w-full border border-n-1  px-2 py-1 text-h8 font-normal sm:hidden ${createType === 'email_link' || createType === 'sms_link' ? '' : 'bg-purple-1'}`}
                         onClick={() => {
                             share(link)
                         }}

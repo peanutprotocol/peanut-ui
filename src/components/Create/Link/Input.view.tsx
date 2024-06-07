@@ -177,6 +177,8 @@ export const CreateLinkInputView = ({
                     ],
                 }
 
+                console.log('preparedTxs', preparedTxs)
+
                 setPreparedDepositTxs(preparedTxs)
 
                 try {
@@ -209,10 +211,13 @@ export const CreateLinkInputView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">
-                {createType == 'link'
+            <label
+                className="max-h-[92px] w-full overflow-hidden text-h2"
+                style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
+            >
+                {createType === 'link'
                     ? 'Send crypto via link'
-                    : createType == 'direct'
+                    : createType === 'direct'
                       ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>

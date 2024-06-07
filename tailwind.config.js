@@ -92,8 +92,14 @@ module.exports = {
                     '0%': { opacity: 1 },
                     '50%,100%': { opacity: 0.15 },
                 },
+                colorPulse: {
+                    '0%, 100%': { backgroundColor: '#F2F3F4', boxShadow: '0 0 0px 0px color1' },
+                    '50%': { backgroundColor: '#DADEDF', boxShadow: '0 0 0px 15px color2' },
+                },
             },
-
+            animation: {
+                colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            },
             opacity: {
                 85: '.85',
                 95: '.95',

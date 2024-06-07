@@ -367,8 +367,12 @@ export const useCreateLink = () => {
                 value: BigInt(0), // Convert to BigInt
             }
         } else {
+            console.log('native token transfer')
+            console.log(tokenValue)
+            const bigintnumber = BigInt(tokenValue)
             // Native token transfer
             const amount = ethers.utils.parseEther(tokenValue).toBigInt() // Convert to BigInt
+            console.log(amount)
             transactionRequest = {
                 to: recipient,
                 value: amount,

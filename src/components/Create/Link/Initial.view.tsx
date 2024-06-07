@@ -36,7 +36,7 @@ export const CreateLinkInitialView = ({
             return 'email_link'
         }
         //phone number check
-        else if (utils.isNumeric(value) && value.length > 4) {
+        else if (value.startsWith('+') || (utils.isNumeric(value) && value.length > 4)) {
             return 'sms_link'
         } //TODO: Add more validation checks for normal numbers without country code
         //address check
@@ -236,9 +236,9 @@ export const CreateLinkInitialView = ({
                                 className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
                             >
                                 <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
-                                    <div className="h-6 w-6 animate-pulse rounded-full bg-slate-700" />
+                                    <div className="animate-colorPulse h-6 w-6 rounded-full bg-slate-700" />
 
-                                    <div className="h-6 w-24 animate-pulse rounded-full bg-slate-700" />
+                                    <div className="animate-colorPulse h-6 w-24 rounded-full bg-slate-700" />
                                 </div>
                             </div>
                         ))}
@@ -252,9 +252,9 @@ export const CreateLinkInitialView = ({
                     </div>
                     {errorState.errorMessage.includes('We currently dont support ') && (
                         <a
-                            href={'https://peanut.to/pioneers'}
+                            href={'https://discord.gg/BX9Ak7AW28'}
                             target={'_blank'}
-                            className="btn btn-purple h-8 w-full cursor-pointer px-2"
+                            className="btn h-8 w-full cursor-pointer px-2"
                         >
                             Reach out!
                         </a>

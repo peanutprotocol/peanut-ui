@@ -113,14 +113,14 @@ export const AdvancedTokenSelectorButton = ({
             <div className="flex flex-row items-center justify-center gap-2">
                 <div className="text-h8 text-gray-1 ">{chainName}</div>
                 <img src={chainIconUri} alt={''} className="h-6 w-6" />
-                <div className="hidden sm:block">
+                {/* <div className="hidden sm:block">
                     {!isStatic && (
                         <Icon
                             name={'arrow-bottom'}
                             className={`transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
                         />
                     )}
-                </div>
+                </div> */}
             </div>
         </div>
     )
