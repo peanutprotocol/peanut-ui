@@ -23,41 +23,49 @@ export function LinkPreviewImg({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: '200px',
-                width: '400px',
-                borderRadius: '8px',
-                borderWidth: '4px',
-                borderColor: 'white',
-                backgroundImage: 'linear-gradient(to bottom right, #FAF4F0, #FF90E8)',
+                height: '800px',
+                width: '1600px',
+                borderRadius: '64px',
+                borderWidth: '16px',
+                borderColor: 'black',
+                backgroundImage:
+                    'radial-gradient(circle at top right, #FF90E8, transparent), radial-gradient(circle at bottom left, #23A094, transparent)',
+                backgroundColor: '#FAF4F0',
             }}
         >
-            <label style={{ fontSize: '32px', fontWeight: 'bold', color: 'black' }}>
+            <label style={{ fontSize: '128px', fontWeight: 'bolder', color: 'black' }}>
                 {utils.formatTokenAmount(parseFloat(amount), 2)} {tokenSymbol}
             </label>
             <div
                 style={{
                     display: 'flex',
                     position: 'absolute',
-                    bottom: '20px',
-                    right: '30px',
-                    height: '40px',
-                    width: '40px',
+                    bottom: '40px',
+                    right: '60px',
+                    height: '160px',
+                    width: '160px',
                 }}
             >
                 <img
                     src={chainImage ?? ''}
                     alt="Chain Image"
-                    style={{ height: '100%', width: '100%', objectFit: 'cover', position: 'absolute' }}
+                    style={{
+                        height: '150px',
+                        width: '150px',
+                        borderRadius: '50%',
+                        objectFit: 'cover',
+                        position: 'absolute',
+                    }}
                 />
                 <img
                     src={tokenImage ?? ''}
                     alt="Token Image"
                     style={{
                         position: 'absolute',
-                        right: '-10px',
-                        top: '-10px',
-                        height: '25px',
-                        width: '25px',
+                        right: '-40px',
+                        top: '-40px',
+                        height: '100px',
+                        width: '100px',
                         borderRadius: '50%',
                         objectFit: 'cover',
                     }}

@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const tokenSymbol = searchParams.get('tokenSymbol') ?? ''
 
     return new ImageResponse(<LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol }} />, {
-        width: 400,
-        height: 200,
+        width: 1600,
+        height: 800,
     })
 }
