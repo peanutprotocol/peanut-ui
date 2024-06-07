@@ -15,6 +15,8 @@ type Props = {
 function createURL(host: string, searchParams: { [key: string]: string | string[] | undefined }): string {
     const queryParams = new URLSearchParams()
 
+    host = `${host}/claim`
+
     Object.keys(searchParams).forEach((key) => {
         const value = searchParams[key]
         if (Array.isArray(value)) {
@@ -30,7 +32,8 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
     let title = 'Peanut Protocol'
 
-    const host = headers().get('host') || ''
+    // const host = headers().get('host') || ''
+    const host = 'https://experimental.peanut.to'
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)
