@@ -86,10 +86,11 @@ export function SendInitialView({ onNextScreen, setClaimLink, setTxHash, setChai
                         (item1) => !supportedWalletconnectChains.some((item2) => item2.chainId === item1.chainId)
                     )
                 )
+                .filter((chain) => chain.chainId !== '1')
 
             return filteredChains
         } else {
-            return chainDetails
+            return chainDetails.filter((chain) => chain.chainId !== '1')
         }
     }, [isConnected, chainDetails, userBalances, supportedWalletconnectChains])
 
