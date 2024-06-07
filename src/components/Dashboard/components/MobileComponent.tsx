@@ -69,9 +69,7 @@ export const MobileItemComponent = ({
                         <div
                             className="text-h8"
                             onClick={() => {
-                                router.push(
-                                    `/${linkDetail?.link ?? linkDetail.txHash ?? ''.split('://')[1].split('/')[1]}`
-                                )
+                                linkDetail.link && router.push(`/${linkDetail?.link.split('://')[1].split('/')[1]}`)
                             }}
                         >
                             Refund
