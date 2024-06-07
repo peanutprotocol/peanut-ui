@@ -254,14 +254,13 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
 
                         {filterValue.length > 0 &&
                             components.tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID)}
-                        {/* <button
-                            className="text-h8 font-normal underline"
-                            onClick={() => {
-                                setShowFallback(true)
-                            }}
+                        <a
+                            className="cursor-pointer text-center text-h8 font-normal underline"
+                            href="https://discord.gg/BX9Ak7AW28"
+                            target="_blank"
                         >
-                            Explore & buy more tokens
-                        </button> */}
+                            Reach out if you want to add a custom token
+                        </a>
                     </div>
                 )}
             </Modal>
