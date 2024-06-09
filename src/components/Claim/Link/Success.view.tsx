@@ -115,7 +115,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         <div className="flex w-full flex-row  items-center justify-start gap-1">
                             <label className="">Destination Chain</label>
                             {!explorerUrlDestChainWithTxHash ? (
-                                <div className="animate-colorPulse h-2 w-16 rounded bg-slate-700"></div>
+                                <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
                             ) : (
                                 <Link
                                     className="cursor-pointer  underline"

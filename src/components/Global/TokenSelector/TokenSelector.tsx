@@ -158,16 +158,16 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                         ? [1, 2, 3, 4].map((_, idx) => (
                                               <tr key={idx}>
                                                   <td className="py-2">
-                                                      <div className="animate-colorPulse h-6 w-6 rounded-full bg-slate-700" />
+                                                      <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
                                                   </td>
                                                   <td className="py-2">
-                                                      <div className="animate-colorPulse h-6 w-22 rounded-full bg-slate-700" />
+                                                      <div className="h-6 w-22 animate-colorPulse rounded-full bg-slate-700" />
                                                   </td>
                                                   <td className="py-2">
-                                                      <div className="animate-colorPulse h-6 w-18 rounded-full bg-slate-700" />
+                                                      <div className="h-6 w-18 animate-colorPulse rounded-full bg-slate-700" />
                                                   </td>
                                                   <td className=" py-2">
-                                                      <div className="animate-colorPulse h-6 w-24 rounded-full bg-slate-700" />
+                                                      <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
                                                   </td>
                                               </tr>
                                           ))

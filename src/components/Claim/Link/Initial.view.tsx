@@ -253,7 +253,7 @@ export const InitialClaimLinkView = ({
                     </label>
                 )}
                 {isXchainLoading ? (
-                    <div className=" animate-colorPulse flex h-6 w-full max-w-96 flex-row items-center justify-center gap-1 ">
+                    <div className=" flex h-6 w-full max-w-96 animate-colorPulse flex-row items-center justify-center gap-1 ">
                         <div className="h-3 w-24 rounded-full bg-slate-700"></div>
                     </div>
                 ) : (
@@ -350,7 +350,7 @@ export const InitialClaimLinkView = ({
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
-                                        <div className="animate-colorPulse h-2 w-12 rounded bg-slate-700"></div>
+                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         selectedRoute && (
                                             <>
@@ -393,7 +393,7 @@ export const InitialClaimLinkView = ({
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {isXchainLoading ? (
-                                    <div className="animate-colorPulse h-2 w-12 rounded bg-slate-700"></div>
+                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                 ) : selectedRoute ? (
                                     <>
                                         {'$' +
