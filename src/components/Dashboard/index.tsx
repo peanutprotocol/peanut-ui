@@ -353,7 +353,7 @@ export const Dashboard = () => {
                                             leaveTo="opacity-0"
                                         >
                                             <Menu.Items className="shadow-primary-4 absolute bottom-full left-0 z-30 mb-2 w-48 border border-n-1 bg-white px-4 py-2 text-h8 sm:left-28 sm:w-64">
-                                                <Menu.Item as={'label'} className={'text-h8 font-normal'}>
+                                                <Menu.Item as={'label'} className={'text-h8 font-normal text-black'}>
                                                     You will be awarded points retroactively in a few days. You will
                                                     receive a 2X boost for being so early with us!
                                                 </Menu.Item>

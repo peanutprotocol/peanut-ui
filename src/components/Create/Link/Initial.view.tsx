@@ -218,11 +218,17 @@ export const CreateLinkInitialView = ({
                                     handleOnNext(recipient.address)
                                 }}
                             >
-                                <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
-                                    <div className="rounded-full border border-n-1">
-                                        <Icon name="profile" className="h-6 w-6" />
+                                <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">
+                                    <div className="flex flex-row items-center justify-start gap-2">
+                                        <div className="rounded-full border border-n-1">
+                                            <Icon name="profile" className="h-6 w-6" />
+                                        </div>
+                                        <div className="truncate">{utils.shortenAddressLong(recipient.address, 6)}</div>
                                     </div>
-                                    <div className="truncate">{recipient.address}</div>
+                                    <label className="font-normal">
+                                        {' '}
+                                        {recipient.count} {recipient.count > 1 ? 'transfers' : 'transfer'}
+                                    </label>
                                 </div>
                             </div>
                         ))}
@@ -236,9 +242,9 @@ export const CreateLinkInitialView = ({
                                 className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
                             >
                                 <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
-                                    <div className="animate-colorPulse h-6 w-6 rounded-full bg-slate-700" />
+                                    <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
 
-                                    <div className="animate-colorPulse h-6 w-24 rounded-full bg-slate-700" />
+                                    <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
                                 </div>
                             </div>
                         ))}

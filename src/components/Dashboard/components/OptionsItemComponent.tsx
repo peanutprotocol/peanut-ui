@@ -25,22 +25,25 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                         <Menu.Item
                             as={'button'}
                             onClick={() => {
-                                router.push(`/${item.link ?? ''.split('://')[1].split('/')[1]}`)
+                                router.push(`/${(item.link ?? '').split('://')[1].split('/')[1]}`)
                             }}
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                         >
                             <div className="text-h8">Refund</div>
                         </Menu.Item>
                     )}
-                    <Menu.Item
-                        as={'button'}
-                        onClick={() => {
-                            utils.copyTextToClipboardWithFallback(item.link ?? '')
-                        }}
-                        className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
-                    >
-                        <div className="text-h8">Copy Link</div>
-                    </Menu.Item>
+                    {item.type === 'receive' ||
+                        (item.type === 'send' && (
+                            <Menu.Item
+                                as={'button'}
+                                onClick={() => {
+                                    utils.copyTextToClipboardWithFallback(item.link ?? '')
+                                }}
+                                className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            >
+                                <div className="text-h8">Copy link</div>
+                            </Menu.Item>
+                        ))}
                     {item.attachmentUrl && (
                         <Menu.Item
                             as={'a'}
@@ -50,6 +53,17 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                         >
                             <div className="text-h8">Download attachment</div>
+                        </Menu.Item>
+                    )}
+                    {item.type === 'transfer' && (
+                        <Menu.Item
+                            as={'button'}
+                            onClick={() => {
+                                utils.copyTextToClipboardWithFallback(item.txHash ?? '')
+                            }}
+                            className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                        >
+                            <div className="text-h8">Copy transaction hash</div>
                         </Menu.Item>
                     )}
                 </Menu.Items>

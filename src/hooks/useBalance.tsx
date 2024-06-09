@@ -1,18 +1,20 @@
 import { useAccount } from 'wagmi'
-
 import * as interfaces from '@/interfaces'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 
 export const useBalance = () => {
     const [balances, setBalances] = useState<interfaces.IUserBalance[]>([])
     const [valuePerChain, setValuePerChain] = useState<interfaces.ChainValue[]>([])
     const { address } = useAccount()
+    const prevAddressRef = useRef<string | undefined>(undefined)
 
     useEffect(() => {
-        if (address) {
-            fetchBalances(address).then((balances) => {
-                if (balances) setBalances(balances)
-            })
+        console.log('useBalance: ', address)
+        console.log('prevAddressRef.current: ', prevAddressRef.current)
+
+        if (address && prevAddressRef.current !== address) {
+            prevAddressRef.current = address
+            refetchBalances()
         }
     }, [address])
 
@@ -84,7 +86,7 @@ export const useBalance = () => {
             let attempts = 0
             const maxAttempts = 3
             let success = false
-            let userBalances
+            let userBalances: interfaces.IUserBalance[] = []
 
             while (!success && attempts < maxAttempts) {
                 try {
@@ -150,5 +152,14 @@ export const useBalance = () => {
         }
     }
 
-    return { balances, fetchBalances, valuePerChain }
+    const refetchBalances = async () => {
+        if (address) {
+            const balances = await fetchBalances(address)
+            if (balances) {
+                setBalances(balances)
+            }
+        }
+    }
+
+    return { balances, fetchBalances, valuePerChain, refetchBalances }
 }

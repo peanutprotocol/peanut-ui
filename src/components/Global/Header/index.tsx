@@ -23,6 +23,7 @@ import * as assets from '@/assets'
 import * as utils from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
+import { useRouter } from 'next/navigation'
 
 const defaultLottieOptions: LottieOptions = {
     animationData: assets.HAMBURGER_LOTTIE,
@@ -125,6 +126,16 @@ const MenuLinks = () => {
     const [showMenu, setShowMenu] = useState<boolean>(false)
     const { open: web3modalOpen } = useWeb3Modal()
     const { address, isConnected } = useAccount()
+    const router = useRouter()
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        // Prevent the default behavior of the link
+        e.preventDefault()
+        // Force a reload of the current route
+        if (window?.location.pathname == '/send') window?.location.reload()
+        else router.push('/send')
+    }
+
     return (
         <Stack
             align={{ base: 'start', md: 'center' }}
@@ -137,6 +148,7 @@ const MenuLinks = () => {
         >
             <Link
                 href={'/send'}
+                onClick={handleClick}
                 className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
             >
                 <Text display="block"> app</Text>

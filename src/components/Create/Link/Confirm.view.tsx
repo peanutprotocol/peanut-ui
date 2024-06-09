@@ -14,6 +14,7 @@ import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
 import { estimateContractGas } from 'viem/actions'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { useBalance } from '@/hooks/useBalance'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -35,6 +36,7 @@ export const CreateLinkConfirmView = ({
     recipient,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
+    const { refetchBalances } = useBalance()
 
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
         context.tokenSelectorContext
@@ -151,6 +153,7 @@ export const CreateLinkConfirmView = ({
             })
 
             onNext()
+            refetchBalances()
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({

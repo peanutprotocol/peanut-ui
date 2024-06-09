@@ -12,6 +12,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import * as consts from '@/constants'
+import { useBalance } from '@/hooks/useBalance'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -38,6 +39,7 @@ export const ConfirmClaimLinkView = ({
     }>({ showError: false, errorMessage: '' })
     const [fileType, setFileType] = useState<string>('')
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
+    const { refetchBalances } = useBalance()
 
     const handleOnClaim = async () => {
         if (!recipientAddress) {
@@ -82,6 +84,7 @@ export const ConfirmClaimLinkView = ({
                 })
                 setTransactionHash(claimTxHash)
                 onNext()
+                refetchBalances()
             } else {
                 throw new Error('Error claiming link')
             }
