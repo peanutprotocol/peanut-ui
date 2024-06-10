@@ -2,15 +2,15 @@
 import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
 
-import * as _consts from '../Claim.consts'
+import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
-import useClaimLink from '../useClaimLink'
+import useClaimLink from '../../useClaimLink'
 import * as context from '@/context'
 import { useContext, useEffect, useState } from 'react'
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
-import * as _interfaces from '../Claim.interfaces'
-import * as _utils from '../Claim.utils'
+import * as _interfaces from '../../Claim.interfaces'
+import * as _utils from '../../Claim.utils'
 import * as consts from '@/constants'
 import { useBalance } from '@/hooks/useBalance'
 
@@ -19,7 +19,7 @@ export const ConfirmClaimLinkView = ({
     onPrev,
     setClaimType,
     claimLinkData,
-    recipientAddress,
+    recipient,
     tokenPrice,
     type,
     setTransactionHash,
@@ -27,6 +27,7 @@ export const ConfirmClaimLinkView = ({
     attachment,
     selectedRoute,
     crossChainDetails,
+    recipientType,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
     const { claimLinkXchain, claimLink, xchainFeeMultiplier } = useClaimLink()
@@ -42,7 +43,7 @@ export const ConfirmClaimLinkView = ({
     const { refetchBalances } = useBalance()
 
     const handleOnClaim = async () => {
-        if (!recipientAddress) {
+        if (!recipient) {
             return
         }
 
@@ -56,7 +57,7 @@ export const ConfirmClaimLinkView = ({
             let claimTxHash = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
-                    address: recipientAddress ? recipientAddress : address ?? '',
+                    address: recipient ? recipient : address ?? '',
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
@@ -64,14 +65,14 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claimxchain')
             } else {
                 claimTxHash = await claimLink({
-                    address: recipientAddress ? recipientAddress : address ?? '',
+                    address: recipient ? recipient : address ?? '',
                     link: claimLinkData.link,
                 })
                 setClaimType('claim')
             }
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: recipientAddress ? recipientAddress : address ?? '',
+                    address: recipient ? recipient : address ?? '',
                     data: {
                         ...claimLinkData,
                         depositDate: new Date(),
@@ -114,6 +115,8 @@ export const ConfirmClaimLinkView = ({
     //         } catch (error) {}
     //     }
     // }, [attachment?.attachmentUrl])
+
+    console.log('onchain views')
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
@@ -186,7 +189,7 @@ export const ConfirmClaimLinkView = ({
 
             <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
                 <label className="text-h7 font-normal">Claiming to:</label>
-                <label className="text-h7">{utils.shortenAddressLong(recipientAddress ?? '')}</label>
+                <label className="text-h7">{utils.shortenAddressLong(recipient ?? '')}</label>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">

@@ -1,8 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
-
+import { isIBAN } from 'validator'
 import Icon from '@/components/Global/Icon'
-
+import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { ethers } from 'ethers'
 
@@ -11,80 +11,95 @@ type AddressInputProps = {
     placeholder: string
     value: string
     onSubmit: any
-    _setIsValidAddress: any
+    _setIsValidRecipient: any
     setIsValueChanging?: any
+    setRecipientType: any
 }
 
-const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress, setIsValueChanging }: AddressInputProps) => {
-    const [userInputAddress, setUserInputAddress] = useState<string>(value)
-    const [address, setAddress] = useState<string>(value)
-    const [debouncedAddress, setDebouncedAddress] = useState<string>('')
-    const [isValidAddress, setIsValidAddress] = useState(false)
+const AddressInput = ({
+    placeholder,
+    value,
+    onSubmit,
+    _setIsValidRecipient,
+    setIsValueChanging,
+    setRecipientType,
+}: AddressInputProps) => {
+    const [userInput, setUserInput] = useState<string>(value)
+    const [recipient, setAddress] = useState<string>(value)
+    const [deboundedRecipient, setDeboundedRecipient] = useState<string>('')
+    const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
 
-    async function checkAddress(address: string) {
+    async function checkAddress(recipient: string) {
         try {
-            if (address.toLowerCase().endsWith('.eth')) {
-                const resolvedAddress = await utils.resolveFromEnsName(address.toLowerCase())
+            if (isIBAN(recipient)) {
+                setIsValidRecipient(true)
+                _setIsValidRecipient(true)
+                setRecipientType('iban')
+                setAddress(recipient)
+            } else if (recipient.toLowerCase().endsWith('.eth')) {
+                const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
                 if (resolvedAddress) {
-                    address = resolvedAddress
-                    setIsValidAddress(true)
-                    _setIsValidAddress(true)
-                    setAddress(address)
+                    recipient = resolvedAddress
+                    setIsValidRecipient(true)
+                    _setIsValidRecipient(true)
+                    setAddress(recipient)
+                    setRecipientType('ens')
                 } else {
-                    setIsValidAddress(false)
-                    _setIsValidAddress(false)
+                    setIsValidRecipient(false)
+                    _setIsValidRecipient(false)
                 }
-            } else if (ethers.utils.isAddress(address)) {
-                setAddress(address)
-                setIsValidAddress(true)
-                _setIsValidAddress(true)
+            } else if (ethers.utils.isAddress(recipient)) {
+                setAddress(recipient)
+                setIsValidRecipient(true)
+                _setIsValidRecipient(true)
+                setRecipientType('address')
             } else {
-                setIsValidAddress(false)
-                _setIsValidAddress(false)
+                setIsValidRecipient(false)
+                _setIsValidRecipient(false)
             }
         } catch (error) {
-            console.error('Error while validating address input field:', error)
-            setIsValidAddress(false)
-            _setIsValidAddress(false)
+            console.error('Error while validating recipient input field:', error)
+            setIsValidRecipient(false)
+            _setIsValidRecipient(false)
         } finally {
             setIsLoading(false)
         }
     }
 
     useEffect(() => {
-        if (address && isValidAddress) {
-            onSubmit(address)
-            _setIsValidAddress(true)
+        if (recipient && isValidRecipient) {
+            onSubmit(recipient)
+            _setIsValidRecipient(true)
         }
-    }, [address])
+    }, [recipient])
 
     useEffect(() => {
         setIsLoading(true)
         const handler = setTimeout(() => {
-            setDebouncedAddress(userInputAddress)
+            setDeboundedRecipient(userInput)
         }, 750)
         return () => {
             clearTimeout(handler)
         }
-    }, [userInputAddress])
+    }, [userInput])
 
     useEffect(() => {
-        if (debouncedAddress) {
-            checkAddress(debouncedAddress)
+        if (deboundedRecipient) {
+            checkAddress(deboundedRecipient)
         }
-    }, [debouncedAddress])
+    }, [deboundedRecipient])
 
     useEffect(() => {
-        setUserInputAddress(value)
+        setUserInput(value)
     }, [value])
 
     return (
         <div
             className={`relative w-full border border-n-1 dark:border-white${
-                userInputAddress && !isLoading && isValidAddress
+                userInput && !isLoading && isValidRecipient
                     ? ' border border-n-1 dark:border-white'
-                    : userInputAddress && !isLoading && !isValidAddress
+                    : userInput && !isLoading && !isValidRecipient
                       ? ' border-n-1 border-red dark:border-red'
                       : ''
             }`}
@@ -97,22 +112,22 @@ const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress, setIsV
                 bg-white px-4 pl-8 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                 type="text"
                 placeholder={placeholder}
-                value={userInputAddress}
+                value={userInput}
                 onSubmit={(e) => {
                     e.preventDefault()
                 }}
                 onChange={(e) => {
                     setIsValueChanging(true)
                     if (e.target.value) {
-                        setUserInputAddress(e.target.value)
+                        setUserInput(e.target.value)
                     } else {
-                        _setIsValidAddress(false)
-                        setUserInputAddress('')
+                        _setIsValidRecipient(false)
+                        setUserInput('')
                     }
                 }}
                 spellCheck="false"
             />
-            {userInputAddress.length > 0 ? (
+            {userInput.length > 0 ? (
                 isLoading ? (
                     <div className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
                         <div
@@ -121,11 +136,11 @@ const AddressInput = ({ placeholder, value, onSubmit, _setIsValidAddress, setIsV
                         />
                     </div>
                 ) : (
-                    !isValidAddress && (
+                    !isValidRecipient && (
                         <button
                             onClick={(e) => {
                                 e.preventDefault()
-                                setUserInputAddress('')
+                                setUserInput('')
                             }}
                             className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white"
                         >
