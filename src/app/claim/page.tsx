@@ -30,7 +30,7 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
 }
 
 export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
-    let title = 'Peanut Protocol'
+    let title = 'Claim your tokens!'
 
     // const host = headers().get('host') || ''
     const host = 'https://experimental.peanut.to'

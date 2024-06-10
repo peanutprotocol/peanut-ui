@@ -302,7 +302,7 @@ module.exports = {
                         {},
                 },
                 '.card': {
-                    '@apply bg-white border border-n-1 dark:bg-n-1 max-w-[27rem] relative mx-auto w-10/12 items-center justify-center px-4 py-6 xl:w-1/2 lg:w-2/3 dark:border-white':
+                    '@apply bg-white border border-n-1 dark:bg-n-1 max-w-[27rem] relative mx-auto w-11/12 items-center justify-center px-4 py-6 xl:w-1/2 lg:w-2/3 dark:border-white':
                         {},
                 },
                 '.card-head': {

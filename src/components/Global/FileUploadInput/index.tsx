@@ -58,7 +58,7 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
             </div>
             <input
                 placeholder="Add reference or upload file (optional)"
-                className="h-full w-full focus:border-none focus:outline-none"
+                className="h-full w-full placeholder:text-h9 placeholder:font-normal focus:border-none focus:outline-none sm:placeholder:text-h7 sm:placeholder:font-normal"
                 value={attachmentOptions.message}
                 maxLength={140}
                 onChange={(e) =>
