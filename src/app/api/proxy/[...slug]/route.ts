@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
             status: 403,
         })
     }
-    jsonToPass.apiKey = process.env.NEXT_PUBLIC_PEANUT_API_KEY!
+    jsonToPass.apiKey = process.env.PEANUT_API_KEY!
 
     const userIp = request.headers.get('x-forwarded-for') || request.ip
     const headersToPass = {

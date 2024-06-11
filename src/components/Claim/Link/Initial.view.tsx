@@ -127,6 +127,12 @@ export const InitialClaimLinkView = ({
         setEstimatedPoints(estimatedPoints)
     }
 
+    const handleIbanRecipient = async () => {
+        setOfframpForm({ ...offrampForm, recipient: recipient ?? '' })
+
+        //const customerExist =
+    }
+
     // useEffect(() => {
     //     if (attachment?.attachmentUrl) {
     //         try {
@@ -470,8 +476,11 @@ export const InitialClaimLinkView = ({
                     className="btn-purple btn-xl"
                     onClick={() => {
                         if ((hasFetchedRoute && selectedRoute) || recipient !== address) {
-                            setOfframpForm({ ...offrampForm, recipient: recipient ?? '' })
-                            onNext()
+                            if (recipientType === 'iban') {
+                                handleIbanRecipient()
+                            } else {
+                                onNext()
+                            }
                         } else {
                             handleClaimLink()
                         }

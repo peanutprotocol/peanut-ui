@@ -143,19 +143,13 @@ export const useClaimLink = () => {
     }
 
     const getAttachmentInfo = async (link: string) => {
-        const params = getRawParamsFromLink(link)
-        const { address: pubKey } = generateKeysFromString(params.password)
-
         try {
-            const response = await fetch('https://api.staging.peanut.to/get-link-details', {
+            const response = await fetch('/api/peanut/get-attachment-info', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({
-                    pubKey,
-                    apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
-                }),
+                body: JSON.stringify({ link }),
             })
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
@@ -163,8 +157,8 @@ export const useClaimLink = () => {
             const data = await response.json()
 
             return {
-                fileUrl: data.linkInfo.file_url,
-                message: data.linkInfo.text_content,
+                fileUrl: data.fileUrl,
+                message: data.message,
             }
         } catch (error) {
             console.error('Failed to get attachment:', error)

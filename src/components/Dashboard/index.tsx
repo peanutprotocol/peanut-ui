@@ -205,41 +205,41 @@ export const Dashboard = () => {
         setFilteredDashboardData(filteredData)
     }
 
-    const fetchPoints = async () => {
-        try {
-            const response = await fetch('https://api.staging.peanut.to/get-user-stats', {
-                method: 'POST',
+    // const fetchPoints = async () => {
+    //     try {
+    //         const response = await fetch('https://api.staging.peanut.to/get-user-stats', {
+    //             method: 'POST',
 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    address,
-                    apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
-                }),
-            })
+    //             headers: { 'Content-Type': 'application/json' },
+    //             body: JSON.stringify({
+    //                 address,
+    //                 apiKey: process.env.PEANUT_API_KEY,
+    //             }),
+    //         })
 
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP error! status: ${response.status}`)
+    //         }
 
-            const data = await response.json()
-            setPoints(data.points)
-        } catch (error) {
-            console.error('Error fetching user stats:', error)
-            throw error // or handle error as needed
-        }
-    }
+    //         const data = await response.json()
+    //         setPoints(data.points)
+    //     } catch (error) {
+    //         console.error('Error fetching user stats:', error)
+    //         throw error // or handle error as needed
+    //     }
+    // }
 
-    const calculatePoints = (data: interfaces.IDashboardItem[]) => {
-        let points = 0
+    // const calculatePoints = (data: interfaces.IDashboardItem[]) => {
+    //     let points = 0
 
-        data.forEach((item) => {
-            if (item.points) {
-                points += item.points
-            }
-        })
+    //     data.forEach((item) => {
+    //         if (item.points) {
+    //             points += item.points
+    //         }
+    //     })
 
-        return points * 2
-    }
+    //     return points * 2
+    // }
 
     useEffect(() => {
         const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
