@@ -39,6 +39,8 @@ export const InitialClaimLinkView = ({
     setHasFetchedRoute,
     recipientType,
     setRecipientType,
+    setOfframpForm,
+    offrampForm,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -345,7 +347,7 @@ export const InitialClaimLinkView = ({
                         setRecipientType(type)
                     }}
                 />
-                {recipient && isValidRecipient && (
+                {recipient && isValidRecipient && recipientType !== 'iban' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
@@ -468,6 +470,7 @@ export const InitialClaimLinkView = ({
                     className="btn-purple btn-xl"
                     onClick={() => {
                         if ((hasFetchedRoute && selectedRoute) || recipient !== address) {
+                            setOfframpForm({ ...offrampForm, recipient: recipient ?? '' })
                             onNext()
                         } else {
                             handleClaimLink()

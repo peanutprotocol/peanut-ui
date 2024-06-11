@@ -33,6 +33,11 @@ export const Claim = ({}) => {
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
+    const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
+        name: '',
+        email: '',
+        recipient: '',
+    })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
@@ -211,6 +216,8 @@ export const Claim = ({}) => {
                             setHasFetchedRoute,
                             recipientType,
                             setRecipientType,
+                            offrampForm,
+                            setOfframpForm,
                         } as _consts.IClaimScreenProps
                     }
                 />

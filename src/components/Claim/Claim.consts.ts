@@ -5,6 +5,12 @@ export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
+export interface IOfframpForm {
+    name: string
+    email: string
+    recipient: string
+}
+
 export interface IClaimScreenState {
     screen: ClaimScreens
     idx: number
@@ -41,6 +47,8 @@ export interface IClaimScreenProps {
     setHasFetchedRoute: (fetched: boolean) => void
     recipientType: interfaces.RecipientType
     setRecipientType: (type: interfaces.RecipientType) => void
+    offrampForm: IOfframpForm
+    setOfframpForm: (form: IOfframpForm) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
