@@ -441,7 +441,7 @@ export const Dashboard = () => {
                                         .map((link) => (
                                             <tr
                                                 className="h-16 text-h8 font-normal"
-                                                key={link.link ?? link.txHash ?? '' + Math.random()}
+                                                key={(link.link ?? link.txHash ?? '') + Math.random()}
                                             >
                                                 <td className="td-custom font-bold">{link.type}</td>
                                                 <td className="td-custom font-bold">
@@ -492,7 +492,7 @@ export const Dashboard = () => {
                             {filteredDashboardData
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((link) => (
-                                    <div key={link.link ?? link.txHash ?? '' + Math.random()}>
+                                    <div key={(link.link ?? link.txHash ?? '') + Math.random()}>
                                         <components.MobileItemComponent linkDetail={link} address={address ?? ''} />
                                     </div>
                                 ))}
@@ -510,7 +510,7 @@ export const Dashboard = () => {
                     </CSVLink>
                 )}
             </div>
-            {filteredDashboardData.length > 0 && (
+            {filteredDashboardData.length > 0 && totalPages > 1 && (
                 <TablePagination
                     onNext={() => {
                         if (currentPage < totalPages) {
