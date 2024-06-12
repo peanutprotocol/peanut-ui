@@ -131,6 +131,8 @@ export const InitialClaimLinkView = ({
         setOfframpForm({ ...offrampForm, recipient: recipient ?? '' })
 
         //const customerExist =
+
+        onNext()
     }
 
     // useEffect(() => {

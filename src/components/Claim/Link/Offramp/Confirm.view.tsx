@@ -43,13 +43,15 @@ export const ConfirmClaimLinkIbanView = ({
 
     const onSubmit = async (inputFormData: _consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
-        setLoadingState('Loading')
+        // setLoadingState('Loading')
 
-        window.open('https://docs.peanut.to', '_blank')
-        await new Promise((resolve) => setTimeout(resolve, 10000))
+        // window.open('https://docs.peanut.to', '_blank')
+        // await new Promise((resolve) => setTimeout(resolve, 10000))
 
-        window.open('https://docs.peanut.to', '_blank')
-        await new Promise((resolve) => setTimeout(resolve, 10000))
+        // window.open('https://docs.peanut.to', '_blank')
+        // await new Promise((resolve) => setTimeout(resolve, 10000))
+
+        // TODO: no xchain when iban
 
         handleOnNext()
     }
