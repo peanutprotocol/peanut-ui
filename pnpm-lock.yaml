@@ -33,8 +33,8 @@ dependencies:
     specifier: ^7.105.0
     version: 7.110.1(encoding@0.1.13)(next@14.2.3)(react@18.2.0)(webpack@5.91.0)
   '@squirrel-labs/peanut-sdk':
-    specifier: ^0.4.45
-    version: 0.4.45
+    specifier: ^0.4.47
+    version: 0.4.47
   '@tanstack/react-query':
     specifier: ^5.28.6
     version: 5.29.2(react@18.2.0)
@@ -3394,6 +3394,7 @@ packages:
   /@humanwhocodes/config-array@0.11.14:
     resolution: {integrity: sha512-3T8LkOmg45BV5FICb15QQMsyUSWrQ8AygVfC7ZG32zOalnqrilm018ZVCw0eapXux8FtA33q8PSRSstjee3jSg==}
     engines: {node: '>=10.10.0'}
+    deprecated: Use @eslint/config-array instead
     dependencies:
       '@humanwhocodes/object-schema': 2.0.3
       debug: 4.3.4
@@ -3409,6 +3410,7 @@ packages:
 
   /@humanwhocodes/object-schema@2.0.3:
     resolution: {integrity: sha512-93zYdMES/c1D69yZiKDBj0V24vqNzB/koF26KPaagAfd3P/4gUlh3Dys5ogAK+Exi9QyzlD8x/08Zt7wIKcDcA==}
+    deprecated: Use @eslint/object-schema instead
     dev: false
 
   /@isaacs/cliui@8.0.2:
@@ -5071,8 +5073,8 @@ packages:
     resolution: {integrity: sha512-dzJtaDAAoXx4GCOJpbB2eG/Qj8VDpdwkLsWGzGm+0L7E8/434RyMbAHmk9ubXWVAb9nXmc44jUf8GKqVDiKezg==}
     dev: false
 
-  /@squirrel-labs/peanut-sdk@0.4.45:
-    resolution: {integrity: sha512-knwbhCFdjFnDBljDn0i4xXIMXwmTFNdKJLbjie79ZXmuSTm8NT2tYKWdlKReJNml3IGQ/bd+OghjYKLy0tB1lg==}
+  /@squirrel-labs/peanut-sdk@0.4.47:
+    resolution: {integrity: sha512-SU3vjDObx+G804pMMCPkkz7OiKxmJNJFxgWjLC9jdPA71aY0oO2GGfvbpFbOaCd77MLftXMigfc8ZqVmioiJng==}
     dependencies:
       ethersv5: /ethers@5.7.2
     transitivePeerDependencies:
