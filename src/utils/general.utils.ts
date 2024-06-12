@@ -621,7 +621,7 @@ export const getExplorerUrl = (chainId: string) => {
 
     // if the explorers array has blockscout, return the blockscout url, else return the first one
     if (explorers?.find((explorer) => explorer.name === 'blockscout')) {
-        return explorers?.find((explorer) => explorer.name === 'blockscout')?.url
+        return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
     } else {
         return explorers?.[0].url
     }
