@@ -8,10 +8,12 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
+import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
+    const sdk = new SafeAppsSDK()
 
     const [linkDetails, setLinkDetails] = useState<peanutInterfaces.IPeanutLinkDetails>()
     const [password, setPassword] = useState<string>('')
@@ -42,6 +44,7 @@ export const Create = () => {
         address: undefined,
         name: undefined,
     })
+    const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
 
     const [recentRecipients, setRecentRecipients] = useState<
         {
@@ -107,6 +110,19 @@ export const Create = () => {
     }, [])
 
     useEffect(() => {
+        ;(async () => {
+            try {
+                const envInfo = await sdk.safe.getEnvironmentInfo()
+                if (envInfo.origin.includes('blockscout.com')) {
+                    setWalletType('blockscout')
+                } else {
+                    setWalletType(undefined)
+                }
+            } catch (error) {
+                console.log('Failed to get wallet info:', error)
+                setWalletType(undefined)
+            }
+        })()
         if (address) {
             fetchRecentTransactions()
         } else {
@@ -150,6 +166,8 @@ export const Create = () => {
                 recipient,
                 setRecipient,
                 recentRecipients,
+                walletType,
+                setWalletType,
             } as _consts.ICreateScreenProps)}
         </div>
     )

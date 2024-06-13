@@ -34,6 +34,7 @@ export const CreateLinkConfirmView = ({
     attachmentOptions,
     createType,
     recipient,
+    walletType,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
@@ -111,7 +112,7 @@ export const CreateLinkConfirmView = ({
                     },
                 })
             } else {
-                const link = await getLinkFromHash({ hash, linkDetails, password })
+                const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
 
                 await submitLinkAttachmentConfirm({
                     chainId: selectedChainID,

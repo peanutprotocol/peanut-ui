@@ -14,6 +14,7 @@ import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
@@ -32,6 +33,7 @@ export const CreateLinkInputView = ({
     setAttachmentOptions,
     createType,
     recipient,
+    walletType,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -47,6 +49,7 @@ export const CreateLinkInputView = ({
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
     )
+    const sdk = new SafeAppsSDK()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -84,8 +87,12 @@ export const CreateLinkInputView = ({
             setLoadingState('Asserting values')
             await assertValues({ tokenValue: value })
             setLoadingState('Generating details')
+
+            const envInfo = await sdk.safe.getEnvironmentInfo()
             const linkDetails = generateLinkDetails({
                 tokenValue: value,
+                envInfo,
+                walletType,
             })
             setLinkDetails(linkDetails)
 

@@ -93,14 +93,24 @@ export const useCreateLink = () => {
             throw new Error('The minimum amount to send is 0.0001')
         }
     }
-    const generateLinkDetails = ({ tokenValue }: { tokenValue: string | undefined }) => {
+    const generateLinkDetails = ({
+        tokenValue,
+        walletType,
+        envInfo,
+    }: {
+        tokenValue: string | undefined
+        walletType: 'blockscout' | undefined
+        envInfo: any
+    }) => {
         try {
             // get tokenDetails (type and decimals)
             const tokenDetails = _utils.getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
             // baseUrl
             let baseUrl = ''
-            if (typeof window !== 'undefined') {
+            if (walletType === 'blockscout') {
+                baseUrl = `${envInfo.origin}/apps/peanut-protocol`
+            } else if (typeof window !== 'undefined') {
                 baseUrl = `${window.location.origin}/claim`
             }
 
@@ -512,10 +522,12 @@ export const useCreateLink = () => {
         hash,
         linkDetails,
         password,
+        walletType,
     }: {
         hash: string
         linkDetails: peanutInterfaces.IPeanutLinkDetails
         password: string
+        walletType: 'blockscout' | undefined
     }) => {
         try {
             const getLinksFromTxResponse = await peanut.getLinksFromTx({
@@ -523,8 +535,16 @@ export const useCreateLink = () => {
                 txHash: hash,
                 passwords: [password],
             })
+            let links: string[] = getLinksFromTxResponse.links
 
-            return getLinksFromTxResponse.links
+            if (walletType === 'blockscout') {
+                const _link = links[0]
+                const urlObj = new URL(_link)
+                urlObj.searchParams.append('path', 'claim')
+                const newUrl = urlObj.toString()
+                links = [newUrl]
+            }
+            return links
         } catch (error) {
             throw error
         }
