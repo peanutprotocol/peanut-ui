@@ -15,6 +15,7 @@ import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
+import Icon from '@/components/Global/Icon'
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
@@ -33,6 +34,8 @@ export const CreateLinkInputView = ({
     setAttachmentOptions,
     createType,
     recipient,
+    crossChainDetails,
+
     walletType,
 }: _consts.ICreateScreenProps) => {
     const {
@@ -284,6 +287,11 @@ export const CreateLinkInputView = ({
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
+                )}
+                {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+                    <span className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                    </span>
                 )}
             </div>
         </div>

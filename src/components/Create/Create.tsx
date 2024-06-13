@@ -45,6 +45,7 @@ export const Create = () => {
         name: undefined,
     })
     const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
+    const [crossChainDetails, setCrossChainDetails] = useState<[]>([])
 
     const [recentRecipients, setRecentRecipients] = useState<
         {
@@ -93,6 +94,16 @@ export const Create = () => {
         setRecentRecipients(recentRanked)
     }
 
+    const fetchAndSetCrossChainDetails = async () => {
+        const response = await fetch('https://api.squidrouter.com/v1/chains')
+        if (!response.ok) {
+            throw new Error('Network response was not ok')
+        }
+        const data = await response.json()
+        console.log(data.chains)
+        setCrossChainDetails(data.chains)
+    }
+
     useEffect(() => {
         if (!Boolean(address)) return
         if (w3iClientIsLoading) return
@@ -107,6 +118,7 @@ export const Create = () => {
 
     useEffect(() => {
         resetTokenContextProvider()
+        fetchAndSetCrossChainDetails()
     }, [])
 
     useEffect(() => {
@@ -168,6 +180,7 @@ export const Create = () => {
                 recentRecipients,
                 walletType,
                 setWalletType,
+                crossChainDetails,
             } as _consts.ICreateScreenProps)}
         </div>
     )

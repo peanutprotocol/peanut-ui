@@ -8,6 +8,7 @@ import * as _consts from '../Create.consts'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as context from '@/context'
+import { useToast } from '@chakra-ui/react'
 import {
     useWeb3InboxAccount,
     useRegister,
@@ -27,6 +28,7 @@ export const CreateLinkSuccessView = ({
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
         context.tokenSelectorContext
     )
+    const toast = useToast()
 
     const { address } = useAccount({})
     const { signMessageAsync } = useSignMessage()
@@ -53,6 +55,15 @@ export const CreateLinkSuccessView = ({
                 url,
             })
         } catch (error: any) {
+            toast({
+                title: 'Sharing failed',
+                description: 'Sharing does not work within another app. The link has been copied to clipboard',
+                status: 'warning',
+                duration: 9000,
+                isClosable: true,
+                variant: 'subtle',
+            })
+            utils.copyTextToClipboardWithFallback(url)
             console.log(error)
         }
     }

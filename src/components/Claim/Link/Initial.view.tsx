@@ -236,7 +236,7 @@ export const InitialClaimLinkView = ({
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                     >
                         {attachment.message && (
-                            <label className="text-h8 ">
+                            <label className="max-w-full text-h8">
                                 Ref: <span className="font-normal"> {attachment.message} </span>
                             </label>
                         )}

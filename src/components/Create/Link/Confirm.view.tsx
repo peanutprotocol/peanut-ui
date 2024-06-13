@@ -35,6 +35,7 @@ export const CreateLinkConfirmView = ({
     createType,
     recipient,
     walletType,
+    crossChainDetails,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
@@ -287,6 +288,11 @@ export const CreateLinkConfirmView = ({
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
+                )}
+                {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+                    <span className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                    </span>
                 )}
             </div>
         </div>
