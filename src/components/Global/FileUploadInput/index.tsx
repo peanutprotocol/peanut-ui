@@ -43,7 +43,13 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
     return (
         <div className="flex h-12 w-full max-w-96 flex-row items-center justify-center gap-2 border border-n-1 px-4 py-2">
             <div>
-                <input type="file" onChange={handleFileChange} className="hidden" id="file-input" />
+                <input
+                    type="file"
+                    accept="image/*,application/pdf"
+                    onChange={handleFileChange}
+                    className="hidden"
+                    id="file-input"
+                />
                 <label htmlFor="file-input" className="cursor-pointer">
                     {attachmentOptions.fileUrl ? (
                         utils.checkifImageType(fileType) ? (

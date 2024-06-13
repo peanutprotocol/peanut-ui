@@ -29,6 +29,7 @@ const AddressInput = ({
     const [deboundedRecipient, setDeboundedRecipient] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
+    const [type, setType] = useState<interfaces.RecipientType>('address')
 
     async function checkAddress(recipient: string) {
         try {
@@ -36,6 +37,7 @@ const AddressInput = ({
                 setIsValidRecipient(true)
                 _setIsValidRecipient(true)
                 setRecipientType('iban')
+                setType('iban')
                 setAddress(recipient)
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
@@ -45,6 +47,7 @@ const AddressInput = ({
                     _setIsValidRecipient(true)
                     setAddress(recipient)
                     setRecipientType('ens')
+                    setType('ens')
                 } else {
                     setIsValidRecipient(false)
                     _setIsValidRecipient(false)
@@ -54,6 +57,7 @@ const AddressInput = ({
                 setIsValidRecipient(true)
                 _setIsValidRecipient(true)
                 setRecipientType('address')
+                setType('address')
             } else {
                 setIsValidRecipient(false)
                 _setIsValidRecipient(false)
@@ -69,7 +73,18 @@ const AddressInput = ({
 
     useEffect(() => {
         if (recipient && isValidRecipient) {
-            onSubmit(recipient)
+            console.log(type)
+            switch (type) {
+                case 'address':
+                    onSubmit(undefined, recipient)
+                    break
+                case 'ens':
+                    onSubmit(userInput, recipient)
+                    break
+                case 'iban':
+                    onSubmit(userInput, recipient)
+                    break
+            }
             _setIsValidRecipient(true)
         }
     }, [recipient])

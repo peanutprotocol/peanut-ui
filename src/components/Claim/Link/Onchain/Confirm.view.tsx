@@ -57,7 +57,7 @@ export const ConfirmClaimLinkView = ({
             let claimTxHash = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
-                    address: recipient ? recipient : address ?? '',
+                    address: recipient ? recipient.address : address ?? '',
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
@@ -65,14 +65,14 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claimxchain')
             } else {
                 claimTxHash = await claimLink({
-                    address: recipient ? recipient : address ?? '',
+                    address: recipient ? recipient.address : address ?? '',
                     link: claimLinkData.link,
                 })
                 setClaimType('claim')
             }
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: recipient ? recipient : address ?? '',
+                    address: recipient ? recipient.address : address ?? '',
                     data: {
                         ...claimLinkData,
                         depositDate: new Date(),
@@ -115,8 +115,6 @@ export const ConfirmClaimLinkView = ({
     //         } catch (error) {}
     //     }
     // }, [attachment?.attachmentUrl])
-
-    console.log('onchain views')
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
@@ -189,7 +187,9 @@ export const ConfirmClaimLinkView = ({
 
             <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
                 <label className="text-h7 font-normal">Claiming to:</label>
-                <label className="text-h7">{utils.shortenAddressLong(recipient ?? '')}</label>
+                <label className="text-h7">
+                    {recipient.name ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}
+                </label>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">

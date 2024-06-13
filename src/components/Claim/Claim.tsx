@@ -25,7 +25,10 @@ export const Claim = ({}) => {
         attachmentUrl: undefined,
     })
     const [type, setType] = useState<_consts.ClaimType | undefined>(undefined)
-    const [recipient, setRecipient] = useState<string | undefined>(undefined)
+    const [recipient, setRecipient] = useState<{ name: string | undefined; address: string }>({
+        name: undefined,
+        address: '',
+    })
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
@@ -140,7 +143,7 @@ export const Claim = ({}) => {
                 tokenPrice && setTokenPrice(tokenPrice?.price)
 
                 if (address) {
-                    setRecipient(address)
+                    setRecipient({ name: '', address })
                     const estimatedPoints = await estimatePoints({
                         address: address ?? '',
                         chainId: linkDetails.chainId,

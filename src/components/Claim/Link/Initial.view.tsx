@@ -62,9 +62,9 @@ export const InitialClaimLinkView = ({
 
     const handleConnectWallet = async () => {
         if (isConnected && address) {
-            setRecipient('')
+            setRecipient({ name: undefined, address: '' })
             await new Promise((resolve) => setTimeout(resolve, 100))
-            setRecipient(address)
+            setRecipient({ name: undefined, address: address })
         } else {
             open()
         }
@@ -77,12 +77,12 @@ export const InitialClaimLinkView = ({
             errorMessage: '',
         })
 
-        if (recipient === '') return
+        if (recipient.address === '') return
 
         try {
             setLoadingState('Executing transaction')
             const claimTxHash = await claimLink({
-                address: recipient ?? '',
+                address: recipient.address ?? '',
                 link: claimLinkData.link,
             })
 
@@ -119,7 +119,7 @@ export const InitialClaimLinkView = ({
     const _estimatePoints = async () => {
         const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
         const estimatedPoints = await estimatePoints({
-            address: recipient ?? address ?? '',
+            address: recipient.address ?? address ?? '',
             link: claimLinkData.link,
             chainId: claimLinkData.chainId,
             amountUSD: USDValue,
@@ -128,7 +128,7 @@ export const InitialClaimLinkView = ({
     }
 
     const handleIbanRecipient = async () => {
-        setOfframpForm({ ...offrampForm, recipient: recipient ?? '' })
+        setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
 
         //const customerExist =
 
@@ -164,9 +164,9 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (recipient) return
         if (isConnected && address) {
-            setRecipient(address)
+            setRecipient({ name: undefined, address })
         } else {
-            setRecipient('')
+            setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
         }
     }, [address])
@@ -204,7 +204,7 @@ export const InitialClaimLinkView = ({
                         toToken: selectedTokenAddress,
                         slippage: 1,
                         fromAddress: claimLinkData.senderAddress,
-                        toAddress: recipient ? recipient : address ?? '',
+                        toAddress: recipient.address ? recipient.address : address ?? '',
                     })
                     setRoutes([...routes, route])
                     setSelectedRoute(route)
@@ -235,10 +235,12 @@ export const InitialClaimLinkView = ({
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                     >
-                        {attachment.message && <label className="text-h8 ">{attachment.message}</label>}
-                        {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
-                            <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
-                        ) : (
+                        {attachment.message && (
+                            <label className="text-h8 ">
+                                Ref: <span className="font-normal"> {attachment.message} </span>
+                            </label>
+                        )}
+                        {attachment.attachmentUrl && (
                             <a
                                 href={attachment.attachmentUrl}
                                 download
@@ -339,10 +341,11 @@ export const InitialClaimLinkView = ({
                 <AddressInput
                     className="px-1"
                     placeholder="wallet address / ENS / IBAN"
-                    value={recipient ?? ''}
-                    onSubmit={(address: string) => {
-                        setRecipient(address)
+                    value={recipient.name ? recipient.name : recipient.address ?? ''}
+                    onSubmit={(name: string, address: string) => {
+                        setRecipient({ name, address })
                         setInputChanging(false)
+                        console.log(name, address)
                     }}
                     _setIsValidRecipient={(valid: boolean) => {
                         setIsValidRecipient(valid)
@@ -477,7 +480,7 @@ export const InitialClaimLinkView = ({
                 <button
                     className="btn-purple btn-xl"
                     onClick={() => {
-                        if ((hasFetchedRoute && selectedRoute) || recipient !== address) {
+                        if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
                             if (recipientType === 'iban') {
                                 handleIbanRecipient()
                             } else {
@@ -499,7 +502,7 @@ export const InitialClaimLinkView = ({
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
                         </div>
-                    ) : (hasFetchedRoute && selectedRoute) || recipient !== address ? (
+                    ) : (hasFetchedRoute && selectedRoute) || recipient.address !== address ? (
                         'Proceed'
                     ) : (
                         'Claim now'
