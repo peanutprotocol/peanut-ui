@@ -524,6 +524,26 @@ export const InitialClaimLinkView = ({
                 {errorState.showError && (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        {errorState.errorMessage === 'No route found for the given token pair.' && (
+                            <label className="text-h8 font-normal text-red">
+                                {' '}
+                                Click{' '}
+                                <span
+                                    className="cursor-pointer text-h8 font-normal text-red underline"
+                                    onClick={() => {
+                                        setSelectedRoute(null)
+                                        setHasFetchedRoute(false)
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    }}
+                                >
+                                    here
+                                </span>{' '}
+                                to reset.
+                            </label>
+                        )}
                     </div>
                 )}
             </div>{' '}

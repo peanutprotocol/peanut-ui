@@ -86,12 +86,14 @@ export const CreateLinkInputView = ({
             }
             setLoadingState('Asserting values')
             await assertValues({ tokenValue: value })
+
+            // const envInfo = await sdk.safe.getEnvironmentInfo()
+
             setLoadingState('Generating details')
 
-            const envInfo = await sdk.safe.getEnvironmentInfo()
             const linkDetails = generateLinkDetails({
                 tokenValue: value,
-                envInfo,
+                envInfo: undefined,
                 walletType,
             })
             setLinkDetails(linkDetails)

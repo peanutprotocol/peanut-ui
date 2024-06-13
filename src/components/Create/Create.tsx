@@ -112,12 +112,12 @@ export const Create = () => {
     useEffect(() => {
         ;(async () => {
             try {
-                const envInfo = await sdk.safe.getEnvironmentInfo()
-                if (envInfo.origin.includes('blockscout.com')) {
-                    setWalletType('blockscout')
-                } else {
-                    setWalletType(undefined)
-                }
+                // const envInfo = await sdk.safe.getEnvironmentInfo()
+                // if (envInfo.origin.includes('blockscout.com')) {
+                //     setWalletType('blockscout')
+                // } else {
+                //     setWalletType(undefined)
+                // }
             } catch (error) {
                 console.log('Failed to get wallet info:', error)
                 setWalletType(undefined)
