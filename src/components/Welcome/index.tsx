@@ -87,7 +87,7 @@ const faqs = [
     {
         question: 'What happens if I want to cancel or if I lose the link?',
         answer: 'The only thing you need is the transaction hash! To see how, click ',
-        redirectUrl: 'https://peanut.to/reclaim',
+        redirectUrl: 'https://peanut.to/refund',
         redirectText: 'here.',
     },
     {

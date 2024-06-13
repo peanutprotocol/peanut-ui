@@ -39,12 +39,6 @@ const defaultLottieStyle = {
     width: 24,
 }
 
-const menuItems = [
-    { name: 'App', href: '/send' },
-    { name: 'Tools', href: '/send' },
-    { name: 'Docs', href: 'https://docs.peanut.to' },
-]
-
 export const Header = () => {
     const { isOpen, onToggle } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
@@ -187,6 +181,12 @@ const MenuLinks = () => {
                         >
                             <Text display="block"> batch</Text>
                         </Link>
+                        <Link
+                            href={'/refund'}
+                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block"> refund</Text>
+                        </Link>
                     </div>
                 )}
             </div>
@@ -212,6 +212,12 @@ const MenuLinks = () => {
                             className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
                         >
                             <Text display="block"> batch</Text>
+                        </Link>
+                        <Link
+                            href={'/refund'}
+                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block"> refund</Text>
                         </Link>
                     </div>
                 )}

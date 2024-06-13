@@ -528,9 +528,9 @@ export const Dashboard = () => {
             )}
 
             <button
-                className=""
+                className="center-xy"
                 onClick={() => {
-                    router.push('/reclaim')
+                    router.push('/refund')
                 }}
             >
                 <Icon name={'question-circle'} /> Had an issue creating a link? click here to reclaim the funds.
