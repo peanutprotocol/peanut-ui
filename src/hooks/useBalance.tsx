@@ -9,9 +9,6 @@ export const useBalance = () => {
     const prevAddressRef = useRef<string | undefined>(undefined)
 
     useEffect(() => {
-        console.log('useBalance: ', address)
-        console.log('prevAddressRef.current: ', prevAddressRef.current)
-
         if (address && prevAddressRef.current !== address) {
             prevAddressRef.current = address
             refetchBalances()

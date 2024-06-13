@@ -1,5 +1,7 @@
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
+export type RecipientType = 'address' | 'ens' | 'iban'
+
 export interface IUserBalance {
     chainId: string
     address: string

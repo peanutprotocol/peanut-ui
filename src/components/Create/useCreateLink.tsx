@@ -270,20 +270,15 @@ export const useCreateLink = () => {
         }
     }) => {
         try {
-            const { address: pubKey } = generateKeysFromString(password)
-
-            // Create a FormData object
             const formData = new FormData()
-            formData.append('pubKey', pubKey)
-            formData.append('apiKey', process.env.NEXT_PUBLIC_PEANUT_API_KEY ?? '')
-            if (attachmentOptions.message) {
-                formData.append('reference', attachmentOptions.message)
-            }
+            formData.append('password', password)
+            formData.append('attachmentOptions', JSON.stringify(attachmentOptions))
+
             if (attachmentOptions.attachmentFile) {
-                formData.append('file', attachmentOptions.attachmentFile)
+                formData.append('attachmentFile', attachmentOptions.attachmentFile)
             }
 
-            const response = await fetch('https://api.staging.peanut.to/submit-claim-link/init', {
+            const response = await fetch('/api/peanut/submit-link-attachment/init', {
                 method: 'POST',
                 body: formData,
             })
@@ -293,7 +288,7 @@ export const useCreateLink = () => {
             }
             const data = await response.json()
 
-            return data.linkEntry.file_url
+            return data.fileUrl
         } catch (error) {
             console.error('Failed to publish file (init):', error)
             return ''
@@ -311,33 +306,24 @@ export const useCreateLink = () => {
         chainId: string
     }) => {
         try {
-            const { address: pubKey } = generateKeysFromString(password)
-
-            const response = await fetch('https://api.staging.peanut.to/submit-claim-link/complete', {
+            const response = await fetch('/api/peanut/submit-link-attachment/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    pubKey: pubKey,
-                    apiKey: process.env.NEXT_PUBLIC_PEANUT_API_KEY,
-                    txHash: txHash,
-                    chainId: chainId,
-                    link: link,
-                    signature: '',
+                    link,
+                    password,
+                    txHash,
+                    chainId,
                 }),
             })
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
-            const data = await response.json()
-
-            // check if statuscode is 200, else throw error
-            if (data.statusCode !== 200) {
-                throw new Error(`HTTP error! status: ${data.statusCode}`)
-            }
         } catch (error) {
-            console.error('Failed to publish file (init):', error)
+            console.error('Failed to publish file (complete):', error)
             return ''
         }
     }

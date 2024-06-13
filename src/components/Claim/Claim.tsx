@@ -1,6 +1,8 @@
 'use client'
 import { createElement, useEffect, useState, useContext } from 'react'
 import peanut, { getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useAccount } from 'wagmi'
+import useClaimLink from './useClaimLink'
 
 import * as genericViews from './Generic'
 import * as _consts from './Claim.consts'
@@ -9,8 +11,8 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import * as assets from '@/assets'
 import * as consts from '@/constants'
-import { useAccount } from 'wagmi'
-import useClaimLink from './useClaimLink'
+import FlowManager from './Link/FlowManager'
+
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
@@ -23,12 +25,19 @@ export const Claim = ({}) => {
         attachmentUrl: undefined,
     })
     const [type, setType] = useState<_consts.ClaimType | undefined>(undefined)
-    const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
+    const [recipient, setRecipient] = useState<string | undefined>(undefined)
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
+
+    const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
+    const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
+        name: '',
+        email: '',
+        recipient: '',
+    })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
@@ -131,7 +140,7 @@ export const Claim = ({}) => {
                 tokenPrice && setTokenPrice(tokenPrice?.price)
 
                 if (address) {
-                    setRecipientAddress(address)
+                    setRecipient(address)
                     const estimatedPoints = await estimatePoints({
                         address: address ?? '',
                         chainId: linkDetails.chainId,
@@ -154,7 +163,7 @@ export const Claim = ({}) => {
 
     const checkAccess = async () => {
         const accessCode = utils.getPeanutAccessCode()
-        if (accessCode?.accessCode !== 'ilovepeanuts') {
+        if (accessCode?.accessCode !== process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase()) {
             utils.updatePeanutAccessCode('ilovepeanuts')
             window.location.reload()
         }
@@ -178,30 +187,42 @@ export const Claim = ({}) => {
                     </div>
                 </div>
             )}
-            {linkState === 'CLAIM' &&
-                createElement(_consts.CLAIM_SCREEN_MAP[step.screen].comp, {
-                    onPrev: handleOnPrev,
-                    onNext: handleOnNext,
-                    onCustom: handleOnCustom,
-                    claimLinkData,
-                    crossChainDetails,
-                    type,
-                    setClaimType: setType,
-                    recipientAddress,
-                    setRecipientAddress,
-                    tokenPrice,
-                    setTokenPrice,
-                    transactionHash,
-                    setTransactionHash,
-                    estimatedPoints,
-                    setEstimatedPoints,
-                    attachment,
-                    setAttachment,
-                    selectedRoute,
-                    setSelectedRoute,
-                    hasFetchedRoute,
-                    setHasFetchedRoute,
-                } as _consts.IClaimScreenProps)}
+            {linkState === 'CLAIM' && (
+                <FlowManager
+                    recipientType={recipientType}
+                    step={step}
+                    props={
+                        {
+                            onPrev: handleOnPrev,
+                            onNext: handleOnNext,
+                            onCustom: handleOnCustom,
+                            claimLinkData,
+                            crossChainDetails,
+                            type,
+                            setClaimType: setType,
+                            recipient,
+                            setRecipient,
+                            tokenPrice,
+                            setTokenPrice,
+                            transactionHash,
+                            setTransactionHash,
+                            estimatedPoints,
+                            setEstimatedPoints,
+                            attachment,
+                            setAttachment,
+                            selectedRoute,
+                            setSelectedRoute,
+                            hasFetchedRoute,
+                            setHasFetchedRoute,
+                            recipientType,
+                            setRecipientType,
+                            offrampForm,
+                            setOfframpForm,
+                        } as _consts.IClaimScreenProps
+                    }
+                />
+            )}
+
             {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
             {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}
             {linkState === 'CLAIM_SENDER' && (

@@ -5,6 +5,12 @@ export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
+export interface IOfframpForm {
+    name: string
+    email: string
+    recipient: string
+}
+
 export interface IClaimScreenState {
     screen: ClaimScreens
     idx: number
@@ -17,12 +23,6 @@ export const INIT_VIEW_STATE: IClaimScreenState = {
 
 export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
 
-export const CLAIM_SCREEN_MAP: { [key in ClaimScreens]: { comp: React.FC<any> } } = {
-    INITIAL: { comp: views.InitialClaimLinkView },
-    CONFIRM: { comp: views.ConfirmClaimLinkView },
-    SUCCESS: { comp: views.SuccessClaimLinkView },
-}
-
 export interface IClaimScreenProps {
     onPrev: () => void
     onNext: () => void
@@ -31,8 +31,8 @@ export interface IClaimScreenProps {
     crossChainDetails: Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
     type: ClaimType
     setClaimType: (type: ClaimType) => void
-    recipientAddress: string | undefined
-    setRecipientAddress: (address: string) => void
+    recipient: string | undefined
+    setRecipient: (address: string) => void
     tokenPrice: number
     setTokenPrice: (price: number) => void
     transactionHash: string
@@ -45,6 +45,10 @@ export interface IClaimScreenProps {
     setSelectedRoute: (route: any) => void
     hasFetchedRoute: boolean
     setHasFetchedRoute: (fetched: boolean) => void
+    recipientType: interfaces.RecipientType
+    setRecipientType: (type: interfaces.RecipientType) => void
+    offrampForm: IOfframpForm
+    setOfframpForm: (form: IOfframpForm) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'

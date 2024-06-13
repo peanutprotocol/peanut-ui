@@ -1,5 +1,5 @@
 import Icon from '@/components/Global/Icon'
-import * as _consts from '../Claim.consts'
+import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import * as context from '@/context'

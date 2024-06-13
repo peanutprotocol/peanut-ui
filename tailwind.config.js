@@ -355,6 +355,10 @@ module.exports = {
                 '.brutal-border': {
                     '@apply border-2 border-black': {},
                 },
+                '.custom-input': {
+                    '@apply w-full border border-n-1 transition-colors h-12 w-full rounded-none bg-transparent bg-white px-4 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1':
+                        {},
+                },
             })
             addUtilities({
                 '.tap-highlight-color': {
