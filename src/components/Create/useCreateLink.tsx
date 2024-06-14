@@ -234,11 +234,13 @@ export const useCreateLink = () => {
         preparedTx,
         address,
         amountUSD,
+        actionType,
     }: {
         chainId: string
         preparedTx: any // This could be detailed further depending on the transaction structure
         address: string
         amountUSD: number
+        actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
             const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
@@ -247,7 +249,7 @@ export const useCreateLink = () => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    actionType: 'CREATE',
+                    actionType: actionType,
                     amountUsd: amountUSD,
                     transaction: {
                         from: preparedTx.from ? preparedTx.from.toString() : address,
@@ -269,20 +271,23 @@ export const useCreateLink = () => {
             return 0 // Returning 0 or another error handling strategy could be implemented here
         }
     }
-    const submitLinkAttachmentInit = async ({
+    const submitClaimLinkInit = async ({
         attachmentOptions,
         password,
+        senderAddress,
     }: {
         password: string
         attachmentOptions: {
             message?: string
             attachmentFile?: File
         }
+        senderAddress: string
     }) => {
         try {
             const formData = new FormData()
             formData.append('password', password)
             formData.append('attachmentOptions', JSON.stringify(attachmentOptions))
+            formData.append('senderAddress', senderAddress)
 
             if (attachmentOptions.attachmentFile) {
                 formData.append('attachmentFile', attachmentOptions.attachmentFile)
@@ -298,24 +303,41 @@ export const useCreateLink = () => {
             }
             const data = await response.json()
 
-            return data.fileUrl
+            return data
         } catch (error) {
             console.error('Failed to publish file (init):', error)
             return ''
         }
     }
-    const submitLinkAttachmentConfirm = async ({
+    const submitClaimLinkConfirm = async ({
         link,
         password,
         txHash,
         chainId,
+        senderAddress,
+        amountUsd,
+        transaction,
     }: {
         link: string
         password: string
         txHash: string
         chainId: string
+        senderAddress: string
+        amountUsd: number
+        transaction?: peanutInterfaces.IPeanutUnsignedTransaction
     }) => {
         try {
+            console.log(
+                'submitClaimLinkConfirm',
+                link,
+                password,
+                txHash,
+                chainId,
+                senderAddress,
+                amountUsd,
+                transaction
+            )
+
             const response = await fetch('/api/peanut/submit-link-attachment/confirm', {
                 method: 'POST',
                 headers: {
@@ -326,6 +348,46 @@ export const useCreateLink = () => {
                     password,
                     txHash,
                     chainId,
+                    senderAddress: senderAddress,
+                    amountUsd,
+                    transaction: { ...transaction, value: transaction?.value && transaction.value.toString() },
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+        } catch (error) {
+            console.error('Failed to publish file (complete):', error)
+            return ''
+        }
+    }
+
+    const submitDirectTransfer = async ({
+        txHash,
+        chainId,
+        senderAddress,
+        amountUsd,
+        transaction,
+    }: {
+        txHash: string
+        chainId: string
+        senderAddress: string
+        amountUsd: number
+        transaction?: peanutInterfaces.IPeanutUnsignedTransaction
+    }) => {
+        try {
+            const response = await fetch('/api/peanut/submit-direct-transfer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    txHash,
+                    chainId,
+                    senderAddress: senderAddress,
+                    amountUsd,
+                    transaction,
                 }),
             })
 
@@ -563,8 +625,9 @@ export const useCreateLink = () => {
         switchNetwork,
         estimateGasFee,
         estimatePoints,
-        submitLinkAttachmentInit,
-        submitLinkAttachmentConfirm,
+        submitClaimLinkInit,
+        submitClaimLinkConfirm,
         prepareDirectSendTx,
+        submitDirectTransfer,
     }
 }

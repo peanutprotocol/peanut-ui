@@ -150,7 +150,7 @@ export const CreateLinkInputView = ({
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
-                        const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
+                        const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
                         const estimatedPoints = await estimatePoints({
                             chainId: selectedChainID,
                             address: address ?? '',
@@ -159,6 +159,7 @@ export const CreateLinkInputView = ({
                                 prepareDepositTxsResponse?.unsignedTxs[
                                     prepareDepositTxsResponse?.unsignedTxs.length - 1
                                 ],
+                            actionType: 'CREATE',
                         })
 
                         if (estimatedPoints) setEstimatedPoints(estimatedPoints)
@@ -171,10 +172,6 @@ export const CreateLinkInputView = ({
                         setTransactionCostUSD(undefined)
                     }
                 }
-
-                await switchNetwork(selectedChainID)
-
-                onNext()
             } else {
                 const preparedTxs: interfaces.IPrepareDepositTxsResponse = {
                     unsignedTxs: [
@@ -198,18 +195,26 @@ export const CreateLinkInputView = ({
                         chainId: selectedChainID,
                         preparedTx: preparedTxs?.unsignedTxs[0],
                     })
+                    const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
+                    const estimatedPoints = await estimatePoints({
+                        chainId: selectedChainID,
+                        address: address ?? '',
+                        amountUSD: USDValue,
+                        preparedTx: preparedTxs?.unsignedTxs[preparedTxs?.unsignedTxs.length - 1],
+                        actionType: 'TRANSFER',
+                    })
+
+                    if (estimatedPoints) setEstimatedPoints(estimatedPoints)
                     setFeeOptions(feeOptions)
                     setTransactionCostUSD(transactionCostUSD)
-                    setEstimatedPoints(0)
                 } catch (error) {
                     console.error(error)
                     setFeeOptions(undefined)
                     setTransactionCostUSD(undefined)
                 }
-
-                await switchNetwork(selectedChainID)
-                onNext()
             }
+            await switchNetwork(selectedChainID)
+            onNext()
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({

@@ -53,8 +53,9 @@ export const CreateLinkConfirmView = ({
         signTypedData,
         makeDepositGasless,
         getLinkFromHash,
-        submitLinkAttachmentInit,
-        submitLinkAttachmentConfirm,
+        submitClaimLinkInit,
+        submitClaimLinkConfirm,
+        submitDirectTransfer,
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
@@ -71,16 +72,15 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            let fileUrl
-            if (createType != 'direct') {
-                fileUrl = await submitLinkAttachmentInit({
-                    password: password ?? '',
-                    attachmentOptions: {
-                        attachmentFile: attachmentOptions.rawFile,
-                        message: attachmentOptions.message,
-                    },
-                })
-            }
+            const data = await submitClaimLinkInit({
+                password: password ?? '',
+                attachmentOptions: {
+                    attachmentFile: attachmentOptions.rawFile,
+                    message: attachmentOptions.message,
+                },
+                senderAddress: address ?? '',
+            })
+            const fileUrl = data?.fileUrl
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
@@ -100,6 +100,13 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
+            let value
+            if (inputDenomination == 'TOKEN') {
+                if (selectedTokenPrice && tokenValue) {
+                    value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                } else value = undefined
+            } else value = tokenValue
+
             if (createType === 'direct') {
                 utils.saveDirectSendToLocalStorage({
                     address: address ?? '',
@@ -112,15 +119,16 @@ export const CreateLinkConfirmView = ({
                         txHash: hash,
                     },
                 })
+
+                await submitDirectTransfer({
+                    txHash: hash,
+                    chainId: selectedChainID,
+                    senderAddress: address ?? '',
+                    amountUsd: parseFloat(value ?? '0'),
+                    transaction: preparedDepositTxs && preparedDepositTxs.unsignedTxs[0],
+                })
             } else {
                 const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
-
-                await submitLinkAttachmentConfirm({
-                    chainId: selectedChainID,
-                    link: link[0],
-                    password: password ?? '',
-                    txHash: hash,
-                })
 
                 utils.saveCreatedLinkToLocalStorage({
                     address: address ?? '',
@@ -138,12 +146,19 @@ export const CreateLinkConfirmView = ({
 
                 setLink(link[0])
                 console.log(link)
-                let value
-                if (inputDenomination == 'TOKEN') {
-                    if (selectedTokenPrice && tokenValue) {
-                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                    } else value = undefined
-                } else value = tokenValue
+
+                await submitClaimLinkConfirm({
+                    chainId: selectedChainID,
+                    link: link[0],
+                    password: password ?? '',
+                    txHash: hash,
+                    senderAddress: address ?? '',
+                    amountUsd: parseFloat(value ?? '0'),
+                    transaction:
+                        transactionType === 'not-gasless'
+                            ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0]
+                            : undefined,
+                })
 
                 if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], value)
                 if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], value)
@@ -260,13 +275,22 @@ export const CreateLinkConfirmView = ({
                         </label>
                     </div>
                 )}
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        +??? <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                        +{estimatedPoints}
+                        <MoreInfo
+                            text={
+                                estimatedPoints
+                                    ? estimatedPoints > 0
+                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                        : 'This transaction will not add any points to your total points balance'
+                                    : 'This transaction will not add any points to your total points balance'
+                            }
+                        />
                     </span>
                 </div>
             </div>

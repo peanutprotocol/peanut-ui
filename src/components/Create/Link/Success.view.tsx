@@ -57,7 +57,7 @@ export const CreateLinkSuccessView = ({
         } catch (error: any) {
             toast({
                 title: 'Sharing failed',
-                description: 'Sharing does not work within another app. The link has been copied to clipboard',
+                description: 'Sharing does not work within another app. The link has been copied to clipboard.',
                 status: 'warning',
                 duration: 9000,
                 isClosable: true,

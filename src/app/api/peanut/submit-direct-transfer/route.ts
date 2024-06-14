@@ -1,31 +1,25 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 
 export async function POST(request: NextRequest) {
     try {
-        const { link, password, txHash, chainId, senderAddress, amountUsd, transaction } = await request.json()
-        const { address: pubKey } = generateKeysFromString(password)
+        const { txHash, chainId, senderAddress, amountUsd, transaction } = await request.json()
 
-        const response = await fetch('https://api.staging.peanut.to/submit-claim-link/complete', {
+        const response = await fetch('https://api.staging.peanut.to/submit-direct-transfer', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                pubKey: pubKey,
                 apiKey: process.env.PEANUT_API_KEY,
                 txHash: txHash,
                 chainId: chainId,
-                link: link,
                 signature: '',
                 userAddress: senderAddress,
                 amountUsd: amountUsd,
                 transaction: transaction,
             }),
         })
-
-        console.log(response)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

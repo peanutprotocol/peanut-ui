@@ -6,6 +6,7 @@ export async function POST(request: NextRequest) {
     try {
         const formData = await request.formData()
         const password = formData.get('password') as string
+        const senderAddress = formData.get('senderAddress') as string
         const attachmentOptions = JSON.parse(formData.get('attachmentOptions') as string)
 
         const { address: pubKey } = generateKeysFromString(password)
@@ -13,6 +14,7 @@ export async function POST(request: NextRequest) {
         const apiFormData = new FormData()
         apiFormData.append('pubKey', pubKey)
         apiFormData.append('apiKey', process.env.PEANUT_API_KEY ?? '')
+        apiFormData.append('senderAddress', senderAddress)
         if (attachmentOptions.message) {
             apiFormData.append('reference', attachmentOptions.message)
         }

@@ -19,6 +19,7 @@ import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelector
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
+import Link from 'next/link'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -128,11 +129,9 @@ export const InitialClaimLinkView = ({
     }
 
     const handleIbanRecipient = async () => {
-        setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
-
+        // setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
         //const customerExist =
-
-        onNext()
+        // onNext()
     }
 
     // useEffect(() => {
@@ -162,7 +161,9 @@ export const InitialClaimLinkView = ({
     }, [recipient])
 
     useEffect(() => {
-        if (recipient) return
+        console.log('address', address)
+        console.log(recipient)
+        if (recipient.address) return
         if (isConnected && address) {
             setRecipient({ name: undefined, address })
         } else {
@@ -446,7 +447,7 @@ export const InitialClaimLinkView = ({
                             </span>
                         </div>
 
-                        {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
@@ -462,15 +463,6 @@ export const InitialClaimLinkView = ({
                                             : 'This transaction will not add any points to your total points balance'
                                     }
                                 />
-                            </span>
-                        </div> */}
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                +??? <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
                             </span>
                         </div>
                     </div>
@@ -495,7 +487,8 @@ export const InitialClaimLinkView = ({
                         !isValidRecipient ||
                         isXchainLoading ||
                         inputChanging ||
-                        (hasFetchedRoute && !selectedRoute)
+                        (hasFetchedRoute && !selectedRoute) ||
+                        recipientType === 'iban'
                     }
                 >
                     {isLoading || isXchainLoading ? (
@@ -545,6 +538,19 @@ export const InitialClaimLinkView = ({
                             </label>
                         )}
                     </div>
+                )}
+                {recipientType === 'iban' && (
+                    <label className="text-h8 font-normal">
+                        {' '}
+                        Offramp coming soon! Reach out via{' '}
+                        <Link
+                            className="cursor-pointer text-h8 font-normal underline"
+                            href={'https://discord.gg/BX9Ak7AW28'}
+                        >
+                            discord
+                        </Link>{' '}
+                        to find out more!
+                    </label>
                 )}
             </div>{' '}
         </div>

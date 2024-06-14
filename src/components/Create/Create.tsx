@@ -97,7 +97,7 @@ export const Create = () => {
     const fetchAndSetCrossChainDetails = async () => {
         const response = await fetch('https://api.squidrouter.com/v1/chains')
         if (!response.ok) {
-            throw new Error('Network response was not ok')
+            throw new Error('Squid: Network response was not ok')
         }
         const data = await response.json()
         console.log(data.chains)

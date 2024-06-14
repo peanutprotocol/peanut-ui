@@ -150,6 +150,7 @@ export const Claim = ({}) => {
                         link: linkDetails.link,
                         amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
                     })
+                    console.log('estimatedPoints', estimatedPoints)
                     setEstimatedPoints(estimatedPoints)
                 }
 
