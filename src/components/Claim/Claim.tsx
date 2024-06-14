@@ -144,6 +144,7 @@ export const Claim = ({}) => {
 
                 if (address) {
                     setRecipient({ name: '', address })
+
                     const estimatedPoints = await estimatePoints({
                         address: address ?? '',
                         chainId: linkDetails.chainId,

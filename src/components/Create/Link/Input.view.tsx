@@ -160,11 +160,16 @@ export const CreateLinkInputView = ({
                     }
                 }
 
-                const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
+                let value
+                if (inputDenomination == 'TOKEN') {
+                    if (selectedTokenPrice && tokenValue) {
+                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                    } else value = undefined
+                } else value = tokenValue
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
-                    amountUSD: USDValue,
+                    amountUSD: parseFloat(value ?? '0'),
                     preparedTx: isGaslessDepositPossible
                         ? undefined
                         : prepareDepositTxsResponse &&
