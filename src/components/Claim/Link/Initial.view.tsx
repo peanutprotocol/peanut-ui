@@ -426,7 +426,7 @@ export const InitialClaimLinkView = ({
                                 <label className="font-bold">Points</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                +{estimatedPoints}
+                                {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                                 <MoreInfo
                                     text={
                                         estimatedPoints

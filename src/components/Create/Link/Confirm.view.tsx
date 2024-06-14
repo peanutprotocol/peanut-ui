@@ -285,13 +285,15 @@ export const CreateLinkConfirmView = ({
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        +{estimatedPoints}
+                        {estimatedPoints && estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                         <MoreInfo
                             text={
                                 estimatedPoints
                                     ? estimatedPoints > 0
                                         ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                        : 'This transaction will not add any points to your total points balance'
+                                        : estimatedPoints < 0
+                                          ? `This transaction will cost you ${estimatedPoints} points, but will not cost you any gas fees!`
+                                          : 'This transaction will not add any points to your total points balance'
                                     : 'This transaction will not add any points to your total points balance'
                             }
                         />
