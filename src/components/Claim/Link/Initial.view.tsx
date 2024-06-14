@@ -121,7 +121,6 @@ export const InitialClaimLinkView = ({
         const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
         const estimatedPoints = await estimatePoints({
             address: recipient.address ?? address ?? '',
-            link: claimLinkData.link,
             chainId: claimLinkData.chainId,
             amountUSD: USDValue,
         })
