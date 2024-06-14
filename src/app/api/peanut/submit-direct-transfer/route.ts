@@ -25,9 +25,8 @@ export async function POST(request: NextRequest) {
             throw new Error(`HTTP error! status: ${response.status}`)
         }
         const data = await response.json()
-
-        if (data.status !== 'completed') {
-            throw new Error(`HTTP error! status: ${data.status}`)
+        if (!data) {
+            throw new Error(`HTTP error! status: data undefined`)
         }
 
         return new NextResponse(null, { status: 200 })

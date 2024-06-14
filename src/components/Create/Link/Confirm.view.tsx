@@ -72,15 +72,18 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            const data = await submitClaimLinkInit({
-                password: password ?? '',
-                attachmentOptions: {
-                    attachmentFile: attachmentOptions.rawFile,
-                    message: attachmentOptions.message,
-                },
-                senderAddress: address ?? '',
-            })
-            const fileUrl = data?.fileUrl
+            let fileUrl = ''
+            if (createType != 'direct') {
+                const data = await submitClaimLinkInit({
+                    password: password ?? '',
+                    attachmentOptions: {
+                        attachmentFile: attachmentOptions.rawFile,
+                        message: attachmentOptions.message,
+                    },
+                    senderAddress: address ?? '',
+                })
+                fileUrl = data?.fileUrl
+            }
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
@@ -108,6 +111,7 @@ export const CreateLinkConfirmView = ({
             } else value = tokenValue
 
             if (createType === 'direct') {
+                console.log(createType)
                 utils.saveDirectSendToLocalStorage({
                     address: address ?? '',
                     data: {

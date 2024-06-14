@@ -387,7 +387,7 @@ export const useCreateLink = () => {
                     chainId,
                     senderAddress: senderAddress,
                     amountUsd,
-                    transaction,
+                    transaction: { ...transaction, value: transaction?.value && transaction.value.toString() },
                 }),
             })
 

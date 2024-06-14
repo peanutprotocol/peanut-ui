@@ -108,12 +108,10 @@ export const useClaimLink = () => {
 
     const estimatePoints = async ({
         address,
-        link,
         chainId,
         amountUSD,
     }: {
         address: string
-        link: string
         chainId: string
         amountUSD: number
     }) => {
@@ -125,15 +123,22 @@ export const useClaimLink = () => {
                 },
                 body: JSON.stringify({
                     actionType: 'CLAIM',
-                    link: link,
                     userAddress: address,
                     chainId: chainId,
                     amountUsd: amountUSD,
+                    transaction: {
+                        from: address,
+                        to: address,
+                        data: '',
+                        value: '',
+                    },
                 }),
             })
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
+
+            console.log(response)
             const data = await response.json()
             return Math.round(data.points)
         } catch (error) {
