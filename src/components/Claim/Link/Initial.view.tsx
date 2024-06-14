@@ -267,8 +267,8 @@ export const InitialClaimLinkView = ({
                     </label>
                 )}
                 {isXchainLoading ? (
-                    <div className=" flex h-6 w-full max-w-96 animate-colorPulse flex-row items-center justify-center gap-1 ">
-                        <div className="h-3 w-24 rounded-full bg-slate-700"></div>
+                    <div className=" flex h-6 w-full max-w-96  flex-row items-center justify-center gap-1 ">
+                        <div className="h-3 w-24 animate-colorPulse rounded-full bg-slate-700"></div>
                     </div>
                 ) : (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">

@@ -251,12 +251,14 @@ export const useCreateLink = () => {
                 body: JSON.stringify({
                     actionType: actionType,
                     amountUsd: amountUSD,
-                    transaction: {
-                        from: preparedTx.from ? preparedTx.from.toString() : address,
-                        to: preparedTx.to ? preparedTx.to.toString() : '',
-                        data: preparedTx.data ? preparedTx.data.toString() : '',
-                        value: preparedTx.value ? preparedTx.value.toString() : '',
-                    },
+                    transaction: preparedTx
+                        ? {
+                              from: preparedTx.from ? preparedTx.from.toString() : address,
+                              to: preparedTx.to ? preparedTx.to.toString() : '',
+                              data: preparedTx.data ? preparedTx.data.toString() : '',
+                              value: preparedTx.value ? preparedTx.value.toString() : '',
+                          }
+                        : undefined,
                     chainId: chainId,
                     userAddress: address,
                 }),
