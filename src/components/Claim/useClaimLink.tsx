@@ -19,8 +19,6 @@ export const useClaimLink = () => {
 
     const { loadingState, setLoadingState } = useContext(context.loadingStateContext)
 
-    const xchainFeeMultiplier = 0.98
-
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('Executing transaction')
         try {
@@ -171,7 +169,6 @@ export const useClaimLink = () => {
     }
 
     return {
-        xchainFeeMultiplier,
         claimLink,
         claimLinkXchain,
         getSquidRoute,

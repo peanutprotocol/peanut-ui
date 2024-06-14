@@ -15,8 +15,6 @@ export const ipfsProviderArray = [
 export const PEANUT_API_URL = process.env.PEANUT_API_URL || 'https://api.peanut.to/'
 export const next_proxy_url = '/api/proxy'
 
-export const xchainFeeMultiplier = 0.98
-
 export const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[
     { chainId: '1', name: 'Ethereum' },
     { chainId: '10', name: 'Optimism' },

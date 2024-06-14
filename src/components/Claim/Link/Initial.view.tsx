@@ -57,7 +57,7 @@ export const InitialClaimLinkView = ({
     const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
         useContext(context.tokenSelectorContext)
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
-    const { estimatePoints, claimLink, xchainFeeMultiplier } = useClaimLink()
+    const { estimatePoints, claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
 
@@ -412,32 +412,6 @@ export const InitialClaimLinkView = ({
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {isXchainLoading ? (
                                     <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                ) : selectedRoute ? (
-                                    <>
-                                        {'$' +
-                                            utils.formatTokenAmount(
-                                                utils.formatAmountWithDecimals({
-                                                    amount: selectedRoute.route.estimate.toAmountMin,
-                                                    decimals: selectedRoute.route.estimate.toToken.decimals,
-                                                }) *
-                                                    selectedRoute.route.estimate.toToken.usdPrice *
-                                                    (1 - xchainFeeMultiplier)
-                                            )}
-                                        <MoreInfo
-                                            text={
-                                                selectedRoute
-                                                    ? `This transaction will cost you $${utils.formatTokenAmount(
-                                                          utils.formatAmountWithDecimals({
-                                                              amount: selectedRoute.route.estimate.toAmountMin,
-                                                              decimals: selectedRoute.route.estimate.toToken.decimals,
-                                                          }) *
-                                                              selectedRoute.route.estimate.toToken.usdPrice *
-                                                              (1 - xchainFeeMultiplier)
-                                                      )} in network fees.`
-                                                    : 'Something went wrong while calculating the transaction cost.'
-                                            }
-                                        />
-                                    </>
                                 ) : (
                                     <>
                                         $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
