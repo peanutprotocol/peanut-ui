@@ -44,6 +44,7 @@ const config = createConfig({
             chains: consts.chains,
             options: { projectId },
             email: true,
+            socials: ['google', 'github', 'discord', 'x', 'apple', 'facebook'],
         }),
     ],
     client({ chain }) {

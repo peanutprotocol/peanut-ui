@@ -68,6 +68,9 @@ export interface ICreateScreenProps {
             mostRecentInteraction: any
         }[]
     ) => void
+    walletType: 'blockscout' | undefined
+    setWalletType: (type: 'blockscout' | undefined) => void
+    crossChainDetails: []
 }
 
 export const CREATE_SCREEN_FLOW: CreateScreens[] = ['INITIAL', 'INPUT', 'CONFIRM', 'SUCCESS']

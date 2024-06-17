@@ -19,6 +19,7 @@ import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelector
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
+import Link from 'next/link'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -56,15 +57,15 @@ export const InitialClaimLinkView = ({
     const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
         useContext(context.tokenSelectorContext)
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
-    const { estimatePoints, claimLink, xchainFeeMultiplier } = useClaimLink()
+    const { estimatePoints, claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
 
     const handleConnectWallet = async () => {
         if (isConnected && address) {
-            setRecipient('')
+            setRecipient({ name: undefined, address: '' })
             await new Promise((resolve) => setTimeout(resolve, 100))
-            setRecipient(address)
+            setRecipient({ name: undefined, address: address })
         } else {
             open()
         }
@@ -77,12 +78,12 @@ export const InitialClaimLinkView = ({
             errorMessage: '',
         })
 
-        if (recipient === '') return
+        if (recipient.address === '') return
 
         try {
             setLoadingState('Executing transaction')
             const claimTxHash = await claimLink({
-                address: recipient ?? '',
+                address: recipient.address ?? '',
                 link: claimLinkData.link,
             })
 
@@ -119,8 +120,7 @@ export const InitialClaimLinkView = ({
     const _estimatePoints = async () => {
         const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
         const estimatedPoints = await estimatePoints({
-            address: recipient ?? address ?? '',
-            link: claimLinkData.link,
+            address: recipient.address ?? address ?? '',
             chainId: claimLinkData.chainId,
             amountUSD: USDValue,
         })
@@ -128,11 +128,9 @@ export const InitialClaimLinkView = ({
     }
 
     const handleIbanRecipient = async () => {
-        setOfframpForm({ ...offrampForm, recipient: recipient ?? '' })
-
+        // setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
         //const customerExist =
-
-        onNext()
+        // onNext()
     }
 
     // useEffect(() => {
@@ -162,11 +160,13 @@ export const InitialClaimLinkView = ({
     }, [recipient])
 
     useEffect(() => {
-        if (recipient) return
+        console.log('address', address)
+        console.log(recipient)
+        if (recipient.address) return
         if (isConnected && address) {
-            setRecipient(address)
+            setRecipient({ name: undefined, address })
         } else {
-            setRecipient('')
+            setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
         }
     }, [address])
@@ -204,7 +204,7 @@ export const InitialClaimLinkView = ({
                         toToken: selectedTokenAddress,
                         slippage: 1,
                         fromAddress: claimLinkData.senderAddress,
-                        toAddress: recipient ? recipient : address ?? '',
+                        toAddress: recipient.address ? recipient.address : address ?? '',
                     })
                     setRoutes([...routes, route])
                     setSelectedRoute(route)
@@ -235,10 +235,12 @@ export const InitialClaimLinkView = ({
                     <div
                         className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                     >
-                        {attachment.message && <label className="text-h8 ">{attachment.message}</label>}
-                        {attachment.attachmentUrl && utils.checkifImageType(fileType) ? (
-                            <img src={attachment.attachmentUrl} className="h-18 w-18" alt="attachment" />
-                        ) : (
+                        {attachment.message && (
+                            <label className="max-w-full text-h8">
+                                Ref: <span className="font-normal"> {attachment.message} </span>
+                            </label>
+                        )}
+                        {attachment.attachmentUrl && (
                             <a
                                 href={attachment.attachmentUrl}
                                 download
@@ -265,8 +267,8 @@ export const InitialClaimLinkView = ({
                     </label>
                 )}
                 {isXchainLoading ? (
-                    <div className=" flex h-6 w-full max-w-96 animate-colorPulse flex-row items-center justify-center gap-1 ">
-                        <div className="h-3 w-24 rounded-full bg-slate-700"></div>
+                    <div className=" flex h-6 w-full max-w-96  flex-row items-center justify-center gap-1 ">
+                        <div className="h-3 w-24 animate-colorPulse rounded-full bg-slate-700"></div>
                     </div>
                 ) : (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
@@ -339,10 +341,11 @@ export const InitialClaimLinkView = ({
                 <AddressInput
                     className="px-1"
                     placeholder="wallet address / ENS / IBAN"
-                    value={recipient ?? ''}
-                    onSubmit={(address: string) => {
-                        setRecipient(address)
+                    value={recipient.name ? recipient.name : recipient.address ?? ''}
+                    onSubmit={(name: string, address: string) => {
+                        setRecipient({ name, address })
                         setInputChanging(false)
+                        console.log(name, address)
                     }}
                     _setIsValidRecipient={(valid: boolean) => {
                         setIsValidRecipient(valid)
@@ -409,32 +412,6 @@ export const InitialClaimLinkView = ({
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {isXchainLoading ? (
                                     <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                ) : selectedRoute ? (
-                                    <>
-                                        {'$' +
-                                            utils.formatTokenAmount(
-                                                utils.formatAmountWithDecimals({
-                                                    amount: selectedRoute.route.estimate.toAmountMin,
-                                                    decimals: selectedRoute.route.estimate.toToken.decimals,
-                                                }) *
-                                                    selectedRoute.route.estimate.toToken.usdPrice *
-                                                    (1 - xchainFeeMultiplier)
-                                            )}
-                                        <MoreInfo
-                                            text={
-                                                selectedRoute
-                                                    ? `This transaction will cost you $${utils.formatTokenAmount(
-                                                          utils.formatAmountWithDecimals({
-                                                              amount: selectedRoute.route.estimate.toAmountMin,
-                                                              decimals: selectedRoute.route.estimate.toToken.decimals,
-                                                          }) *
-                                                              selectedRoute.route.estimate.toToken.usdPrice *
-                                                              (1 - xchainFeeMultiplier)
-                                                      )} in network fees.`
-                                                    : 'Something went wrong while calculating the transaction cost.'
-                                            }
-                                        />
-                                    </>
                                 ) : (
                                     <>
                                         $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
@@ -443,13 +420,13 @@ export const InitialClaimLinkView = ({
                             </span>
                         </div>
 
-                        {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                +{estimatedPoints}
+                                {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                                 <MoreInfo
                                     text={
                                         estimatedPoints
@@ -460,15 +437,6 @@ export const InitialClaimLinkView = ({
                                     }
                                 />
                             </span>
-                        </div> */}
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                +??? <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
-                            </span>
                         </div>
                     </div>
                 )}
@@ -477,7 +445,7 @@ export const InitialClaimLinkView = ({
                 <button
                     className="btn-purple btn-xl"
                     onClick={() => {
-                        if ((hasFetchedRoute && selectedRoute) || recipient !== address) {
+                        if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
                             if (recipientType === 'iban') {
                                 handleIbanRecipient()
                             } else {
@@ -492,14 +460,15 @@ export const InitialClaimLinkView = ({
                         !isValidRecipient ||
                         isXchainLoading ||
                         inputChanging ||
-                        (hasFetchedRoute && !selectedRoute)
+                        (hasFetchedRoute && !selectedRoute) ||
+                        recipientType === 'iban'
                     }
                 >
                     {isLoading || isXchainLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
                         </div>
-                    ) : (hasFetchedRoute && selectedRoute) || recipient !== address ? (
+                    ) : (hasFetchedRoute && selectedRoute) || recipient.address !== address ? (
                         'Proceed'
                     ) : (
                         'Claim now'
@@ -521,7 +490,40 @@ export const InitialClaimLinkView = ({
                 {errorState.showError && (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        {errorState.errorMessage === 'No route found for the given token pair.' && (
+                            <label className="text-h8 font-normal text-red">
+                                {' '}
+                                Click{' '}
+                                <span
+                                    className="cursor-pointer text-h8 font-normal text-red underline"
+                                    onClick={() => {
+                                        setSelectedRoute(null)
+                                        setHasFetchedRoute(false)
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    }}
+                                >
+                                    here
+                                </span>{' '}
+                                to reset.
+                            </label>
+                        )}
                     </div>
+                )}
+                {recipientType === 'iban' && (
+                    <label className="text-h8 font-normal">
+                        {' '}
+                        Offramp coming soon! Reach out via{' '}
+                        <Link
+                            className="cursor-pointer text-h8 font-normal underline"
+                            href={'https://discord.gg/BX9Ak7AW28'}
+                        >
+                            discord
+                        </Link>{' '}
+                        to find out more!
+                    </label>
                 )}
             </div>{' '}
         </div>

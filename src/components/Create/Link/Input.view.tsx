@@ -14,6 +14,8 @@ import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import SafeAppsSDK from '@safe-global/safe-apps-sdk'
+import Icon from '@/components/Global/Icon'
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
@@ -32,6 +34,9 @@ export const CreateLinkInputView = ({
     setAttachmentOptions,
     createType,
     recipient,
+    crossChainDetails,
+
+    walletType,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -47,6 +52,7 @@ export const CreateLinkInputView = ({
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
     )
+    const sdk = new SafeAppsSDK()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -83,9 +89,15 @@ export const CreateLinkInputView = ({
             }
             setLoadingState('Asserting values')
             await assertValues({ tokenValue: value })
+
+            // const envInfo = await sdk.safe.getEnvironmentInfo()
+
             setLoadingState('Generating details')
+
             const linkDetails = generateLinkDetails({
                 tokenValue: value,
+                envInfo: undefined,
+                walletType,
             })
             setLinkDetails(linkDetails)
 
@@ -94,12 +106,13 @@ export const CreateLinkInputView = ({
                 setPassword(password)
 
                 setLoadingState('Preparing transaction')
-                if (
-                    _utils.isGaslessDepositPossible({
-                        chainId: selectedChainID,
-                        tokenAddress: selectedTokenAddress,
-                    })
-                ) {
+
+                let prepareDepositTxsResponse: interfaces.IPrepareDepositTxsResponse | undefined
+                const isGaslessDepositPossible = _utils.isGaslessDepositPossible({
+                    chainId: selectedChainID,
+                    tokenAddress: selectedTokenAddress,
+                })
+                if (isGaslessDepositPossible) {
                     console.log('gasless possible, creating gassles payload')
                     setTransactionType('gasless')
 
@@ -117,13 +130,13 @@ export const CreateLinkInputView = ({
                     setGaslessPayload(makeGaslessDepositResponse.payload)
                     setGaslessPayloadMessage(makeGaslessDepositResponse.message)
 
-                    setFeeOptions(0)
-                    setTransactionCostUSD(0)
+                    setFeeOptions(undefined)
+                    setTransactionCostUSD(undefined)
                 } else {
                     console.log('gasless not possible, creating normal payload')
                     setTransactionType('not-gasless')
 
-                    const prepareDepositTxsResponse = await prepareDepositTxs({
+                    prepareDepositTxsResponse = await prepareDepositTxs({
                         _linkDetails: linkDetails,
                         _password: password,
                     })
@@ -138,19 +151,6 @@ export const CreateLinkInputView = ({
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
-                        const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0)
-                        const estimatedPoints = await estimatePoints({
-                            chainId: selectedChainID,
-                            address: address ?? '',
-                            amountUSD: USDValue,
-                            preparedTx:
-                                prepareDepositTxsResponse?.unsignedTxs[
-                                    prepareDepositTxsResponse?.unsignedTxs.length - 1
-                                ],
-                        })
-
-                        if (estimatedPoints) setEstimatedPoints(estimatedPoints)
-
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
                     } catch (error) {
@@ -160,9 +160,25 @@ export const CreateLinkInputView = ({
                     }
                 }
 
-                await switchNetwork(selectedChainID)
+                let value
+                if (inputDenomination == 'TOKEN') {
+                    if (selectedTokenPrice && tokenValue) {
+                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                    } else value = undefined
+                } else value = tokenValue
+                const estimatedPoints = await estimatePoints({
+                    chainId: selectedChainID,
+                    address: address ?? '',
+                    amountUSD: parseFloat(value ?? '0'),
+                    preparedTx: isGaslessDepositPossible
+                        ? undefined
+                        : prepareDepositTxsResponse &&
+                          prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
+                    actionType: 'CREATE',
+                })
 
-                onNext()
+                if (estimatedPoints) setEstimatedPoints(estimatedPoints)
+                else setEstimatedPoints(0)
             } else {
                 const preparedTxs: interfaces.IPrepareDepositTxsResponse = {
                     unsignedTxs: [
@@ -181,6 +197,17 @@ export const CreateLinkInputView = ({
 
                 setPreparedDepositTxs(preparedTxs)
 
+                const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
+                const estimatedPoints = await estimatePoints({
+                    chainId: selectedChainID,
+                    address: address ?? '',
+                    amountUSD: USDValue,
+                    preparedTx: preparedTxs?.unsignedTxs[preparedTxs?.unsignedTxs.length - 1],
+                    actionType: 'TRANSFER',
+                })
+
+                if (estimatedPoints) setEstimatedPoints(estimatedPoints)
+
                 try {
                     const { feeOptions, transactionCostUSD } = await estimateGasFee({
                         chainId: selectedChainID,
@@ -188,16 +215,14 @@ export const CreateLinkInputView = ({
                     })
                     setFeeOptions(feeOptions)
                     setTransactionCostUSD(transactionCostUSD)
-                    setEstimatedPoints(0)
                 } catch (error) {
                     console.error(error)
                     setFeeOptions(undefined)
                     setTransactionCostUSD(undefined)
                 }
-
-                await switchNetwork(selectedChainID)
-                onNext()
             }
+            await switchNetwork(selectedChainID)
+            onNext()
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({
@@ -275,6 +300,11 @@ export const CreateLinkInputView = ({
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
+                )}
+                {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+                    <span className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                    </span>
                 )}
             </div>
         </div>

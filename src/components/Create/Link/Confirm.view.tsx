@@ -34,6 +34,8 @@ export const CreateLinkConfirmView = ({
     attachmentOptions,
     createType,
     recipient,
+    walletType,
+    crossChainDetails,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
@@ -51,8 +53,9 @@ export const CreateLinkConfirmView = ({
         signTypedData,
         makeDepositGasless,
         getLinkFromHash,
-        submitLinkAttachmentInit,
-        submitLinkAttachmentConfirm,
+        submitClaimLinkInit,
+        submitClaimLinkConfirm,
+        submitDirectTransfer,
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
@@ -69,15 +72,17 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            let fileUrl
+            let fileUrl = ''
             if (createType != 'direct') {
-                fileUrl = await submitLinkAttachmentInit({
+                const data = await submitClaimLinkInit({
                     password: password ?? '',
                     attachmentOptions: {
                         attachmentFile: attachmentOptions.rawFile,
                         message: attachmentOptions.message,
                     },
+                    senderAddress: address ?? '',
                 })
+                fileUrl = data?.fileUrl
             }
 
             if (transactionType === 'not-gasless') {
@@ -98,7 +103,15 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
+            let value
+            if (inputDenomination == 'TOKEN') {
+                if (selectedTokenPrice && tokenValue) {
+                    value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                } else value = undefined
+            } else value = tokenValue
+
             if (createType === 'direct') {
+                console.log(createType)
                 utils.saveDirectSendToLocalStorage({
                     address: address ?? '',
                     data: {
@@ -110,15 +123,16 @@ export const CreateLinkConfirmView = ({
                         txHash: hash,
                     },
                 })
-            } else {
-                const link = await getLinkFromHash({ hash, linkDetails, password })
 
-                await submitLinkAttachmentConfirm({
-                    chainId: selectedChainID,
-                    link: link[0],
-                    password: password ?? '',
+                await submitDirectTransfer({
                     txHash: hash,
+                    chainId: selectedChainID,
+                    senderAddress: address ?? '',
+                    amountUsd: parseFloat(value ?? '0'),
+                    transaction: preparedDepositTxs && preparedDepositTxs.unsignedTxs[0],
                 })
+            } else {
+                const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
 
                 utils.saveCreatedLinkToLocalStorage({
                     address: address ?? '',
@@ -136,12 +150,19 @@ export const CreateLinkConfirmView = ({
 
                 setLink(link[0])
                 console.log(link)
-                let value
-                if (inputDenomination == 'TOKEN') {
-                    if (selectedTokenPrice && tokenValue) {
-                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                    } else value = undefined
-                } else value = tokenValue
+
+                await submitClaimLinkConfirm({
+                    chainId: selectedChainID,
+                    link: link[0],
+                    password: password ?? '',
+                    txHash: hash,
+                    senderAddress: address ?? '',
+                    amountUsd: parseFloat(value ?? '0'),
+                    transaction:
+                        transactionType === 'not-gasless'
+                            ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0]
+                            : undefined,
+                })
 
                 if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], value)
                 if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], value)
@@ -258,13 +279,24 @@ export const CreateLinkConfirmView = ({
                         </label>
                     </div>
                 )}
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        +??? <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                        {estimatedPoints && estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
+                        <MoreInfo
+                            text={
+                                estimatedPoints
+                                    ? estimatedPoints > 0
+                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                        : estimatedPoints < 0
+                                          ? `This transaction will cost you ${estimatedPoints} points, but will not cost you any gas fees!`
+                                          : 'This transaction will not add any points to your total points balance'
+                                    : 'This transaction will not add any points to your total points balance'
+                            }
+                        />
                     </span>
                 </div>
             </div>
@@ -286,6 +318,11 @@ export const CreateLinkConfirmView = ({
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
+                )}
+                {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+                    <span className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                    </span>
                 )}
             </div>
         </div>

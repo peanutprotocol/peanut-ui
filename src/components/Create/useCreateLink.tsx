@@ -93,14 +93,24 @@ export const useCreateLink = () => {
             throw new Error('The minimum amount to send is 0.0001')
         }
     }
-    const generateLinkDetails = ({ tokenValue }: { tokenValue: string | undefined }) => {
+    const generateLinkDetails = ({
+        tokenValue,
+        walletType,
+        envInfo,
+    }: {
+        tokenValue: string | undefined
+        walletType: 'blockscout' | undefined
+        envInfo: any
+    }) => {
         try {
             // get tokenDetails (type and decimals)
             const tokenDetails = _utils.getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
             // baseUrl
             let baseUrl = ''
-            if (typeof window !== 'undefined') {
+            if (walletType === 'blockscout') {
+                baseUrl = `${envInfo.origin}/apps/peanut-protocol`
+            } else if (typeof window !== 'undefined') {
                 baseUrl = `${window.location.origin}/claim`
             }
 
@@ -224,31 +234,52 @@ export const useCreateLink = () => {
         preparedTx,
         address,
         amountUSD,
+        actionType,
     }: {
         chainId: string
         preparedTx: any // This could be detailed further depending on the transaction structure
         address: string
         amountUSD: number
+        actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
+            console.log(
+                JSON.stringify({
+                    actionType: actionType,
+                    amountUsd: amountUSD,
+                    transaction: preparedTx
+                        ? {
+                              from: preparedTx.from ? preparedTx.from.toString() : address,
+                              to: preparedTx.to ? preparedTx.to.toString() : '',
+                              data: preparedTx.data ? preparedTx.data.toString() : '',
+                              value: preparedTx.value ? preparedTx.value.toString() : '',
+                          }
+                        : undefined,
+                    chainId: chainId,
+                    userAddress: address,
+                })
+            )
             const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    actionType: 'CREATE',
+                    actionType: actionType,
                     amountUsd: amountUSD,
-                    transaction: {
-                        from: preparedTx.from ? preparedTx.from.toString() : address,
-                        to: preparedTx.to ? preparedTx.to.toString() : '',
-                        data: preparedTx.data ? preparedTx.data.toString() : '',
-                        value: preparedTx.value ? preparedTx.value.toString() : '',
-                    },
+                    transaction: preparedTx
+                        ? {
+                              from: preparedTx.from ? preparedTx.from.toString() : address,
+                              to: preparedTx.to ? preparedTx.to.toString() : '',
+                              data: preparedTx.data ? preparedTx.data.toString() : '',
+                              value: preparedTx.value ? preparedTx.value.toString() : '',
+                          }
+                        : undefined,
                     chainId: chainId,
                     userAddress: address,
                 }),
             })
+            console.log(response)
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -259,20 +290,23 @@ export const useCreateLink = () => {
             return 0 // Returning 0 or another error handling strategy could be implemented here
         }
     }
-    const submitLinkAttachmentInit = async ({
+    const submitClaimLinkInit = async ({
         attachmentOptions,
         password,
+        senderAddress,
     }: {
         password: string
         attachmentOptions: {
             message?: string
             attachmentFile?: File
         }
+        senderAddress: string
     }) => {
         try {
             const formData = new FormData()
             formData.append('password', password)
             formData.append('attachmentOptions', JSON.stringify(attachmentOptions))
+            formData.append('senderAddress', senderAddress)
 
             if (attachmentOptions.attachmentFile) {
                 formData.append('attachmentFile', attachmentOptions.attachmentFile)
@@ -288,24 +322,41 @@ export const useCreateLink = () => {
             }
             const data = await response.json()
 
-            return data.fileUrl
+            return data
         } catch (error) {
             console.error('Failed to publish file (init):', error)
             return ''
         }
     }
-    const submitLinkAttachmentConfirm = async ({
+    const submitClaimLinkConfirm = async ({
         link,
         password,
         txHash,
         chainId,
+        senderAddress,
+        amountUsd,
+        transaction,
     }: {
         link: string
         password: string
         txHash: string
         chainId: string
+        senderAddress: string
+        amountUsd: number
+        transaction?: peanutInterfaces.IPeanutUnsignedTransaction
     }) => {
         try {
+            console.log(
+                'submitClaimLinkConfirm',
+                link,
+                password,
+                txHash,
+                chainId,
+                senderAddress,
+                amountUsd,
+                transaction
+            )
+
             const response = await fetch('/api/peanut/submit-link-attachment/confirm', {
                 method: 'POST',
                 headers: {
@@ -316,6 +367,46 @@ export const useCreateLink = () => {
                     password,
                     txHash,
                     chainId,
+                    senderAddress: senderAddress,
+                    amountUsd,
+                    transaction: { ...transaction, value: transaction?.value && transaction.value.toString() },
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
+        } catch (error) {
+            console.error('Failed to publish file (complete):', error)
+            return ''
+        }
+    }
+
+    const submitDirectTransfer = async ({
+        txHash,
+        chainId,
+        senderAddress,
+        amountUsd,
+        transaction,
+    }: {
+        txHash: string
+        chainId: string
+        senderAddress: string
+        amountUsd: number
+        transaction?: peanutInterfaces.IPeanutUnsignedTransaction
+    }) => {
+        try {
+            const response = await fetch('/api/peanut/submit-direct-transfer', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    txHash,
+                    chainId,
+                    senderAddress: senderAddress,
+                    amountUsd,
+                    transaction: { ...transaction, value: transaction?.value && transaction.value.toString() },
                 }),
             })
 
@@ -512,10 +603,12 @@ export const useCreateLink = () => {
         hash,
         linkDetails,
         password,
+        walletType,
     }: {
         hash: string
         linkDetails: peanutInterfaces.IPeanutLinkDetails
         password: string
+        walletType: 'blockscout' | undefined
     }) => {
         try {
             const getLinksFromTxResponse = await peanut.getLinksFromTx({
@@ -523,8 +616,16 @@ export const useCreateLink = () => {
                 txHash: hash,
                 passwords: [password],
             })
+            let links: string[] = getLinksFromTxResponse.links
 
-            return getLinksFromTxResponse.links
+            if (walletType === 'blockscout') {
+                const _link = links[0]
+                const urlObj = new URL(_link)
+                urlObj.searchParams.append('path', 'claim')
+                const newUrl = urlObj.toString()
+                links = [newUrl]
+            }
+            return links
         } catch (error) {
             throw error
         }
@@ -543,8 +644,9 @@ export const useCreateLink = () => {
         switchNetwork,
         estimateGasFee,
         estimatePoints,
-        submitLinkAttachmentInit,
-        submitLinkAttachmentConfirm,
+        submitClaimLinkInit,
+        submitClaimLinkConfirm,
         prepareDirectSendTx,
+        submitDirectTransfer,
     }
 }

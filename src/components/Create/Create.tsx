@@ -8,10 +8,12 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
+import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
+    const sdk = new SafeAppsSDK()
 
     const [linkDetails, setLinkDetails] = useState<peanutInterfaces.IPeanutLinkDetails>()
     const [password, setPassword] = useState<string>('')
@@ -42,6 +44,8 @@ export const Create = () => {
         address: undefined,
         name: undefined,
     })
+    const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
+    const [crossChainDetails, setCrossChainDetails] = useState<[]>([])
 
     const [recentRecipients, setRecentRecipients] = useState<
         {
@@ -90,6 +94,16 @@ export const Create = () => {
         setRecentRecipients(recentRanked)
     }
 
+    const fetchAndSetCrossChainDetails = async () => {
+        const response = await fetch('https://api.squidrouter.com/v1/chains')
+        if (!response.ok) {
+            throw new Error('Squid: Network response was not ok')
+        }
+        const data = await response.json()
+        console.log(data.chains)
+        setCrossChainDetails(data.chains)
+    }
+
     useEffect(() => {
         if (!Boolean(address)) return
         if (w3iClientIsLoading) return
@@ -104,9 +118,23 @@ export const Create = () => {
 
     useEffect(() => {
         resetTokenContextProvider()
+        fetchAndSetCrossChainDetails()
     }, [])
 
     useEffect(() => {
+        ;(async () => {
+            try {
+                // const envInfo = await sdk.safe.getEnvironmentInfo()
+                // if (envInfo.origin.includes('blockscout.com')) {
+                //     setWalletType('blockscout')
+                // } else {
+                //     setWalletType(undefined)
+                // }
+            } catch (error) {
+                console.log('Failed to get wallet info:', error)
+                setWalletType(undefined)
+            }
+        })()
         if (address) {
             fetchRecentTransactions()
         } else {
@@ -150,6 +178,9 @@ export const Create = () => {
                 recipient,
                 setRecipient,
                 recentRecipients,
+                walletType,
+                setWalletType,
+                crossChainDetails,
             } as _consts.ICreateScreenProps)}
         </div>
     )

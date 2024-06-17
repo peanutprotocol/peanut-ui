@@ -30,7 +30,7 @@ export const ConfirmClaimLinkView = ({
     recipientType,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
-    const { claimLinkXchain, claimLink, xchainFeeMultiplier } = useClaimLink()
+    const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
         useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -57,7 +57,7 @@ export const ConfirmClaimLinkView = ({
             let claimTxHash = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
-                    address: recipient ? recipient : address ?? '',
+                    address: recipient ? recipient.address : address ?? '',
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
@@ -65,14 +65,14 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claimxchain')
             } else {
                 claimTxHash = await claimLink({
-                    address: recipient ? recipient : address ?? '',
+                    address: recipient ? recipient.address : address ?? '',
                     link: claimLinkData.link,
                 })
                 setClaimType('claim')
             }
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: recipient ? recipient : address ?? '',
+                    address: recipient ? recipient.address : address ?? '',
                     data: {
                         ...claimLinkData,
                         depositDate: new Date(),
@@ -116,8 +116,6 @@ export const ConfirmClaimLinkView = ({
     //     }
     // }, [attachment?.attachmentUrl])
 
-    console.log('onchain views')
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             {(attachment.message || attachment.attachmentUrl) && (
@@ -153,9 +151,7 @@ export const ConfirmClaimLinkView = ({
                                 utils.formatAmountWithDecimals({
                                     amount: selectedRoute.route.estimate.toAmountMin,
                                     decimals: selectedRoute.route.estimate.toToken.decimals,
-                                }) *
-                                    selectedRoute.route.estimate.toToken.usdPrice *
-                                    xchainFeeMultiplier
+                                }) * selectedRoute.route.estimate.toToken.usdPrice
                             )}
                         </label>
                     ) : (
@@ -189,7 +185,9 @@ export const ConfirmClaimLinkView = ({
 
             <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
                 <label className="text-h7 font-normal">Claiming to:</label>
-                <label className="text-h7">{utils.shortenAddressLong(recipient ?? '')}</label>
+                <label className="text-h7">
+                    {recipient.name ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}
+                </label>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -235,47 +233,17 @@ export const ConfirmClaimLinkView = ({
                         <label className="font-bold">Fees</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {selectedRoute ? (
-                            <>
-                                {'$' +
-                                    utils.formatTokenAmount(
-                                        utils.formatAmountWithDecimals({
-                                            amount: selectedRoute.route.estimate.toAmountMin,
-                                            decimals: selectedRoute.route.estimate.toToken.decimals,
-                                        }) *
-                                            selectedRoute.route.estimate.toToken.usdPrice *
-                                            (1 - xchainFeeMultiplier)
-                                    )}
-                                <MoreInfo
-                                    text={
-                                        selectedRoute
-                                            ? `This transaction will cost you $${utils.formatTokenAmount(
-                                                  utils.formatAmountWithDecimals({
-                                                      amount: selectedRoute.route.estimate.toAmountMin,
-                                                      decimals: selectedRoute.route.estimate.toToken.decimals,
-                                                  }) *
-                                                      selectedRoute.route.estimate.toToken.usdPrice *
-                                                      (1 - xchainFeeMultiplier)
-                                              )} in network fees.`
-                                            : 'Something went wrong while calculating the transaction cost.'
-                                    }
-                                />
-                            </>
-                        ) : (
-                            <>
-                                $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
-                            </>
-                        )}
+                        $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
                     </span>
                 </div>
 
-                {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        +{estimatedPoints}
+                        {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                         <MoreInfo
                             text={
                                 estimatedPoints
@@ -285,15 +253,6 @@ export const ConfirmClaimLinkView = ({
                                     : 'This transaction will not add any points to your total points balance'
                             }
                         />
-                    </span>
-                </div> */}
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Points</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        +??? <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
                     </span>
                 </div>
             </div>

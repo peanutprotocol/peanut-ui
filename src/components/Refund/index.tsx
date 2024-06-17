@@ -11,7 +11,7 @@ import { useState, useMemo, useContext } from 'react'
 import { useCreateLink } from '../Create/useCreateLink'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
-export const Reclaim = () => {
+export const Refund = () => {
     const { isConnected, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
@@ -24,7 +24,7 @@ export const Reclaim = () => {
     const [claimedExploredUrlWithHash, setClaimedExplorerUrlWithHash] = useState<string | undefined>(undefined)
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const reclaimForm = useForm<{
+    const refundForm = useForm<{
         chainId: string
         transactionHash: string
     }>({
@@ -34,14 +34,14 @@ export const Reclaim = () => {
             transactionHash: '',
         },
     })
-    const reclaimFormWatch = reclaimForm.watch()
+    const refundFormWatch = refundForm.watch()
 
     const { switchNetwork } = useCreateLink()
 
-    const reclaimDeposit = async (reclaimFormData: { chainId: string; transactionHash: string }) => {
+    const refundDeposit = async (refundFormData: { chainId: string; transactionHash: string }) => {
         try {
-            console.log(reclaimFormData)
-            if (reclaimFormData.chainId == '' || reclaimFormData.transactionHash == '') {
+            console.log(refundFormData)
+            if (refundFormData.chainId == '' || refundFormData.transactionHash == '') {
                 setErrorState({
                     showError: true,
                     errorMessage: 'Please provide a chain and transaction hash',
@@ -49,42 +49,39 @@ export const Reclaim = () => {
                 return
             }
 
-            await switchNetwork(reclaimFormData.chainId)
+            await switchNetwork(refundFormData.chainId)
 
             setLoadingState('Getting deposit details')
 
-            const txReceipt = await peanut.getTxReceiptFromHash(
-                reclaimFormData.transactionHash,
-                reclaimFormData.chainId
-            )
+            const txReceipt = await peanut.getTxReceiptFromHash(refundFormData.transactionHash, refundFormData.chainId)
             console.log(txReceipt)
 
             const latestContractVersion = peanut.getLatestContractVersion({
-                chainId: reclaimFormData.chainId,
+                chainId: refundFormData.chainId,
                 type: 'normal',
             })
             console.log(latestContractVersion)
 
-            const depositIdx = peanut.getDepositIdxs(txReceipt, reclaimFormData.chainId, latestContractVersion)
+            const depositIdx = peanut.getDepositIdxs(txReceipt, refundFormData.chainId, latestContractVersion)
             console.log(depositIdx)
 
-            const preparedReclaimtx = await peanut.prepareClaimLinkSenderTx({
-                chainId: reclaimFormData.chainId,
+            const preparedRefundtx = await peanut.prepareClaimLinkSenderTx({
+                chainId: refundFormData.chainId,
                 depositIndex: depositIdx[0],
                 contractVersion: latestContractVersion,
             })
-            console.log(preparedReclaimtx)
+            console.log(preparedRefundtx)
 
             let txOptions
             try {
                 txOptions = await peanut.setFeeOptions({
-                    chainId: reclaimFormData.chainId,
+                    chainId: refundFormData.chainId,
                 })
             } catch (error: any) {
                 console.log('error setting fee options, fallback to default')
             }
 
-            const tx = { ...preparedReclaimtx, ...txOptions }
+            const tx = { ...preparedRefundtx, ...txOptions }
             console.log(tx)
 
             setLoadingState('Sign in wallet')
@@ -106,10 +103,10 @@ export const Reclaim = () => {
             await waitForTransactionReceipt(config, {
                 confirmations: 2,
                 hash: hash,
-                chainId: Number(reclaimFormData.chainId),
+                chainId: Number(refundFormData.chainId),
             })
 
-            const explorerUrl = utils.getExplorerUrl(reclaimFormData.chainId)
+            const explorerUrl = utils.getExplorerUrl(refundFormData.chainId)
             setClaimedExplorerUrlWithHash(`${explorerUrl}/tx/${hash}`)
         } catch (error) {
             setErrorState({
@@ -134,7 +131,7 @@ export const Reclaim = () => {
 
                 <form
                     className="flex w-full flex-col items-center gap-2 px-4 sm:gap-7"
-                    onSubmit={reclaimForm.handleSubmit(reclaimDeposit)}
+                    onSubmit={refundForm.handleSubmit(refundDeposit)}
                 >
                     <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
                         <label className="font-h7 font-bold">Chain</label>
@@ -145,11 +142,11 @@ export const Reclaim = () => {
                             classArrow="ml-1"
                             items={consts.supportedPeanutChains}
                             value={
-                                consts.supportedPeanutChains.find((chain) => chain.chainId === reclaimFormWatch.chainId)
+                                consts.supportedPeanutChains.find((chain) => chain.chainId === refundFormWatch.chainId)
                                     ?.name
                             }
                             onChange={(chainId: any) => {
-                                reclaimForm.setValue('chainId', chainId.chainId)
+                                refundForm.setValue('chainId', chainId.chainId)
                             }}
                         />
 
@@ -157,7 +154,7 @@ export const Reclaim = () => {
                         <input
                             placeholder="0x123..."
                             className="h-8 border border-n-1 p-1 outline-none"
-                            {...reclaimForm.register('transactionHash')}
+                            {...refundForm.register('transactionHash')}
                         />
                     </div>
                     <div
@@ -218,4 +215,4 @@ export const Reclaim = () => {
     )
 }
 
-export default Reclaim
+export default Refund

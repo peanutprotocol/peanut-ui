@@ -44,6 +44,7 @@ export const fetchTokenPrice = async (tokenAddress: string, chainId: string) => 
                 price: json.data.price,
                 chainId: chainId,
             }
+            console.log('fetchTokenPrice', data)
             if (utils.estimateStableCoin(json.data.price)) {
                 data.price = 1
             }

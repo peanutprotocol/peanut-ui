@@ -4,7 +4,7 @@ import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 
 export async function POST(request: NextRequest) {
     try {
-        const { link, password, txHash, chainId } = await request.json()
+        const { link, password, txHash, chainId, senderAddress, amountUsd, transaction } = await request.json()
         const { address: pubKey } = generateKeysFromString(password)
 
         const response = await fetch('https://api.staging.peanut.to/submit-claim-link/complete', {
@@ -19,6 +19,9 @@ export async function POST(request: NextRequest) {
                 chainId: chainId,
                 link: link,
                 signature: '',
+                userAddress: senderAddress,
+                amountUsd: amountUsd,
+                transaction: transaction,
             }),
         })
 

@@ -31,8 +31,8 @@ export interface IClaimScreenProps {
     crossChainDetails: Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
     type: ClaimType
     setClaimType: (type: ClaimType) => void
-    recipient: string | undefined
-    setRecipient: (address: string) => void
+    recipient: { name: string | undefined; address: string }
+    setRecipient: (recipient: { name: string | undefined; address: string }) => void
     tokenPrice: number
     setTokenPrice: (price: number) => void
     transactionHash: string

@@ -19,8 +19,6 @@ export const useClaimLink = () => {
 
     const { loadingState, setLoadingState } = useContext(context.loadingStateContext)
 
-    const xchainFeeMultiplier = 0.98
-
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('Executing transaction')
         try {
@@ -108,12 +106,10 @@ export const useClaimLink = () => {
 
     const estimatePoints = async ({
         address,
-        link,
         chainId,
         amountUSD,
     }: {
         address: string
-        link: string
         chainId: string
         amountUSD: number
     }) => {
@@ -125,15 +121,22 @@ export const useClaimLink = () => {
                 },
                 body: JSON.stringify({
                     actionType: 'CLAIM',
-                    link: link,
                     userAddress: address,
                     chainId: chainId,
                     amountUsd: amountUSD,
+                    transaction: {
+                        from: address,
+                        to: address,
+                        data: '',
+                        value: '',
+                    },
                 }),
             })
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
+
+            console.log(response)
             const data = await response.json()
             return Math.round(data.points)
         } catch (error) {
@@ -166,7 +169,6 @@ export const useClaimLink = () => {
     }
 
     return {
-        xchainFeeMultiplier,
         claimLink,
         claimLinkXchain,
         getSquidRoute,

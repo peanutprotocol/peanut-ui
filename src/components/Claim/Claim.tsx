@@ -1,6 +1,6 @@
 'use client'
 import { createElement, useEffect, useState, useContext } from 'react'
-import peanut, { getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { claimLink, getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
 
@@ -25,7 +25,10 @@ export const Claim = ({}) => {
         attachmentUrl: undefined,
     })
     const [type, setType] = useState<_consts.ClaimType | undefined>(undefined)
-    const [recipient, setRecipient] = useState<string | undefined>(undefined)
+    const [recipient, setRecipient] = useState<{ name: string | undefined; address: string }>({
+        name: undefined,
+        address: '',
+    })
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [estimatedPoints, setEstimatedPoints] = useState<number>(0)
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
@@ -140,13 +143,14 @@ export const Claim = ({}) => {
                 tokenPrice && setTokenPrice(tokenPrice?.price)
 
                 if (address) {
-                    setRecipient(address)
+                    setRecipient({ name: '', address })
+
                     const estimatedPoints = await estimatePoints({
                         address: address ?? '',
                         chainId: linkDetails.chainId,
-                        link: linkDetails.link,
                         amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
                     })
+                    console.log('estimatedPoints', estimatedPoints)
                     setEstimatedPoints(estimatedPoints)
                 }
 
@@ -176,6 +180,21 @@ export const Claim = ({}) => {
             checkAccess()
         }
     }, [])
+
+    // useEffect(() => {
+    //     ;async () => {
+    //         if (claimLinkData) {
+    //             const estimatedPoints = await estimatePoints({
+    //                 address: address ?? '',
+    //                 chainId: claimLinkData.chainId,
+    //                 link: claimLinkData.link,
+    //                 amountUSD: Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0),
+    //             })
+    //             console.log('estimatedPoints', estimatedPoints)
+    //             setEstimatedPoints(estimatedPoints)
+    //         }
+    //     }
+    // }, [address])
 
     return (
         <div className="card">

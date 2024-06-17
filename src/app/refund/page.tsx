@@ -20,10 +20,10 @@ export const metadata: Metadata = {
     },
 }
 
-export default function ReclaimPage() {
+export default function RefundPage() {
     return (
         <Layout>
-            <components.Reclaim />
+            <components.Refund />
         </Layout>
     )
 }

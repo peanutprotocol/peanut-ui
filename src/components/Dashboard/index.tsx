@@ -205,41 +205,24 @@ export const Dashboard = () => {
         setFilteredDashboardData(filteredData)
     }
 
-    // const fetchPoints = async () => {
-    //     try {
-    //         const response = await fetch('https://api.staging.peanut.to/get-user-stats', {
-    //             method: 'POST',
+    const fetchPoints = async () => {
+        try {
+            const response = await fetch('/api/peanut/get-user-stats', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ address }),
+            })
 
-    //             headers: { 'Content-Type': 'application/json' },
-    //             body: JSON.stringify({
-    //                 address,
-    //                 apiKey: process.env.PEANUT_API_KEY,
-    //             }),
-    //         })
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`)
+            }
 
-    //         if (!response.ok) {
-    //             throw new Error(`HTTP error! status: ${response.status}`)
-    //         }
-
-    //         const data = await response.json()
-    //         setPoints(data.points)
-    //     } catch (error) {
-    //         console.error('Error fetching user stats:', error)
-    //         throw error // or handle error as needed
-    //     }
-    // }
-
-    // const calculatePoints = (data: interfaces.IDashboardItem[]) => {
-    //     let points = 0
-
-    //     data.forEach((item) => {
-    //         if (item.points) {
-    //             points += item.points
-    //         }
-    //     })
-
-    //     return points * 2
-    // }
+            const data = await response.json()
+            setPoints(data.points)
+        } catch (error) {
+            console.error('Error fetching points:', error)
+        }
+    }
 
     useEffect(() => {
         const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
@@ -282,7 +265,7 @@ export const Dashboard = () => {
             setLegacyLinks([])
         }
 
-        // fetchPoints()
+        fetchPoints()
     }, [address])
 
     useEffect(() => {
@@ -320,54 +303,30 @@ export const Dashboard = () => {
                     </label>
 
                     {isConnected && (
-                        <div className="flex w-full flex-row items-center justify-center gap-2 py-2 sm:w-full sm:w-max">
-                            <div
-                                style={{
-                                    backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
-                                    WebkitBackgroundClip: 'text',
-                                    backgroundClip: 'text',
-                                    color: 'transparent',
-                                }}
-                                className="animate-gradient  flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:w-max sm:justify-center sm:gap-12"
-                                onClick={() => {
-                                    // setIsPointsModalVisible(true)
-                                }}
-                            >
-                                <div className="flex flex-row items-center justify-center gap-2">
-                                    <label className="cursor-pointer text-h4">Points: </label>
-                                    <Menu className="relative w-full" as="div">
-                                        <Menu.Button
-                                            style={{
-                                                backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
-                                            }}
-                                            className="btn btn-purple btn-shadow h-8 w-32 w-full text-white"
-                                        >
-                                            Claim now!
-                                        </Menu.Button>
-                                        <Transition
-                                            enter="transition-opacity duration-150 ease-out"
-                                            enterFrom="opacity-0"
-                                            enterTo="opacity-100"
-                                            leave="transition-opacity duration-100 ease-out"
-                                            leaveFrom="opacity-100"
-                                            leaveTo="opacity-0"
-                                        >
-                                            <Menu.Items className="shadow-primary-4 absolute bottom-full left-0 z-30 mb-2 w-48 border border-n-1 bg-white px-4 py-2 text-h8 sm:left-28 sm:w-64">
-                                                <Menu.Item as={'label'} className={'text-h8 font-normal text-black'}>
-                                                    You will be awarded points retroactively in a few days. You will
-                                                    receive a 2X boost for being so early with us!
-                                                </Menu.Item>
-                                            </Menu.Items>
-                                        </Transition>
-                                    </Menu>
-                                    {/* <label className="cursor-pointer text-h3">{points ? points : '0'}</label> */}
-                                    {/* <label className="cursor-pointer text-h3">Coming Soon!</label> */}
-                                </div>
-                                <div className="jusityf-center hidden flex-row items-center gap-2 sm:flex">
-                                    <Icon name={'arrow-up-right'} />
-                                    <label className="cursor-pointer text-h4">2.0X boost</label>
-                                    <Icon name={'info'} className="" />
-                                </div>
+                        <div
+                            style={{
+                                backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
+                                WebkitBackgroundClip: 'text',
+                                backgroundClip: 'text',
+                                color: 'transparent',
+                            }}
+                            className="animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
+                            onClick={() => {
+                                // setIsPointsModalVisible(true)
+                            }}
+                        >
+                            <div className="jusityf-center flex flex-row items-center gap-2">
+                                <label className="text-h4">Points: </label>
+                                {points ? (
+                                    <label className=" text-h3">{points}</label>
+                                ) : (
+                                    <div className="h-6 w-12 animate-colorPulse rounded-full bg-slate-700" />
+                                )}
+                            </div>
+                            <div className="jusityf-center flex flex-row items-center gap-2">
+                                <Icon name={'arrow-up-right'} />
+                                <label className="text-h4">2.0X boost</label>
+                                {/* <Icon name={'info'} className="" /> */}
                             </div>
                         </div>
                     )}
@@ -441,7 +400,7 @@ export const Dashboard = () => {
                                         .map((link) => (
                                             <tr
                                                 className="h-16 text-h8 font-normal"
-                                                key={link.link ?? link.txHash ?? '' + Math.random()}
+                                                key={(link.link ?? link.txHash ?? '') + Math.random()}
                                             >
                                                 <td className="td-custom font-bold">{link.type}</td>
                                                 <td className="td-custom font-bold">
@@ -492,7 +451,7 @@ export const Dashboard = () => {
                             {filteredDashboardData
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((link) => (
-                                    <div key={link.link ?? link.txHash ?? '' + Math.random()}>
+                                    <div key={(link.link ?? link.txHash ?? '') + Math.random()}>
                                         <components.MobileItemComponent linkDetail={link} address={address ?? ''} />
                                     </div>
                                 ))}
@@ -510,7 +469,7 @@ export const Dashboard = () => {
                     </CSVLink>
                 )}
             </div>
-            {filteredDashboardData.length > 0 && (
+            {filteredDashboardData.length > 0 && totalPages > 1 && (
                 <TablePagination
                     onNext={() => {
                         if (currentPage < totalPages) {
@@ -528,9 +487,9 @@ export const Dashboard = () => {
             )}
 
             <button
-                className=""
+                className="center-xy"
                 onClick={() => {
-                    router.push('/reclaim')
+                    router.push('/refund')
                 }}
             >
                 <Icon name={'question-circle'} /> Had an issue creating a link? click here to reclaim the funds.
