@@ -317,7 +317,11 @@ export const Dashboard = () => {
                         >
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <label className="text-h4">Points: </label>
-                                <label className=" text-h3">{points ? points : '0'}</label>
+                                {points ? (
+                                    <label className=" text-h3">{points}</label>
+                                ) : (
+                                    <div className="h-6 w-12 animate-colorPulse rounded-full bg-slate-700" />
+                                )}
                             </div>
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <Icon name={'arrow-up-right'} />

@@ -197,21 +197,22 @@ export const CreateLinkInputView = ({
 
                 setPreparedDepositTxs(preparedTxs)
 
+                const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
+                const estimatedPoints = await estimatePoints({
+                    chainId: selectedChainID,
+                    address: address ?? '',
+                    amountUSD: USDValue,
+                    preparedTx: preparedTxs?.unsignedTxs[preparedTxs?.unsignedTxs.length - 1],
+                    actionType: 'TRANSFER',
+                })
+
+                if (estimatedPoints) setEstimatedPoints(estimatedPoints)
+
                 try {
                     const { feeOptions, transactionCostUSD } = await estimateGasFee({
                         chainId: selectedChainID,
                         preparedTx: preparedTxs?.unsignedTxs[0],
                     })
-                    const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
-                    const estimatedPoints = await estimatePoints({
-                        chainId: selectedChainID,
-                        address: address ?? '',
-                        amountUSD: USDValue,
-                        preparedTx: preparedTxs?.unsignedTxs[preparedTxs?.unsignedTxs.length - 1],
-                        actionType: 'TRANSFER',
-                    })
-
-                    if (estimatedPoints) setEstimatedPoints(estimatedPoints)
                     setFeeOptions(feeOptions)
                     setTransactionCostUSD(transactionCostUSD)
                 } catch (error) {
