@@ -37,9 +37,9 @@ export const Claim = ({}) => {
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
     const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
-        name: '',
-        email: '',
-        recipient: '',
+        name: 'borcherd van brakell',
+        email: 'borcherd11199@gmail.com',
+        recipient: 'BE97 0635 1796 2049',
     })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)

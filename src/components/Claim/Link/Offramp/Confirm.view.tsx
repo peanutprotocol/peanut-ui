@@ -2,15 +2,17 @@
 
 import * as _consts from '../../Claim.consts'
 import * as context from '@/context'
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
 import Loading from '@/components/Global/Loading'
 import * as _interfaces from '../../Claim.interfaces'
 import * as _utils from '../../Claim.utils'
+import * as interfaces from '@/interfaces'
 
 import { Step, StepIcon, StepIndicator, StepSeparator, StepStatus, Stepper, Stack, useSteps } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { v4 as uuidv4 } from 'uuid'
 
 const steps = [
     { title: 'TOS', description: 'Agree to the tos', buttonText: 'Agree TOS' },
@@ -41,19 +43,160 @@ export const ConfirmClaimLinkIbanView = ({
         defaultValues: offrampForm,
     })
 
+    const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
+
     const onSubmit = async (inputFormData: _consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
-        // setLoadingState('Loading')
 
-        // window.open('https://docs.peanut.to', '_blank')
-        // await new Promise((resolve) => setTimeout(resolve, 10000))
+        try {
+            // Step one: get the links to agree to (kyc and tos)
+            setLoadingState('Getting KYC details')
+            console.log('Getting KYC details...')
 
-        // window.open('https://docs.peanut.to', '_blank')
-        // await new Promise((resolve) => setTimeout(resolve, 10000))
+            const response = await fetch('/api/bridge/new-user/get-links', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    type: 'individual',
+                    full_name: inputFormData.name,
+                    email: inputFormData.email,
+                }),
+            })
+            // const response = await fetch('https://api.bridge.xyz/v0/kyc_links', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Api-Key': process.env.BRIDGE_API_KEY!,
+            //         'Idempotency-Key': '',
+            //         accept: 'application/json',
+            //         'content-type': 'application/json',
+            //     },
+            //     body: JSON.stringify({
+            //         type: 'individual',
+            //         full_name: inputFormData.name,
+            //         email: inputFormData.email,
+            //     }),
+            // })
 
-        // TODO: no xchain when iban
+            if (!response.ok) {
+                throw new Error('Failed to fetch KYC links')
+            }
 
-        handleOnNext()
+            const data = await response.json()
+            setCustomerObject(data)
+            console.log('KYC details fetched:', data)
+
+            let { tos_status: tosStatus, kyc_status: kycStatus } = data
+
+            // Fetch the initial TOS status
+            // const tosResponse = await fetch('/api/bridge/new-user/get-status', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ userId: data.id, type: 'tos' }),
+            // })
+
+            // if (!tosResponse.ok) {
+            //     throw new Error('Failed to fetch initial TOS status')
+            // }
+
+            // const tosData = await tosResponse.json()
+            // tosStatus = tosData.tos_status
+            // console.log('Initial TOS status:', tosStatus)
+
+            // // Check TOS status and open link if not approved
+            // if (tosStatus !== 'approved') {
+            //     setLoadingState('Awaiting TOS confirmation')
+            //     console.log('Awaiting TOS confirmation...')
+            //     window.open(data.tos_link, '_blank')
+
+            //     while (tosStatus !== 'approved') {
+            //         const tosStatusResponse = await fetch('/api/bridge/new-user/get-status', {
+            //             method: 'POST',
+            //             headers: {
+            //                 'Content-Type': 'application/json',
+            //             },
+            //             body: JSON.stringify({ userId: data.id, type: 'tos' }),
+            //         })
+
+            //         if (!tosStatusResponse.ok) {
+            //             throw new Error('Failed to fetch TOS status')
+            //         }
+
+            //         const tosStatusData = await tosStatusResponse.json()
+            //         tosStatus = tosStatusData.tos_status
+            //         console.log('Current TOS status:', tosStatus)
+
+            //         if (tosStatus !== 'approved') {
+            //             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
+            //         }
+            //     }
+
+            //     console.log('TOS confirmation complete.')
+            //     handleOnNext()
+            // } else {
+            //     console.log('TOS already approved.')
+            // }
+
+            // // Fetch the initial KYC status
+            // const kycResponse = await fetch('/api/bridge/new-user/get-status', {
+            //     method: 'POST',
+            //     headers: {
+            //         'Content-Type': 'application/json',
+            //     },
+            //     body: JSON.stringify({ userId: data.id, type: 'kyc' }),
+            // })
+
+            // if (!kycResponse.ok) {
+            //     throw new Error('Failed to fetch initial KYC status')
+            // }
+
+            // const kycData = await kycResponse.json()
+            // kycStatus = kycData.kyc_status
+            // console.log('Initial KYC status:', kycStatus)
+
+            // // Check KYC status and open link if not approved
+            // if (kycStatus !== 'approved') {
+            //     setLoadingState('Awaiting KYC confirmation')
+            //     console.log('Awaiting KYC completion...')
+            //     window.open(data.kyc_link, '_blank')
+
+            //     while (kycStatus !== 'approved') {
+            //         const kycStatusResponse = await fetch('/api/bridge/new-user/get-status', {
+            //             method: 'POST',
+            //             headers: {
+            //                 'Content-Type': 'application/json',
+            //             },
+            //             body: JSON.stringify({ userId: data.id, type: 'kyc' }),
+            //         })
+
+            //         if (!kycStatusResponse.ok) {
+            //             throw new Error('Failed to fetch KYC status')
+            //         }
+
+            //         const kycStatusData = await kycStatusResponse.json()
+            //         kycStatus = kycStatusData.kyc_status
+            //         console.log('Current KYC status:', kycStatus)
+
+            //         if (kycStatus !== 'approved') {
+            //             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
+            //         }
+            //     }
+
+            //     console.log('KYC completion complete.')
+            //     handleOnNext()
+            // } else {
+            //     console.log('KYC already approved.')
+            // }
+
+            // setLoadingState('Idle')
+            // console.log('Process complete. Loading state set to idle.')
+        } catch (error) {
+            console.error('Error during the submission process:', error)
+            setLoadingState('Idle')
+        }
     }
 
     const handleOnNext = () => {

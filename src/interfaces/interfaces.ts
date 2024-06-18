@@ -150,3 +150,23 @@ export interface IDirectSendDetails {
     points: number
     txHash: string
 }
+
+export interface KYCData {
+    id: string
+    full_name: string
+    email: string
+    type: string
+    kyc_link: string
+    tos_link: string
+    kyc_status: string
+    rejection_reasons: string[]
+    tos_status: string
+    created_at: string
+    customer_id: string | null
+    persona_inquiry_type: string
+}
+
+export interface KYCResponse {
+    count: number
+    data: KYCData[]
+}

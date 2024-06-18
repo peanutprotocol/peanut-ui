@@ -128,9 +128,9 @@ export const InitialClaimLinkView = ({
     }
 
     const handleIbanRecipient = async () => {
-        // setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+        setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
         //const customerExist =
-        // onNext()
+        onNext()
     }
 
     // useEffect(() => {
@@ -460,8 +460,7 @@ export const InitialClaimLinkView = ({
                         !isValidRecipient ||
                         isXchainLoading ||
                         inputChanging ||
-                        (hasFetchedRoute && !selectedRoute) ||
-                        recipientType === 'iban'
+                        (hasFetchedRoute && !selectedRoute)
                     }
                 >
                     {isLoading || isXchainLoading ? (
@@ -511,19 +510,6 @@ export const InitialClaimLinkView = ({
                             </label>
                         )}
                     </div>
-                )}
-                {recipientType === 'iban' && (
-                    <label className="text-h8 font-normal">
-                        {' '}
-                        Offramp coming soon! Reach out via{' '}
-                        <Link
-                            className="cursor-pointer text-h8 font-normal underline"
-                            href={'https://discord.gg/BX9Ak7AW28'}
-                        >
-                            discord
-                        </Link>{' '}
-                        to find out more!
-                    </label>
                 )}
             </div>{' '}
         </div>

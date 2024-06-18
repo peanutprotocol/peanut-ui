@@ -12,3 +12,6 @@ export type LoadingStates =
     | 'Generating details'
     | 'Estimating points'
     | 'Getting deposit details'
+    | 'Getting KYC details'
+    | 'Awaiting TOS confirmation'
+    | 'Awaiting KYC confirmation'
