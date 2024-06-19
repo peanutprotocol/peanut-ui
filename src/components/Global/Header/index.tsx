@@ -255,10 +255,10 @@ const SocialLinks = () => {
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
             <Link href={'/dashboard'} className="no-underline">
-                <button className="btn-purple btn-large">Dashboard</button>
+                <button className="btn btn-large bg-white">Dashboard</button>
             </Link>
             <button
-                className="btn-purple btn-large"
+                className="btn btn-large bg-white"
                 onClick={() => {
                     web3modalOpen()
                 }}
