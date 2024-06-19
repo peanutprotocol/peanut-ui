@@ -38,7 +38,7 @@ export const Claim = ({}) => {
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
     const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
         name: 'borcherd van brakell',
-        email: 'borcherd11199@gmail.com',
+        email: 'borcherd11199+656@gmail.com',
         recipient: 'BE97 0635 1796 2049',
     })
 

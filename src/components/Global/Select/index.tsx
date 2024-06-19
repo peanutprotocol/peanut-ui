@@ -15,6 +15,7 @@ type SelectProps = {
     onChange: any
     up?: boolean
     small?: boolean
+    classPlaceholder?: string
 }
 
 const Select = ({
@@ -30,6 +31,7 @@ const Select = ({
     onChange,
     up,
     small,
+    classPlaceholder,
 }: SelectProps) => (
     <div className={`relative ${className}`}>
         {label && <div className="mb-3 text-xs font-bold">{label}</div>}
@@ -44,7 +46,11 @@ const Select = ({
                         )}
                     >
                         <span className="mr-auto truncate text-black">
-                            {value ? value : <span className=" text-n-2 dark:text-white/75">{placeholder}</span>}
+                            {value ? (
+                                value
+                            ) : (
+                                <span className={` dark:text-white/75 ${classPlaceholder}`}>{placeholder}</span>
+                            )}
                         </span>
                         <Icon
                             className={`icon-20 -mr-0.5 ml-6 shrink-0 transition-transform dark:fill-white ${
@@ -66,8 +72,8 @@ const Select = ({
                                     className={`flex cursor-pointer items-start rounded-sm px-3 py-2 text-sm font-bold text-n-3 transition-colors tap-highlight-color ui-selected:!bg-n-3/20 ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
                                         small ? '!py-1 !pl-4 text-xs' : ''
                                     } ${classOption}`}
-                                    key={item.chainId}
-                                    value={item}
+                                    key={item.chainId ?? item.code ?? item.id}
+                                    value={item.chainId ? item : item.code}
                                 >
                                     {item.name}
                                 </Listbox.Option>

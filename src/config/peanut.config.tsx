@@ -5,6 +5,8 @@ import { Analytics } from '@vercel/analytics/react'
 import { useEffect } from 'react'
 import peanut from '@squirrel-labs/peanut-sdk'
 import ReactGA from 'react-ga4'
+import countries from 'i18n-iso-countries'
+import enLocale from 'i18n-iso-countries/langs/en.json'
 
 import '../../sentry.client.config'
 import '../../sentry.server.config'
@@ -19,6 +21,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         ReactGA.initialize(process.env.NEXT_PUBLIC_GA_KEY ?? '')
         peanut.toggleVerbose(true)
         LogRocket.init('x2zwq1/peanut-protocol')
+        countries.registerLocale(enLocale)
     }, [])
 
     initWeb3InboxClient({

@@ -30,11 +30,13 @@
         "autoprefixer": "^10.4.14",
         "awesome-phonenumber": "^6.8.0",
         "axios": "^1.4.0",
+        "country-list": "^2.3.0",
         "encoding": "^0.1.13",
         "eslint-config-next": "^14.1.1",
         "ethers": "5.7.2",
         "frames.js": "^0.15.2",
         "fs-extra": "^11.2.0",
+        "i18n-iso-countries": "^7.11.2",
         "install": "^0.13.0",
         "jotai": "^2.2.2",
         "libphonenumber-js": "^1.11.2",
@@ -69,6 +71,7 @@
         "web3": "^1.7.0"
     },
     "devDependencies": {
+        "@types/country-list": "^2.1.4",
         "@types/fs-extra": "^11.0.4",
         "@types/multicoin-address-validator": "^0.5.3",
         "@types/node": "20.4.2",

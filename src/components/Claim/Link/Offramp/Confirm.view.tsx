@@ -8,16 +8,30 @@ import * as _interfaces from '../../Claim.interfaces'
 import * as _utils from '../../Claim.utils'
 import * as interfaces from '@/interfaces'
 
-import { Step, StepIcon, StepIndicator, StepSeparator, StepStatus, Stepper, Stack, useSteps } from '@chakra-ui/react'
+import {
+    Step,
+    StepIcon,
+    StepIndicator,
+    StepSeparator,
+    StepStatus,
+    Stepper,
+    Stack,
+    useSteps,
+    TabList,
+    Tab,
+    TabPanels,
+    TabPanel,
+    Tabs,
+} from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { count } from 'console'
+import CountryDropdown from '@/components/Global/CountrySelect'
 
 const steps = [
-    { title: 'TOS', description: 'Agree to the tos', buttonText: 'Agree TOS' },
+    { title: 'TOS', description: 'Agree to the TOS', buttonText: 'Agree TOS' },
     { title: 'KYC', description: 'Complete KYC', buttonText: 'Complete KYC' },
-    { title: 'Link Iban', description: 'Link iban to your account', buttonText: 'Link Iban' },
+    { title: 'Link Iban', description: 'Link IBAN to your account', buttonText: 'Link IBAN' },
 ]
 
 export const ConfirmClaimLinkIbanView = ({
@@ -43,21 +57,29 @@ export const ConfirmClaimLinkIbanView = ({
     })
 
     const {
-        register: registerAddress,
-        handleSubmit: handleSubmitAddress,
-        formState: { errors: addressErrors },
+        register: registerAccount,
+        handleSubmit: handleSubmitAccount,
+        formState: { errors: accountErrors },
+        watch: accountFormWatch,
+        setValue: setAccountFormValue,
+        setError: setAccountFormError,
     } = useForm({
         mode: 'onChange',
         defaultValues: {
             street: '',
             city: '',
             country: '',
+            accountNumber: offrampForm.recipient,
+            routingNumber: '',
+            BIC: '',
+            type: 'iban',
         },
     })
 
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
-
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
+    const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
+    const [kycLinkOpened, setKycLinkOpened] = useState<boolean>(false)
 
     async function fetchApi(url: string, method: string, body?: any): Promise<any> {
         const response = await fetch(url, {
@@ -99,13 +121,20 @@ export const ConfirmClaimLinkIbanView = ({
     async function awaitStatusCompletion(userId: string, type: string, initialStatus: string, link: string) {
         let status = initialStatus
 
+        if (type === 'tos' && !tosLinkOpened) {
+            window.open(link, '_blank')
+            setTosLinkOpened(true)
+        } else if (type === 'kyc' && !kycLinkOpened) {
+            window.open(link, '_blank')
+            setKycLinkOpened(true)
+        }
+
         while (status !== 'approved') {
             const statusData = await getStatus(userId, type)
             status = statusData[`${type}_status`]
             console.log(`Current ${type.toUpperCase()} status:`, status)
 
             if (status !== 'approved') {
-                window.open(link, '_blank')
                 await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
             }
         }
@@ -114,7 +143,9 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     const onSubmitTosAndKyc = async (inputFormData: _consts.IOfframpForm) => {
+        console.log(inputFormData)
         setOfframpForm(inputFormData)
+        setActiveStep(0)
 
         try {
             setLoadingState('Getting KYC details')
@@ -134,7 +165,8 @@ export const ConfirmClaimLinkIbanView = ({
             } else {
                 console.log('TOS already approved.')
             }
-            // handleOnNext()
+
+            goToNext()
 
             // Handle KYC status
             if (kycStatus !== 'approved') {
@@ -144,11 +176,14 @@ export const ConfirmClaimLinkIbanView = ({
             } else {
                 console.log('KYC already approved.')
             }
-            // handleOnNext()
+
+            goToNext()
 
             // Handle IBAN linking
             const customer_id = await getStatus(data.id, 'customer_id')
             console.log('Customer ID:', customer_id)
+
+            setCustomerObject({ ...data, customer_id: customer_id.customer_id })
 
             const externalAccounts = await getExternalAccounts(customer_id.customer_id)
             console.log('External accounts:', externalAccounts)
@@ -156,6 +191,9 @@ export const ConfirmClaimLinkIbanView = ({
             if (!externalAccounts.data.includes(inputFormData.recipient)) {
                 setActiveStep(2)
                 setAddressRequired(true)
+            } else {
+                setActiveStep(3)
+                setAddressRequired(false)
             }
 
             setLoadingState('Idle')
@@ -166,14 +204,53 @@ export const ConfirmClaimLinkIbanView = ({
         }
     }
 
-    const onSubmitLinkIban = async (inputFormData: _consts.IOfframpForm) => {}
+    const onSubmitLinkIban = async () => {
+        console.log(accountFormWatch())
+        const isFormValid = validateAccountFormData(accountFormWatch())
 
-    const handleOnNext = () => {
-        if (activeStep === steps.length) {
-            onNext()
-        } else {
-            goToNext()
+        console.log('is form valid:', isFormValid)
+
+        try {
+        } catch (error) {}
+    }
+
+    const validateAccountFormData = (formData: any) => {
+        let isValid = true
+        if (!formData.accountNumber) {
+            setAccountFormError('accountNumber', { type: 'required', message: 'Account number is required' })
+            console.log('Account number is required')
+            isValid = false
         }
+        if (!formData.street) {
+            setAccountFormError('street', { type: 'required', message: 'Street is required' })
+            console.log('Street is required')
+            isValid = false
+        }
+        if (!formData.city) {
+            setAccountFormError('city', { type: 'required', message: 'City is required' })
+            console.log('City is required')
+            isValid = false
+        }
+        if (!formData.country) {
+            setAccountFormError('country', { type: 'required', message: 'Country is required' })
+            console.log('Country is required')
+            isValid = false
+        }
+        if (formData.type === 'iban') {
+            if (!formData.BIC) {
+                setAccountFormError('BIC', { type: 'required', message: 'BIC is required' })
+                console.log('BIC is required')
+                isValid = false
+            }
+        } else if (formData.type === 'us') {
+            if (!formData.routingNumber) {
+                setAccountFormError('routingNumber', { type: 'required', message: 'Routing number is required' })
+                console.log('Routing number is required')
+                isValid = false
+            }
+        }
+
+        return isValid
     }
 
     const handleOnPrev = () => {
@@ -185,14 +262,16 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     const handleSubmit = async (e: any) => {
-        e.preventDefault()
-
         if (activeStep === 0) {
             await onSubmitTosAndKyc(offrampForm)
-        } else if (activeStep === 1) {
-            await onSubmitLinkIban(offrampForm)
+        } else if (activeStep === 2) {
+            await onSubmitLinkIban()
+        } else if (activeStep === 3) {
+            onNext()
         }
     }
+
+    const [tabIndex, setTabIndex] = useState(0)
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">
@@ -254,46 +333,119 @@ export const ConfirmClaimLinkIbanView = ({
                     {errors.recipient && (
                         <span className="text-h9 font-normal text-red">{errors.recipient.message}</span>
                     )}
-                </div>
+                </div>{' '}
                 {addressRequired && (
-                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                        <label>Address</label>
-                        <input
-                            {...registerAddress('street', {
-                                required: addressRequired ? 'This field is required' : false,
-                            })}
-                            className={`custom-input ${addressErrors.street ? 'border border-red' : ''}`}
-                            placeholder="Street"
-                            disabled={activeStep === steps.length}
-                        />
-                        {addressErrors.street && (
-                            <span className="text-h9 font-normal text-red">{addressErrors.street.message}</span>
-                        )}
+                    <form className="flex w-full flex-col items-start justify-center gap-0">
+                        <Tabs
+                            onChange={(index) => {
+                                setTabIndex(index)
+                                if (index === 0) {
+                                    setAccountFormValue('type', 'iban')
+                                } else if (index === 1) {
+                                    setAccountFormValue('type', 'us')
+                                }
+                            }}
+                            isFitted
+                            variant="enclosed"
+                            w={'100%'}
+                        >
+                            <TabList>
+                                <Tab>IBAN</Tab>
+                                <Tab>US</Tab>
+                            </TabList>
+                            <TabPanels>
+                                <TabPanel className="!px-0">
+                                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                                        <input
+                                            {...registerAccount('accountNumber', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
+                                            placeholder="Account number"
+                                        />
+                                        {accountErrors.accountNumber && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.accountNumber.message}
+                                            </span>
+                                        )}
+                                        <input
+                                            {...registerAccount('BIC', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
+                                            placeholder="BIC"
+                                        />
+                                        {accountErrors.BIC && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.BIC.message}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TabPanel>
+                                <TabPanel className="!px-0">
+                                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                                        <input
+                                            {...registerAccount('accountNumber', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
+                                            placeholder="Account number"
+                                        />
+                                        {accountErrors.accountNumber && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.accountNumber.message}
+                                            </span>
+                                        )}
+                                        <input
+                                            {...registerAccount('routingNumber', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.routingNumber ? 'border border-red' : ''}`}
+                                            placeholder="Routing number"
+                                        />{' '}
+                                        {accountErrors.routingNumber && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.routingNumber.message}
+                                            </span>
+                                        )}
+                                    </div>
+                                </TabPanel>
+                            </TabPanels>
+                        </Tabs>
+                        <div className="flex w-full flex-col items-start justify-center gap-2">
+                            <label>Address</label>
+                            <input
+                                {...registerAccount('street', {
+                                    required: addressRequired ? 'This field is required' : false,
+                                })}
+                                className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
+                                placeholder="Street"
+                            />
+                            {accountErrors.street && (
+                                <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
+                            )}
 
-                        <input
-                            {...registerAddress('city', {
-                                required: addressRequired ? 'This field is required' : false,
-                            })}
-                            className={`custom-input ${addressErrors.city ? 'border border-red' : ''}`}
-                            placeholder="City"
-                            disabled={activeStep === steps.length}
-                        />
-                        {addressErrors.city && (
-                            <span className="text-h9 font-normal text-red">{addressErrors.city.message}</span>
-                        )}
+                            <input
+                                {...registerAccount('city', {
+                                    required: addressRequired ? 'This field is required' : false,
+                                })}
+                                className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
+                                placeholder="City"
+                            />
+                            {accountErrors.city && (
+                                <span className="text-h9 font-normal text-red">{accountErrors.city.message}</span>
+                            )}
 
-                        <input
-                            {...registerAddress('country', {
-                                required: addressRequired ? 'This field is required' : false,
-                            })}
-                            className={`custom-input ${addressErrors.country ? 'border border-red' : ''}`}
-                            placeholder="Country"
-                            disabled={activeStep === steps.length}
-                        />
-                        {addressErrors.country && (
-                            <span className="text-h9 font-normal text-red">{addressErrors.country.message}</span>
-                        )}
-                    </div>
+                            <CountryDropdown
+                                value={accountFormWatch('country')}
+                                onChange={(value: any) => {
+                                    setAccountFormValue('country', value, { shouldValidate: true })
+                                    setAccountFormError('country', { message: undefined })
+                                }}
+                                error={accountErrors.country?.message}
+                            />
+                        </div>
+                    </form>
                 )}
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     {activeStep === steps.length ? (
@@ -356,7 +508,7 @@ export const ConfirmClaimLinkIbanView = ({
                     >
                         Return
                     </button>
-                </div>
+                </div>{' '}
             </form>
         </div>
     )
