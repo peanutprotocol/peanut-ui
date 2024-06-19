@@ -207,7 +207,7 @@ export const CreateLinkInputView = ({
                 })
 
                 if (estimatedPoints) setEstimatedPoints(estimatedPoints)
-
+                else setEstimatedPoints(0)
                 try {
                     const { feeOptions, transactionCostUSD } = await estimateGasFee({
                         chainId: selectedChainID,

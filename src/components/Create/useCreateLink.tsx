@@ -312,7 +312,7 @@ export const useCreateLink = () => {
                 formData.append('attachmentFile', attachmentOptions.attachmentFile)
             }
 
-            const response = await fetch('/api/peanut/submit-link-attachment/init', {
+            const response = await fetch('/api/peanut/submit-claim-link/init', {
                 method: 'POST',
                 body: formData,
             })
@@ -357,7 +357,7 @@ export const useCreateLink = () => {
                 transaction
             )
 
-            const response = await fetch('/api/peanut/submit-link-attachment/confirm', {
+            const response = await fetch('/api/peanut/submit-claim-link/confirm', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -406,7 +406,13 @@ export const useCreateLink = () => {
                     chainId,
                     senderAddress: senderAddress,
                     amountUsd,
-                    transaction: { ...transaction, value: transaction?.value && transaction.value.toString() },
+                    transaction: {
+                        ...transaction,
+                        value:
+                            transaction?.value && transaction.value !== BigInt(0)
+                                ? transaction.value.toString()
+                                : undefined,
+                    },
                 }),
             })
 

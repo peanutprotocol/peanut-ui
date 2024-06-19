@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
                 apiKey: process.env.PEANUT_API_KEY,
                 txHash: txHash,
                 chainId: chainId,
-                signature: '',
                 userAddress: senderAddress,
                 amountUsd: amountUsd,
                 transaction: transaction,
@@ -31,7 +30,7 @@ export async function POST(request: NextRequest) {
 
         return new NextResponse(null, { status: 200 })
     } catch (error) {
-        console.error('Failed to publish file (complete):', error)
+        console.error('Failed to push points:', error)
         return new NextResponse('Internal Server Error', { status: 500 })
     }
 }
