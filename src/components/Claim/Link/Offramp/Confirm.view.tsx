@@ -12,7 +12,7 @@ import { Step, StepIcon, StepIndicator, StepSeparator, StepStatus, Stepper, Stac
 import { useForm } from 'react-hook-form'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { v4 as uuidv4 } from 'uuid'
+import { count } from 'console'
 
 const steps = [
     { title: 'TOS', description: 'Agree to the tos', buttonText: 'Agree TOS' },
@@ -34,170 +34,139 @@ export const ConfirmClaimLinkIbanView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const {
-        register,
-        handleSubmit,
+        register: registerOfframp,
+        handleSubmit: handleSubmitOfframp,
         formState: { errors },
-        watch,
     } = useForm({
         mode: 'onChange',
         defaultValues: offrampForm,
     })
 
+    const {
+        register: registerAddress,
+        handleSubmit: handleSubmitAddress,
+        formState: { errors: addressErrors },
+    } = useForm({
+        mode: 'onChange',
+        defaultValues: {
+            street: '',
+            city: '',
+            country: '',
+        },
+    })
+
+    const [addressRequired, setAddressRequired] = useState<boolean>(false)
+
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
 
-    const onSubmit = async (inputFormData: _consts.IOfframpForm) => {
+    async function fetchApi(url: string, method: string, body?: any): Promise<any> {
+        const response = await fetch(url, {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: body ? JSON.stringify(body) : undefined,
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch data from ${url}`)
+        }
+
+        return await response.json()
+    }
+
+    async function getUserLinks(formData: _consts.IOfframpForm) {
+        return await fetchApi('/api/bridge/new-user/get-links', 'POST', {
+            type: 'individual',
+            full_name: formData.name,
+            email: formData.email,
+        })
+    }
+
+    async function getStatus(userId: string, type: string) {
+        return await fetchApi('/api/bridge/new-user/get-status', 'POST', {
+            userId,
+            type,
+        })
+    }
+
+    async function getExternalAccounts(customerId: string) {
+        return await fetchApi('/api/bridge/external-account/get-all-for-customerId', 'POST', {
+            customerId,
+        })
+    }
+
+    async function awaitStatusCompletion(userId: string, type: string, initialStatus: string, link: string) {
+        let status = initialStatus
+
+        while (status !== 'approved') {
+            const statusData = await getStatus(userId, type)
+            status = statusData[`${type}_status`]
+            console.log(`Current ${type.toUpperCase()} status:`, status)
+
+            if (status !== 'approved') {
+                window.open(link, '_blank')
+                await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
+            }
+        }
+
+        console.log(`${type.toUpperCase()} completion complete.`)
+    }
+
+    const onSubmitTosAndKyc = async (inputFormData: _consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
 
         try {
-            // Step one: get the links to agree to (kyc and tos)
             setLoadingState('Getting KYC details')
             console.log('Getting KYC details...')
 
-            const response = await fetch('/api/bridge/new-user/get-links', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    type: 'individual',
-                    full_name: inputFormData.name,
-                    email: inputFormData.email,
-                }),
-            })
-            // const response = await fetch('https://api.bridge.xyz/v0/kyc_links', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Api-Key': process.env.BRIDGE_API_KEY!,
-            //         'Idempotency-Key': '',
-            //         accept: 'application/json',
-            //         'content-type': 'application/json',
-            //     },
-            //     body: JSON.stringify({
-            //         type: 'individual',
-            //         full_name: inputFormData.name,
-            //         email: inputFormData.email,
-            //     }),
-            // })
-
-            if (!response.ok) {
-                throw new Error('Failed to fetch KYC links')
-            }
-
-            const data = await response.json()
+            let data = await getUserLinks(inputFormData)
             setCustomerObject(data)
             console.log('KYC details fetched:', data)
 
             let { tos_status: tosStatus, kyc_status: kycStatus } = data
 
-            // Fetch the initial TOS status
-            // const tosResponse = await fetch('/api/bridge/new-user/get-status', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({ userId: data.id, type: 'tos' }),
-            // })
+            // Handle TOS status
+            if (tosStatus !== 'approved') {
+                setLoadingState('Awaiting TOS confirmation')
+                console.log('Awaiting TOS confirmation...')
+                await awaitStatusCompletion(data.id, 'tos', tosStatus, data.tos_link)
+            } else {
+                console.log('TOS already approved.')
+            }
+            // handleOnNext()
 
-            // if (!tosResponse.ok) {
-            //     throw new Error('Failed to fetch initial TOS status')
-            // }
+            // Handle KYC status
+            if (kycStatus !== 'approved') {
+                setLoadingState('Awaiting KYC confirmation')
+                console.log('Awaiting KYC completion...')
+                await awaitStatusCompletion(data.id, 'kyc', kycStatus, data.kyc_link)
+            } else {
+                console.log('KYC already approved.')
+            }
+            // handleOnNext()
 
-            // const tosData = await tosResponse.json()
-            // tosStatus = tosData.tos_status
-            // console.log('Initial TOS status:', tosStatus)
+            // Handle IBAN linking
+            const customer_id = await getStatus(data.id, 'customer_id')
+            console.log('Customer ID:', customer_id)
 
-            // // Check TOS status and open link if not approved
-            // if (tosStatus !== 'approved') {
-            //     setLoadingState('Awaiting TOS confirmation')
-            //     console.log('Awaiting TOS confirmation...')
-            //     window.open(data.tos_link, '_blank')
+            const externalAccounts = await getExternalAccounts(customer_id.customer_id)
+            console.log('External accounts:', externalAccounts)
 
-            //     while (tosStatus !== 'approved') {
-            //         const tosStatusResponse = await fetch('/api/bridge/new-user/get-status', {
-            //             method: 'POST',
-            //             headers: {
-            //                 'Content-Type': 'application/json',
-            //             },
-            //             body: JSON.stringify({ userId: data.id, type: 'tos' }),
-            //         })
+            if (!externalAccounts.data.includes(inputFormData.recipient)) {
+                setActiveStep(2)
+                setAddressRequired(true)
+            }
 
-            //         if (!tosStatusResponse.ok) {
-            //             throw new Error('Failed to fetch TOS status')
-            //         }
-
-            //         const tosStatusData = await tosStatusResponse.json()
-            //         tosStatus = tosStatusData.tos_status
-            //         console.log('Current TOS status:', tosStatus)
-
-            //         if (tosStatus !== 'approved') {
-            //             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
-            //         }
-            //     }
-
-            //     console.log('TOS confirmation complete.')
-            //     handleOnNext()
-            // } else {
-            //     console.log('TOS already approved.')
-            // }
-
-            // // Fetch the initial KYC status
-            // const kycResponse = await fetch('/api/bridge/new-user/get-status', {
-            //     method: 'POST',
-            //     headers: {
-            //         'Content-Type': 'application/json',
-            //     },
-            //     body: JSON.stringify({ userId: data.id, type: 'kyc' }),
-            // })
-
-            // if (!kycResponse.ok) {
-            //     throw new Error('Failed to fetch initial KYC status')
-            // }
-
-            // const kycData = await kycResponse.json()
-            // kycStatus = kycData.kyc_status
-            // console.log('Initial KYC status:', kycStatus)
-
-            // // Check KYC status and open link if not approved
-            // if (kycStatus !== 'approved') {
-            //     setLoadingState('Awaiting KYC confirmation')
-            //     console.log('Awaiting KYC completion...')
-            //     window.open(data.kyc_link, '_blank')
-
-            //     while (kycStatus !== 'approved') {
-            //         const kycStatusResponse = await fetch('/api/bridge/new-user/get-status', {
-            //             method: 'POST',
-            //             headers: {
-            //                 'Content-Type': 'application/json',
-            //             },
-            //             body: JSON.stringify({ userId: data.id, type: 'kyc' }),
-            //         })
-
-            //         if (!kycStatusResponse.ok) {
-            //             throw new Error('Failed to fetch KYC status')
-            //         }
-
-            //         const kycStatusData = await kycStatusResponse.json()
-            //         kycStatus = kycStatusData.kyc_status
-            //         console.log('Current KYC status:', kycStatus)
-
-            //         if (kycStatus !== 'approved') {
-            //             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
-            //         }
-            //     }
-
-            //     console.log('KYC completion complete.')
-            //     handleOnNext()
-            // } else {
-            //     console.log('KYC already approved.')
-            // }
-
-            // setLoadingState('Idle')
-            // console.log('Process complete. Loading state set to idle.')
+            setLoadingState('Idle')
+            console.log('Process complete. Loading state set to idle.')
         } catch (error) {
             console.error('Error during the submission process:', error)
             setLoadingState('Idle')
         }
     }
+
+    const onSubmitLinkIban = async (inputFormData: _consts.IOfframpForm) => {}
 
     const handleOnNext = () => {
         if (activeStep === steps.length) {
@@ -212,6 +181,16 @@ export const ConfirmClaimLinkIbanView = ({
             onPrev()
         } else {
             goToPrevious()
+        }
+    }
+
+    const handleSubmit = async (e: any) => {
+        e.preventDefault()
+
+        if (activeStep === 0) {
+            await onSubmitTosAndKyc(offrampForm)
+        } else if (activeStep === 1) {
+            await onSubmitLinkIban(offrampForm)
         }
     }
 
@@ -242,12 +221,15 @@ export const ConfirmClaimLinkIbanView = ({
                     <label className="text-h7">Verification complete</label>
                 )}
             </Stack>
-            <form className="flex w-full flex-col items-center justify-center gap-6 " onSubmit={handleSubmit(onSubmit)}>
+            <form
+                className="flex w-full flex-col items-center justify-center gap-6 "
+                onSubmit={handleSubmitOfframp(handleSubmit)}
+            >
                 <div className="flex w-full flex-col items-start justify-center gap-2">
                     <label>We need your details to send you your funds.</label>
 
                     <input
-                        {...register('name', { required: 'This field is required' })}
+                        {...registerOfframp('name', { required: 'This field is required' })}
                         className={`custom-input ${errors.name ? 'border border-red' : ''}`}
                         placeholder="Name"
                         disabled={activeStep === steps.length}
@@ -255,7 +237,7 @@ export const ConfirmClaimLinkIbanView = ({
                     {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
 
                     <input
-                        {...register('email', { required: 'This field is required' })}
+                        {...registerOfframp('email', { required: 'This field is required' })}
                         className={`custom-input ${errors.email ? 'border border-red' : ''}`}
                         placeholder="Email"
                         type="email"
@@ -264,7 +246,7 @@ export const ConfirmClaimLinkIbanView = ({
                     {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
 
                     <input
-                        {...register('recipient', { required: 'This field is required' })}
+                        {...registerOfframp('recipient', { required: 'This field is required' })}
                         className={`custom-input ${errors.recipient ? 'border border-red' : ''}`}
                         placeholder="Iban"
                         disabled={activeStep === steps.length}
@@ -273,6 +255,46 @@ export const ConfirmClaimLinkIbanView = ({
                         <span className="text-h9 font-normal text-red">{errors.recipient.message}</span>
                     )}
                 </div>
+                {addressRequired && (
+                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                        <label>Address</label>
+                        <input
+                            {...registerAddress('street', {
+                                required: addressRequired ? 'This field is required' : false,
+                            })}
+                            className={`custom-input ${addressErrors.street ? 'border border-red' : ''}`}
+                            placeholder="Street"
+                            disabled={activeStep === steps.length}
+                        />
+                        {addressErrors.street && (
+                            <span className="text-h9 font-normal text-red">{addressErrors.street.message}</span>
+                        )}
+
+                        <input
+                            {...registerAddress('city', {
+                                required: addressRequired ? 'This field is required' : false,
+                            })}
+                            className={`custom-input ${addressErrors.city ? 'border border-red' : ''}`}
+                            placeholder="City"
+                            disabled={activeStep === steps.length}
+                        />
+                        {addressErrors.city && (
+                            <span className="text-h9 font-normal text-red">{addressErrors.city.message}</span>
+                        )}
+
+                        <input
+                            {...registerAddress('country', {
+                                required: addressRequired ? 'This field is required' : false,
+                            })}
+                            className={`custom-input ${addressErrors.country ? 'border border-red' : ''}`}
+                            placeholder="Country"
+                            disabled={activeStep === steps.length}
+                        />
+                        {addressErrors.country && (
+                            <span className="text-h9 font-normal text-red">{addressErrors.country.message}</span>
+                        )}
+                    </div>
+                )}
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     {activeStep === steps.length ? (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -305,6 +327,11 @@ export const ConfirmClaimLinkIbanView = ({
                                 </span>
                             </div>
                         </div>
+                    ) : activeStep === steps.length - 1 ? (
+                        <label className="mb-2 w-full text-center text-h8 font-normal">
+                            Your address is required to link your IBAN to your account. The Peanut App does not store
+                            this.
+                        </label>
                     ) : (
                         <label className="mb-2 w-full text-center text-h8 font-normal">
                             The KYC process is done through an external 3rd party. The Peanut App has no access to your

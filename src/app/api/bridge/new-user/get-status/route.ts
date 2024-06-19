@@ -36,6 +36,13 @@ export async function POST(request: NextRequest) {
                     'Content-Type': 'application/json',
                 },
             })
+        } else if (type === 'customer_id') {
+            return new NextResponse(JSON.stringify({ customer_id: data.customer_id }), {
+                status: 200,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
         }
     } catch (error) {
         console.error('Failed to get KYC status:', error)
