@@ -358,7 +358,7 @@ export const InitialClaimLinkView = ({
                         setRecipientType(type)
                     }}
                 />
-                {recipient && isValidRecipient && recipientType !== 'iban' && (
+                {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
@@ -446,7 +446,8 @@ export const InitialClaimLinkView = ({
                     className="btn-purple btn-xl"
                     onClick={() => {
                         if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                            if (recipientType === 'iban') {
+                            console.log('recipientType', recipientType)
+                            if (recipientType === 'iban' || recipientType === 'us') {
                                 handleIbanRecipient()
                             } else {
                                 onNext()

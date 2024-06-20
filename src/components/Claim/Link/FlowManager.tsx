@@ -15,10 +15,17 @@ const FlowManager = ({
     step: _consts.IClaimScreenState
     props: _consts.IClaimScreenProps
 }) => {
+    console.log(recipientType)
     const viewComponents = {
         INITIAL: InitialClaimLinkView,
-        CONFIRM: recipientType != 'iban' ? onchainViews.ConfirmClaimLinkView : offrampViews.ConfirmClaimLinkIbanView,
-        SUCCESS: recipientType != 'iban' ? onchainViews.SuccessClaimLinkView : offrampViews.SuccessClaimLinkIbanView,
+        CONFIRM:
+            recipientType != ('iban' && 'us')
+                ? onchainViews.ConfirmClaimLinkView
+                : offrampViews.ConfirmClaimLinkIbanView,
+        SUCCESS:
+            recipientType != ('iban' && 'us')
+                ? onchainViews.SuccessClaimLinkView
+                : offrampViews.SuccessClaimLinkIbanView,
     }
 
     return createElement(viewComponents[step.screen], props)
