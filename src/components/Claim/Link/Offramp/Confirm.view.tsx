@@ -27,11 +27,116 @@ import { useForm } from 'react-hook-form'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import CountryDropdown from '@/components/Global/CountrySelect'
+import { compareTokenAddresses } from '@/utils'
 
 const steps = [
     { title: 'TOS', description: 'Agree to the TOS', buttonText: 'Agree TOS' },
     { title: 'KYC', description: 'Complete KYC', buttonText: 'Complete KYC' },
     { title: 'Link Iban', description: 'Link IBAN to your account', buttonText: 'Link IBAN' },
+]
+
+const chainDictionary = [
+    {
+        chain: 'arbitrum',
+        chainId: '42161',
+    },
+    {
+        chain: 'optimism',
+        chainId: '10',
+    },
+    {
+        chain: 'ethereum',
+        chainId: '1',
+    },
+    {
+        chain: 'polygon',
+        chainId: '137',
+    },
+    // {
+    //     chain: 'base',
+    //     chainId: '8453',
+    // }
+]
+
+const tokenArray = [
+    {
+        chainId: '137',
+        tokens: [
+            {
+                token: 'usdc',
+                address: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174',
+            },
+            {
+                token: 'usdc',
+                address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
+            },
+            {
+                token: 'usdt',
+                address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
+            },
+        ],
+    },
+    {
+        chainId: '1',
+        tokens: [
+            {
+                token: 'usdc',
+                address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',
+            },
+            {
+                token: 'usdt',
+                address: '0xdac17f958d2ee523a2206206994597c13d831ec7',
+            },
+        ],
+    },
+    {
+        chainId: '10',
+        tokens: [
+            {
+                token: 'usdc',
+                address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85',
+            },
+            {
+                token: 'usdc',
+                address: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
+            },
+            {
+                token: 'usdt',
+                address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
+            },
+        ],
+    },
+    {
+        chainId: '42161',
+        tokens: [
+            {
+                token: 'usdc',
+                address: '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8',
+            },
+            {
+                token: 'usdc',
+                address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+            },
+            {
+                token: 'usdt',
+                address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
+            },
+        ],
+    },
+    // Uncomment and add more if needed
+    // {
+    //     chainId: '8453',
+    //     tokens: [
+    //         {
+    //             token: 'usdc',
+    //             address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
+    //         },
+    //         {
+    //             token: 'dai',
+    //             address: '0x50c5725949A6F0c72E6C4a641F24049A917DB0Cb'
+    //         },
+    //     ],
+    // },
 ]
 
 export const ConfirmClaimLinkIbanView = ({
@@ -40,6 +145,7 @@ export const ConfirmClaimLinkIbanView = ({
     recipient,
     offrampForm,
     setOfframpForm,
+    claimLinkData,
 }: _consts.IClaimScreenProps) => {
     const { activeStep, goToNext, goToPrevious, setActiveStep } = useSteps({
         index: 0,
@@ -66,12 +172,14 @@ export const ConfirmClaimLinkIbanView = ({
     } = useForm({
         mode: 'onChange',
         defaultValues: {
-            street: '',
-            city: '',
-            country: '',
+            street: 'paardsdemerstraat 11',
+            city: 'hasselt',
+            state: 'limburg',
+            postalCode: '3500',
+            country: 'BEL',
             accountNumber: offrampForm.recipient,
             routingNumber: '',
-            BIC: '',
+            BIC: 'GKCCBEBB',
             type: 'iban',
         },
     })
@@ -98,7 +206,7 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     async function getUserLinks(formData: _consts.IOfframpForm) {
-        return await fetchApi('/api/bridge/new-user/get-links', 'POST', {
+        return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
             type: 'individual',
             full_name: formData.name,
             email: formData.email,
@@ -106,7 +214,7 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     async function getStatus(userId: string, type: string) {
-        return await fetchApi('/api/bridge/new-user/get-status', 'POST', {
+        return await fetchApi('/api/bridge/user/new/get-status', 'POST', {
             userId,
             type,
         })
@@ -205,13 +313,127 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     const onSubmitLinkIban = async () => {
-        console.log(accountFormWatch())
-        const isFormValid = validateAccountFormData(accountFormWatch())
+        const formData = accountFormWatch()
+        const isFormValid = validateAccountFormData(formData)
 
-        console.log('is form valid:', isFormValid)
+        if (!isFormValid) {
+            console.log('Form is invalid')
+            return
+        }
 
         try {
-        } catch (error) {}
+            setLoadingState('Linking IBAN')
+            console.log('Linking IBAN...')
+
+            const customerId = customerObject?.customer_id
+            const accountType = formData.type
+            const accountDetails =
+                accountType === 'iban'
+                    ? { accountNumber: formData.accountNumber, bic: formData.BIC, country: formData.country }
+                    : { accountNumber: formData.accountNumber, routingNumber: formData.routingNumber }
+            const address = {
+                street: formData.street,
+                city: formData.city,
+                country: formData.country,
+                state: formData.state,
+                postalCode: formData.postalCode,
+            }
+            const accountOwnerName = offrampForm.name
+
+            if (!customerId) {
+                throw new Error('Customer ID is missing')
+            }
+
+            // const data = await createExternalAccount(
+            //     customerId,
+            //     accountType as 'iban' | 'us',
+            //     accountDetails,
+            //     address,
+            //     accountOwnerName
+            // )
+            // console.log('External account created:', data)
+
+            const data = {
+                id: 'fd7cb6e1-76f6-48ed-b35c-1d2b8d3fa9d7',
+            }
+
+            const transferDetails = await getTransferDetails(data.id, accountType as 'iban' | 'us')
+
+            console.log('Transfer details:', transferDetails)
+
+            setLoadingState('Idle')
+        } catch (error) {
+            console.error('Error during the submission process:', error)
+            setLoadingState('Idle')
+        }
+    }
+
+    const getTransferDetails = async (externalAccountId: string, type: 'iban' | 'us') => {
+        const payload = {
+            source: {
+                currency: tokenArray
+                    .find((chain) => chain.chainId === claimLinkData.chainId)
+                    ?.tokens.find((token) => compareTokenAddresses(token.address, claimLinkData.tokenAddress))
+                    ?.token.toLowerCase(),
+                payment_rail: chainDictionary.find((chain) => chain.chainId === claimLinkData.chainId)?.chain,
+                from_address: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+            },
+            destination: {
+                currency: type === 'iban' ? 'eur' : 'usd',
+                payment_rail: type === 'iban' ? 'sepa' : 'wire',
+                external_account_id: externalAccountId,
+            },
+            on_behalf_of: customerObject?.customer_id,
+            amount: claimLinkData.tokenAmount,
+        }
+
+        return payload
+
+        fetch('/api/bridge/new-transfer', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        })
+            .then((response) => response.json())
+            .then((data) => console.log('Transfer created:', data))
+            .catch((error) => console.error('Error:', error))
+    }
+
+    async function createExternalAccount(
+        customerId: string,
+        accountType: 'iban' | 'us',
+        accountDetails: any,
+        address: any,
+        accountOwnerName: string
+    ) {
+        try {
+            const response = await fetch(
+                `/api/bridge/external-account/create-external-account?customerId=${customerId}`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountType,
+                        accountDetails,
+                        address,
+                        accountOwnerName,
+                    }),
+                }
+            )
+
+            if (!response.ok) {
+                throw new Error('Failed to create external account')
+            }
+
+            const data = await response.json()
+            return data
+        } catch (error) {
+            console.error('Error:', error)
+        }
     }
 
     const validateAccountFormData = (formData: any) => {
@@ -234,6 +456,16 @@ export const ConfirmClaimLinkIbanView = ({
         if (!formData.country) {
             setAccountFormError('country', { type: 'required', message: 'Country is required' })
             console.log('Country is required')
+            isValid = false
+        }
+        if (!formData.postalCode) {
+            setAccountFormError('postalCode', { type: 'required', message: 'Postal code is required' })
+            console.log('Postal code is required')
+            isValid = false
+        }
+        if (!formData.state) {
+            setAccountFormError('state', { type: 'required', message: 'State is required' })
+            console.log('State is required')
             isValid = false
         }
         if (formData.type === 'iban') {
@@ -271,7 +503,7 @@ export const ConfirmClaimLinkIbanView = ({
         }
     }
 
-    const [tabIndex, setTabIndex] = useState(0)
+    const [, setTabIndex] = useState(0)
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">
@@ -419,31 +651,68 @@ export const ConfirmClaimLinkIbanView = ({
                                     required: addressRequired ? 'This field is required' : false,
                                 })}
                                 className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
-                                placeholder="Street"
+                                placeholder="Street and number"
                             />
                             {accountErrors.street && (
                                 <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
                             )}
 
-                            <input
-                                {...registerAccount('city', {
-                                    required: addressRequired ? 'This field is required' : false,
-                                })}
-                                className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
-                                placeholder="City"
-                            />
-                            {accountErrors.city && (
-                                <span className="text-h9 font-normal text-red">{accountErrors.city.message}</span>
-                            )}
-
-                            <CountryDropdown
-                                value={accountFormWatch('country')}
-                                onChange={(value: any) => {
-                                    setAccountFormValue('country', value, { shouldValidate: true })
-                                    setAccountFormError('country', { message: undefined })
-                                }}
-                                error={accountErrors.country?.message}
-                            />
+                            <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
+                                <div className="flex w-full flex-col items-start justify-center gap-2">
+                                    <input
+                                        {...registerAccount('city', {
+                                            required: addressRequired ? 'This field is required' : false,
+                                        })}
+                                        className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
+                                        placeholder="City"
+                                    />
+                                    {accountErrors.city && (
+                                        <span className="text-h9 font-normal text-red">
+                                            {accountErrors.city.message}
+                                        </span>
+                                    )}
+                                </div>{' '}
+                                <div className="flex w-full flex-col items-center justify-center gap-2">
+                                    <input
+                                        {...registerAccount('postalCode', {
+                                            required: addressRequired ? 'This field is required' : false,
+                                        })}
+                                        className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
+                                        placeholder="Postal code"
+                                    />
+                                    {accountErrors.postalCode && (
+                                        <span className="text-h9 font-normal text-red">
+                                            {accountErrors.postalCode.message}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
+                                <div className="flex w-full flex-col items-start justify-center gap-2">
+                                    <input
+                                        {...registerAccount('state', {
+                                            required: addressRequired ? 'This field is required' : false,
+                                        })}
+                                        className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
+                                        placeholder="State "
+                                    />
+                                    {accountErrors.state && (
+                                        <span className="text-h9 font-normal text-red">
+                                            {accountErrors.state.message}
+                                        </span>
+                                    )}
+                                </div>{' '}
+                                <div className="flex w-full flex-col items-center justify-center gap-2">
+                                    <CountryDropdown
+                                        value={accountFormWatch('country')}
+                                        onChange={(value: any) => {
+                                            setAccountFormValue('country', value, { shouldValidate: true })
+                                            setAccountFormError('country', { message: undefined })
+                                        }}
+                                        error={accountErrors.country?.message}
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </form>
                 )}

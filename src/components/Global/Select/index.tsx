@@ -69,7 +69,7 @@ const Select = ({
                         >
                             {items.map((item: any) => (
                                 <Listbox.Option
-                                    className={`flex cursor-pointer items-start rounded-sm px-3 py-2 text-sm font-bold text-n-3 transition-colors tap-highlight-color ui-selected:!bg-n-3/20 ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
+                                    className={`flex cursor-pointer items-start rounded-sm px-3 py-2 text-start text-sm font-bold text-n-3 transition-colors tap-highlight-color ui-selected:!bg-n-3/20 ui-selected:!text-n-1 hover:text-n-1 dark:text-white/50 dark:ui-selected:!text-white dark:hover:text-white ${
                                         small ? '!py-1 !pl-4 text-xs' : ''
                                     } ${classOption}`}
                                     key={item.chainId ?? item.code ?? item.id}

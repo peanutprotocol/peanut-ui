@@ -15,3 +15,4 @@ export type LoadingStates =
     | 'Getting KYC details'
     | 'Awaiting TOS confirmation'
     | 'Awaiting KYC confirmation'
+    | 'Linking IBAN'
