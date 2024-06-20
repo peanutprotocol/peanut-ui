@@ -103,12 +103,24 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            let value
+            let usdValue
             if (inputDenomination == 'TOKEN') {
                 if (selectedTokenPrice && tokenValue) {
-                    value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                } else value = undefined
-            } else value = tokenValue
+                    usdValue = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                } else usdValue = undefined
+            } else usdValue = tokenValue
+
+            let _tokenValue
+            if (inputDenomination == 'TOKEN') {
+                _tokenValue = tokenValue
+            } else {
+                _tokenValue = _utils
+                    .convertUSDTokenValue({
+                        tokenPrice: selectedTokenPrice ?? 0,
+                        tokenValue: Number(tokenValue),
+                    })
+                    .toString()
+            }
 
             if (createType === 'direct') {
                 console.log(createType)
@@ -117,7 +129,7 @@ export const CreateLinkConfirmView = ({
                     data: {
                         chainId: selectedChainID,
                         tokenAddress: selectedTokenAddress,
-                        tokenAmount: tokenValue ?? '0',
+                        tokenAmount: _tokenValue ?? '0',
                         date: new Date().toISOString(),
                         points: estimatedPoints ?? 0,
                         txHash: hash,
@@ -128,7 +140,7 @@ export const CreateLinkConfirmView = ({
                     txHash: hash,
                     chainId: selectedChainID,
                     senderAddress: address ?? '',
-                    amountUsd: parseFloat(value ?? '0'),
+                    amountUsd: parseFloat(usdValue ?? '0'),
                     transaction: preparedDepositTxs && preparedDepositTxs.unsignedTxs[0],
                 })
             } else {
@@ -157,15 +169,15 @@ export const CreateLinkConfirmView = ({
                     password: password ?? '',
                     txHash: hash,
                     senderAddress: address ?? '',
-                    amountUsd: parseFloat(value ?? '0'),
+                    amountUsd: parseFloat(usdValue ?? '0'),
                     transaction:
                         transactionType === 'not-gasless'
                             ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0]
                             : undefined,
                 })
 
-                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], value)
-                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], value)
+                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], usdValue)
+                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], usdValue)
             }
 
             utils.updatePeanutPreferences({

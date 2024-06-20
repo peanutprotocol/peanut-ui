@@ -160,16 +160,19 @@ export const CreateLinkInputView = ({
                     }
                 }
 
-                let value
+                let usdValue
                 if (inputDenomination == 'TOKEN') {
                     if (selectedTokenPrice && tokenValue) {
-                        value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                    } else value = undefined
-                } else value = tokenValue
+                        usdValue = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                    } else usdValue = undefined
+                } else usdValue = tokenValue
+
+                console.log(usdValue)
+
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
-                    amountUSD: parseFloat(value ?? '0'),
+                    amountUSD: parseFloat(usdValue ?? '0'),
                     preparedTx: isGaslessDepositPossible
                         ? undefined
                         : prepareDepositTxsResponse &&
@@ -197,11 +200,17 @@ export const CreateLinkInputView = ({
 
                 setPreparedDepositTxs(preparedTxs)
 
-                const USDValue = Number(tokenValue) * (selectedTokenPrice ?? 0) ?? 0
+                let usdValue
+                if (inputDenomination == 'TOKEN') {
+                    if (selectedTokenPrice && tokenValue) {
+                        usdValue = (parseFloat(tokenValue) * selectedTokenPrice).toString()
+                    } else usdValue = undefined
+                } else usdValue = tokenValue
+
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
-                    amountUSD: USDValue,
+                    amountUSD: parseFloat(value ?? '0'),
                     preparedTx: preparedTxs?.unsignedTxs[preparedTxs?.unsignedTxs.length - 1],
                     actionType: 'TRANSFER',
                 })
