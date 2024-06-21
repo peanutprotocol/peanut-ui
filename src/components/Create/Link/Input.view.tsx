@@ -4,7 +4,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useState, useEffect, useContext } from 'react'
+import { useState, useContext, useEffect } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
 import * as _consts from '../Create.consts'
@@ -16,11 +16,14 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
+import { tokenDisplay } from '@/components/Global/TokenSelector/Components'
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
     tokenValue,
     setTokenValue,
+    usdValue,
+    setUsdValue,
     setLinkDetails,
     setPassword,
     setGaslessPayload,
@@ -35,7 +38,6 @@ export const CreateLinkInputView = ({
     createType,
     recipient,
     crossChainDetails,
-
     walletType,
 }: _consts.ICreateScreenProps) => {
     const {
@@ -59,6 +61,9 @@ export const CreateLinkInputView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [_tokenValue, _setTokenValue] = useState<string | undefined>(
+        inputDenomination === 'TOKEN' ? tokenValue : usdValue
+    )
 
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
@@ -77,25 +82,15 @@ export const CreateLinkInputView = ({
                 showError: false,
                 errorMessage: '',
             })
-
-            let value: string = tokenValue ?? ''
-            if (inputDenomination === 'USD' && tokenValue && selectedTokenPrice) {
-                value = _utils
-                    .convertUSDTokenValue({
-                        tokenPrice: selectedTokenPrice,
-                        tokenValue: Number(tokenValue),
-                    })
-                    .toString()
-            }
             setLoadingState('Asserting values')
-            await assertValues({ tokenValue: value })
+            await assertValues({ tokenValue: tokenValue })
 
             // const envInfo = await sdk.safe.getEnvironmentInfo()
 
             setLoadingState('Generating details')
 
             const linkDetails = generateLinkDetails({
-                tokenValue: value,
+                tokenValue: tokenValue,
                 envInfo: undefined,
                 walletType,
             })
@@ -160,15 +155,6 @@ export const CreateLinkInputView = ({
                     }
                 }
 
-                let usdValue
-                if (inputDenomination == 'TOKEN') {
-                    if (selectedTokenPrice && tokenValue) {
-                        usdValue = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                    } else usdValue = undefined
-                } else usdValue = tokenValue
-
-                console.log(usdValue)
-
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
@@ -187,7 +173,7 @@ export const CreateLinkInputView = ({
                     unsignedTxs: [
                         {
                             ...prepareDirectSendTx({
-                                tokenValue: value,
+                                tokenValue: tokenValue ?? '',
                                 recipient: recipient.address ?? '',
                                 tokenAddress: selectedTokenAddress,
                                 tokenDecimals: linkDetails.tokenDecimals,
@@ -200,17 +186,10 @@ export const CreateLinkInputView = ({
 
                 setPreparedDepositTxs(preparedTxs)
 
-                let usdValue
-                if (inputDenomination == 'TOKEN') {
-                    if (selectedTokenPrice && tokenValue) {
-                        usdValue = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                    } else usdValue = undefined
-                } else usdValue = tokenValue
-
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
-                    amountUSD: parseFloat(value ?? '0'),
+                    amountUSD: parseFloat(usdValue ?? '0'),
                     preparedTx: preparedTxs?.unsignedTxs[preparedTxs?.unsignedTxs.length - 1],
                     actionType: 'TRANSFER',
                 })
@@ -243,6 +222,21 @@ export const CreateLinkInputView = ({
         }
     }
 
+    useEffect(() => {
+        if (!_tokenValue) return
+        if (inputDenomination === 'TOKEN') {
+            setTokenValue(_tokenValue)
+            if (selectedTokenPrice) {
+                setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
+            }
+        } else if (inputDenomination === 'USD') {
+            setUsdValue(_tokenValue)
+            if (selectedTokenPrice) {
+                setTokenValue((parseFloat(_tokenValue) / selectedTokenPrice).toString())
+            }
+        }
+    }, [_tokenValue, inputDenomination])
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label
@@ -268,8 +262,8 @@ export const CreateLinkInputView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput
                     className="w-full"
-                    tokenValue={tokenValue}
-                    setTokenValue={setTokenValue}
+                    tokenValue={_tokenValue}
+                    setTokenValue={_setTokenValue}
                     onSubmit={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()

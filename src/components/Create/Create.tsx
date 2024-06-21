@@ -13,6 +13,7 @@ import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
+    const [usdValue, setUsdValue] = useState<undefined | string>(undefined)
     const sdk = new SafeAppsSDK()
 
     const [linkDetails, setLinkDetails] = useState<peanutInterfaces.IPeanutLinkDetails>()
@@ -181,6 +182,8 @@ export const Create = () => {
                 walletType,
                 setWalletType,
                 crossChainDetails,
+                usdValue,
+                setUsdValue,
             } as _consts.ICreateScreenProps)}
         </div>
     )

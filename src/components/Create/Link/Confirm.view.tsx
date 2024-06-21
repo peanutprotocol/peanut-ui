@@ -36,6 +36,7 @@ export const CreateLinkConfirmView = ({
     recipient,
     walletType,
     crossChainDetails,
+    usdValue,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
@@ -103,25 +104,6 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            let usdValue
-            if (inputDenomination == 'TOKEN') {
-                if (selectedTokenPrice && tokenValue) {
-                    usdValue = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                } else usdValue = undefined
-            } else usdValue = tokenValue
-
-            let _tokenValue
-            if (inputDenomination == 'TOKEN') {
-                _tokenValue = tokenValue
-            } else {
-                _tokenValue = _utils
-                    .convertUSDTokenValue({
-                        tokenPrice: selectedTokenPrice ?? 0,
-                        tokenValue: Number(tokenValue),
-                    })
-                    .toString()
-            }
-
             if (createType === 'direct') {
                 console.log(createType)
                 utils.saveDirectSendToLocalStorage({
@@ -129,7 +111,7 @@ export const CreateLinkConfirmView = ({
                     data: {
                         chainId: selectedChainID,
                         tokenAddress: selectedTokenAddress,
-                        tokenAmount: _tokenValue ?? '0',
+                        tokenAmount: tokenValue ?? '0',
                         date: new Date().toISOString(),
                         points: estimatedPoints ?? 0,
                         txHash: hash,
@@ -220,16 +202,7 @@ export const CreateLinkConfirmView = ({
             <ConfirmDetails
                 selectedChainID={selectedChainID}
                 selectedTokenAddress={selectedTokenAddress}
-                tokenAmount={
-                    inputDenomination === 'USD'
-                        ? _utils
-                              .convertUSDTokenValue({
-                                  tokenPrice: selectedTokenPrice ?? 0,
-                                  tokenValue: Number(tokenValue),
-                              })
-                              .toString()
-                        : tokenValue ?? '0'
-                }
+                tokenAmount={tokenValue ?? '0'}
                 title="You're sending"
             />
 
