@@ -369,7 +369,9 @@ export const useCreateLink = () => {
                     chainId,
                     senderAddress: senderAddress,
                     amountUsd,
-                    transaction: { ...transaction, value: transaction?.value && transaction.value.toString() },
+                    transaction: transaction
+                        ? { ...transaction, value: transaction?.value && transaction.value.toString() }
+                        : undefined,
                 }),
             })
 
