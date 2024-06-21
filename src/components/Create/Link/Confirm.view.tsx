@@ -36,6 +36,7 @@ export const CreateLinkConfirmView = ({
     recipient,
     walletType,
     crossChainDetails,
+    usdValue,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
@@ -103,13 +104,6 @@ export const CreateLinkConfirmView = ({
 
             setLoadingState('Creating link')
 
-            let value
-            if (inputDenomination == 'TOKEN') {
-                if (selectedTokenPrice && tokenValue) {
-                    value = (parseFloat(tokenValue) * selectedTokenPrice).toString()
-                } else value = undefined
-            } else value = tokenValue
-
             if (createType === 'direct') {
                 console.log(createType)
                 utils.saveDirectSendToLocalStorage({
@@ -128,7 +122,7 @@ export const CreateLinkConfirmView = ({
                     txHash: hash,
                     chainId: selectedChainID,
                     senderAddress: address ?? '',
-                    amountUsd: parseFloat(value ?? '0'),
+                    amountUsd: parseFloat(usdValue ?? '0'),
                     transaction: preparedDepositTxs && preparedDepositTxs.unsignedTxs[0],
                 })
             } else {
@@ -157,15 +151,15 @@ export const CreateLinkConfirmView = ({
                     password: password ?? '',
                     txHash: hash,
                     senderAddress: address ?? '',
-                    amountUsd: parseFloat(value ?? '0'),
+                    amountUsd: parseFloat(usdValue ?? '0'),
                     transaction:
                         transactionType === 'not-gasless'
                             ? preparedDepositTxs && preparedDepositTxs.unsignedTxs[0]
                             : undefined,
                 })
 
-                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], value)
-                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], value)
+                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], usdValue)
+                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], usdValue)
             }
 
             utils.updatePeanutPreferences({
@@ -208,16 +202,7 @@ export const CreateLinkConfirmView = ({
             <ConfirmDetails
                 selectedChainID={selectedChainID}
                 selectedTokenAddress={selectedTokenAddress}
-                tokenAmount={
-                    inputDenomination === 'USD'
-                        ? _utils
-                              .convertUSDTokenValue({
-                                  tokenPrice: selectedTokenPrice ?? 0,
-                                  tokenValue: Number(tokenValue),
-                              })
-                              .toString()
-                        : tokenValue ?? '0'
-                }
+                tokenAmount={tokenValue ?? '0'}
                 title="You're sending"
             />
 
