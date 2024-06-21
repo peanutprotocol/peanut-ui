@@ -13,11 +13,6 @@ export async function POST(request: NextRequest) {
 
         const { accountType, accountDetails, address, accountOwnerName } = await request.json()
 
-        console.log('accountType:', accountType)
-        console.log('accountDetails:', accountDetails)
-        console.log('address:', address)
-        console.log('accountOwnerName:', accountOwnerName)
-
         if (!process.env.BRIDGE_API_KEY) {
             throw new Error('BRIDGE_API_KEY is not defined')
         }
@@ -28,7 +23,7 @@ export async function POST(request: NextRequest) {
         if (accountType === 'iban') {
             body = {
                 iban: {
-                    account_number: accountDetails.accountNumber,
+                    account_number: accountDetails.accountNumber.replaceAll(' ', ''),
                     bic: accountDetails.bic,
                     country: accountDetails.country,
                 },
@@ -36,11 +31,15 @@ export async function POST(request: NextRequest) {
                     street_line_1: address.street,
                     city: address.city,
                     country: address.country,
-                    state: address.state,
                     postal_code: address.postalCode,
+                    state: 'xx',
                 },
                 account_owner_name: accountOwnerName,
                 account_type: 'iban',
+                account_owner_type: 'individual',
+                first_name: accountOwnerName.split(' ')[0],
+                last_name: accountOwnerName.substring(accountOwnerName.indexOf(' ') + 1),
+                currency: 'eur',
             }
         } else if (accountType === 'us') {
             body = {
@@ -62,8 +61,6 @@ export async function POST(request: NextRequest) {
             throw new Error('Invalid account type')
         }
 
-        console.log('body:', body)
-
         const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
             method: 'POST',
             headers: {
@@ -74,8 +71,6 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify(body),
         })
-
-        console.log('response:', response)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

@@ -17,7 +17,6 @@ async function getUserByEmail(email: string, apiKey: string): Promise<any | null
 
         const data = await response.json()
 
-        // Find user by email
         const user = data.data.find((user: any) => user.email === email)
         console.log('User:', user)
         return user || null
@@ -38,7 +37,10 @@ export async function POST(request: NextRequest) {
         // Check if user already exists
         const existingUser = await getUserByEmail(email, process.env.BRIDGE_API_KEY)
 
+        console.log('Existing user:', existingUser)
+
         if (existingUser) {
+            console.log('User already exists')
             // User already exists, return the existing user object
             return new NextResponse(JSON.stringify(existingUser), {
                 status: 200,

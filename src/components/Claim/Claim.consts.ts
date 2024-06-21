@@ -76,7 +76,7 @@ export const chainDictionary = [
         chain: 'polygon',
         chainId: '137',
     },
-    // TODO: add avax
+    // TODO: add avax and base both usdc
 ]
 
 export const tokenArray = [
@@ -90,10 +90,6 @@ export const tokenArray = [
             {
                 token: 'usdc',
                 address: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359',
-            },
-            {
-                token: 'usdt',
-                address: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F',
             },
         ],
     },
@@ -121,10 +117,6 @@ export const tokenArray = [
                 token: 'usdc',
                 address: '0x7F5c764cBc14f9669B88837ca1490cCa17c31607',
             },
-            {
-                token: 'usdt',
-                address: '0x94b008aA00579c1307B0EF2c499aD98a8ce58e58',
-            },
         ],
     },
     {
@@ -137,10 +129,6 @@ export const tokenArray = [
             {
                 token: 'usdc',
                 address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
-            },
-            {
-                token: 'usdt',
-                address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9',
             },
         ],
     },

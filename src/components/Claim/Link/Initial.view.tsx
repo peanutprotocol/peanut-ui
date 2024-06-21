@@ -129,29 +129,8 @@ export const InitialClaimLinkView = ({
 
     const handleIbanRecipient = async () => {
         setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
-        //const customerExist =
         onNext()
     }
-
-    // useEffect(() => {
-    //     if (attachment?.attachmentUrl) {
-    //         try {
-    //             console.log('attachmentUrl', attachment?.attachmentUrl)
-    //             fetch(attachment?.attachmentUrl)
-    //                 .then((response) => {
-    //                     console.log(response)
-    //                     return response.blob()
-    //                 })
-    //                 .then((blob) => {
-    //                     setFileType(blob.type)
-    //                 })
-    //                 .catch((error) => {
-    //                     console.log('Error fetching the blob from URL:', error)
-    //                     setFileType('') // Reset or handle the error state
-    //                 })
-    //         } catch (error) {}
-    //     }
-    // }, [attachment?.attachmentUrl])
 
     useEffect(() => {
         if (recipient) {
@@ -160,8 +139,6 @@ export const InitialClaimLinkView = ({
     }, [recipient])
 
     useEffect(() => {
-        console.log('address', address)
-        console.log(recipient)
         if (recipient.address) return
         if (isConnected && address) {
             setRecipient({ name: undefined, address })
@@ -340,12 +317,11 @@ export const InitialClaimLinkView = ({
             <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                 <AddressInput
                     className="px-1"
-                    placeholder="wallet address / ENS / IBAN"
+                    placeholder="wallet address / ENS / IBAN / US account number"
                     value={recipient.name ? recipient.name : recipient.address ?? ''}
                     onSubmit={(name: string, address: string) => {
                         setRecipient({ name, address })
                         setInputChanging(false)
-                        console.log(name, address)
                     }}
                     _setIsValidRecipient={(valid: boolean) => {
                         setIsValidRecipient(valid)

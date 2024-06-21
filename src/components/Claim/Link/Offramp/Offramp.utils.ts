@@ -1,5 +1,6 @@
 import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
+import * as interfaces from '@/interfaces'
 export async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     const response = await fetch(url, {
         method,
@@ -70,13 +71,13 @@ export async function awaitStatusCompletion(
     console.log(`${type.toUpperCase()} completion complete.`)
 }
 
-async function createExternalAccount(
+export async function createExternalAccount(
     customerId: string,
     accountType: 'iban' | 'us',
     accountDetails: any,
     address: any,
     accountOwnerName: string
-) {
+): Promise<interfaces.IBridgeAccount> {
     try {
         const response = await fetch(`/api/bridge/external-account/create-external-account?customerId=${customerId}`, {
             method: 'POST',
@@ -96,9 +97,10 @@ async function createExternalAccount(
         }
 
         const data = await response.json()
-        return data
+        return data as interfaces.IBridgeAccount
     } catch (error) {
         console.error('Error:', error)
+        throw new Error(`Failed to create external account. Error: ${error}`)
     }
 }
 
@@ -134,6 +136,7 @@ export const validateAccountFormData = (formData: any, setAccountFormError: any)
         console.log('State is required')
         isValid = false
     }
+    console.log('formData', formData)
     if (formData.type === 'iban') {
         if (!formData.BIC) {
             setAccountFormError('BIC', { type: 'required', message: 'BIC is required' })
@@ -141,6 +144,7 @@ export const validateAccountFormData = (formData: any, setAccountFormError: any)
             isValid = false
         }
     } else if (formData.type === 'us') {
+        console.log('formData', formData)
         if (!formData.routingNumber) {
             setAccountFormError('routingNumber', { type: 'required', message: 'Routing number is required' })
             console.log('Routing number is required')
@@ -158,7 +162,7 @@ export const getTransferDetails = async (
     tokenAddress: string,
     customerId: string,
     tokenAmount: string
-) => {
+): Promise<interfaces.IBridgeTransaction> => {
     const payload = {
         source: {
             currency: _consts.tokenArray
@@ -170,7 +174,7 @@ export const getTransferDetails = async (
         },
         destination: {
             currency: type === 'iban' ? 'eur' : 'usd',
-            payment_rail: type === 'iban' ? 'sepa' : 'ach', // TODO: update ach
+            payment_rail: type === 'iban' ? 'sepa' : 'ach',
             external_account_id: externalAccountId,
         },
         on_behalf_of: customerId,
@@ -189,7 +193,58 @@ export const getTransferDetails = async (
         throw new Error('Failed to create transfer')
     }
 
-    const data = await response.json()
+    const data: interfaces.IBridgeTransaction = await response.json()
 
+    return data
+}
+
+export const createLiquidationAddress = async (
+    customerId: string,
+    chainId: string,
+    tokenAddress: string,
+    externalAccountId: string,
+    destinationPaymentRail: string,
+    destinationCurrency: string
+): Promise<interfaces.IBridgeLiquidationAddress> => {
+    const response = await fetch('/api/bridge/liquidation-address/create', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            customer_id: customerId,
+            chain: _consts.chainDictionary.find((chain) => chain.chainId === chainId)?.chain,
+            currency: _consts.tokenArray
+                .find((chain) => chain.chainId === chainId)
+                ?.tokens.find((token) => utils.compareTokenAddresses(token.address, tokenAddress))
+                ?.token.toLowerCase(),
+            external_account_id: externalAccountId,
+            destination_payment_rail: destinationPaymentRail,
+            destination_currency: destinationCurrency,
+        }),
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to create liquidation address')
+    }
+
+    const data: interfaces.IBridgeLiquidationAddress = await response.json()
+
+    return data
+}
+
+export const getLiquidationAddresses = async (customerId: string): Promise<interfaces.IBridgeLiquidationAddress[]> => {
+    const response = await fetch(`/api/bridge/liquidation-address/get-all?customerId=${customerId}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+
+    if (!response.ok) {
+        throw new Error('Failed to fetch liquidation addresses')
+    }
+
+    const data: interfaces.IBridgeLiquidationAddress[] = await response.json()
     return data
 }
