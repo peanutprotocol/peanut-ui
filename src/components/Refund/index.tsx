@@ -13,7 +13,6 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 
 export const Refund = () => {
     const { isConnected, chain: currentChain } = useAccount()
-    const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
 
@@ -55,6 +54,9 @@ export const Refund = () => {
 
             const txReceipt = await peanut.getTxReceiptFromHash(refundFormData.transactionHash, refundFormData.chainId)
             console.log(txReceipt)
+
+            // TODO: get contract version from transaction hash
+            // TODO: get deposit info from transaction hash
 
             const latestContractVersion = peanut.getLatestContractVersion({
                 chainId: refundFormData.chainId,
