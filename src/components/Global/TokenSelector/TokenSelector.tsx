@@ -64,7 +64,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
         }
 
         return _tokens
-    }, [filterValue, selectedChainID])
+    }, [filterValue, selectedChainID, balances])
 
     function setToken(address: string): void {
         setSelectedTokenAddress(address)
@@ -80,6 +80,12 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
             focusButtonRef.current.focus()
         }
     }, [visible])
+
+    console.log(
+        'balances',
+        _tokensToDisplay.find((token) => utils.compareTokenAddresses(token.address, selectedTokenAddress))?.logoURI ??
+            ''
+    )
 
     return (
         <>
