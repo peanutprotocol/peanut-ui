@@ -144,6 +144,8 @@ export const ConfirmClaimLinkIbanView = ({
             // Handle TOS status
             await handleTOSStatus(data.id, tosStatus, data.tos_link)
 
+            await new Promise((resolve) => setTimeout(resolve, 1000))
+
             // Handle KYC status
             await handleKYCStatus(data.id, kycStatus, data.kyc_link)
 
@@ -151,12 +153,22 @@ export const ConfirmClaimLinkIbanView = ({
             const customer = await _offrampUtils.getStatus(data.id, 'customer_id')
             setCustomerObject({ ...data, customer_id: customer.customer_id })
 
+            // Push to our api
+
+            try {
+                const x = await _utils.createUser(customer.customer_id, inputFormData.email, inputFormData.name)
+                console.log(x)
+            } catch (error) {
+                console.log('error creating user, might already exist: ', error)
+            }
+
             // Get external accounts
             const externalAccounts = await _offrampUtils.getExternalAccounts(customer.customer_id)
 
             // Check if the recipient is already linked, if not, proceed to the next step, otherwise, skip and proceed to the step after
             if (recipientType === 'iban') {
                 const filteredData = externalAccounts.data.filter((data: any) => data.account_type === 'iban')
+                console.log('filteredData:', filteredData)
                 if (
                     !filteredData.some(
                         (data: any) =>
@@ -174,9 +186,11 @@ export const ConfirmClaimLinkIbanView = ({
                     )
                     setCustomerAccount(acc)
 
-                    const allLiquidationAddresses = await _offrampUtils.getLiquidationAddresses(
-                        customer.customer_id ?? ''
-                    )
+                    console.log('Customer account:', acc)
+
+                    const allLiquidationAddresses = await _offrampUtils.getLiquidationAddresses(acc.customer_id ?? '')
+
+                    console.log('All liquidation addresses:', allLiquidationAddresses)
 
                     const tokenName = _consts.tokenArray
                         .find((chain) => chain.chainId === claimLinkData.chainId)
@@ -194,6 +208,15 @@ export const ConfirmClaimLinkIbanView = ({
                     )
 
                     if (!liquidationAddressDetails) {
+                        console.log(
+                            customer.customer_id ?? '',
+                            claimLinkData.chainId,
+                            claimLinkData.tokenAddress,
+                            acc.id,
+                            'sepa',
+                            'eur'
+                        )
+
                         liquidationAddressDetails = await _offrampUtils.createLiquidationAddress(
                             customer.customer_id ?? '',
                             claimLinkData.chainId,
@@ -408,7 +431,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <input
                         {...registerOfframp('name', { required: 'This field is required' })}
                         className={`custom-input ${errors.name ? 'border border-red' : ''}`}
-                        placeholder="Name"
+                        placeholder="Full name"
                         disabled={activeStep === _consts.steps.length}
                     />
                     {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}

@@ -8,6 +8,8 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const customerId = searchParams.get('customerId')
 
+        console.log('Request:', { customerId })
+
         if (!customerId) {
             return new NextResponse('Bad Request: customerId is required', { status: 400 })
         }
@@ -20,7 +22,7 @@ export async function GET(request: NextRequest) {
             method: 'GET',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,
-                Accept: 'application/json',
+                acccept: 'application/json',
             },
         })
 

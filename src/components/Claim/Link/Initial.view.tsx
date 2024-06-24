@@ -129,6 +129,12 @@ export const InitialClaimLinkView = ({
 
     const handleIbanRecipient = async () => {
         setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+
+        const user = await _utils.fetchUser(recipient.name ?? '')
+
+        if (user) console.log('User:', user)
+        else console.log('User not found')
+
         onNext()
     }
 

@@ -14,6 +14,15 @@ export async function POST(request: NextRequest) {
 
         const idempotencyKey = uuidv4()
 
+        console.log('Request:', {
+            customer_id,
+            chain,
+            currency,
+            external_account_id,
+            destination_payment_rail,
+            destination_currency,
+        })
+
         const response = await fetch(`https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`, {
             method: 'POST',
             headers: {
@@ -30,6 +39,8 @@ export async function POST(request: NextRequest) {
                 destination_currency,
             }),
         })
+
+        console.log('Response:', response)
 
         if (!response.ok) {
             throw new Error(`Failed to create liquidation address: ${response.status}`)
