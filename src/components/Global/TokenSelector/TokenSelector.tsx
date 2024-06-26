@@ -14,6 +14,7 @@ import * as components from './Components'
 import * as _consts from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useWalletType } from '@/hooks/useWalletType'
 
 const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
@@ -27,6 +28,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     )
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
+    const { safeInfo } = useWalletType()
 
     const _tokensToDisplay = useMemo(() => {
         let _tokens
@@ -61,6 +63,10 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                     token.name.toLowerCase().includes(filterValue.toLowerCase()) ||
                     token.symbol.toLowerCase().includes(filterValue.toLowerCase())
             )
+        }
+
+        if (safeInfo) {
+            _tokens = _tokens.filter((token) => token.chainId === safeInfo.chainId)
         }
 
         return _tokens
@@ -227,14 +233,16 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                 </tbody>
                             </table>
                         </div>
-                        <button
-                            className="text-h8 font-normal underline"
-                            onClick={() => {
-                                setShowFallback(true)
-                            }}
-                        >
-                            Explore & buy more tokens
-                        </button>
+                        {!safeInfo && (
+                            <button
+                                className="text-h8 font-normal underline"
+                                onClick={() => {
+                                    setShowFallback(true)
+                                }}
+                            >
+                                Explore & buy more tokens
+                            </button>
+                        )}
                     </div> // TODO: create components out of this
                 ) : (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
