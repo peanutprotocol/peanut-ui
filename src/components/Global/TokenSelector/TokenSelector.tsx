@@ -22,7 +22,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const focusButtonRef = useRef<HTMLButtonElement>(null)
     const [showFallback, setShowFallback] = useState(false)
 
-    const { balances } = useBalance()
+    const { balances, hasFetchedBalances } = useBalance()
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID } = useContext(
         context.tokenSelectorContext
     )
@@ -80,7 +80,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
         console.log('walletType: ', walletType)
         console.log('environmentInfo: ', environmentInfo)
 
-        if (safeInfo) {
+        if (safeInfo && walletType === 'blockscout') {
             balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
         }
 
@@ -175,76 +175,82 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                         <div className="h-full max-h-96 w-full overflow-auto">
                             <table className="w-full divide-y divide-black">
                                 <tbody className="divide-y divide-black bg-white">
-                                    {_balancesToDisplay.length === 0
-                                        ? [1, 2, 3, 4].map((_, idx) => (
-                                              <tr key={idx}>
-                                                  <td className="py-2">
-                                                      <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
-                                                  </td>
-                                                  <td className="py-2">
-                                                      <div className="h-6 w-22 animate-colorPulse rounded-full bg-slate-700" />
-                                                  </td>
-                                                  <td className="py-2">
-                                                      <div className="h-6 w-18 animate-colorPulse rounded-full bg-slate-700" />
-                                                  </td>
-                                                  <td className=" py-2">
-                                                      <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                                                  </td>
-                                              </tr>
-                                          ))
-                                        : _balancesToDisplay.map((balance, idx) => (
-                                              <tr
-                                                  key={idx}
-                                                  className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
-                                                  onClick={() => {
-                                                      setSelectedChainID(balance.chainId)
-                                                      setToken(balance.address)
-                                                  }}
-                                              >
-                                                  <td className="py-2 pr-2">
-                                                      <div className="flex flex-row items-center justify-center gap-2 pl-1">
-                                                          <div className="relative h-6 w-6">
-                                                              <img
-                                                                  src={balance.logoURI}
-                                                                  className="absolute left-0 top-0 h-6 w-6"
-                                                                  alt="logo"
-                                                              />
-                                                              <img
-                                                                  src={
-                                                                      consts.supportedPeanutChains.find(
-                                                                          (chain) => chain.chainId === balance.chainId
-                                                                      )?.icon.url
-                                                                  }
-                                                                  className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
-                                                                  alt="logo"
-                                                              />
-                                                          </div>
-                                                      </div>
-                                                  </td>
-                                                  <td className="py-2">
-                                                      <div className="flex flex-col items-start justify-center gap-1">
-                                                          <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                                                              {balance.symbol}
-                                                          </div>
-                                                          <div className="text-h9 font-normal">
-                                                              {utils.formatTokenAmount(balance.amount)}
-                                                          </div>
-                                                      </div>
-                                                  </td>
-                                                  <td className="py-2 text-h8">
-                                                      ${utils.formatTokenAmount(parseFloat(balance.value), 2)}
-                                                  </td>
-                                                  <td className="y-2">
-                                                      <div className="flex flex-row items-center justify-end gap-2 pr-1">
-                                                          <div className="text-h8 text-gray-1 ">
-                                                              {consts.supportedPeanutChains.find(
-                                                                  (chain) => chain.chainId === balance.chainId
-                                                              )?.name ?? ''}
-                                                          </div>
-                                                      </div>
-                                                  </td>
-                                              </tr>
-                                          ))}
+                                    {hasFetchedBalances && balances.length === 0 ? (
+                                        <div className="flex w-full items-center justify-center text-center">
+                                            No balances to display!
+                                        </div>
+                                    ) : _balancesToDisplay.length === 0 ? (
+                                        [1, 2, 3, 4].map((_, idx) => (
+                                            <tr key={idx}>
+                                                <td className="py-2">
+                                                    <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
+                                                </td>
+                                                <td className="py-2">
+                                                    <div className="h-6 w-22 animate-colorPulse rounded-full bg-slate-700" />
+                                                </td>
+                                                <td className="py-2">
+                                                    <div className="h-6 w-18 animate-colorPulse rounded-full bg-slate-700" />
+                                                </td>
+                                                <td className=" py-2">
+                                                    <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        _balancesToDisplay.map((balance, idx) => (
+                                            <tr
+                                                key={idx}
+                                                className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
+                                                onClick={() => {
+                                                    setSelectedChainID(balance.chainId)
+                                                    setToken(balance.address)
+                                                }}
+                                            >
+                                                <td className="py-2 pr-2">
+                                                    <div className="flex flex-row items-center justify-center gap-2 pl-1">
+                                                        <div className="relative h-6 w-6">
+                                                            <img
+                                                                src={balance.logoURI}
+                                                                className="absolute left-0 top-0 h-6 w-6"
+                                                                alt="logo"
+                                                            />
+                                                            <img
+                                                                src={
+                                                                    consts.supportedPeanutChains.find(
+                                                                        (chain) => chain.chainId === balance.chainId
+                                                                    )?.icon.url
+                                                                }
+                                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
+                                                                alt="logo"
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-2">
+                                                    <div className="flex flex-col items-start justify-center gap-1">
+                                                        <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
+                                                            {balance.symbol}
+                                                        </div>
+                                                        <div className="text-h9 font-normal">
+                                                            {utils.formatTokenAmount(balance.amount)}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="py-2 text-h8">
+                                                    ${utils.formatTokenAmount(parseFloat(balance.value), 2)}
+                                                </td>
+                                                <td className="y-2">
+                                                    <div className="flex flex-row items-center justify-end gap-2 pr-1">
+                                                        <div className="text-h8 text-gray-1 ">
+                                                            {consts.supportedPeanutChains.find(
+                                                                (chain) => chain.chainId === balance.chainId
+                                                            )?.name ?? ''}
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    )}
                                 </tbody>
                             </table>
                         </div>
