@@ -72,6 +72,16 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
         return _tokens
     }, [filterValue, selectedChainID, balances])
 
+    const _balancesToDisplay = useMemo(() => {
+        let balancesToDisplay = balances
+
+        if (safeInfo) {
+            balancesToDisplay = balances.filter((balance) => balance.chainId === safeInfo.chainId)
+        }
+
+        return balancesToDisplay
+    }, [balances, safeInfo])
+
     function setToken(address: string): void {
         setSelectedTokenAddress(address)
         setTimeout(() => {
@@ -160,7 +170,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                         <div className="h-full max-h-96 min-h-64 w-full overflow-auto">
                             <table className="w-full divide-y divide-black">
                                 <tbody className="divide-y divide-black bg-white">
-                                    {balances.length === 0
+                                    {_balancesToDisplay.length === 0
                                         ? [1, 2, 3, 4].map((_, idx) => (
                                               <tr key={idx}>
                                                   <td className="py-2">
@@ -177,7 +187,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                                   </td>
                                               </tr>
                                           ))
-                                        : balances.map((balance, idx) => (
+                                        : _balancesToDisplay.map((balance, idx) => (
                                               <tr
                                                   key={idx}
                                                   className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
