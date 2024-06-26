@@ -33,7 +33,7 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
     let title = 'Claim your tokens!'
 
     // const host = headers().get('host') || ''
-    const host = 'https://experimental.peanut.to'
+    const host = 'https://peanut.to'
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)
