@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import * as utils from '@/utils'
 import Modal from '../Modal'
+import { Widget } from '@typeform/embed-react'
+import { set } from 'react-hook-form'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -85,11 +87,10 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 console.log('nope :)')
                             }}
                             classNameWrapperDiv="px-5 pb-7 pt-8"
-                            title="Input Access Code"
                             classButtonClose="hidden"
                             className="z-50"
                         >
-                            <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
+                            {/* <div className="flex h-full w-full flex-col items-center justify-center gap-4 text-center">
                                 <label className="text-h6">
                                     Welcome to the closed alpha. If you have an access code, input in into the form
                                     below and click submit. If not, reach out to us and we might give you one :){' '}
@@ -110,7 +111,18 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 <button className="btn-purple btn-xl" onClick={handleSubmit}>
                                     submit
                                 </button>
-                            </div>
+                            </div> */}
+
+                            <Widget
+                                id="lTEp058W"
+                                style={{ width: '100%', height: '400px' }}
+                                className="center-xy items-center self-center"
+                                onSubmit={() => {
+                                    setAccessCode('ilovepeanuts')
+                                    setAccessCodeVisible(false)
+                                    utils.updatePeanutAccessCode('ilovepeanuts')
+                                }}
+                            />
                         </Modal>
                     </div>
                 </div>
