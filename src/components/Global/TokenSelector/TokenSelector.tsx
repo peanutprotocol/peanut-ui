@@ -172,7 +172,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                 ) : !showFallback ? (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
                         {/* <label className="text-center text-h5">Select a token to send</label> */}
-                        <div className="h-full max-h-96 min-h-64 w-full overflow-auto">
+                        <div className="h-full max-h-96 w-full overflow-auto">
                             <table className="w-full divide-y divide-black">
                                 <tbody className="divide-y divide-black bg-white">
                                     {_balancesToDisplay.length === 0
