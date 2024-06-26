@@ -1,0 +1,55 @@
+import SafeAppsSDK from '@safe-global/safe-apps-sdk'
+import { useEffect, useState, useRef } from 'react'
+import { useAccount } from 'wagmi'
+
+type Opts = {
+    allowedDomains?: RegExp[]
+    debug?: boolean
+    isServer?: boolean
+}
+
+const opts: Opts = {
+    allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
+    debug: true,
+    isServer: true,
+}
+
+export const useWalletType = () => {
+    const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
+    const [environmentInfo, setEnvironmentInfo] = useState<any | undefined>(undefined)
+    const { address } = useAccount()
+    const prevAddressRef = useRef<string | undefined>(undefined)
+
+    const sdk = new SafeAppsSDK(opts)
+
+    const fetchWalletType = async () => {
+        const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('Request timed out')), 2000)
+        )
+
+        try {
+            const envInfo = await Promise.race([sdk.safe.getEnvironmentInfo(), timeout])
+
+            setEnvironmentInfo(envInfo)
+
+            if (envInfo.origin.includes('blockscout.com')) {
+                setWalletType('blockscout')
+            } else {
+                setWalletType('blockscout')
+            }
+        } catch (error) {
+            console.log('Failed to get wallet info:', error)
+            setWalletType(undefined)
+            setEnvironmentInfo(undefined)
+        }
+    }
+
+    useEffect(() => {
+        if (address && prevAddressRef.current !== address) {
+            prevAddressRef.current = address
+            fetchWalletType()
+        }
+    }, [address])
+
+    return { walletType, environmentInfo }
+}

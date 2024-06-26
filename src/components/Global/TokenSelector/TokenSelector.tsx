@@ -81,12 +81,6 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
         }
     }, [visible])
 
-    console.log(
-        'balances',
-        _tokensToDisplay.find((token) => utils.compareTokenAddresses(token.address, selectedTokenAddress))?.logoURI ??
-            ''
-    )
-
     return (
         <>
             <components.AdvancedTokenSelectorButton

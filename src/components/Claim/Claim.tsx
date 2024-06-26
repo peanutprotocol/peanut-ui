@@ -122,9 +122,7 @@ export const Claim = ({}) => {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
                 link,
             })
-            console.log('linkDetails', linkDetails)
             const attachmentInfo = await getAttachmentInfo(linkDetails.link)
-            console.log('attachmentInfo', attachmentInfo)
             setAttachment({
                 message: attachmentInfo?.message,
                 attachmentUrl: attachmentInfo?.fileUrl,
@@ -150,7 +148,6 @@ export const Claim = ({}) => {
                         chainId: linkDetails.chainId,
                         amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
                     })
-                    console.log('estimatedPoints', estimatedPoints)
                     setEstimatedPoints(estimatedPoints)
                 }
 

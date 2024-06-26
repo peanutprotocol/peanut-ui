@@ -45,7 +45,6 @@ export const Create = () => {
         address: undefined,
         name: undefined,
     })
-    const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
     const [crossChainDetails, setCrossChainDetails] = useState<[]>([])
 
     const [recentRecipients, setRecentRecipients] = useState<
@@ -101,7 +100,7 @@ export const Create = () => {
             throw new Error('Squid: Network response was not ok')
         }
         const data = await response.json()
-        console.log(data.chains)
+
         setCrossChainDetails(data.chains)
     }
 
@@ -121,27 +120,6 @@ export const Create = () => {
         resetTokenContextProvider()
         fetchAndSetCrossChainDetails()
     }, [])
-
-    useEffect(() => {
-        ;(async () => {
-            try {
-                // const envInfo = await sdk.safe.getEnvironmentInfo()
-                // if (envInfo.origin.includes('blockscout.com')) {
-                //     setWalletType('blockscout')
-                // } else {
-                //     setWalletType(undefined)
-                // }
-            } catch (error) {
-                console.log('Failed to get wallet info:', error)
-                setWalletType(undefined)
-            }
-        })()
-        if (address) {
-            fetchRecentTransactions()
-        } else {
-            setRecentRecipients([])
-        }
-    }, [address])
 
     return (
         <div className="card">
@@ -179,8 +157,7 @@ export const Create = () => {
                 recipient,
                 setRecipient,
                 recentRecipients,
-                walletType,
-                setWalletType,
+
                 crossChainDetails,
                 usdValue,
                 setUsdValue,

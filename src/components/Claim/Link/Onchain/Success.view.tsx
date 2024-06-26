@@ -28,7 +28,6 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     >(undefined)
 
     const isw3mEmailWallet = useMemo(() => {
-        console.log(connections)
         return (
             connections.find((obj) => obj.accounts.includes((address ?? '') as `0x${string}`))?.connector.id ==
             'w3mAuth'
@@ -51,7 +50,6 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     async function loopUntilSuccess(txHash: string) {
         let intervalId = setInterval(async () => {
             const result = await checkTransactionStatus(txHash)
-            console.log(result)
 
             //@ts-ignore
             if (result.squidTransactionStatus === 'success') {

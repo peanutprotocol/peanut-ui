@@ -15,6 +15,7 @@ import { useAccount } from 'wagmi'
 import { estimateContractGas } from 'viem/actions'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useBalance } from '@/hooks/useBalance'
+import { useWalletType } from '@/hooks/useWalletType'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -34,16 +35,15 @@ export const CreateLinkConfirmView = ({
     attachmentOptions,
     createType,
     recipient,
-    walletType,
     crossChainDetails,
     usdValue,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
 
-    const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
-        context.tokenSelectorContext
-    )
+    const { selectedChainID, selectedTokenAddress, selectedTokenPrice } = useContext(context.tokenSelectorContext)
+
+    const { walletType } = useWalletType()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -88,7 +88,7 @@ export const CreateLinkConfirmView = ({
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
-                console.log(preparedDepositTxs)
+
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {
@@ -105,7 +105,6 @@ export const CreateLinkConfirmView = ({
             setLoadingState('Creating link')
 
             if (createType === 'direct') {
-                console.log(createType)
                 utils.saveDirectSendToLocalStorage({
                     address: address ?? '',
                     data: {

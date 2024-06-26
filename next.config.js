@@ -60,6 +60,11 @@ const nextConfig = {
                 destination: 'https://legacy.peanut.to/raffle/claim',
                 permanent: true,
             },
+            {
+                source: '/',
+                destination: '/send',
+                permanent: true,
+            },
         ]
     },
     async headers() {

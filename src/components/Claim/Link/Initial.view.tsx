@@ -160,8 +160,6 @@ export const InitialClaimLinkView = ({
     }, [recipient])
 
     useEffect(() => {
-        console.log('address', address)
-        console.log(recipient)
         if (recipient.address) return
         if (isConnected && address) {
             setRecipient({ name: undefined, address })
@@ -345,7 +343,6 @@ export const InitialClaimLinkView = ({
                     onSubmit={(name: string, address: string) => {
                         setRecipient({ name, address })
                         setInputChanging(false)
-                        console.log(name, address)
                     }}
                     _setIsValidRecipient={(valid: boolean) => {
                         setIsValidRecipient(valid)
