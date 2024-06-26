@@ -1,6 +1,7 @@
 import * as interfaces from '@/interfaces'
-import peanut from '@squirrel-labs/peanut-sdk'
-
+import peanut, { CHAIN_DETAILS } from '@squirrel-labs/peanut-sdk'
+import { useAtom } from 'jotai'
+import * as store from '@/store'
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
 
@@ -284,5 +285,18 @@ export async function copyTextToClipboardWithFallback(text: string) {
         document.body.removeChild(textarea)
     } catch (err) {
         console.error('Fallback method failed. Error:', err)
+    }
+}
+
+export const getExplorerUrl = (chainDetails: any[], chainId: string) => {
+    const explorers = chainDetails.find((detail) => detail.chainId === chainId)?.explorers
+
+    // if the explorers array has blockscout, return the blockscout url, else return the first one
+    //@ts-ignore
+    if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
+        //@ts-ignore
+        return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
+    } else {
+        return explorers?.[0].url
     }
 }

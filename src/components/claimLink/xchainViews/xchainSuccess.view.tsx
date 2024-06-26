@@ -30,10 +30,7 @@ export function xchainSuccessView({
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
 
     const explorerUrlSrcChainWithTxHash = useMemo(
-        () =>
-            chainDetails.find((detail) => detail.chainId === claimDetails[0].chainId)?.explorers[0].url +
-            '/tx/' +
-            txHash[0],
+        () => utils.getExplorerUrl(chainDetails, claimDetails[0].chainId) + '/tx/' + txHash[0],
         [txHash, chainDetails]
     )
 
@@ -81,15 +78,27 @@ export function xchainSuccessView({
     async function loopUntilSuccess(txHash: string) {
         let intervalId = setInterval(async () => {
             const result = await checkTransactionStatus(txHash)
+            console.log(result)
 
             //@ts-ignore
             if (result.squidTransactionStatus === 'success') {
-                setExplorerUrlDestChainWithTxHash({
-                    //@ts-ignore
-                    transactionUrl: result.toChain.transactionUrl,
-                    //@ts-ignore
-                    transactionId: result.toChain.transactionId,
-                })
+                //@ts-ignore
+                const explorerUrl = utils.getExplorerUrl(chainDetails, result.toChain.chainData.chainId.toString())
+                if (explorerUrl) {
+                    setExplorerUrlDestChainWithTxHash({
+                        //@ts-ignore
+                        transactionUrl: explorerUrl + '/tx/' + result.toChain.transactionId,
+                        //@ts-ignore
+                        transactionId: result.toChain.transactionId,
+                    })
+                } else {
+                    setExplorerUrlDestChainWithTxHash({
+                        //@ts-ignore
+                        transactionUrl: result.toChain.transactionUrl,
+                        //@ts-ignore
+                        transactionId: result.toChain.transactionId,
+                    })
+                }
                 clearInterval(intervalId)
             } else {
                 console.log('Checking status again...')

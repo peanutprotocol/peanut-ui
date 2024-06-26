@@ -58,32 +58,33 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
             if (claimLink && address) {
                 setLoadingStates('executing transaction')
 
-                const claimTxs = []
-                for (const detail of claimDetails) {
+                const claimPromises = claimDetails.map((detail) => {
                     if (!detail.claimed) {
                         verbose && console.log(detail)
 
-                        const tx = await claimLinkGasless({
+                        return claimLinkGasless({
                             link: detail.link,
                             recipientAddress: address,
                             baseUrl: `${consts.next_proxy_url}/claim-v2`,
                             APIKey: 'doesnt-matter',
-                        })
-
-                        claimTxs.push({
-                            tx,
+                        }).then((tx) => ({
+                            txHash: tx.txHash,
                             details: {
                                 token: detail.tokenAddress,
                                 chain: detail.chainId,
                             },
-                        })
+                        }))
                     }
-                }
+                    return Promise.resolve(null)
+                })
 
-                const claimTxPromises = claimTxs.map((tx) =>
-                    tx.tx.then((result: any) => {
+                const claimTxs = await Promise.all(claimPromises)
+
+                const validClaimTxs = claimTxs.filter((tx) => tx !== null)
+                validClaimTxs.forEach((tx) => {
+                    if (tx) {
                         console.log(tx.details)
-                        console.log('Claim transaction completed:', result)
+                        console.log('Claim transaction completed:', tx.txHash)
                         console.log(tx.details.chain)
                         const chainDetail = chainDetails.find(
                             (cd) => cd.chainId.toString() === tx.details.chain.toString()
@@ -94,20 +95,20 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
                             {
                                 chainId: tx.details.chain.toString(),
                                 tokenAddress: tx.details.token,
-                                txHash: result.txHash,
-                                explorerUrl: chainDetail?.explorers[0].url + '/tx/' + result.txHash,
+                                txHash: tx.txHash,
+                                explorerUrl:
+                                    utils.getExplorerUrl(chainDetails, tx.details.chain.toString()) +
+                                    '/tx/' +
+                                    tx.txHash,
                             },
                         ])
-                        return result // Ensure the result is passed on
-                    })
-                )
+                    }
+                })
 
-                const claimTx = await Promise.all(claimTxPromises)
                 console.log('awaited all tx')
+                console.log(validClaimTxs)
 
-                console.log(claimTx)
-
-                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
+                setTxHash(validClaimTxs.map((tx) => tx?.txHash ?? ''))
 
                 // // onNextScreen()
 
@@ -120,7 +121,6 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
             })
             console.error(error)
             setLoadingStates('idle')
-        } finally {
         }
     }
 
@@ -164,28 +164,62 @@ export function MultilinkClaimView({ onNextScreen, claimDetails, claimLink, setT
             if (claimLink && data.address) {
                 setLoadingStates('executing transaction')
                 verbose && console.log('claiming link:' + claimLink)
-                const claimTxs = []
-                for (const link of claimLink) {
-                    verbose && console.log(link)
 
-                    const tx = await claimLinkGasless({
-                        link: link,
-                        recipientAddress: data.address,
-                        baseUrl: `${consts.next_proxy_url}/claim-v2`,
-                        APIKey: 'doesnt-matter',
-                    })
-                    claimTxs.push(tx)
-                }
+                const claimPromises = claimDetails.map((detail) => {
+                    if (!detail.claimed) {
+                        verbose && console.log(detail)
 
-                verbose && console.log('submitted all tx')
-                const claimTx = await Promise.all(claimTxs)
-                verbose && console.log('awaited all tx')
+                        return claimLinkGasless({
+                            link: detail.link,
+                            recipientAddress: data.address,
+                            baseUrl: `${consts.next_proxy_url}/claim-v2`,
+                            APIKey: 'doesnt-matter',
+                        }).then((tx) => ({
+                            txHash: tx.txHash,
+                            details: {
+                                token: detail.tokenAddress,
+                                chain: detail.chainId,
+                            },
+                        }))
+                    }
+                    return Promise.resolve(null)
+                })
 
-                verbose && console.log(claimTx)
+                const claimTxs = await Promise.all(claimPromises)
 
-                setTxHash(claimTx.map((tx) => tx.transactionHash ?? tx.txHash ?? tx.hash ?? tx.tx_hash ?? ''))
+                const validClaimTxs = claimTxs.filter((tx) => tx !== null)
+                validClaimTxs.forEach((tx) => {
+                    if (tx) {
+                        console.log(tx.details)
+                        console.log('Claim transaction completed:', tx.txHash)
+                        console.log(tx.details.chain)
+                        const chainDetail = chainDetails.find(
+                            (cd) => cd.chainId.toString() === tx.details.chain.toString()
+                        )
+                        console.log(chainDetail)
+                        setCompletedTx((prev) => [
+                            ...prev,
+                            {
+                                chainId: tx.details.chain.toString(),
+                                tokenAddress: tx.details.token,
+                                txHash: tx.txHash,
+                                explorerUrl:
+                                    utils.getExplorerUrl(chainDetails, tx.details.chain.toString()) +
+                                    '/tx/' +
+                                    tx.txHash,
+                            },
+                        ])
+                    }
+                })
 
-                onNextScreen()
+                console.log('awaited all tx')
+                console.log(validClaimTxs)
+
+                setTxHash(validClaimTxs.map((tx) => tx?.txHash ?? ''))
+
+                // // onNextScreen()
+
+                setLoadingStates('completed')
             }
         } catch (error) {
             setErrorState({

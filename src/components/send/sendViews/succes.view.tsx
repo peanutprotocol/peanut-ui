@@ -37,7 +37,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
     const [copiedAll, setCopiedAll] = useState(false)
     const [chainDetails] = useAtom(store.defaultChainDetailsAtom)
     const explorerUrlWithTx = useMemo(
-        () => chainDetails.find((detail) => detail.chainId === chainId)?.explorers[0].url + '/tx/' + txHash,
+        () => utils.getExplorerUrl(chainDetails, chainId) + '/tx/' + txHash,
         [txHash, chainId]
     )
 
@@ -271,7 +271,7 @@ export function SendSuccessView({ onCustomScreen, claimLink, txHash, chainId }: 
 
                 {isDropdownOpen && (
                     <div>
-                        <div className="h-42 w-42 mx-auto mb-6 mt-4">
+                        <div className="mx-auto mb-6 mt-4 h-42 w-42">
                             <div
                                 style={{
                                     height: 'auto',

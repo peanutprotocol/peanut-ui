@@ -100,6 +100,10 @@ export function Claim() {
             // if token is not erc20
             return false
         }
+        if (linkDetails.chainId == '1'){ 
+            // if chain is mainnet
+            return false
+        }
         const isTestnet = !Object.keys(peanut.CHAIN_DETAILS)
             .map((key) => peanut.CHAIN_DETAILS[key as keyof typeof peanut.CHAIN_DETAILS])
             .find((chain) => chain.chainId == linkDetails.chainId)?.mainnet
@@ -148,7 +152,10 @@ export function Claim() {
             }
 
             if (getLinktype(localLink).type === 'multilink') {
+                console.log(localLink)
+                localLink = localLink.replace('%23', '#')
                 verbose && console.log('getting multi link details ' + localLink)
+
                 const links = await peanut.getLinksFromMultilink(localLink)
                 const linkDetails: interfaces.ILinkDetails[] = await Promise.all(
                     links.map(async (link: string) => {

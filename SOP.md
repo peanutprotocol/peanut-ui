@@ -3,7 +3,7 @@
 1. in the peanut-ui repo, navigate to src/consts/chains.consts.ts
 2. import the chain from wagmi/chains
 
-→ If the chain is importable from wagmi/chains, add it to the const chain at the bottom of the page
+→ If the chain is importable from wagmi/chains, add it to the const chain at the bottom of the page (https://wagmi.sh/core/api/chains)
 
 → If the chain is NOT importable from wagmi/chains, you will have to create a custom chain object. To do this, look at the other objects in that file like milkomeda for inspiration, create a custom chain and add it to the const chain at the bottom of the page
 
