@@ -28,7 +28,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     )
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
-    const { safeInfo } = useWalletType()
+    const { safeInfo, walletType, environmentInfo } = useWalletType()
 
     const _tokensToDisplay = useMemo(() => {
         let _tokens
@@ -74,6 +74,11 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
 
     const _balancesToDisplay = useMemo(() => {
         let balancesToDisplay = balances
+
+        console.log('balancesToDisplay: ', balancesToDisplay)
+        console.log('safeInfo: ', safeInfo)
+        console.log('walletType: ', walletType)
+        console.log('environmentInfo: ', environmentInfo)
 
         if (safeInfo) {
             balancesToDisplay = balances.filter((balance) => balance.chainId === safeInfo.chainId)
