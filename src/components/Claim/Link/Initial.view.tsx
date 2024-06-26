@@ -20,7 +20,8 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import Link from 'next/link'
-
+import { Popover } from '@headlessui/react'
+import { PopupButton, Sidetab, Widget } from '@typeform/embed-react'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -510,19 +511,16 @@ export const InitialClaimLinkView = ({
                     </div>
                 )}
                 {recipientType === 'iban' && (
-                    <label className="text-h8 font-normal">
-                        {' '}
-                        Offramp coming soon! Reach out via{' '}
-                        <Link
-                            className="cursor-pointer text-h8 font-normal underline"
-                            href={'https://discord.gg/BX9Ak7AW28'}
-                        >
-                            discord
-                        </Link>{' '}
-                        to find out more!
-                    </label>
+                    <div className="text-h8 font-normal">
+                        Offramp coming soon! Fill out{' '}
+                        <PopupButton id="HEpPuXFz" className="text-h8 font-normal underline">
+                            this
+                        </PopupButton>{' '}
+                        form to be notified when it's live.
+                    </div>
                 )}
             </div>{' '}
+            <Popover id="HEpPuXFz" />
         </div>
     )
 }
