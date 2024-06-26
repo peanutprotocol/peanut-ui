@@ -17,6 +17,7 @@ const opts: Opts = {
 export const useWalletType = () => {
     const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
     const [environmentInfo, setEnvironmentInfo] = useState<any | undefined>(undefined)
+    const [safeInfo, setSafeInfo] = useState<any | undefined>(undefined)
     const { address } = useAccount()
     const prevAddressRef = useRef<string | undefined>(undefined)
 
@@ -28,9 +29,13 @@ export const useWalletType = () => {
         )
 
         try {
-            const envInfo = await Promise.race([sdk.safe.getEnvironmentInfo(), timeout])
+            const [envInfo, info] = await Promise.race([
+                Promise.all([sdk.safe.getEnvironmentInfo(), sdk.safe.getInfo()]),
+                timeout,
+            ])
 
             setEnvironmentInfo(envInfo)
+            setSafeInfo(info)
 
             if (envInfo.origin.includes('blockscout.com')) {
                 setWalletType('blockscout')
@@ -41,6 +46,7 @@ export const useWalletType = () => {
             console.log('Failed to get wallet info:', error)
             setWalletType(undefined)
             setEnvironmentInfo(undefined)
+            setSafeInfo(undefined)
         }
     }
 
@@ -51,5 +57,5 @@ export const useWalletType = () => {
         }
     }, [address])
 
-    return { walletType, environmentInfo }
+    return { walletType, environmentInfo, safeInfo }
 }
