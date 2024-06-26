@@ -121,6 +121,14 @@ export const Create = () => {
         fetchAndSetCrossChainDetails()
     }, [])
 
+    useEffect(() => {
+        if (address) {
+            fetchRecentTransactions()
+        } else {
+            setRecentRecipients([])
+        }
+    }, [address])
+
     return (
         <div className="card">
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
