@@ -81,7 +81,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
         console.log('environmentInfo: ', environmentInfo)
 
         if (safeInfo) {
-            balancesToDisplay = balances.filter((balance) => balance.chainId === safeInfo.chainId)
+            balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
         }
 
         return balancesToDisplay
