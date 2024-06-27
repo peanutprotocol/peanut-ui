@@ -43,11 +43,14 @@ const Layout = ({ children, className }: LayoutProps) => {
             setAccessCodeVisible(false)
             setAccessCode(accessCode.accessCode.toLowerCase())
         }
+    }, [])
+
+    useEffect(() => {
         if (walletType === 'blockscout') {
             setAccessCodeVisible(false)
             utils.updatePeanutAccessCode('ilovepeanuts')
         }
-    }, [])
+    }, [walletType])
 
     const handleSubmit = () => {
         if (
