@@ -10,7 +10,7 @@ type Opts = {
 
 const opts: Opts = {
     allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
-    debug: true,
+    debug: false,
     isServer: true,
 }
 

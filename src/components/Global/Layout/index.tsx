@@ -9,6 +9,7 @@ import * as utils from '@/utils'
 import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
 import { set } from 'react-hook-form'
+import { useWalletType } from '@/hooks/useWalletType'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -27,6 +28,7 @@ const Layout = ({ children, className }: LayoutProps) => {
     const [accessCodeVisible, setAccessCodeVisible] = useState(true)
     const [validAccessCode, setValidAccessCode] = useState(true)
 
+    const { walletType } = useWalletType()
     useEffect(() => {
         setIsReady(true)
     }, [])
@@ -40,6 +42,10 @@ const Layout = ({ children, className }: LayoutProps) => {
         ) {
             setAccessCodeVisible(false)
             setAccessCode(accessCode.accessCode.toLowerCase())
+        }
+        if (walletType === 'blockscout') {
+            setAccessCodeVisible(false)
+            utils.updatePeanutAccessCode('ilovepeanuts')
         }
     }, [])
 
