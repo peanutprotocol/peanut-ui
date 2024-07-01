@@ -153,6 +153,10 @@ export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
         name: 'Alephium',
         chainId: 'alephium-0',
     },
+    {
+        name: 'Scroll',
+        chainId: '534352',
+    },
 ]
 
 export const supportedPeanutChains: interfaces.IPeanutChainDetails[] = Object.keys(CHAIN_DETAILS).map(

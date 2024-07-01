@@ -281,7 +281,7 @@ export const CreateLinkInputView = ({
                     disabled={isLoading || (isConnected && !tokenValue)}
                 >
                     {!isConnected ? (
-                        'Connect Wallet'
+                        'Create or Connect Wallet'
                     ) : isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}

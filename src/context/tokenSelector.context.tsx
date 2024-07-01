@@ -63,7 +63,12 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     console.log(tokenPriceResponse)
                     if (tokenPriceResponse?.price) {
                         setSelectedTokenPrice(tokenPriceResponse.price)
-                        setInputDenomination('USD')
+
+                        if (tokenPriceResponse.price === 1) {
+                            setInputDenomination('TOKEN')
+                        } else {
+                            setInputDenomination('USD')
+                        }
                     } else {
                         setSelectedTokenPrice(undefined)
                         setInputDenomination('TOKEN')

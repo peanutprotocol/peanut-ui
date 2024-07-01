@@ -7,6 +7,8 @@ import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import * as utils from '@/utils'
 import Modal from '../Modal'
+import { default as NextImage } from 'next/image'
+import * as assets from '@/assets'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -59,6 +61,8 @@ const Layout = ({ children, className }: LayoutProps) => {
         }
     }, [accessCode])
 
+    const [loaded, setLoaded] = useState(false)
+
     return (
         isReady && (
             <>
@@ -67,7 +71,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <div className="relative bg-background">
+                <div className="relative">
                     <div className="flex min-h-screen flex-col ">
                         <Header />
                         <div className="flex grow justify-center">
@@ -79,6 +83,34 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <Footer />
+                        <div className="pointer-events-none absolute inset-0 -z-1 overflow-hidden dark:opacity-70">
+                            <div className="absolute inset-0 z-1 bg-n-1 opacity-0 dark:opacity-80"></div>
+                            <div className="absolute -right-72 top-2/3 w-[85vw] -translate-y-1/2 md:w-[40rem] xl:w-[60rem]">
+                                <NextImage
+                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
+                                        loaded ? 'opacity-100' : ''
+                                    } ${className}`}
+                                    onLoadingComplete={() => setLoaded(true)}
+                                    src={assets.BG_SVG.src}
+                                    width={1349}
+                                    height={1216}
+                                    alt=""
+                                />
+                            </div>
+                            <div className="absolute -left-52 top-1/4 w-[65vw] -translate-y-1/2 md:w-[30rem] xl:w-[45rem]">
+                                <NextImage
+                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
+                                        loaded ? 'opacity-100' : ''
+                                    } ${className}`}
+                                    onLoadingComplete={() => setLoaded(true)}
+                                    src={assets.BG_SVG.src}
+                                    width={1349}
+                                    height={1216}
+                                    alt=""
+                                    style={{ transform: 'scale(-1, -1)' }}
+                                />
+                            </div>
+                        </div>
                         <Modal
                             visible={accessCodeVisible}
                             onClose={() => {
