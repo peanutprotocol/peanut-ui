@@ -37,13 +37,15 @@ const Layout = ({ children, className }: LayoutProps) => {
 
     useEffect(() => {
         const accessCode = utils.getPeanutAccessCode()
+        const url = window.location.href
         if (
-            accessCode &&
-            (accessCode.accessCode.toLowerCase() === process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase() ||
-                accessCode.accessCode.toLowerCase() === 'nuts')
+            url.toString().includes('/jobs') ||
+            (accessCode &&
+                (accessCode.accessCode.toLowerCase() === process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase() ||
+                    accessCode.accessCode.toLowerCase() === 'nuts'))
         ) {
             setAccessCodeVisible(false)
-            setAccessCode(accessCode.accessCode.toLowerCase())
+            setAccessCode(accessCode?.accessCode.toLowerCase() ?? 'ilovepeanuts')
         }
     }, [])
 
