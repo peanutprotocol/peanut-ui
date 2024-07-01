@@ -39,6 +39,7 @@ export const ConfirmClaimLinkIbanView = ({
     claimLinkData,
     recipientType,
     setTransactionHash,
+    tokenPrice,
 }: _consts.IClaimScreenProps) => {
     const { activeStep, goToNext, goToPrevious, setActiveStep } = useSteps({
         index: 0,
@@ -627,7 +628,8 @@ export const ConfirmClaimLinkIbanView = ({
                                     <label className="font-bold">Fee</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    $1 <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                                    {recipientType === 'iban' ? '$1' : '$0.5'}{' '}
+                                    <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
                                 </span>
                             </div>
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -636,7 +638,15 @@ export const ConfirmClaimLinkIbanView = ({
                                     <label className="font-bold">Total received</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    $999 <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                                    $
+                                    {recipientType === 'iban'
+                                        ? utils.formatTokenAmount(
+                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                          )
+                                        : utils.formatTokenAmount(
+                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
+                                          )}{' '}
+                                    <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
                                 </span>
                             </div>
                         </div>
