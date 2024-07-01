@@ -21,7 +21,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                 leaveTo="transform scale-95 opacity-0"
             >
                 <Menu.Items className="shadow-primary-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
-                    {item.type != 'receive' && item.status == 'pending' && (
+                    {item.type != 'Link Received' && item.status == 'pending' && (
                         <Menu.Item
                             as={'button'}
                             onClick={() => {
@@ -32,8 +32,8 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             <div className="text-h8">Refund</div>
                         </Menu.Item>
                     )}
-                    {item.type === 'receive' ||
-                        (item.type === 'send' && (
+                    {item.type === 'Link Received' ||
+                        (item.type === 'Link Sent' && (
                             <Menu.Item
                                 as={'button'}
                                 onClick={() => {
@@ -55,7 +55,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             <div className="text-h8">Download attachment</div>
                         </Menu.Item>
                     )}
-                    {item.type === 'transfer' && (
+                    {item.type === 'Direct Sent' && (
                         <Menu.Item
                             as={'button'}
                             onClick={() => {
