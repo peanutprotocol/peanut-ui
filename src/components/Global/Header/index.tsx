@@ -242,7 +242,7 @@ const MenuLinks = () => {
                 }}
                 className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
             >
-                <Text display="block"> {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}</Text>
+                <Text display="block"> {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}</Text>
             </button>
         </Stack>
     )
@@ -263,7 +263,7 @@ const SocialLinks = () => {
                     web3modalOpen()
                 }}
             >
-                {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
             </button>
         </Stack>
     )

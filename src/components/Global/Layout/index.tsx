@@ -2,7 +2,6 @@
 
 import Header from '@/components/Global/Header'
 import Footer from '@/components/Global/Footer'
-import ToggleTheme from '@/components/Global/ToggleTheme'
 import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import * as utils from '@/utils'
@@ -10,6 +9,8 @@ import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
 import { set } from 'react-hook-form'
 import { useWalletType } from '@/hooks/useWalletType'
+import { default as NextImage } from 'next/image'
+import * as assets from '@/assets'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -27,6 +28,7 @@ const Layout = ({ children, className }: LayoutProps) => {
     const [accessCode, setAccessCode] = useState('')
     const [accessCodeVisible, setAccessCodeVisible] = useState(true)
     const [validAccessCode, setValidAccessCode] = useState(true)
+    const [loaded, setLoaded] = useState(false)
 
     const { walletType } = useWalletType()
     useEffect(() => {
@@ -78,7 +80,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <div className="relative bg-background">
+                <div className="relative">
                     <div className="flex min-h-screen flex-col ">
                         <Header />
                         <div className="flex grow justify-center">
@@ -90,6 +92,34 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <Footer />
+                        <div className="pointer-events-none absolute inset-0 -z-1 overflow-hidden dark:opacity-70">
+                            <div className="absolute inset-0 z-1 bg-n-1 opacity-0 dark:opacity-80"></div>
+                            <div className="absolute -right-72 top-2/3 w-[75rem] -translate-y-1/2  2xl:w-[95rem]">
+                                <NextImage
+                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
+                                        loaded ? 'opacity-100' : ''
+                                    } ${className}`}
+                                    onLoadingComplete={() => setLoaded(true)}
+                                    src={assets.BG_SVG.src}
+                                    width={1349}
+                                    height={1216}
+                                    alt=""
+                                />
+                            </div>
+                            <div className="absolute -left-52 top-1/4 w-[55rem] -translate-y-1/2 2xl:w-[75rem]">
+                                <NextImage
+                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
+                                        loaded ? 'opacity-100' : ''
+                                    } ${className}`}
+                                    onLoadingComplete={() => setLoaded(true)}
+                                    src={assets.BG_SVG.src}
+                                    width={1349}
+                                    height={1216}
+                                    alt=""
+                                    style={{ transform: 'scale(-1, -1)' }}
+                                />
+                            </div>
+                        </div>
                         <Modal
                             visible={accessCodeVisible}
                             onClose={() => {
