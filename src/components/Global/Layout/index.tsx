@@ -2,7 +2,6 @@
 
 import Header from '@/components/Global/Header'
 import Footer from '@/components/Global/Footer'
-import ToggleTheme from '@/components/Global/ToggleTheme'
 import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import * as utils from '@/utils'
@@ -26,6 +25,7 @@ const Layout = ({ children, className }: LayoutProps) => {
     const [accessCode, setAccessCode] = useState('')
     const [accessCodeVisible, setAccessCodeVisible] = useState(true)
     const [validAccessCode, setValidAccessCode] = useState(true)
+    const [loaded, setLoaded] = useState(false)
 
     useEffect(() => {
         setIsReady(true)
@@ -61,8 +61,6 @@ const Layout = ({ children, className }: LayoutProps) => {
         }
     }, [accessCode])
 
-    const [loaded, setLoaded] = useState(false)
-
     return (
         isReady && (
             <>
@@ -85,7 +83,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                         <Footer />
                         <div className="pointer-events-none absolute inset-0 -z-1 overflow-hidden dark:opacity-70">
                             <div className="absolute inset-0 z-1 bg-n-1 opacity-0 dark:opacity-80"></div>
-                            <div className="absolute -right-72 top-2/3 w-[85vw] -translate-y-1/2 md:w-[40rem] xl:w-[60rem]">
+                            <div className="absolute -right-72 top-2/3 w-[75rem] -translate-y-1/2  2xl:w-[95rem]">
                                 <NextImage
                                     className={`inline-block w-full align-top opacity-0 transition-opacity ${
                                         loaded ? 'opacity-100' : ''
@@ -97,7 +95,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                                     alt=""
                                 />
                             </div>
-                            <div className="absolute -left-52 top-1/4 w-[65vw] -translate-y-1/2 md:w-[30rem] xl:w-[45rem]">
+                            <div className="absolute -left-52 top-1/4 w-[55rem] -translate-y-1/2 2xl:w-[75rem]">
                                 <NextImage
                                     className={`inline-block w-full align-top opacity-0 transition-opacity ${
                                         loaded ? 'opacity-100' : ''
