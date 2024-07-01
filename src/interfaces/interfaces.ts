@@ -116,7 +116,7 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
 
 export interface IDashboardItem {
     link: string | undefined
-    type: 'send' | 'receive' | 'transfer'
+    type: 'Link Sent' | 'Direct Sent' | 'Link Received'
     amount: string
     tokenSymbol: string
     date: string
