@@ -570,42 +570,6 @@ export const checkifImageType = (type: string) => {
     if (imageTypes.includes(type)) return true
     else return false
 }
-export const getPeanutAccessCode = () => {
-    try {
-        const key = `peanut-access-code`
-        if (typeof localStorage === 'undefined') return
-
-        const storedData = localStorage.getItem(key)
-
-        let data = {
-            accessCode: '',
-        }
-
-        if (storedData) {
-            data = JSON.parse(storedData)
-        }
-
-        return data
-    } catch (error) {
-        console.error('Error getting data from localStorage:', error)
-    }
-}
-
-export const updatePeanutAccessCode = (accessCode?: string) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `peanut-access-code`
-
-        let data = {
-            accessCode: accessCode ? accessCode : '',
-        }
-
-        localStorage.setItem(key, JSON.stringify(data))
-    } catch (error) {
-        console.error('Error adding data to localStorage:', error)
-    }
-}
 
 export const estimateStableCoin = (tokenPrice: number) => {
     // if the tokenprice is between .995 and 1.005, return 1

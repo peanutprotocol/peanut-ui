@@ -305,7 +305,7 @@ export const CreateLinkConfirmView = ({
                 )}
                 {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
                     <span className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                        <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
                     </span>
                 )}
             </div>

@@ -18,6 +18,7 @@ import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
 import { tokenDisplay } from '@/components/Global/TokenSelector/Components'
 import { useWalletType } from '@/hooks/useWalletType'
+import { useBalance } from '@/hooks/useBalance'
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
@@ -55,6 +56,7 @@ export const CreateLinkInputView = ({
         context.tokenSelectorContext
     )
     const { walletType, environmentInfo } = useWalletType()
+    const { balances, hasFetchedBalances } = useBalance()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -264,6 +266,16 @@ export const CreateLinkInputView = ({
                     }}
                 />
                 <TokenSelector classNameButton="w-full" />
+                {hasFetchedBalances && balances.length === 0 && (
+                    <div
+                        onClick={() => {
+                            open()
+                        }}
+                        className="cursor-pointer text-h9 underline"
+                    >
+                        ( Buy Tokens )
+                    </div>
+                )}
                 {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
                     <FileUploadInput
                         attachmentOptions={attachmentOptions}
@@ -300,7 +312,7 @@ export const CreateLinkInputView = ({
                 )}
                 {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
                     <span className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                        <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
                     </span>
                 )}
             </div>

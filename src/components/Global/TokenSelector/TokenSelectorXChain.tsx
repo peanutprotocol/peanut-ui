@@ -13,7 +13,19 @@ import * as _consts from './TokenSelector.consts'
 import * as consts from '@/constants'
 import Icon from '../Icon'
 
-const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXChainProps) => {
+const TokenSelectorXChain = ({
+    classNameButton,
+    data,
+    tokenSymbol,
+    chainName,
+    tokenLogoUrl,
+    chainLogoUrl,
+    tokenAmount,
+    isLoading,
+    routeError,
+    routeFound,
+    onReset,
+}: _consts.TokenSelectorXChainProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const focusButtonRef = useRef<HTMLButtonElement>(null)
@@ -64,10 +76,65 @@ const TokenSelectorXChain = ({ classNameButton, data }: _consts.TokenSelectorXCh
         <>
             <div>
                 <button
-                    className={`flex items-center justify-center gap-2 font-bold text-purple-1  ${classNameButton}`}
-                    onClick={() => setVisible(true)}
+                    className={` flex h-12 w-72 max-w-96  cursor-pointer  flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:hover:bg-white dark:border-white  ${classNameButton} ${routeError ? 'border-red' : 'border-n-1'}`}
+                    onClick={() => {
+                        !routeFound && setVisible(true)
+                    }}
+                    disabled={isLoading}
                 >
-                    (edit)
+                    {isLoading ? (
+                        <div className={'flex flex-row items-center justify-center gap-4'}>
+                            <div className="relative h-6 w-6">
+                                <div className="absolute left-0 top-0 h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
+                                <div className="absolute -top-1 left-3 h-4 w-4 animate-colorPulse rounded-full rounded-full bg-slate-700" />
+                            </div>
+                            <div className="h-3 w-52 animate-colorPulse rounded-full bg-slate-700"></div>
+                        </div>
+                    ) : (
+                        <>
+                            <div className={'flex flex-row items-center justify-center gap-4'}>
+                                <div className="relative h-6 w-6">
+                                    <img
+                                        src={tokenLogoUrl}
+                                        className="absolute left-0 top-0 h-6 w-6 rounded-full"
+                                        alt="logo"
+                                    />
+                                    <img
+                                        src={chainLogoUrl}
+                                        className="absolute -top-1 left-3 h-4 w-4  rounded-full"
+                                        alt="logo"
+                                    />
+                                </div>
+                                <div className="flex flex-col items-start justify-center gap-1">
+                                    <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
+                                        {tokenAmount && tokenAmount} {tokenSymbol} on {chainName}
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="flex flex-row items-center justify-center gap-2">
+                                {!routeFound ? (
+                                    <div className="block">
+                                        <Icon
+                                            name={'arrow-bottom'}
+                                            className={`h-8 w-8 transition-transform dark:fill-white ${visible ? 'rotate-180 ' : ''}`}
+                                        />
+                                    </div>
+                                ) : (
+                                    <div
+                                        className="block"
+                                        onClick={() => {
+                                            onReset && onReset()
+                                        }}
+                                    >
+                                        <Icon
+                                            name={'close'}
+                                            className={`h-8 w-8 transition-transform dark:fill-white`}
+                                        />
+                                    </div>
+                                )}
+                            </div>{' '}
+                        </>
+                    )}
                 </button>
             </div>
             <Modal

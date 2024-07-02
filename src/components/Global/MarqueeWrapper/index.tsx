@@ -17,7 +17,8 @@ export function MarqueeWrapper({
         <div
             className={
                 onClick
-                    ? 'mx-auto h-full max-h-18 w-full cursor-pointer items-center italic ' + backgroundColor
+                    ? 'mx-auto h-full max-h-18 w-full cursor-pointer items-center border-y-2 border-white italic ' +
+                      backgroundColor
                     : 'mx-auto h-full max-h-18 w-full items-center italic ' + backgroundColor
             }
             onClick={onClick}
