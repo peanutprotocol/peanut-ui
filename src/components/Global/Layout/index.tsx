@@ -11,6 +11,7 @@ import { set } from 'react-hook-form'
 import { useWalletType } from '@/hooks/useWalletType'
 import { default as NextImage } from 'next/image'
 import * as assets from '@/assets'
+import { MarqueeWrapper } from '../MarqueeWrapper'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -25,54 +26,12 @@ const roboto = Roboto_Flex({
 
 const Layout = ({ children, className }: LayoutProps) => {
     const [isReady, setIsReady] = useState(false)
-    const [accessCode, setAccessCode] = useState('')
-    const [accessCodeVisible, setAccessCodeVisible] = useState(true)
-    const [validAccessCode, setValidAccessCode] = useState(true)
     const [loaded, setLoaded] = useState(false)
+    const [showModal, setShowModal] = useState(false)
 
-    const { walletType } = useWalletType()
     useEffect(() => {
         setIsReady(true)
     }, [])
-
-    useEffect(() => {
-        const accessCode = utils.getPeanutAccessCode()
-        const url = window.location.href
-        if (
-            url.toString().includes('/jobs') ||
-            (accessCode &&
-                (accessCode.accessCode.toLowerCase() === process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase() ||
-                    accessCode.accessCode.toLowerCase() === 'nuts'))
-        ) {
-            setAccessCodeVisible(false)
-            setAccessCode(accessCode?.accessCode.toLowerCase() ?? 'ilovepeanuts')
-        }
-    }, [])
-
-    useEffect(() => {
-        if (walletType === 'blockscout') {
-            setAccessCodeVisible(false)
-            utils.updatePeanutAccessCode('ilovepeanuts')
-        }
-    }, [walletType])
-
-    const handleSubmit = () => {
-        if (
-            (accessCode && accessCode.toLowerCase() === process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase()) ||
-            accessCode.toLowerCase() === 'nuts'
-        ) {
-            setAccessCodeVisible(false)
-            utils.updatePeanutAccessCode('ilovepeanuts')
-        } else {
-            setValidAccessCode(false)
-        }
-    }
-
-    useEffect(() => {
-        if (accessCode.length > 0) {
-            setValidAccessCode(true)
-        }
-    }, [accessCode])
 
     return (
         isReady && (
@@ -85,6 +44,15 @@ const Layout = ({ children, className }: LayoutProps) => {
                 <div className="relative">
                     <div className="flex min-h-screen flex-col ">
                         <Header />
+                        <MarqueeWrapper
+                            backgroundColor="bg-black"
+                            onClick={() => {
+                                setShowModal(true)
+                            }}
+                        >
+                            <p className="px-4 py-2 text-h4 text-white">Click here to collect your reward!</p>
+                            <img src={assets.SMILEY_ICON.src} className="h-6 w-6 fill-white" />
+                        </MarqueeWrapper>
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
@@ -123,9 +91,9 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <Modal
-                            visible={accessCodeVisible}
+                            visible={showModal}
                             onClose={() => {
-                                console.log('nope :)')
+                                setShowModal(false)
                             }}
                             classNameWrapperDiv="px-5 pb-7 pt-8"
                             classButtonClose="hidden"
@@ -159,12 +127,10 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 style={{ width: '100%', height: '400px' }}
                                 className="center-xy items-center self-center"
                                 onSubmit={() => {
-                                    setAccessCode('ilovepeanuts')
-                                    setAccessCodeVisible(false)
-                                    utils.updatePeanutAccessCode('ilovepeanuts')
+                                    setShowModal(false)
                                 }}
                             />
-                        </Modal>
+                        </Modal>{' '}
                     </div>
                 </div>
             </>

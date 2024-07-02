@@ -303,29 +303,27 @@ export const Dashboard = () => {
 
                     {isConnected && (
                         <div
-                            style={{
-                                backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
-                                WebkitBackgroundClip: 'text',
-                                backgroundClip: 'text',
-                                color: 'transparent',
-                            }}
-                            className="animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
-                            onClick={() => {
-                                // setIsPointsModalVisible(true)
-                            }}
+                            // style={{
+                            //     backgroundImage: 'linear-gradient(to right, #9747FF, #FF90E8)',
+                            //     WebkitBackgroundClip: 'text',
+                            //     backgroundClip: 'text',
+                            //     color: 'transparent',
+                            // }}
+                            className=" animate-gradient flex w-full flex-row items-center justify-between bg-clip-text text-center text-2xl font-bold sm:w-max sm:justify-center sm:gap-12"
                         >
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <label className="text-h4">Points: </label>
-                                {points ? (
+                                {points === 0 ? (
+                                    '0'
+                                ) : points ? (
                                     <label className=" text-h3">{points}</label>
                                 ) : (
-                                    <div className="h-6 w-12 animate-colorPulse rounded-full bg-slate-700" />
+                                    <Loading className="text-black" />
                                 )}
                             </div>
                             <div className="jusityf-center flex flex-row items-center gap-2">
                                 <Icon name={'arrow-up-right'} />
                                 <label className="text-h4">2.0X boost</label>
-                                {/* <Icon name={'info'} className="" /> */}
                             </div>
                         </div>
                     )}
@@ -368,27 +366,13 @@ export const Dashboard = () => {
                         <table className="table-custom hidden sm:table">
                             <thead>
                                 <tr>
-                                    <th className="th-custom">
-                                        <Sorting title="Type" />
-                                    </th>
-                                    <th className="th-custom">
-                                        <Sorting title="Amount" />
-                                    </th>
-                                    <th className="th-custom">
-                                        <Sorting title="Chain" />
-                                    </th>
-                                    <th className="th-custom">
-                                        <Sorting title="Date" />
-                                    </th>
-                                    <th className="th-custom ">
-                                        <Sorting title="From" />
-                                    </th>
-                                    <th className="th-custom ">
-                                        <Sorting title="Ref." />
-                                    </th>
-                                    <th className="th-custom ">
-                                        <Sorting title="Status" />
-                                    </th>
+                                    <th className="th-custom"></th>
+                                    <th className="th-custom"></th>
+                                    <th className="th-custom"></th>
+                                    <th className="th-custom"></th>
+                                    <th className="th-custom "></th>
+                                    <th className="th-custom "></th>
+                                    <th className="th-custom "></th>
                                     <th className="th-custom"></th>
                                 </tr>
                             </thead>

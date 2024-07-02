@@ -156,17 +156,15 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                     Discord!
                 </a>
             </label>
-            <div
-                onClick={() => {
-                    router.push('/dashboard')
-                }}
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full cursor-pointer flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+            <Link
+                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                href={'/dashboard'}
             >
-                <div className="cursor-pointer border border-n-1 p-0 px-1">
-                    <Icon name="like" className="-mt-0.5" />
+                <div className=" border border-n-1 p-0 px-1">
+                    <Icon name="dashboard" className="-mt-0.5" />
                 </div>
-                <label className=" text-sm font-bold">Manage your links in the dashboard</label>
-            </div>
+                See your payments in the dashboard.
+            </Link>
         </div>
     )
 }

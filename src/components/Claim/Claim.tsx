@@ -162,36 +162,12 @@ export const Claim = ({}) => {
         }
     }
 
-    const checkAccess = async () => {
-        const accessCode = utils.getPeanutAccessCode()
-        if (accessCode?.accessCode !== process.env.NEXT_PUBLIC_PEANUT_ACCESS_CODE?.toLowerCase()) {
-            utils.updatePeanutAccessCode('ilovepeanuts')
-            window.location.reload()
-        }
-    }
-
     useEffect(() => {
         const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
         if (pageUrl) {
             checkLink(pageUrl)
-            checkAccess()
         }
     }, [])
-
-    // useEffect(() => {
-    //     ;async () => {
-    //         if (claimLinkData) {
-    //             const estimatedPoints = await estimatePoints({
-    //                 address: address ?? '',
-    //                 chainId: claimLinkData.chainId,
-    //                 link: claimLinkData.link,
-    //                 amountUSD: Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0),
-    //             })
-    //             console.log('estimatedPoints', estimatedPoints)
-    //             setEstimatedPoints(estimatedPoints)
-    //         }
-    //     }
-    // }, [address])
 
     return (
         <div className="card">
