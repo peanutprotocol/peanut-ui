@@ -8,8 +8,6 @@ export async function GET(request: NextRequest) {
         const { searchParams } = new URL(request.url)
         const customerId = searchParams.get('customerId')
 
-        console.log('Request:', { customerId })
-
         if (!customerId) {
             return new NextResponse('Bad Request: customerId is required', { status: 400 })
         }
@@ -18,13 +16,17 @@ export async function GET(request: NextRequest) {
             throw new Error('BRIDGE_API_KEY is not defined')
         }
 
-        const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/liquidation_addresses`, {
-            method: 'GET',
-            headers: {
-                'Api-Key': process.env.BRIDGE_API_KEY,
-                acccept: 'application/json',
-            },
-        })
+        const uniqueParam = `t=${new Date().getTime()}`
+        const response = await fetch(
+            `https://api.bridge.xyz/v0/customers/${customerId}/liquidation_addresses?${uniqueParam}`,
+            {
+                method: 'GET',
+                headers: {
+                    'Api-Key': process.env.BRIDGE_API_KEY,
+                    accept: 'application/json',
+                },
+            }
+        )
 
         const jsonResponse = await response.json()
 

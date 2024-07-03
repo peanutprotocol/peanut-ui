@@ -7,7 +7,6 @@ import Loading from '@/components/Global/Loading'
 import * as _interfaces from '../../Claim.interfaces'
 import * as _utils from '../../Claim.utils'
 import * as interfaces from '@/interfaces'
-import * as _offrampUtils from './Offramp.utils'
 import {
     Step,
     StepIcon,
@@ -40,6 +39,8 @@ export const ConfirmClaimLinkIbanView = ({
     recipientType,
     setTransactionHash,
     tokenPrice,
+    liquidationAddress,
+    setLiquidationAddress,
 }: _consts.IClaimScreenProps) => {
     const { activeStep, goToNext, goToPrevious, setActiveStep } = useSteps({
         index: 0,
@@ -48,9 +49,8 @@ export const ConfirmClaimLinkIbanView = ({
     const [tabIndex, setTabIndex] = useState(recipientType === 'iban' ? 0 : 1)
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
+    const [peanutUser, setPeanutUser] = useState<any>(null)
     const [customerAccount, setCustomerAccount] = useState<interfaces.IBridgeAccount | null>(null)
-    const [transferDetails, setTransferDetails] = useState<interfaces.IBridgeTransaction | null>(null)
-    const [liquidationAddress, setLiquidationAddress] = useState<interfaces.IBridgeLiquidationAddress | null>(null)
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
     const [kycLinkOpened, setKycLinkOpened] = useState<boolean>(false)
 
@@ -92,7 +92,7 @@ export const ConfirmClaimLinkIbanView = ({
         if (tosStatus !== 'approved') {
             setLoadingState('Awaiting TOS confirmation')
             console.log('Awaiting TOS confirmation...')
-            await _offrampUtils.awaitStatusCompletion(
+            await _utils.awaitStatusCompletion(
                 id,
                 'tos',
                 tosStatus,
@@ -112,7 +112,7 @@ export const ConfirmClaimLinkIbanView = ({
         if (kycStatus !== 'approved') {
             setLoadingState('Awaiting KYC confirmation')
             console.log('Awaiting KYC confirmation...')
-            await _offrampUtils.awaitStatusCompletion(
+            await _utils.awaitStatusCompletion(
                 id,
                 'kyc',
                 kycStatus,
@@ -137,7 +137,7 @@ export const ConfirmClaimLinkIbanView = ({
 
             console.log(inputFormData)
 
-            let data = await _offrampUtils.getUserLinks(inputFormData)
+            let data = await _utils.getUserLinks(inputFormData)
             setCustomerObject(data)
 
             let { tos_status: tosStatus, kyc_status: kycStatus } = data
@@ -145,160 +145,33 @@ export const ConfirmClaimLinkIbanView = ({
             // Handle TOS status
             await handleTOSStatus(data.id, tosStatus, data.tos_link)
 
-            await new Promise((resolve) => setTimeout(resolve, 1000))
+            // Wait for 1 second cause some browsers prevent opening two page blanks quickly after eachother
+            await new Promise((resolve) => setTimeout(resolve, 1000)) // TODO: check if removing is possible
 
             // Handle KYC status
             await handleKYCStatus(data.id, kycStatus, data.kyc_link)
 
             // Get customer ID
-            const customer = await _offrampUtils.getStatus(data.id, 'customer_id')
+            const customer = await _utils.getStatus(data.id, 'customer_id')
             setCustomerObject({ ...data, customer_id: customer.customer_id })
 
-            // Push to our api
+            // Create a user in our DB
+            const peanutUser = await _utils.createUser(customer.customer_id, inputFormData.email, inputFormData.name)
+            setPeanutUser(peanutUser.user)
 
-            try {
-                const x = await _utils.createUser(customer.customer_id, inputFormData.email, inputFormData.name)
-                console.log(x)
-            } catch (error) {
-                console.log('error creating user, might already exist: ', error)
-            }
-
-            // Get external accounts
-            const externalAccounts = await _offrampUtils.getExternalAccounts(customer.customer_id)
-
-            // Check if the recipient is already linked, if not, proceed to the next step, otherwise, skip and proceed to the step after
-            if (recipientType === 'iban') {
-                const filteredData = externalAccounts.data.filter((data: any) => data.account_type === 'iban')
-                console.log('filteredData:', filteredData)
-                if (
-                    !filteredData.some(
-                        (data: any) =>
-                            data.iban.last_4.toString() ===
-                            inputFormData.recipient.substring(inputFormData.recipient.length - 4)
-                    )
-                ) {
-                    setActiveStep(2)
-                    setAddressRequired(true)
-                } else {
-                    const acc = filteredData.find(
-                        (data: any) =>
-                            data.iban.last_4.toString() ===
-                            inputFormData.recipient.substring(inputFormData.recipient.length - 4)
-                    )
-                    setCustomerAccount(acc)
-
-                    console.log('Customer account:', acc)
-
-                    const allLiquidationAddresses = await _offrampUtils.getLiquidationAddresses(acc.customer_id ?? '')
-
-                    console.log('All liquidation addresses:', allLiquidationAddresses)
-
-                    const tokenName = _consts.tokenArray
-                        .find((chain) => chain.chainId === claimLinkData.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress))
-                        ?.token.toLowerCase() // TODO: make utils function for this
-                    const chainName = _consts.chainDictionary.find(
-                        (chain) => chain.chainId === claimLinkData.chainId
-                    )?.chain // TODO: make utils function for this
-
-                    let liquidationAddressDetails = allLiquidationAddresses.find(
-                        (address) =>
-                            address.chain === chainName &&
-                            address.currency === tokenName &&
-                            address.external_account_id === acc.id
-                    )
-
-                    if (!liquidationAddressDetails) {
-                        console.log(
-                            customer.customer_id ?? '',
-                            claimLinkData.chainId,
-                            claimLinkData.tokenAddress,
-                            acc.id,
-                            'sepa',
-                            'eur'
-                        )
-
-                        liquidationAddressDetails = await _offrampUtils.createLiquidationAddress(
-                            customer.customer_id ?? '',
-                            claimLinkData.chainId,
-                            claimLinkData.tokenAddress,
-                            acc.id,
-                            'sepa',
-                            'eur'
-                        )
-                    } else {
-                        setLiquidationAddress(liquidationAddressDetails)
-                    }
-                    setLiquidationAddress(liquidationAddressDetails)
-
-                    setActiveStep(3)
-                    setAddressRequired(false)
-                }
-            } else if (recipientType === 'us') {
-                const filteredData = externalAccounts.data.filter((data: any) => data.account_type === 'us')
-                if (
-                    !filteredData.some(
-                        (data: any) =>
-                            data.account.last_4.toString() ===
-                            inputFormData.recipient.substring(inputFormData.recipient.length - 4)
-                    )
-                ) {
-                    setActiveStep(2)
-                    setAddressRequired(true)
-                } else {
-                    const acc = filteredData.find(
-                        (data: any) =>
-                            data.account.last_4.toString() ===
-                            inputFormData.recipient.substring(inputFormData.recipient.length - 4)
-                    )
-                    setCustomerAccount(acc)
-                    const allLiquidationAddresses = await _offrampUtils.getLiquidationAddresses(
-                        customer.customer_id ?? ''
-                    )
-
-                    const tokenName = _consts.tokenArray
-                        .find((chain) => chain.chainId === claimLinkData.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress))
-                        ?.token.toLowerCase() // TODO: make utils function for this
-                    const chainName = _consts.chainDictionary.find(
-                        (chain) => chain.chainId === claimLinkData.chainId
-                    )?.chain // TODO: make utils function for this
-
-                    let liquidationAddressDetails = allLiquidationAddresses.find(
-                        (address) =>
-                            address.chain === chainName &&
-                            address.currency === tokenName &&
-                            address.external_account_id === acc.id
-                    )
-
-                    if (!liquidationAddressDetails) {
-                        liquidationAddressDetails = await _offrampUtils.createLiquidationAddress(
-                            customer.customer_id ?? '',
-                            claimLinkData.chainId,
-                            claimLinkData.tokenAddress,
-                            acc.id,
-                            'ach',
-                            'usd'
-                        )
-                    } else {
-                        setLiquidationAddress(liquidationAddressDetails)
-                    }
-                    setLiquidationAddress(liquidationAddressDetails)
-
-                    setActiveStep(3)
-                    setAddressRequired(false)
-                }
-            }
-            setLoadingState('Idle')
+            setActiveStep(2)
+            setAddressRequired(true)
         } catch (error) {
             console.error('Error during the submission process:', error)
+            setLoadingState('Idle')
+        } finally {
             setLoadingState('Idle')
         }
     }
 
     const onSubmitLinkIban = async () => {
         const formData = accountFormWatch()
-        const isFormValid = _offrampUtils.validateAccountFormData(formData, setAccountFormError)
+        const isFormValid = _utils.validateAccountFormData(formData, setAccountFormError)
 
         if (!isFormValid) {
             console.log('Form is invalid')
@@ -328,7 +201,7 @@ export const ConfirmClaimLinkIbanView = ({
                 throw new Error('Customer ID is missing')
             }
 
-            const data = await _offrampUtils.createExternalAccount(
+            const data = await _utils.createExternalAccount(
                 customerId,
                 accountType as 'iban' | 'us',
                 accountDetails,
@@ -339,13 +212,18 @@ export const ConfirmClaimLinkIbanView = ({
 
             console.log('External account:', data)
 
-            const allLiquidationAddresses = await _offrampUtils.getLiquidationAddresses(
-                customerObject?.customer_id ?? ''
+            const pAccount = await _utils.createAccount(
+                peanutUser.user_id,
+                customerId,
+                data.id,
+                accountType,
+                formData.accountNumber,
+                address
             )
 
-            console.log('All liquidation addresses:', allLiquidationAddresses)
+            console.log('Peanut account:', pAccount)
 
-            const liquidationAddressDetails = await _offrampUtils.createLiquidationAddress(
+            const liquidationAddressDetails = await _utils.createLiquidationAddress(
                 customerObject.customer_id ?? '',
                 claimLinkData.chainId,
                 claimLinkData.tokenAddress,
@@ -400,6 +278,12 @@ export const ConfirmClaimLinkIbanView = ({
             await onSubmitTransfer()
         }
     }
+
+    useEffect(() => {
+        if (liquidationAddress) {
+            setActiveStep(3)
+        }
+    }, [liquidationAddress])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">

@@ -11,8 +11,9 @@ export async function GET(request: NextRequest) {
             return new NextResponse('Bad Request: accountIdentifier and apiKey are required', { status: 400 })
         }
 
+        const uniqueParam = `t=${new Date().getTime()}`
         const response = await fetch(
-            `https://api.staging.peanut.to/user/fetch?accountIdentifier=${accountIdentifier}&apiKey=${apiKey}`,
+            `http://localhost:5001/user/fetch?accountIdentifier=${accountIdentifier}&apiKey=${apiKey}&${uniqueParam}`,
             {
                 method: 'GET',
             }

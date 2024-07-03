@@ -49,6 +49,8 @@ export interface IClaimScreenProps {
     setRecipientType: (type: interfaces.RecipientType) => void
     offrampForm: IOfframpForm
     setOfframpForm: (form: IOfframpForm) => void
+    liquidationAddress: interfaces.IBridgeLiquidationAddress
+    setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'

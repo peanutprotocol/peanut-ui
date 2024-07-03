@@ -34,6 +34,7 @@ export const Claim = ({}) => {
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
+    const [liquidationAddress, setLiquidationAddress] = useState<interfaces.IBridgeLiquidationAddress | null>(null)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
     const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
@@ -237,6 +238,8 @@ export const Claim = ({}) => {
                             setRecipientType,
                             offrampForm,
                             setOfframpForm,
+                            liquidationAddress,
+                            setLiquidationAddress,
                         } as _consts.IClaimScreenProps
                     }
                 />

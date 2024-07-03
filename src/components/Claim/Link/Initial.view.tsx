@@ -42,6 +42,7 @@ export const InitialClaimLinkView = ({
     setRecipientType,
     setOfframpForm,
     offrampForm,
+    setLiquidationAddress,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -128,14 +129,58 @@ export const InitialClaimLinkView = ({
     }
 
     const handleIbanRecipient = async () => {
-        setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+        try {
+            setLoadingState('Getting KYC status')
+            setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
 
-        const user = await _utils.fetchUser(recipient.name ?? '')
+            const user = await _utils.fetchUser(recipient.name ?? '')
+            if (user) {
+                setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
-        if (user) console.log('User:', user)
-        else console.log('User not found')
+                const account = user.accounts.find(
+                    (account: any) => account.account_identifier.toLowerCase() === recipient.name?.toLowerCase()
+                )
+                const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
 
-        onNext()
+                console.log('allLiquidationAddresses', allLiquidationAddresses)
+
+                const tokenName = _consts.tokenArray
+                    .find((chain) => chain.chainId === claimLinkData.chainId)
+                    ?.tokens.find((token) => utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress))
+                    ?.token.toLowerCase() // TODO: make utils function for this
+                const chainName = _consts.chainDictionary.find(
+                    (chain) => chain.chainId === claimLinkData.chainId
+                )?.chain // TODO: make utils function for this
+
+                let liquidationAddressDetails = allLiquidationAddresses.find(
+                    (address) =>
+                        address.chain === chainName &&
+                        address.currency === tokenName &&
+                        address.external_account_id === account.bridge_account_id
+                )
+
+                if (!liquidationAddressDetails) {
+                    liquidationAddressDetails = await _utils.createLiquidationAddress(
+                        user.bridge_customer_id ?? '',
+                        claimLinkData.chainId,
+                        claimLinkData.tokenAddress,
+                        account.bridge_account_id,
+                        recipientType === 'iban' ? 'sepa' : 'ach',
+                        recipientType === 'iban' ? 'eur' : 'usd'
+                    )
+                }
+
+                setLiquidationAddress(liquidationAddressDetails)
+            } else {
+                setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+            }
+
+            onNext()
+        } catch (error) {
+            console.log('error', error)
+        } finally {
+            setLoadingState('Idle')
+        }
     }
 
     useEffect(() => {

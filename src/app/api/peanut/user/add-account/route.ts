@@ -4,30 +4,48 @@ import { NextResponse } from 'next/server'
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { bridgeCustomerId, bridgeAccountId, accountIdentifier, accountDetails } = body
+        const { userId, bridgeCustomerId, bridgeAccountId, accountType, accountIdentifier, accountDetails } = body
 
-        const apiKey = process.env.PEANUT_API_KEY
+        const apiKey = process.env.PEANUT_API_KEY!
 
-        if (!apiKey || !bridgeCustomerId || !bridgeAccountId || !accountIdentifier) {
+        console.log('body', body)
+
+        console.log(apiKey)
+
+        if (!apiKey || !bridgeCustomerId || !bridgeAccountId || !accountType || !accountIdentifier || !userId) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
 
-        const response = await fetch(`https://api.staging.peanut.to/user/create-account`, {
+        console.log(
+            JSON.stringify({
+                apiKey,
+                userId,
+                bridgeCustomerId,
+                bridgeAccountId,
+                accountType,
+                accountIdentifier,
+                accountDetails,
+            })
+        )
+
+        const response = await fetch(`http://localhost:5001/user/create-account`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'api-key': apiKey,
             },
             body: JSON.stringify({
-                apiKey,
+                userId,
                 bridgeCustomerId,
                 bridgeAccountId,
+                accountType,
                 accountIdentifier,
                 accountDetails,
             }),
         })
 
         if (!response.ok) {
-            throw new Error(`Failed to create account: ${response.status}`)
+            throw new Error(`Failed to create user: ${response.status}`)
         }
 
         const data = await response.json()
