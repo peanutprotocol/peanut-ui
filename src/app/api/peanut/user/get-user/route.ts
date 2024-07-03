@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
         const uniqueParam = `t=${new Date().getTime()}`
         const response = await fetch(
-            `http://localhost:5001/user/fetch?accountIdentifier=${accountIdentifier}&apiKey=${apiKey}&${uniqueParam}`,
+            `https://api.staging.peanut.to/user/fetch?accountIdentifier=${accountIdentifier}&apiKey=${apiKey}&${uniqueParam}`,
             {
                 method: 'GET',
             }

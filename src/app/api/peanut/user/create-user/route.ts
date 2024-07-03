@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
             })
         )
 
-        const response = await fetch(`http://localhost:5001/user/create`, {
+        const response = await fetch(`https://api.staging.peanut.to/user/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
