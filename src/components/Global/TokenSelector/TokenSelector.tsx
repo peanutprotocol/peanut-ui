@@ -75,11 +75,6 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const _balancesToDisplay = useMemo(() => {
         let balancesToDisplay = balances
 
-        console.log('balancesToDisplay: ', balancesToDisplay)
-        console.log('safeInfo: ', safeInfo)
-        console.log('walletType: ', walletType)
-        console.log('environmentInfo: ', environmentInfo)
-
         if (safeInfo && walletType === 'blockscout') {
             balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
         }
