@@ -1,5 +1,5 @@
 'use client'
-import { createElement, useEffect, useState, useContext } from 'react'
+import { createElement, useEffect, useState, useContext, useMemo } from 'react'
 import peanut, { claimLink, getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
@@ -47,6 +47,18 @@ export const Claim = ({}) => {
 
     const { address } = useAccount()
     const { getAttachmentInfo, estimatePoints } = useClaimLink()
+
+    const isOfframpPossible = useMemo(() => {
+        return (
+            (claimLinkData?.chainId === '10' &&
+                utils.compareTokenAddresses(
+                    claimLinkData?.tokenAddress,
+                    '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
+                )) ||
+            (claimLinkData?.chainId === '42161' &&
+                utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0xaf88d065e77c8cc2239327c5edb3a432268e5831'))
+        )
+    }, [claimLinkData])
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -240,6 +252,7 @@ export const Claim = ({}) => {
                             setOfframpForm,
                             liquidationAddress,
                             setLiquidationAddress,
+                            isOfframpPossible,
                         } as _consts.IClaimScreenProps
                     }
                 />

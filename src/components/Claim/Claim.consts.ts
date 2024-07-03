@@ -51,6 +51,7 @@ export interface IClaimScreenProps {
     setOfframpForm: (form: IOfframpForm) => void
     liquidationAddress: interfaces.IBridgeLiquidationAddress
     setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress) => void
+    isOfframpPossible: boolean
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'

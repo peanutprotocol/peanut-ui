@@ -503,9 +503,7 @@ export const ConfirmClaimLinkIbanView = ({
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                     {recipientType.toUpperCase()}{' '}
-                                    <MoreInfo
-                                        text={`Offramping to your ${recipientType === 'iban' ? 'iban' : 'us account'}, how cool?!`}
-                                    />
+                                    <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                                 </span>
                             </div>
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">

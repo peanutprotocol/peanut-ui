@@ -27,9 +27,9 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'api-key': apiKey,
             },
             body: JSON.stringify({
-                apiKey,
                 bridgeCustomerId,
                 email,
                 fullName,
