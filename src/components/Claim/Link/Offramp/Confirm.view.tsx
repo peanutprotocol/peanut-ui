@@ -503,7 +503,9 @@ export const ConfirmClaimLinkIbanView = ({
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                     {recipientType.toUpperCase()}{' '}
-                                    <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                                    <MoreInfo
+                                        text={`Offramping to your ${recipientType === 'iban' ? 'iban' : 'us account'}, how cool?!`}
+                                    />
                                 </span>
                             </div>
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -512,8 +514,8 @@ export const ConfirmClaimLinkIbanView = ({
                                     <label className="font-bold">Fee</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {recipientType === 'iban' ? '$1' : '$0.5'}{' '}
-                                    <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                                    $0
+                                    <MoreInfo text={'Fees are on us, enjoy!'} />
                                 </span>
                             </div>
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -522,15 +524,8 @@ export const ConfirmClaimLinkIbanView = ({
                                     <label className="font-bold">Total received</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    $
-                                    {recipientType === 'iban'
-                                        ? utils.formatTokenAmount(
-                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                          )
-                                        : utils.formatTokenAmount(
-                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                          )}{' '}
-                                    <MoreInfo text={'Points coming soon! keep an eye out on your dashboard!'} />
+                                    ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
+                                    <MoreInfo text={'Woop Woop free offramp!'} />
                                 </span>
                             </div>
                         </div>

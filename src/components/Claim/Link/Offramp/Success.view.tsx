@@ -32,10 +32,8 @@ export const SuccessClaimLinkIbanView = ({
                 className="flex w-full flex-col items-start justify-center gap-1 rounded-md border border-n-1 px-2 py-4 text-h8"
             >
                 <label className="w-full self-center text-center text-h1">
-                    {' $'}
-                    {recipientType === 'iban'
-                        ? utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1)
-                        : utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5)}
+                    {'$'}
+                    {utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}
                 </label>
                 <label>{offrampForm.name}</label>
                 <label>{offrampForm.email}</label>
