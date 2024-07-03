@@ -73,7 +73,6 @@ const AddressInput = ({
 
     useEffect(() => {
         if (recipient && isValidRecipient) {
-            console.log(type)
             switch (type) {
                 case 'address':
                     onSubmit(undefined, recipient)

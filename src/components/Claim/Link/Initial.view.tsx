@@ -128,31 +128,7 @@ export const InitialClaimLinkView = ({
         setEstimatedPoints(estimatedPoints)
     }
 
-    const handleIbanRecipient = async () => {
-        // setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
-        //const customerExist =
-        // onNext()
-    }
-
-    // useEffect(() => {
-    //     if (attachment?.attachmentUrl) {
-    //         try {
-    //             console.log('attachmentUrl', attachment?.attachmentUrl)
-    //             fetch(attachment?.attachmentUrl)
-    //                 .then((response) => {
-    //                     console.log(response)
-    //                     return response.blob()
-    //                 })
-    //                 .then((blob) => {
-    //                     setFileType(blob.type)
-    //                 })
-    //                 .catch((error) => {
-    //                     console.log('Error fetching the blob from URL:', error)
-    //                     setFileType('') // Reset or handle the error state
-    //                 })
-    //         } catch (error) {}
-    //     }
-    // }, [attachment?.attachmentUrl])
+    const handleIbanRecipient = async () => {}
 
     useEffect(() => {
         if (recipient) {
