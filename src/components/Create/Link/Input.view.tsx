@@ -17,6 +17,8 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { useWalletType } from '@/hooks/useWalletType'
+import { useBalance } from '@/hooks/useBalance'
 
 export const CreateLinkInputView = ({
     onNext,

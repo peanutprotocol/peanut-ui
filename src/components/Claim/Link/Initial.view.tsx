@@ -295,76 +295,78 @@ export const InitialClaimLinkView = ({
                             {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
                         </label>
                     )}
-                    {isXchainLoading ? (
-                        <div className=" flex h-6 w-full max-w-96  flex-row items-center justify-center gap-1 ">
-                            <div className="h-3 w-24 animate-colorPulse rounded-full bg-slate-700"></div>
-                        </div>
-                    ) : (
-                        <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
-                            <div>
-                                {hasFetchedRoute ? (
-                                    selectedRoute ? (
-                                        <div>
-                                            {utils.formatTokenAmount(
-                                                utils.formatAmountWithDecimals({
-                                                    amount: selectedRoute.route.estimate.toAmountMin,
-                                                    decimals: selectedRoute.route.estimate.toToken.decimals,
-                                                })
-                                            )}{' '}
-                                            {selectedRoute.route.estimate.toToken.symbol} on{' '}
-                                            {
-                                                mappedData.find(
-                                                    (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                                )?.name
-                                            }
-                                        </div>
-                                    ) : (
-                                        <div>
-                                            {mappedData
-                                                .find((data) => data.chainId === selectedChainID)
-                                                ?.tokens?.find((token) =>
-                                                    utils.compareTokenAddresses(token.address, selectedTokenAddress)
-                                                )?.symbol ?? ''}{' '}
-                                            on{' '}
-                                            {
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === selectedChainID
-                                                )?.name
-                                            }
-                                        </div>
-                                    )
-                                ) : (
-                                    <div>
-                                        {utils.formatTokenAmount(Number(claimLinkData.tokenAmount))}{' '}
-                                        {claimLinkData.tokenSymbol} on{' '}
-                                        {
-                                            consts.supportedPeanutChains.find(
-                                                (chain) => chain.chainId === claimLinkData.chainId
-                                            )?.name
-                                        }
-                                    </div>
-                                )}
-                            </div>
-                            {crossChainDetails &&
-                                (hasFetchedRoute || selectedRoute ? (
-                                    <label
-                                        className="cursor-pointer font-bold text-purple-1"
-                                        onClick={() => {
-                                            setSelectedRoute(null)
-                                            setHasFetchedRoute(false)
-                                            setErrorState({
-                                                showError: false,
-                                                errorMessage: '',
-                                            })
-                                        }}
-                                    >
-                                        (reset)
-                                    </label>
-                                ) : (
-                                    <TokenSelectorXChain data={mappedData} />
-                                ))}
-                        </div>
-                    )}
+                    <TokenSelectorXChain
+                        data={mappedData}
+                        chainName={
+                            hasFetchedRoute
+                                ? selectedRoute
+                                    ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
+                                          ?.name
+                                    : mappedData.find((data) => data.chainId === selectedChainID)?.name
+                                : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                      ?.name
+                        }
+                        tokenSymbol={
+                            hasFetchedRoute
+                                ? selectedRoute
+                                    ? selectedRoute.route.estimate.toToken.symbol
+                                    : mappedData
+                                          .find((data) => data.chainId === selectedChainID)
+                                          ?.tokens?.find((token) =>
+                                              utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                          )?.symbol
+                                : claimLinkData.tokenSymbol
+                        }
+                        tokenLogoUrl={
+                            hasFetchedRoute
+                                ? selectedRoute
+                                    ? selectedRoute.route.estimate.toToken.logoURI
+                                    : mappedData
+                                          .find((data) => data.chainId === selectedChainID)
+                                          ?.tokens?.find((token) =>
+                                              utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                          )?.logoURI
+                                : consts.peanutTokenDetails
+                                      .find((chain) => chain.chainId === claimLinkData.chainId)
+                                      ?.tokens.find((token) =>
+                                          utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress)
+                                      )?.logoURI
+                        }
+                        chainLogoUrl={
+                            hasFetchedRoute
+                                ? selectedRoute
+                                    ? crossChainDetails?.find(
+                                          (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                      )?.chainIconURI
+                                    : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
+                                : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                      ?.icon.url
+                        }
+                        tokenAmount={
+                            hasFetchedRoute
+                                ? selectedRoute
+                                    ? utils.formatTokenAmount(
+                                          utils.formatAmountWithDecimals({
+                                              amount: selectedRoute.route.estimate.toAmountMin,
+                                              decimals: selectedRoute.route.estimate.toToken.decimals,
+                                          }),
+                                          4
+                                      )
+                                    : undefined
+                                : claimLinkData.tokenAmount
+                        }
+                        isLoading={isXchainLoading}
+                        routeError={errorState.errorMessage === 'No route found for the given token pair.'}
+                        routeFound={selectedRoute ? true : false}
+                        onReset={() => {
+                            setSelectedRoute(null)
+                            setHasFetchedRoute(false)
+                            setErrorState({
+                                showError: false,
+                                errorMessage: '',
+                            })
+                        }}
+                    />
                 </div>
                 <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                     <AddressInput

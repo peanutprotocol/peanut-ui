@@ -50,8 +50,13 @@ export const Claim = ({}) => {
 
     const isOfframpPossible = useMemo(() => {
         return (
-            claimLinkData?.chainId === '10' &&
-            utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0x0b2c639c533813f4aa9d7837caf62653d097ff85')
+            (claimLinkData?.chainId === '10' &&
+                utils.compareTokenAddresses(
+                    claimLinkData?.tokenAddress,
+                    '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
+                )) ||
+            (claimLinkData?.chainId === '10' &&
+                utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'))
         )
     }, [claimLinkData])
 
