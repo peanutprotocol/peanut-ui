@@ -56,7 +56,12 @@ export const Claim = ({}) => {
                     '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
                 )) ||
             (claimLinkData?.chainId === '10' &&
-                utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'))
+                utils.compareTokenAddresses(
+                    claimLinkData?.tokenAddress,
+                    '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'
+                )) ||
+            (claimLinkData?.chainId === '42161' &&
+                utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0xaf88d065e77c8cc2239327c5edb3a432268e5831'))
         )
     }, [claimLinkData])
 

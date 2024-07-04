@@ -251,21 +251,13 @@ export const ConfirmClaimLinkIbanView = ({
                 address: liquidationAddress.address,
                 link: claimLinkData.link,
             })
-            setTransactionHash(hash)
+            if (hash) setTransactionHash(hash)
             console.log('Transaction hash:', hash)
             setLoadingState('Idle')
             onNext()
         } catch (error) {
             console.error('Error during the submission process:', error)
             setLoadingState('Idle')
-        }
-    }
-
-    const handleOnPrev = () => {
-        if (activeStep === 0) {
-            onPrev()
-        } else {
-            goToPrevious()
         }
     }
 
@@ -558,7 +550,7 @@ export const ConfirmClaimLinkIbanView = ({
                     </button>
                     <button
                         className="btn btn-xl dark:border-white dark:text-white"
-                        onClick={handleOnPrev}
+                        onClick={onPrev}
                         disabled={isLoading}
                         type="button"
                     >
