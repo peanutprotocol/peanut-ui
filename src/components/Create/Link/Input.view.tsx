@@ -16,9 +16,10 @@ import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
-import { tokenDisplay } from '@/components/Global/TokenSelector/Components'
+import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useBalance } from '@/hooks/useBalance'
+
 export const CreateLinkInputView = ({
     onNext,
     onPrev,
@@ -315,6 +316,13 @@ export const CreateLinkInputView = ({
                         <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
                     </span>
                 )}
+
+                <span className="flex  flex-row items-center justify-center gap-1 text-center text-h8">
+                    Learn about offramp
+                    <MoreInfo
+                        text={' Create a USDC link on Optimism of $5 minimum to offramp straight to your bank account!'}
+                    />
+                </span>
             </div>
         </div>
     )

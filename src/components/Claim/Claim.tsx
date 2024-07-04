@@ -1,5 +1,5 @@
 'use client'
-import { createElement, useEffect, useState, useContext } from 'react'
+import { createElement, useEffect, useState, useContext, useMemo } from 'react'
 import peanut, { claimLink, getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
@@ -34,6 +34,7 @@ export const Claim = ({}) => {
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
+    const [liquidationAddress, setLiquidationAddress] = useState<interfaces.IBridgeLiquidationAddress | null>(null)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
     const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
@@ -46,6 +47,18 @@ export const Claim = ({}) => {
 
     const { address } = useAccount()
     const { getAttachmentInfo, estimatePoints } = useClaimLink()
+
+    const isOfframpPossible = useMemo(() => {
+        return (
+            (claimLinkData?.chainId === '10' &&
+                utils.compareTokenAddresses(
+                    claimLinkData?.tokenAddress,
+                    '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
+                )) ||
+            (claimLinkData?.chainId === '10' &&
+                utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'))
+        )
+    }, [claimLinkData])
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -210,6 +223,9 @@ export const Claim = ({}) => {
                             setRecipientType,
                             offrampForm,
                             setOfframpForm,
+                            liquidationAddress,
+                            setLiquidationAddress,
+                            isOfframpPossible,
                         } as _consts.IClaimScreenProps
                     }
                 />
