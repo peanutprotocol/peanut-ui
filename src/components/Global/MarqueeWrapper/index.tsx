@@ -13,7 +13,7 @@ export function MarqueeWrapper({
     onClick?: () => void
     direction?: string
 }) {
-    const baseClass = 'max-h-18 mx-auto mt-2 h-full w-full items-center italic ' + backgroundColor
+    const baseClass = 'max-h-18 mx-auto mt-1 h-full w-full items-center italic ' + backgroundColor
     const className = onClick ? `${baseClass} cursor-pointer` : baseClass
 
     return (
