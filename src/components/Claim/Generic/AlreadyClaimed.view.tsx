@@ -5,6 +5,7 @@ import * as _consts from '../Claim.consts'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
     const router = useRouter()
@@ -26,17 +27,15 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                     Discord!
                 </a>
             </label>
-            <div className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black">
-                <div
-                    className="cursor-pointer border border-n-1 p-0 px-1"
-                    onClick={() => {
-                        router.push('/send')
-                    }}
-                >
+            <Link
+                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                href={'/send'}
+            >
+                <div className=" border border-n-1 p-0 px-1">
                     <Icon name="send" className="-mt-0.5" />
                 </div>
-                <label className=" text-sm font-bold">Make a payment yourself!</label>
-            </div>
+                Make a payment yourself!
+            </Link>
         </div>
     )
 }

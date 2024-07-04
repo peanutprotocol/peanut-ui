@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 
 export const useBalance = () => {
     const [balances, setBalances] = useState<interfaces.IUserBalance[]>([])
+    const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)
     const [valuePerChain, setValuePerChain] = useState<interfaces.ChainValue[]>([])
     const { address } = useAccount()
     const prevAddressRef = useRef<string | undefined>(undefined)
@@ -142,7 +143,7 @@ export const useBalance = () => {
                     }
                 }
             }
-
+            setHasFetchedBalances(true)
             return userBalances
         } catch (error) {
             console.error('Unexpected error loading userBalances: ', error)
@@ -158,5 +159,5 @@ export const useBalance = () => {
         }
     }
 
-    return { balances, fetchBalances, valuePerChain, refetchBalances }
+    return { balances, fetchBalances, valuePerChain, refetchBalances, hasFetchedBalances }
 }

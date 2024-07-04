@@ -10,4 +10,14 @@ export interface TokenSelectorProps {
 
 export interface TokenSelectorXChainProps extends TokenSelectorProps {
     data?: CombinedType[]
+    tokenSymbol?: string
+    tokenAddress?: string
+    chainName?: string
+    tokenLogoUrl?: string
+    chainLogoUrl?: string
+    tokenAmount?: string
+    isLoading?: boolean
+    routeError?: boolean
+    routeFound?: boolean
+    onReset?: () => void
 }

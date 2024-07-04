@@ -36,8 +36,8 @@ dependencies:
         specifier: ^7.105.0
         version: 7.110.1(encoding@0.1.13)(next@14.2.3)(react@18.2.0)(webpack@5.91.0)
     '@squirrel-labs/peanut-sdk':
-        specifier: ^0.4.48
-        version: 0.4.48
+        specifier: ^0.4.50
+        version: 0.4.50
     '@tanstack/react-query':
         specifier: ^5.29.2
         version: 5.29.2(react@18.2.0)
@@ -6508,10 +6508,10 @@ packages:
             }
         dev: false
 
-    /@squirrel-labs/peanut-sdk@0.4.48:
+    /@squirrel-labs/peanut-sdk@0.4.50:
         resolution:
             {
-                integrity: sha512-NoDxwmkO2pQpZ3UcbVD1KpfHdw9UeEFkq4oim3YIt0n+mAHSHYjotcW0mlhPXpraaRuO5uqWB7FmJ1prEmm6IQ==,
+                integrity: sha512-resk+UEselyXRLLxnGh4iX7wXew8EPspXMxohb1l5Bs0bm6qINf5MXdVvK0/Dt3fJ9lHi4qouxZHWS6xQpUeLg==,
             }
         dependencies:
             ethersv5: /ethers@5.7.2

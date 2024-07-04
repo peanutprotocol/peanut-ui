@@ -46,30 +46,35 @@ export function LinkPreviewImg({
                     width: '160px',
                 }}
             >
-                <img
-                    src={chainImage ?? ''}
-                    alt="Chain Image"
-                    style={{
-                        height: '150px',
-                        width: '150px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                        position: 'absolute',
-                    }}
-                />
-                <img
-                    src={tokenImage ?? ''}
-                    alt="Token Image"
-                    style={{
-                        position: 'absolute',
-                        right: '-40px',
-                        top: '-40px',
-                        height: '100px',
-                        width: '100px',
-                        borderRadius: '50%',
-                        objectFit: 'cover',
-                    }}
-                />
+                {chainImage && (
+                    <img
+                        src={chainImage ?? ''}
+                        alt="Chain Image"
+                        style={{
+                            height: '150px',
+                            width: '150px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                            position: 'absolute',
+                        }}
+                    />
+                )}
+
+                {tokenImage && (
+                    <img
+                        src={tokenImage ?? ''}
+                        alt="Token Image"
+                        style={{
+                            position: 'absolute',
+                            right: '-40px',
+                            top: '-40px',
+                            height: '100px',
+                            width: '100px',
+                            borderRadius: '50%',
+                            objectFit: 'cover',
+                        }}
+                    />
+                )}
             </div>
         </div>
     )

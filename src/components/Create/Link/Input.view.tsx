@@ -39,7 +39,6 @@ export const CreateLinkInputView = ({
     createType,
     recipient,
     crossChainDetails,
-    walletType,
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
@@ -55,7 +54,8 @@ export const CreateLinkInputView = ({
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
     )
-    const sdk = new SafeAppsSDK()
+    const { walletType, environmentInfo } = useWalletType()
+    const { balances, hasFetchedBalances } = useBalance()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -86,14 +86,12 @@ export const CreateLinkInputView = ({
             setLoadingState('Asserting values')
             await assertValues({ tokenValue: tokenValue })
 
-            // const envInfo = await sdk.safe.getEnvironmentInfo()
-
             setLoadingState('Generating details')
 
             const linkDetails = generateLinkDetails({
                 tokenValue: tokenValue,
-                envInfo: undefined,
-                walletType,
+                envInfo: environmentInfo,
+                walletType: walletType,
             })
             setLinkDetails(linkDetails)
 
@@ -137,11 +135,9 @@ export const CreateLinkInputView = ({
                         _password: password,
                     })
 
-                    console.log('prepareDepositTxsResponse', prepareDepositTxsResponse)
                     setPreparedDepositTxs(prepareDepositTxsResponse)
 
                     try {
-                        console.log(prepareDepositTxsResponse?.unsignedTxs[0])
                         const { feeOptions, transactionCostUSD } = await estimateGasFee({
                             chainId: selectedChainID,
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
@@ -182,8 +178,6 @@ export const CreateLinkInputView = ({
                         },
                     ],
                 }
-
-                console.log('preparedTxs', preparedTxs)
 
                 setPreparedDepositTxs(preparedTxs)
 
@@ -271,6 +265,16 @@ export const CreateLinkInputView = ({
                     }}
                 />
                 <TokenSelector classNameButton="w-full" />
+                {hasFetchedBalances && balances.length === 0 && (
+                    <div
+                        onClick={() => {
+                            open()
+                        }}
+                        className="cursor-pointer text-h9 underline"
+                    >
+                        ( Buy Tokens )
+                    </div>
+                )}
                 {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
                     <FileUploadInput
                         attachmentOptions={attachmentOptions}
@@ -288,7 +292,7 @@ export const CreateLinkInputView = ({
                     disabled={isLoading || (isConnected && !tokenValue)}
                 >
                     {!isConnected ? (
-                        'Connect Wallet'
+                        'Create or Connect Wallet'
                     ) : isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
@@ -307,7 +311,7 @@ export const CreateLinkInputView = ({
                 )}
                 {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
                     <span className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> This chain is not supported cross-chain claiming.
+                        <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
                     </span>
                 )}
 

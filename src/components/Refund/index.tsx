@@ -13,7 +13,6 @@ import { waitForTransactionReceipt } from 'wagmi/actions'
 
 export const Refund = () => {
     const { isConnected, chain: currentChain } = useAccount()
-    const { switchChainAsync } = useSwitchChain()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
 
@@ -40,7 +39,6 @@ export const Refund = () => {
 
     const refundDeposit = async (refundFormData: { chainId: string; transactionHash: string }) => {
         try {
-            console.log(refundFormData)
             if (refundFormData.chainId == '' || refundFormData.transactionHash == '') {
                 setErrorState({
                     showError: true,
@@ -54,23 +52,22 @@ export const Refund = () => {
             setLoadingState('Getting deposit details')
 
             const txReceipt = await peanut.getTxReceiptFromHash(refundFormData.transactionHash, refundFormData.chainId)
-            console.log(txReceipt)
+
+            // TODO: get contract version from transaction hash
+            // TODO: get deposit info from transaction hash
 
             const latestContractVersion = peanut.getLatestContractVersion({
                 chainId: refundFormData.chainId,
                 type: 'normal',
             })
-            console.log(latestContractVersion)
 
             const depositIdx = peanut.getDepositIdxs(txReceipt, refundFormData.chainId, latestContractVersion)
-            console.log(depositIdx)
 
             const preparedRefundtx = await peanut.prepareClaimLinkSenderTx({
                 chainId: refundFormData.chainId,
                 depositIndex: depositIdx[0],
                 contractVersion: latestContractVersion,
             })
-            console.log(preparedRefundtx)
 
             let txOptions
             try {
@@ -82,7 +79,6 @@ export const Refund = () => {
             }
 
             const tx = { ...preparedRefundtx, ...txOptions }
-            console.log(tx)
 
             setLoadingState('Sign in wallet')
             const hash = await sendTransactionAsync({
@@ -96,7 +92,6 @@ export const Refund = () => {
                     ? BigInt(txOptions?.maxPriorityFeePerGas.toString())
                     : undefined,
             })
-            console.log(hash)
 
             setLoadingState('Executing transaction')
 
@@ -184,7 +179,7 @@ export const Refund = () => {
                                     </span>
                                 </div>
                             ) : !isConnected ? (
-                                'Connect Wallet'
+                                'Create or Connect Wallet'
                             ) : claimedExploredUrlWithHash ? (
                                 'Success'
                             ) : (

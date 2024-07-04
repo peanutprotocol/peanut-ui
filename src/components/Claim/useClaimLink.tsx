@@ -136,7 +136,6 @@ export const useClaimLink = () => {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
 
-            console.log(response)
             const data = await response.json()
             return Math.round(data.points)
         } catch (error) {

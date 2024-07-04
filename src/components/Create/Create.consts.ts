@@ -68,8 +68,6 @@ export interface ICreateScreenProps {
             mostRecentInteraction: any
         }[]
     ) => void
-    walletType: 'blockscout' | undefined
-    setWalletType: (type: 'blockscout' | undefined) => void
     crossChainDetails: []
     usdValue: string | undefined
     setUsdValue: (value: string | undefined) => void

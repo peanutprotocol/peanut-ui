@@ -64,7 +64,7 @@ export const MobileItemComponent = ({
                 classWrap="bg-background"
             >
                 <div className="flex w-full flex-col items-center justify-center p-2 "></div>
-                {linkDetail.type != 'receive' && (
+                {linkDetail.type === 'Link Sent' && (
                     <div className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
                         <div
                             className="text-h8"

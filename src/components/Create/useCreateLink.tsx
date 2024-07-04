@@ -243,22 +243,6 @@ export const useCreateLink = () => {
         actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
-            console.log(
-                JSON.stringify({
-                    actionType: actionType,
-                    amountUsd: amountUSD,
-                    transaction: preparedTx
-                        ? {
-                              from: preparedTx.from ? preparedTx.from.toString() : address,
-                              to: preparedTx.to ? preparedTx.to.toString() : '',
-                              data: preparedTx.data ? preparedTx.data.toString() : '',
-                              value: preparedTx.value ? preparedTx.value.toString() : '',
-                          }
-                        : undefined,
-                    chainId: chainId,
-                    userAddress: address,
-                })
-            )
             const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
                 method: 'POST',
                 headers: {
@@ -279,7 +263,7 @@ export const useCreateLink = () => {
                     userAddress: address,
                 }),
             })
-            console.log(response)
+
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`)
             }
@@ -346,17 +330,6 @@ export const useCreateLink = () => {
         transaction?: peanutInterfaces.IPeanutUnsignedTransaction
     }) => {
         try {
-            console.log(
-                'submitClaimLinkConfirm',
-                link,
-                password,
-                txHash,
-                chainId,
-                senderAddress,
-                amountUsd,
-                transaction
-            )
-
             const response = await fetch('/api/peanut/submit-claim-link/confirm', {
                 method: 'POST',
                 headers: {
