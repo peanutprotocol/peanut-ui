@@ -13,16 +13,11 @@ export function MarqueeWrapper({
     onClick?: () => void
     direction?: string
 }) {
+    const baseClass = 'max-h-18 mx-auto mt-1 h-full w-full items-center italic ' + backgroundColor
+    const className = onClick ? `${baseClass} cursor-pointer` : baseClass
+
     return (
-        <div
-            className={
-                onClick
-                    ? 'mx-auto h-full max-h-18 w-full cursor-pointer items-center border-y-2 border-white italic ' +
-                      backgroundColor
-                    : 'mx-auto h-full max-h-18 w-full items-center italic ' + backgroundColor
-            }
-            onClick={onClick}
-        >
+        <div className={className} onClick={onClick}>
             <Marquee autoFill speed={30} direction={direction as directionType}>
                 <div className="flex flex-row items-center">{children}</div>
             </Marquee>
