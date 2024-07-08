@@ -21,6 +21,7 @@ import {
     TabPanels,
     TabPanel,
     Tabs,
+    StepTitle,
 } from '@chakra-ui/react'
 import { useForm } from 'react-hook-form'
 import Icon from '@/components/Global/Icon'
@@ -60,7 +61,7 @@ export const ConfirmClaimLinkIbanView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-
+    const [initiatedProcess, setInitiatedProcess] = useState<boolean>(false)
     const { claimLink } = useClaimLink()
 
     const {
@@ -138,6 +139,7 @@ export const ConfirmClaimLinkIbanView = ({
     const onSubmitTosAndKyc = async (inputFormData: _consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
         setActiveStep(0)
+        setInitiatedProcess(true)
 
         try {
             setLoadingState('Getting KYC status')
@@ -232,7 +234,7 @@ export const ConfirmClaimLinkIbanView = ({
                 customerId,
                 data.id,
                 accountType,
-                formData.accountNumber,
+                formData.accountNumber.replaceAll(' ', ''),
                 address
             )
 
@@ -327,12 +329,20 @@ export const ConfirmClaimLinkIbanView = ({
                         </Step>
                     ))}
                 </Stepper>
-                {activeStep < _consts.steps.length ? (
-                    <label className="text-h7">
-                        Step {activeStep + 1}: <b>{_consts.steps[activeStep].title}</b>
-                    </label>
-                ) : (
-                    <label className="text-h7">Verification complete</label>
+                {activeStep < _consts.steps.length && (
+                    <div
+                        className={`w-full justify-center text-h7 ${
+                            activeStep === 0
+                                ? 'text-start'
+                                : activeStep === 1
+                                  ? 'text-center'
+                                  : activeStep === 2
+                                    ? 'text-end'
+                                    : ''
+                        }`}
+                    >
+                        <b>{_consts.steps[activeStep].title}</b>
+                    </div>
                 )}
             </Stack>
             <form
@@ -346,7 +356,7 @@ export const ConfirmClaimLinkIbanView = ({
                         {...registerOfframp('name', { required: 'This field is required' })}
                         className={`custom-input ${errors.name ? 'border border-red' : ''}`}
                         placeholder="Full name"
-                        disabled={activeStep === _consts.steps.length}
+                        disabled={initiatedProcess}
                     />
                     {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
 
@@ -355,15 +365,15 @@ export const ConfirmClaimLinkIbanView = ({
                         className={`custom-input ${errors.email ? 'border border-red' : ''}`}
                         placeholder="Email"
                         type="email"
-                        disabled={activeStep === _consts.steps.length}
+                        disabled={initiatedProcess}
                     />
                     {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
 
                     <input
                         {...registerOfframp('recipient', { required: 'This field is required' })}
                         className={`custom-input ${errors.recipient ? 'border border-red' : ''}`}
-                        placeholder="Iban"
-                        disabled={activeStep === _consts.steps.length}
+                        placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
+                        disabled={initiatedProcess}
                     />
                     {errors.recipient && (
                         <span className="text-h9 font-normal text-red">{errors.recipient.message}</span>
