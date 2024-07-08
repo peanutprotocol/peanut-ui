@@ -25,6 +25,7 @@ const TokenSelectorXChain = ({
     routeError,
     routeFound,
     onReset,
+    isStatic = false,
 }: _consts.TokenSelectorXChainProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
@@ -76,9 +77,9 @@ const TokenSelectorXChain = ({
         <>
             <div>
                 <button
-                    className={` flex h-12 w-72 max-w-96  cursor-pointer  flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:hover:bg-white dark:border-white  ${classNameButton} ${routeError ? 'border-red' : 'border-n-1'}`}
+                    className={` flex h-12 w-72 max-w-96 flex-row items-center border border-n-1 px-4 py-2  disabled:cursor-not-allowed disabled:hover:bg-white dark:border-white ${!isStatic ? ' cursor-pointer justify-between hover:bg-n-3/10' : ' cursor-default justify-center '} ${classNameButton} ${routeError ? 'border-red' : 'border-n-1'}`}
                     onClick={() => {
-                        !routeFound && setVisible(true)
+                        !isStatic && !routeFound && setVisible(true)
                     }}
                     disabled={isLoading}
                 >
@@ -111,28 +112,30 @@ const TokenSelectorXChain = ({
                                     </div>
                                 </div>
                             </div>
-                            <div className="flex flex-row items-center justify-center gap-2">
-                                {!routeFound ? (
-                                    <div className="block">
-                                        <Icon
-                                            name={'arrow-bottom'}
-                                            className={`h-8 w-8 transition-transform dark:fill-white ${visible ? 'rotate-180 ' : ''}`}
-                                        />
-                                    </div>
-                                ) : (
-                                    <div
-                                        className="block"
-                                        onClick={() => {
-                                            onReset && onReset()
-                                        }}
-                                    >
-                                        <Icon
-                                            name={'close'}
-                                            className={`h-8 w-8 transition-transform dark:fill-white`}
-                                        />
-                                    </div>
-                                )}
-                            </div>{' '}
+                            {!isStatic && (
+                                <div className="flex flex-row items-center justify-center gap-2">
+                                    {!routeFound ? (
+                                        <div className="block">
+                                            <Icon
+                                                name={'arrow-bottom'}
+                                                className={`h-8 w-8 transition-transform dark:fill-white ${visible ? 'rotate-180 ' : ''}`}
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className="block"
+                                            onClick={() => {
+                                                onReset && onReset()
+                                            }}
+                                        >
+                                            <Icon
+                                                name={'close'}
+                                                className={`h-8 w-8 transition-transform dark:fill-white`}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
                         </>
                     )}
                 </button>

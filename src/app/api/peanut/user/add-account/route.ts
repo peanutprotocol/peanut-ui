@@ -8,10 +8,6 @@ export async function POST(request: NextRequest) {
 
         const apiKey = process.env.PEANUT_API_KEY!
 
-        console.log('body', body)
-
-        console.log(apiKey)
-
         if (!apiKey || !bridgeCustomerId || !bridgeAccountId || !accountType || !accountIdentifier || !userId) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }

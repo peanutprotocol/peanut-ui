@@ -60,6 +60,11 @@ export const ConfirmClaimLinkIbanView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [retryState, setRetryState] = useState<{
+        showRetry: boolean
+        retryLink: string
+        type: 'tos' | 'kyc' | undefined
+    }>({ showRetry: false, retryLink: '', type: undefined })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [initiatedProcess, setInitiatedProcess] = useState<boolean>(false)
     const { claimLink } = useClaimLink()
@@ -97,6 +102,11 @@ export const ConfirmClaimLinkIbanView = ({
     const handleTOSStatus = async (id: string, tosStatus: string, tos_link: string) => {
         if (tosStatus !== 'approved') {
             setLoadingState('Awaiting TOS confirmation')
+            setRetryState({
+                showRetry: true,
+                retryLink: tos_link,
+                type: 'tos',
+            })
             console.log('Awaiting TOS confirmation...')
             await _utils.awaitStatusCompletion(
                 id,
@@ -119,6 +129,11 @@ export const ConfirmClaimLinkIbanView = ({
             throw new Error('KYC is under review.')
         } else if (kycStatus !== 'approved') {
             setLoadingState('Awaiting KYC confirmation')
+            setRetryState({
+                showRetry: true,
+                retryLink: kyc_link,
+                type: 'kyc',
+            })
             console.log('Awaiting KYC confirmation...')
             await _utils.awaitStatusCompletion(
                 id,
@@ -156,9 +171,11 @@ export const ConfirmClaimLinkIbanView = ({
 
             // Wait for 1 second cause some browsers prevent opening two page blanks quickly after eachother
             await new Promise((resolve) => setTimeout(resolve, 1000)) // TODO: check if removing is possible
-
             // Handle KYC status
             await handleKYCStatus(data.id, kycStatus, data.kyc_link)
+
+            // Reset retry state
+            setRetryState({ showRetry: false, retryLink: '', type: undefined })
 
             // Get customer ID
             const customer = await _utils.getStatus(data.id, 'customer_id')
@@ -560,6 +577,18 @@ export const ConfirmClaimLinkIbanView = ({
                     {errorState.showError && (
                         <div className="text-center">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                    {retryState.showRetry && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal ">
+                                Did something go wrong while{' '}
+                                {retryState.type === 'tos' ? 'accepting TOS' : 'completing KYC'}? Click{' '}
+                                <a href={retryState.retryLink} target="_blank" rel="noreferrer" className=" underline">
+                                    here
+                                </a>{' '}
+                                to retry
+                            </label>
                         </div>
                     )}
                 </div>

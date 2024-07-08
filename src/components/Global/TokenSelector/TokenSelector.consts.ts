@@ -20,4 +20,5 @@ export interface TokenSelectorXChainProps extends TokenSelectorProps {
     routeError?: boolean
     routeFound?: boolean
     onReset?: () => void
+    isStatic?: boolean
 }

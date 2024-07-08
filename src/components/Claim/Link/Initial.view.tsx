@@ -366,6 +366,7 @@ export const InitialClaimLinkView = ({
                                 errorMessage: '',
                             })
                         }}
+                        isStatic={recipientType === 'iban' || recipientType === 'us' ? true : false}
                     />
                 </div>
                 <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
