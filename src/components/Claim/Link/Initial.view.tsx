@@ -132,14 +132,15 @@ export const InitialClaimLinkView = ({
     const handleIbanRecipient = async () => {
         try {
             setLoadingState('Getting KYC status')
-            const user = await _utils.fetchUser(recipient.name ?? '')
+            const user = await _utils.fetchUser(recipient.name?.replaceAll(' ', '') ?? '')
             setPeanutUser(user)
             if (user) {
                 setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
                 console.log('user', user)
                 const account = user.accounts.find(
-                    (account: any) => account.account_identifier.toLowerCase() === recipient.name?.toLowerCase()
+                    (account: any) =>
+                        account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
                 )
                 setPeanutAccount(account)
                 const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
