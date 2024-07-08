@@ -45,7 +45,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                     <div className="flex min-h-screen flex-col ">
                         <Header />
                         <MarqueeWrapper
-                            backgroundColor="bg-black"
+                            backgroundColor="bg-purple-1"
                             onClick={() => {
                                 setShowModal(true)
                             }}

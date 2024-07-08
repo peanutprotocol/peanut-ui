@@ -55,7 +55,7 @@ export const OptionsItemComponent = ({ item }: { item: interfaces.IDashboardItem
                             <div className="text-h8">Download attachment</div>
                         </Menu.Item>
                     )}
-                    {item.type === 'Direct Sent' && (
+                    {item.txHash && (
                         <Menu.Item
                             as={'button'}
                             onClick={() => {

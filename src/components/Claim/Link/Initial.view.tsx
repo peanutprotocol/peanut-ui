@@ -2,7 +2,6 @@
 import AddressInput from '@/components/Global/AddressInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
-import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import Icon from '@/components/Global/Icon'
 import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
@@ -13,15 +12,13 @@ import Loading from '@/components/Global/Loading'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
-import Link from 'next/link'
 import { Popover } from '@headlessui/react'
-import { PopupButton, Sidetab, Widget } from '@typeform/embed-react'
+import { PopupButton } from '@typeform/embed-react'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -43,6 +40,10 @@ export const InitialClaimLinkView = ({
     setRecipientType,
     setOfframpForm,
     offrampForm,
+    setLiquidationAddress,
+    isOfframpPossible,
+    setPeanutAccount,
+    setPeanutUser,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -128,7 +129,59 @@ export const InitialClaimLinkView = ({
         setEstimatedPoints(estimatedPoints)
     }
 
-    const handleIbanRecipient = async () => {}
+    const handleIbanRecipient = async () => {
+        try {
+            setLoadingState('Getting KYC status')
+            const user = await _utils.fetchUser(recipient.name ?? '')
+            setPeanutUser(user)
+            if (user) {
+                setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
+
+                console.log('user', user)
+                const account = user.accounts.find(
+                    (account: any) => account.account_identifier.toLowerCase() === recipient.name?.toLowerCase()
+                )
+                setPeanutAccount(account)
+                const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
+
+                const tokenName = _consts.tokenArray
+                    .find((chain) => chain.chainId === claimLinkData.chainId)
+                    ?.tokens.find((token) => utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress))
+                    ?.token.toLowerCase() // TODO: make utils function for this
+                const chainName = _consts.chainDictionary.find(
+                    (chain) => chain.chainId === claimLinkData.chainId
+                )?.chain // TODO: make utils function for this
+
+                let liquidationAddressDetails = allLiquidationAddresses.find(
+                    (address) =>
+                        address.chain === chainName &&
+                        address.currency === tokenName &&
+                        address.external_account_id === account.bridge_account_id
+                )
+
+                if (!liquidationAddressDetails) {
+                    liquidationAddressDetails = await _utils.createLiquidationAddress(
+                        user.bridge_customer_id ?? '',
+                        claimLinkData.chainId,
+                        claimLinkData.tokenAddress,
+                        account.bridge_account_id,
+                        recipientType === 'iban' ? 'sepa' : 'ach',
+                        recipientType === 'iban' ? 'eur' : 'usd'
+                    )
+                }
+
+                setLiquidationAddress(liquidationAddressDetails)
+            } else {
+                setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+            }
+
+            onNext()
+        } catch (error) {
+            console.log('error', error)
+        } finally {
+            setLoadingState('Idle')
+        }
+    }
 
     useEffect(() => {
         if (recipient) {
@@ -313,12 +366,13 @@ export const InitialClaimLinkView = ({
                                 errorMessage: '',
                             })
                         }}
+                        isStatic={recipientType === 'iban' || recipientType === 'us' ? true : false}
                     />
                 </div>
                 <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                     <AddressInput
                         className="px-1"
-                        placeholder="wallet address / ENS / IBAN"
+                        placeholder="wallet address / ENS / IBAN / US account number"
                         value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
@@ -335,7 +389,7 @@ export const InitialClaimLinkView = ({
                             setRecipientType(type)
                         }}
                     />
-                    {recipient && isValidRecipient && recipientType !== 'iban' && (
+                    {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             {selectedRoute && (
                                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
@@ -425,7 +479,8 @@ export const InitialClaimLinkView = ({
                         className="btn-purple btn-xl"
                         onClick={() => {
                             if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                                if (recipientType === 'iban') {
+                                console.log('recipientType', recipientType)
+                                if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {
                                     onNext()
@@ -440,7 +495,7 @@ export const InitialClaimLinkView = ({
                             isXchainLoading ||
                             inputChanging ||
                             (hasFetchedRoute && !selectedRoute) ||
-                            recipientType === 'iban'
+                            ((recipientType === 'iban' || recipientType === 'us') && !isOfframpPossible)
                         }
                     >
                         {isLoading || isXchainLoading ? (
@@ -491,13 +546,13 @@ export const InitialClaimLinkView = ({
                             )}
                         </div>
                     )}
-                    {recipientType === 'iban' && (
+                    {(recipientType === 'iban' || recipientType === 'us') && !isOfframpPossible && (
                         <div className="text-h8 font-normal">
-                            Offramp coming soon! Fill out{' '}
+                            Offramp only possible for USDC on Arbitrum and Optimism for now. Fill out{' '}
                             <PopupButton id="HEpPuXFz" className="text-h8 font-normal underline">
                                 this
                             </PopupButton>{' '}
-                            form to be notified when it's live.
+                            form to be notified when more tokens and chains are supported!
                         </div>
                     )}
                 </div>{' '}
