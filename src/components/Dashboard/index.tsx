@@ -63,7 +63,8 @@ export const Dashboard = () => {
     const composeLinkDataArray = (
         claimedLinks: interfaces.IExtendedLinkDetails[],
         createdLinks: interfaces.IExtendedPeanutLinkDetails[],
-        directSends: interfaces.IDirectSendDetails[]
+        directSends: interfaces.IDirectSendDetails[],
+        offrampClaims: interfaces.IExtendedLinkDetailsOfframp[]
     ) => {
         const linkData: interfaces.IDashboardItem[] = []
 
@@ -71,6 +72,23 @@ export const Dashboard = () => {
             linkData.push({
                 link: link.link,
                 type: 'Link Received',
+                amount: link.tokenAmount,
+                tokenSymbol: link.tokenSymbol,
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.depositDate.toString(),
+                address: link.senderAddress,
+                status: 'claimed',
+                message: link.message,
+                attachmentUrl: link.attachmentUrl,
+                points: link.points,
+                txHash: link.txHash,
+            })
+        })
+
+        offrampClaims.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'Offramp Claim',
                 amount: link.tokenAmount,
                 tokenSymbol: link.tokenSymbol,
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
@@ -227,8 +245,14 @@ export const Dashboard = () => {
         const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })
         const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })
         const directSends = utils.getDirectSendFromLocalStorage({ address: address })
+        const offrampClaims = utils.getOfframpClaimsFromLocalStorage()
 
-        const linkData = composeLinkDataArray(claimedLinks ?? [], createdLinks ?? [], directSends ?? [])
+        const linkData = composeLinkDataArray(
+            claimedLinks ?? [],
+            createdLinks ?? [],
+            directSends ?? [],
+            offrampClaims ?? []
+        )
         // const calculatedPoints = calculatePoints(linkData)
         // setPoints(calculatedPoints)
         setDashboardData(
@@ -366,13 +390,27 @@ export const Dashboard = () => {
                         <table className="table-custom hidden sm:table">
                             <thead>
                                 <tr>
-                                    <th className="th-custom"></th>
-                                    <th className="th-custom"></th>
-                                    <th className="th-custom"></th>
-                                    <th className="th-custom"></th>
-                                    <th className="th-custom "></th>
-                                    <th className="th-custom "></th>
-                                    <th className="th-custom "></th>
+                                    <th className="th-custom">
+                                        <Sorting title="Type" />
+                                    </th>
+                                    <th className="th-custom">
+                                        <Sorting title="Amount" />
+                                    </th>
+                                    <th className="th-custom">
+                                        <Sorting title="Chain" />
+                                    </th>
+                                    <th className="th-custom">
+                                        <Sorting title="Date" />
+                                    </th>
+                                    <th className="th-custom ">
+                                        <Sorting title="From" />
+                                    </th>
+                                    <th className="th-custom ">
+                                        <Sorting title="Ref." />
+                                    </th>
+                                    <th className="th-custom ">
+                                        <Sorting title="Status" />
+                                    </th>
                                     <th className="th-custom"></th>
                                 </tr>
                             </thead>

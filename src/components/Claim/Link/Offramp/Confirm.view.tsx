@@ -32,7 +32,6 @@ import * as utils from '@/utils'
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
     onNext,
-    recipient,
     offrampForm,
     setOfframpForm,
     claimLinkData,
@@ -41,19 +40,25 @@ export const ConfirmClaimLinkIbanView = ({
     tokenPrice,
     liquidationAddress,
     setLiquidationAddress,
+    attachment,
+    estimatedPoints,
+    peanutAccount,
+    setPeanutAccount,
+    peanutUser,
+    setPeanutUser,
 }: _consts.IClaimScreenProps) => {
-    const { activeStep, goToNext, goToPrevious, setActiveStep } = useSteps({
+    const { activeStep, goToNext, setActiveStep } = useSteps({
         index: 0,
         count: _consts.steps.length,
     })
-    const [tabIndex, setTabIndex] = useState(recipientType === 'iban' ? 0 : 1)
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
-    const [peanutUser, setPeanutUser] = useState<any>(null)
-    const [customerAccount, setCustomerAccount] = useState<interfaces.IBridgeAccount | null>(null)
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
     const [kycLinkOpened, setKycLinkOpened] = useState<boolean>(false)
-
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const { claimLink } = useClaimLink()
@@ -109,7 +114,9 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     const handleKYCStatus = async (id: string, kycStatus: string, kyc_link: string) => {
-        if (kycStatus !== 'approved') {
+        if (kycStatus === 'under_review') {
+            throw new Error('KYC is under review.')
+        } else if (kycStatus !== 'approved') {
             setLoadingState('Awaiting KYC confirmation')
             console.log('Awaiting KYC confirmation...')
             await _utils.awaitStatusCompletion(
@@ -160,9 +167,16 @@ export const ConfirmClaimLinkIbanView = ({
             setPeanutUser(peanutUser.user)
 
             setActiveStep(2)
-            setAddressRequired(true)
-        } catch (error) {
+            recipientType === 'us' && setAddressRequired(true)
+        } catch (error: any) {
             console.error('Error during the submission process:', error)
+            if (error.message === 'KYC is under review.') {
+                setErrorState({ showError: true, errorMessage: 'KYC is under review. Please come back later' })
+            } else if (error.message === 'TOS is under review.') {
+                setErrorState({ showError: true, errorMessage: 'TOS is under review. Please come back later' })
+            } else {
+                setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+            }
             setLoadingState('Idle')
         } finally {
             setLoadingState('Idle')
@@ -186,12 +200,16 @@ export const ConfirmClaimLinkIbanView = ({
             const accountType = formData.type
             const accountDetails =
                 accountType === 'iban'
-                    ? { accountNumber: formData.accountNumber, bic: formData.BIC, country: formData.country }
+                    ? {
+                          accountNumber: formData.accountNumber,
+                          bic: formData.BIC,
+                          country: _utils.getThreeCharCountryCodeFromIban(formData.accountNumber),
+                      }
                     : { accountNumber: formData.accountNumber, routingNumber: formData.routingNumber }
             const address = {
                 street: formData.street,
                 city: formData.city,
-                country: formData.country,
+                country: formData.country ?? 'BEL',
                 state: formData.state,
                 postalCode: formData.postalCode,
             }
@@ -208,9 +226,6 @@ export const ConfirmClaimLinkIbanView = ({
                 address,
                 accountOwnerName
             )
-            setCustomerAccount(data)
-
-            console.log('External account:', data)
 
             const pAccount = await _utils.createAccount(
                 peanutUser.user_id,
@@ -221,7 +236,7 @@ export const ConfirmClaimLinkIbanView = ({
                 address
             )
 
-            console.log('Peanut account:', pAccount)
+            setPeanutAccount(pAccount)
 
             const liquidationAddressDetails = await _utils.createLiquidationAddress(
                 customerObject.customer_id ?? '',
@@ -244,6 +259,7 @@ export const ConfirmClaimLinkIbanView = ({
 
     const onSubmitTransfer = async () => {
         try {
+            const formData = accountFormWatch()
             setLoadingState('Submitting Offramp')
             console.log('liquidationAddressINfo:', liquidationAddress)
             if (!liquidationAddress) return
@@ -251,10 +267,31 @@ export const ConfirmClaimLinkIbanView = ({
                 address: liquidationAddress.address,
                 link: claimLinkData.link,
             })
-            if (hash) setTransactionHash(hash)
-            console.log('Transaction hash:', hash)
-            setLoadingState('Idle')
-            onNext()
+            if (hash) {
+                console.log(customerObject, peanutUser)
+                utils.saveOfframpLinkToLocalstorage({
+                    data: {
+                        ...claimLinkData,
+                        depositDate: new Date(),
+                        USDTokenPrice: tokenPrice,
+                        points: estimatedPoints,
+                        txHash: hash,
+                        message: attachment.message ? attachment.message : undefined,
+                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
+                        liquidationAddress: liquidationAddress.address,
+                        recipientType: recipientType,
+                        accountNumber: formData.accountNumber,
+                        bridgeCustomerId: peanutUser.bridge_customer_id,
+                        bridgeExternalAccountId: peanutAccount.bridge_account_id,
+                        peanutCustomerId: peanutUser.user_id,
+                        peanutExternalAccountId: peanutAccount.account_id,
+                    },
+                })
+                setTransactionHash(hash)
+                console.log('Transaction hash:', hash)
+                setLoadingState('Idle')
+                onNext()
+            }
         } catch (error) {
             console.error('Error during the submission process:', error)
             setLoadingState('Idle')
@@ -331,87 +368,41 @@ export const ConfirmClaimLinkIbanView = ({
                     {errors.recipient && (
                         <span className="text-h9 font-normal text-red">{errors.recipient.message}</span>
                     )}
+                    {activeStep === 2 && recipientType === 'iban' ? (
+                        <>
+                            <input
+                                {...registerAccount('BIC', {
+                                    required: addressRequired ? 'This field is required' : false,
+                                })}
+                                className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
+                                placeholder="BIC"
+                            />
+                            {accountErrors.BIC && (
+                                <span className="text-h9 font-normal text-red">{accountErrors.BIC.message}</span>
+                            )}
+                        </>
+                    ) : (
+                        recipientType === 'us' && (
+                            <>
+                                <input
+                                    {...registerAccount('routingNumber', {
+                                        required: addressRequired ? 'This field is required' : false,
+                                    })}
+                                    className={`custom-input ${accountErrors.routingNumber ? 'border border-red' : ''}`}
+                                    placeholder="Routing number"
+                                />
+                                {accountErrors.routingNumber && (
+                                    <span className="text-h9 font-normal text-red">
+                                        {accountErrors.routingNumber.message}
+                                    </span>
+                                )}
+                            </>
+                        )
+                    )}
                 </div>
-                {recipientType === 'iban' ? '' : recipientType === 'us' && ''}
+
                 {addressRequired && (
                     <div className="flex w-full flex-col items-start justify-center gap-0">
-                        <Tabs
-                            onChange={(index) => {
-                                setTabIndex(index)
-                                if (index === 0) {
-                                    setAccountFormValue('type', 'iban')
-                                } else if (index === 1) {
-                                    setAccountFormValue('type', 'us')
-                                }
-                            }}
-                            isFitted
-                            variant="enclosed"
-                            w={'100%'}
-                            index={tabIndex}
-                        >
-                            <TabList>
-                                <Tab>IBAN</Tab>
-                                <Tab>US</Tab>
-                            </TabList>
-                            <TabPanels>
-                                <TabPanel className="!px-0">
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <input
-                                            {...registerAccount('accountNumber', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
-                                            placeholder="Account number"
-                                        />
-                                        {accountErrors.accountNumber && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.accountNumber.message}
-                                            </span>
-                                        )}
-                                        <input
-                                            {...registerAccount('BIC', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
-                                            placeholder="BIC"
-                                        />
-                                        {accountErrors.BIC && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.BIC.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                </TabPanel>
-                                <TabPanel className="!px-0">
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <input
-                                            {...registerAccount('accountNumber', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
-                                            placeholder="Account number"
-                                        />
-                                        {accountErrors.accountNumber && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.accountNumber.message}
-                                            </span>
-                                        )}
-                                        <input
-                                            {...registerAccount('routingNumber', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.routingNumber ? 'border border-red' : ''}`}
-                                            placeholder="Routing number"
-                                        />
-                                        {accountErrors.routingNumber && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.routingNumber.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                </TabPanel>{' '}
-                            </TabPanels>
-                        </Tabs>
                         <div className="flex w-full flex-col items-start justify-center gap-2">
                             <label>Address</label>
                             <input
@@ -556,6 +547,11 @@ export const ConfirmClaimLinkIbanView = ({
                     >
                         Return
                     </button>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
                 </div>
             </form>
         </div>

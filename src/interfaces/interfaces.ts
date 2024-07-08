@@ -116,7 +116,7 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
 
 export interface IDashboardItem {
     link: string | undefined
-    type: 'Link Sent' | 'Direct Sent' | 'Link Received'
+    type: 'Link Sent' | 'Direct Sent' | 'Link Received' | 'Offramp Claim'
     amount: string
     tokenSymbol: string
     date: string
@@ -135,6 +135,16 @@ export interface IExtendedLinkDetails extends ILinkDetails {
     txHash: string
     message: string | undefined
     attachmentUrl: string | undefined
+}
+
+export interface IExtendedLinkDetailsOfframp extends IExtendedLinkDetails {
+    liquidationAddress: string
+    recipientType: string
+    accountNumber: string
+    bridgeCustomerId: string
+    bridgeExternalAccountId: string
+    peanutCustomerId: string
+    peanutExternalAccountId: string
 }
 
 export type ChainValue = {

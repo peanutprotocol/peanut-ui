@@ -2,6 +2,7 @@ import * as _interfaces from './Claim.interfaces'
 import * as interfaces from '@/interfaces'
 import * as _consts from './Claim.consts'
 import * as utils from '@/utils'
+import countries from 'i18n-iso-countries'
 export function mapToIPeanutChainDetailsArray(
     data: _interfaces.SquidChainWithTokens[] | undefined
 ): _interfaces.CombinedType[] {
@@ -206,7 +207,10 @@ export async function awaitStatusCompletion(
         status = statusData[`${type}_status`]
         console.log(`Current ${type.toUpperCase()} status:`, status)
 
-        if (status !== 'approved') {
+        if (status === 'under_review') {
+            if (type === 'tos') throw new Error('TOS is under review')
+            else if (type === 'kyc') throw new Error('KYC is under review.')
+        } else if (status !== 'approved') {
             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
         }
     }
@@ -254,32 +258,7 @@ export const validateAccountFormData = (formData: any, setAccountFormError: any)
         console.log('Account number is required')
         isValid = false
     }
-    if (!formData.street) {
-        setAccountFormError('street', { type: 'required', message: 'Street is required' })
-        console.log('Street is required')
-        isValid = false
-    }
-    if (!formData.city) {
-        setAccountFormError('city', { type: 'required', message: 'City is required' })
-        console.log('City is required')
-        isValid = false
-    }
-    if (!formData.country) {
-        setAccountFormError('country', { type: 'required', message: 'Country is required' })
-        console.log('Country is required')
-        isValid = false
-    }
-    if (!formData.postalCode) {
-        setAccountFormError('postalCode', { type: 'required', message: 'Postal code is required' })
-        console.log('Postal code is required')
-        isValid = false
-    }
-    if (!formData.state) {
-        setAccountFormError('state', { type: 'required', message: 'State is required' })
-        console.log('State is required')
-        isValid = false
-    }
-    console.log('formData', formData)
+
     if (formData.type === 'iban') {
         if (!formData.BIC) {
             setAccountFormError('BIC', { type: 'required', message: 'BIC is required' })
@@ -287,10 +266,34 @@ export const validateAccountFormData = (formData: any, setAccountFormError: any)
             isValid = false
         }
     } else if (formData.type === 'us') {
-        console.log('formData', formData)
         if (!formData.routingNumber) {
             setAccountFormError('routingNumber', { type: 'required', message: 'Routing number is required' })
             console.log('Routing number is required')
+            isValid = false
+        }
+        if (!formData.street) {
+            setAccountFormError('street', { type: 'required', message: 'Street is required' })
+            console.log('Street is required')
+            isValid = false
+        }
+        if (!formData.city) {
+            setAccountFormError('city', { type: 'required', message: 'City is required' })
+            console.log('City is required')
+            isValid = false
+        }
+        if (!formData.country) {
+            setAccountFormError('country', { type: 'required', message: 'Country is required' })
+            console.log('Country is required')
+            isValid = false
+        }
+        if (!formData.postalCode) {
+            setAccountFormError('postalCode', { type: 'required', message: 'Postal code is required' })
+            console.log('Postal code is required')
+            isValid = false
+        }
+        if (!formData.state) {
+            setAccountFormError('state', { type: 'required', message: 'State is required' })
+            console.log('State is required')
             isValid = false
         }
     }
@@ -351,4 +354,19 @@ export const getLiquidationAddresses = async (customerId: string): Promise<inter
 
     console.log('data', data)
     return data
+}
+
+export function getThreeCharCountryCodeFromIban(iban: string): string {
+    if (!iban || typeof iban !== 'string' || iban.length < 2) {
+        throw new Error('Invalid IBAN')
+    }
+
+    const twoCharCountryCode = iban.substring(0, 2).toUpperCase()
+    const threeCharCountryCode = countries.alpha2ToAlpha3(twoCharCountryCode)
+
+    if (!threeCharCountryCode) {
+        throw new Error('Invalid country code in IBAN')
+    }
+
+    return threeCharCountryCode
 }

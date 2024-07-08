@@ -27,19 +27,12 @@ export async function POST(request: NextRequest) {
                     bic: accountDetails.bic,
                     country: accountDetails.country,
                 },
-                address: {
-                    street_line_1: address.street,
-                    city: address.city,
-                    country: address.country,
-                    postal_code: address.postalCode,
-                    state: 'xx',
-                },
+                currency: 'eur',
                 account_owner_name: accountOwnerName,
                 account_type: 'iban',
                 account_owner_type: 'individual',
                 first_name: accountOwnerName.split(' ')[0],
                 last_name: accountOwnerName.substring(accountOwnerName.indexOf(' ') + 1),
-                currency: 'eur',
             }
         } else if (accountType === 'us') {
             body = {
@@ -61,6 +54,8 @@ export async function POST(request: NextRequest) {
             throw new Error('Invalid account type')
         }
 
+        console.log('body:', body)
+
         const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
             method: 'POST',
             headers: {
@@ -71,6 +66,8 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify(body),
         })
+
+        console.log('response:', response)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

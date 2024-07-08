@@ -42,6 +42,8 @@ export const InitialClaimLinkView = ({
     offrampForm,
     setLiquidationAddress,
     isOfframpPossible,
+    setPeanutAccount,
+    setPeanutUser,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -130,9 +132,8 @@ export const InitialClaimLinkView = ({
     const handleIbanRecipient = async () => {
         try {
             setLoadingState('Getting KYC status')
-            setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
-
             const user = await _utils.fetchUser(recipient.name ?? '')
+            setPeanutUser(user)
             if (user) {
                 setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
@@ -140,9 +141,8 @@ export const InitialClaimLinkView = ({
                 const account = user.accounts.find(
                     (account: any) => account.account_identifier.toLowerCase() === recipient.name?.toLowerCase()
                 )
+                setPeanutAccount(account)
                 const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
-
-                console.log('allLiquidationAddresses', allLiquidationAddresses)
 
                 const tokenName = _consts.tokenArray
                     .find((chain) => chain.chainId === claimLinkData.chainId)

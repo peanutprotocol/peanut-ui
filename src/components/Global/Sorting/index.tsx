@@ -15,12 +15,12 @@ const Sorting = ({ title }: SortingProps) => {
             onClick={() => setActive(!active)}
         >
             {title}
-            <Icon
+            {/* <Icon
                 className={`ml-1.5 transition-all group-hover:fill-purple-2 dark:fill-white dark:group-hover:fill-purple-2 ${
                     active ? 'rotate-180 fill-purple-2' : ''
                 }`}
                 name="arrow-up"
-            />
+            /> */}
         </button>
     )
 }

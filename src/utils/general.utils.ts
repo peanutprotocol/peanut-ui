@@ -362,6 +362,29 @@ export const saveClaimedLinkToLocalStorage = ({
     }
 }
 
+export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExtendedLinkDetailsOfframp }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `offramped links`
+
+        const storedData = localStorage.getItem(key)
+
+        let dataArr: interfaces.IExtendedLinkDetailsOfframp[] = []
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as interfaces.IExtendedLinkDetailsOfframp[]
+        }
+
+        dataArr.push(data)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved claimed link to localStorage:', data)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
 export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
@@ -517,6 +540,26 @@ export const getDirectSendFromLocalStorage = ({ address = undefined }: { address
         let data: interfaces.IDirectSendDetails[] = []
         if (storedData) {
             data = JSON.parse(storedData) as interfaces.IDirectSendDetails[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const getOfframpClaimsFromLocalStorage = () => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        let storedData
+
+        const key = `offramped links`
+        storedData = localStorage.getItem(key)
+
+        let data: interfaces.IExtendedLinkDetailsOfframp[] = []
+        if (storedData) {
+            data = JSON.parse(storedData) as interfaces.IExtendedLinkDetailsOfframp[]
         }
 
         return data

@@ -52,6 +52,10 @@ export interface IClaimScreenProps {
     liquidationAddress: interfaces.IBridgeLiquidationAddress
     setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress) => void
     isOfframpPossible: boolean
+    peanutUser: any
+    setPeanutUser: (user: any) => void
+    peanutAccount: any
+    setPeanutAccount: (account: any) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
