@@ -373,7 +373,7 @@ export const ConfirmClaimLinkIbanView = ({
                         {...registerOfframp('name', { required: 'This field is required' })}
                         className={`custom-input ${errors.name ? 'border border-red' : ''}`}
                         placeholder="Full name"
-                        disabled={initiatedProcess}
+                        disabled={initiatedProcess || activeStep > 0}
                     />
                     {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
 
@@ -382,7 +382,7 @@ export const ConfirmClaimLinkIbanView = ({
                         className={`custom-input ${errors.email ? 'border border-red' : ''}`}
                         placeholder="Email"
                         type="email"
-                        disabled={initiatedProcess}
+                        disabled={initiatedProcess || activeStep > 0}
                     />
                     {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
 
@@ -390,7 +390,7 @@ export const ConfirmClaimLinkIbanView = ({
                         {...registerOfframp('recipient', { required: 'This field is required' })}
                         className={`custom-input ${errors.recipient ? 'border border-red' : ''}`}
                         placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
-                        disabled={initiatedProcess}
+                        disabled={initiatedProcess || activeStep > 0}
                     />
                     {errors.recipient && (
                         <span className="text-h9 font-normal text-red">{errors.recipient.message}</span>
