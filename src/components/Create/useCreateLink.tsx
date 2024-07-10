@@ -356,7 +356,6 @@ export const useCreateLink = () => {
             return ''
         }
     }
-
     const submitDirectTransfer = async ({
         txHash,
         chainId,
@@ -399,7 +398,6 @@ export const useCreateLink = () => {
             return ''
         }
     }
-
     const prepareDirectSendTx = ({
         recipient,
         tokenValue,

@@ -142,9 +142,7 @@ export const CreateLinkSuccessView = ({
     }, [])
 
     return (
-        <div
-            className={`flex w-full flex-col items-center justify-center gap-6 py-2 text-center ${link ? 'pb-20' : 'pb-2'}`}
-        >
+        <div className={`flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center`}>
             <label className="text-h2">Yay!</label>
             {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">

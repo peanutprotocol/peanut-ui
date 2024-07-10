@@ -99,7 +99,6 @@ export const useClaimLink = () => {
             }
         }
     }
-
     const checkTxStatus = async (txHash: string) => {}
 
     const sendNotification = async () => {}
