@@ -34,7 +34,7 @@ export function LinkPreviewImg({
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
-                background: 'transparent',
+                background: 'white',
                 padding: '16px',
                 border: '4px solid black',
             }}
