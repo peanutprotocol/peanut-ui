@@ -104,8 +104,6 @@ export const createUser = async (
         }),
     })
 
-    console.log('response', response)
-
     if (!response.ok) {
         throw new Error('Failed to create user')
     }
@@ -205,7 +203,6 @@ export async function awaitStatusCompletion(
     while (status !== 'approved') {
         const statusData = await getStatus(userId, type)
         status = statusData[`${type}_status`]
-        console.log(`Current ${type.toUpperCase()} status:`, status)
 
         if (status === 'under_review') {
             if (type === 'tos') throw new Error('TOS is under review')
@@ -214,8 +211,6 @@ export async function awaitStatusCompletion(
             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
         }
     }
-
-    console.log(`${type.toUpperCase()} completion complete.`)
 }
 
 export async function createExternalAccount(
@@ -344,15 +339,11 @@ export const getLiquidationAddresses = async (customerId: string): Promise<inter
         },
     })
 
-    console.log('response', response)
-
     if (!response.ok) {
         throw new Error('Failed to fetch liquidation addresses')
     }
 
     const data: interfaces.IBridgeLiquidationAddress[] = await response.json()
-
-    console.log('data', data)
     return data
 }
 

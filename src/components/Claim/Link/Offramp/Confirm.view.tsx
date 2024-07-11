@@ -8,14 +8,12 @@ import * as _interfaces from '../../Claim.interfaces'
 import * as _utils from '../../Claim.utils'
 import * as interfaces from '@/interfaces'
 import {
-    Step,
     StepIcon,
     StepIndicator,
     StepSeparator,
     StepStatus,
     Stepper,
     Stack,
-    useSteps,
     TabList,
     Tab,
     TabPanels,
@@ -29,6 +27,15 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import CountryDropdown from '@/components/Global/CountrySelect'
 import useClaimLink from '../../useClaimLink'
 import * as utils from '@/utils'
+import { Step, Steps, useSteps } from 'chakra-ui-steps'
+
+const steps = [
+    { label: 'Step 1: Provide personal information' },
+    { label: 'Step 2: Agree to TOS' },
+    { label: 'Step 3: Complete KYC' },
+    { label: 'Step 4: Submit Account Number' },
+    { label: 'Step 5: Confirm' },
+]
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
@@ -48,10 +55,6 @@ export const ConfirmClaimLinkIbanView = ({
     peanutUser,
     setPeanutUser,
 }: _consts.IClaimScreenProps) => {
-    const { activeStep, goToNext, setActiveStep } = useSteps({
-        index: 0,
-        count: _consts.steps.length,
-    })
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
@@ -333,83 +336,102 @@ export const ConfirmClaimLinkIbanView = ({
         }
     }, [liquidationAddress])
 
-    return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">
-            <Stack w={'100%'} className="items-start">
-                <Stepper colorScheme={'purple'} size="sm" w={'100%'} index={activeStep} gap="0">
-                    {_consts.steps.map((step, index) => (
-                        <Step key={index} className="gap-0">
-                            <StepIndicator className="!mr-0">
-                                <StepStatus complete={<StepIcon />} />
-                            </StepIndicator>
-                            <StepSeparator className="!ml-0 mr-2" />
-                        </Step>
-                    ))}
-                </Stepper>
-                {activeStep < _consts.steps.length && (
-                    <div
-                        className={`w-full justify-center text-h7 ${
-                            activeStep === 0
-                                ? 'text-start'
-                                : activeStep === 1
-                                  ? 'text-center'
-                                  : activeStep === 2
-                                    ? 'text-end'
-                                    : ''
-                        }`}
-                    >
-                        <b>{_consts.steps[activeStep].title}</b>
+    const {
+        nextStep: goToNext,
+        setStep: setActiveStep,
+        activeStep,
+    } = useSteps({
+        initialStep: 0,
+    })
+    const isLastStep = activeStep === steps.length - 1
+    const hasCompletedAllSteps = activeStep === steps.length
+
+    const renderComponent = () => {
+        switch (activeStep) {
+            case 0:
+                return (
+                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                        <input
+                            {...registerOfframp('name', { required: 'This field is required' })}
+                            className={`custom-input-xs custom-input ${errors.name ? 'border border-red' : ''}`}
+                            placeholder="Full name"
+                            disabled={initiatedProcess || activeStep > 0}
+                        />
+                        {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
+
+                        <input
+                            {...registerOfframp('email', { required: 'This field is required' })}
+                            className={`custom-input-xs custom-input ${errors.email ? 'border border-red' : ''}`}
+                            placeholder="Email"
+                            type="email"
+                            disabled={initiatedProcess || activeStep > 0}
+                        />
+                        {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
+                        <button
+                            onClick={() => {
+                                goToNext()
+                            }}
+                            className="btn btn-purple h-8 w-full"
+                            disabled={isLoading}
+                        >
+                            Next
+                        </button>
                     </div>
-                )}
-            </Stack>
-            <form
-                className="flex w-full flex-col items-center justify-center gap-6 "
-                onSubmit={handleSubmitOfframp(handleSubmit)}
-            >
-                <div className="flex w-full flex-col items-start justify-center gap-2">
-                    <label>We need your details to send you your funds.</label>
+                )
 
-                    <input
-                        {...registerOfframp('name', { required: 'This field is required' })}
-                        className={`custom-input ${errors.name ? 'border border-red' : ''}`}
-                        placeholder="Full name"
-                        disabled={initiatedProcess || activeStep > 0}
-                    />
-                    {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
+            case 1:
+                return (
+                    <button
+                        onClick={() => {
+                            goToNext()
+                        }}
+                        className="btn btn-purple h-8 w-full"
+                        disabled={isLoading}
+                    >
+                        Confirm TOS
+                    </button>
+                )
 
-                    <input
-                        {...registerOfframp('email', { required: 'This field is required' })}
-                        className={`custom-input ${errors.email ? 'border border-red' : ''}`}
-                        placeholder="Email"
-                        type="email"
-                        disabled={initiatedProcess || activeStep > 0}
-                    />
-                    {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
+            case 2:
+                return (
+                    <button
+                        onClick={() => {
+                            goToNext()
+                        }}
+                        className="btn btn-purple h-8 w-full"
+                        disabled={isLoading}
+                    >
+                        Complete KYC
+                    </button>
+                )
 
-                    <input
-                        {...registerOfframp('recipient', { required: 'This field is required' })}
-                        className={`custom-input ${errors.recipient ? 'border border-red' : ''}`}
-                        placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
-                        disabled={initiatedProcess || activeStep > 0}
-                    />
-                    {errors.recipient && (
-                        <span className="text-h9 font-normal text-red">{errors.recipient.message}</span>
-                    )}
-                    {activeStep === 2 && recipientType === 'iban' ? (
-                        <>
-                            <input
-                                {...registerAccount('BIC', {
-                                    required: addressRequired ? 'This field is required' : false,
-                                })}
-                                className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
-                                placeholder="BIC"
-                            />
-                            {accountErrors.BIC && (
-                                <span className="text-h9 font-normal text-red">{accountErrors.BIC.message}</span>
-                            )}
-                        </>
-                    ) : (
-                        recipientType === 'us' && (
+            case 3:
+                return (
+                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                        <input
+                            {...registerAccount('accountNumber', {
+                                required: 'This field is required',
+                            })}
+                            className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
+                            placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
+                        />
+                        {accountErrors.accountNumber && (
+                            <span className="text-h9 font-normal text-red">{accountErrors.accountNumber.message}</span>
+                        )}
+                        {recipientType === 'iban' ? (
+                            <>
+                                <input
+                                    {...registerAccount('BIC', {
+                                        required: addressRequired ? 'This field is required' : false,
+                                    })}
+                                    className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
+                                    placeholder="BIC"
+                                />
+                                {accountErrors.BIC && (
+                                    <span className="text-h9 font-normal text-red">{accountErrors.BIC.message}</span>
+                                )}
+                            </>
+                        ) : (
                             <>
                                 <input
                                     {...registerAccount('routingNumber', {
@@ -424,175 +446,196 @@ export const ConfirmClaimLinkIbanView = ({
                                     </span>
                                 )}
                             </>
-                        )
-                    )}
-                </div>
+                        )}
+                        {addressRequired && (
+                            <div className="flex w-full flex-col items-start justify-center gap-2">
+                                <input
+                                    {...registerAccount('street', {
+                                        required: addressRequired ? 'This field is required' : false,
+                                    })}
+                                    className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
+                                    placeholder="Street and number"
+                                />
+                                {accountErrors.street && (
+                                    <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
+                                )}
 
-                {addressRequired && (
-                    <div className="flex w-full flex-col items-start justify-center gap-0">
-                        <div className="flex w-full flex-col items-start justify-center gap-2">
-                            <label>Address</label>
-                            <input
-                                {...registerAccount('street', {
-                                    required: addressRequired ? 'This field is required' : false,
-                                })}
-                                className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
-                                placeholder="Street and number"
-                            />
-                            {accountErrors.street && (
-                                <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
-                            )}
-
-                            <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-                                <div className="flex w-full flex-col items-start justify-center gap-2">
-                                    <input
-                                        {...registerAccount('city', {
-                                            required: addressRequired ? 'This field is required' : false,
-                                        })}
-                                        className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
-                                        placeholder="City"
-                                    />
-                                    {accountErrors.city && (
-                                        <span className="text-h9 font-normal text-red">
-                                            {accountErrors.city.message}
-                                        </span>
-                                    )}
+                                <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
+                                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                                        <input
+                                            {...registerAccount('city', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
+                                            placeholder="City"
+                                        />
+                                        {accountErrors.city && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.city.message}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                                        <input
+                                            {...registerAccount('postalCode', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
+                                            placeholder="Postal code"
+                                        />
+                                        {accountErrors.postalCode && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.postalCode.message}
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
-                                <div className="flex w-full flex-col items-center justify-center gap-2">
-                                    <input
-                                        {...registerAccount('postalCode', {
-                                            required: addressRequired ? 'This field is required' : false,
-                                        })}
-                                        className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
-                                        placeholder="Postal code"
-                                    />
-                                    {accountErrors.postalCode && (
-                                        <span className="text-h9 font-normal text-red">
-                                            {accountErrors.postalCode.message}
-                                        </span>
-                                    )}
+                                <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
+                                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                                        <input
+                                            {...registerAccount('state', {
+                                                required: addressRequired ? 'This field is required' : false,
+                                            })}
+                                            className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
+                                            placeholder="State "
+                                        />
+                                        {accountErrors.state && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountErrors.state.message}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                                        <CountryDropdown
+                                            value={accountFormWatch('country')}
+                                            onChange={(value: any) => {
+                                                setAccountFormValue('country', value, { shouldValidate: true })
+                                                setAccountFormError('country', { message: undefined })
+                                            }}
+                                            error={accountErrors.country?.message}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                            <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-                                <div className="flex w-full flex-col items-start justify-center gap-2">
-                                    <input
-                                        {...registerAccount('state', {
-                                            required: addressRequired ? 'This field is required' : false,
-                                        })}
-                                        className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
-                                        placeholder="State "
-                                    />
-                                    {accountErrors.state && (
-                                        <span className="text-h9 font-normal text-red">
-                                            {accountErrors.state.message}
-                                        </span>
-                                    )}
-                                </div>
-                                <div className="flex w-full flex-col items-center justify-center gap-2">
-                                    <CountryDropdown
-                                        value={accountFormWatch('country')}
-                                        onChange={(value: any) => {
-                                            setAccountFormValue('country', value, { shouldValidate: true })
-                                            setAccountFormError('country', { message: undefined })
-                                        }}
-                                        error={accountErrors.country?.message}
-                                    />
-                                </div>
+                        )}
+                        <button
+                            onClick={() => {
+                                goToNext()
+                            }}
+                            className="btn btn-purple h-8 w-full"
+                            disabled={isLoading}
+                        >
+                            Submit account number
+                        </button>{' '}
+                    </div>
+                )
+
+            case 4:
+                return (
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                <Icon name={'profile'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Name</label>
                             </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {offrampForm.name}
+                            </span>
+                        </div>
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                <Icon name={'email'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Email</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {offrampForm.email}
+                            </span>
+                        </div>
+
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                <Icon name={'money-in'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Bank account</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {accountFormWatch('accountNumber')}
+                            </span>
+                        </div>
+
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Route</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        </div>
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Fee</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                $0
+                                <MoreInfo text={'Fees are on us, enjoy!'} />
+                            </span>
+                        </div>
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Total received</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
+                                <MoreInfo text={'Woop Woop free offramp!'} />
+                            </span>
                         </div>
                     </div>
-                )}
-                <div className="flex w-full flex-col items-center justify-center gap-2">
-                    {activeStep === _consts.steps.length ? (
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Route</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                    {recipientType.toUpperCase()}{' '}
-                                    <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                                </span>
-                            </div>
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Fee</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    $0
-                                    <MoreInfo text={'Fees are on us, enjoy!'} />
-                                </span>
-                            </div>
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                    <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Total received</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
-                                    <MoreInfo text={'Woop Woop free offramp!'} />
-                                </span>
-                            </div>
-                        </div>
-                    ) : activeStep === _consts.steps.length - 1 ? (
-                        <label className="mb-2 w-full text-center text-h8 font-normal">
-                            Your address is required to link your IBAN to your account. The Peanut App does not store
-                            this.
-                        </label>
-                    ) : (
-                        <label className="mb-2 w-full text-center text-h8 font-normal">
-                            The KYC process is done through an external 3rd party. The Peanut App has no access to your
-                            KYC details.
-                        </label>
-                    )}
+                )
+        }
+    }
 
-                    <button className="btn-purple btn-xl" type="submit" disabled={isLoading}>
-                        {isLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : activeStep === 2 ? (
-                            recipientType === 'iban' ? (
-                                'Link IBAN'
-                            ) : (
-                                'Link Account'
-                            )
-                        ) : activeStep === 3 ? (
-                            'Confirm'
-                        ) : (
-                            'Proceed'
-                        )}
-                    </button>
+    return (
+        <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">
+            <Steps variant={'circles'} orientation="vertical" colorScheme="purple" activeStep={activeStep}>
+                {steps.map(({ label }, index) => (
+                    <Step label={label} key={label}>
+                        <div className=" relative z-10 flex w-full items-center justify-center pr-[40px]">
+                            {renderComponent()}
+                        </div>
+                    </Step>
+                ))}
+            </Steps>
+
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                {activeStep === 4 && (
                     <button
-                        className="btn btn-xl dark:border-white dark:text-white"
-                        onClick={onPrev}
+                        onClick={() => {
+                            goToNext()
+                        }}
+                        className="btn-purple btn-xl"
                         disabled={isLoading}
-                        type="button"
                     >
-                        Return
+                        Confirm
                     </button>
-                    {errorState.showError && (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
-                    {retryState.showRetry && (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal ">
-                                Did something go wrong while{' '}
-                                {retryState.type === 'tos' ? 'accepting TOS' : 'completing KYC'}? Click{' '}
-                                <a href={retryState.retryLink} target="_blank" rel="noreferrer" className=" underline">
-                                    here
-                                </a>{' '}
-                                to retry
-                            </label>
-                        </div>
-                    )}
-                </div>
-            </form>
+                )}
+                <button
+                    className="btn btn-xl dark:border-white dark:text-white"
+                    onClick={onPrev}
+                    disabled={isLoading}
+                    type="button"
+                >
+                    Return
+                </button>
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }

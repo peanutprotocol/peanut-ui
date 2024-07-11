@@ -137,7 +137,6 @@ export const InitialClaimLinkView = ({
             if (user) {
                 setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
-                console.log('user', user)
                 const account = user.accounts.find(
                     (account: any) =>
                         account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()

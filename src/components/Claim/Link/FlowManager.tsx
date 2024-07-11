@@ -5,6 +5,7 @@ import * as offrampViews from './Offramp'
 import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
 import * as interfaces from '@/interfaces'
+import { Vertical } from './temp'
 
 const FlowManager = ({
     recipientType,
