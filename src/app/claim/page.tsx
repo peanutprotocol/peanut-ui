@@ -51,7 +51,12 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 
     let previewUrl = '/claim-metadata-img.jpg'
     if (linkDetails) {
-        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}`
+        const tokenPrice = await utils.fetchTokenPrice(
+            linkDetails.tokenAddress.toLowerCase(),
+            linkDetails.chainId,
+            host
+        )
+        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&senderAddress=${linkDetails.senderAddress}&tokenPrice=${tokenPrice?.price}`
     }
     return {
         title: title,
