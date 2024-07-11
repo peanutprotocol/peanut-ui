@@ -27,16 +27,19 @@ export const fetchTokenPrice = async (tokenAddress: string, chainId: string, hos
         }
 
         // Routing mobula api call through nextjs BFF
-        const mobulaResponse = await fetch(`${host}/api/mobula/fetch-token-price`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                tokenAddress,
-                chainId,
-            }),
-        })
+        const mobulaResponse = await fetch(
+            host ? `${host}/api/mobula/fetch-token-price` : `/api/mobula/fetch-token-price`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    tokenAddress,
+                    chainId,
+                }),
+            }
+        )
         const json = await mobulaResponse.json()
 
         if (mobulaResponse.ok) {
