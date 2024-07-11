@@ -14,9 +14,14 @@ export async function GET(request: Request) {
     const chainId = searchParams.get('chainId') ?? ''
     const tokenAddress = searchParams.get('tokenAddress') ?? ''
     const tokenSymbol = searchParams.get('tokenSymbol') ?? ''
+    const senderAddress = searchParams.get('senderAddress') ?? ''
+    const tokenPrice = parseFloat(searchParams.get('tokenPrice') ?? '')
 
-    return new ImageResponse(<LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol }} />, {
-        width: 1600,
-        height: 800,
-    })
+    return new ImageResponse(
+        <LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, senderAddress, tokenPrice }} />,
+        {
+            width: 1600,
+            height: 800,
+        }
+    )
 }
