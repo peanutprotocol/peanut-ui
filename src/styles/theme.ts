@@ -31,6 +31,7 @@ export const theme = extendTheme({
             900: '#01579b',
         },
     },
+
     components: {
         Steps,
     },
