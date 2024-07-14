@@ -98,7 +98,7 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('Error getting the link with transactionHash')) {
             return error.message
         } else {
-            return 'Something failed while creating your link. Please try again.'
+            return 'Something failed while claiming your link. Please try again.'
         }
     }
 }
