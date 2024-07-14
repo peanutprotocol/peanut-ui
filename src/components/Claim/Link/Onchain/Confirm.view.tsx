@@ -57,7 +57,7 @@ export const ConfirmClaimLinkView = ({
             let claimTxHash = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
-                    address: recipient ? recipient.address : address ?? '',
+                    address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
@@ -65,14 +65,14 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claimxchain')
             } else {
                 claimTxHash = await claimLink({
-                    address: recipient ? recipient.address : address ?? '',
+                    address: recipient ? recipient.address : (address ?? ''),
                     link: claimLinkData.link,
                 })
                 setClaimType('claim')
             }
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: recipient ? recipient.address : address ?? '',
+                    address: recipient ? recipient.address : (address ?? ''),
                     data: {
                         ...claimLinkData,
                         depositDate: new Date(),
