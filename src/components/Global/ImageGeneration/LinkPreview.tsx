@@ -35,7 +35,7 @@ export function LinkPreviewImg({
                 justifyContent: 'center',
                 overflow: 'hidden',
                 background: 'white',
-                padding: '16px',
+                padding: '32px',
                 border: '4px solid black',
             }}
         >
@@ -51,6 +51,7 @@ export function LinkPreviewImg({
                     overflow: 'hidden',
                     background: 'transparent',
                     border: '2px solid black',
+                    borderRadius: '16px',
                 }}
             >
                 <img
@@ -82,9 +83,10 @@ export function LinkPreviewImg({
                     <div
                         style={{
                             display: 'flex',
-                            gap: '48px',
+                            gap: '64px',
                             justifyContent: 'center',
                             alignItems: 'center',
+                            marginLeft: '-32px',
                         }}
                     >
                         <div
@@ -96,9 +98,9 @@ export function LinkPreviewImg({
                                 position: 'relative',
                             }}
                         >
-                            {chainImage && (
+                            {tokenImage && (
                                 <img
-                                    src={chainImage ?? ''}
+                                    src={tokenImage ?? ''}
                                     alt="Chain Image"
                                     style={{
                                         height: '200px',
@@ -110,9 +112,9 @@ export function LinkPreviewImg({
                                 />
                             )}
 
-                            {tokenImage && (
+                            {chainImage && (
                                 <img
-                                    src={tokenImage ?? ''}
+                                    src={chainImage ?? ''}
                                     alt="Token Image"
                                     style={{
                                         position: 'absolute',
@@ -150,10 +152,10 @@ export function LinkPreviewImg({
                     alt="ddee"
                     style={{
                         position: 'absolute',
-                        top: '20px',
-                        right: '20px',
-                        width: '120px',
-                        height: '120px',
+                        top: '60px',
+                        right: '60px',
+                        width: '160px',
+                        height: '160px',
                         objectFit: 'cover',
                         zIndex: 1,
                     }}
