@@ -156,7 +156,15 @@ export const ConfirmClaimLinkIbanView = ({
         if (!customerObject) return
         const { kyc_status: kycStatus, id, kyc_link } = customerObject
         if (kycStatus === 'under_review') {
-            throw new Error('KYC is under review.')
+            setErrorState({
+                showError: true,
+                errorMessage: 'KYC under review',
+            })
+        } else if (kycStatus === 'rejected') {
+            setErrorState({
+                showError: true,
+                errorMessage: 'KYC rejected',
+            })
         } else if (kycStatus !== 'approved') {
             setLoadingState('Awaiting KYC confirmation')
             console.log('Awaiting KYC confirmation...')
@@ -327,7 +335,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <div className="flex w-full flex-col items-start justify-center gap-2">
                         <input
                             {...registerOfframp('name', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
+                            className={`custom-input-xs custom-input ${errors.name ? 'border border-red' : ''}`}
                             placeholder="Full name"
                             disabled={initiatedProcess || activeStep > 0}
                         />
@@ -335,7 +343,7 @@ export const ConfirmClaimLinkIbanView = ({
 
                         <input
                             {...registerOfframp('email', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
+                            className={`custom-input-xs custom-input ${errors.email ? 'border border-red' : ''}`}
                             placeholder="Email"
                             type="email"
                             disabled={initiatedProcess || activeStep > 0}
@@ -660,7 +668,28 @@ export const ConfirmClaimLinkIbanView = ({
                 >
                     Return
                 </button>
-                {errorState.showError && (
+                {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">
+                            KYC is under review, we might need additional documents. Please reach out via{' '}
+                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                discord
+                            </a>{' '}
+                            to finish the process.
+                        </label>
+                    </div>
+                ) : errorState.errorMessage === 'KYC rejected' ? (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">
+                            KYC has been rejected. Please reach out via{' '}
+                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                {' '}
+                                discord{' '}
+                            </a>{' '}
+                            .
+                        </label>
+                    </div>
+                ) : (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
