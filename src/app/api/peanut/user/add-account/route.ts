@@ -12,18 +12,6 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
 
-        console.log(
-            JSON.stringify({
-                apiKey,
-                userId,
-                bridgeCustomerId,
-                bridgeAccountId,
-                accountType,
-                accountIdentifier,
-                accountDetails,
-            })
-        )
-
         const response = await fetch(`https://api.staging.peanut.to/user/create-account`, {
             method: 'POST',
             headers: {

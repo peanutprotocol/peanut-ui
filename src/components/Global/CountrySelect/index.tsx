@@ -25,7 +25,6 @@ const CountryDropdown: React.FC<CountryDropdownProps> = ({ value, onChange, erro
                 value={country}
                 placeholder="Country"
                 onChange={(value: any) => {
-                    console.log('value', value)
                     onChange(value)
                 }}
                 classButton={`px-4 py-2 w-full max-h-12 font-normal ${error ? 'border-red' : 'border-n-1'}`}

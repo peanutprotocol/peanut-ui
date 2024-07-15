@@ -21,13 +21,40 @@ export const SuccessClaimLinkIbanView = ({
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'profile'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Name</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {offrampForm.name}
+                    </span>
+                </div>
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'email'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Email</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {offrampForm.email}
+                    </span>
+                </div>
+
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'money-in'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Bank account</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {offrampForm.recipient}
+                    </span>
+                </div>
+
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
                         <Icon name={'forward'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Route</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {claimLinkData.tokenSymbol} (
-                        {consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name}){' '}
-                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
+                        Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
                         <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                     </span>
                 </div>
@@ -38,7 +65,7 @@ export const SuccessClaimLinkIbanView = ({
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         $0
-                        <MoreInfo text={`Peanut's paying! Enjoy!`} />
+                        <MoreInfo text={'Fees are on us, enjoy!'} />
                     </span>
                 </div>
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
