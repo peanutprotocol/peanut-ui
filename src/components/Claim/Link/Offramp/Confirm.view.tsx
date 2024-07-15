@@ -350,7 +350,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <div className="flex w-full flex-col items-start justify-center gap-2">
                         <input
                             {...registerOfframp('name', { required: 'This field is required' })}
-                            className={`custom-input-xs custom-input ${errors.name ? 'border border-red' : ''}`}
+                            className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
                             placeholder="Full name"
                             disabled={initiatedProcess || activeStep > 0}
                         />
@@ -358,7 +358,7 @@ export const ConfirmClaimLinkIbanView = ({
 
                         <input
                             {...registerOfframp('email', { required: 'This field is required' })}
-                            className={`custom-input-xs custom-input ${errors.email ? 'border border-red' : ''}`}
+                            className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
                             placeholder="Email"
                             type="email"
                             disabled={initiatedProcess || activeStep > 0}
