@@ -31,6 +31,7 @@
         "autoprefixer": "^10.4.14",
         "awesome-phonenumber": "^6.8.0",
         "axios": "^1.4.0",
+        "chakra-ui-steps": "^2.1.0",
         "country-list": "^2.3.0",
         "encoding": "^0.1.13",
         "eslint-config-next": "^14.1.1",

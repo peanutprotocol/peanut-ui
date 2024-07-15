@@ -6,7 +6,6 @@ export async function POST(request: NextRequest) {
     try {
         const url = new URL(request.url)
         const customerId = url.searchParams.get('customerId')
-        console.log('customerId:', customerId)
         if (!customerId) {
             throw new Error('Customer ID is required')
         }
@@ -49,12 +48,11 @@ export async function POST(request: NextRequest) {
                 },
                 account_owner_name: accountOwnerName,
                 account_type: 'us',
+                account_owner_type: 'individual',
             }
         } else {
             throw new Error('Invalid account type')
         }
-
-        console.log('body:', body)
 
         const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
             method: 'POST',
@@ -66,8 +64,6 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify(body),
         })
-
-        console.log('response:', response)
 
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`)

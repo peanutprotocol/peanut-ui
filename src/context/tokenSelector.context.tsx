@@ -60,7 +60,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     if (!isCurrent) {
                         return // if landed here, fetch outdated so discard the result
                     }
-                    console.log(tokenPriceResponse)
                     if (tokenPriceResponse?.price) {
                         setSelectedTokenPrice(tokenPriceResponse.price)
 

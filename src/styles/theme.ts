@@ -1,5 +1,5 @@
 import { extendTheme } from '@chakra-ui/react'
-import * as consts from '@/constants'
+import { StepsTheme as Steps } from 'chakra-ui-steps'
 
 const config = {
     initialColorMode: 'light' as 'light',
@@ -30,5 +30,9 @@ export const theme = extendTheme({
             800: '#0277bd',
             900: '#01579b',
         },
+    },
+
+    components: {
+        Steps,
     },
 })

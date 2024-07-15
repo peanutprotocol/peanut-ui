@@ -26,7 +26,6 @@ export function middleware(request: NextRequest) {
 }
 
 const isPromoLink = (url: URL) => {
-    console.log(url)
     const linkChainId = url.searchParams.get('promo')
     const linkVersion = url.searchParams.get('id')
 

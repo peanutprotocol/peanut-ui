@@ -137,7 +137,6 @@ export const InitialClaimLinkView = ({
             if (user) {
                 setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
-                console.log('user', user)
                 const account = user.accounts.find(
                     (account: any) =>
                         account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
@@ -233,7 +232,10 @@ export const InitialClaimLinkView = ({
                         toToken: selectedTokenAddress,
                         slippage: 1,
                         fromAddress: claimLinkData.senderAddress,
-                        toAddress: recipient.address ? recipient.address : (address ?? ''),
+
+                        toAddress: recipient.address
+                            ? recipient.address
+                            : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
                     })
                     setRoutes([...routes, route])
                     setSelectedRoute(route)
