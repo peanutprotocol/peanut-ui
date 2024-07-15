@@ -113,13 +113,9 @@ export const ConfirmClaimLinkIbanView = ({
             setActiveStep(3)
         } catch (error: any) {
             console.error('Error during the submission process:', error)
-            if (error.message === 'KYC is under review.') {
-                setErrorState({ showError: true, errorMessage: 'KYC is under review. Please come back later' })
-            } else if (error.message === 'TOS is under review.') {
-                setErrorState({ showError: true, errorMessage: 'TOS is under review. Please come back later' })
-            } else {
-                setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-            }
+
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+
             setLoadingState('Idle')
         } finally {
             setLoadingState('Idle')
@@ -127,74 +123,94 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     const handleTOSStatus = async () => {
-        // Handle TOS status
-        if (!customerObject) return
-        const { tos_status: tosStatus, id, tos_link } = customerObject
+        try {
+            // Handle TOS status
+            if (!customerObject) return
+            const { tos_status: tosStatus, id, tos_link } = customerObject
 
-        if (tosStatus !== 'approved') {
-            setLoadingState('Awaiting TOS confirmation')
+            if (tosStatus !== 'approved') {
+                setLoadingState('Awaiting TOS confirmation')
 
-            console.log('Awaiting TOS confirmation...')
-            await _utils.awaitStatusCompletion(
-                id,
-                'tos',
-                tosStatus,
-                tos_link,
-                setTosLinkOpened,
-                setKycLinkOpened,
-                tosLinkOpened,
-                kycLinkOpened
-            )
-        } else {
-            console.log('TOS already approved.')
+                console.log('Awaiting TOS confirmation...')
+                await _utils.awaitStatusCompletion(
+                    id,
+                    'tos',
+                    tosStatus,
+                    tos_link,
+                    setTosLinkOpened,
+                    setKycLinkOpened,
+                    tosLinkOpened,
+                    kycLinkOpened
+                )
+            } else {
+                console.log('TOS already approved.')
+            }
+            setLoadingState('Idle')
+            goToNext()
+        } catch (error) {
+            console.error('Error during the submission process:', error)
+
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+
+            setLoadingState('Idle')
+        } finally {
+            setLoadingState('Idle')
         }
-        setLoadingState('Idle')
-        goToNext()
     }
 
     const handleKYCStatus = async () => {
-        if (!customerObject) return
-        const { kyc_status: kycStatus, id, kyc_link } = customerObject
-        if (kycStatus === 'under_review') {
-            setErrorState({
-                showError: true,
-                errorMessage: 'KYC under review',
-            })
-        } else if (kycStatus === 'rejected') {
-            setErrorState({
-                showError: true,
-                errorMessage: 'KYC rejected',
-            })
-        } else if (kycStatus !== 'approved') {
-            setLoadingState('Awaiting KYC confirmation')
-            console.log('Awaiting KYC confirmation...')
-            await _utils.awaitStatusCompletion(
-                id,
-                'kyc',
-                kycStatus,
-                kyc_link,
-                setTosLinkOpened,
-                setKycLinkOpened,
-                tosLinkOpened,
-                kycLinkOpened
-            )
-        } else {
-            console.log('KYC already approved.')
+        try {
+            if (!customerObject) return
+            const { kyc_status: kycStatus, id, kyc_link } = customerObject
+            if (kycStatus === 'under_review') {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'KYC under review',
+                })
+            } else if (kycStatus === 'rejected') {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'KYC rejected',
+                })
+            } else if (kycStatus !== 'approved') {
+                setLoadingState('Awaiting KYC confirmation')
+                console.log('Awaiting KYC confirmation...')
+                await _utils.awaitStatusCompletion(
+                    id,
+                    'kyc',
+                    kycStatus,
+                    kyc_link,
+                    setTosLinkOpened,
+                    setKycLinkOpened,
+                    tosLinkOpened,
+                    kycLinkOpened
+                )
+            } else {
+                console.log('KYC already approved.')
+            }
+
+            // Get customer ID
+            const customer = await _utils.getStatus(customerObject.id, 'customer_id')
+            setCustomerObject({ ...customerObject, customer_id: customer.customer_id })
+
+            const { email, name } = watchOfframp()
+            // Create a user in our DB
+            const peanutUser = await _utils.createUser(customer.customer_id, email, name)
+            setPeanutUser(peanutUser.user)
+
+            recipientType === 'us' && setAddressRequired(true)
+            setLoadingState('Idle')
+
+            goToNext()
+        } catch (error) {
+            console.error('Error during the submission process:', error)
+
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+
+            setLoadingState('Idle')
+        } finally {
+            setLoadingState('Idle')
         }
-
-        // Get customer ID
-        const customer = await _utils.getStatus(customerObject.id, 'customer_id')
-        setCustomerObject({ ...customerObject, customer_id: customer.customer_id })
-
-        const { email, name } = watchOfframp()
-        // Create a user in our DB
-        const peanutUser = await _utils.createUser(customer.customer_id, email, name)
-        setPeanutUser(peanutUser.user)
-
-        recipientType === 'us' && setAddressRequired(true)
-        setLoadingState('Idle')
-
-        goToNext()
     }
 
     const handleSubmitLinkIban = async () => {
@@ -269,6 +285,8 @@ export const ConfirmClaimLinkIbanView = ({
             setLoadingState('Idle')
         } catch (error) {
             console.error('Error during the submission process:', error)
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+
             setLoadingState('Idle')
         }
     }
@@ -310,6 +328,8 @@ export const ConfirmClaimLinkIbanView = ({
             }
         } catch (error) {
             console.error('Error during the submission process:', error)
+
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
             setLoadingState('Idle')
         }
     }
