@@ -17,10 +17,10 @@ import * as utils from '@/utils'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
 
 const steps = [
-    { label: 'Step 1: Provide personal information' },
+    { label: 'Step 1: Provide personal details' },
     { label: 'Step 2: Agree to TOS' },
     { label: 'Step 3: Complete KYC' },
-    { label: 'Step 4: Submit Account Number' },
+    { label: 'Step 4: Link bank account' },
 ]
 
 export const ConfirmClaimLinkIbanView = ({
@@ -107,6 +107,10 @@ export const ConfirmClaimLinkIbanView = ({
                 setActiveStep(2)
                 return
             }
+            recipientType === 'us' && setAddressRequired(true)
+            const peanutUser = await _utils.createUser(data.customer_id, inputFormData.email, inputFormData.name)
+            setPeanutUser(peanutUser.user)
+            setActiveStep(3)
         } catch (error: any) {
             console.error('Error during the submission process:', error)
             if (error.message === 'KYC is under review.') {
@@ -228,6 +232,8 @@ export const ConfirmClaimLinkIbanView = ({
                 address,
                 accountOwnerName
             )
+
+            console.log(peanutUser)
 
             const pAccount = await _utils.createAccount(
                 peanutUser.user_id,
@@ -527,7 +533,7 @@ export const ConfirmClaimLinkIbanView = ({
                                     <Loading /> {loadingState}
                                 </div>
                             ) : (
-                                'Submit'
+                                'Confirm'
                             )}
                         </button>{' '}
                     </div>
@@ -637,7 +643,13 @@ export const ConfirmClaimLinkIbanView = ({
                         className="btn-purple btn-xl"
                         disabled={isLoading}
                     >
-                        Confirm
+                        {isLoading ? (
+                            <div className="flex w-full flex-row items-center justify-center gap-2">
+                                <Loading /> {loadingState}
+                            </div>
+                        ) : (
+                            'Claim now'
+                        )}
                     </button>
                 )}
                 <button
