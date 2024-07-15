@@ -91,8 +91,6 @@ export const ConfirmClaimLinkIbanView = ({
         try {
             setLoadingState('Getting KYC status')
 
-            console.log(inputFormData)
-
             let data = await _utils.getUserLinks(inputFormData)
             setCustomerObject(data)
 
@@ -257,8 +255,6 @@ export const ConfirmClaimLinkIbanView = ({
                 accountOwnerName
             )
 
-            console.log(peanutUser)
-
             const pAccount = await _utils.createAccount(
                 peanutUser.user_id,
                 customerId,
@@ -295,14 +291,13 @@ export const ConfirmClaimLinkIbanView = ({
         try {
             const formData = accountFormWatch()
             setLoadingState('Submitting Offramp')
-            console.log('liquidationAddressINfo:', liquidationAddress)
+            console.log('liquidationAddressInfo:', liquidationAddress)
             if (!liquidationAddress) return
             const hash = await claimLink({
                 address: liquidationAddress.address,
                 link: claimLinkData.link,
             })
             if (hash) {
-                console.log(customerObject, peanutUser)
                 utils.saveOfframpLinkToLocalstorage({
                     data: {
                         ...claimLinkData,

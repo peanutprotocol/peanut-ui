@@ -54,8 +54,6 @@ export async function POST(request: NextRequest) {
             throw new Error('Invalid account type')
         }
 
-        console.log('Creating external account:', body)
-
         const response = await fetch(`https://api.bridge.xyz/v0/customers/${customerId}/external_accounts`, {
             method: 'POST',
             headers: {
