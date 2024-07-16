@@ -34,7 +34,9 @@ export const Claim = ({}) => {
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
-    const [liquidationAddress, setLiquidationAddress] = useState<interfaces.IBridgeLiquidationAddress | null>(null)
+    const [liquidationAddress, setLiquidationAddress] = useState<interfaces.IBridgeLiquidationAddress | undefined>(
+        undefined
+    )
     const [peanutUser, setPeanutUser] = useState<any>(null)
     const [peanutAccount, setPeanutAccount] = useState<any>(null)
 
@@ -44,28 +46,19 @@ export const Claim = ({}) => {
         email: '',
         recipient: '',
     })
+    const [offrampXchainNeeded, setOfframpXchainNeeded] = useState<boolean>(false)
+    const [offrampChainAndToken, setOfframpChainAndToken] = useState<{
+        chain: string
+        token: string
+    }>({
+        chain: '',
+        token: '',
+    })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
     const { address } = useAccount()
     const { getAttachmentInfo, estimatePoints } = useClaimLink()
-
-    const isOfframpPossible = useMemo(() => {
-        return (
-            (claimLinkData?.chainId === '10' &&
-                utils.compareTokenAddresses(
-                    claimLinkData?.tokenAddress,
-                    '0x0b2c639c533813f4aa9d7837caf62653d097ff85'
-                )) ||
-            (claimLinkData?.chainId === '10' &&
-                utils.compareTokenAddresses(
-                    claimLinkData?.tokenAddress,
-                    '0x7F5c764cBc14f9669B88837ca1490cCa17c31607'
-                )) ||
-            (claimLinkData?.chainId === '42161' &&
-                utils.compareTokenAddresses(claimLinkData?.tokenAddress, '0xaf88d065e77c8cc2239327c5edb3a432268e5831'))
-        )
-    }, [claimLinkData])
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -232,11 +225,14 @@ export const Claim = ({}) => {
                             setOfframpForm,
                             liquidationAddress,
                             setLiquidationAddress,
-                            isOfframpPossible,
                             peanutUser,
                             setPeanutUser,
                             peanutAccount,
                             setPeanutAccount,
+                            offrampXchainNeeded,
+                            setOfframpXchainNeeded,
+                            offrampChainAndToken,
+                            setOfframpChainAndToken,
                         } as _consts.IClaimScreenProps
                     }
                 />

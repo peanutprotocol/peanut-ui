@@ -40,6 +40,8 @@ export const ConfirmClaimLinkIbanView = ({
     setPeanutAccount,
     peanutUser,
     setPeanutUser,
+    offrampChainAndToken,
+    offrampXchainNeeded,
 }: _consts.IClaimScreenProps) => {
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
@@ -51,7 +53,7 @@ export const ConfirmClaimLinkIbanView = ({
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [initiatedProcess, setInitiatedProcess] = useState<boolean>(false)
-    const { claimLink } = useClaimLink()
+    const { claimLink, claimLinkXchain } = useClaimLink()
 
     const {
         register: registerOfframp,
@@ -268,8 +270,8 @@ export const ConfirmClaimLinkIbanView = ({
 
             const liquidationAddressDetails = await _utils.createLiquidationAddress(
                 customerObject.customer_id ?? '',
-                claimLinkData.chainId,
-                claimLinkData.tokenAddress,
+                offrampChainAndToken.chain,
+                offrampChainAndToken.token,
                 data.id,
                 recipientType === 'iban' ? 'sepa' : 'ach',
                 recipientType === 'iban' ? 'eur' : 'usd'
@@ -293,10 +295,38 @@ export const ConfirmClaimLinkIbanView = ({
             setLoadingState('Submitting Offramp')
             console.log('liquidationAddressInfo:', liquidationAddress)
             if (!liquidationAddress) return
-            const hash = await claimLink({
-                address: liquidationAddress.address,
-                link: claimLinkData.link,
+            const chainId = _utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
+            const tokenAddress =
+                _utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
+            console.log({
+                offrampXchainNeeded,
+                offrampChainAndToken,
+                liquidationAddress,
+                claimLinkData,
+                chainId,
+                tokenAddress,
             })
+
+            let hash
+            if (offrampXchainNeeded) {
+                const chainId = _utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
+                const tokenAddress =
+                    _utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
+                hash = await claimLinkXchain({
+                    address: liquidationAddress.address,
+                    link: claimLinkData.link,
+                    destinationChainId: chainId,
+                    destinationToken: tokenAddress,
+                })
+            } else {
+                hash = await claimLink({
+                    address: liquidationAddress.address,
+                    link: claimLinkData.link,
+                })
+            }
+
+            console.log(hash)
+
             if (hash) {
                 utils.saveOfframpLinkToLocalstorage({
                     data: {
@@ -350,7 +380,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <div className="flex w-full flex-col items-start justify-center gap-2">
                         <input
                             {...registerOfframp('name', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
+                            className={`custom-input-xs custom-input ${errors.name ? 'border border-red' : ''}`}
                             placeholder="Full name"
                             disabled={initiatedProcess || activeStep > 0}
                         />
@@ -358,7 +388,7 @@ export const ConfirmClaimLinkIbanView = ({
 
                         <input
                             {...registerOfframp('email', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
+                            className={`custom-input-xs custom-input ${errors.email ? 'border border-red' : ''}`}
                             placeholder="Email"
                             type="email"
                             disabled={initiatedProcess || activeStep > 0}
@@ -677,7 +707,23 @@ export const ConfirmClaimLinkIbanView = ({
                 )}
                 <button
                     className="btn btn-xl dark:border-white dark:text-white"
-                    onClick={onPrev} // TODO: add reset of everything
+                    onClick={() => {
+                        onPrev()
+                        setActiveStep(0)
+                        setErrorState({ showError: false, errorMessage: '' })
+                        setOfframpForm({ email: '', name: '', recipient: '' })
+                        setAccountFormValue('accountNumber', '')
+                        setAccountFormValue('BIC', '')
+                        setAccountFormValue('routingNumber', '')
+                        setAccountFormValue('street', '')
+                        setAccountFormValue('city', '')
+                        setAccountFormValue('state', '')
+                        setAccountFormValue('postalCode', '')
+                        setAccountFormValue('country', '')
+                        setPeanutAccount({ account_id: '', bridge_account_id: '', user_id: '' })
+                        setPeanutUser({ user_id: '', bridge_customer_id: '' })
+                        setLiquidationAddress(undefined)
+                    }} // TODO: add reset of everything
                     disabled={isLoading}
                     type="button"
                 >

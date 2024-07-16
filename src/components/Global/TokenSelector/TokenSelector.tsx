@@ -151,7 +151,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                 open()
                             }}
                         >
-                            Create or Connect wallet
+                            Create or Connect Wallet
                         </button>
                         <div className="flex w-full flex-col gap-2 text-center text-h8 font-normal">
                             We support 30+ chains and 1000+ tokens.

@@ -298,8 +298,8 @@ export const validateAccountFormData = (formData: any, setAccountFormError: any)
 
 export const createLiquidationAddress = async (
     customerId: string,
-    chainId: string,
-    tokenAddress: string,
+    chainName: string,
+    tokenName: string,
     externalAccountId: string,
     destinationPaymentRail: string,
     destinationCurrency: string
@@ -311,11 +311,8 @@ export const createLiquidationAddress = async (
         },
         body: JSON.stringify({
             customer_id: customerId,
-            chain: _consts.chainDictionary.find((chain) => chain.chainId === chainId)?.chain,
-            currency: _consts.tokenArray
-                .find((chain) => chain.chainId === chainId)
-                ?.tokens.find((token) => utils.compareTokenAddresses(token.address, tokenAddress))
-                ?.token.toLowerCase(),
+            chain: chainName,
+            currency: tokenName,
             external_account_id: externalAccountId,
             destination_payment_rail: destinationPaymentRail,
             destination_currency: destinationCurrency,
@@ -360,4 +357,30 @@ export function getThreeCharCountryCodeFromIban(iban: string): string {
     }
 
     return threeCharCountryCode
+}
+
+export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {
+    const token = _consts.supportedBridgeTokensDictionary
+        .find((chain) => chain.chainId === chainId)
+        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, tokenAddress))
+        ?.token.toLowerCase()
+
+    return token ?? undefined
+}
+
+export function getBridgeChainName(chainId: string): string | undefined {
+    const chain = _consts.supportedBridgeChainsDictionary.find((chain) => chain.chainId === chainId)?.chain
+    return chain ?? undefined
+}
+
+export function getTokenAddressFromBridgeTokenName(chainId: string, tokenName: string): string | undefined {
+    const token = _consts.supportedBridgeTokensDictionary
+        .find((chain) => chain.chainId === chainId)
+        ?.tokens.find((token) => token.token === tokenName.toLowerCase())?.address
+
+    return token ?? undefined
+}
+export function getChainIdFromBridgeChainName(chainName: string): string | undefined {
+    const chain = _consts.supportedBridgeChainsDictionary.find((chain) => chain.chain === chainName)?.chainId
+    return chain ?? undefined
 }
