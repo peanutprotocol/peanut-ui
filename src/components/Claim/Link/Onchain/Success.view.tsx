@@ -36,7 +36,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
 
     async function checkTransactionStatus(txHash: string): Promise<void> {
         try {
-            const response = await axios.get('https://v2.api.squidrouter.com/v2/status', {
+            const response = await axios.get('https://apiplus.squidrouter.com/v2/status', {
                 params: { transactionId: txHash },
                 headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' },
             })
