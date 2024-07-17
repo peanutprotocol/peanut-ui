@@ -234,7 +234,7 @@ export const InitialClaimLinkView = ({
                         fromAddress: claimLinkData.senderAddress,
                         toAddress: recipient.address
                             ? recipient.address
-                            : address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045',
+                            : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
                     })
                     setRoutes([...routes, route])
                     setSelectedRoute(route)
@@ -375,7 +375,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : recipient.address ?? ''}
+                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)
