@@ -596,6 +596,10 @@ export const ConfirmClaimLinkIbanView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">
+            <p className="text-h8 font-normal">
+                This is your first time using a bank account on peanut. You'll have to pass a brief KYC check to
+                proceed.
+            </p>
             <Steps
                 variant={'circles'}
                 orientation="vertical"
