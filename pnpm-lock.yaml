@@ -6531,10 +6531,17 @@ packages:
             }
         dev: false
 
+<<<<<<< HEAD
     /@squirrel-labs/peanut-sdk@0.4.60:
         resolution:
             {
                 integrity: sha512-tgspWfh2ppif+5lPT1FscxGhNs8TqS6P9TMHvwqwY5Uu8J6E+e++vcv5WpkeBH1HKZzyptebhjewRjTIrhsWCQ==,
+=======
+    /@squirrel-labs/peanut-sdk@0.4.53:
+        resolution:
+            {
+                integrity: sha512-kEKGAXCpzwNbxibpA1DJWzYq+Vqtzk30M73tTXRqybG3Fduu1pgBWEbSkpri7EFlJ/+MYFwDizxHjkhhZo/SJw==,
+>>>>>>> 022985f (Prettified Code!)
             }
         dependencies:
             ethersv5: /ethers@5.7.2
