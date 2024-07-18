@@ -10,9 +10,11 @@ export const SuccessClaimLinkIbanView = ({
     offrampForm,
     tokenPrice,
     recipientType,
+    transactionHash,
 }: _consts.IClaimScreenProps) => {
+    const blockExplorerUrl = utils.getExplorerUrl(claimLinkData.chainId)
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
+        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
             <label className="text-h8 font-bold ">
                 Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please keep
@@ -40,7 +42,7 @@ export const SuccessClaimLinkIbanView = ({
 
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'money-in'} className="h-4 fill-gray-1" />
+                        <Icon name={'bank'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Bank account</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -71,7 +73,7 @@ export const SuccessClaimLinkIbanView = ({
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                     <div className="flex w-max  flex-row items-center justify-center gap-1">
                         <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Total received</label>
+                        <label className="font-bold">Total</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
@@ -84,6 +86,15 @@ export const SuccessClaimLinkIbanView = ({
                     Make a payment
                 </Link>
             </div>
+            <Link
+                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                href={`${blockExplorerUrl}/tx/${transactionHash}`}
+            >
+                <div className=" border border-n-1 p-0 px-1">
+                    <Icon name="dashboard" className="-mt-0.5" />
+                </div>
+                See transaction confirmation
+            </Link>
         </div>
     )
 }

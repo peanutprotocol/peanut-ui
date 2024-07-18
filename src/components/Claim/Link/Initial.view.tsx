@@ -137,7 +137,7 @@ export const InitialClaimLinkView = ({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingState('Getting deposit details')
+            setLoadingState('Fetching route')
             let tokenName = _utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
             let chainName = _utils.getBridgeChainName(claimLinkData.chainId)
 
@@ -294,7 +294,7 @@ export const InitialClaimLinkView = ({
                             ? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
+                              : address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -313,6 +313,13 @@ export const InitialClaimLinkView = ({
             setLoadingState('Idle')
         }
     }
+
+    useEffect(() => {
+        if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
+            setSelectedRoute(undefined)
+            setHasFetchedRoute(false)
+        }
+    }, [recipientType])
 
     return (
         <>
@@ -353,6 +360,8 @@ export const InitialClaimLinkView = ({
                             {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
                         </label>
                     )}
+                </div>
+                <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                     <TokenSelectorXChain
                         data={mappedData}
                         chainName={
@@ -426,12 +435,10 @@ export const InitialClaimLinkView = ({
                         }}
                         isStatic={recipientType === 'iban' || recipientType === 'us' ? true : false}
                     />
-                </div>
-                <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)
@@ -592,24 +599,19 @@ export const InitialClaimLinkView = ({
                                 <>
                                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
-                                        <label className="text-h8 font-normal text-red">
-                                            {' '}
-                                            Click{' '}
-                                            <span
-                                                className="cursor-pointer text-h8 font-normal text-red underline"
-                                                onClick={() => {
-                                                    setSelectedRoute(null)
-                                                    setHasFetchedRoute(false)
-                                                    setErrorState({
-                                                        showError: false,
-                                                        errorMessage: '',
-                                                    })
-                                                }}
-                                            >
-                                                here
-                                            </span>
-                                            to reset.
-                                        </label>
+                                        <span
+                                            className="cursor-pointer text-h8 font-normal text-red underline"
+                                            onClick={() => {
+                                                setSelectedRoute(null)
+                                                setHasFetchedRoute(false)
+                                                setErrorState({
+                                                    showError: false,
+                                                    errorMessage: '',
+                                                })
+                                            }}
+                                        >
+                                            reset
+                                        </span>
                                     )}
                                 </>
                             )}
