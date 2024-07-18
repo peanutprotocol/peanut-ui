@@ -181,6 +181,8 @@ export const InitialClaimLinkView = ({
             if (user) {
                 setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
+                console.log(user)
+
                 const account = user.accounts.find(
                     (account: any) =>
                         account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
@@ -192,12 +194,16 @@ export const InitialClaimLinkView = ({
 
                 console.log(chainName, tokenName)
 
+                console.log(account.bridge_account_id)
+
                 let liquidationAddressDetails = allLiquidationAddresses.find(
                     (address) =>
                         address.chain === chainName &&
                         address.currency === tokenName &&
                         address.external_account_id === account.bridge_account_id
                 )
+
+                console.log(liquidationAddressDetails)
 
                 if (!liquidationAddressDetails) {
                     liquidationAddressDetails = await _utils.createLiquidationAddress(
@@ -218,6 +224,10 @@ export const InitialClaimLinkView = ({
             onNext()
         } catch (error) {
             console.log('error', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'You can not claim this link to your bank account.',
+            })
         } finally {
             setLoadingState('Idle')
         }
@@ -284,7 +294,7 @@ export const InitialClaimLinkView = ({
                             ? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
+                              : address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -421,7 +431,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)

@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
         const idempotencyKey = uuidv4()
 
-        const response = await fetch(`https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`, {
+        let response = await fetch(`https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`, {
             method: 'POST',
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,
@@ -31,11 +31,29 @@ export async function POST(request: NextRequest) {
             }),
         })
 
-        if (!response.ok) {
+        let data: IBridgeLiquidationAddress = await response.json()
+
+        if (
+            //@ts-ignore
+            data.code === 'invalid_parameters' && //@ts-ignore
+            data.message ===
+                'Liquidation address with this external account on this chain, currency and destination_payment_rail already exists for this customer'
+        ) {
+            response = await fetch(
+                `https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses/${data.id}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Api-Key': 'sk-live-6ac1755eab8bdb95a455ab1e9515b525',
+                        accept: 'application/json',
+                    },
+                }
+            )
+
+            data = await response.json()
+        } else if (!response.ok) {
             throw new Error(`Failed to create liquidation address: ${response.status}`)
         }
-
-        const data: IBridgeLiquidationAddress = await response.json()
 
         return new NextResponse(JSON.stringify(data), {
             status: 200,
