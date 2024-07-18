@@ -15,6 +15,7 @@ import CountryDropdown from '@/components/Global/CountrySelect'
 import useClaimLink from '../../useClaimLink'
 import * as utils from '@/utils'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
+import * as consts from '@/constants'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -663,11 +664,24 @@ export const ConfirmClaimLinkIbanView = ({
                             <Icon name={'forward'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Route</label>
                         </div>
-                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                            {recipientType.toUpperCase()}{' '}
-                            <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                        </span>
+                        {offrampXchainNeeded ? (
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {
+                                    consts.supportedPeanutChains.find(
+                                        (chain) => chain.chainId === claimLinkData.chainId
+                                    )?.name
+                                }{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        ) : (
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        )}
                     </div>
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
