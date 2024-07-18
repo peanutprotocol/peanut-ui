@@ -14,6 +14,7 @@ type AddressInputProps = {
     _setIsValidRecipient: any
     setIsValueChanging?: any
     setRecipientType: any
+    onDeleteClick: any
 }
 
 const AddressInput = ({
@@ -23,6 +24,7 @@ const AddressInput = ({
     _setIsValidRecipient,
     setIsValueChanging,
     setRecipientType,
+    onDeleteClick,
 }: AddressInputProps) => {
     const [userInput, setUserInput] = useState<string>(value)
     const [recipient, setAddress] = useState<string>(value)
@@ -159,11 +161,12 @@ const AddressInput = ({
                         />
                     </div>
                 ) : (
-                    !isValidRecipient && (
+                    userInput && (
                         <button
                             onClick={(e) => {
                                 e.preventDefault()
                                 setUserInput('')
+                                onDeleteClick()
                             }}
                             className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white"
                         >

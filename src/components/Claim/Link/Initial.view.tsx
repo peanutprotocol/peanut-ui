@@ -453,6 +453,9 @@ export const InitialClaimLinkView = ({
                         setRecipientType={(type: interfaces.RecipientType) => {
                             setRecipientType(type)
                         }}
+                        onDeleteClick={() => {
+                            setRecipientType('address')
+                        }}
                     />
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">

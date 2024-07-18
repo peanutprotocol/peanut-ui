@@ -50,7 +50,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 setShowModal(true)
                             }}
                         >
-                            <p className="px-4 py-2 text-h4 text-white">Sign up and get!</p>
+                            <p className="px-4 py-2 text-h4 text-white">Sign up and get rewards!</p>
                             <img src={assets.SMILEY_ICON.src} className="h-6 w-6 fill-white" />
                         </MarqueeWrapper>
                         <div className="flex grow justify-center">
