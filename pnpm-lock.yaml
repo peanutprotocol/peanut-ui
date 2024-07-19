@@ -6535,7 +6535,6 @@ packages:
         resolution:
             {
                 integrity: sha512-tgspWfh2ppif+5lPT1FscxGhNs8TqS6P9TMHvwqwY5Uu8J6E+e++vcv5WpkeBH1HKZzyptebhjewRjTIrhsWCQ==,
-
             }
         dependencies:
             ethersv5: /ethers@5.7.2
