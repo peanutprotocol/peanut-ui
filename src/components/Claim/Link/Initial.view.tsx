@@ -224,7 +224,7 @@ export const InitialClaimLinkView = ({
                     ).toString()
 
                     const route = await getSquidRouteRaw({
-                        squidRouterUrl: 'https://v2.api.squidrouter.com/v2/route',
+                        squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                         fromChain: claimLinkData.chainId.toString(),
                         fromToken: claimLinkData.tokenAddress.toLowerCase(),
                         fromAmount: tokenAmount,
@@ -232,7 +232,6 @@ export const InitialClaimLinkView = ({
                         toToken: selectedTokenAddress,
                         slippage: 1,
                         fromAddress: claimLinkData.senderAddress,
-
                         toAddress: recipient.address
                             ? recipient.address
                             : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),

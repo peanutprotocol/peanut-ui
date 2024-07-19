@@ -110,12 +110,31 @@ export const Claim = ({}) => {
             if (crossChainDetails.length > 0 && contractVersionCheck) {
                 const xchainDetails = sortCrossChainDetails(
                     crossChainDetails.filter((chain: any) => chain.chainId != '1'),
-                    consts.supportedPeanutChains
+                    consts.supportedPeanutChains,
+                    linkDetails.chainId
                 )
 
-                setSelectedChainID(xchainDetails[0].chainId)
-                setSelectedTokenAddress(xchainDetails[0].tokens[0].address)
-                return xchainDetails
+                const tokenToRemove = xchainDetails
+                    .find((chain) => chain.chainId === claimLinkData?.chainId)
+                    ?.tokens.find((token: any) =>
+                        utils.compareTokenAddresses(token.address, claimLinkData?.tokenAddress)
+                    )
+
+                const filteredXchainDetails = xchainDetails.map((chain) => {
+                    if (chain.chainId === claimLinkData?.chainId) {
+                        return {
+                            ...chain,
+                            tokens: chain.tokens.filter(
+                                (token: any) => !utils.compareTokenAddresses(token.address, tokenToRemove?.address)
+                            ),
+                        }
+                    }
+                    return chain
+                })
+
+                setSelectedChainID(filteredXchainDetails[0].chainId)
+                setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)
+                return filteredXchainDetails
             } else {
                 return undefined
             }
@@ -125,9 +144,12 @@ export const Claim = ({}) => {
         }
     }
 
-    const sortCrossChainDetails = (details: any[], order: any[]) => {
+    const sortCrossChainDetails = (details: any[], order: any[], sourceChainId: string) => {
         const orderMap = new Map(order.map((item, index) => [item.chainId, index]))
         return details.sort((a, b) => {
+            if (a.chainId === sourceChainId) return -1
+            if (b.chainId === sourceChainId) return 1
+
             const indexA = orderMap.get(a.chainId)
             const indexB = orderMap.get(b.chainId)
             if (indexA === undefined || indexB === undefined) {
