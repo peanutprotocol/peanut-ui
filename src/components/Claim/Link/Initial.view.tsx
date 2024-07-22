@@ -258,6 +258,7 @@ export const InitialClaimLinkView = ({
                 showError: false,
                 errorMessage: '',
             })
+
             fetchRoute()
             setRefetchXchainRoute(false)
         }
@@ -295,6 +296,7 @@ export const InitialClaimLinkView = ({
                             : recipient.address
                               ? recipient.address
                               : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
+
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -542,7 +544,7 @@ export const InitialClaimLinkView = ({
                         </div>
                     )}
                 </div>{' '}
-                <div className="flex w-full flex-col items-center justify-center gap-2">
+                <div className="flex w-full flex-col items-center justify-center gap-4">
                     <button
                         className="btn-purple btn-xl"
                         onClick={() => {
@@ -577,15 +579,13 @@ export const InitialClaimLinkView = ({
                     </button>
                     {!isValidRecipient && (
                         <div
-                            className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center gap-1 self-center text-h7 text-purple-1"
+                            className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
                             onClick={() => {
                                 handleConnectWallet()
                             }}
                         >
-                            <img src={assets.WALLETCONNECT_LOGO.src} className="h-4 w-4" />
-                            <label className="cursor-pointer">
-                                {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect or Create wallet'}
-                            </label>
+                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Create or connect a wallet'}
+
                         </div>
                     )}
                     {errorState.showError && (
