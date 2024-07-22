@@ -49,8 +49,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                     <div
                                         className="flex h-full cursor-pointer items-center px-2  font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
                                         onClick={() => {
-                                            if (window?.location.pathname == '/') window?.location.reload()
-                                            else window.location.href = '/'
+                                            window.location.href = 'https://peanut.to'
                                         }}
                                     >
                                         <img src={peanut_logo.src} alt="logo" className="ml-2 h-6 sm:h-10" />
@@ -71,8 +70,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                     <div
                                         className="flex h-full cursor-pointer items-center p-0 text-2xl font-bold uppercase text-white no-underline hover:bg-white hover:text-black"
                                         onClick={() => {
-                                            if (window.location.pathname == '/') window.location.reload()
-                                            else window.location.href = '/'
+                                            window.location.href = 'https://peanut.to'
                                         }}
                                     >
                                         <img src={peanut_logo.src} alt="logo" className="ml-2 h-6 sm:h-10" />
@@ -114,7 +112,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                                         >
                                                             <Popover.Panel className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 uppercase text-white shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                                                                 <Link
-                                                                    href="/send"
+                                                                    href="https://peanut.to/send"
                                                                     className={
                                                                         'hover: block bg-black px-4 py-2 text-base text-black text-white no-underline hover:bg-white hover:text-black'
                                                                     }
@@ -186,7 +184,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                                             </Disclosure.Button>
                                             <Disclosure.Panel className="space-y-1 px-2 ">
                                                 <a
-                                                    href="/send"
+                                                    href="https://peanut.to/send"
                                                     className="flex h-full cursor-pointer items-center px-1 py-2 text-base font-bold text-white no-underline hover:bg-white hover:text-black lg:px-8"
                                                 >
                                                     Transfer
@@ -240,7 +238,7 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                 )}
             </Disclosure>
             {/* <div className="brutalborder-bottom border-black bg-yellow p-2 text-center text-black"> */}
-            <div className="brutalborder-bottom border-black bg-yellow p-2 text-center ">
+            <div className="brutalborder-bottom bg-yellow border-black p-2 text-center ">
                 <a
                     href="https://peanutprotocol.notion.site/TS-Fullstack-Nut-93f621339f744c9b8054a8140d2c06ea?pvs=74"
                     className="text-md font-bold lowercase text-black"
