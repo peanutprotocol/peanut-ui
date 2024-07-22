@@ -15,6 +15,7 @@ import CountryDropdown from '@/components/Global/CountrySelect'
 import useClaimLink from '../../useClaimLink'
 import * as utils from '@/utils'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
+import * as consts from '@/constants'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -40,6 +41,8 @@ export const ConfirmClaimLinkIbanView = ({
     setPeanutAccount,
     peanutUser,
     setPeanutUser,
+    offrampChainAndToken,
+    offrampXchainNeeded,
 }: _consts.IClaimScreenProps) => {
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
@@ -51,7 +54,7 @@ export const ConfirmClaimLinkIbanView = ({
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [initiatedProcess, setInitiatedProcess] = useState<boolean>(false)
-    const { claimLink } = useClaimLink()
+    const { claimLink, claimLinkXchain } = useClaimLink()
 
     const {
         register: registerOfframp,
@@ -268,8 +271,8 @@ export const ConfirmClaimLinkIbanView = ({
 
             const liquidationAddressDetails = await _utils.createLiquidationAddress(
                 customerObject.customer_id ?? '',
-                claimLinkData.chainId,
-                claimLinkData.tokenAddress,
+                offrampChainAndToken.chain,
+                offrampChainAndToken.token,
                 data.id,
                 recipientType === 'iban' ? 'sepa' : 'ach',
                 recipientType === 'iban' ? 'eur' : 'usd'
@@ -293,10 +296,38 @@ export const ConfirmClaimLinkIbanView = ({
             setLoadingState('Submitting Offramp')
             console.log('liquidationAddressInfo:', liquidationAddress)
             if (!liquidationAddress) return
-            const hash = await claimLink({
-                address: liquidationAddress.address,
-                link: claimLinkData.link,
+            const chainId = _utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
+            const tokenAddress =
+                _utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
+            console.log({
+                offrampXchainNeeded,
+                offrampChainAndToken,
+                liquidationAddress,
+                claimLinkData,
+                chainId,
+                tokenAddress,
             })
+
+            let hash
+            if (offrampXchainNeeded) {
+                const chainId = _utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
+                const tokenAddress =
+                    _utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
+                hash = await claimLinkXchain({
+                    address: liquidationAddress.address,
+                    link: claimLinkData.link,
+                    destinationChainId: chainId,
+                    destinationToken: tokenAddress,
+                })
+            } else {
+                hash = await claimLink({
+                    address: liquidationAddress.address,
+                    link: claimLinkData.link,
+                })
+            }
+
+            console.log(hash)
+
             if (hash) {
                 utils.saveOfframpLinkToLocalstorage({
                     data: {
@@ -565,7 +596,11 @@ export const ConfirmClaimLinkIbanView = ({
     }
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 px-2 text-center">
+        <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
+            <p className="text-h8 font-normal">
+                This is your first time using a bank account on peanut. You'll have to pass a brief KYC check to
+                proceed.
+            </p>
             <Steps
                 variant={'circles'}
                 orientation="vertical"
@@ -616,7 +651,7 @@ export const ConfirmClaimLinkIbanView = ({
 
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'money-in'} className="h-4 fill-gray-1" />
+                            <Icon name={'bank'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Bank account</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -629,11 +664,24 @@ export const ConfirmClaimLinkIbanView = ({
                             <Icon name={'forward'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Route</label>
                         </div>
-                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                            {recipientType.toUpperCase()}{' '}
-                            <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                        </span>
+                        {offrampXchainNeeded ? (
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {
+                                    consts.supportedPeanutChains.find(
+                                        (chain) => chain.chainId === claimLinkData.chainId
+                                    )?.name
+                                }{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        ) : (
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        )}
                     </div>
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
@@ -648,7 +696,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
                             <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Total received</label>
+                            <label className="font-bold">Total</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                             ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
@@ -677,7 +725,23 @@ export const ConfirmClaimLinkIbanView = ({
                 )}
                 <button
                     className="btn btn-xl dark:border-white dark:text-white"
-                    onClick={onPrev} // TODO: add reset of everything
+                    onClick={() => {
+                        onPrev()
+                        setActiveStep(0)
+                        setErrorState({ showError: false, errorMessage: '' })
+                        setOfframpForm({ email: '', name: '', recipient: '' })
+                        setAccountFormValue('accountNumber', '')
+                        setAccountFormValue('BIC', '')
+                        setAccountFormValue('routingNumber', '')
+                        setAccountFormValue('street', '')
+                        setAccountFormValue('city', '')
+                        setAccountFormValue('state', '')
+                        setAccountFormValue('postalCode', '')
+                        setAccountFormValue('country', '')
+                        setPeanutAccount({ account_id: '', bridge_account_id: '', user_id: '' })
+                        setPeanutUser({ user_id: '', bridge_customer_id: '' })
+                        setLiquidationAddress(undefined)
+                    }} // TODO: add reset of everything
                     disabled={isLoading}
                     type="button"
                 >

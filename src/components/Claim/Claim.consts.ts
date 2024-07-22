@@ -49,24 +49,22 @@ export interface IClaimScreenProps {
     setRecipientType: (type: interfaces.RecipientType) => void
     offrampForm: IOfframpForm
     setOfframpForm: (form: IOfframpForm) => void
-    liquidationAddress: interfaces.IBridgeLiquidationAddress
-    setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress) => void
+    liquidationAddress: interfaces.IBridgeLiquidationAddress | undefined
+    setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress | undefined) => void
     isOfframpPossible: boolean
     peanutUser: any
     setPeanutUser: (user: any) => void
     peanutAccount: any
     setPeanutAccount: (account: any) => void
+    offrampXchainNeeded: boolean
+    setOfframpXchainNeeded: (needed: boolean) => void
+    offrampChainAndToken: { chain: string; token: string }
+    setOfframpChainAndToken: (chainAndToken: { chain: string; token: string }) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
 
-export const steps = [
-    { title: 'TOS', description: 'Agree to the TOS', buttonText: 'Agree TOS' },
-    { title: 'KYC', description: 'Complete KYC', buttonText: 'Complete KYC' },
-    { title: 'Link Iban', description: 'Link IBAN to your account', buttonText: 'Link IBAN' },
-]
-
-export const chainDictionary = [
+export const supportedBridgeChainsDictionary = [
     {
         chain: 'arbitrum',
         chainId: '42161',
@@ -83,10 +81,17 @@ export const chainDictionary = [
         chain: 'polygon',
         chainId: '137',
     },
-    // TODO: add avax and base both usdc
+    {
+        chain: 'base',
+        chainId: '8453',
+    },
+    {
+        chain: 'avalanche',
+        chainId: '43114',
+    },
 ]
 
-export const tokenArray = [
+export const supportedBridgeTokensDictionary = [
     {
         chainId: '137',
         tokens: [
@@ -136,6 +141,24 @@ export const tokenArray = [
             {
                 token: 'usdc',
                 address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831',
+            },
+        ],
+    },
+    {
+        chainId: '43114',
+        tokens: [
+            {
+                token: 'usdc',
+                address: '0xB97EF9Ef8734C71904D8002F8b6Bc66Dd9c48a6E',
+            },
+        ],
+    },
+    {
+        chainId: '8453',
+        tokens: [
+            {
+                token: 'usdc',
+                address: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
             },
         ],
     },
