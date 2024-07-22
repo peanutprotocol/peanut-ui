@@ -296,7 +296,6 @@ export const InitialClaimLinkView = ({
                             : recipient.address
                               ? recipient.address
                               : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
-
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -585,7 +584,6 @@ export const InitialClaimLinkView = ({
                             }}
                         >
                             {isConnected ? 'Or claim/swap to your connected wallet' : 'Create or connect a wallet'}
-
                         </div>
                     )}
                     {errorState.showError && (
