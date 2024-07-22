@@ -95,7 +95,11 @@ export const Create = () => {
     }
 
     const fetchAndSetCrossChainDetails = async () => {
-        const response = await fetch('https://apiplus.squidrouter.com/v2/chains')
+        const response = await fetch('https://apiplus.squidrouter.com/v2/chains', {
+            headers: {
+                'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C',
+            },
+        })
         if (!response.ok) {
             throw new Error('Squid: Network response was not ok')
         }
