@@ -62,6 +62,7 @@ export const useClaimLink = () => {
                 squidRouterUrl: `${consts.next_proxy_url}/get-squid-route`,
                 baseUrl: `${consts.next_proxy_url}/claim-x-chain`,
                 APIKey: 'doesnt-matter',
+                slippage: 1,
             })
 
             return claimTx.txHash

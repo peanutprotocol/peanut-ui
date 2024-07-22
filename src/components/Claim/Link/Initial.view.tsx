@@ -281,7 +281,7 @@ export const InitialClaimLinkView = ({
                 ).toString()
 
                 const route = await getSquidRouteRaw({
-                    squidRouterUrl: 'https://v2.api.squidrouter.com/v2/route',
+                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                     fromChain: claimLinkData.chainId.toString(),
                     fromToken: claimLinkData.tokenAddress.toLowerCase(),
                     fromAmount: tokenAmount,
@@ -600,19 +600,22 @@ export const InitialClaimLinkView = ({
                                 <>
                                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
-                                        <span
-                                            className="cursor-pointer text-h8 font-normal text-red underline"
-                                            onClick={() => {
-                                                setSelectedRoute(null)
-                                                setHasFetchedRoute(false)
-                                                setErrorState({
-                                                    showError: false,
-                                                    errorMessage: '',
-                                                })
-                                            }}
-                                        >
-                                            reset
-                                        </span>
+                                        <>
+                                            {' '}
+                                            <span
+                                                className="cursor-pointer text-h8 font-normal text-red underline"
+                                                onClick={() => {
+                                                    setSelectedRoute(null)
+                                                    setHasFetchedRoute(false)
+                                                    setErrorState({
+                                                        showError: false,
+                                                        errorMessage: '',
+                                                    })
+                                                }}
+                                            >
+                                                reset
+                                            </span>
+                                        </>
                                     )}
                                 </>
                             )}
