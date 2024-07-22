@@ -145,6 +145,13 @@ export const InitialClaimLinkView = ({
                 console.log('offramp without xchain possible')
                 setOfframpXchainNeeded(false)
             } else {
+                if (!crossChainDetails) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp unavailable',
+                    })
+                    return
+                }
                 console.log('offramp without xchain not possible')
                 const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
                 const optimismChainId = '10'
@@ -295,7 +302,7 @@ export const InitialClaimLinkView = ({
                             ? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
+                              : address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -434,12 +441,14 @@ export const InitialClaimLinkView = ({
                                 errorMessage: '',
                             })
                         }}
-                        isStatic={recipientType === 'iban' || recipientType === 'us' ? true : false}
+                        isStatic={
+                            recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
+                        }
                     />
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)
