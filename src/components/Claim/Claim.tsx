@@ -107,23 +107,21 @@ export const Claim = ({}) => {
                     linkDetails.chainId
                 )
 
-                const tokenToRemove = xchainDetails
-                    .find((chain) => chain.chainId === claimLinkData?.chainId)
-                    ?.tokens.find((token: any) =>
-                        utils.compareTokenAddresses(token.address, claimLinkData?.tokenAddress)
-                    )
+                console.log(xchainDetails)
 
                 const filteredXchainDetails = xchainDetails.map((chain) => {
                     if (chain.chainId === claimLinkData?.chainId) {
                         return {
                             ...chain,
                             tokens: chain.tokens.filter(
-                                (token: any) => !utils.compareTokenAddresses(token.address, tokenToRemove?.address)
+                                (token: any) => !utils.compareTokenAddresses(token.address, claimLinkData?.tokenAddress)
                             ),
                         }
                     }
                     return chain
                 })
+
+                console.log(filteredXchainDetails)
 
                 setSelectedChainID(filteredXchainDetails[0].chainId)
                 setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)
