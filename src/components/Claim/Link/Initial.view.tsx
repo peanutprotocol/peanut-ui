@@ -145,6 +145,13 @@ export const InitialClaimLinkView = ({
                 console.log('offramp without xchain possible')
                 setOfframpXchainNeeded(false)
             } else {
+                if (!crossChainDetails) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp unavailable',
+                    })
+                    return
+                }
                 console.log('offramp without xchain not possible')
                 const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
                 const optimismChainId = '10'
@@ -434,7 +441,9 @@ export const InitialClaimLinkView = ({
                                 errorMessage: '',
                             })
                         }}
-                        isStatic={recipientType === 'iban' || recipientType === 'us' ? true : false}
+                        isStatic={
+                            recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
+                        }
                     />
                     <AddressInput
                         className="px-1"

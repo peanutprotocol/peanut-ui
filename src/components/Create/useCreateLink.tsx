@@ -83,7 +83,8 @@ export const useCreateLink = () => {
                     })
                 )
             }
-            if (!balance || (balance && balance <= Number(tokenValue))) {
+
+            if (!balance || (balance && balance < Number(tokenValue))) {
                 throw new Error('Please ensure that you have sufficient balance of the token you are trying to send')
             }
         }
