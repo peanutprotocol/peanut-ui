@@ -25,7 +25,7 @@ export const Profile = () => {
                         {true && <span className="text-h8 underline">click to KYC</span>}
                     </div>
                 </div>
-                <div className="border-n-1 text-h7 bg-background flex w-full flex-col items-start justify-center gap-2 rounded-md border px-4 py-2">
+                <div className="flex w-full flex-col items-start justify-center gap-2 rounded-md border border-n-1 bg-background px-4 py-2 text-h7">
                     <span className="text-h5">3400 points</span>
                     <span className="flex items-center justify-center gap-1">
                         <Icon name={'arrow-up-right'} />
