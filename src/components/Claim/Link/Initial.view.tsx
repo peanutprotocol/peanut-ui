@@ -634,6 +634,15 @@ export const InitialClaimLinkView = ({
                             )}
                         </div>
                     )}
+                    {(recipientType === 'iban' || recipientType === 'us') && (
+                        <label className="text-h8 font-normal ">
+                            Only US and IBAN accounts are supported currently. Reach out on{' '}
+                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                discord
+                            </a>{' '}
+                            if you would like more info.
+                        </label>
+                    )}
                 </div>{' '}
             </div>
             <Popover id="HEpPuXFz" />
