@@ -107,7 +107,7 @@ export function Welcome() {
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">
                 <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:px-0">
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <div className="text-h1 mx-auto flex w-3/4 flex-row items-center justify-center gap-2">
+                        <div className="mx-auto flex w-3/4 flex-row items-center justify-center gap-2 text-h1">
                             Send{' '}
                             <div className=" scroller w-[175px]">
                                 <span className="">
@@ -121,16 +121,16 @@ export function Welcome() {
                                 </span>
                             </div>
                         </div>
-                        <label className="text-h1 mx-auto w-3/4">Via Link</label>
+                        <label className="mx-auto w-3/4 text-h1">Via Link</label>
                     </div>
-                    <div className="text-h5 mx-auto w-3/4 font-normal">
+                    <div className="mx-auto w-3/4 text-h5 font-normal">
                         Send money to your friends without having to worry about anything else!
                     </div>
 
                     <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
                         <Link
                             href={'/send'}
-                            className="btn-purple btn-xl text-h4 cursor-pointer px-4 md:w-3/5 lg:w-1/3"
+                            className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                         >
                             App
                         </Link>
@@ -156,7 +156,7 @@ export function Welcome() {
                                     className="group"
                                 >
                                     <img
-                                        className="spin-on-hover border-n-1 h-8 rounded-full border object-contain sm:h-16 dark:border-white"
+                                        className="spin-on-hover h-8 rounded-full border border-n-1 object-contain dark:border-white sm:h-16"
                                         src={logo.icon.src}
                                         alt="Logo"
                                         loading="eager"
@@ -177,15 +177,15 @@ export function Welcome() {
             </div>
 
             <div className="grid w-full grid-cols-1  gap-4 bg-transparent px-4 py-6 text-black lg:grid-cols-3">
-                <label className="border-n-2 text-h3 flex items-center justify-center border bg-white px-4 py-8 text-center font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-white px-4 py-8 text-center text-h3 font-black sm:px-16">
                     300k+ Transactions
                 </label>
 
-                <label className="border-n-2 text-h3 flex items-center justify-center border bg-white px-4 py-8 text-center font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-white px-4 py-8 text-center text-h3 font-black sm:px-16">
                     105k+ Unique wallet addresses
                 </label>
 
-                <label className="border-n-2 text-h3 flex items-center justify-center border bg-white px-4 py-8  text-center font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-white px-4 py-8 text-center  text-h3 font-black sm:px-16">
                     20+ Chains
                 </label>
             </div>
@@ -205,13 +205,13 @@ export function Welcome() {
             <div className="flex w-full flex-col items-center justify-center border-y-[1px] border-black ">
                 <div className="w-full border-black px-4">
                     <div className="flex w-full flex-col gap-4 px-4 py-4 text-black">
-                        <label className="text-h2 my-0 px-8 font-bold">FAQ</label>
+                        <label className="my-0 px-8 text-h2 font-bold">FAQ</label>
                         <div className="flex cursor-pointer flex-col gap-0">
                             {faqs.map((faq, idx) => (
                                 <div
                                     key={idx}
                                     className={classNames(
-                                        'border-n-1 rounded-none border bg-white text-black ',
+                                        'rounded-none border border-n-1 bg-white text-black ',
                                         faqs.length - 1 === idx ? ' brutalborder-bottom' : ''
                                     )}
                                     onClick={() => {
@@ -283,7 +283,7 @@ export function Welcome() {
                 {testimonials.map((testimonial, index) => (
                     <div
                         key={index}
-                        className={`${testimonial.bgColorClass} border-n-1 flex w-full flex-col items-center justify-center gap-2 border p-2 text-center`}
+                        className={`${testimonial.bgColorClass} flex w-full flex-col items-center justify-center gap-2 border border-n-1 p-2 text-center`}
                         id="frens"
                     >
                         <img
@@ -292,7 +292,7 @@ export function Welcome() {
                             alt={testimonial.altText}
                             className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"
                         />
-                        <label className="text-h6 mx-auto mt-2 h-12 py-2 text-base font-normal italic ">
+                        <label className="mx-auto mt-2 h-12 py-2 text-base text-h6 font-normal italic ">
                             {testimonial.comment}
                         </label>
                         <p className="mb-4 text-base font-black uppercase">

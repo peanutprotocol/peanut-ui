@@ -630,18 +630,18 @@ export const ConfirmClaimLinkIbanView = ({
             </Steps>
             {activeStep === 4 && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'profile'} className="fill-gray-1 h-4" />
+                            <Icon name={'profile'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Name</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                             {offrampForm.name}
                         </span>
                     </div>
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'email'} className="fill-gray-1 h-4" />
+                            <Icon name={'email'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Email</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -649,9 +649,9 @@ export const ConfirmClaimLinkIbanView = ({
                         </span>
                     </div>
 
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'bank'} className="fill-gray-1 h-4" />
+                            <Icon name={'bank'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Bank account</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -659,9 +659,9 @@ export const ConfirmClaimLinkIbanView = ({
                         </span>
                     </div>
 
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'forward'} className="fill-gray-1 h-4" />
+                            <Icon name={'forward'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Route</label>
                         </div>
                         {offrampXchainNeeded ? (
@@ -671,21 +671,21 @@ export const ConfirmClaimLinkIbanView = ({
                                         (chain) => chain.chainId === claimLinkData.chainId
                                     )?.name
                                 }{' '}
-                                <Icon name={'arrow-next'} className="fill-gray-1 h-4" /> Optimism{' '}
-                                <Icon name={'arrow-next'} className="fill-gray-1 h-4" /> {recipientType.toUpperCase()}{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
                                 <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                             </span>
                         ) : (
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                Offramp <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
+                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                 {recipientType.toUpperCase()}{' '}
                                 <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                             </span>
                         )}
                     </div>
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="fill-gray-1 h-4" />
+                            <Icon name={'gas'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Fee</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -693,9 +693,9 @@ export const ConfirmClaimLinkIbanView = ({
                             <MoreInfo text={'Fees are on us, enjoy!'} />
                         </span>
                     </div>
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'transfer'} className="fill-gray-1 h-4" />
+                            <Icon name={'transfer'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Total</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
