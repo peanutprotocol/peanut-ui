@@ -185,7 +185,7 @@ export function WelcomeSDK() {
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">
                 <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:px-0">
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <div className="text-h1 mx-auto flex w-3/4 flex-row items-center justify-center gap-2">
+                        <div className="mx-auto flex w-3/4 flex-row items-center justify-center gap-2 text-h1">
                             Send{' '}
                             <div className=" scroller w-[175px]">
                                 <span className="">
@@ -199,9 +199,9 @@ export function WelcomeSDK() {
                                 </span>
                             </div>
                         </div>
-                        <label className="text-h1 mx-auto w-3/4">Via Link</label>
+                        <label className="mx-auto w-3/4 text-h1">Via Link</label>
                     </div>
-                    <div className="text-h5 mx-auto w-3/4 font-normal">
+                    <div className="mx-auto w-3/4 text-h5 font-normal">
                         Go viral with claim links. Let your users send tokens through links
                     </div>
 
@@ -209,7 +209,7 @@ export function WelcomeSDK() {
                         <a
                             data-cal-link="kkonrad+hugo0/15min?duration=30"
                             data-cal-config='{"layout":"month_view"}'
-                            className="btn-purple btn-xl text-h4 cursor-pointer px-4 md:w-3/5 lg:w-1/3"
+                            className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                         >
                             Let's talk!
                         </a>
@@ -235,7 +235,7 @@ export function WelcomeSDK() {
                                     className="group"
                                 >
                                     <img
-                                        className="spin-on-hover border-n-1 h-8 rounded-full border object-contain sm:h-16 dark:border-white"
+                                        className="spin-on-hover h-8 rounded-full border border-n-1 object-contain dark:border-white sm:h-16"
                                         src={logo.icon.src}
                                         alt="Logo"
                                         loading="eager"
@@ -246,7 +246,7 @@ export function WelcomeSDK() {
                     </div>
                 </div>
 
-                <div className="center-xy z-index-1 bg-purple-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black py-3 lg:flex lg:pb-16 lg:pt-16 ">
+                <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-purple-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
                         src={assets.PEANUTMAN_HAPPY.src}
                         className="absolute duration-200 hover:rotate-12"
@@ -256,20 +256,20 @@ export function WelcomeSDK() {
             </div>
 
             <div className="grid w-full grid-cols-1  gap-4 px-4 py-2 text-black lg:grid-cols-3">
-                <label className="border-n-2 bg-pink-1 text-h3 flex items-center justify-center border px-4 py-8 text-center font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-pink-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     300k+ Transactions
                 </label>
 
-                <label className="border-n-2 bg-yellow-1 text-h3 flex items-center justify-center border px-4 py-8 text-center font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-yellow-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     105k+ Unique wallet addresses
                 </label>
 
-                <label className="border-n-2 bg-green-1 text-h3 flex items-center justify-center border px-4 py-8  text-center font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-green-1 px-4 py-8 text-center  text-h3 font-black sm:px-16">
                     20+ Chains
                 </label>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="border-n-2 bg-purple-1 flex w-full flex-col items-center justify-between gap-4 border py-8 lg:flex-row ">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-purple-1 py-8 lg:flex-row ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
                             <img
@@ -282,7 +282,7 @@ export function WelcomeSDK() {
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-4 px-8 text-center">
                         <h1 className="text-h1">P2P links</h1>
-                        <div className="text-h5 w-3/4 font-normal ">
+                        <div className="w-3/4 text-h5 font-normal ">
                             Forget chains and wallet addresses. Do a peer 2 peer transfer with a trustless payment link,
                             no matter whether the recipient has a wallet.{' '}
                         </div>
@@ -291,7 +291,7 @@ export function WelcomeSDK() {
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
-                                className="btn-purple-2 btn-xl text-h4 cursor-pointer px-4 md:w-3/5 lg:w-1/3"
+                                className="btn-purple-2 btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                             >
                                 Let's talk!
                             </a>
@@ -303,7 +303,7 @@ export function WelcomeSDK() {
                 </div>
             </div>
             <div className="w-full px-4 text-black">
-                <div className="border-n-2 bg-yellow-1 flex w-full flex-col items-center justify-between gap-4 border py-8 lg:flex-row-reverse ">
+                <div className="flex w-full flex-col items-center justify-between gap-4 border border-n-2 bg-yellow-1 py-8 lg:flex-row-reverse ">
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a
                             href="https://docs.peanut.to/overview/case-studies/raffles-to-boost-uwas-and-transactions"
@@ -321,7 +321,7 @@ export function WelcomeSDK() {
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-4 px-8 text-center">
                         <h1 className="text-h1">Raffle links</h1>
-                        <div className="text-h5 w-3/4 font-normal ">
+                        <div className="w-3/4 text-h5 font-normal ">
                             Engage your audience with exciting raffles! Create the raffles easily using our APP or SDK.
                         </div>
 
@@ -329,7 +329,7 @@ export function WelcomeSDK() {
                             <a
                                 data-cal-link="kkonrad+hugo0/15min?duration=30"
                                 data-cal-config='{"layout":"month_view"}'
-                                className="btn-purple btn-xl text-h4 cursor-pointer px-4 md:w-3/5 lg:w-1/3"
+                                className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
                             >
                                 Let's talk!
                             </a>
@@ -429,15 +429,15 @@ export function WelcomeSDK() {
                     </>
                 </MarqueeWrapper>
 
-                <div className="bg-green-1 w-full border-y-[1px] border-black px-4">
+                <div className="w-full border-y-[1px] border-black bg-green-1 px-4">
                     <div className="brutalborder-top flex w-full flex-col gap-4 px-4 py-4 text-black">
-                        <label className="text-h2 my-0 px-8 font-bold">FAQ</label>
+                        <label className="my-0 px-8 text-h2 font-bold">FAQ</label>
                         <div className="flex cursor-pointer flex-col gap-0">
                             {faqs.map((faq, idx) => (
                                 <div
                                     key={idx}
                                     className={classNames(
-                                        'border-n-1 rounded-none border bg-white text-black ',
+                                        'rounded-none border border-n-1 bg-white text-black ',
                                         faqs.length - 1 === idx ? ' brutalborder-bottom' : ''
                                     )}
                                     onClick={() => {
@@ -509,7 +509,7 @@ export function WelcomeSDK() {
                 {testimonials.map((testimonial, index) => (
                     <div
                         key={index}
-                        className={`${testimonial.bgColorClass} border-n-1 flex w-full flex-col items-center justify-center gap-2 border p-2 text-center`}
+                        className={`${testimonial.bgColorClass} flex w-full flex-col items-center justify-center gap-2 border border-n-1 p-2 text-center`}
                         id="frens"
                     >
                         <img
@@ -518,7 +518,7 @@ export function WelcomeSDK() {
                             alt={testimonial.altText}
                             className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"
                         />
-                        <label className="text-h6 mx-auto mt-2 h-12 py-2 text-base font-normal italic ">
+                        <label className="mx-auto mt-2 h-12 py-2 text-base text-h6 font-normal italic ">
                             {testimonial.comment}
                         </label>
                         <p className="mb-4 text-base font-black uppercase">
