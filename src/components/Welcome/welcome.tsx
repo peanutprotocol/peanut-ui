@@ -18,56 +18,6 @@ const logoCloudLogos = [
     { icon: assets.BLOCKSCOUT_LOGO, link: 'https://brume.io/' },
 ]
 
-const features = [
-    {
-        name: 'Brand ',
-        description:
-            'Your brand deserves to be front and center for new users. It’s nuts but you can completely whitelabel these links and use your own domain and branding.',
-        bg: 'bg-yellow-1',
-        primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/branded-links',
-        primaryRedirectText: 'Docs',
-    },
-    {
-        name: 'Gasless',
-        description:
-            'Users should not have to worry about gas, being on the right chain or wallet addresses. Claim and send links solve the cold start problem.',
-        bg: 'bg-pink-1',
-        primaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-gasless',
-        primaryRedirectText: 'Docs',
-    },
-    {
-        name: 'Welcome packs',
-        description: 'Send a welcome pack of NFT + gas + token to new or existing customers',
-        bg: 'bg-red',
-        calModal: true,
-        primaryRedirectUrl: 'https://docs.peanut.to/overview/case-studies/sending-testnet-tokens-at-hackathons',
-        primaryRedirectText: 'Case study',
-    },
-    {
-        name: 'Cross-chain',
-        description:
-            'Customize token and claim page to match your branding with logo and colors. Or even better, have the users claim the tokens on your own domain or app!',
-        bg: 'bg-green-1',
-        primaryRedirectUrl: 'https://peanut.to/send',
-        primaryRedirectText: 'Try Now',
-        secondaryRedirectUrl: 'https://docs.peanut.to/integrate/sdk/claim/claim-link-cross-chain',
-        secondaryRedirectText: 'Learn more',
-    },
-    {
-        name: 'Get Physical',
-        description: 'Are you planning an IRL event? Do a physical airdrop by distributing QR codes with tokens.',
-        bg: 'bg-purple-2',
-        calModal: true,
-        primaryRedirectUrl: 'https://docs.peanut.to/overview/case-studies/irl-events-marketing',
-        primaryRedirectText: 'Case study',
-    },
-    {
-        name: 'Web2 Airdrops',
-        description: 'Airdrop your web2 audience (think Discord, Mailchimp, Twitter)',
-        bg: 'bg-yellow-1',
-        calModal: true,
-    },
-]
 const faqs = [
     { question: 'How can I try?', answer: 'Check out our dapp or any of the projects that already integrated Peanut.' },
     {
@@ -115,7 +65,7 @@ const testimonials = [
         name: 'Derek Rein',
         detail: 'WalletConnect',
         detailRedirectUrl: 'https://walletconnect.com/',
-        bgColorClass: 'bg-red',
+        bgColorClass: 'bg-white',
     },
     {
         imageSrc: assets.SHARUK_PERSON.src,
@@ -124,7 +74,7 @@ const testimonials = [
         name: 'shahrukh Rao',
         detail: 'Eco',
         detailRedirectUrl: 'https://eco.org/?ref=com',
-        bgColorClass: 'bg-green-1',
+        bgColorClass: 'bg-white',
     },
     {
         imageSrc: assets.KOFIME_PERSON.src,
@@ -133,7 +83,7 @@ const testimonials = [
         name: 'Kofi.me',
         detail: 'Kofi.me',
         detailRedirectUrl: 'https://www.kofime.xyz/',
-        bgColorClass: 'bg-pink-1',
+        bgColorClass: 'bg-white',
     },
     {
         imageSrc: assets.SBF_PERSON.src, // TODO: replace with actual image@
@@ -141,7 +91,7 @@ const testimonials = [
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',
         detail: 'Probably FTX',
-        bgColorClass: 'bg-yellow-1',
+        bgColorClass: 'bg-white',
     },
 ]
 
@@ -157,7 +107,7 @@ export function Welcome() {
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">
                 <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:px-0">
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <div className="mx-auto flex w-3/4 flex-row items-center justify-center gap-2 text-h1">
+                        <div className="text-h1 mx-auto flex w-3/4 flex-row items-center justify-center gap-2">
                             Send{' '}
                             <div className=" scroller w-[175px]">
                                 <span className="">
@@ -171,16 +121,16 @@ export function Welcome() {
                                 </span>
                             </div>
                         </div>
-                        <label className="mx-auto w-3/4 text-h1">Via Link</label>
+                        <label className="text-h1 mx-auto w-3/4">Via Link</label>
                     </div>
-                    <div className="mx-auto w-3/4 text-h5 font-normal">
+                    <div className="text-h5 mx-auto w-3/4 font-normal">
                         Send money to your friends without having to worry about anything else!
                     </div>
 
                     <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
                         <Link
                             href={'/send'}
-                            className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
+                            className="btn-purple btn-xl text-h4 cursor-pointer px-4 md:w-3/5 lg:w-1/3"
                         >
                             App
                         </Link>
@@ -206,7 +156,7 @@ export function Welcome() {
                                     className="group"
                                 >
                                     <img
-                                        className="spin-on-hover h-8 rounded-full border border-n-1 object-contain dark:border-white sm:h-16"
+                                        className="spin-on-hover border-n-1 h-8 rounded-full border object-contain sm:h-16 dark:border-white"
                                         src={logo.icon.src}
                                         alt="Logo"
                                         loading="eager"
@@ -227,15 +177,15 @@ export function Welcome() {
             </div>
 
             <div className="grid w-full grid-cols-1  gap-4 bg-transparent px-4 py-6 text-black lg:grid-cols-3">
-                <label className="flex items-center justify-center border border-n-2 bg-pink-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="border-n-2 text-h3 flex items-center justify-center border bg-white px-4 py-8 text-center font-black sm:px-16">
                     300k+ Transactions
                 </label>
 
-                <label className="flex items-center justify-center border border-n-2 bg-yellow-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="border-n-2 text-h3 flex items-center justify-center border bg-white px-4 py-8 text-center font-black sm:px-16">
                     105k+ Unique wallet addresses
                 </label>
 
-                <label className="flex items-center justify-center border border-n-2 bg-green-1 px-4 py-8 text-center  text-h3 font-black sm:px-16">
+                <label className="border-n-2 text-h3 flex items-center justify-center border bg-white px-4 py-8  text-center font-black sm:px-16">
                     20+ Chains
                 </label>
             </div>
@@ -255,13 +205,13 @@ export function Welcome() {
             <div className="flex w-full flex-col items-center justify-center border-y-[1px] border-black ">
                 <div className="w-full border-black px-4">
                     <div className="flex w-full flex-col gap-4 px-4 py-4 text-black">
-                        <label className="my-0 px-8 text-h2 font-bold">FAQ</label>
+                        <label className="text-h2 my-0 px-8 font-bold">FAQ</label>
                         <div className="flex cursor-pointer flex-col gap-0">
                             {faqs.map((faq, idx) => (
                                 <div
                                     key={idx}
                                     className={classNames(
-                                        'rounded-none border border-n-1 bg-white text-black ',
+                                        'border-n-1 rounded-none border bg-white text-black ',
                                         faqs.length - 1 === idx ? ' brutalborder-bottom' : ''
                                     )}
                                     onClick={() => {
@@ -333,7 +283,7 @@ export function Welcome() {
                 {testimonials.map((testimonial, index) => (
                     <div
                         key={index}
-                        className={`${testimonial.bgColorClass} flex w-full flex-col items-center justify-center gap-2 border border-n-1 p-2 text-center`}
+                        className={`${testimonial.bgColorClass} border-n-1 flex w-full flex-col items-center justify-center gap-2 border p-2 text-center`}
                         id="frens"
                     >
                         <img
@@ -342,7 +292,7 @@ export function Welcome() {
                             alt={testimonial.altText}
                             className="rainbow-border mx-auto w-1/2 rounded-full bg-white p-1"
                         />
-                        <label className="mx-auto mt-2 h-12 py-2 text-base text-h6 font-normal italic ">
+                        <label className="text-h6 mx-auto mt-2 h-12 py-2 text-base font-normal italic ">
                             {testimonial.comment}
                         </label>
                         <p className="mb-4 text-base font-black uppercase">

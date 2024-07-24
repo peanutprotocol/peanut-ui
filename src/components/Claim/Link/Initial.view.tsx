@@ -299,10 +299,10 @@ export const InitialClaimLinkView = ({
 
                     toAddress:
                         recipientType === 'us' || recipientType === 'iban' || recipientType === undefined
-                            ? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
+                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
+                              : address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -338,7 +338,7 @@ export const InitialClaimLinkView = ({
                             className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                         >
                             {attachment.message && (
-                                <label className="max-w-full text-h8">
+                                <label className="text-h8 max-w-full">
                                     Ref: <span className="font-normal"> {attachment.message} </span>
                                 </label>
                             )}
@@ -347,7 +347,7 @@ export const InitialClaimLinkView = ({
                                     href={attachment.attachmentUrl}
                                     download
                                     target="_blank"
-                                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                    className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
                                 >
                                     <Icon name={'download'} />
                                     Download attachment
@@ -448,7 +448,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)
@@ -474,14 +474,14 @@ export const InitialClaimLinkView = ({
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             {selectedRoute && (
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <Icon name={'forward'} className="fill-gray-1 h-4" />
                                         <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                         {isXchainLoading ? (
-                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                            <div className="animate-colorPulse bg-slate-700 h-2 w-12 rounded"></div>
                                         ) : (
                                             selectedRoute && (
                                                 <>
@@ -491,7 +491,7 @@ export const InitialClaimLinkView = ({
                                                                 chain.chainId === selectedRoute.route.params.fromChain
                                                         )?.name
                                                     }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                    <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
                                                     {
                                                         mappedData.find(
                                                             (chain) =>
@@ -519,14 +519,14 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <Icon name={'gas'} className="fill-gray-1 h-4" />
                                     <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                        <div className="animate-colorPulse bg-slate-700 h-2 w-12 rounded"></div>
                                     ) : (
                                         <>
                                             $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
@@ -535,9 +535,9 @@ export const InitialClaimLinkView = ({
                                 </span>
                             </div>
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                    <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
                                     <label className="font-bold">Points</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -591,7 +591,7 @@ export const InitialClaimLinkView = ({
                     </button>
                     {!isValidRecipient && (
                         <div
-                            className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
+                            className="wc-disable-mf text-h7 flex cursor-pointer flex-row items-center  justify-center self-center"
                             onClick={() => {
                                 handleConnectWallet()
                             }}
@@ -616,7 +616,7 @@ export const InitialClaimLinkView = ({
                                         <>
                                             {' '}
                                             <span
-                                                className="cursor-pointer text-h8 font-normal text-red underline"
+                                                className="text-h8 cursor-pointer font-normal text-red underline"
                                                 onClick={() => {
                                                     setSelectedRoute(null)
                                                     setHasFetchedRoute(false)

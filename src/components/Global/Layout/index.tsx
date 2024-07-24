@@ -50,7 +50,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 setShowModal(true)
                             }}
                         >
-                            <p className="px-4 py-2 text-h4 text-white">Sign up and get rewards!</p>
+                            <p className="text-h4 px-4 py-2 text-white">Sign up and get rewards!</p>
                             <img src={assets.SMILEY_ICON.src} className="h-6 w-6 fill-white" />
                         </MarqueeWrapper>
                         <div className="flex grow justify-center">
@@ -62,29 +62,28 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <Footer />
-                        <div className="pointer-events-none absolute inset-0 -z-1 overflow-hidden dark:opacity-70">
-                            <div className="absolute inset-0 z-1 bg-n-1 opacity-0 dark:opacity-80"></div>
-                            <div className="absolute -right-72 top-2/3 w-[75rem] -translate-y-1/2  2xl:w-[95rem]">
+                        <div className="-z-1 pointer-events-none absolute inset-0 overflow-hidden dark:opacity-70">
+                            <div className="absolute -right-96 top-2/3 w-[93.75rem] -translate-y-1/2 2xl:w-[118.75rem]">
                                 <NextImage
                                     className={`inline-block w-full align-top opacity-0 transition-opacity ${
                                         loaded ? 'opacity-100' : ''
                                     } ${className}`}
                                     onLoadingComplete={() => setLoaded(true)}
                                     src={assets.BG_SVG.src}
-                                    width={1349}
-                                    height={1216}
+                                    width={1686}
+                                    height={1520} // also adjust the height to maintain aspect ratio
                                     alt=""
                                 />
                             </div>
-                            <div className="absolute -left-52 top-1/4 w-[55rem] -translate-y-1/2 2xl:w-[75rem]">
+                            <div className="absolute -left-96 top-1/4 w-[68.75rem] -translate-y-1/2 2xl:w-[93.75rem]">
                                 <NextImage
                                     className={`inline-block w-full align-top opacity-0 transition-opacity ${
                                         loaded ? 'opacity-100' : ''
                                     } ${className}`}
                                     onLoadingComplete={() => setLoaded(true)}
                                     src={assets.BG_SVG.src}
-                                    width={1349}
-                                    height={1216}
+                                    width={1686}
+                                    height={1520} // also adjust the height to maintain aspect ratio
                                     alt=""
                                     style={{ transform: 'scale(-1, -1)' }}
                                 />
