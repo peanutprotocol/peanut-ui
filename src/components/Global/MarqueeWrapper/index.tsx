@@ -7,19 +7,19 @@ export function MarqueeWrapper({
     backgroundColor,
     onClick,
     direction = 'left',
+    className = 'border-b-2 border-black border',
 }: {
     children: React.ReactNode
     backgroundColor: string
     onClick?: () => void
     direction?: string
+    className?: string
 }) {
-    const baseClass =
-        'max-h-18 mx-auto h-full w-full items-center italic border-b-2 border-black text-black border ' +
-        backgroundColor
-    const className = onClick ? `${baseClass} cursor-pointer` : baseClass
+    const baseClass = `max-h-18 mx-auto h-full w-full items-center italic  text-black  ${className} ${backgroundColor}`
+    const _className = onClick ? `${baseClass} cursor-pointer` : baseClass
 
     return (
-        <div className={className} onClick={onClick}>
+        <div className={_className} onClick={onClick}>
             <Marquee autoFill speed={30} direction={direction as directionType}>
                 <div className="flex flex-row items-center">{children}</div>
             </Marquee>
