@@ -161,7 +161,7 @@ const defaultLottieOptions = {
     },
 }
 
-export function Welcome() {
+export function WelcomeSDK() {
     const [openedFaq, setOpenedFaq] = useState<number | null>(null)
 
     useEffect(() => {
@@ -537,5 +537,3 @@ export function Welcome() {
         </div>
     )
 }
-
-export default Welcome

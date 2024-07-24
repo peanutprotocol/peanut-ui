@@ -511,7 +511,7 @@ export const ConfirmClaimLinkIbanView = ({
                                         required: addressRequired ? 'This field is required' : false,
                                     })}
                                     className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
-                                    placeholder="Street and number"
+                                    placeholder="Your street and number"
                                 />
                                 {accountErrors.street && (
                                     <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
@@ -524,7 +524,7 @@ export const ConfirmClaimLinkIbanView = ({
                                                 required: addressRequired ? 'This field is required' : false,
                                             })}
                                             className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
-                                            placeholder="City"
+                                            placeholder="Your city"
                                         />
                                         {accountErrors.city && (
                                             <span className="text-h9 font-normal text-red">
@@ -538,7 +538,7 @@ export const ConfirmClaimLinkIbanView = ({
                                                 required: addressRequired ? 'This field is required' : false,
                                             })}
                                             className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
-                                            placeholder="Postal code"
+                                            placeholder="Your postal code"
                                         />
                                         {accountErrors.postalCode && (
                                             <span className="text-h9 font-normal text-red">
@@ -554,7 +554,7 @@ export const ConfirmClaimLinkIbanView = ({
                                                 required: addressRequired ? 'This field is required' : false,
                                             })}
                                             className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
-                                            placeholder="State "
+                                            placeholder="Your state "
                                         />
                                         {accountErrors.state && (
                                             <span className="text-h9 font-normal text-red">

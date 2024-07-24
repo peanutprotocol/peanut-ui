@@ -61,13 +61,8 @@ const nextConfig = {
                 permanent: true,
             },
             {
-                source: '/',
-                destination: '/send',
-                permanent: true,
-            },
-            {
                 source: '/pioneers',
-                destination: '/send',
+                destination: '/',
                 permanent: true,
             },
         ]

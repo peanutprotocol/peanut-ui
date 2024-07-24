@@ -299,10 +299,10 @@ export const InitialClaimLinkView = ({
 
                     toAddress:
                         recipientType === 'us' || recipientType === 'iban' || recipientType === undefined
-                            ? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'
+                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0xd8da6bf26964af9d7eed9e03e53415d37aa96045'),
+                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -633,6 +633,15 @@ export const InitialClaimLinkView = ({
                                 </>
                             )}
                         </div>
+                    )}
+                    {(recipientType === 'iban' || recipientType === 'us') && (
+                        <label className="text-h8 font-normal ">
+                            Only US and IBAN accounts are supported currently. Reach out on{' '}
+                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                discord
+                            </a>{' '}
+                            if you would like more info.
+                        </label>
                     )}
                 </div>{' '}
             </div>
