@@ -12,10 +12,37 @@ import { Disclosure } from '@headlessui/react'
 
 const logoCloudLogos = [
     { icon: assets.WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
-    { icon: assets.CLAVE_LOGO, link: 'https://www.getclave.io/' },
+    { icon: assets.CLAVE_LOGO, link: 'https://www.getclave.io/', classNameImg: 'rounded-full' },
     { icon: assets.ECO_LOGO, link: 'https://eco.org/?ref=com' },
     { icon: assets.MANTLE_ICON, link: 'https://www.mantle.xyz/' },
-    { icon: assets.BLOCKSCOUT_LOGO, link: 'https://brume.io/' },
+    {
+        icon: assets.BLOCKSCOUT_LOGO,
+        link: 'https://www.blockscout.com/',
+        className: 'bg-black',
+        classNameImg: 'rounded-full',
+    },
+    {
+        icon: assets.HYPERSPHERE_LOGO_SQUARE,
+        link: 'https://www.hypersphere.ventures/',
+        classNameImg: 'rounded-full',
+    },
+    {
+        icon: assets.ZEEPRIME_LOGO_SQUARE,
+        link: 'https://zeeprime.capital/',
+        className: ' bg-white rounded-full ',
+        classNameImg: 'h-6 w-6 sm:h-12 sm:w-12 -mt-[4px]',
+    },
+    {
+        icon: assets.LONGHASH_LOGO_SQUARE,
+        link: 'https://www.longhash.vc/',
+        className: 'p-0 bg-white',
+        classNameImg: 'h-6 w-6 sm:h-12 sm:w-12 rounded-lg',
+    },
+    {
+        icon: assets.NAZARE_LOGO_SQUARE,
+        link: 'https://www.nazare.io/',
+        classNameImg: 'rounded-full',
+    },
 ]
 
 const faqs = [
@@ -153,10 +180,10 @@ export function Welcome() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                     key={logo.icon.src}
-                                    className="group"
+                                    className={`spin-on-hover group flex h-8 w-8 items-center justify-center rounded-full border border-n-1 dark:border-white sm:h-16 sm:w-16 ${logo.className}`}
                                 >
                                     <img
-                                        className="spin-on-hover h-8 rounded-full border border-n-1 object-contain dark:border-white sm:h-16"
+                                        className={` h-full object-contain ${logo.classNameImg}`}
                                         src={logo.icon.src}
                                         alt="Logo"
                                         loading="eager"
