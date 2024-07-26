@@ -157,7 +157,7 @@ export function Welcome() {
                     <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
                         <Link
                             href={'/send'}
-                            className="btn-purple btn-xl cursor-pointer px-4 text-h4 md:w-3/5 lg:w-1/3"
+                            className="btn-purple btn-xl cursor-pointer bg-white px-4 text-h4 md:w-3/5 lg:w-1/3"
                         >
                             App
                         </Link>
@@ -217,7 +217,7 @@ export function Welcome() {
                 </label>
             </div>
 
-            <div className="border-t-[1px] border-black py-6">
+            <div className="border-t-[1px] border-black bg-white py-6">
                 <MarqueeWrapper backgroundColor="bg-transparant" direction="right" className="">
                     {Object.entries(chain_logos).map(([chain, logo]) => {
                         return (
