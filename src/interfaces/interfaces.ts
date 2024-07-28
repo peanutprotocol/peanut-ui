@@ -274,3 +274,17 @@ export interface IBridgeLiquidationAddress {
     created_at: string
     updated_at: string
 }
+
+export interface IProfileTableData {
+    primaryText: string
+    secondaryText: string
+    tertiaryText: string
+    quaternaryText: string
+    key: string
+    type: 'history' | 'contacts' | 'accounts'
+    avatar: {
+        iconName?: string
+        avatarUrl?: string
+    }
+    dashboardItem?: IDashboardItem
+}

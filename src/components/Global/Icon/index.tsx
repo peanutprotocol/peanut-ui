@@ -205,15 +205,17 @@ type IconProps = {
     className?: string
     name: any
     fill?: string
+    onClick?: () => void
 }
 
-const Icon = ({ className, name, fill }: IconProps) => (
+const Icon = ({ className, name, fill, onClick }: IconProps) => (
     <svg
         className={twMerge(`inline-block h-4 w-4 ${className}`)}
         width={16}
         height={16}
         viewBox={customViewbox.find((box) => box.name === name)?.viewBox ?? '0 0 16 16'}
         style={customStyle.find((style) => style.name === name)?.style ?? undefined}
+        onClick={onClick}
     >
         <path fill={fill} d={icons[name]}></path>
     </svg>
