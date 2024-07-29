@@ -275,6 +275,7 @@ export const Profile = () => {
                                 quaternaryText={data.quaternaryText}
                                 type={data.type}
                                 avatar={data.avatar}
+                                dashboardItem={data.dashboardItem}
                             />
                         </div>
                     ))}{' '}

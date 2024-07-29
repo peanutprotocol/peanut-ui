@@ -2,6 +2,7 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Sorting from '@/components/Global/Sorting'
 import Loading from '@/components/Global/Loading'
+import { OptionsComponent } from './OptionsComponent'
 
 export const TableComponent = ({
     data,
@@ -15,7 +16,7 @@ export const TableComponent = ({
     itemsPerPage: number
 }) => {
     return (
-        <table className="table-custom hidden sm:table">
+        <table className="table-custom hidden bg-background sm:table">
             <thead>
                 {selectedTab === 'history' ? (
                     <tr>
@@ -116,9 +117,44 @@ export const TableComponent = ({
                                         </div>
                                     )}
                                 </td>
-                                <td className="td-custom text-center ">
-                                    {/* <components.OptionsItemComponent item={link} /> */}
-                                    ...
+                                <td className="td-custom text-end ">
+                                    <OptionsComponent
+                                        actionItems={
+                                            [
+                                                data.dashboardItem?.txHash && {
+                                                    name: 'Copy transaction hash',
+                                                    action: () => {
+                                                        utils.copyTextToClipboardWithFallback(
+                                                            data.dashboardItem?.txHash ?? ''
+                                                        )
+                                                    },
+                                                },
+                                                (data.dashboardItem?.type === 'Link Received' ||
+                                                    data.dashboardItem.type === 'Link Sent') &&
+                                                    data.dashboardItem?.link && {
+                                                        name: 'Copy link',
+                                                        action: () => {
+                                                            utils.copyTextToClipboardWithFallback(
+                                                                data.dashboardItem?.link ?? ''
+                                                            )
+                                                        },
+                                                    },
+                                                data.dashboardItem?.attachmentUrl && {
+                                                    name: 'Download attachment',
+                                                    action: () => {
+                                                        window.open(data.dashboardItem?.attachmentUrl ?? '', '_blank')
+                                                    },
+                                                },
+                                                data.dashboardItem?.type !== 'Link Received' &&
+                                                    data.dashboardItem.status === 'pending' && {
+                                                        name: 'Refund',
+                                                        action: () => {
+                                                            window.open(data.dashboardItem?.link ?? '', '_blank')
+                                                        },
+                                                    },
+                                            ].filter(Boolean) as { name: string; action: () => void }[]
+                                        }
+                                    />
                                 </td>
                             </tr>
                         )
@@ -132,14 +168,42 @@ export const TableComponent = ({
                             <td className="td-custom font-bold">{data.primaryText}</td>
                             <td className="td-custom font-bold">{data.tertiaryText}</td>
                             <td className="td-custom font-bold">{data.quaternaryText}</td>
-                            <td className="td-custom font-bold">...</td>
+                            <td className="td-custom text-end ">
+                                <OptionsComponent
+                                    actionItems={[
+                                        {
+                                            name: 'Send to this address',
+                                            action: () => {
+                                                console.log('Send') // TODO: implement send to this address
+                                            },
+                                        },
+                                        {
+                                            name: 'Delete',
+                                            action: () => {
+                                                console.log('Delete') // TODO: implement delete
+                                            },
+                                        },
+                                    ]}
+                                />
+                            </td>
                         </tr>
                     ) : (
                         selectedTab === 'accounts' && (
                             <tr className="h-16 text-h8 font-normal" key={data.key + Math.random()}>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
-                                <td className="td-custom font-bold">...</td>
+                                <td className="td-custom text-end ">
+                                    <OptionsComponent
+                                        actionItems={[
+                                            {
+                                                name: 'Delete',
+                                                action: () => {
+                                                    console.log('Delete') // TODO: implement delete
+                                                },
+                                            },
+                                        ]}
+                                    />
+                                </td>
                             </tr>
                         )
                     )
