@@ -35,8 +35,9 @@ export const Profile = () => {
     })
 
     const svg = avatar.toDataUri()
-    const { address } = useAccount()
+    const { address, isConnected } = useAccount()
 
+    const [signedIn, setSignedIn] = useState(false)
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
@@ -63,6 +64,10 @@ export const Profile = () => {
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
 
     useEffect(() => {
+        const checkSignedInStatus = async () => {}
+
+        checkSignedInStatus()
+
         const dashboardData = composeLinkDataArray(address ?? '')
         setDashboardData(dashboardData)
 
@@ -123,7 +128,6 @@ export const Profile = () => {
                         key: (data.link ?? data.txHash ?? '') + Math.random(),
                         type: 'history',
                         avatar: {
-                            // iconName: utils.getIconName(data.type),
                             iconName: undefined,
                             avatarUrl: undefined,
                         },
@@ -211,145 +215,151 @@ export const Profile = () => {
 
     return (
         <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
-            <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
-                <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
-                    <img src={svg} className="h-16 w-16 " />
-                    <div className="flex flex-col items-center justify-center gap-1 sm:items-start">
-                        <span className="text-h4">
-                            Borgiii
-                            {/* <Icon name={'check'} /> */}
-                        </span>
-                        {/* {true && <span className="text-h8 underline cursor-pointer">click to KYC</span>} */}
+            {!signedIn && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-75 backdrop-blur-xl">
+                    <div className="rounded-lg bg-white p-4 shadow-lg">
+                        <p>Please sign in with Ethereum to access this content.</p>
                     </div>
                 </div>
-                <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
-                    <span className="text-h5">3400 points</span>
-                    <span className="flex items-center justify-center gap-1">
-                        <Icon name={'arrow-up-right'} />
-                        Boost 2.0X
-                        <Icon
-                            name={'info'}
-                            className={`cursor-pointer transition-transform dark:fill-white`}
-                            onClick={() => {
-                                setModalVisible(true)
-                                setModalType('Boost')
-                            }}
-                        />
-                    </span>
-                    <span className="flex items-center justify-center gap-1">
-                        <Icon name={'heart'} />
-                        Invites 69
-                        <Icon
-                            name={'info'}
-                            className={`cursor-pointer transition-transform dark:fill-white`}
-                            onClick={() => {
-                                setModalVisible(true)
-                                setModalType('Invites')
-                            }}
-                        />
-                    </span>
-                    {/* <span className="flex items-center justify-center gap-1">
+            )}
+            <div
+                className={`flex w-full flex-col items-center justify-center gap-2 ${!signedIn && 'pointer-events-none opacity-50'}`}
+            >
+                <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
+                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
+                        <img src={svg} className="h-16 w-16 " />
+                        <div className="flex flex-col items-center justify-center gap-1 sm:items-start">
+                            <span className="text-h4">Borgiii</span>
+                        </div>
+                    </div>
+                    <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
+                        <span className="text-h5">3400 points</span>
+                        <span className="flex items-center justify-center gap-1">
+                            <Icon name={'arrow-up-right'} />
+                            Boost 2.0X
+                            <Icon
+                                name={'info'}
+                                className={`cursor-pointer transition-transform dark:fill-white`}
+                                onClick={() => {
+                                    setModalVisible(true)
+                                    setModalType('Boost')
+                                }}
+                            />
+                        </span>
+                        <span className="flex items-center justify-center gap-1">
+                            <Icon name={'heart'} />
+                            Invites 69
+                            <Icon
+                                name={'info'}
+                                className={`cursor-pointer transition-transform dark:fill-white`}
+                                onClick={() => {
+                                    setModalVisible(true)
+                                    setModalType('Invites')
+                                }}
+                            />
+                        </span>
+                        {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
                         <MoreInfo text="More info streak" />
                     </span> */}
-                </div>
-                {/* <div>balance</div> */}
-            </div>
-            <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
-                <components.Tabs
-                    items={tabs}
-                    value={selectedTab}
-                    setValue={setSelectedTab}
-                    className="mx-0 w-full gap-0 px-0"
-                    classButton="w-1/3 mx-0 px-0 ml-0 !rounded-none"
-                />
-                <Divider borderColor={'black'}></Divider>
-                <div className="block w-full sm:hidden">
-                    {tableData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((data) => (
-                        <div key={(data.key ?? '') + Math.random()}>
-                            <components.MobileTableComponent
-                                key={(data.key ?? '') + Math.random()}
-                                primaryText={data.primaryText}
-                                secondaryText={data.secondaryText}
-                                tertiaryText={data.tertiaryText}
-                                quaternaryText={data.quaternaryText}
-                                type={data.type}
-                                avatar={data.avatar}
-                                dashboardItem={data.dashboardItem}
-                            />
-                        </div>
-                    ))}{' '}
-                </div>
-                <div className="hidden w-full sm:block">
-                    <components.TableComponent
-                        data={tableData}
-                        selectedTab={selectedTab}
-                        currentPage={currentPage}
-                        itemsPerPage={itemsPerPage}
-                    />
-                </div>
-
-                {dashboardData.length > 0 && totalPages > 1 && (
-                    <TablePagination
-                        onNext={() => {
-                            if (currentPage < totalPages) {
-                                setCurrentPage(currentPage + 1)
-                            }
-                        }}
-                        onPrev={() => {
-                            if (currentPage > 1) {
-                                setCurrentPage(currentPage - 1)
-                            }
-                        }}
-                        totalPages={totalPages}
-                        currentPage={currentPage}
-                    />
-                )}
-            </div>
-            <Modal
-                visible={modalVisible}
-                onClose={() => {
-                    setModalVisible(false)
-                }}
-                title={modalType}
-                classNameWrapperDiv="px-5 pb-7 pt-8"
-            >
-                {modalType === 'Boost' ? (
-                    <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                        <div className="flex w-full items-center justify-between">
-                            <label>Streak</label>
-                            <label>1.4X</label>
-                        </div>
-                        <div className="flex w-full items-center justify-between">
-                            <label>Early frend</label>
-                            <label>1.6X</label>
-                        </div>
-                        <Divider borderColor={'black'}></Divider>
-                        <div className="flex w-full items-center justify-between">
-                            <label>Total</label>
-                            <label>2.0X</label>
-                        </div>
                     </div>
-                ) : modalType === 'Invites' ? (
-                    <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                        <div className="flex w-full items-center justify-between">
-                            <label>cyberdrk.eth</label>
-                            <label>69000</label>
-                        </div>
-                        <div className="flex w-full items-center justify-between">
-                            <label>kkonrad.eth</label>
-                            <label>420</label>
-                        </div>
-                        <Divider borderColor={'black'}></Divider>
-                        <div className="flex w-full items-center justify-between">
-                            <label>Total</label>
-                            <label>69420</label>
-                        </div>
+                    {/* <div>balance</div> */}
+                </div>
+                <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
+                    <components.Tabs
+                        items={tabs}
+                        value={selectedTab}
+                        setValue={setSelectedTab}
+                        className="mx-0 w-full gap-0 px-0"
+                        classButton="w-1/3 mx-0 px-0 ml-0 !rounded-none"
+                    />
+                    <Divider borderColor={'black'}></Divider>
+                    <div className="block w-full sm:hidden">
+                        {tableData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((data) => (
+                            <div key={(data.key ?? '') + Math.random()}>
+                                <components.MobileTableComponent
+                                    key={(data.key ?? '') + Math.random()}
+                                    primaryText={data.primaryText}
+                                    secondaryText={data.secondaryText}
+                                    tertiaryText={data.tertiaryText}
+                                    quaternaryText={data.quaternaryText}
+                                    type={data.type}
+                                    avatar={data.avatar}
+                                    dashboardItem={data.dashboardItem}
+                                />
+                            </div>
+                        ))}{' '}
                     </div>
-                ) : (
-                    ''
-                )}
-            </Modal>
+                    <div className="hidden w-full sm:block">
+                        <components.TableComponent
+                            data={tableData}
+                            selectedTab={selectedTab}
+                            currentPage={currentPage}
+                            itemsPerPage={itemsPerPage}
+                        />
+                    </div>
+                    {dashboardData.length > 0 && totalPages > 1 && (
+                        <TablePagination
+                            onNext={() => {
+                                if (currentPage < totalPages) {
+                                    setCurrentPage(currentPage + 1)
+                                }
+                            }}
+                            onPrev={() => {
+                                if (currentPage > 1) {
+                                    setCurrentPage(currentPage - 1)
+                                }
+                            }}
+                            totalPages={totalPages}
+                            currentPage={currentPage}
+                        />
+                    )}
+                </div>
+                <Modal
+                    visible={modalVisible}
+                    onClose={() => {
+                        setModalVisible(false)
+                    }}
+                    title={modalType}
+                    classNameWrapperDiv="px-5 pb-7 pt-8"
+                >
+                    {modalType === 'Boost' ? (
+                        <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                            <div className="flex w-full items-center justify-between">
+                                <label>Streak</label>
+                                <label>1.4X</label>
+                            </div>
+                            <div className="flex w-full items-center justify-between">
+                                <label>Early frend</label>
+                                <label>1.6X</label>
+                            </div>
+                            <Divider borderColor={'black'}></Divider>
+                            <div className="flex w-full items-center justify-between">
+                                <label>Total</label>
+                                <label>2.0X</label>
+                            </div>
+                        </div>
+                    ) : modalType === 'Invites' ? (
+                        <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                            <div className="flex w-full items-center justify-between">
+                                <label>cyberdrk.eth</label>
+                                <label>69000</label>
+                            </div>
+                            <div className="flex w-full items-center justify-between">
+                                <label>kkonrad.eth</label>
+                                <label>420</label>
+                            </div>
+                            <Divider borderColor={'black'}></Divider>
+                            <div className="flex w-full items-center justify-between">
+                                <label>Total</label>
+                                <label>69420</label>
+                            </div>
+                        </div>
+                    ) : (
+                        ''
+                    )}
+                </Modal>
+            </div>
         </div>
     )
 }

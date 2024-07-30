@@ -64,6 +64,7 @@
         "react-qr-code": "^2.0.11",
         "react-tooltip": "^5.21.5",
         "sharp": "^0.32.6",
+        "siwe": "^2.3.2",
         "tailwind-merge": "^1.12.0",
         "tailwind-scrollbar": "^3.1.0",
         "tap": "^18.4.2",

@@ -14,7 +14,7 @@ import { errors, ethers } from 'ethers'
 import peanut from '@squirrel-labs/peanut-sdk'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
-import { useAccount } from 'wagmi'
+import { useAccount, useSignMessage } from 'wagmi'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -143,6 +143,22 @@ export const CreateLinkInitialView = ({
     useEffect(() => {
         setErrorState({ showError: false, errorMessage: '' })
     }, [inputValue])
+
+    const { address } = useAccount()
+    const { signMessageAsync } = useSignMessage()
+
+    const handleSiwe = async () => {
+        const siwemsg = utils.createSiweMessage({
+            address: address ?? '',
+            statement: 'Sign in to peanut.to',
+        })
+
+        const signature = await signMessageAsync({
+            message: siwemsg,
+        })
+
+        console.log('signature', signature)
+    }
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">

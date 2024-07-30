@@ -9,6 +9,7 @@ import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { createClient } from 'viem'
 import { authConnector } from '@web3modal/wagmi'
+import { SIWEController } from '@web3modal/siwe'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
