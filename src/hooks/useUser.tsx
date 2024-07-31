@@ -5,7 +5,7 @@ export const useUser = () => {
     const [hasFetchedUser, setHasFetchedUser] = useState<boolean>(false)
 
     const fetchUser = async () => {
-        const response = await fetch(`/api/peanut/user/get-user?accountIdentifier=BE97063517962049`, {
+        const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=BE97063517962049`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',

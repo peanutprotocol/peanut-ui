@@ -9,10 +9,11 @@ import { useEffect, useState } from 'react'
 import { Divider } from '@chakra-ui/react'
 import { useDashboard } from '../Dashboard/useDashboard'
 import * as interfaces from '@/interfaces'
-import { useAccount } from 'wagmi'
+import { useAccount, useSignMessage } from 'wagmi'
 import TablePagination from '../Global/TablePagination'
 import * as utils from '@/utils'
 import Modal from '../Global/Modal'
+import { cookies } from 'next/headers'
 
 const tabs = [
     {
@@ -213,18 +214,69 @@ export const Profile = () => {
         }
     }, [currentPage, dashboardData])
 
+    const { signMessageAsync } = useSignMessage()
+
+    const handleSiwe = async () => {
+        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                accountIdentifier: address,
+            }),
+        })
+
+        const { userId } = await userIdResponse.json()
+
+        console.log(userId)
+
+        const siwemsg = utils.createSiweMessage({
+            address: address ?? '',
+            statement: `Sign in to peanut.to. This is your unique user identifier! ${userId}`,
+        })
+
+        const signature = await signMessageAsync({
+            message: siwemsg,
+        })
+
+        const getTokenResponse = await fetch('api/peanut/user/get-jwt-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'api-key': process.env.PEANUT_API_KEY!,
+            },
+            body: JSON.stringify({
+                signature: signature,
+                message: siwemsg,
+            }),
+        })
+
+        console.log(getTokenResponse)
+
+        const { token } = await getTokenResponse.json()
+
+        console.log(token)
+        const getUserResponse = await fetch('api/peanut/user/get-user', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                authToken: token,
+            }),
+        })
+
+        console.log(getUserResponse)
+
+        const user = await getUserResponse.json()
+
+        console.log(user)
+    }
+
     return (
         <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
-            {!signedIn && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-gray-800 bg-opacity-75 backdrop-blur-xl">
-                    <div className="rounded-lg bg-white p-4 shadow-lg">
-                        <p>Please sign in with Ethereum to access this content.</p>
-                    </div>
-                </div>
-            )}
-            <div
-                className={`flex w-full flex-col items-center justify-center gap-2 ${!signedIn && 'pointer-events-none opacity-50'}`}
-            >
+            <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
                 <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
                         <img src={svg} className="h-16 w-16 " />
@@ -232,6 +284,7 @@ export const Profile = () => {
                             <span className="text-h4">Borgiii</span>
                         </div>
                     </div>
+                    <button onClick={handleSiwe}>SIWE</button>
                     <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                         <span className="text-h5">3400 points</span>
                         <span className="flex items-center justify-center gap-1">

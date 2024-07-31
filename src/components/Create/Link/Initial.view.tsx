@@ -144,22 +144,6 @@ export const CreateLinkInitialView = ({
         setErrorState({ showError: false, errorMessage: '' })
     }, [inputValue])
 
-    const { address } = useAccount()
-    const { signMessageAsync } = useSignMessage()
-
-    const handleSiwe = async () => {
-        const siwemsg = utils.createSiweMessage({
-            address: address ?? '',
-            statement: 'Sign in to peanut.to',
-        })
-
-        const signature = await signMessageAsync({
-            message: siwemsg,
-        })
-
-        console.log('signature', signature)
-    }
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Send crypto</label>
