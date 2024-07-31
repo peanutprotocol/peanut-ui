@@ -1,7 +1,12 @@
 import React from 'react'
 import { Divider } from '@chakra-ui/react'
 import * as assets from '@/assets'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAccount } from 'wagmi'
 export const ProfileSkeleton = ({ onClick }: { onClick: () => void }) => {
+    const { open } = useWeb3Modal()
+    const { address } = useAccount()
+
     return (
         <div className="relative flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
             <div className="relative z-0 flex w-full flex-col items-center justify-center gap-2">
@@ -87,11 +92,23 @@ export const ProfileSkeleton = ({ onClick }: { onClick: () => void }) => {
 
             <div className="absolute inset-0 -top-2 z-10 flex items-center justify-center backdrop-blur-sm">
                 <button
-                    onClick={onClick}
-                    className="z-20 flex w-max flex-row items-center justify-center gap-2 rounded border border-black bg-white px-4 py-2 text-h6 text-black"
+                    onClick={() => {
+                        if (address) {
+                            onClick()
+                        } else {
+                            open()
+                        }
+                    }}
+                    className="z-20 w-max rounded border border-black bg-white px-4 py-2 text-h6 text-black"
                 >
-                    <img src={assets.ETHEREUM_ICON.src} className="h-6 w-6" />
-                    Sign in with ethereum
+                    {address ? (
+                        <span className="flex flex-row items-center justify-center gap-2 text-h6  text-black">
+                            <img src={assets.ETHEREUM_ICON.src} className="h-6 w-6" />
+                            Sign in with ethereum
+                        </span>
+                    ) : (
+                        'Connect Wallet'
+                    )}
                 </button>
             </div>
         </div>
