@@ -297,8 +297,15 @@ module.exports = {
                 '.th-custom': {
                     '@apply table-cell h-12 px-3 py-2 align-middle text-left first:pl-5 last:pr-5': {},
                 },
+                '.th-custom-skeleton': {
+                    '@apply table-cell h-12 px-3 py-2 align-middle text-left': {},
+                },
                 '.td-custom': {
                     '@apply table-cell h-[3.875rem] px-3 py-2.5 align-middle border-t border-n-1 text-sm first:pl-5 last:pr-5 dark:border-white':
+                        {},
+                },
+                '.td-custom-skeleton': {
+                    '@apply table-cell h-[3.875rem] px-3 py-2.5 align-middle border-t border-n-1 text-sm dark:border-white':
                         {},
                 },
                 '.card': {

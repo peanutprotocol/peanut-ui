@@ -13,7 +13,7 @@ import { useAccount, useSignMessage } from 'wagmi'
 import TablePagination from '../Global/TablePagination'
 import * as utils from '@/utils'
 import Modal from '../Global/Modal'
-import { cookies } from 'next/headers'
+import { useAuth } from '@/context/authContext'
 
 const tabs = [
     {
@@ -38,7 +38,8 @@ export const Profile = () => {
     const svg = avatar.toDataUri()
     const { address, isConnected } = useAccount()
 
-    const [signedIn, setSignedIn] = useState(false)
+    const { signMessageAsync } = useSignMessage()
+    const { user, fetchUser } = useAuth()
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
@@ -214,205 +215,197 @@ export const Profile = () => {
         }
     }, [currentPage, dashboardData])
 
-    const { signMessageAsync } = useSignMessage()
-
     const handleSiwe = async () => {
-        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                accountIdentifier: address,
-            }),
-        })
+        try {
+            if (!address) {
+            }
+            const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accountIdentifier: address,
+                }),
+            })
 
-        const { userId } = await userIdResponse.json()
+            const { userId } = await userIdResponse.json()
+            const siwemsg = utils.createSiweMessage({
+                address: address ?? '',
+                statement: `Sign in to peanut.to. This is your unique user identifier! ${userId}`,
+            })
 
-        console.log(userId)
-
-        const siwemsg = utils.createSiweMessage({
-            address: address ?? '',
-            statement: `Sign in to peanut.to. This is your unique user identifier! ${userId}`,
-        })
-
-        const signature = await signMessageAsync({
-            message: siwemsg,
-        })
-
-        const getTokenResponse = await fetch('api/peanut/user/get-jwt-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'api-key': process.env.PEANUT_API_KEY!,
-            },
-            body: JSON.stringify({
-                signature: signature,
+            const signature = await signMessageAsync({
                 message: siwemsg,
-            }),
-        })
+            })
 
-        console.log(getTokenResponse)
+            await fetch('/api/peanut/user/get-jwt-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    signature: signature,
+                    message: siwemsg,
+                }),
+            })
 
-        const { token } = await getTokenResponse.json()
-
-        console.log(token)
-        const getUserResponse = await fetch('api/peanut/user/get-user', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                authToken: token,
-            }),
-        })
-
-        console.log(getUserResponse)
-
-        const user = await getUserResponse.json()
-
-        console.log(user)
+            fetchUser()
+        } catch (error) {
+            console.error('Authentication error:', error)
+        } finally {
+        }
     }
 
-    return (
-        <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
-            <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
-                <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
-                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
-                        <img src={svg} className="h-16 w-16 " />
-                        <div className="flex flex-col items-center justify-center gap-1 sm:items-start">
-                            <span className="text-h4">Borgiii</span>
+    if (!user) {
+        return (
+            <components.ProfileSkeleton
+                onClick={() => {
+                    handleSiwe()
+                }}
+            />
+        )
+    } else
+        return (
+            <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
+                <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
+                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
+                        <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
+                            <img src={svg} className="h-16 w-16 " />
+                            <div className="flex flex-col items-center justify-center gap-1 sm:items-start">
+                                <span className="text-h4">Borgiii</span>
+                            </div>
                         </div>
-                    </div>
-                    <button onClick={handleSiwe}>SIWE</button>
-                    <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
-                        <span className="text-h5">3400 points</span>
-                        <span className="flex items-center justify-center gap-1">
-                            <Icon name={'arrow-up-right'} />
-                            Boost 2.0X
-                            <Icon
-                                name={'info'}
-                                className={`cursor-pointer transition-transform dark:fill-white`}
-                                onClick={() => {
-                                    setModalVisible(true)
-                                    setModalType('Boost')
-                                }}
-                            />
-                        </span>
-                        <span className="flex items-center justify-center gap-1">
-                            <Icon name={'heart'} />
-                            Invites 69
-                            <Icon
-                                name={'info'}
-                                className={`cursor-pointer transition-transform dark:fill-white`}
-                                onClick={() => {
-                                    setModalVisible(true)
-                                    setModalType('Invites')
-                                }}
-                            />
-                        </span>
-                        {/* <span className="flex items-center justify-center gap-1">
+                        <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
+                            <span className="text-h5">3400 points</span>
+                            <span className="flex items-center justify-center gap-1">
+                                <Icon name={'arrow-up-right'} />
+                                Boost 2.0X
+                                <Icon
+                                    name={'info'}
+                                    className={`cursor-pointer transition-transform dark:fill-white`}
+                                    onClick={() => {
+                                        setModalVisible(true)
+                                        setModalType('Boost')
+                                    }}
+                                />
+                            </span>
+                            <span className="flex items-center justify-center gap-1">
+                                <Icon name={'heart'} />
+                                Invites 69
+                                <Icon
+                                    name={'info'}
+                                    className={`cursor-pointer transition-transform dark:fill-white`}
+                                    onClick={() => {
+                                        setModalVisible(true)
+                                        setModalType('Invites')
+                                    }}
+                                />
+                            </span>
+                            {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
                         <MoreInfo text="More info streak" />
                     </span> */}
-                    </div>
-                    {/* <div>balance</div> */}
-                </div>
-                <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
-                    <components.Tabs
-                        items={tabs}
-                        value={selectedTab}
-                        setValue={setSelectedTab}
-                        className="mx-0 w-full gap-0 px-0"
-                        classButton="w-1/3 mx-0 px-0 ml-0 !rounded-none"
-                    />
-                    <Divider borderColor={'black'}></Divider>
-                    <div className="block w-full sm:hidden">
-                        {tableData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((data) => (
-                            <div key={(data.key ?? '') + Math.random()}>
-                                <components.MobileTableComponent
-                                    key={(data.key ?? '') + Math.random()}
-                                    primaryText={data.primaryText}
-                                    secondaryText={data.secondaryText}
-                                    tertiaryText={data.tertiaryText}
-                                    quaternaryText={data.quaternaryText}
-                                    type={data.type}
-                                    avatar={data.avatar}
-                                    dashboardItem={data.dashboardItem}
-                                />
-                            </div>
-                        ))}{' '}
-                    </div>
-                    <div className="hidden w-full sm:block">
-                        <components.TableComponent
-                            data={tableData}
-                            selectedTab={selectedTab}
-                            currentPage={currentPage}
-                            itemsPerPage={itemsPerPage}
-                        />
-                    </div>
-                    {dashboardData.length > 0 && totalPages > 1 && (
-                        <TablePagination
-                            onNext={() => {
-                                if (currentPage < totalPages) {
-                                    setCurrentPage(currentPage + 1)
-                                }
-                            }}
-                            onPrev={() => {
-                                if (currentPage > 1) {
-                                    setCurrentPage(currentPage - 1)
-                                }
-                            }}
-                            totalPages={totalPages}
-                            currentPage={currentPage}
-                        />
-                    )}
-                </div>
-                <Modal
-                    visible={modalVisible}
-                    onClose={() => {
-                        setModalVisible(false)
-                    }}
-                    title={modalType}
-                    classNameWrapperDiv="px-5 pb-7 pt-8"
-                >
-                    {modalType === 'Boost' ? (
-                        <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                            <div className="flex w-full items-center justify-between">
-                                <label>Streak</label>
-                                <label>1.4X</label>
-                            </div>
-                            <div className="flex w-full items-center justify-between">
-                                <label>Early frend</label>
-                                <label>1.6X</label>
-                            </div>
-                            <Divider borderColor={'black'}></Divider>
-                            <div className="flex w-full items-center justify-between">
-                                <label>Total</label>
-                                <label>2.0X</label>
-                            </div>
                         </div>
-                    ) : modalType === 'Invites' ? (
-                        <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                            <div className="flex w-full items-center justify-between">
-                                <label>cyberdrk.eth</label>
-                                <label>69000</label>
-                            </div>
-                            <div className="flex w-full items-center justify-between">
-                                <label>kkonrad.eth</label>
-                                <label>420</label>
-                            </div>
-                            <Divider borderColor={'black'}></Divider>
-                            <div className="flex w-full items-center justify-between">
-                                <label>Total</label>
-                                <label>69420</label>
-                            </div>
+                        {/* <div>balance</div> */}
+                    </div>
+                    <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
+                        <components.Tabs
+                            items={tabs}
+                            value={selectedTab}
+                            setValue={setSelectedTab}
+                            className="mx-0 w-full gap-0 px-0"
+                            classButton="w-1/3 mx-0 px-0 ml-0 !rounded-none"
+                        />
+                        <Divider borderColor={'black'}></Divider>
+                        <div className="block w-full sm:hidden">
+                            {tableData
+                                .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
+                                .map((data) => (
+                                    <div key={(data.key ?? '') + Math.random()}>
+                                        <components.MobileTableComponent
+                                            key={(data.key ?? '') + Math.random()}
+                                            primaryText={data.primaryText}
+                                            secondaryText={data.secondaryText}
+                                            tertiaryText={data.tertiaryText}
+                                            quaternaryText={data.quaternaryText}
+                                            type={data.type}
+                                            avatar={data.avatar}
+                                            dashboardItem={data.dashboardItem}
+                                        />
+                                    </div>
+                                ))}{' '}
                         </div>
-                    ) : (
-                        ''
-                    )}
-                </Modal>
+                        <div className="hidden w-full sm:block">
+                            <components.TableComponent
+                                data={tableData}
+                                selectedTab={selectedTab}
+                                currentPage={currentPage}
+                                itemsPerPage={itemsPerPage}
+                            />
+                        </div>
+                        {dashboardData.length > 0 && totalPages > 1 && (
+                            <TablePagination
+                                onNext={() => {
+                                    if (currentPage < totalPages) {
+                                        setCurrentPage(currentPage + 1)
+                                    }
+                                }}
+                                onPrev={() => {
+                                    if (currentPage > 1) {
+                                        setCurrentPage(currentPage - 1)
+                                    }
+                                }}
+                                totalPages={totalPages}
+                                currentPage={currentPage}
+                            />
+                        )}
+                    </div>
+                    <Modal
+                        visible={modalVisible}
+                        onClose={() => {
+                            setModalVisible(false)
+                        }}
+                        title={modalType}
+                        classNameWrapperDiv="px-5 pb-7 pt-8"
+                    >
+                        {modalType === 'Boost' ? (
+                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                                <div className="flex w-full items-center justify-between">
+                                    <label>Streak</label>
+                                    <label>1.4X</label>
+                                </div>
+                                <div className="flex w-full items-center justify-between">
+                                    <label>Early frend</label>
+                                    <label>1.6X</label>
+                                </div>
+                                <Divider borderColor={'black'}></Divider>
+                                <div className="flex w-full items-center justify-between">
+                                    <label>Total</label>
+                                    <label>2.0X</label>
+                                </div>
+                            </div>
+                        ) : modalType === 'Invites' ? (
+                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                                <div className="flex w-full items-center justify-between">
+                                    <label>cyberdrk.eth</label>
+                                    <label>69000</label>
+                                </div>
+                                <div className="flex w-full items-center justify-between">
+                                    <label>kkonrad.eth</label>
+                                    <label>420</label>
+                                </div>
+                                <Divider borderColor={'black'}></Divider>
+                                <div className="flex w-full items-center justify-between">
+                                    <label>Total</label>
+                                    <label>69420</label>
+                                </div>
+                            </div>
+                        ) : (
+                            ''
+                        )}
+                    </Modal>
+                </div>
             </div>
-        </div>
-    )
+        )
 }

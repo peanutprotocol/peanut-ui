@@ -15,7 +15,6 @@ import 'react-tooltip/dist/react-tooltip.css'
 import LogRocket from 'logrocket'
 import { ChakraProvider } from '@chakra-ui/react'
 import * as styles from '@/styles/theme'
-import { useUser } from '@/hooks/useUser'
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
