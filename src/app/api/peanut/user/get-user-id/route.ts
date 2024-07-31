@@ -1,20 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-    const { authToken } = await request.json()
+    const { accountIdentifier } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
 
-    if (!authToken || !apiKey) {
+    if (!accountIdentifier || !apiKey) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
     try {
-        const response = await fetch('http://localhost:5001/get-user', {
+        const response = await fetch('http://localhost:5001/get-user-id', {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
                 'api-key': apiKey,
             },
+            body: JSON.stringify({ accountIdentifier }),
         })
 
         if (response.status === 404) {
@@ -25,6 +26,8 @@ export async function POST(request: NextRequest) {
                 },
             })
         }
+
+        console.log(response)
 
         const data = await response.json()
         return new NextResponse(JSON.stringify(data), {

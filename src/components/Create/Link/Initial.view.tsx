@@ -14,7 +14,7 @@ import { errors, ethers } from 'ethers'
 import peanut from '@squirrel-labs/peanut-sdk'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
-import { useAccount } from 'wagmi'
+import { useAccount, useSignMessage } from 'wagmi'
 
 export const CreateLinkInitialView = ({
     onNext,

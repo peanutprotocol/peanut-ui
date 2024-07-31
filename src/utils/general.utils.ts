@@ -728,3 +728,18 @@ export function getIconName(type: string) {
             return undefined
     }
 }
+
+import { SiweMessage } from 'siwe'
+
+export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
+    const message = new SiweMessage({
+        domain: window.location.host,
+        address,
+        statement,
+        uri: window.location.origin,
+        version: '1',
+        chainId: 1,
+    })
+
+    return message.prepareMessage()
+}
