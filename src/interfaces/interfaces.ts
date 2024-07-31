@@ -288,3 +288,57 @@ export interface IProfileTableData {
     }
     dashboardItem?: IDashboardItem
 }
+
+interface Transaction {
+    tx_hash: string
+    chain_id: string
+    address: string
+    points: number
+    description: string | null
+    created_at: string
+}
+
+interface ReferralConnection {
+    user_id: string
+    referrer: string
+    account_identifier: string
+}
+
+interface PointsPerReferral {
+    address: string
+    points: number
+}
+
+interface User {
+    email: string
+    profile_picture: string | null
+    username: string | null
+    kycStatus: string
+}
+
+interface Account {
+    account_id: string
+    user_id: string
+    bridge_account_id: string
+    account_type: string
+    account_identifier: string
+    account_details: string
+    created_at: string
+    updated_at: string
+    points: number
+    referrer: string | null
+    referred_users_points: number
+}
+
+export interface IUserProfile {
+    points: number
+    transactions: Transaction[]
+    referralsPointsTxs: Transaction[]
+    totalReferralConnections: ReferralConnection[]
+    totalReferralPoints: number
+    pointsPerReferral: PointsPerReferral[]
+    referredUsers: number
+    streak: number
+    user: User
+    accounts: Account[]
+}

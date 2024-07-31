@@ -1,21 +1,21 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
-
+import * as interfaces from '@/interfaces'
 interface AuthContextType {
-    user: any // TODO: define type
-    setUser: (user: any) => void
+    user: interfaces.IUserProfile | null
+    setUser: (user: interfaces.IUserProfile | null) => void
     fetchUser: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const [user, setUser] = useState<any>(null)
+    const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
 
     const fetchUser = async () => {
         const response = await fetch('/api/peanut/user/get-user-from-cookie')
         if (response.ok) {
-            const userData: any = await response.json()
+            const userData: interfaces.IUserProfile | null = await response.json()
             setUser(userData)
         }
     }

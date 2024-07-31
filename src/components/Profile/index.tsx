@@ -30,89 +30,6 @@ const tabs = [
     },
 ]
 
-const userObject = {
-    points: 120,
-    transactions: [
-        {
-            tx_hash: '0x00000',
-            chain_id: '0',
-            address: '0x4eba28b7a2f4bf7d6a22c359e12474eb72aae244',
-            points: 120,
-            description: null,
-            created_at: '2024-07-30T07:51:57.139Z',
-        },
-    ],
-    pointsTxs: [
-        {
-            tx_hash: '0x00000',
-            chain_id: '0',
-            address: '0x4eba28b7a2f4bf7d6a22c359e12474eb72aae244',
-            points: 120,
-            description: null,
-            created_at: '2024-07-30T07:51:57.139Z',
-        },
-    ],
-    referralsPointsTxs: [
-        {
-            tx_hash: '0x11111',
-            chain_id: '1',
-            address: '0x34207c538e39f2600fe672bb84a90eff190ae4c7',
-            points: 1200,
-            description: null,
-            created_at: '2024-07-30T07:51:57.314Z',
-        },
-    ],
-    totalReferralConnections: [
-        {
-            user_id: '159c6227-5dfc-4dc0-9911-4562e06ab412',
-            referrer: '0x4EBA28B7A2f4Bf7d6a22C359E12474Eb72aae244',
-            account_identifier: '0x34207c538e39f2600fe672bb84a90eff190ae4c7',
-        },
-    ],
-    totalReferralPoints: 240,
-    pointsPerReferral: [
-        {
-            address: '0x34207c538e39f2600fe672bb84a90eff190ae4c7',
-            points: 240,
-        },
-    ],
-    referredUsers: 1,
-    streak: 1,
-    user: {
-        email: 'mock1@gmail.com',
-        profile_picture: null,
-        username: null,
-        kycStatus: 'verified',
-    },
-    accounts: [
-        {
-            account_id: 'f1e6850f-9625-4f7b-a201-4574afd101ac',
-            user_id: '159c6227-5dfc-4dc0-9911-4562e06ab412',
-            bridge_account_id: '123',
-            account_type: 'evm-address',
-            account_identifier: '0x4eba28b7a2f4bf7d6a22c359e12474eb72aae244',
-            account_details: '{}',
-            created_at: '2024-07-30T07:51:56.787Z',
-            updated_at: '2024-07-30T07:51:56.787Z',
-            points: 120,
-            referrer: null,
-            referred_users_points: 0,
-        },
-        {
-            account_id: '16364835-6b89-4cfc-aea1-cf81fed6f332',
-            user_id: '159c6227-5dfc-4dc0-9911-4562e06ab412',
-            bridge_account_id: '123',
-            account_type: 'evm-address',
-            account_identifier: '0x34207c538e39f2600fe672bb84a90eff190ae4c7',
-            account_details: '{}',
-            created_at: '2024-07-30T07:51:56.826Z',
-            updated_at: '2024-07-30T07:51:56.826Z',
-            points: 1200,
-            referrer: '0x4EBA28B7A2f4Bf7d6a22C359E12474Eb72aae244',
-            referred_users_points: 0,
-        },
-    ],
-}
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
     const avatar = createAvatar(avataaarsNeutral, {
@@ -150,9 +67,7 @@ export const Profile = () => {
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
 
     useEffect(() => {
-        const checkSignedInStatus = async () => {}
-
-        checkSignedInStatus()
+        if (!user) return
 
         const dashboardData = composeLinkDataArray(address ?? '')
         setDashboardData(dashboardData)
@@ -184,21 +99,19 @@ export const Profile = () => {
             },
         ]
         setContactsData(contactsData)
-
-        const accountsData = [
-            {
-                type: 'evm',
-                accountIdentifier: '0x1234567890',
-            },
-            {
-                type: 'iban',
-                accountIdentifier: 'PL123456',
-            },
-        ]
+        const accountsData = user.accounts.map((account) => ({
+            type:
+                account.account_type === 'iban'
+                    ? 'Bank account (iban)'
+                    : account.account_type === 'us'
+                      ? 'Bank account (US account)'
+                      : 'Wallet',
+            accountIdentifier: account.account_identifier,
+        }))
         setAccountData(accountsData)
 
         setSelectedTab('history')
-    }, [address])
+    }, [user])
 
     useEffect(() => {
         switch (selectedTab) {
@@ -357,12 +270,12 @@ export const Profile = () => {
                         <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
                             <img src={svg} className="h-16 w-16 " />
                             <div className="flex flex-col items-center justify-center gap-1 sm:items-start">
-                                <span className="text-h4">Borgiii</span>
+                                <span className="text-h4">{user.user.username ?? user.user.email} </span>
                             </div>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
-                            <span className="text-h5">3400 points</span>
-                            <span className="flex items-center justify-center gap-1">
+                            <span className="text-h5">{user.points} points</span>
+                            {/* <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
                                 Boost 2.0X
                                 <Icon
@@ -373,18 +286,18 @@ export const Profile = () => {
                                         setModalType('Boost')
                                     }}
                                 />
-                            </span>
+                            </span> */}
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
-                                Invites 69
-                                <Icon
+                                Invites {user.referredUsers}
+                                {/* <Icon
                                     name={'info'}
                                     className={`cursor-pointer transition-transform dark:fill-white`}
                                     onClick={() => {
                                         setModalVisible(true)
                                         setModalType('Invites')
                                     }}
-                                />
+                                /> */}
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
