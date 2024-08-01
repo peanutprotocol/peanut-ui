@@ -310,6 +310,7 @@ interface PointsPerReferral {
 }
 
 interface User {
+    userId: string
     email: string
     profile_picture: string | null
     username: string | null

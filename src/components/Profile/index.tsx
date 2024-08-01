@@ -14,6 +14,8 @@ import TablePagination from '../Global/TablePagination'
 import * as utils from '@/utils'
 import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
+import ImageEdit from '../Global/ImageEdit'
+import TextEdit from '../Global/TextEdit'
 
 const tabs = [
     {
@@ -32,15 +34,15 @@ const tabs = [
 
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
+    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
     const avatar = createAvatar(avataaarsNeutral, {
-        seed: 'test',
+        seed: user ? user?.user.username ?? user?.user.email : '',
     })
 
     const svg = avatar.toDataUri()
     const { address, isConnected } = useAccount()
 
     const { signMessageAsync } = useSignMessage()
-    const { user, fetchUser } = useAuth()
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
@@ -71,6 +73,8 @@ export const Profile = () => {
 
         const dashboardData = composeLinkDataArray(address ?? '')
         setDashboardData(dashboardData)
+
+        console.log(user)
 
         const contactsData = [
             {
@@ -260,6 +264,7 @@ export const Profile = () => {
                 onClick={() => {
                     handleSiwe()
                 }}
+                showOverlay={!isFetchingUser}
             />
         )
     } else
@@ -268,16 +273,26 @@ export const Profile = () => {
                 <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
                         <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
-                            <img src={svg} className="h-16 w-16 " />
-                            <div className="flex flex-col items-center justify-center gap-1 sm:items-start">
-                                <span className="text-h4">{user.user.username ?? user.user.email} </span>
-                            </div>
+                            <ImageEdit
+                                initialProfilePicture={user.user.profile_picture ? user.user.profile_picture : svg}
+                                onImageChange={(file) => {
+                                    if (!file) return
+                                    submitProfilePhoto(file)
+                                }}
+                            />
+
+                            <TextEdit
+                                initialText={user.user.username ?? user.user.email ?? 'borgi'}
+                                onTextChange={(text) => {
+                                    updateUserName(text)
+                                }}
+                            />
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user.points} points</span>
-                            {/* <span className="flex items-center justify-center gap-1">
+                            <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
-                                Boost 2.0X
+                                Boost 1.4X
                                 <Icon
                                     name={'info'}
                                     className={`cursor-pointer transition-transform dark:fill-white`}
@@ -286,7 +301,7 @@ export const Profile = () => {
                                         setModalType('Boost')
                                     }}
                                 />
-                            </span> */}
+                            </span>
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user.referredUsers}
@@ -368,18 +383,18 @@ export const Profile = () => {
                     >
                         {modalType === 'Boost' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                                <div className="flex w-full items-center justify-between">
+                                {/* <div className="flex w-full items-center justify-between">
                                     <label>Streak</label>
                                     <label>1.4X</label>
-                                </div>
+                                </div> */}
                                 <div className="flex w-full items-center justify-between">
                                     <label>Early frend</label>
-                                    <label>1.6X</label>
+                                    <label>1.4X</label>
                                 </div>
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>2.0X</label>
+                                    <label>1.4X</label>
                                 </div>
                             </div>
                         ) : modalType === 'Invites' ? (

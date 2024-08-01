@@ -87,6 +87,9 @@ module.exports = {
             transitionTimingFunction: {
                 DEFAULT: 'linear',
             },
+            transitionProperty: {
+                filter: 'filter',
+            },
             keyframes: {
                 loaderDots: {
                     '0%': { opacity: 1 },
@@ -377,4 +380,9 @@ module.exports = {
             })
         }),
     ],
+    variants: {
+        extend: {
+            filter: ['hover'],
+        },
+    },
 }
