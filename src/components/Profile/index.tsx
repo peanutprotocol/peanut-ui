@@ -36,7 +36,7 @@ export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
     const avatar = createAvatar(avataaarsNeutral, {
-        seed: user ? user?.user.username ?? user?.user.email : '',
+        seed: user ? (user?.user.username ?? user?.user.email) : '',
     })
 
     const svg = avatar.toDataUri()
