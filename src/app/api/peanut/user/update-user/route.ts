@@ -11,13 +11,6 @@ export async function POST(request: NextRequest) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
-    console.log({
-        userId,
-        username,
-        apiKey,
-        token,
-    })
-
     try {
         const response = await fetch('http://localhost:5001/update-user', {
             method: 'POST',

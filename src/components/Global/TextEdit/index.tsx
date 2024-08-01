@@ -38,7 +38,7 @@ const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextCh
                     onChange={handleTextChange}
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
-                    className="w-full bg-transparent text-center text-h4 focus:outline-none"
+                    className="w-full bg-transparent text-center text-h4 focus:outline-none sm:text-start"
                 />
             ) : (
                 <span

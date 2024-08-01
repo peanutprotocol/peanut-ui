@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         const data = await response.json()
         const token = data.token
 
+        // Set the JWT token in a cookie, nextjs requires to do this serverside
         cookies().set('jwt-token', token, {
             httpOnly: true,
             path: '/',

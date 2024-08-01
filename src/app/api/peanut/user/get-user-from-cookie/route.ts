@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
 
@@ -9,7 +9,10 @@ export async function GET() {
         return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    const response = await fetch('http://localhost:3000/api/peanut/user/get-user', {
+    const { protocol, hostname, port } = new URL(request.url)
+    const apiUrl = `${protocol}//${hostname}:${port}/api/peanut/user/get-user`
+
+    const response = await fetch(apiUrl, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

@@ -17,16 +17,9 @@ export async function POST(request: NextRequest) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
-    console.log({
-        apiKey,
-        token,
-        file,
-    })
     try {
         const apiFormData = new FormData()
         apiFormData.append('file', file)
-
-        console.log(apiFormData)
 
         const response = await fetch('http://localhost:5001/submit-profile-photo', {
             method: 'POST',
@@ -49,7 +42,6 @@ export async function POST(request: NextRequest) {
             },
         })
     } catch (error) {
-        console.log(error)
         console.error('Error uploading profile photo:', error)
         return new NextResponse('Internal Server Error', { status: 500 })
     }
