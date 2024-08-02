@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('http://localhost:5001/get-user', {
+        const response = await fetch('https://api.staging.peanut.to/get-user', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${authToken}`,

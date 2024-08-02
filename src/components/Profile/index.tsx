@@ -36,7 +36,7 @@ export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
     const avatar = createAvatar(avataaarsNeutral, {
-        seed: user ? (user?.user.username ?? user?.user.email) : '',
+        seed: user?.user?.username ?? user?.user?.email ?? '',
     })
 
     const svg = avatar.toDataUri()
@@ -76,42 +76,26 @@ export const Profile = () => {
 
         console.log(user)
 
-        const contactsData = [
-            {
-                userName: 'Borgii',
-                address: '0x1234567890',
-                txs: 69,
+        const contactsData =
+            user?.contacts &&
+            user.contacts.map((contact) => ({
+                userName: contact.nickname ?? contact.ens_name ?? '-',
+                address: contact.account_identifier,
+                txs: 1,
                 avatar: undefined,
-            },
-            {
-                userName: 'Hugo',
-                address: '0x1234567890',
-                txs: 69,
-                avatar: undefined,
-            },
-            {
-                userName: 'Pawel',
-                address: '0x1234567890',
-                txs: 69,
-                avatar: undefined,
-            },
-            {
-                userName: 'Konrad',
-                address: '0x1234567890',
-                txs: 69,
-                avatar: undefined,
-            },
-        ]
+            }))
         setContactsData(contactsData)
-        const accountsData = user.accounts.map((account) => ({
-            type:
-                account.account_type === 'iban'
-                    ? 'Bank account (iban)'
-                    : account.account_type === 'us'
-                      ? 'Bank account (US account)'
-                      : 'Wallet',
-            accountIdentifier: account.account_identifier,
-        }))
+        const accountsData =
+            user?.accounts &&
+            user.accounts.map((account) => ({
+                type:
+                    account.account_type === 'iban'
+                        ? 'Bank account (iban)'
+                        : account.account_type === 'us'
+                          ? 'Bank account (US account)'
+                          : 'Wallet',
+                accountIdentifier: account.account_identifier,
+            }))
         setAccountData(accountsData)
 
         setSelectedTab('history')
@@ -230,10 +214,12 @@ export const Profile = () => {
                 }),
             })
 
-            const { userId } = await userIdResponse.json()
+            const response = await userIdResponse.json()
+
+            console.log('userId', response)
             const siwemsg = utils.createSiweMessage({
                 address: address ?? '',
-                statement: `Sign in to peanut.to. This is your unique user identifier! ${userId}`,
+                statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
             })
 
             const signature = await signMessageAsync({
@@ -274,7 +260,7 @@ export const Profile = () => {
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
                         <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
                             <ImageEdit
-                                initialProfilePicture={user.user.profile_picture ? user.user.profile_picture : svg}
+                                initialProfilePicture={user?.user?.profile_picture ? user?.user?.profile_picture : svg}
                                 onImageChange={(file) => {
                                     if (!file) return
                                     submitProfilePhoto(file)
@@ -282,14 +268,18 @@ export const Profile = () => {
                             />
 
                             <TextEdit
-                                initialText={user.user.username ?? user.user.email ?? 'borgi'}
+                                initialText={
+                                    user?.user?.username ??
+                                    user?.user?.email ??
+                                    (user.accounts ? user?.accounts[0]?.account_identifier : '')
+                                }
                                 onTextChange={(text) => {
                                     updateUserName(text)
                                 }}
                             />
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
-                            <span className="text-h5">{user.points} points</span>
+                            <span className="text-h5">{user?.points} points</span>
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
                                 Boost 1.4X
@@ -304,7 +294,7 @@ export const Profile = () => {
                             </span>
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
-                                Invites {user.referredUsers}
+                                Invites {user?.referredUsers}
                                 {/* <Icon
                                     name={'info'}
                                     className={`cursor-pointer transition-transform dark:fill-white`}

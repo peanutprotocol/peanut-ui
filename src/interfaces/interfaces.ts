@@ -342,4 +342,20 @@ export interface IUserProfile {
     streak: number
     user: User
     accounts: Account[]
+    contacts: Contact[]
+}
+
+export interface Contact {
+    user_id: string
+    contact_id: string
+    peanut_account_id: string | null
+    account_identifier: string
+    account_type: string
+    nickname: string | null
+    ens_name: string | null
+    created_at: string
+    updated_at: string
+    n_interactions: number
+    usd_volume_transacted: string
+    last_interacted_with: string | null
 }

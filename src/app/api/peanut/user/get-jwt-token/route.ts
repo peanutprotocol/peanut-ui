@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('http://localhost:5001/get-token', {
+        const response = await fetch('https://api.staging.peanut.to/get-token', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

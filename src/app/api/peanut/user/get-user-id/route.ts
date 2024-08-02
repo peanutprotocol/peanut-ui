@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('http://localhost:5001/get-user-id', {
+        const response = await fetch('https://api.staging.peanut.to/get-user-id', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
