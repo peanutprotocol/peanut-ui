@@ -38,7 +38,10 @@ export const Profile = () => {
     const avatar = createAvatar(avataaarsNeutral, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
-
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
     const svg = avatar.toDataUri()
     const { address, isConnected } = useAccount()
 
@@ -200,10 +203,16 @@ export const Profile = () => {
         }
     }, [currentPage, dashboardData])
 
+    const [isLoading, setIsLoading] = useState(false)
     const handleSiwe = async () => {
         try {
-            if (!address) {
-            }
+            setIsLoading(true)
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+            if (!address) return
+
             const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
                 method: 'POST',
                 headers: {
@@ -240,7 +249,12 @@ export const Profile = () => {
             fetchUser()
         } catch (error) {
             console.error('Authentication error:', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error while authenticating. Please try again later.',
+            })
         } finally {
+            setIsLoading(false)
         }
     }
 
@@ -251,6 +265,8 @@ export const Profile = () => {
                     handleSiwe()
                 }}
                 showOverlay={!isFetchingUser}
+                errorState={errorState}
+                isLoading={isLoading}
             />
         )
     } else
@@ -271,7 +287,9 @@ export const Profile = () => {
                                 initialText={
                                     user?.user?.username ??
                                     user?.user?.email ??
-                                    (user.accounts ? user?.accounts[0]?.account_identifier : '')
+                                    (user.accounts
+                                        ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier)
+                                        : '')
                                 }
                                 onTextChange={(text) => {
                                     updateUserName(text)

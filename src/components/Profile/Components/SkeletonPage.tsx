@@ -3,7 +3,22 @@ import { Divider } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
-export const ProfileSkeleton = ({ onClick, showOverlay = true }: { onClick: () => void; showOverlay?: boolean }) => {
+import { errors } from 'ethers'
+import Loading from '@/components/Global/Loading'
+export const ProfileSkeleton = ({
+    onClick,
+    showOverlay = true,
+    errorState,
+    isLoading,
+}: {
+    onClick: () => void
+    showOverlay?: boolean
+    errorState: {
+        showError: boolean
+        errorMessage: string
+    }
+    isLoading: boolean
+}) => {
     const { open } = useWeb3Modal()
     const { address } = useAccount()
 
@@ -125,9 +140,15 @@ export const ProfileSkeleton = ({ onClick, showOverlay = true }: { onClick: () =
                             <span className="flex flex-row items-center justify-center gap-2 text-h6  text-black">
                                 <img src={assets.ETHEREUM_ICON.src} className="h-6 w-6" />
                                 Sign in with ethereum
+                                {isLoading && <Loading />}
                             </span>
                         ) : (
                             'Connect Wallet'
+                        )}
+                        {errorState.showError && (
+                            <div className="text-center">
+                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
                         )}
                     </button>
                 </div>

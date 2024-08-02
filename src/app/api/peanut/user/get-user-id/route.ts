@@ -18,9 +18,11 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({ accountIdentifier }),
         })
 
-        if (response.status === 404) {
-            return new NextResponse('Not Found', {
-                status: 404,
+        console.log(response)
+
+        if (response.status !== 200) {
+            return new NextResponse('Error in get-user-id', {
+                status: response.status,
                 headers: {
                     'Content-Type': 'application/json',
                 },
