@@ -62,7 +62,7 @@ export function mapToIPeanutChainDetailsArray(
 }
 
 export const fetchUser = async (accountIdentifier: string): Promise<any> => {
-    const response = await fetch(`/api/peanut/user/get-user?accountIdentifier=${accountIdentifier}`, {
+    const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
         method: 'GET',
         headers: {
             'Content-Type': 'application/json',

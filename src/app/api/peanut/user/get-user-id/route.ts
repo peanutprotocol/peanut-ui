@@ -1,25 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-    const { authToken } = await request.json()
+    const { accountIdentifier } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
 
-    if (!authToken || !apiKey) {
+    if (!accountIdentifier || !apiKey) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
     try {
-        const response = await fetch('https://api.staging.peanut.to/get-user', {
+        const response = await fetch('https://api.staging.peanut.to/get-user-id', {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
                 'api-key': apiKey,
             },
+            body: JSON.stringify({ accountIdentifier }),
         })
 
-        if (response.status === 404) {
-            return new NextResponse('Not Found', {
-                status: 404,
+        if (response.status !== 200) {
+            return new NextResponse('Error in get-user-id', {
+                status: response.status,
                 headers: {
                     'Content-Type': 'application/json',
                 },

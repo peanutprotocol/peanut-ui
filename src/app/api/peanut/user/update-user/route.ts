@@ -1,20 +1,28 @@
+import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
-    const { authToken } = await request.json()
+    const { userId, username } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
+    const cookieStore = cookies()
+    const token = cookieStore.get('jwt-token')
 
-    if (!authToken || !apiKey) {
+    if (!userId || !username || !apiKey || !token) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
     try {
-        const response = await fetch('https://api.staging.peanut.to/get-user', {
+        const response = await fetch('https://api.staging.peanut.to/update-user', {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${authToken}`,
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token.value}`,
                 'api-key': apiKey,
             },
+            body: JSON.stringify({
+                userId,
+                username,
+            }),
         })
 
         if (response.status === 404) {
@@ -27,6 +35,16 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await response.json()
+
+        if (!response.ok) {
+            return new NextResponse(JSON.stringify(data), {
+                status: response.status,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+        }
+
         return new NextResponse(JSON.stringify(data), {
             status: 200,
             headers: {
