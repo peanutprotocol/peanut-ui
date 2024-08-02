@@ -5,15 +5,6 @@ export async function POST(request: NextRequest) {
     try {
         const { txHash, chainId, senderAddress, amountUsd, transaction } = await request.json()
 
-        console.log({
-            txHash,
-            chainId,
-            senderAddress,
-            amountUsd,
-            transaction,
-            x: process.env.PEANUT_API_KEY,
-        })
-
         const response = await fetch('https://api.staging.peanut.to/submit-direct-transfer', {
             method: 'POST',
             headers: {
