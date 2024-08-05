@@ -2,6 +2,7 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Modal from '@/components/Global/Modal'
 import { useState } from 'react'
+import * as consts from '@/constants'
 
 export const MobileTableComponent = ({
     key,
@@ -96,11 +97,17 @@ export const MobileTableComponent = ({
                         {dashboardItem?.txHash && (
                             <div
                                 onClick={() => {
-                                    utils.copyTextToClipboardWithFallback(dashboardItem.txHash ?? '')
+                                    const chainId =
+                                        consts.supportedPeanutChains.find(
+                                            (chain) => chain.name === dashboardItem?.chain
+                                        )?.chainId ?? ''
+
+                                    const explorerUrl = utils.getExplorerUrl(chainId)
+                                    window.open(`${explorerUrl}/tx/${dashboardItem?.txHash ?? ''}`, '_blank')
                                 }}
                                 className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
                             >
-                                Copy transaction hash
+                                Show in explorer
                             </div>
                         )}
                         {dashboardItem?.attachmentUrl && (

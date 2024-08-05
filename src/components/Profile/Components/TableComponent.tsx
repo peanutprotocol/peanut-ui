@@ -3,6 +3,7 @@ import * as interfaces from '@/interfaces'
 import Sorting from '@/components/Global/Sorting'
 import Loading from '@/components/Global/Loading'
 import { OptionsComponent } from './OptionsComponent'
+import * as consts from '@/constants'
 
 export const TableComponent = ({
     data,
@@ -122,10 +123,17 @@ export const TableComponent = ({
                                         actionItems={
                                             [
                                                 data.dashboardItem?.txHash && {
-                                                    name: 'Copy transaction hash',
+                                                    name: 'Show in explorer',
                                                     action: () => {
-                                                        utils.copyTextToClipboardWithFallback(
-                                                            data.dashboardItem?.txHash ?? ''
+                                                        const chainId =
+                                                            consts.supportedPeanutChains.find(
+                                                                (chain) => chain.name === data.dashboardItem?.chain
+                                                            )?.chainId ?? ''
+
+                                                        const explorerUrl = utils.getExplorerUrl(chainId)
+                                                        window.open(
+                                                            `${explorerUrl}/tx/${data?.dashboardItem?.txHash ?? ''}`,
+                                                            '_blank'
                                                         )
                                                     },
                                                 },

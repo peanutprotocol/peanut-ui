@@ -625,9 +625,8 @@ export const estimateStableCoin = (tokenPrice: number) => {
 
 export const getExplorerUrl = (chainId: string) => {
     const explorers = consts.supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
-
     // if the explorers array has blockscout, return the blockscout url, else return the first one
-    if (explorers?.find((explorer) => explorer.name === 'blockscout')) {
+    if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
         return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
     } else {
         return explorers?.[0].url
