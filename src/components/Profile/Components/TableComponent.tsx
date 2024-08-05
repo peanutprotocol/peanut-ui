@@ -54,7 +54,7 @@ export const TableComponent = ({
                             <Sorting title="Address" />
                         </th>
                         <th className="th-custom">
-                            <Sorting title="Amount of transactions" />
+                            <Sorting title="Number of transactions" />
                         </th>
                         <th className="th-custom"></th>
                     </tr>
