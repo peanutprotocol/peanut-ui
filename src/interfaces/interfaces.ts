@@ -282,6 +282,7 @@ export interface IProfileTableData {
     quaternaryText: string
     key: string
     type: 'history' | 'contacts' | 'accounts'
+    address?: string
     avatar: {
         iconName?: string
         avatarUrl?: string

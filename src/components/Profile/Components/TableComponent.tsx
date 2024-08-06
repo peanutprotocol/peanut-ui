@@ -1,9 +1,12 @@
+'use client'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Sorting from '@/components/Global/Sorting'
 import Loading from '@/components/Global/Loading'
 import { OptionsComponent } from './OptionsComponent'
 import * as consts from '@/constants'
+import { useCallback } from 'react';
+import { useRouter } from 'next/navigation';
 
 export const TableComponent = ({
     data,
@@ -16,6 +19,11 @@ export const TableComponent = ({
     currentPage: number
     itemsPerPage: number
 }) => {
+    const router = useRouter();
+    const handleSendToAddress = useCallback((address: string) => {
+        router.push(`/send?recipientAddress=${encodeURIComponent(address)}`);
+    }, [router]);
+
     return (
         <table className="table-custom hidden bg-background sm:table">
             <thead>
@@ -182,7 +190,8 @@ export const TableComponent = ({
                                         {
                                             name: 'Send to this address',
                                             action: () => {
-                                                console.log('Send') // TODO: implement send to this address
+                                                const recipientAddress = data.address as string;
+                                                handleSendToAddress(recipientAddress);
                                             },
                                         },
                                         {

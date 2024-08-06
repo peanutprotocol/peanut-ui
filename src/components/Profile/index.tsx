@@ -131,6 +131,7 @@ export const Profile = () => {
                 setTableData(
                     contactsData.map((data) => ({
                         primaryText: data.userName,
+                        address: data.address,
                         secondaryText: '',
                         tertiaryText: utils.shortenAddressLong(data.address),
                         quaternaryText: data.txs.toString(),
@@ -349,6 +350,7 @@ export const Profile = () => {
                                             secondaryText={data.secondaryText}
                                             tertiaryText={data.tertiaryText}
                                             quaternaryText={data.quaternaryText}
+                                            address={data.address}
                                             type={data.type}
                                             avatar={data.avatar}
                                             dashboardItem={data.dashboardItem}
