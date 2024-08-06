@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
             apiFormData.append('file', formData.get('attachmentFile') as File)
         }
 
-        const response = await fetch('https://api.staging.peanut.to/submit-claim-link/init', {
+        const response = await fetch('https://api.peanut.to/submit-claim-link/init', {
             method: 'POST',
             body: apiFormData,
         })

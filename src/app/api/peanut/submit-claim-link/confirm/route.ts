@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
         const { link, password, txHash, chainId, senderAddress, amountUsd, transaction } = await request.json()
         const { address: pubKey } = generateKeysFromString(password)
 
-        const response = await fetch('https://api.staging.peanut.to/submit-claim-link/complete', {
+        const response = await fetch('https://api.peanut.to/submit-claim-link/complete', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

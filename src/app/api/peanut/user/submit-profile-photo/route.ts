@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
         const apiFormData = new FormData()
         apiFormData.append('file', file)
 
-        const response = await fetch('https://api.staging.peanut.to/submit-profile-photo', {
+        const response = await fetch('https://api.peanut.to/submit-profile-photo', {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token.value}`,

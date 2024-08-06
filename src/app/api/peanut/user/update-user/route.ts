@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('https://api.staging.peanut.to/update-user', {
+        const response = await fetch('https://api.peanut.to/update-user', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
