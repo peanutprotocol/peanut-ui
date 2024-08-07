@@ -84,7 +84,7 @@ export const Profile = () => {
             user.contacts.map((contact) => ({
                 userName: contact.nickname ?? contact.ens_name ?? '-',
                 address: contact.account_identifier,
-                txs: 1,
+                txs: contact.n_interactions,
                 avatar: undefined,
             }))
         setContactsData(contactsData)
