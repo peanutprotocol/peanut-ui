@@ -114,7 +114,7 @@ export const useClaimLink = () => {
         amountUSD: number
     }) => {
         try {
-            const response = await fetch('https://api.peanut.to/calculate-pts-for-action', {
+            const response = await fetch(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
