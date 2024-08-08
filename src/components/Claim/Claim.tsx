@@ -44,6 +44,7 @@ export const Claim = ({}) => {
     const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
         name: '',
         email: '',
+        password: '',
         recipient: '',
     })
     const [offrampXchainNeeded, setOfframpXchainNeeded] = useState<boolean>(false)
@@ -57,6 +58,8 @@ export const Claim = ({}) => {
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
+    const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
+    const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useAccount()
     const { getAttachmentInfo, estimatePoints } = useClaimLink()
 
@@ -253,6 +256,10 @@ export const Claim = ({}) => {
                             setOfframpXchainNeeded,
                             offrampChainAndToken,
                             setOfframpChainAndToken,
+                            userType,
+                            setUserType,
+                            userId,
+                            setUserId,
                         } as _consts.IClaimScreenProps
                     }
                 />

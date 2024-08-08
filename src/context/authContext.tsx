@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const response = await fetch('/api/peanut/user/get-user-from-cookie')
             if (response.ok) {
                 const userData: interfaces.IUserProfile | null = await response.json()
+                console.log('userData', userData)
                 setUser(userData)
             }
         } catch (error) {

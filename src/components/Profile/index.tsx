@@ -132,7 +132,7 @@ export const Profile = () => {
                     contactsData.map((data) => ({
                         primaryText: data.userName,
                         secondaryText: '',
-                        tertiaryText: utils.shortenAddressLong(data.address),
+                        tertiaryText: utils.shortenAddressLong(data?.address ?? ''),
                         quaternaryText: data.txs.toString(),
                         key: data.userName + Math.random(),
                         type: 'contacts',

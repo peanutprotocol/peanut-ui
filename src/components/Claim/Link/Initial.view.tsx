@@ -19,6 +19,7 @@ import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { PopupButton } from '@typeform/embed-react'
+import { useAuth } from '@/context/authContext'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -43,7 +44,8 @@ export const InitialClaimLinkView = ({
     setLiquidationAddress,
     setPeanutAccount,
     setPeanutUser,
-
+    setUserType,
+    setUserId,
     setOfframpXchainNeeded,
     setOfframpChainAndToken,
 }: _consts.IClaimScreenProps) => {
@@ -64,6 +66,7 @@ export const InitialClaimLinkView = ({
     const { estimatePoints, claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
+    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
 
     const handleConnectWallet = async () => {
         if (isConnected && address) {
@@ -183,50 +186,83 @@ export const InitialClaimLinkView = ({
             })
 
             setLoadingState('Getting KYC status')
-            const user = await _utils.fetchUser(recipient.name?.replaceAll(' ', '') ?? '')
-            setPeanutUser(user)
-            if (user) {
-                setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
+            if (!user) {
+                console.log('hierzo')
 
-                console.log(user)
+                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountIdentifier: recipient.name,
+                    }),
+                })
 
-                const account = user.accounts.find(
-                    (account: any) =>
-                        account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
-                )
-                setPeanutAccount(account)
-                const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
+                const response = await userIdResponse.json()
 
-                console.log('allLiquidationAddresses', allLiquidationAddresses)
+                console.log('response', response)
 
-                console.log(chainName, tokenName)
-
-                console.log(account.bridge_account_id)
-
-                let liquidationAddressDetails = allLiquidationAddresses.find(
-                    (address) =>
-                        address.chain === chainName &&
-                        address.currency === tokenName &&
-                        address.external_account_id === account.bridge_account_id
-                )
-
-                console.log(liquidationAddressDetails)
-
-                if (!liquidationAddressDetails) {
-                    liquidationAddressDetails = await _utils.createLiquidationAddress(
-                        user.bridge_customer_id ?? '',
-                        chainName ?? '',
-                        tokenName ?? '',
-                        account.bridge_account_id,
-                        recipientType === 'iban' ? 'sepa' : 'ach',
-                        recipientType === 'iban' ? 'eur' : 'usd'
-                    )
+                setUserId(response.userId)
+                if (response.isNewUser) {
+                    setUserType('NEW')
+                } else {
+                    setUserType('EXISTING')
                 }
-
-                setLiquidationAddress(liquidationAddressDetails)
-            } else {
-                setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+                setOfframpForm({
+                    name: '',
+                    email: '',
+                    recipient: recipient.name ?? '',
+                    password: '',
+                })
             }
+            // if (user?.user.kycStatus === 'verified') {
+            //     setOfframpForm({
+            //         name: user.full_name,
+            //         email: user.email,
+            //         recipient: recipient.name ?? '',
+            //         password: '',
+            //     })
+
+            //     console.log(user)
+
+            //     const account = user.accounts.find(
+            //         (account: any) =>
+            //             account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
+            //     )
+            //     setPeanutAccount(account)
+            //     const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
+
+            //     console.log('allLiquidationAddresses', allLiquidationAddresses)
+
+            //     console.log(chainName, tokenName)
+
+            //     console.log(account.bridge_account_id)
+
+            //     let liquidationAddressDetails = allLiquidationAddresses.find(
+            //         (address) =>
+            //             address.chain === chainName &&
+            //             address.currency === tokenName &&
+            //             address.external_account_id === account.bridge_account_id
+            //     )
+
+            //     console.log(liquidationAddressDetails)
+
+            //     if (!liquidationAddressDetails) {
+            //         liquidationAddressDetails = await _utils.createLiquidationAddress(
+            //             user.bridge_customer_id ?? '',
+            //             chainName ?? '',
+            //             tokenName ?? '',
+            //             account.bridge_account_id,
+            //             recipientType === 'iban' ? 'sepa' : 'ach',
+            //             recipientType === 'iban' ? 'eur' : 'usd'
+            //         )
+            //     }
+
+            //     setLiquidationAddress(liquidationAddressDetails)
+            // } else {
+            //     setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+            // }
 
             onNext()
         } catch (error) {
@@ -302,7 +338,7 @@ export const InitialClaimLinkView = ({
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
+                              : address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -448,7 +484,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)

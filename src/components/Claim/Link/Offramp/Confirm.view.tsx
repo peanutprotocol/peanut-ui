@@ -41,6 +41,8 @@ export const ConfirmClaimLinkIbanView = ({
     setPeanutAccount,
     peanutUser,
     setPeanutUser,
+    userType,
+    userId,
     offrampChainAndToken,
     offrampXchainNeeded,
 }: _consts.IClaimScreenProps) => {
@@ -89,38 +91,78 @@ export const ConfirmClaimLinkIbanView = ({
     const handleEmail = async (inputFormData: _consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
         setActiveStep(0)
-        setInitiatedProcess(true)
+        // setInitiatedProcess(true)
 
-        try {
-            setLoadingState('Getting KYC status')
+        console.log('inputFormData:', inputFormData)
 
-            let data = await _utils.getUserLinks(inputFormData)
-            setCustomerObject(data)
+        if (userType === 'NEW') {
+            try {
+                const userRegisterResponse = await fetch('/api/peanut/user/register-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: inputFormData.email,
+                        password: inputFormData.password,
+                        userId: userId,
+                    }),
+                })
 
-            let { tos_status: tosStatus, kyc_status: kycStatus } = data
+                const userRegister = await userRegisterResponse.json()
 
-            if (tosStatus !== 'approved') {
-                goToNext()
-                return
-            }
+                console.log('userRegister:', userRegister)
+            } catch (error) {}
+        } else if (userType === 'EXISTING') {
+            try {
+                const userLoginResponse = await fetch('/api/peanut/user/login-user', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: inputFormData.email,
+                        password: inputFormData.password,
+                        userId: userId,
+                    }),
+                })
 
-            if (kycStatus !== 'approved') {
-                setActiveStep(2)
-                return
-            }
-            recipientType === 'us' && setAddressRequired(true)
-            const peanutUser = await _utils.createUser(data.customer_id, inputFormData.email, inputFormData.name)
-            setPeanutUser(peanutUser.user)
-            setActiveStep(3)
-        } catch (error: any) {
-            console.error('Error during the submission process:', error)
+                const userLogin = await userLoginResponse.json()
 
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-
-            setLoadingState('Idle')
-        } finally {
-            setLoadingState('Idle')
+                console.log('userLogin:', userLogin)
+            } catch (error) {}
         }
+
+        // try {
+        //     setLoadingState('Getting KYC status')
+
+        //     let data = await _utils.getUserLinks(inputFormData)
+        //     setCustomerObject(data)
+
+        //     let { tos_status: tosStatus, kyc_status: kycStatus } = data
+
+        //     if (tosStatus !== 'approved') {
+        //         goToNext()
+        //         return
+        //     }
+
+        //     if (kycStatus !== 'approved') {
+        //         setActiveStep(2)
+        //         return
+        //     }
+        //     recipientType === 'us' && setAddressRequired(true)
+        //     const peanutUser = await _utils.createUser(data.customer_id, inputFormData.email, inputFormData.name)
+        //     setPeanutUser(peanutUser.user)
+        //     setActiveStep(3)
+        // } catch (error: any) {
+        //     console.error('Error during the submission process:', error)
+
+        //     setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+
+        //     setLoadingState('Idle')
+        // } finally {
+        //     setLoadingState('Idle')
+        // }
     }
 
     const handleTOSStatus = async () => {
@@ -379,13 +421,19 @@ export const ConfirmClaimLinkIbanView = ({
             case 0:
                 return (
                     <div className="flex w-full flex-col items-start justify-center gap-2">
-                        <input
-                            {...registerOfframp('name', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
-                            placeholder="Full name"
-                            disabled={initiatedProcess || activeStep > 0}
-                        />
-                        {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
+                        {userType === 'NEW' && (
+                            <>
+                                <input
+                                    {...registerOfframp('name', { required: 'This field is required' })}
+                                    className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
+                                    placeholder="Full name"
+                                    disabled={initiatedProcess || activeStep > 0}
+                                />
+                                {errors.name && (
+                                    <span className="text-h9 font-normal text-red">{errors.name.message}</span>
+                                )}
+                            </>
+                        )}
 
                         <input
                             {...registerOfframp('email', { required: 'This field is required' })}
@@ -393,13 +441,21 @@ export const ConfirmClaimLinkIbanView = ({
                             placeholder="Email"
                             type="email"
                             disabled={initiatedProcess || activeStep > 0}
+                        />
+                        {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
+
+                        <input
+                            {...registerOfframp('password', { required: 'This field is required' })}
+                            className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
+                            placeholder="Password"
+                            type="password"
+                            disabled={initiatedProcess || activeStep > 0}
                             onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                     handleEmail(watchOfframp())
                                 }
                             }}
                         />
-                        {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
                         <button
                             onClick={() => {
                                 handleEmail(watchOfframp())
@@ -729,7 +785,7 @@ export const ConfirmClaimLinkIbanView = ({
                         onPrev()
                         setActiveStep(0)
                         setErrorState({ showError: false, errorMessage: '' })
-                        setOfframpForm({ email: '', name: '', recipient: '' })
+                        setOfframpForm({ email: '', name: '', recipient: '', password: '' })
                         setAccountFormValue('accountNumber', '')
                         setAccountFormValue('BIC', '')
                         setAccountFormValue('routingNumber', '')

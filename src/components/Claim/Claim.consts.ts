@@ -8,6 +8,7 @@ export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 export interface IOfframpForm {
     name: string
     email: string
+    password: string
     recipient: string
 }
 
@@ -60,6 +61,10 @@ export interface IClaimScreenProps {
     setOfframpXchainNeeded: (needed: boolean) => void
     offrampChainAndToken: { chain: string; token: string }
     setOfframpChainAndToken: (chainAndToken: { chain: string; token: string }) => void
+    userType: 'NEW' | 'EXISTING' | undefined
+    setUserType: (type: 'NEW' | 'EXISTING' | undefined) => void
+    userId: string | undefined
+    setUserId: (id: string | undefined) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
