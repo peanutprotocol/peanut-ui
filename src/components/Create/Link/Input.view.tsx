@@ -241,7 +241,7 @@ export const CreateLinkInputView = ({
                 style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
             >
                 {createType === 'link'
-                    ? 'Send crypto via link'
+                    ? 'Text Tokens'
                     : createType === 'direct'
                       ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}

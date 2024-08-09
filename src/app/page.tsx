@@ -4,7 +4,7 @@ import * as components from '@/components'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
-    description: 'Send crypto via link',
+    description: 'Text Tokens',
     metadataBase: new URL('https://peanut.to'),
     icons: {
         icon: '/logo-favicon.png',
