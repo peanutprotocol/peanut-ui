@@ -1,6 +1,6 @@
 'use client'
 import React, { useState } from 'react'
-
+import { useToast } from '@chakra-ui/react'
 interface ImageEditProps {
     initialProfilePicture: string
     onImageChange: (file: File | null) => void
@@ -8,6 +8,12 @@ interface ImageEditProps {
 
 const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageChange }) => {
     const [profilePicture, setProfilePicture] = useState(initialProfilePicture)
+    const toast = useToast({
+        position: 'bottom-right',
+        duration: 5000,
+        isClosable: true,
+        icon: '🥜',
+    })
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
@@ -19,7 +25,11 @@ const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageCha
             }
             reader.readAsDataURL(file)
         } else {
-            onImageChange(null) // Notify parent component if no valid file is selected
+            toast({
+                title: 'Error',
+                description: 'Only images are accepted.',
+                status: 'error',
+            })
         }
     }
 
