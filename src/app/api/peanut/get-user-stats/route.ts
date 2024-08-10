@@ -6,7 +6,7 @@ export async function POST(request: NextRequest) {
     try {
         const { address } = await request.json()
 
-        const response = await fetch('https://api.staging.peanut.to/get-user-stats', {
+        const response = await fetch('https://api.peanut.to/get-user-stats', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({

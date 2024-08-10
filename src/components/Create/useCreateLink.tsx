@@ -244,7 +244,7 @@ export const useCreateLink = () => {
         actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
-            const response = await fetch('https://api.staging.peanut.to/calculate-pts-for-action', {
+            const response = await fetch('https://api.peanut.to/calculate-pts-for-action', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',

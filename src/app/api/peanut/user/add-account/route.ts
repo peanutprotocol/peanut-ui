@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
 
-        const response = await fetch(`https://api.staging.peanut.to/user/create-account`, {
+        const response = await fetch(`https://api.peanut.to/user/create-account`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

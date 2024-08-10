@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
         const params = getRawParamsFromLink(link)
         const { address: pubKey } = generateKeysFromString(params.password)
 
-        const response = await fetch('https://api.staging.peanut.to/get-link-details', {
+        const response = await fetch('https://api.peanut.to/get-link-details', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
