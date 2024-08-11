@@ -1,13 +1,14 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
+import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     try {
         const { link, password, txHash, chainId, senderAddress, amountUsd, transaction } = await request.json()
         const { address: pubKey } = generateKeysFromString(password)
 
-        const response = await fetch('https://api.peanut.to/submit-claim-link/complete', {
+        const response = await fetch(`${consts.PEANUT_API_URL}/submit-claim-link/complete`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
