@@ -2,7 +2,7 @@
 import Icon from '../Global/Icon'
 
 import { createAvatar } from '@dicebear/core'
-import { avataaarsNeutral } from '@dicebear/collection'
+import { funEmoji } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
 import { useEffect, useState } from 'react'
@@ -35,7 +35,7 @@ const tabs = [
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const avatar = createAvatar(avataaarsNeutral, {
+    const avatar = createAvatar(funEmoji, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
     const [errorState, setErrorState] = useState<{
