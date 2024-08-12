@@ -37,6 +37,15 @@ export async function POST(request: NextRequest) {
 
         const data = await response.json()
 
+        if (data.message === 'Username already exists') {
+            return new NextResponse(JSON.stringify(data), {
+                status: 409,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+        }
+
         if (!response.ok) {
             return new NextResponse(JSON.stringify(data), {
                 status: response.status,

@@ -62,15 +62,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 }),
             })
 
-            if (response.ok) {
-                const updatedUserData: any = await response.json()
-                if (updatedUserData.success) {
-                    fetchUser()
-                }
-            } else {
-                throw new Error(response.statusText)
+            if (response.status === 409) {
+                toast.close(toastIdRef.current)
+                toastIdRef.current = toast({
+                    status: 'error',
+                    title: 'Username already exists',
+                }) as ToastId
+
+                return
             }
 
+            if (!response.ok) {
+                throw new Error(response.statusText)
+            }
             toast.close(toastIdRef.current)
             toastIdRef.current = toast({
                 status: 'success',
@@ -84,6 +88,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 title: 'Failed to update username',
                 description: 'Please try again later',
             }) as ToastId
+        } finally {
+            fetchUser()
         }
     }
 
