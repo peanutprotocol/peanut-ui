@@ -30,7 +30,9 @@ export const MobileTableComponent = ({
         <div
             className="flex w-full flex-row items-center justify-between gap-2 border border-n-1 bg-background px-2 py-4 text-h8 font-normal dark:bg-black"
             key={key}
-            onClick={() => setModalVisible(true)}
+            onClick={() => {
+                if (type !== 'accounts') setModalVisible(true)
+            }}
         >
             {avatar.avatarUrl ? (
                 <div className="border border-black border-n-1 p-2">
@@ -131,36 +133,19 @@ export const MobileTableComponent = ({
                             </a>
                         )}
                     </>
-                ) : type === 'contacts' ? (
-                    <>
-                        <div
-                            onClick={() => {
-                                handleSendToAddress(address as string)
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            {' '}
-                            Send to this address
-                        </div>
-                        <div
-                            onClick={() => {
-                                console.log('Delete') // TODO: implement delete
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            Delete
-                        </div>
-                    </>
                 ) : (
-                    type === 'accounts' && (
-                        <div
-                            onClick={() => {
-                                console.log('Delete') // TODO: implement delete
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            Delete
-                        </div>
+                    type === 'contacts' && (
+                        <>
+                            <div
+                                onClick={() => {
+                                    handleSendToAddress(address as string)
+                                }}
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                            >
+                                {' '}
+                                Send to this address
+                            </div>
+                        </>
                     )
                 )}
             </Modal>
