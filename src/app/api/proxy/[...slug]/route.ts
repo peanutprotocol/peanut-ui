@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     const separator = '/api/proxy/'
     const indexOfSeparator = request.url.indexOf(separator)
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
-    const fullAPIUrl = `${PEANUT_API_URL}${endpointToCall}`
+    const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
     let jsonToPass
     try {
