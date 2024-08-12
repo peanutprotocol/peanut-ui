@@ -1,5 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     try {
@@ -12,7 +13,7 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
 
-        const response = await fetch(`https://api.peanut.to/user/create`, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/user/create`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
