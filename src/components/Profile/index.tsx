@@ -49,8 +49,7 @@ export const Profile = () => {
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
-    const itemsPerPage = 5
-
+    const [itemsPerPage, setItemsPerPage] = useState(5)
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [contactsData, setContactsData] = useState<
@@ -70,6 +69,23 @@ export const Profile = () => {
 
     const [modalVisible, setModalVisible] = useState(false)
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
+
+    // Calculate the number of items that can be displayed on the page
+    const calculateItemsPerPage = () => {
+        const itemHeight = 100 // estimated height of each item
+        const availableHeight = window.innerHeight - 300 // estimated height of the header and footer
+        const calculatedItemsPerPage = Math.floor(availableHeight / itemHeight)
+        setItemsPerPage(calculatedItemsPerPage > 0 ? calculatedItemsPerPage : 1)
+    }
+
+    useEffect(() => {
+        calculateItemsPerPage()
+        window.addEventListener('resize', calculateItemsPerPage)
+
+        return () => {
+            window.removeEventListener('resize', calculateItemsPerPage)
+        }
+    }, [])
 
     useEffect(() => {
         if (!user) return
