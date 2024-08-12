@@ -299,7 +299,7 @@ export const Profile = () => {
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.points} points</span>
-                            <span className="flex items-center justify-center gap-1">
+                            {/* <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
                                 Boost 1.4X
                                 <Icon
@@ -310,7 +310,7 @@ export const Profile = () => {
                                         setModalType('Boost')
                                     }}
                                 />
-                            </span>
+                            </span> */}
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
