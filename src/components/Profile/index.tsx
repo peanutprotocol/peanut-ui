@@ -330,14 +330,14 @@ export const Profile = () => {
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
-                                {/* <Icon
+                                <Icon
                                     name={'info'}
                                     className={`cursor-pointer transition-transform dark:fill-white`}
                                     onClick={() => {
                                         setModalVisible(true)
                                         setModalType('Invites')
                                     }}
-                                /> */}
+                                />
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
@@ -425,18 +425,41 @@ export const Profile = () => {
                             </div>
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                                <div className="flex w-full items-center justify-between">
-                                    <label>cyberdrk.eth</label>
-                                    <label>69000</label>
-                                </div>
-                                <div className="flex w-full items-center justify-between">
-                                    <label>kkonrad.eth</label>
-                                    <label>420</label>
-                                </div>
+                                {user?.referredUsers > 0 &&
+                                    user?.totalReferralConnections.map((referral, index) => (
+                                        <div key={index} className="flex w-full items-center justify-between">
+                                            <label>{utils.shortenAddressLong(referral.account_identifier)}</label>
+                                            <label>
+                                                {Math.floor(
+                                                    user.pointsPerReferral?.find((ref) =>
+                                                        utils.compareTokenAddresses(
+                                                            ref.address,
+                                                            referral.account_identifier
+                                                        )
+                                                    )?.points ?? 0
+                                                )}
+                                            </label>
+                                        </div>
+                                    ))}
+
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>69420</label>
+                                    <label>
+                                        {user?.totalReferralConnections.reduce((acc, referral) => {
+                                            return (
+                                                acc +
+                                                Math.floor(
+                                                    user.pointsPerReferral?.find((ref) =>
+                                                        utils.compareTokenAddresses(
+                                                            ref.address,
+                                                            referral.account_identifier
+                                                        )
+                                                    )?.points ?? 0
+                                                )
+                                            )
+                                        }, 0)}
+                                    </label>
                                 </div>
                             </div>
                         ) : (
