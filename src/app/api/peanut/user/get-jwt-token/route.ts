@@ -1,5 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     const { signature, message } = await request.json()
@@ -10,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('https://api.peanut.to/get-token', {
+        const response = await fetch(`${consts.PEANUT_API_URL}/get-token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

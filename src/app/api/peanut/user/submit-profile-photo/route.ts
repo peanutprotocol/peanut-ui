@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     const formData = await request.formData()
@@ -21,7 +22,7 @@ export async function POST(request: NextRequest) {
         const apiFormData = new FormData()
         apiFormData.append('file', file)
 
-        const response = await fetch('https://api.peanut.to/submit-profile-photo', {
+        const response = await fetch(`${consts.PEANUT_API_URL}/submit-profile-photo`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${token.value}`,

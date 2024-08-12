@@ -1,6 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
@@ -12,23 +11,13 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('https://api.peanut.to/get-user', {
+        const response = await fetch(`${consts.PEANUT_API_URL}/get-user`, {
             method: 'POST',
             headers: {
                 Authorization: `Bearer ${authToken}`,
                 'api-key': apiKey,
             },
         })
-        const uniqueKey = `${Date.now()}-${accountIdentifier}`
-        const response = await fetch(
-            `${consts.PEANUT_API_URL}/user/fetch?accountIdentifier=${accountIdentifier}&uniqueKey=${uniqueKey}`,
-            {
-                method: 'GET',
-                headers: {
-                    'api-key': apiKey,
-                },
-            }
-        )
 
         if (response.status === 404) {
             return new NextResponse('Not Found', {

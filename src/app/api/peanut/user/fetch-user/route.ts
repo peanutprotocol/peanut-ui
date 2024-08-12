@@ -1,6 +1,7 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
+import * as consts from '@/constants'
 
 export async function GET(request: NextRequest) {
     try {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
 
         const uniqueKey = `${Date.now()}-${accountIdentifier}`
         const response = await fetch(
-            `https://api.peanut.to/user/fetch?accountIdentifier=${accountIdentifier}&uniqueKey=${uniqueKey}`,
+            `${consts.PEANUT_API_URL}/user/fetch?accountIdentifier=${accountIdentifier}&uniqueKey=${uniqueKey}`,
             {
                 method: 'GET',
                 headers: {

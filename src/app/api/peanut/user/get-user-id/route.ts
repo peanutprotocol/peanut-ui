@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     const { accountIdentifier } = await request.json()
@@ -9,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch('https://api.peanut.to/get-user-id', {
+        const response = await fetch(`${consts.PEANUT_API_URL}/get-user-id`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
