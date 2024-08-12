@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
+import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     const { authToken } = await request.json()
@@ -16,6 +19,16 @@ export async function POST(request: NextRequest) {
                 'api-key': apiKey,
             },
         })
+        const uniqueKey = `${Date.now()}-${accountIdentifier}`
+        const response = await fetch(
+            `${consts.PEANUT_API_URL}/user/fetch?accountIdentifier=${accountIdentifier}&uniqueKey=${uniqueKey}`,
+            {
+                method: 'GET',
+                headers: {
+                    'api-key': apiKey,
+                },
+            }
+        )
 
         if (response.status === 404) {
             return new NextResponse('Not Found', {
