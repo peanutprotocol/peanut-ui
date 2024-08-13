@@ -143,7 +143,9 @@ export const useBalance = () => {
                     }
                 }
             }
-            setHasFetchedBalances(true)
+            setTimeout(() => {
+                setHasFetchedBalances(true)
+            }, 100) // Delay to prevent flickering, ensuring state is set before finishing this call
             return userBalances
         } catch (error) {
             console.error('Unexpected error loading userBalances: ', error)
