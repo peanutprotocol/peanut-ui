@@ -2,7 +2,7 @@
 import Icon from '../Global/Icon'
 
 import { createAvatar } from '@dicebear/core'
-import { funEmoji } from '@dicebear/collection'
+import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
 import { useEffect, useState } from 'react'
@@ -35,7 +35,7 @@ const tabs = [
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const avatar = createAvatar(funEmoji, {
+    const avatar = createAvatar(identicon, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
     const [errorState, setErrorState] = useState<{
@@ -70,18 +70,26 @@ export const Profile = () => {
     const [modalVisible, setModalVisible] = useState(false)
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
 
+    const [initialUserName, setInitialUserName] = useState(
+        user?.user?.username ??
+            user?.user?.email ??
+            (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+    )
+
+    // Calculate the number of items that can be displayed on the page
     // Calculate the number of items that can be displayed on the page
     const calculateItemsPerPage = () => {
-        const itemHeight = 100 // estimated height of each item
-        const availableHeight = window.innerHeight - 300 // estimated height of the header and footer
-        const calculatedItemsPerPage = Math.floor(availableHeight / itemHeight)
-        setItemsPerPage(calculatedItemsPerPage > 0 ? calculatedItemsPerPage : 1)
+        const itemHeight = 100
+        const availableHeight = window.innerHeight - 300
+        const calculatedItems = Math.floor(availableHeight / itemHeight)
+        // Only update if the change is significant
+        if (Math.abs(calculatedItems - itemsPerPage) > 1) {
+            setItemsPerPage(Math.max(calculatedItems, 1))
+        }
     }
-
     useEffect(() => {
         calculateItemsPerPage()
         window.addEventListener('resize', calculateItemsPerPage)
-
         return () => {
             window.removeEventListener('resize', calculateItemsPerPage)
         }
@@ -275,6 +283,14 @@ export const Profile = () => {
         }
     }
 
+    useEffect(() => {
+        setInitialUserName(
+            user?.user?.username ??
+                user?.user?.email ??
+                (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+        )
+    }, [user])
+
     if (!user) {
         return (
             <components.ProfileSkeleton
@@ -301,14 +317,9 @@ export const Profile = () => {
                             />
 
                             <TextEdit
-                                initialText={
-                                    user?.user?.username ??
-                                    user?.user?.email ??
-                                    (user.accounts
-                                        ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier)
-                                        : '')
-                                }
+                                initialText={initialUserName}
                                 onTextChange={(text) => {
+                                    setInitialUserName(text)
                                     updateUserName(text)
                                 }}
                             />

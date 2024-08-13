@@ -63,10 +63,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.status === 409) {
+                const data = await response.json()
                 toast.close(toastIdRef.current)
                 toastIdRef.current = toast({
                     status: 'error',
-                    title: 'Username already exists',
+                    title: data,
                 }) as ToastId
 
                 return

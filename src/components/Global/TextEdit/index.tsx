@@ -1,22 +1,15 @@
-'use client'
-import { useAuth } from '@/context/authContext'
 import React, { useState, useRef, useEffect } from 'react'
 
 const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextChange: (text: string) => void }) => {
     const [text, setText] = useState(initialText)
     const [isEditing, setIsEditing] = useState(false)
     const inputRef = useRef<HTMLInputElement>(null)
-    const { user } = useAuth()
 
     useEffect(() => {
         if (isEditing && inputRef.current) {
             inputRef.current.focus()
         }
     }, [isEditing])
-
-    useEffect(() => {
-        setText(user?.user?.username || initialText)
-    }, [user])
 
     const handleTextChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setText(event.target.value)
@@ -33,6 +26,10 @@ const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextCh
             onTextChange(text)
         }
     }
+
+    useEffect(() => {
+        setText(initialText)
+    }, [initialText])
 
     return (
         <div className="group relative flex cursor-pointer items-center gap-1">
