@@ -115,9 +115,13 @@ export const AdvancedTokenSelectorButton = ({
                             <p className="text-xs text-gray-1">
                                 Balance: {utils.formatTokenAmount(_tokenBalance ?? 0, 4)}
                             </p>
-                        ) : (
+                        ) : address ? (
                             <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
                                 Balance: <Loading className="h-2 w-2" />
+                            </div>
+                        ) : (
+                            <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
+                                Balance: 0
                             </div>
                         ))}
                     {tokenAmount && tokenPrice && (
