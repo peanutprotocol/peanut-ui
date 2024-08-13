@@ -2,7 +2,7 @@
 import Icon from '../Global/Icon'
 
 import { createAvatar } from '@dicebear/core'
-import { avataaarsNeutral } from '@dicebear/collection'
+import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
 import { useEffect, useState } from 'react'
@@ -35,7 +35,7 @@ const tabs = [
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const avatar = createAvatar(avataaarsNeutral, {
+    const avatar = createAvatar(identicon, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
     const [errorState, setErrorState] = useState<{
@@ -49,8 +49,7 @@ export const Profile = () => {
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
-    const itemsPerPage = 5
-
+    const [itemsPerPage, setItemsPerPage] = useState(5)
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [contactsData, setContactsData] = useState<
@@ -70,6 +69,31 @@ export const Profile = () => {
 
     const [modalVisible, setModalVisible] = useState(false)
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
+
+    const [initialUserName, setInitialUserName] = useState(
+        user?.user?.username ??
+            user?.user?.email ??
+            (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+    )
+
+    // Calculate the number of items that can be displayed on the page
+    // Calculate the number of items that can be displayed on the page
+    const calculateItemsPerPage = () => {
+        const itemHeight = 100
+        const availableHeight = window.innerHeight - 300
+        const calculatedItems = Math.floor(availableHeight / itemHeight)
+        // Only update if the change is significant
+        if (Math.abs(calculatedItems - itemsPerPage) > 1) {
+            setItemsPerPage(Math.max(calculatedItems, 1))
+        }
+    }
+    useEffect(() => {
+        calculateItemsPerPage()
+        window.addEventListener('resize', calculateItemsPerPage)
+        return () => {
+            window.removeEventListener('resize', calculateItemsPerPage)
+        }
+    }, [])
 
     useEffect(() => {
         if (!user) return
@@ -259,6 +283,14 @@ export const Profile = () => {
         }
     }
 
+    useEffect(() => {
+        setInitialUserName(
+            user?.user?.username ??
+                user?.user?.email ??
+                (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+        )
+    }, [user])
+
     if (!user) {
         return (
             <components.ProfileSkeleton
@@ -285,14 +317,9 @@ export const Profile = () => {
                             />
 
                             <TextEdit
-                                initialText={
-                                    user?.user?.username ??
-                                    user?.user?.email ??
-                                    (user.accounts
-                                        ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier)
-                                        : '')
-                                }
+                                initialText={initialUserName}
                                 onTextChange={(text) => {
+                                    setInitialUserName(text)
                                     updateUserName(text)
                                 }}
                             />
@@ -314,14 +341,14 @@ export const Profile = () => {
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
-                                {/* <Icon
+                                <Icon
                                     name={'info'}
                                     className={`cursor-pointer transition-transform dark:fill-white`}
                                     onClick={() => {
                                         setModalVisible(true)
                                         setModalType('Invites')
                                     }}
-                                /> */}
+                                />
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
@@ -409,18 +436,41 @@ export const Profile = () => {
                             </div>
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                                <div className="flex w-full items-center justify-between">
-                                    <label>cyberdrk.eth</label>
-                                    <label>69000</label>
-                                </div>
-                                <div className="flex w-full items-center justify-between">
-                                    <label>kkonrad.eth</label>
-                                    <label>420</label>
-                                </div>
+                                {user?.referredUsers > 0 &&
+                                    user?.totalReferralConnections.map((referral, index) => (
+                                        <div key={index} className="flex w-full items-center justify-between">
+                                            <label>{utils.shortenAddressLong(referral.account_identifier)}</label>
+                                            <label>
+                                                {Math.floor(
+                                                    user.pointsPerReferral?.find((ref) =>
+                                                        utils.compareTokenAddresses(
+                                                            ref.address,
+                                                            referral.account_identifier
+                                                        )
+                                                    )?.points ?? 0
+                                                )}
+                                            </label>
+                                        </div>
+                                    ))}
+
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>69420</label>
+                                    <label>
+                                        {user?.totalReferralConnections.reduce((acc, referral) => {
+                                            return (
+                                                acc +
+                                                Math.floor(
+                                                    user.pointsPerReferral?.find((ref) =>
+                                                        utils.compareTokenAddresses(
+                                                            ref.address,
+                                                            referral.account_identifier
+                                                        )
+                                                    )?.points ?? 0
+                                                )
+                                            )
+                                        }, 0)}
+                                    </label>
                                 </div>
                             </div>
                         ) : (

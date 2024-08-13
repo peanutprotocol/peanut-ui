@@ -1,4 +1,3 @@
-'use client'
 import React, { useState, useRef, useEffect } from 'react'
 
 const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextChange: (text: string) => void }) => {
@@ -27,6 +26,10 @@ const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextCh
             onTextChange(text)
         }
     }
+
+    useEffect(() => {
+        setText(initialText)
+    }, [initialText])
 
     return (
         <div className="group relative flex cursor-pointer items-center gap-1">

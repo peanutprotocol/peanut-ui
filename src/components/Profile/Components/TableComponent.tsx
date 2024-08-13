@@ -78,7 +78,7 @@ export const TableComponent = ({
                             <th className="th-custom">
                                 <Sorting title="Identifier" />
                             </th>
-                            <th className="th-custom"></th>
+                            {/* <th className="th-custom"></th> */}
                         </tr>
                     )
                 )}
@@ -197,12 +197,12 @@ export const TableComponent = ({
                                                 handleSendToAddress(recipientAddress)
                                             },
                                         },
-                                        {
-                                            name: 'Delete',
-                                            action: () => {
-                                                console.log('Delete') // TODO: implement delete
-                                            },
-                                        },
+                                        // {
+                                        //     name: 'Delete',
+                                        //     action: () => {
+                                        //         console.log('Delete') // TODO: implement delete
+                                        //     },
+                                        // },
                                     ]}
                                 />
                             </td>
@@ -212,7 +212,7 @@ export const TableComponent = ({
                             <tr className="h-16 text-h8 font-normal" key={data.key + Math.random()}>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
-                                <td className="td-custom text-end ">
+                                {/* <td className="td-custom text-end ">
                                     <OptionsComponent
                                         actionItems={[
                                             {
@@ -223,7 +223,7 @@ export const TableComponent = ({
                                             },
                                         ]}
                                     />
-                                </td>
+                                </td> */}
                             </tr>
                         )
                     )
