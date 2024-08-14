@@ -46,6 +46,7 @@ export const ConfirmClaimLinkIbanView = ({
     userId,
     offrampChainAndToken,
     offrampXchainNeeded,
+    initialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
@@ -238,8 +239,20 @@ export const ConfirmClaimLinkIbanView = ({
     const handleTOSStatus = async () => {
         try {
             // Handle TOS status
-            if (!customerObject) return
-            const { tos_status: tosStatus, id, tos_link } = customerObject
+
+            let _customerObject
+            console.log(offrampForm)
+
+            if (!customerObject) {
+                _customerObject = await _utils.getUserLinks(offrampForm)
+                setCustomerObject(_customerObject)
+            } else {
+                _customerObject = customerObject
+            }
+
+            const { tos_status: tosStatus, id, tos_link } = _customerObject
+
+            console.log('tosStatus:', tosStatus)
 
             if (tosStatus !== 'approved') {
                 setLoadingState('Awaiting TOS confirmation')
@@ -273,43 +286,49 @@ export const ConfirmClaimLinkIbanView = ({
 
     const handleKYCStatus = async () => {
         try {
-            if (!customerObject) return
-            const { kyc_status: kycStatus, id, kyc_link } = customerObject
-            // if (kycStatus === 'under_review') {
-            //     setErrorState({
-            //         showError: true,
-            //         errorMessage: 'KYC under review',
-            //     })
-            // } else if (kycStatus === 'rejected') {
-            //     setErrorState({
-            //         showError: true,
-            //         errorMessage: 'KYC rejected',
-            //     })
-            // } else if (kycStatus !== 'approved') {
-            //     setLoadingState('Awaiting KYC confirmation')
-            //     console.log('Awaiting KYC confirmation...')
-            //     await _utils.awaitStatusCompletion(
-            //         id,
-            //         'kyc',
-            //         kycStatus,
-            //         kyc_link,
-            //         setTosLinkOpened,
-            //         setKycLinkOpened,
-            //         tosLinkOpened,
-            //         kycLinkOpened
-            //     )
-            // } else {
-            //     console.log('KYC already approved.')
-            // }
+            let _customerObject
+            if (!customerObject) {
+                _customerObject = await _utils.getUserLinks(offrampForm)
+                setCustomerObject(_customerObject)
+            } else {
+                _customerObject = customerObject
+            }
+            const { kyc_status: kycStatus, id, kyc_link } = _customerObject
+            if (kycStatus === 'under_review') {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'KYC under review',
+                })
+            } else if (kycStatus === 'rejected') {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'KYC rejected',
+                })
+            } else if (kycStatus !== 'approved') {
+                setLoadingState('Awaiting KYC confirmation')
+                console.log('Awaiting KYC confirmation...')
+                await _utils.awaitStatusCompletion(
+                    id,
+                    'kyc',
+                    kycStatus,
+                    kyc_link,
+                    setTosLinkOpened,
+                    setKycLinkOpened,
+                    tosLinkOpened,
+                    kycLinkOpened
+                )
+            } else {
+                console.log('KYC already approved.')
+            }
 
             // Get customer ID
-            // const customer = await _utils.getStatus(customerObject.id, 'customer_id')
-            // setCustomerObject({ ...customerObject, customer_id: customer.customer_id })
+            const customer = await _utils.getStatus(_customerObject.id, 'customer_id')
+            setCustomerObject({ ..._customerObject, customer_id: customer.customer_id })
 
-            // const { email, name } = watchOfframp()
+            const { email, name } = watchOfframp()
 
             // Update peanut user with bridge customer id
-            const updatedUser = await updateBridgeCustomerId('test123')
+            const updatedUser = await updateBridgeCustomerId(customer.customer_id)
             console.log('updatedUser:', updatedUser)
 
             recipientType === 'us' && setAddressRequired(true)
@@ -484,7 +503,7 @@ export const ConfirmClaimLinkIbanView = ({
         activeStep,
         nextStep: goToNext,
     } = useSteps({
-        initialStep: 0,
+        initialStep: initialKYCStep,
     })
 
     const renderComponent = () => {

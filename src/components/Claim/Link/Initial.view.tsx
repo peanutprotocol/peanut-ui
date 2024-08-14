@@ -20,6 +20,7 @@ import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { PopupButton } from '@typeform/embed-react'
 import { useAuth } from '@/context/authContext'
+import { userInfo } from 'os'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -48,6 +49,7 @@ export const InitialClaimLinkView = ({
     setUserId,
     setOfframpXchainNeeded,
     setOfframpChainAndToken,
+    setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -186,6 +188,9 @@ export const InitialClaimLinkView = ({
             })
 
             setLoadingState('Getting KYC status')
+
+            console.log(user)
+
             if (!user) {
                 console.log('hierzo')
 
@@ -217,7 +222,12 @@ export const InitialClaimLinkView = ({
                 })
             } else {
                 console.log('user', user)
-
+                setOfframpForm({
+                    email: user?.user?.email ?? '',
+                    name: user?.user?.full_name ?? '',
+                    recipient: recipient.name ?? '',
+                    password: '',
+                })
                 if (user?.user.kycStatus === 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
@@ -226,6 +236,8 @@ export const InitialClaimLinkView = ({
                     )
                     if (account) {
                         console.log('account found') // TODO: set peanut account
+
+                        console.log()
 
                         const allLiquidationAddresses = await _utils.getLiquidationAddresses(
                             user?.user?.bridge_customer_id ?? ''
@@ -251,13 +263,20 @@ export const InitialClaimLinkView = ({
                         }
 
                         setLiquidationAddress(liquidationAddressDetails)
+                        setInitialKYCStep(4)
                     } else {
-                        console.log('account not found')
+                        setInitialKYCStep(3)
                     }
                 } else {
-                    console.log('user not verified')
+                    if (!user?.user.email || !user?.user.full_name) {
+                        setInitialKYCStep(0)
+                        console.log('user not verified and no email and name')
+                    } else {
+                        setInitialKYCStep(1)
+                        console.log('user not verified but has email and name')
+                    }
                 }
-                return
+
                 // TODO: handle user that hasnt set name
             }
             // if (user?.user.kycStatus === 'verified') {

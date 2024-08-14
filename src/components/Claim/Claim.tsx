@@ -58,6 +58,8 @@ export const Claim = ({}) => {
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
+    const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
+
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useAccount()
@@ -260,6 +262,8 @@ export const Claim = ({}) => {
                             setUserType,
                             userId,
                             setUserId,
+                            initialKYCStep,
+                            setInitialKYCStep,
                         } as _consts.IClaimScreenProps
                     }
                 />

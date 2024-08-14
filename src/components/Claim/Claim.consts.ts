@@ -65,6 +65,8 @@ export interface IClaimScreenProps {
     setUserType: (type: 'NEW' | 'EXISTING' | undefined) => void
     userId: string | undefined
     setUserId: (id: string | undefined) => void
+    initialKYCStep: number
+    setInitialKYCStep: (step: number) => void
 }
 
 export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
