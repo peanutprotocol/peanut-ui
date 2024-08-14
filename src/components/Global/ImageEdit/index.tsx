@@ -1,6 +1,7 @@
 'use client'
 import React, { useState } from 'react'
 import { useToast } from '@chakra-ui/react'
+
 interface ImageEditProps {
     initialProfilePicture: string
     onImageChange: (file: File | null) => void
@@ -8,6 +9,7 @@ interface ImageEditProps {
 
 const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageChange }) => {
     const [profilePicture, setProfilePicture] = useState(initialProfilePicture)
+    const [loading, setLoading] = useState(true)
     const toast = useToast({
         position: 'bottom-right',
         duration: 5000,
@@ -22,6 +24,7 @@ const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageCha
             reader.onloadend = () => {
                 setProfilePicture(reader.result?.toString() || '')
                 onImageChange(file) // Notify parent component of the new file
+                setLoading(false)
             }
             reader.readAsDataURL(file)
         } else {
@@ -36,10 +39,12 @@ const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageCha
     return (
         <div className="relative h-16 w-auto min-w-16 overflow-hidden">
             <div className="relative h-full w-full">
+                {loading && <div className="h-16 w-16 animate-pulse bg-gray-300 bg-slate-700" />}
                 <img
                     src={profilePicture}
                     alt="Profile"
-                    className="h-full w-full max-w-32 transform object-contain transition duration-300 hover:scale-105"
+                    className={`h-full w-full max-w-16 transform object-cover transition duration-300 hover:scale-105 ${loading ? 'hidden' : 'block'}`}
+                    onLoad={() => setLoading(false)}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 transition duration-300 hover:opacity-100">
                     <label className="cursor-pointer">
