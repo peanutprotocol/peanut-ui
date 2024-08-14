@@ -330,7 +330,6 @@ interface Account {
     points: number
     referrer: string | null
     referred_users_points: number
-    totalPoints: number
     totalReferralPoints: number
 }
 
@@ -346,6 +345,7 @@ export interface IUserProfile {
     user: User
     accounts: Account[]
     contacts: Contact[]
+    totalPoints: number
 }
 
 export interface Contact {
