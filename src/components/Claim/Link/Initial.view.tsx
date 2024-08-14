@@ -212,9 +212,53 @@ export const InitialClaimLinkView = ({
                 setOfframpForm({
                     name: '',
                     email: '',
-                    recipient: recipient.name ?? '',
                     password: '',
+                    recipient: recipient.name ?? '',
                 })
+            } else {
+                console.log('user', user)
+
+                if (user?.user.kycStatus === 'verified') {
+                    const account = user.accounts.find(
+                        (account: any) =>
+                            account.account_identifier.toLowerCase() ===
+                            recipient.name?.replaceAll(' ', '').toLowerCase()
+                    )
+                    if (account) {
+                        console.log('account found') // TODO: set peanut account
+
+                        const allLiquidationAddresses = await _utils.getLiquidationAddresses(
+                            user?.user?.bridge_customer_id ?? ''
+                        )
+                        let liquidationAddressDetails = allLiquidationAddresses.find(
+                            (address) =>
+                                address.chain === chainName &&
+                                address.currency === tokenName &&
+                                address.external_account_id === account.bridge_account_id
+                        )
+
+                        console.log(liquidationAddressDetails)
+
+                        if (!liquidationAddressDetails) {
+                            liquidationAddressDetails = await _utils.createLiquidationAddress(
+                                user?.user?.bridge_customer_id ?? '',
+                                chainName ?? '',
+                                tokenName ?? '',
+                                account.bridge_account_id,
+                                recipientType === 'iban' ? 'sepa' : 'ach',
+                                recipientType === 'iban' ? 'eur' : 'usd'
+                            )
+                        }
+
+                        setLiquidationAddress(liquidationAddressDetails)
+                    } else {
+                        console.log('account not found')
+                    }
+                } else {
+                    console.log('user not verified')
+                }
+                return
+                // TODO: handle user that hasnt set name
             }
             // if (user?.user.kycStatus === 'verified') {
             //     setOfframpForm({
@@ -338,7 +382,7 @@ export const InitialClaimLinkView = ({
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
+                              : address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -484,7 +528,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)

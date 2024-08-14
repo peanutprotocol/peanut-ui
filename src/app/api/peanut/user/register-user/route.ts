@@ -19,17 +19,23 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({ email, password, userId }),
         })
+        const data = await response.json()
 
         if (response.status !== 200) {
-            return new NextResponse('Error in login-user', {
-                status: response.status,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
+            return new NextResponse(
+                JSON.stringify({
+                    error: data.error,
+                    userId: data.userId,
+                }),
+                {
+                    status: response.status,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                }
+            )
         }
 
-        const data = await response.json()
         const token = data.token
 
         // Set the JWT token in a cookie, nextjs requires to do this serverside

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
     const { email, password, userId } = await request.json()
@@ -19,8 +20,10 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({ email, password, userId }),
         })
 
+        const data = await response.json()
+
         if (response.status !== 200) {
-            return new NextResponse('Error in login-user', {
+            return new NextResponse(JSON.stringify(data.error), {
                 status: response.status,
                 headers: {
                     'Content-Type': 'application/json',
@@ -28,7 +31,16 @@ export async function POST(request: NextRequest) {
             })
         }
 
-        const data = await response.json()
+        console.log(data.token)
+
+        const token = data.token
+
+        cookies().set('jwt-token', token, {
+            httpOnly: true,
+            path: '/',
+            sameSite: 'strict',
+        })
+
         return new NextResponse(JSON.stringify(data), {
             status: 200,
             headers: {

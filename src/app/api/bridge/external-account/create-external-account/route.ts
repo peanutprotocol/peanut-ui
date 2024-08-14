@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         if (accountType === 'iban') {
             body = {
                 iban: {
-                    account_number: accountDetails.accountNumber.replaceAll(' ', ''),
+                    account_number: accountDetails.accountNumber.replace(/\s+/g, ''),
                     bic: accountDetails.bic,
                     country: accountDetails.country,
                 },

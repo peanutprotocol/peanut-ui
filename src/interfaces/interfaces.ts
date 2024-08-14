@@ -315,6 +315,7 @@ interface User {
     profile_picture: string | null
     username: string | null
     kycStatus: string
+    bridge_customer_id: string | null
 }
 
 interface Account {
