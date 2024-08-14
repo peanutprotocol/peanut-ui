@@ -192,13 +192,13 @@ export async function awaitStatusCompletion(
 ) {
     let status = initialStatus
 
-    if (type === 'tos' && !tosLinkOpened) {
-        window.open(link, '_blank')
-        setTosLinkOpened(true)
-    } else if (type === 'kyc' && !kycLinkOpened) {
-        window.open(link, '_blank')
-        setKycLinkOpened(true)
-    }
+    // if (type === 'tos' && !tosLinkOpened) {
+    //     window.open(link, '_blank')
+    //     setTosLinkOpened(true)
+    // } else if (type === 'kyc' && !kycLinkOpened) {
+    //     window.open(link, '_blank')
+    //     setKycLinkOpened(true)
+    // }
 
     while (status !== 'approved') {
         const statusData = await getStatus(userId, type)

@@ -308,28 +308,6 @@ export const Profile = () => {
                                     updateUserName(text)
                                 }}
                             />
-                            <div className="p-6">
-                                <button className="rounded-md bg-blue-500 px-4 py-2 text-white" onClick={openIframe}>
-                                    Open Iframe in Modal
-                                </button>
-
-                                <button
-                                    className="bg-red-500 rounded-md px-4 py-2 text-white"
-                                    onClick={closeIframe}
-                                    disabled={!iframeVisible}
-                                >
-                                    Close Iframe Modal
-                                </button>
-
-                                <IframeWrapper
-                                    src={`https://bridge.withpersona.com/verify?inquiry-template-id=itmpl_NtHYpb9AbEYCPxGo5iRbc9d2&fields[developer_id]=fe9265ca-76b1-4911-bdb1-bb5c64f10921&fields[iqt_token]=46f7565fe2ba42843b957cec6d783e48f85dff6d6ea56cf5753634b09a3214e8&reference-id=c03f85dd-97cb-4438-b595-2545eb4a34c3&redirect-uri=http%3A%2F%2Flocalhost%3A3000`}
-                                    title="Embedded Iframe"
-                                    modalTitle="Dynamic Iframe Modal"
-                                    visible={iframeVisible}
-                                    onClose={closeIframe}
-                                    style={{ width: '100%', height: '500px', border: 'none' }}
-                                />
-                            </div>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.points} points</span>

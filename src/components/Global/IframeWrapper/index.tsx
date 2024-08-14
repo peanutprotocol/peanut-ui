@@ -3,14 +3,12 @@ import Modal from '../Modal'
 
 const IframeWrapper = ({
     src,
-    title,
     style,
     modalTitle,
     visible,
     onClose,
 }: {
     src: string
-    title: string
     style?: React.CSSProperties
     modalTitle?: string
     visible: boolean
@@ -37,16 +35,16 @@ const IframeWrapper = ({
         <Modal
             visible={visible}
             onClose={onClose}
-            title={modalTitle || 'Iframe Modal'}
-            classWrap="w-full max-w-4xl"
+            classWrap="w-full max-w-2xl"
             classOverlay="bg-black bg-opacity-50"
             video={false}
+            classButtonClose="hidden"
         >
             <iframe
                 src={src}
-                title={title}
-                style={style || { width: '100%', height: '500px', border: 'none' }}
-                sandbox="allow-same-origin allow-scripts allow-forms"
+                allow="camera;"
+                style={style}
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
             />
         </Modal>
     )

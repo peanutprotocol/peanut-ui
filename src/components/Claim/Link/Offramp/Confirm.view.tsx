@@ -17,6 +17,7 @@ import * as utils from '@/utils'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
 import * as consts from '@/constants'
 import { useAuth } from '@/context/authContext'
+import IframeWrapper from '@/components/Global/IframeWrapper'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -60,6 +61,22 @@ export const ConfirmClaimLinkIbanView = ({
     const [initiatedProcess, setInitiatedProcess] = useState<boolean>(false)
     const { claimLink, claimLinkXchain } = useClaimLink()
     const { user, fetchUser, isFetchingUser, updateUserName, updateBridgeCustomerId, addAccount } = useAuth()
+
+    //utils.convertPersonaUrl(
+    //    'https://bridge.withpersona.com/verify?inquiry-template-id=itmpl_NtHYpb9AbEYCPxGo5iRbc9d2&fields[developer_id]=fe9265ca-76b1-4911-bdb1-bb5c64f10921&fields[iqt_token]=46f7565fe2ba42843b957cec6d783e48f85dff6d6ea56cf5753634b09a3214e8&reference-id=c03f85dd-97cb-4438-b595-2545eb4a34c3&redirect-uri=http%3A%2F%2Flocalhost%3A3000'
+    //)
+
+    const [iframeOptions, setIframeOptions] = useState<{
+        src: string
+        visible: boolean
+        onClose: () => void
+    }>({
+        src: '',
+        visible: false,
+        onClose: () => {
+            setIframeOptions({ ...iframeOptions, visible: false })
+        },
+    })
 
     const {
         register: registerOfframp,
@@ -258,6 +275,7 @@ export const ConfirmClaimLinkIbanView = ({
                 setLoadingState('Awaiting TOS confirmation')
 
                 console.log('Awaiting TOS confirmation...')
+                setIframeOptions({ ...iframeOptions, src: tos_link, visible: true })
                 await _utils.awaitStatusCompletion(
                     id,
                     'tos',
@@ -307,6 +325,7 @@ export const ConfirmClaimLinkIbanView = ({
             } else if (kycStatus !== 'approved') {
                 setLoadingState('Awaiting KYC confirmation')
                 console.log('Awaiting KYC confirmation...')
+                setIframeOptions({ ...iframeOptions, src: utils.convertPersonaUrl(kyc_link), visible: true })
                 await _utils.awaitStatusCompletion(
                     id,
                     'kyc',
@@ -570,9 +589,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <div className="mb-2 flex flex-col items-center justify-center gap-2">
                         <button
                             onClick={() => {
-                                if (isLoading) {
-                                    window.open(customerObject?.tos_link, '_blank')
-                                } else handleTOSStatus()
+                                handleTOSStatus()
                             }}
                             className="btn btn-purple h-8 w-full"
                         >
@@ -592,9 +609,7 @@ export const ConfirmClaimLinkIbanView = ({
                     <div className="mb-2 flex flex-col items-center justify-center gap-2">
                         <button
                             onClick={() => {
-                                if (isLoading) {
-                                    window.open(customerObject?.kyc_link, '_blank')
-                                } else handleKYCStatus()
+                                handleKYCStatus()
                             }}
                             className="btn btn-purple h-8 w-full"
                         >
@@ -921,6 +936,12 @@ export const ConfirmClaimLinkIbanView = ({
                     </div>
                 )}
             </div>
+            <IframeWrapper
+                src={iframeOptions.src}
+                visible={iframeOptions.visible}
+                onClose={iframeOptions.onClose}
+                style={{ width: '100%', height: '500px', border: 'none' }}
+            />
         </div>
     )
 }
