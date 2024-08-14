@@ -106,10 +106,10 @@ export const Profile = () => {
         const contactsData =
             user?.contacts &&
             user.contacts.map((contact) => ({
-                userName: contact.nickname ?? contact.ens_name ?? '-',
+                userName: contact.nickname ?? contact.username ?? contact.ens_name ?? '-',
                 address: contact.account_identifier,
                 txs: contact.n_interactions,
-                avatar: undefined,
+                avatar: contact.profile_picture ?? '',
             }))
         setContactsData(contactsData)
         const accountsData =
@@ -152,6 +152,7 @@ export const Profile = () => {
             case 'contacts':
                 setTotalPages(Math.ceil(contactsData.length / itemsPerPage))
                 setCurrentPage(1)
+                console.log(contactsData)
                 setTableData(
                     contactsData.map((data) => ({
                         primaryText: data.userName,
@@ -163,7 +164,11 @@ export const Profile = () => {
                         type: 'contacts',
                         avatar: {
                             iconName: undefined,
-                            avatarUrl: 'https://peanut.to/logo-favicon.png',
+                            avatarUrl: data.avatar
+                                ? data?.avatar?.length > 0
+                                    ? data.avatar
+                                    : 'https://peanut.to/logo-favicon.png'
+                                : 'https://peanut.to/logo-favicon.png',
                         },
                     }))
                 )

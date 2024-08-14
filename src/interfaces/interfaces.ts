@@ -361,4 +361,6 @@ export interface Contact {
     n_interactions: number
     usd_volume_transacted: string
     last_interacted_with: string | null
+    username: string | null
+    profile_picture: string | null
 }

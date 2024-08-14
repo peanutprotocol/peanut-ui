@@ -31,7 +31,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         try {
             const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
             const { address: tokenAddress } = await tokenAddressResponse.json()
-            if (address && tokenAddress.toLowerCase() !== address.toLowerCase()) {
+            if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
                 return setUser(null)
             }
 
