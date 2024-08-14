@@ -33,7 +33,7 @@ const tabs = [
 ]
 
 export const Profile = () => {
-    const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
+    const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts' | undefined>(undefined)
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
     const avatar = createAvatar(identicon, {
         seed: user?.user?.username ?? user?.user?.email ?? '',

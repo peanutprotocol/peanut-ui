@@ -8,7 +8,7 @@ type TabsProps = {
     className?: string
     classButton?: string
     items: TabType[]
-    value: number | string
+    value: number | string | undefined
     setValue: any
 }
 

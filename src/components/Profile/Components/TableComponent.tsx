@@ -15,7 +15,7 @@ export const TableComponent = ({
     itemsPerPage,
 }: {
     data: interfaces.IProfileTableData[]
-    selectedTab: 'contacts' | 'history' | 'accounts'
+    selectedTab: 'contacts' | 'history' | 'accounts' | undefined
     currentPage: number
     itemsPerPage: number
 }) => {

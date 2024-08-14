@@ -2,6 +2,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
 import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
+import { useAccount } from 'wagmi'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -15,6 +16,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const { address } = useAccount()
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
     const [isFetchingUser, setIsFetchingUser] = useState(false)
     const toast = useToast({
@@ -27,6 +29,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchUser = async () => {
         try {
+            const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
+            const { address: tokenAddress } = await tokenAddressResponse.json()
+            if (address && tokenAddress.toLowerCase() !== address.toLowerCase()) {
+                return setUser(null)
+            }
+
             setIsFetchingUser(true)
             const response = await fetch('/api/peanut/user/get-user-from-cookie')
             if (response.ok) {
@@ -139,8 +147,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     useEffect(() => {
-        fetchUser()
-    }, [])
+        const timeoutId = setTimeout(() => {
+            fetchUser()
+        }, 500)
+
+        return () => clearTimeout(timeoutId)
+    }, [address])
 
     return (
         <AuthContext.Provider value={{ user, setUser, fetchUser, updateUserName, submitProfilePhoto, isFetchingUser }}>

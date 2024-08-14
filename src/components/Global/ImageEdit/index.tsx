@@ -34,12 +34,12 @@ const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageCha
     }
 
     return (
-        <div className="relative h-16 w-auto overflow-hidden">
+        <div className="relative h-16 w-auto min-w-16 overflow-hidden">
             <div className="relative h-full w-full">
                 <img
                     src={profilePicture}
                     alt="Profile"
-                    className="h-full w-full transform object-cover transition duration-300 hover:scale-105"
+                    className="h-full w-full max-w-32 transform object-contain transition duration-300 hover:scale-105"
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 transition duration-300 hover:opacity-100">
                     <label className="cursor-pointer">
