@@ -42,11 +42,12 @@ export const InitialCashoutView = ({
     }
 
     const [selectedBankAccount, setSelectedBankAccount] = useState<string | undefined>(undefined)
+    const [newBankAccount, setNewBankAccount] = useState<string>('')
 
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
         try {
-            if (!selectedBankAccount) {
+            if (!selectedBankAccount || !newBankAccount) {
                 setErrorState({ showError: true, errorMessage: 'Please select a bank account.' })
                 setLoadingState('Idle')
                 return
@@ -61,7 +62,7 @@ export const InitialCashoutView = ({
                     setUsdValue(parseFloat(_tokenValue).toString())
                 }
             }
-            setRecipient({ name: '', address: selectedBankAccount })
+            setRecipient({ name: '', address: selectedBankAccount || newBankAccount })
             setLoadingState('Idle')
             onNext()
         } catch (error) {
@@ -70,16 +71,22 @@ export const InitialCashoutView = ({
         }
     }
 
+    useEffect(() => {
+        if (newBankAccount) {
+            setSelectedBankAccount(undefined)
+        }
+        if (selectedBankAccount) {
+            setNewBankAccount('')
+        }
+    }, [newBankAccount, selectedBankAccount])
+
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
+        <div className="flex max-w-96 flex-col justify-center gap-6 text-center">
             <label className="text-h2">Cash Out</label>
             <label className="max-w-96 text-start text-h8 font-light">
                 Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
             </label>
-            <label className="max-w-96 text-start text-h9 font-light">
-                Fees: $0.50. Requires KYC. Only US & Europe
-            </label>
-
+            <label className="max-w-96 text-left text-h9 font-light">Fees: $0.50. Requires KYC. Only US & Europe</label>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput
                     className="w-full"
@@ -104,23 +111,34 @@ export const InitialCashoutView = ({
             </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 {bankAccounts.map((account, index) => (
-                    <div key={index} className="flex w-[96%] border border-black p-2">
+                    <div
+                        key={index}
+                        className="flex w-[96%] cursor-pointer border border-black p-2"
+                        onClick={() => setSelectedBankAccount(account.address)}
+                    >
                         <input
                             type="checkbox"
                             id={`bank-${index}`}
                             name="bankAccount"
                             value={account.address}
                             checked={selectedBankAccount === account.address}
-                            onChange={(e) => setSelectedBankAccount(e.target.value)}
+                            className="cursor-pointer"
                         />
-                        <label htmlFor={`bank-${index}`} className="ml-2 text-right">
+                        <label htmlFor={`bank-${index}`} className="ml-2 cursor-pointer text-right">
                             {account.address}
                         </label>
                     </div>
                 ))}
                 <label className="text-left text-h8 font-light">Add new Bank Account:</label>
-                <div className="flex w-[96%] w-full cursor-pointer border border-black p-2">
-                    <label className="ml-2 text-right">To: IBAN / ACH</label>
+                <div className="flex w-[96%] cursor-pointer border border-black p-2">
+                    <label className="ml-2 text-right">To:</label>
+                    <input
+                        type="text"
+                        className="ml-2 w-full border border-none"
+                        placeholder="Enter IBAN / ACH"
+                        value={newBankAccount}
+                        onChange={(e) => setNewBankAccount(e.target.value)}
+                    />
                 </div>
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
@@ -128,7 +146,7 @@ export const InitialCashoutView = ({
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
                     }}
-                    disabled={_tokenValue === undefined || selectedBankAccount === undefined}
+                    disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount)}
                 >
                     {!isConnected ? (
                         'Create or Connect Wallet'
