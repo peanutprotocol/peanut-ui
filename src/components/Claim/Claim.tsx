@@ -41,7 +41,7 @@ export const Claim = ({}) => {
     const [peanutAccount, setPeanutAccount] = useState<any>(null)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
-    const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
+    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
         name: '',
         email: '',
         password: '',

@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
             },
             body: JSON.stringify({
                 userId,
-                bridgeAccountId,
+                bridgeAccountIdentifier: bridgeAccountId,
                 accountType,
                 accountIdentifier,
             }),

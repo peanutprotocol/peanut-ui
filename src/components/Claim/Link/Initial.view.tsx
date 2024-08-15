@@ -143,8 +143,8 @@ export const InitialClaimLinkView = ({
                 errorMessage: '',
             })
             setLoadingState('Fetching route')
-            let tokenName = _utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = _utils.getBridgeChainName(claimLinkData.chainId)
+            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
 
             if (tokenName && chainName) {
                 console.log('offramp without xchain possible')
@@ -178,8 +178,8 @@ export const InitialClaimLinkView = ({
                 }
                 setOfframpXchainNeeded(true)
 
-                tokenName = _utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                chainName = _utils.getBridgeChainName(optimismChainId)
+                tokenName = utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
+                chainName = utils.getBridgeChainName(optimismChainId)
             }
 
             setOfframpChainAndToken({
@@ -239,7 +239,7 @@ export const InitialClaimLinkView = ({
 
                         console.log()
 
-                        const allLiquidationAddresses = await _utils.getLiquidationAddresses(
+                        const allLiquidationAddresses = await utils.getLiquidationAddresses(
                             user?.user?.bridge_customer_id ?? ''
                         )
                         let liquidationAddressDetails = allLiquidationAddresses.find(
@@ -252,7 +252,7 @@ export const InitialClaimLinkView = ({
                         console.log(liquidationAddressDetails)
 
                         if (!liquidationAddressDetails) {
-                            liquidationAddressDetails = await _utils.createLiquidationAddress(
+                            liquidationAddressDetails = await utils.createLiquidationAddress(
                                 user?.user?.bridge_customer_id ?? '',
                                 chainName ?? '',
                                 tokenName ?? '',
