@@ -141,7 +141,6 @@ export const KYCComponent = ({
                         body: JSON.stringify({
                             email: inputFormData.email,
                             password: inputFormData.password,
-                            userId: userRegister.userId,
                         }),
                     })
                     const userLogin = await userLoginResponse.json()
@@ -177,7 +176,6 @@ export const KYCComponent = ({
                     body: JSON.stringify({
                         email: inputFormData.email,
                         password: inputFormData.password,
-                        userId: userId,
                     }),
                 })
                 const userLogin = await userLoginResponse.json()
@@ -448,15 +446,13 @@ export const KYCComponent = ({
             case 0:
                 return (
                     <div className="flex w-full flex-col items-start justify-center gap-2">
-                        <>
-                            <input
-                                {...registerOfframp('name', { required: 'This field is required' })}
-                                className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
-                                placeholder="Full name"
-                                disabled={activeStep > 0}
-                            />
-                            {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
-                        </>
+                        <input
+                            {...registerOfframp('name', { required: 'This field is required' })}
+                            className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
+                            placeholder="Full name"
+                            disabled={activeStep > 0}
+                        />
+                        {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
                         {/* TODO: make this not required if is already defined in user object */}
 
                         <input
