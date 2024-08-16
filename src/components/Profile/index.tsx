@@ -154,23 +154,31 @@ export const Profile = () => {
                 setCurrentPage(1)
                 console.log(contactsData)
                 setTableData(
-                    contactsData.map((data) => ({
-                        primaryText: data.userName,
-                        address: data.address,
-                        secondaryText: '',
-                        tertiaryText: utils.shortenAddressLong(data.address),
-                        quaternaryText: data.txs.toString(),
-                        key: data.userName + Math.random(),
-                        type: 'contacts',
-                        avatar: {
-                            iconName: undefined,
-                            avatarUrl: data.avatar
-                                ? data?.avatar?.length > 0
-                                    ? data.avatar
-                                    : 'https://peanut.to/logo-favicon.png'
-                                : 'https://peanut.to/logo-favicon.png',
-                        },
-                    }))
+                    contactsData.map((data) => {
+                        const avatarUrl = data.avatar
+                            ? data.avatar.length > 0
+                                ? data.avatar
+                                : createAvatar(identicon, {
+                                      seed: data.address,
+                                  }).toDataUri()
+                            : createAvatar(identicon, {
+                                  seed: data.address,
+                              }).toDataUri()
+
+                        return {
+                            primaryText: data.userName,
+                            address: data.address,
+                            secondaryText: '',
+                            tertiaryText: utils.shortenAddressLong(data.address),
+                            quaternaryText: data.txs.toString(),
+                            key: data.userName + Math.random(),
+                            type: 'contacts',
+                            avatar: {
+                                iconName: undefined,
+                                avatarUrl: avatarUrl,
+                            },
+                        }
+                    })
                 )
                 break
             case 'accounts':
