@@ -113,7 +113,7 @@ export const InitialCashoutView = ({
                     </div>
                 )}
             </div>
-            <div className="flex w-full flex-col items-center justify-center gap-3">
+            <div className="flex w-full flex-col justify-center gap-3">
                 {bankAccounts.map((account, index) => (
                     <div
                         key={index}
