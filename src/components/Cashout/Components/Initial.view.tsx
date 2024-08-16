@@ -40,6 +40,7 @@ export const InitialCashoutView = ({
 
     const [selectedBankAccount, setSelectedBankAccount] = useState<string | undefined>(undefined)
     const [newBankAccount, setNewBankAccount] = useState<string>('')
+    const [activeInput, setActiveInput] = useState<'newBankAccount' | 'selectedBankAccount'>()
 
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
@@ -69,10 +70,9 @@ export const InitialCashoutView = ({
     }
 
     useEffect(() => {
-        if (newBankAccount) {
+        if (activeInput === 'newBankAccount') {
             setSelectedBankAccount(undefined)
-        }
-        if (selectedBankAccount) {
+        } else if (activeInput === 'selectedBankAccount') {
             setNewBankAccount('')
         }
     }, [newBankAccount, selectedBankAccount])
@@ -119,7 +119,10 @@ export const InitialCashoutView = ({
                                   <div
                                       key={index}
                                       className="flex w-full cursor-pointer border border-black p-2"
-                                      onClick={() => setSelectedBankAccount(account.account_identifier)}
+                                      onClick={() => {
+                                          setSelectedBankAccount(account.account_identifier)
+                                          setActiveInput('selectedBankAccount')
+                                      }}
                                   >
                                       <input
                                           type="checkbox"
@@ -164,6 +167,7 @@ export const InitialCashoutView = ({
                         placeholder="Enter IBAN / ACH"
                         value={newBankAccount}
                         onChange={(e) => setNewBankAccount(e.target.value)}
+                        onFocus={() => setActiveInput('newBankAccount')}
                     />
                 </div>
                 <button
