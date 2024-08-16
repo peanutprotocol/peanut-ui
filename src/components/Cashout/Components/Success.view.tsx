@@ -20,12 +20,15 @@ export const CashoutSuccessView = ({ recipient, usdValue }: _consts.ICashoutScre
     }, [isSubscribed, address])
 
     return (
-        <div className={`flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center`}>
-            <label className="text-h4">Your funds are on the way!</label>
-            <label className="text-h8">Cashing out usually takes 20 minutes but can take up to two days.</label>
-            <label className="text-h8">You will receive an email confirmation.</label>
-            <label className="text-h8">Your funds are on the way.</label>
-            <label className="text-h8">A confirmation email will be sent to konrad@peanut.to</label>
+        <div
+            className={`mx-auto flex w-full max-w-[96%] flex-col items-center justify-center gap-6 py-2 pb-20 text-center`}
+        >
+            <div className="flex flex-col items-center justify-center gap-1">
+                <label className="text-h4">Your funds are on the way!</label>
+                <label className="text-h8">Cashing out usually takes 20 minutes but can take up to two days.</label>
+                <label className="text-h8">You will receive an email confirmation.</label>
+                <label className="text-h8">A confirmation email will be sent to konrad@peanut.to</label>
+            </div>
 
             <div className="flex w-full flex-col items-center justify-start gap-2 border border-black p-4">
                 <ConfirmCashoutDetails tokenAmount={usdValue as string} />

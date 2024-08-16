@@ -47,7 +47,7 @@ export const InitialCashoutView = ({
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
         try {
-            if (!selectedBankAccount || !newBankAccount) {
+            if (!selectedBankAccount && !newBankAccount) {
                 setErrorState({ showError: true, errorMessage: 'Please select a bank account.' })
                 setLoadingState('Idle')
                 return
@@ -81,15 +81,19 @@ export const InitialCashoutView = ({
     }, [newBankAccount, selectedBankAccount])
 
     return (
-        <div className="flex max-w-96 flex-col justify-center gap-6 text-center">
+        <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Cash Out</label>
-            <label className="max-w-96 text-start text-h8 font-light">
-                Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
-            </label>
-            <label className="max-w-96 text-left text-h9 font-light">Fees: $0.50. Requires KYC. Only US & Europe</label>
+            <div className="flex flex-col justify-center gap-3">
+                <label className="text-start text-h8 font-light">
+                    Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
+                </label>
+                <label className="max-w-[100%] text-left text-h9 font-light">
+                    Fees: $0.50. Requires KYC. Only US & Europe
+                </label>
+            </div>
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <TokenAmountInput
-                    className="w-full"
+                    className="w-full max-w-[100%]"
                     tokenValue={_tokenValue}
                     setTokenValue={_setTokenValue}
                     onSubmit={() => {
@@ -97,7 +101,7 @@ export const InitialCashoutView = ({
                         else handleOnNext()
                     }}
                 />
-                <TokenSelector classNameButton="w-full" />
+                <TokenSelector classNameButton="max-w-[100%]" />
                 {hasFetchedBalances && balances.length === 0 && (
                     <div
                         onClick={() => {
@@ -113,7 +117,7 @@ export const InitialCashoutView = ({
                 {bankAccounts.map((account, index) => (
                     <div
                         key={index}
-                        className="flex w-[96%] cursor-pointer border border-black p-2"
+                        className="flex w-full cursor-pointer border border-black p-2"
                         onClick={() => setSelectedBankAccount(account.address)}
                     >
                         <input
@@ -130,7 +134,7 @@ export const InitialCashoutView = ({
                     </div>
                 ))}
                 <label className="text-left text-h8 font-light">Add new Bank Account:</label>
-                <div className="flex w-[96%] cursor-pointer border border-black p-2">
+                <div className="flex w-full cursor-pointer border border-black p-2">
                     <label className="ml-2 text-right">To:</label>
                     <input
                         type="text"
@@ -141,7 +145,7 @@ export const InitialCashoutView = ({
                     />
                 </div>
                 <button
-                    className="wc-disable-mf btn-purple btn-xl "
+                    className="wc-disable-mf btn-purple btn-xl w-full max-w-[100%]"
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
