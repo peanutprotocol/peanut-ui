@@ -9,6 +9,7 @@ import * as _consts from '../Cashout.consts'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
+import { useAuth } from '@/context/authContext'
 
 export const InitialCashoutView = ({
     onNext,
@@ -17,13 +18,9 @@ export const InitialCashoutView = ({
     setUsdValue,
     setRecipient,
 }: _consts.ICashoutScreenProps) => {
-    const bankAccounts = [
-        { name: 'Bank 1', address: 'PL1298391283912' },
-        { name: 'Bank 2', address: 'DE12983912839121332432' },
-        { name: 'Bank 3', address: 'US1298392339124234' },
-    ]
     const { selectedTokenPrice, inputDenomination } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
+    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -114,7 +111,32 @@ export const InitialCashoutView = ({
                 )}
             </div>
             <div className="flex w-full flex-col justify-center gap-3">
-                {bankAccounts.map((account, index) => (
+                <div className="max-h-48 space-y-2 overflow-y-scroll">
+                    {user?.accounts
+                        ? user?.accounts
+                              .filter((account) => account.account_type === 'iban' || account.account_type === 'us')
+                              ?.map((account, index) => (
+                                  <div
+                                      key={index}
+                                      className="flex w-full cursor-pointer border border-black p-2"
+                                      onClick={() => setSelectedBankAccount(account.account_identifier)}
+                                  >
+                                      <input
+                                          type="checkbox"
+                                          id={`bank-${index}`}
+                                          name="bankAccount"
+                                          value={account.account_identifier}
+                                          checked={selectedBankAccount === account.account_identifier}
+                                          className="cursor-pointer"
+                                      />
+                                      <label htmlFor={`bank-${index}`} className="ml-2 cursor-pointer text-right">
+                                          {account.account_identifier}
+                                      </label>
+                                  </div>
+                              ))
+                        : ''}
+                </div>
+                {/* {.map((account, index) => (
                     <div
                         key={index}
                         className="flex w-full cursor-pointer border border-black p-2"
@@ -132,13 +154,13 @@ export const InitialCashoutView = ({
                             {account.address}
                         </label>
                     </div>
-                ))}
+                ))} */}
                 <label className="text-left text-h8 font-light">Add new Bank Account:</label>
                 <div className="flex w-full cursor-pointer border border-black p-2">
                     <label className="ml-2 text-right">To:</label>
                     <input
                         type="text"
-                        className="ml-2 w-full border border-none"
+                        className="ml-2 w-full border border-none outline-none"
                         placeholder="Enter IBAN / ACH"
                         value={newBankAccount}
                         onChange={(e) => setNewBankAccount(e.target.value)}

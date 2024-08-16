@@ -258,17 +258,6 @@ export const Profile = () => {
             setIsLoading(false)
         }
     }
-
-    const [iframeVisible, setIframeVisible] = useState(false)
-
-    const openIframe = () => {
-        setIframeVisible(true)
-    }
-
-    const closeIframe = () => {
-        setIframeVisible(false)
-    }
-
     if (!user) {
         return (
             <components.ProfileSkeleton
@@ -296,18 +285,29 @@ export const Profile = () => {
 
                             {/* */}
 
-                            <TextEdit
-                                initialText={
-                                    user?.user?.username ??
-                                    user?.user?.email ??
-                                    (user.accounts
-                                        ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier)
-                                        : '')
-                                }
-                                onTextChange={(text) => {
-                                    updateUserName(text)
-                                }}
-                            />
+                            <div className="flex flex-col items-start justify-center gap-1">
+                                <TextEdit
+                                    initialText={
+                                        user?.user?.username ??
+                                        user?.user?.email ??
+                                        (user.accounts
+                                            ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier)
+                                            : '')
+                                    }
+                                    onTextChange={(text) => {
+                                        updateUserName(text)
+                                    }}
+                                />
+                                {user?.user?.kycStatus != 'verified' ? (
+                                    <span className="flex justify-center text-h8 font-normal">
+                                        KYC <Icon name="check" />
+                                    </span>
+                                ) : (
+                                    <span className="flex cursor-pointer justify-center text-h8 font-normal underline">
+                                        Click here to KYC
+                                    </span>
+                                )}
+                            </div>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.points} points</span>
