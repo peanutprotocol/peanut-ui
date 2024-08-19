@@ -32,5 +32,5 @@ export interface ICashoutScreenProps {
     recipient: { address: string | undefined; name: string | undefined }
     setRecipient: (recipient: { address: string | undefined; name: string | undefined }) => void
     usdValue: string | undefined
-    setUsdValue: (value: string | undefined) => void
+    setUsdValue: (value: string | number) => void
 }

@@ -3,14 +3,17 @@ import { useContext, useState } from 'react'
 import * as context from '@/context'
 import * as _consts from '../Cashout.consts'
 import Loading from '@/components/Global/Loading'
-import ConfirmCashoutDetails from './ConfirmCashoutDetails'
-
+import Icon from '@/components/Global/Icon'
+import { useAuth } from '@/context/authContext'
+import MoreInfo from '@/components/Global/MoreInfo'
+import * as utils from '@/utils'
 export const ConfirmCashoutView = ({ onNext, onPrev, recipient, usdValue }: _consts.ICashoutScreenProps) => {
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -34,18 +37,80 @@ export const ConfirmCashoutView = ({ onNext, onPrev, recipient, usdValue }: _con
                 </label>
             </div>
             <label className="max-w-96 text-start text-h8 font-light">Please confirm all details</label>
-            <div className="flex w-full flex-col items-center justify-start gap-2 border border-black p-4">
-                <ConfirmCashoutDetails tokenAmount={usdValue as string} />
-                <label className="max-w-96 text-center text-h6 font-light">Konrad Urban</label>
-                <label className="max-w-96 text-center text-h6 font-light">konrad@peanut.to</label>
-                <label className="max-w-96 text-center text-h6 font-light">{recipient.address}</label>
-            </div>
-            <div className="flex flex-col justify-center gap-1">
-                <label className="max-w-96 text-left text-h8 font-light">Route: Offramp -&gt; IBAN</label>
-                <label className="max-w-96 text-left text-h8 font-light">Fee: $0.5</label>
-                <label className="max-w-96 text-left text-h8 font-light">
-                    Total received: ${Number(usdValue) - 0.5}
-                </label>
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'profile'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Name</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {user?.user?.full_name}
+                    </span>
+                </div>
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'email'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Email</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {user?.user?.email}
+                    </span>
+                </div>
+
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'bank'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Bank account</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {recipient.address}
+                    </span>
+                </div>
+
+                {/* <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Route</label>
+                    </div>
+                    {offrampXchainNeeded ? (
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {
+                                    consts.supportedPeanutChains.find(
+                                        (chain) => chain.chainId === claimLinkData.chainId
+                                    )?.name
+                                }{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        ) : (
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                {recipientType.toUpperCase()}{' '}
+                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                            </span>
+                        )}
+                </div> */}
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'gas'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Fee</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        $0.50
+                        <MoreInfo text={'Fees are on us, enjoy!'} />
+                    </span>
+                </div>
+                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Total</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        ${utils.formatTokenAmount(parseFloat(usdValue ?? ''))}{' '}
+                        <MoreInfo text={'Woop Woop free offramp!'} />
+                    </span>
+                </div>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">

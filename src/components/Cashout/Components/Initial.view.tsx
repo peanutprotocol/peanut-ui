@@ -7,10 +7,11 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect } from 'react'
 import * as _consts from '../Cashout.consts'
 import * as context from '@/context'
+import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
-import { useForm } from 'react-hook-form'
+import { set, useForm } from 'react-hook-form'
 
 export const InitialCashoutView = ({
     onNext,
@@ -22,6 +23,7 @@ export const InitialCashoutView = ({
     const { selectedTokenPrice, inputDenomination } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
+    const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -73,9 +75,80 @@ export const InitialCashoutView = ({
                     setUsdValue(parseFloat(_tokenValue).toString())
                 }
             }
-            setRecipient({ name: '', address: selectedBankAccount || newBankAccount })
-            setLoadingState('Idle')
-            onNext()
+
+            const recipientBankAccount = selectedBankAccount || newBankAccount
+            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+
+            if (!user) {
+                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountIdentifier: recipientBankAccount,
+                    }),
+                })
+
+                const response = await userIdResponse.json()
+
+                console.log(response)
+
+                if (response.isNewUser) {
+                    setUserType('NEW')
+                } else {
+                    setUserType('EXISTING')
+                }
+
+                setRecipient({ name: '', address: recipientBankAccount })
+            } else {
+                if (user?.user.kycStatus == 'verified') {
+                    const account = user.accounts.find(
+                        (account: any) =>
+                            account.account_identifier.toLowerCase() ===
+                            recipientBankAccount.replaceAll(' ', '').toLowerCase()
+                    )
+
+                    if (account) {
+                        console.log('account found') // TODO: set peanut account
+
+                        console.log()
+
+                        const allLiquidationAddresses = await utils.getLiquidationAddresses(
+                            user?.user?.bridge_customer_id ?? ''
+                        )
+                        let liquidationAddressDetails = allLiquidationAddresses.find(
+                            (address) =>
+                                address.chain === chainName &&
+                                address.currency === tokenName &&
+                                address.external_account_id === account.bridge_account_id
+                        )
+
+                        console.log(liquidationAddressDetails)
+
+                        if (!liquidationAddressDetails) {
+                            liquidationAddressDetails = await utils.createLiquidationAddress(
+                                user?.user?.bridge_customer_id ?? '',
+                                chainName ?? '',
+                                tokenName ?? '',
+                                account.bridge_account_id,
+                                recipientType === 'iban' ? 'sepa' : 'ach',
+                                recipientType === 'iban' ? 'eur' : 'usd'
+                            )
+                        }
+
+                        setLiquidationAddress(liquidationAddressDetails)
+                        setInitialKYCStep(4)
+                    } else {
+                        setInitialKYCStep(3)
+                    }
+                }
+            }
+
+            // setRecipient({ name: '', address: selectedBankAccount || newBankAccount })
+            // setLoadingState('Idle')
+            // onNext()
         } catch (error) {
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again.' })
             setLoadingState('Idle')
