@@ -1,7 +1,8 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
 import * as consts from '@/constants'
+
+export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
 
 export async function GET(request: NextRequest) {
     try {

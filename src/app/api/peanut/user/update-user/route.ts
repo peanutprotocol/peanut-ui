@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
             })
         }
 
-        if (!response.ok) {
+        if (response.status !== 200) {
             return new NextResponse(JSON.stringify(data), {
                 status: response.status,
                 headers: {

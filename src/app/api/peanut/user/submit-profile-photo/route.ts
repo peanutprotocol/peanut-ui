@@ -31,8 +31,13 @@ export async function POST(request: NextRequest) {
             body: apiFormData,
         })
 
-        if (!response.ok) {
-            return new NextResponse('Failed to upload profile photo', { status: response.status })
+        if (response.status !== 200) {
+            return new NextResponse('Error in get-user-id', {
+                status: response.status,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
         }
 
         const data = await response.json()
