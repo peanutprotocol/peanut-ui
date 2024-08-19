@@ -7,6 +7,7 @@ import Icon from '@/components/Global/Icon'
 import { useAuth } from '@/context/authContext'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as utils from '@/utils'
+import { useCreateLink } from '@/components/Create/useCreateLink'
 export const ConfirmCashoutView = ({ onNext, onPrev, recipient, usdValue }: _consts.ICashoutScreenProps) => {
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -14,13 +15,26 @@ export const ConfirmCashoutView = ({ onNext, onPrev, recipient, usdValue }: _con
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-
+    const { assertValues } = useCreateLink()
     const handleConfirm = async () => {
         setLoadingState('Loading')
         setErrorState({
             showError: false,
             errorMessage: '',
         })
+
+        try {
+            assertValues({ tokenValue: usdValue })
+        } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: error.message,
+            })
+            return
+        } finally {
+            setLoadingState('Idle')
+        }
+
         onNext()
     }
 

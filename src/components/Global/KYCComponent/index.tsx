@@ -26,9 +26,7 @@ interface IKYCComponentProps {
     userType: 'NEW' | 'EXISTING' | undefined
     userId: string | undefined
     recipientType: interfaces.RecipientType
-    offrampChainAndToken: { chain: string; token: string }
-    setPeanutAccount: (account: any) => void
-    setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress | undefined) => void
+    onCompleted?: () => void
 }
 
 export const KYCComponent = ({
@@ -38,9 +36,7 @@ export const KYCComponent = ({
     userType,
     userId,
     recipientType,
-    offrampChainAndToken,
-    setPeanutAccount,
-    setLiquidationAddress,
+    onCompleted,
 }: IKYCComponentProps) => {
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -186,8 +182,7 @@ export const KYCComponent = ({
                             message: 'Invalid email format',
                             type: 'validate',
                         }
-                    }
-                    if (userLogin === 'Invalid email, userId') {
+                    } else if (userLogin === 'Invalid email, userId') {
                         errors.email = {
                             message: 'Incorrect email',
                             type: 'validate',
@@ -195,6 +190,12 @@ export const KYCComponent = ({
                     } else if (userLogin === 'Invalid password') {
                         errors.password = {
                             message: 'Invalid password',
+                            type: 'validate',
+                        }
+                    } else if (userLogin === 'User not found') {
+                        errors.email = {
+                            message:
+                                'User not found. Make sure you login with the email linked to the bank account you entered',
                             type: 'validate',
                         }
                     }
@@ -205,17 +206,18 @@ export const KYCComponent = ({
                 setLoadingState('Getting KYC status')
             }
 
-            await fetchUser()
+            const _user = await fetchUser()
 
-            if (user?.user?.bridge_customer_id) {
+            if (_user?.user?.bridge_customer_id) {
                 if (
-                    user?.accounts.find(
+                    _user?.accounts.find(
                         (account) =>
                             account.account_identifier.toLowerCase().replaceAll(' ', '') ===
                             inputFormData.recipient.toLowerCase().replaceAll(' ', '')
                     )
                 ) {
                     setActiveStep(4)
+                    onCompleted && onCompleted()
                 } else {
                     setActiveStep(3)
                 }
@@ -408,7 +410,7 @@ export const KYCComponent = ({
                 accountOwnerName
             )
 
-            const pAccount = await utils.createAccount(
+            await utils.createAccount(
                 user?.user?.userId ?? '',
                 customerId,
                 data.id,
@@ -416,23 +418,22 @@ export const KYCComponent = ({
                 formData.accountNumber.replaceAll(' ', ''),
                 address
             )
-            fetchUser()
+            await fetchUser()
 
-            setPeanutAccount(pAccount)
+            // const liquidationAddressDetails = await utils.createLiquidationAddress(
+            //     customerId,
+            //     offrampChainAndToken.chain,
+            //     offrampChainAndToken.token,
+            //     data.id,
+            //     recipientType === 'iban' ? 'sepa' : 'ach',
+            //     recipientType === 'iban' ? 'eur' : 'usd'
+            // )
 
-            const liquidationAddressDetails = await utils.createLiquidationAddress(
-                customerId,
-                offrampChainAndToken.chain,
-                offrampChainAndToken.token,
-                data.id,
-                recipientType === 'iban' ? 'sepa' : 'ach',
-                recipientType === 'iban' ? 'eur' : 'usd'
-            )
-
-            setLiquidationAddress(liquidationAddressDetails)
+            // setLiquidationAddress(liquidationAddressDetails)
             setActiveStep(3)
             setAddressRequired(false)
             setLoadingState('Idle')
+            onCompleted && onCompleted()
         } catch (error) {
             console.error('Error during the submission process:', error)
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })

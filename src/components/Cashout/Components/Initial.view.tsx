@@ -6,12 +6,15 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect } from 'react'
 import * as _consts from '../Cashout.consts'
+import * as consts from '@/constants'
 import * as context from '@/context'
-import * as utils from '@/utils'
+import * as interfaces from '@/interfaces'
 import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
 import { set, useForm } from 'react-hook-form'
+import { KYCComponent } from '@/components/Global/KYCComponent'
+import { isIBAN } from 'validator'
 
 export const InitialCashoutView = ({
     onNext,
@@ -19,6 +22,7 @@ export const InitialCashoutView = ({
     usdValue,
     setUsdValue,
     setRecipient,
+    recipient,
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
@@ -77,8 +81,15 @@ export const InitialCashoutView = ({
             }
 
             const recipientBankAccount = selectedBankAccount || newBankAccount
-            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+
+            if (isIBAN(recipientBankAccount)) {
+                setRecipientType('iban')
+            } else if (/^[0-9]{6,17}$/.test(recipientBankAccount)) {
+                setRecipientType('us')
+            } else {
+                console.error('Invalid bank account')
+                return
+            }
 
             if (!user) {
                 const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
@@ -102,6 +113,15 @@ export const InitialCashoutView = ({
                 }
 
                 setRecipient({ name: '', address: recipientBankAccount })
+                setOfframpForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    recipient: recipientBankAccount,
+                })
+                setUserId(response.userId)
+                setShowKyc(true)
+                setInitialKYCStep(0)
             } else {
                 if (user?.user.kycStatus == 'verified') {
                     const account = user.accounts.find(
@@ -112,33 +132,34 @@ export const InitialCashoutView = ({
 
                     if (account) {
                         console.log('account found') // TODO: set peanut account
+                        onNext()
 
-                        console.log()
+                        // console.log()
 
-                        const allLiquidationAddresses = await utils.getLiquidationAddresses(
-                            user?.user?.bridge_customer_id ?? ''
-                        )
-                        let liquidationAddressDetails = allLiquidationAddresses.find(
-                            (address) =>
-                                address.chain === chainName &&
-                                address.currency === tokenName &&
-                                address.external_account_id === account.bridge_account_id
-                        )
+                        // const allLiquidationAddresses = await utils.getLiquidationAddresses(
+                        //     user?.user?.bridge_customer_id ?? ''
+                        // )
+                        // let liquidationAddressDetails = allLiquidationAddresses.find(
+                        //     (address) =>
+                        //         address.chain === chainName &&
+                        //         address.currency === tokenName &&
+                        //         address.external_account_id === account.bridge_account_id
+                        // )
 
-                        console.log(liquidationAddressDetails)
+                        // console.log(liquidationAddressDetails)
 
-                        if (!liquidationAddressDetails) {
-                            liquidationAddressDetails = await utils.createLiquidationAddress(
-                                user?.user?.bridge_customer_id ?? '',
-                                chainName ?? '',
-                                tokenName ?? '',
-                                account.bridge_account_id,
-                                recipientType === 'iban' ? 'sepa' : 'ach',
-                                recipientType === 'iban' ? 'eur' : 'usd'
-                            )
-                        }
+                        // if (!liquidationAddressDetails) {
+                        //     liquidationAddressDetails = await utils.createLiquidationAddress(
+                        //         user?.user?.bridge_customer_id ?? '',
+                        //         chainName ?? '',
+                        //         tokenName ?? '',
+                        //         account.bridge_account_id,
+                        //         recipientType === 'iban' ? 'sepa' : 'ach',
+                        //         recipientType === 'iban' ? 'eur' : 'usd'
+                        //     )
+                        // }
 
-                        setLiquidationAddress(liquidationAddressDetails)
+                        // setLiquidationAddress(liquidationAddressDetails)
                         setInitialKYCStep(4)
                     } else {
                         setInitialKYCStep(3)
@@ -151,10 +172,22 @@ export const InitialCashoutView = ({
             // onNext()
         } catch (error) {
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again.' })
+        } finally {
             setLoadingState('Idle')
         }
     }
 
+    const [showKyc, setShowKyc] = useState(false)
+    const [initialKYCStep, setInitialKYCStep] = useState(0)
+    const [userId, setUserId] = useState<string | undefined>(undefined)
+    const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('iban')
+
+    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
+        name: '',
+        email: '',
+        password: '',
+        recipient: '',
+    })
     const handleLogin = async (loginFormData: { email: string; password: string }) => {
         try {
             const userLoginResponse = await fetch('/api/peanut/user/login-user', {
@@ -205,7 +238,20 @@ export const InitialCashoutView = ({
         }
     }, [newBankAccount, selectedBankAccount])
 
-    return (
+    return showKyc ? (
+        <KYCComponent
+            intialStep={initialKYCStep}
+            offrampForm={offrampForm}
+            recipientType={recipientType}
+            userType={userType}
+            setOfframpForm={setOfframpForm}
+            userId={userId}
+            onCompleted={() => {
+                setShowKyc(false)
+                onNext()
+            }}
+        />
+    ) : (
         <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Cash Out</label>
             <div className="flex flex-col justify-center gap-3">

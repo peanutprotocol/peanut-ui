@@ -159,10 +159,8 @@ export const ConfirmClaimLinkIbanView = ({
             {activeStep < 4 ? (
                 <KYCComponent
                     intialStep={initialKYCStep}
-                    offrampChainAndToken={offrampChainAndToken}
                     offrampForm={offrampForm}
                     recipientType={recipientType}
-                    setLiquidationAddress={setLiquidationAddress}
                     setOfframpForm={setOfframpForm}
                     setPeanutAccount={setPeanutAccount}
                     userId={userId}

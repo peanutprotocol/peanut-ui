@@ -225,6 +225,12 @@ const MenuLinks = () => {
                         >
                             <Text display="block"> refund</Text>
                         </Link>
+                        <Link
+                            href={'/cashout'}
+                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block"> cashout</Text>
+                        </Link>
                     </div>
                 )}
             </div>
