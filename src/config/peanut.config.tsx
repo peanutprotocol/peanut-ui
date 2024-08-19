@@ -12,7 +12,7 @@ import '../../sentry.client.config'
 import '../../sentry.server.config'
 import '../../sentry.edge.config'
 import 'react-tooltip/dist/react-tooltip.css'
-import LogRocket from 'logrocket'
+// import LogRocket from 'logrocket'
 import { ChakraProvider } from '@chakra-ui/react'
 import * as styles from '@/styles/theme'
 
@@ -20,7 +20,7 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
         ReactGA.initialize(process.env.NEXT_PUBLIC_GA_KEY ?? '')
         peanut.toggleVerbose(true)
-        LogRocket.init('x2zwq1/peanut-protocol')
+        // LogRocket.init('x2zwq1/peanut-protocol') // disable logrocket
         countries.registerLocale(enLocale)
     }, [])
 

@@ -5,11 +5,15 @@
 import * as Sentry from '@sentry/nextjs'
 
 Sentry.init({
-    dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
-    enabled: process.env.NODE_ENV != 'development' ? true : false,
-    tracesSampleRate: 1,
-    debug: false,
-
-    replaysOnErrorSampleRate: 1.0,
-    replaysSessionSampleRate: 0.1,
+  dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
+  enabled: process.env.NODE_ENV ? process.env.NODE_ENV !== 'development' : true,
+  tracesSampleRate: 1,
+  debug: false,
+  replaysOnErrorSampleRate: 1.0,
+  replaysSessionSampleRate: 1.0,
+  integrations: [
+    new Sentry.browserTracingIntegration(),
+    new Sentry.replayIntegration(),
+  ],
+  autoSessionTracking: true,
 })
