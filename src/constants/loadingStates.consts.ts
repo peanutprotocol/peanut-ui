@@ -19,3 +19,6 @@ export type LoadingStates =
     | 'Linking account'
     | 'Submitting Offramp'
     | 'Getting profile'
+    | 'Registering'
+    | 'Logging in'
+    | 'Logging out'

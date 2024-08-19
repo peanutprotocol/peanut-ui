@@ -19,6 +19,7 @@ interface AuthContextType {
         userId: string
     }) => Promise<void>
     isFetchingUser: boolean
+    logoutUser: () => Promise<void>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -171,6 +172,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    const logoutUser = async () => {
+        try {
+            const response = await fetch('/api/peanut/user/logout-user', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+
+            if (response.ok) {
+                setUser(null)
+            } else {
+                console.error('Failed to log out user')
+            }
+        } catch (error) {
+            console.error('Error updating user', error)
+        }
+    }
+
     useEffect(() => {
         fetchUser()
     }, [])
@@ -186,6 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 submitProfilePhoto,
                 addAccount,
                 isFetchingUser,
+                logoutUser,
             }}
         >
             {children}
