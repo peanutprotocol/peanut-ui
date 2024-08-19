@@ -28,8 +28,13 @@ function parseJwt(token: string) {
     if (!token) {
         return
     }
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const decoded = Buffer.from(base64, 'base64').toString('utf-8')
-    return JSON.parse(decoded)
+    try {
+        const base64Url = token.split('.')[1]
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
+        const decoded = Buffer.from(base64, 'base64').toString('utf-8')
+        return JSON.parse(decoded)
+    } catch (error) {
+        console.error('Failed to parse JWT:', error)
+        return null
+    }
 }

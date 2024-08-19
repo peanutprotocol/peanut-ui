@@ -280,7 +280,7 @@ export interface IProfileTableData {
     secondaryText: string
     tertiaryText: string
     quaternaryText: string
-    key: string
+    itemKey: string
     type: 'history' | 'contacts' | 'accounts'
     address?: string
     avatar: {

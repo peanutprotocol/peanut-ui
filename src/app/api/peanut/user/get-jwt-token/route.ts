@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         // Set the JWT token in a cookie, nextjs requires to do this serverside
         cookies().set('jwt-token', token, {
             httpOnly: true,
+            secure: true,
             path: '/',
             sameSite: 'strict',
         })

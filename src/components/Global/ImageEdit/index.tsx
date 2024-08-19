@@ -19,7 +19,7 @@ const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageCha
 
     const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files ? event.target.files[0] : null
-        if (file && file.type.startsWith('image/')) {
+        if (file?.type.startsWith('image/')) {
             const reader = new FileReader()
             reader.onloadend = () => {
                 setProfilePicture(reader.result?.toString() || '')

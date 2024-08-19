@@ -15,7 +15,7 @@ type TabsProps = {
 export const Tabs = ({ className, classButton, items, value, setValue }: TabsProps) => {
     const handleClick = (value: string, onClick: any) => {
         setValue(value)
-        onClick && onClick()
+        onClick?.()
     }
 
     return (

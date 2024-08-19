@@ -139,7 +139,7 @@ export const Profile = () => {
                         secondaryText: utils.formatDate(new Date(data.date)) ?? '',
                         tertiaryText: `${data.amount} ${data.tokenSymbol} - [${data.chain}]`,
                         quaternaryText: data.status ?? '',
-                        key: (data.link ?? data.txHash ?? '') + Math.random(),
+                        itemKey: (data.link ?? data.txHash ?? '') + Math.random(),
                         type: 'history',
                         avatar: {
                             iconName: undefined,
@@ -171,7 +171,7 @@ export const Profile = () => {
                             secondaryText: '',
                             tertiaryText: utils.shortenAddressLong(data.address),
                             quaternaryText: data.txs.toString(),
-                            key: data.userName + Math.random(),
+                            itemKey: data.userName + Math.random(),
                             type: 'contacts',
                             avatar: {
                                 iconName: undefined,
@@ -190,7 +190,7 @@ export const Profile = () => {
                         secondaryText: '',
                         tertiaryText: data.accountIdentifier,
                         quaternaryText: '',
-                        key: data.accountIdentifier + Math.random(),
+                        itemKey: data.accountIdentifier + Math.random(),
                         type: 'accounts',
                         avatar: {
                             iconName: undefined,
@@ -206,7 +206,7 @@ export const Profile = () => {
             const data = await fetchLinkDetailsAsync(dashboardData)
             setTableData((prevData) =>
                 prevData.map((item) => {
-                    const _item = data.find((d) => d.link === item.key)
+                    const _item = data.find((d) => d.link === item.itemKey)
                     if (_item) {
                         item.quaternaryText = _item.status ?? 'pending'
                     }
@@ -383,9 +383,9 @@ export const Profile = () => {
                             {tableData
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((data) => (
-                                    <div key={(data.key ?? '') + Math.random()}>
+                                    <div key={(data.itemKey ?? '') + Math.random()}>
                                         <components.MobileTableComponent
-                                            key={(data.key ?? '') + Math.random()}
+                                            itemKey={(data.itemKey ?? '') + Math.random()}
                                             primaryText={data.primaryText}
                                             secondaryText={data.secondaryText}
                                             tertiaryText={data.tertiaryText}

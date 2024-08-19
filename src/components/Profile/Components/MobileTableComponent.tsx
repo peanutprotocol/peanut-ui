@@ -8,7 +8,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export const MobileTableComponent = ({
-    key,
+    itemKey,
     primaryText,
     secondaryText,
     tertiaryText,
@@ -19,12 +19,11 @@ export const MobileTableComponent = ({
     address,
 }: interfaces.IProfileTableData) => {
     const [modalVisible, setModalVisible] = useState(false)
-    const router = useRouter()
 
     return (
         <div
             className="flex w-full flex-row items-center justify-between gap-2 border border-n-1 bg-background px-2 py-4 text-h8 font-normal dark:bg-black"
-            key={key}
+            key={itemKey}
             onClick={() => {
                 if (type !== 'accounts') setModalVisible(true)
             }}
@@ -37,7 +36,7 @@ export const MobileTableComponent = ({
                 avatar.iconName && ''
             )}
 
-            <div className="flex w-full flex-col gap-2" key={key}>
+            <div className="flex w-full flex-col gap-2" key={itemKey}>
                 <div className="flex w-full flex-row items-center justify-between">
                     <div className="flex w-full max-w-48 flex-col items-start justify-center gap-1">
                         <label className="font-bold">

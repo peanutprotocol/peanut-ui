@@ -178,7 +178,7 @@ export const TableComponent = ({
                             </tr>
                         )
                     ) : selectedTab === 'contacts' ? (
-                        <tr className="h-16 text-h8 font-normal" key={data.key + Math.random()}>
+                        <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                             <td className="td-custom w-[12px] font-bold">
                                 <div className="order w-max border-black border-n-1 p-2">
                                     <img alt="" loading="eager" src={data.avatar.avatarUrl} className="h-8 w-8" />
@@ -209,7 +209,7 @@ export const TableComponent = ({
                         </tr>
                     ) : (
                         selectedTab === 'accounts' && (
-                            <tr className="h-16 text-h8 font-normal" key={data.key + Math.random()}>
+                            <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
                                 {/* <td className="td-custom text-end ">
