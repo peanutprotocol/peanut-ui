@@ -5,6 +5,7 @@ import Modal from '@/components/Global/Modal'
 import { useCallback, useState } from 'react'
 import * as consts from '@/constants'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export const MobileTableComponent = ({
     key,
@@ -19,12 +20,6 @@ export const MobileTableComponent = ({
 }: interfaces.IProfileTableData) => {
     const [modalVisible, setModalVisible] = useState(false)
     const router = useRouter()
-    const handleSendToAddress = useCallback(
-        (address: string) => {
-            router.push(`/send?recipientAddress=${encodeURIComponent(address)}`)
-        },
-        [router]
-    )
 
     return (
         <div
@@ -135,17 +130,11 @@ export const MobileTableComponent = ({
                     </>
                 ) : (
                     type === 'contacts' && (
-                        <>
-                            <div
-                                onClick={() => {
-                                    handleSendToAddress(address as string)
-                                }}
-                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                            >
-                                {' '}
+                        <Link href={`/send?recipientAddress=${encodeURIComponent(address as string)}`}>
+                            <div className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
                                 Send to this address
                             </div>
-                        </>
+                        </Link>
                     )
                 )}
             </Modal>
