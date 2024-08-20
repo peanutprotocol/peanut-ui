@@ -19,7 +19,6 @@ const steps = [
     { label: 'Step 1: Provide personal details' },
     { label: 'Step 2: Agree to TOS' },
     { label: 'Step 3: Complete KYC' },
-    // { label: 'Step 4: Link bank account' },
 ]
 
 interface IKYCComponentProps {
@@ -50,7 +49,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const [kycLinkOpened, setKycLinkOpened] = useState<boolean>(false)
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { user, fetchUser, isFetchingUser, updateUserName, updateBridgeCustomerId, addAccount } = useAuth()
+    const { fetchUser, updateBridgeCustomerId } = useAuth()
 
     const {
         setStep: setActiveStep,
@@ -63,6 +62,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const {
         watch: watchOfframp,
         formState: { errors },
+        setValue: setOfframpFormValue,
     } = useForm<consts.IOfframpForm>({
         mode: 'onChange',
         defaultValues: offrampForm,
@@ -71,7 +71,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const handleEmail = async (inputFormData: consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
         setActiveStep(0)
-        // setInitiatedProcess(true)
         setLoadingState('Getting profile')
 
         // TODO: add validation
@@ -177,12 +176,11 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
             const _user = await fetchUser()
 
-            setOfframpForm({
-                email: _user?.user?.email ?? '',
-                name: _user?.user?.full_name ?? '',
-                password: '',
-                recipient: inputFormData.recipient,
-            })
+            console.log('user:', _user)
+
+            setOfframpFormValue('recipient', inputFormData.recipient)
+            setOfframpFormValue('name', _user?.user?.full_name ?? '')
+            setOfframpFormValue('email', _user?.user?.email ?? '')
 
             if (_user?.user?.bridge_customer_id) {
                 if (
@@ -230,10 +228,14 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             // Handle TOS status
 
             let _customerObject
-            console.log(offrampForm)
+            const _offrampForm = watchOfframp()
 
-            if (!customerObject) {
-                _customerObject = await utils.getUserLinks(offrampForm)
+            console.log('offrampForm:', _offrampForm)
+            console.log('customerObject:', customerObject)
+
+            // @ts-ignore
+            if (!customerObject || customerObject.code === 'invalid_parameters') {
+                _customerObject = await utils.getUserLinks(_offrampForm)
                 setCustomerObject(_customerObject)
             } else {
                 _customerObject = customerObject
@@ -277,8 +279,9 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const handleKYCStatus = async () => {
         try {
             let _customerObject
+            const _offrampForm = watchOfframp()
             if (!customerObject) {
-                _customerObject = await utils.getUserLinks(offrampForm)
+                _customerObject = await utils.getUserLinks(_offrampForm)
                 setCustomerObject(_customerObject)
             } else {
                 _customerObject = customerObject
@@ -325,7 +328,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')
 
-            goToNext()
+            onCompleted?.()
         } catch (error) {
             console.error('Error during the submission process:', error)
 
@@ -428,137 +431,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                         )}
                     </div>
                 )
-
-            // case 3:
-            //     return (
-            //         <div className="flex w-full flex-col items-start justify-center gap-2">
-            //             <input
-            //                 {...registerAccount('accountNumber', {
-            //                     required: 'This field is required',
-            //                 })}
-            //                 className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
-            //                 placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
-            //             />
-            //             {accountErrors.accountNumber && (
-            //                 <span className="text-h9 font-normal text-red">{accountErrors.accountNumber.message}</span>
-            //             )}
-            //             {recipientType === 'iban' ? (
-            //                 <>
-            //                     <input
-            //                         {...registerAccount('BIC', {
-            //                             required: addressRequired ? 'This field is required' : false,
-            //                         })}
-            //                         className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
-            //                         placeholder="BIC"
-            //                     />
-            //                     {accountErrors.BIC && (
-            //                         <span className="text-h9 font-normal text-red">{accountErrors.BIC.message}</span>
-            //                     )}
-            //                 </>
-            //             ) : (
-            //                 <>
-            //                     <input
-            //                         {...registerAccount('routingNumber', {
-            //                             required: addressRequired ? 'This field is required' : false,
-            //                         })}
-            //                         className={`custom-input ${accountErrors.routingNumber ? 'border border-red' : ''}`}
-            //                         placeholder="Routing number"
-            //                     />
-            //                     {accountErrors.routingNumber && (
-            //                         <span className="text-h9 font-normal text-red">
-            //                             {accountErrors.routingNumber.message}
-            //                         </span>
-            //                     )}
-            //                 </>
-            //             )}
-            //             {addressRequired && (
-            //                 <div className="flex w-full flex-col items-start justify-center gap-2">
-            //                     <input
-            //                         {...registerAccount('street', {
-            //                             required: addressRequired ? 'This field is required' : false,
-            //                         })}
-            //                         className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
-            //                         placeholder="Your street and number"
-            //                     />
-            //                     {accountErrors.street && (
-            //                         <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
-            //                     )}
-
-            //                     <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-            //                         <div className="flex w-full flex-col items-start justify-center gap-2">
-            //                             <input
-            //                                 {...registerAccount('city', {
-            //                                     required: addressRequired ? 'This field is required' : false,
-            //                                 })}
-            //                                 className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
-            //                                 placeholder="Your city"
-            //                             />
-            //                             {accountErrors.city && (
-            //                                 <span className="text-h9 font-normal text-red">
-            //                                     {accountErrors.city.message}
-            //                                 </span>
-            //                             )}
-            //                         </div>
-            //                         <div className="flex w-full flex-col items-center justify-center gap-2">
-            //                             <input
-            //                                 {...registerAccount('postalCode', {
-            //                                     required: addressRequired ? 'This field is required' : false,
-            //                                 })}
-            //                                 className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
-            //                                 placeholder="Your postal code"
-            //                             />
-            //                             {accountErrors.postalCode && (
-            //                                 <span className="text-h9 font-normal text-red">
-            //                                     {accountErrors.postalCode.message}
-            //                                 </span>
-            //                             )}
-            //                         </div>
-            //                     </div>
-            //                     <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-            //                         <div className="flex w-full flex-col items-start justify-center gap-2">
-            //                             <input
-            //                                 {...registerAccount('state', {
-            //                                     required: addressRequired ? 'This field is required' : false,
-            //                                 })}
-            //                                 className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
-            //                                 placeholder="Your state "
-            //                             />
-            //                             {accountErrors.state && (
-            //                                 <span className="text-h9 font-normal text-red">
-            //                                     {accountErrors.state.message}
-            //                                 </span>
-            //                             )}
-            //                         </div>
-            //                         <div className="flex w-full flex-col items-center justify-center gap-2">
-            //                             <CountryDropdown
-            //                                 value={accountFormWatch('country')}
-            //                                 onChange={(value: any) => {
-            //                                     setAccountFormValue('country', value, { shouldValidate: true })
-            //                                     setAccountFormError('country', { message: undefined })
-            //                                 }}
-            //                                 error={accountErrors.country?.message}
-            //                             />
-            //                         </div>
-            //                     </div>
-            //                 </div>
-            //             )}
-            //             <button
-            //                 onClick={() => {
-            //                     handleSubmitLinkIban()
-            //                 }}
-            //                 className="btn btn-purple h-8 w-full"
-            //                 disabled={isLoading}
-            //             >
-            //                 {isLoading ? (
-            //                     <div className="flex w-full flex-row items-center justify-center gap-2">
-            //                         <Loading /> {loadingState}
-            //                     </div>
-            //                 ) : (
-            //                     'Confirm'
-            //                 )}
-            //             </button>{' '}
-            //         </div>
-            //     )
         }
     }
 
@@ -566,8 +438,8 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         <div>
             <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
                 <p className="text-h8 font-normal">
-                    This is your first time using a bank account on peanut. You'll have to pass a brief KYC check to
-                    proceed.
+                    Please login or register and finish the KYC process. After doing this, you can cashout straight to
+                    your bank account!
                 </p>
                 <Steps
                     variant={'circles'}

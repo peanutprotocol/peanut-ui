@@ -131,6 +131,7 @@ export async function fetchApi(url: string, method: string, body?: any): Promise
 }
 
 export async function getUserLinks(formData: consts.IOfframpForm) {
+    console.log('formData', formData)
     return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
         type: 'individual',
         full_name: formData.name,

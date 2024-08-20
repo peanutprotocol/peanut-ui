@@ -6,6 +6,7 @@ import { useContext, useState } from 'react'
 import * as context from '@/context'
 import Loading from '../Global/Loading'
 import Link from 'next/link'
+import * as assets from '@/assets'
 import { GlobalKYCComponent } from '../Global/KYCComponent'
 
 export const KYCComponent = () => {
@@ -33,7 +34,12 @@ export const KYCComponent = () => {
     return (
         <div className="card ">
             {!user && isFetchingUser ? (
-                ''
+                <div className="relative flex w-full items-center justify-center">
+                    <div className="animate-spin">
+                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                </div>
             ) : user && user?.user?.kycStatus === 'verified' ? (
                 <div className="flex flex-col items-center justify-center gap-4">
                     <p className="text-h4">Welcome back, {user?.user?.username ?? user?.user?.email}</p>
@@ -65,8 +71,8 @@ export const KYCComponent = () => {
                 <GlobalKYCComponent
                     intialStep={user ? 1 : 0}
                     offrampForm={{
-                        email: '',
-                        name: '',
+                        email: user?.user?.email ?? '',
+                        name: user?.user?.full_name ?? '',
                         password: '',
                         recipient: '',
                     }}
