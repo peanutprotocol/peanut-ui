@@ -17,6 +17,7 @@ import { useAuth } from '@/context/authContext'
 import ImageEdit from '../Global/ImageEdit'
 import TextEdit from '../Global/TextEdit'
 import IframeWrapper from '../Global/IframeWrapper'
+import Link from 'next/link'
 
 const tabs = [
     {
@@ -338,14 +339,17 @@ export const Profile = () => {
                                         updateUserName(text)
                                     }}
                                 />
-                                {user?.user?.kycStatus != 'verified' ? (
+                                {user?.user?.kycStatus === 'verified' ? (
                                     <span className="flex justify-center text-h8 font-normal">
                                         KYC <Icon name="check" />
                                     </span>
                                 ) : (
-                                    <span className="flex cursor-pointer justify-center text-h8 font-normal underline">
+                                    <Link
+                                        href={'/kyc'}
+                                        className="flex cursor-pointer justify-center text-h8 font-normal underline"
+                                    >
                                         Click here to KYC
-                                    </span>
+                                    </Link>
                                 )}
                             </div>
                         </div>
