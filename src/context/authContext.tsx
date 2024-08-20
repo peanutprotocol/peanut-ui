@@ -29,7 +29,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address } = useAccount()
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
-    const [isFetchingUser, setIsFetchingUser] = useState(false)
+    const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
         position: 'bottom-right',
         duration: 5000,
@@ -43,10 +43,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
             const { address: tokenAddress } = await tokenAddressResponse.json()
             if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
+                setIsFetchingUser(false)
                 return setUser(null)
             }
-
-            setIsFetchingUser(true)
 
             const response = await fetch('/api/peanut/user/get-user-from-cookie')
             if (response.ok) {
@@ -62,7 +61,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             console.error('Failed to fetch user', error)
             return null
         } finally {
-            setIsFetchingUser(false)
+            setTimeout(() => {
+                setIsFetchingUser(false)
+            }, 500)
         }
     }
 

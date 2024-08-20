@@ -15,7 +15,7 @@ import * as utils from '@/utils'
 import { useSteps } from 'chakra-ui-steps'
 import * as consts from '@/constants'
 import IframeWrapper from '@/components/Global/IframeWrapper'
-import { KYCComponent } from '@/components/Global/KYCComponent'
+import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
@@ -157,7 +157,7 @@ export const ConfirmClaimLinkIbanView = ({
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
             {activeStep < 4 ? (
-                <KYCComponent
+                <GlobalKYCComponent
                     intialStep={initialKYCStep}
                     offrampForm={offrampForm}
                     recipientType={recipientType}

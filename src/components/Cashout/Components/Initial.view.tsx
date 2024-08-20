@@ -13,7 +13,7 @@ import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
 import { set, useForm } from 'react-hook-form'
-import { KYCComponent } from '@/components/Global/KYCComponent'
+import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { isIBAN } from 'validator'
 
 export const InitialCashoutView = ({
@@ -239,7 +239,7 @@ export const InitialCashoutView = ({
     }, [newBankAccount, selectedBankAccount])
 
     return showKyc ? (
-        <KYCComponent
+        <GlobalKYCComponent
             intialStep={initialKYCStep}
             offrampForm={offrampForm}
             recipientType={recipientType}

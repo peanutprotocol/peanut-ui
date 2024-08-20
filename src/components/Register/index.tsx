@@ -42,7 +42,7 @@ export const RegisterComponent = () => {
                         <p>Or</p>
                         <Divider borderColor={'black'} />
                     </span>
-                    <button className="btn btn-xl" onClick={handleLogout}>
+                    <button className="btn btn-xl " onClick={handleLogout}>
                         {isLoading ? (
                             <div className="flex w-full flex-row items-center justify-center gap-2">
                                 <Loading /> {loadingState}

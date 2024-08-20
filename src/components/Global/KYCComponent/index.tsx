@@ -1,5 +1,5 @@
 'use client'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
 
 import * as utils from '@/utils'
@@ -11,33 +11,25 @@ import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import Loading from '../Loading'
 import CountryDropdown from '../CountrySelect'
+import { GlobalLoginComponent } from '../LoginComponent'
+import { GlobalRegisterComponent } from '../RegisterComponent'
+import { Divider } from '@chakra-ui/react'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
     { label: 'Step 2: Agree to TOS' },
     { label: 'Step 3: Complete KYC' },
-    { label: 'Step 4: Link bank account' },
+    // { label: 'Step 4: Link bank account' },
 ]
 
 interface IKYCComponentProps {
     intialStep: number
     offrampForm: consts.IOfframpForm
     setOfframpForm: (form: consts.IOfframpForm) => void
-    userType: 'NEW' | 'EXISTING' | undefined
-    userId: string | undefined
-    recipientType: interfaces.RecipientType
     onCompleted?: () => void
 }
 
-export const KYCComponent = ({
-    intialStep,
-    offrampForm,
-    setOfframpForm,
-    userType,
-    userId,
-    recipientType,
-    onCompleted,
-}: IKYCComponentProps) => {
+export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, onCompleted }: IKYCComponentProps) => {
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -54,7 +46,6 @@ export const KYCComponent = ({
         },
     })
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
-    const [addressRequired, setAddressRequired] = useState<boolean>(false)
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
     const [kycLinkOpened, setKycLinkOpened] = useState<boolean>(false)
 
@@ -70,33 +61,11 @@ export const KYCComponent = ({
     })
 
     const {
-        register: registerOfframp,
         watch: watchOfframp,
         formState: { errors },
     } = useForm<consts.IOfframpForm>({
         mode: 'onChange',
         defaultValues: offrampForm,
-    })
-
-    const {
-        register: registerAccount,
-        formState: { errors: accountErrors },
-        watch: accountFormWatch,
-        setValue: setAccountFormValue,
-        setError: setAccountFormError,
-    } = useForm({
-        mode: 'onChange',
-        defaultValues: {
-            street: '',
-            city: '',
-            state: '',
-            postalCode: '',
-            country: '',
-            accountNumber: offrampForm.recipient,
-            routingNumber: '',
-            BIC: '',
-            type: recipientType,
-        },
     })
 
     const handleEmail = async (inputFormData: consts.IOfframpForm) => {
@@ -110,103 +79,110 @@ export const KYCComponent = ({
         try {
             console.log('inputFormData:', inputFormData)
 
-            if (userType === 'NEW') {
-                const userRegisterResponse = await fetch('/api/peanut/user/register-user', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: inputFormData.email,
-                        password: inputFormData.password,
-                        userId: userId,
-                    }),
-                })
+            // if (userType === 'NEW') {
+            //     const userRegisterResponse = await fetch('/api/peanut/user/register-user', {
+            //         method: 'POST',
+            //         headers: {
+            //             'Content-Type': 'application/json',
+            //         },
+            //         body: JSON.stringify({
+            //             email: inputFormData.email,
+            //             password: inputFormData.password,
+            //             userId: userId,
+            //         }),
+            //     })
 
-                const userRegister = await userRegisterResponse.json()
+            //     const userRegister = await userRegisterResponse.json()
 
-                // If user already exists, login
-                // TODO: remove duplicate code
-                if (userRegisterResponse.status === 409) {
-                    console.log(userRegister.userId)
-                    const userLoginResponse = await fetch('/api/peanut/user/login-user', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            email: inputFormData.email,
-                            password: inputFormData.password,
-                        }),
-                    })
-                    const userLogin = await userLoginResponse.json()
-                    if (userLoginResponse.status !== 200) {
-                        console.log(userLogin)
-                        if (userLogin === 'Invalid email format') {
-                            errors.email = {
-                                message: 'Invalid email format',
-                                type: 'validate',
-                            }
-                        }
-                        if (userLogin === 'Invalid email, userId') {
-                            errors.email = {
-                                message: 'Incorrect email',
-                                type: 'validate',
-                            }
-                        } else if (userLogin === 'Invalid password') {
-                            errors.password = {
-                                message: 'Invalid password',
-                                type: 'validate',
-                            }
-                        }
+            //     // If user already exists, login
+            //     // TODO: remove duplicate code
+            //     if (userRegisterResponse.status === 409) {
+            //         console.log(userRegister.userId)
+            //         const userLoginResponse = await fetch('/api/peanut/user/login-user', {
+            //             method: 'POST',
+            //             headers: {
+            //                 'Content-Type': 'application/json',
+            //             },
+            //             body: JSON.stringify({
+            //                 email: inputFormData.email,
+            //                 password: inputFormData.password,
+            //             }),
+            //         })
+            //         const userLogin = await userLoginResponse.json()
+            //         if (userLoginResponse.status !== 200) {
+            //             console.log(userLogin)
+            //             if (userLogin === 'Invalid email format') {
+            //                 errors.email = {
+            //                     message: 'Invalid email format',
+            //                     type: 'validate',
+            //                 }
+            //             }
+            //             if (userLogin === 'Invalid email, userId') {
+            //                 errors.email = {
+            //                     message: 'Incorrect email',
+            //                     type: 'validate',
+            //                 }
+            //             } else if (userLogin === 'Invalid password') {
+            //                 errors.password = {
+            //                     message: 'Invalid password',
+            //                     type: 'validate',
+            //                 }
+            //             }
 
-                        return
-                    }
-                }
-            } else if (userType === 'EXISTING') {
-                const userLoginResponse = await fetch('/api/peanut/user/login-user', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: inputFormData.email,
-                        password: inputFormData.password,
-                    }),
-                })
-                const userLogin = await userLoginResponse.json()
+            //             return
+            //         }
+            //     }
+            // } else if (userType === 'EXISTING') {
+            //     const userLoginResponse = await fetch('/api/peanut/user/login-user', {
+            //         method: 'POST',
+            //         headers: {
+            //             'Content-Type': 'application/json',
+            //         },
+            //         body: JSON.stringify({
+            //             email: inputFormData.email,
+            //             password: inputFormData.password,
+            //         }),
+            //     })
+            //     const userLogin = await userLoginResponse.json()
 
-                if (userLoginResponse.status !== 200) {
-                    if (userLogin === 'Invalid email format') {
-                        errors.email = {
-                            message: 'Invalid email format',
-                            type: 'validate',
-                        }
-                    } else if (userLogin === 'Invalid email, userId') {
-                        errors.email = {
-                            message: 'Incorrect email',
-                            type: 'validate',
-                        }
-                    } else if (userLogin === 'Invalid password') {
-                        errors.password = {
-                            message: 'Invalid password',
-                            type: 'validate',
-                        }
-                    } else if (userLogin === 'User not found') {
-                        errors.email = {
-                            message:
-                                'User not found. Make sure you login with the email linked to the bank account you entered',
-                            type: 'validate',
-                        }
-                    }
+            //     if (userLoginResponse.status !== 200) {
+            //         if (userLogin === 'Invalid email format') {
+            //             errors.email = {
+            //                 message: 'Invalid email format',
+            //                 type: 'validate',
+            //             }
+            //         } else if (userLogin === 'Invalid email, userId') {
+            //             errors.email = {
+            //                 message: 'Incorrect email',
+            //                 type: 'validate',
+            //             }
+            //         } else if (userLogin === 'Invalid password') {
+            //             errors.password = {
+            //                 message: 'Invalid password',
+            //                 type: 'validate',
+            //             }
+            //         } else if (userLogin === 'User not found') {
+            //             errors.email = {
+            //                 message:
+            //                     'User not found. Make sure you login with the email linked to the bank account you entered',
+            //                 type: 'validate',
+            //             }
+            //         }
 
-                    return
-                }
+            //         return
+            //     }
 
-                setLoadingState('Getting KYC status')
-            }
+            //     setLoadingState('Getting KYC status')
+            // }
 
             const _user = await fetchUser()
+
+            setOfframpForm({
+                email: _user?.user?.email ?? '',
+                name: _user?.user?.full_name ?? '',
+                password: '',
+                recipient: inputFormData.recipient,
+            })
 
             if (_user?.user?.bridge_customer_id) {
                 if (
@@ -238,7 +214,7 @@ export const KYCComponent = ({
                     setActiveStep(2)
                     return
                 }
-                recipientType === 'us' && setAddressRequired(true)
+                // recipientType === 'us' && setAddressRequired(true)
                 setActiveStep(3)
             }
         } catch (error: any) {
@@ -346,7 +322,7 @@ export const KYCComponent = ({
             const updatedUser = await updateBridgeCustomerId(customer.customer_id)
             console.log('updatedUser:', updatedUser)
 
-            recipientType === 'us' && setAddressRequired(true)
+            // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')
 
             goToNext()
@@ -361,140 +337,54 @@ export const KYCComponent = ({
         }
     }
 
-    const handleSubmitLinkIban = async () => {
-        const formData = accountFormWatch()
-        const isFormValid = utils.validateAccountFormData(formData, setAccountFormError)
-
-        if (!isFormValid) {
-            console.log('Form is invalid')
-            return
-        }
-
-        try {
-            if (recipientType === 'iban') setLoadingState('Linking IBAN')
-            else if (recipientType === 'us') setLoadingState('Linking account')
-
-            const customerId = customerObject?.customer_id ?? user?.user?.bridge_customer_id
-            const accountType = formData.type
-            const accountDetails =
-                accountType === 'iban'
-                    ? {
-                          accountNumber: formData.accountNumber,
-                          bic: formData.BIC,
-                          country: utils.getThreeCharCountryCodeFromIban(formData.accountNumber),
-                      }
-                    : { accountNumber: formData.accountNumber, routingNumber: formData.routingNumber }
-            const address = {
-                street: formData.street,
-                city: formData.city,
-                country: formData.country ?? 'BEL',
-                state: formData.state,
-                postalCode: formData.postalCode,
-            }
-            let accountOwnerName = offrampForm.name ?? user?.user?.full_name
-
-            if (!customerId) {
-                throw new Error('Customer ID is missing')
-            }
-
-            if (!accountOwnerName) {
-                const bridgeCustomer = await utils.getCustomer(customerId)
-                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
-            }
-
-            const data = await utils.createExternalAccount(
-                customerId,
-                accountType as 'iban' | 'us',
-                accountDetails,
-                address,
-                accountOwnerName
-            )
-
-            await utils.createAccount(
-                user?.user?.userId ?? '',
-                customerId,
-                data.id,
-                accountType,
-                formData.accountNumber.replaceAll(' ', ''),
-                address
-            )
-            await fetchUser()
-
-            // const liquidationAddressDetails = await utils.createLiquidationAddress(
-            //     customerId,
-            //     offrampChainAndToken.chain,
-            //     offrampChainAndToken.token,
-            //     data.id,
-            //     recipientType === 'iban' ? 'sepa' : 'ach',
-            //     recipientType === 'iban' ? 'eur' : 'usd'
-            // )
-
-            // setLiquidationAddress(liquidationAddressDetails)
-            setActiveStep(3)
-            setAddressRequired(false)
-            setLoadingState('Idle')
-            onCompleted && onCompleted()
-        } catch (error) {
-            console.error('Error during the submission process:', error)
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-
-            setLoadingState('Idle')
-        }
-    }
+    const [userState, setUserState] = useState<'login' | 'register'>('login')
 
     const renderComponent = () => {
         switch (activeStep) {
             case 0:
-                return (
-                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                        <input
-                            {...registerOfframp('name', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
-                            placeholder="Full name"
-                            disabled={activeStep > 0}
-                        />
-                        {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
-                        {/* TODO: make this not required if is already defined in user object */}
-
-                        <input
-                            {...registerOfframp('email', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
-                            placeholder="Email"
-                            type="email"
-                            disabled={activeStep > 0}
-                        />
-                        {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
-
-                        <input
-                            {...registerOfframp('password', { required: 'This field is required' })}
-                            className={`custom-input custom-input-xs ${errors.password ? 'border border-red' : ''}`}
-                            placeholder="Password"
-                            type="password"
-                            disabled={activeStep > 0}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
+                return userState === 'login' ? (
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <GlobalLoginComponent />{' '}
+                        <span className="flex w-full flex-row items-center justify-center gap-2">
+                            <Divider borderColor={'black'} />
+                            <p>or</p>
+                            <Divider borderColor={'black'} />
+                        </span>
+                        <button
+                            className="btn btn-xl h-8"
+                            onClick={() => {
+                                setUserState('register')
+                            }}
+                        >
+                            Register
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <GlobalRegisterComponent
+                            onSubmit={({ status, message }) => {
+                                if (status === 'success') {
                                     handleEmail(watchOfframp())
+                                } else {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: message,
+                                    })
                                 }
                             }}
                         />
-                        {errors.password && (
-                            <span className="text-h9 font-normal text-red">{errors.password.message}</span>
-                        )}
-
+                        <span className="flex w-full flex-row items-center justify-center gap-2">
+                            <Divider borderColor={'black'} />
+                            <p>or</p>
+                            <Divider borderColor={'black'} />
+                        </span>
                         <button
+                            className="btn btn-xl h-8"
                             onClick={() => {
-                                handleEmail(watchOfframp())
+                                setUserState('login')
                             }}
-                            className="btn btn-purple h-8 w-full"
-                            disabled={isLoading}
                         >
-                            {isLoading ? (
-                                <div className="flex w-full flex-row items-center justify-center gap-2">
-                                    <Loading /> {loadingState}
-                                </div>
-                            ) : (
-                                'Next'
-                            )}
+                            Login
                         </button>
                     </div>
                 )
@@ -539,136 +429,136 @@ export const KYCComponent = ({
                     </div>
                 )
 
-            case 3:
-                return (
-                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                        <input
-                            {...registerAccount('accountNumber', {
-                                required: 'This field is required',
-                            })}
-                            className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
-                            placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
-                        />
-                        {accountErrors.accountNumber && (
-                            <span className="text-h9 font-normal text-red">{accountErrors.accountNumber.message}</span>
-                        )}
-                        {recipientType === 'iban' ? (
-                            <>
-                                <input
-                                    {...registerAccount('BIC', {
-                                        required: addressRequired ? 'This field is required' : false,
-                                    })}
-                                    className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
-                                    placeholder="BIC"
-                                />
-                                {accountErrors.BIC && (
-                                    <span className="text-h9 font-normal text-red">{accountErrors.BIC.message}</span>
-                                )}
-                            </>
-                        ) : (
-                            <>
-                                <input
-                                    {...registerAccount('routingNumber', {
-                                        required: addressRequired ? 'This field is required' : false,
-                                    })}
-                                    className={`custom-input ${accountErrors.routingNumber ? 'border border-red' : ''}`}
-                                    placeholder="Routing number"
-                                />
-                                {accountErrors.routingNumber && (
-                                    <span className="text-h9 font-normal text-red">
-                                        {accountErrors.routingNumber.message}
-                                    </span>
-                                )}
-                            </>
-                        )}
-                        {addressRequired && (
-                            <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <input
-                                    {...registerAccount('street', {
-                                        required: addressRequired ? 'This field is required' : false,
-                                    })}
-                                    className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
-                                    placeholder="Your street and number"
-                                />
-                                {accountErrors.street && (
-                                    <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
-                                )}
+            // case 3:
+            //     return (
+            //         <div className="flex w-full flex-col items-start justify-center gap-2">
+            //             <input
+            //                 {...registerAccount('accountNumber', {
+            //                     required: 'This field is required',
+            //                 })}
+            //                 className={`custom-input ${accountErrors.accountNumber ? 'border border-red' : ''}`}
+            //                 placeholder={recipientType === 'iban' ? 'IBAN' : 'Account number'}
+            //             />
+            //             {accountErrors.accountNumber && (
+            //                 <span className="text-h9 font-normal text-red">{accountErrors.accountNumber.message}</span>
+            //             )}
+            //             {recipientType === 'iban' ? (
+            //                 <>
+            //                     <input
+            //                         {...registerAccount('BIC', {
+            //                             required: addressRequired ? 'This field is required' : false,
+            //                         })}
+            //                         className={`custom-input ${accountErrors.BIC ? 'border border-red' : ''}`}
+            //                         placeholder="BIC"
+            //                     />
+            //                     {accountErrors.BIC && (
+            //                         <span className="text-h9 font-normal text-red">{accountErrors.BIC.message}</span>
+            //                     )}
+            //                 </>
+            //             ) : (
+            //                 <>
+            //                     <input
+            //                         {...registerAccount('routingNumber', {
+            //                             required: addressRequired ? 'This field is required' : false,
+            //                         })}
+            //                         className={`custom-input ${accountErrors.routingNumber ? 'border border-red' : ''}`}
+            //                         placeholder="Routing number"
+            //                     />
+            //                     {accountErrors.routingNumber && (
+            //                         <span className="text-h9 font-normal text-red">
+            //                             {accountErrors.routingNumber.message}
+            //                         </span>
+            //                     )}
+            //                 </>
+            //             )}
+            //             {addressRequired && (
+            //                 <div className="flex w-full flex-col items-start justify-center gap-2">
+            //                     <input
+            //                         {...registerAccount('street', {
+            //                             required: addressRequired ? 'This field is required' : false,
+            //                         })}
+            //                         className={`custom-input ${accountErrors.street ? 'border border-red' : ''}`}
+            //                         placeholder="Your street and number"
+            //                     />
+            //                     {accountErrors.street && (
+            //                         <span className="text-h9 font-normal text-red">{accountErrors.street.message}</span>
+            //                     )}
 
-                                <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <input
-                                            {...registerAccount('city', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
-                                            placeholder="Your city"
-                                        />
-                                        {accountErrors.city && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.city.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                                        <input
-                                            {...registerAccount('postalCode', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
-                                            placeholder="Your postal code"
-                                        />
-                                        {accountErrors.postalCode && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.postalCode.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <input
-                                            {...registerAccount('state', {
-                                                required: addressRequired ? 'This field is required' : false,
-                                            })}
-                                            className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
-                                            placeholder="Your state "
-                                        />
-                                        {accountErrors.state && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountErrors.state.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                                        <CountryDropdown
-                                            value={accountFormWatch('country')}
-                                            onChange={(value: any) => {
-                                                setAccountFormValue('country', value, { shouldValidate: true })
-                                                setAccountFormError('country', { message: undefined })
-                                            }}
-                                            error={accountErrors.country?.message}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-                        <button
-                            onClick={() => {
-                                handleSubmitLinkIban()
-                            }}
-                            className="btn btn-purple h-8 w-full"
-                            disabled={isLoading}
-                        >
-                            {isLoading ? (
-                                <div className="flex w-full flex-row items-center justify-center gap-2">
-                                    <Loading /> {loadingState}
-                                </div>
-                            ) : (
-                                'Confirm'
-                            )}
-                        </button>{' '}
-                    </div>
-                )
+            //                     <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
+            //                         <div className="flex w-full flex-col items-start justify-center gap-2">
+            //                             <input
+            //                                 {...registerAccount('city', {
+            //                                     required: addressRequired ? 'This field is required' : false,
+            //                                 })}
+            //                                 className={`custom-input ${accountErrors.city ? 'border border-red' : ''}`}
+            //                                 placeholder="Your city"
+            //                             />
+            //                             {accountErrors.city && (
+            //                                 <span className="text-h9 font-normal text-red">
+            //                                     {accountErrors.city.message}
+            //                                 </span>
+            //                             )}
+            //                         </div>
+            //                         <div className="flex w-full flex-col items-center justify-center gap-2">
+            //                             <input
+            //                                 {...registerAccount('postalCode', {
+            //                                     required: addressRequired ? 'This field is required' : false,
+            //                                 })}
+            //                                 className={`custom-input ${accountErrors.postalCode ? 'border border-red' : ''}`}
+            //                                 placeholder="Your postal code"
+            //                             />
+            //                             {accountErrors.postalCode && (
+            //                                 <span className="text-h9 font-normal text-red">
+            //                                     {accountErrors.postalCode.message}
+            //                                 </span>
+            //                             )}
+            //                         </div>
+            //                     </div>
+            //                     <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
+            //                         <div className="flex w-full flex-col items-start justify-center gap-2">
+            //                             <input
+            //                                 {...registerAccount('state', {
+            //                                     required: addressRequired ? 'This field is required' : false,
+            //                                 })}
+            //                                 className={`custom-input ${accountErrors.state ? 'border border-red' : ''}`}
+            //                                 placeholder="Your state "
+            //                             />
+            //                             {accountErrors.state && (
+            //                                 <span className="text-h9 font-normal text-red">
+            //                                     {accountErrors.state.message}
+            //                                 </span>
+            //                             )}
+            //                         </div>
+            //                         <div className="flex w-full flex-col items-center justify-center gap-2">
+            //                             <CountryDropdown
+            //                                 value={accountFormWatch('country')}
+            //                                 onChange={(value: any) => {
+            //                                     setAccountFormValue('country', value, { shouldValidate: true })
+            //                                     setAccountFormError('country', { message: undefined })
+            //                                 }}
+            //                                 error={accountErrors.country?.message}
+            //                             />
+            //                         </div>
+            //                     </div>
+            //                 </div>
+            //             )}
+            //             <button
+            //                 onClick={() => {
+            //                     handleSubmitLinkIban()
+            //                 }}
+            //                 className="btn btn-purple h-8 w-full"
+            //                 disabled={isLoading}
+            //             >
+            //                 {isLoading ? (
+            //                     <div className="flex w-full flex-row items-center justify-center gap-2">
+            //                         <Loading /> {loadingState}
+            //                     </div>
+            //                 ) : (
+            //                     'Confirm'
+            //                 )}
+            //             </button>{' '}
+            //         </div>
+            //     )
         }
     }
 

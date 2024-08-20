@@ -8,7 +8,7 @@ import { useAuth } from '@/context/authContext'
 interface ILoginComponentProps {
     email?: string
     password?: string
-    onSubmit?: (status: 'success' | 'error' | 'login', message: string) => void
+    onSubmit?: ({ status, message }: { status: 'success' | 'error' | 'login'; message: string }) => void
     redirectUrl?: string
 }
 
@@ -79,13 +79,12 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                 return
             }
             await fetchUser()
-            onSubmit?.('success', 'User registered successfully')
+            onSubmit?.({ status: 'success', message: 'User registered successfully' })
             if (redirectUrl) {
                 window.location.href = redirectUrl
             }
         } catch (error) {
             console.error(error)
-            onSubmit?.('error', 'An error occurred')
             setErrorState({ showError: true, errorMessage: 'Please make sure you are using the right credentials' })
         } finally {
             setLoadingState('Idle')

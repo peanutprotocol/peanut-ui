@@ -1,16 +1,17 @@
-import { useContext } from 'react'
+import { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
 
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
+import Link from 'next/link'
 
 interface IRegisterComponentProps {
     userId?: string
     name?: string
     email?: string
     password?: string
-    onSubmit?: (status: 'success' | 'error' | 'login', message: string) => void
+    onSubmit?: ({ status, message }: { status: 'success' | 'error' | 'login'; message: string }) => void
     redirectUrl?: string
 }
 
@@ -34,6 +35,7 @@ export const GlobalRegisterComponent = ({
         register,
         watch,
         formState: { errors },
+        handleSubmit,
     } = useForm<IRegisterForm>({
         mode: 'onBlur',
         defaultValues: {
@@ -42,7 +44,10 @@ export const GlobalRegisterComponent = ({
             password: password,
         },
     })
-
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
     const handleOnSubmit = async (data: IRegisterForm) => {
         try {
             setLoadingState('Registering')
@@ -54,7 +59,7 @@ export const GlobalRegisterComponent = ({
                 body: JSON.stringify({
                     email: data.email,
                     password: data.password,
-                    userId: userId,
+                    fullName: data.name,
                 }),
             })
 
@@ -62,54 +67,33 @@ export const GlobalRegisterComponent = ({
 
             // If user already exists, login
             if (registerResponse.status === 409) {
-                console.log(register.userId)
-                const loginResponse = await fetch('/api/peanut/user/login-user', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        email: data.email,
-                        password: data.password,
-                    }),
-                })
-                const login = await loginResponse.json()
-                if (loginResponse.status !== 200) {
-                    console.log(login)
-                    if (login === 'Invalid email format') {
-                        errors.email = {
-                            message: 'Invalid email format',
-                            type: 'validate',
-                        }
-                    }
-                    if (login === 'Invalid email, userId') {
-                        errors.email = {
-                            message: 'Incorrect email',
-                            type: 'validate',
-                        }
-                    } else if (login === 'Invalid password') {
-                        errors.password = {
-                            message: 'Invalid password',
-                            type: 'validate',
-                        }
-                    }
-
-                    return
-                }
+                throw new Error('User already exists')
             }
 
             await fetchUser()
-            onSubmit?.('success', 'User registered successfully')
+            onSubmit?.({ status: 'success', message: 'User registered successfully' })
             redirectUrl ?? window.location.href == redirectUrl
         } catch (error) {
             console.error(error)
+
+            if (error?.toString().includes('User already exists')) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'User already exists',
+                })
+            } else {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Error registering user',
+                })
+            }
         } finally {
             setLoadingState('Idle')
         }
     }
 
     return (
-        <form className="flex w-full flex-col items-start justify-center gap-2">
+        <form className="flex w-full flex-col items-start justify-center gap-2" onSubmit={handleSubmit(handleOnSubmit)}>
             <input
                 {...register('name', { required: 'This field is required' })}
                 className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
@@ -151,6 +135,22 @@ export const GlobalRegisterComponent = ({
                     'Register'
                 )}
             </button>
+            {errorState.showError && errorState.errorMessage === 'User already exists' ? (
+                <div className="w-full text-center">
+                    <span className=" text-h8 font-normal ">
+                        User already exists, click{' '}
+                        <Link href={'/login'} className="underline">
+                            {' '}
+                            here{' '}
+                        </Link>{' '}
+                        to login
+                    </span>
+                </div>
+            ) : (
+                <div className="w-full text-center">
+                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                </div>
+            )}
         </form>
     )
 }

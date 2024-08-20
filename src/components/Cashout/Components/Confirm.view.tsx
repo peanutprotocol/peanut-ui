@@ -28,7 +28,7 @@ export const ConfirmCashoutView = ({ onNext, onPrev, recipient, usdValue }: _con
         } catch (error) {
             setErrorState({
                 showError: true,
-                errorMessage: error.message,
+                errorMessage: 'Please enter a valid amount',
             })
             return
         } finally {

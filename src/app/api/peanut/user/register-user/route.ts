@@ -3,10 +3,10 @@ import * as consts from '@/constants'
 import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
-    const { email, password, userId } = await request.json()
+    const { email, password, fullName } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
 
-    if (!email || !password || !userId || !apiKey) {
+    if (!email || !password || !apiKey) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
@@ -17,7 +17,7 @@ export async function POST(request: NextRequest) {
                 'Content-Type': 'application/json',
                 'api-key': apiKey,
             },
-            body: JSON.stringify({ email, password, userId }),
+            body: JSON.stringify({ email, password, fullName }),
         })
         const data = await response.json()
 
