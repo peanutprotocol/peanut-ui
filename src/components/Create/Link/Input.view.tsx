@@ -311,7 +311,8 @@ export const CreateLinkInputView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
-                {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+                {(!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
+                    selectedChainID === '1') && (
                     <span className=" text-h8 font-normal ">
                         <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
                     </span>
