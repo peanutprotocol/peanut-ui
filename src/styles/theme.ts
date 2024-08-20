@@ -30,6 +30,9 @@ export const theme = extendTheme({
             800: '#0277bd',
             900: '#01579b',
         },
+        pink: {
+            500: '#FF9CEA',
+        },
     },
 
     components: {

@@ -2,6 +2,8 @@ import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import * as consts from '@/constants'
 
+export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
+
 export async function GET(request: NextRequest) {
     try {
         const { searchParams } = new URL(request.url)

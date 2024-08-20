@@ -9,6 +9,7 @@ import * as utils from '@/utils'
 import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
+import { useBalance } from '@/hooks/useBalance'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -60,6 +61,7 @@ export const Create = () => {
     const { address } = useAccount({})
 
     const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
+    useBalance() // Fetch balances here, decreases load time on input screen for tokenselector
 
     const handleOnNext = () => {
         if (step.idx === _consts.CREATE_SCREEN_FLOW.length - 1) return

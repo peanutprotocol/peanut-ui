@@ -280,8 +280,9 @@ export interface IProfileTableData {
     secondaryText: string
     tertiaryText: string
     quaternaryText: string
-    key: string
+    itemKey: string
     type: 'history' | 'contacts' | 'accounts'
+    address?: string
     avatar: {
         iconName?: string
         avatarUrl?: string
@@ -331,6 +332,7 @@ interface Account {
     points: number
     referrer: string | null
     referred_users_points: number
+    totalReferralPoints: number
 }
 
 export interface IUserProfile {
@@ -345,6 +347,7 @@ export interface IUserProfile {
     user: User
     accounts: Account[]
     contacts: Contact[]
+    totalPoints: number
 }
 
 export interface Contact {
@@ -360,4 +363,6 @@ export interface Contact {
     n_interactions: number
     usd_volume_transacted: string
     last_interacted_with: string | null
+    username: string | null
+    profile_picture: string | null
 }

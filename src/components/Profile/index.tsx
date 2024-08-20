@@ -2,7 +2,7 @@
 import Icon from '../Global/Icon'
 
 import { createAvatar } from '@dicebear/core'
-import { avataaarsNeutral } from '@dicebear/collection'
+import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
 import { useEffect, useState } from 'react'
@@ -34,9 +34,9 @@ const tabs = [
 ]
 
 export const Profile = () => {
-    const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts'>('contacts')
+    const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts' | undefined>(undefined)
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const avatar = createAvatar(avataaarsNeutral, {
+    const avatar = createAvatar(identicon, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
     const [errorState, setErrorState] = useState<{
@@ -50,8 +50,7 @@ export const Profile = () => {
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
-    const itemsPerPage = 5
-
+    const [itemsPerPage, setItemsPerPage] = useState(5)
     const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
     const [dashboardData, setDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [contactsData, setContactsData] = useState<
@@ -72,6 +71,31 @@ export const Profile = () => {
     const [modalVisible, setModalVisible] = useState(false)
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
 
+    const [initialUserName, setInitialUserName] = useState(
+        user?.user?.username ??
+            user?.user?.email ??
+            (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+    )
+
+    // Calculate the number of items that can be displayed on the page
+    // Calculate the number of items that can be displayed on the page
+    const calculateItemsPerPage = () => {
+        const itemHeight = 100
+        const availableHeight = window.innerHeight - 300
+        const calculatedItems = Math.floor(availableHeight / itemHeight)
+        // Only update if the change is significant
+        if (Math.abs(calculatedItems - itemsPerPage) > 1) {
+            setItemsPerPage(Math.max(calculatedItems, 1))
+        }
+    }
+    useEffect(() => {
+        calculateItemsPerPage()
+        window.addEventListener('resize', calculateItemsPerPage)
+        return () => {
+            window.removeEventListener('resize', calculateItemsPerPage)
+        }
+    }, [])
+
     useEffect(() => {
         if (!user) return
 
@@ -83,10 +107,10 @@ export const Profile = () => {
         const contactsData =
             user?.contacts &&
             user.contacts.map((contact) => ({
-                userName: contact.nickname ?? contact.ens_name ?? '-',
+                userName: contact.nickname ?? contact.username ?? contact.ens_name ?? '-',
                 address: contact.account_identifier,
-                txs: 1,
-                avatar: undefined,
+                txs: contact.n_interactions,
+                avatar: contact.profile_picture ?? '',
             }))
         setContactsData(contactsData)
         const accountsData =
@@ -116,7 +140,7 @@ export const Profile = () => {
                         secondaryText: utils.formatDate(new Date(data.date)) ?? '',
                         tertiaryText: `${data.amount} ${data.tokenSymbol} - [${data.chain}]`,
                         quaternaryText: data.status ?? '',
-                        key: (data.link ?? data.txHash ?? '') + Math.random(),
+                        itemKey: (data.link ?? data.txHash ?? '') + Math.random(),
                         type: 'history',
                         avatar: {
                             iconName: undefined,
@@ -129,19 +153,33 @@ export const Profile = () => {
             case 'contacts':
                 setTotalPages(Math.ceil(contactsData.length / itemsPerPage))
                 setCurrentPage(1)
+                console.log(contactsData)
                 setTableData(
-                    contactsData.map((data) => ({
-                        primaryText: data.userName,
-                        secondaryText: '',
-                        tertiaryText: utils.shortenAddressLong(data?.address ?? ''),
-                        quaternaryText: data.txs.toString(),
-                        key: data.userName + Math.random(),
-                        type: 'contacts',
-                        avatar: {
-                            iconName: undefined,
-                            avatarUrl: 'https://peanut.to/logo-favicon.png',
-                        },
-                    }))
+                    contactsData.map((data) => {
+                        const avatarUrl = data.avatar
+                            ? data.avatar.length > 0
+                                ? data.avatar
+                                : createAvatar(identicon, {
+                                      seed: data.address,
+                                  }).toDataUri()
+                            : createAvatar(identicon, {
+                                  seed: data.address,
+                              }).toDataUri()
+
+                        return {
+                            primaryText: data.userName,
+                            address: data.address,
+                            secondaryText: '',
+                            tertiaryText: utils.shortenAddressLong(data.address),
+                            quaternaryText: data.txs.toString(),
+                            itemKey: data.userName + Math.random(),
+                            type: 'contacts',
+                            avatar: {
+                                iconName: undefined,
+                                avatarUrl: avatarUrl,
+                            },
+                        }
+                    })
                 )
                 break
             case 'accounts':
@@ -153,7 +191,7 @@ export const Profile = () => {
                         secondaryText: '',
                         tertiaryText: data.accountIdentifier,
                         quaternaryText: '',
-                        key: data.accountIdentifier + Math.random(),
+                        itemKey: data.accountIdentifier + Math.random(),
                         type: 'accounts',
                         avatar: {
                             iconName: undefined,
@@ -169,7 +207,7 @@ export const Profile = () => {
             const data = await fetchLinkDetailsAsync(dashboardData)
             setTableData((prevData) =>
                 prevData.map((item) => {
-                    const _item = data.find((d) => d.link === item.key)
+                    const _item = data.find((d) => d.link === item.itemKey)
                     if (_item) {
                         item.quaternaryText = _item.status ?? 'pending'
                     }
@@ -258,6 +296,15 @@ export const Profile = () => {
             setIsLoading(false)
         }
     }
+
+    useEffect(() => {
+        setInitialUserName(
+            user?.user?.username ??
+                user?.user?.email ??
+                (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+        )
+    }, [user])
+
     if (!user) {
         return (
             <components.ProfileSkeleton
@@ -283,18 +330,11 @@ export const Profile = () => {
                                 }}
                             />
 
-                            {/* */}
-
                             <div className="flex flex-col items-start justify-center gap-1">
                                 <TextEdit
-                                    initialText={
-                                        user?.user?.username ??
-                                        user?.user?.email ??
-                                        (user.accounts
-                                            ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier)
-                                            : '')
-                                    }
+                                    initialText={initialUserName}
                                     onTextChange={(text) => {
+                                        setInitialUserName(text)
                                         updateUserName(text)
                                     }}
                                 />
@@ -310,8 +350,8 @@ export const Profile = () => {
                             </div>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
-                            <span className="text-h5">{user?.points} points</span>
-                            <span className="flex items-center justify-center gap-1">
+                            <span className="text-h5">{user?.totalPoints} points</span>
+                            {/* <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
                                 Boost 1.4X
                                 <Icon
@@ -322,18 +362,18 @@ export const Profile = () => {
                                         setModalType('Boost')
                                     }}
                                 />
-                            </span>
+                            </span> */}
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
-                                {/* <Icon
+                                <Icon
                                     name={'info'}
                                     className={`cursor-pointer transition-transform dark:fill-white`}
                                     onClick={() => {
                                         setModalVisible(true)
                                         setModalType('Invites')
                                     }}
-                                /> */}
+                                />
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
@@ -355,13 +395,14 @@ export const Profile = () => {
                             {tableData
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)
                                 .map((data) => (
-                                    <div key={(data.key ?? '') + Math.random()}>
+                                    <div key={(data.itemKey ?? '') + Math.random()}>
                                         <components.MobileTableComponent
-                                            key={(data.key ?? '') + Math.random()}
+                                            itemKey={(data.itemKey ?? '') + Math.random()}
                                             primaryText={data.primaryText}
                                             secondaryText={data.secondaryText}
                                             tertiaryText={data.tertiaryText}
                                             quaternaryText={data.quaternaryText}
+                                            address={data.address}
                                             type={data.type}
                                             avatar={data.avatar}
                                             dashboardItem={data.dashboardItem}
@@ -420,18 +461,41 @@ export const Profile = () => {
                             </div>
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                                <div className="flex w-full items-center justify-between">
-                                    <label>cyberdrk.eth</label>
-                                    <label>69000</label>
-                                </div>
-                                <div className="flex w-full items-center justify-between">
-                                    <label>kkonrad.eth</label>
-                                    <label>420</label>
-                                </div>
+                                {user?.referredUsers > 0 &&
+                                    user?.totalReferralConnections.map((referral, index) => (
+                                        <div key={index} className="flex w-full items-center justify-between">
+                                            <label>{utils.shortenAddressLong(referral.account_identifier)}</label>
+                                            <label>
+                                                {Math.floor(
+                                                    user.pointsPerReferral?.find((ref) =>
+                                                        utils.compareTokenAddresses(
+                                                            ref.address,
+                                                            referral.account_identifier
+                                                        )
+                                                    )?.points ?? 0
+                                                )}
+                                            </label>
+                                        </div>
+                                    ))}
+
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>69420</label>
+                                    <label>
+                                        {user?.totalReferralConnections.reduce((acc, referral) => {
+                                            return (
+                                                acc +
+                                                Math.floor(
+                                                    user.pointsPerReferral?.find((ref) =>
+                                                        utils.compareTokenAddresses(
+                                                            ref.address,
+                                                            referral.account_identifier
+                                                        )
+                                                    )?.points ?? 0
+                                                )
+                                            )
+                                        }, 0)}
+                                    </label>
                                 </div>
                             </div>
                         ) : (

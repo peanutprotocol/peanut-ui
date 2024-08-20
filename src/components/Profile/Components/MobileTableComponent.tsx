@@ -1,11 +1,14 @@
+'use client'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Modal from '@/components/Global/Modal'
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import * as consts from '@/constants'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export const MobileTableComponent = ({
-    key,
+    itemKey,
     primaryText,
     secondaryText,
     tertiaryText,
@@ -13,14 +16,17 @@ export const MobileTableComponent = ({
     type,
     avatar,
     dashboardItem,
+    address,
 }: interfaces.IProfileTableData) => {
     const [modalVisible, setModalVisible] = useState(false)
 
     return (
         <div
             className="flex w-full flex-row items-center justify-between gap-2 border border-n-1 bg-background px-2 py-4 text-h8 font-normal dark:bg-black"
-            key={key}
-            onClick={() => setModalVisible(true)}
+            key={itemKey}
+            onClick={() => {
+                if (type !== 'accounts') setModalVisible(true)
+            }}
         >
             {avatar.avatarUrl ? (
                 <div className="border border-black border-n-1 p-2">
@@ -30,7 +36,7 @@ export const MobileTableComponent = ({
                 avatar.iconName && ''
             )}
 
-            <div className="flex w-full flex-col gap-2" key={key}>
+            <div className="flex w-full flex-col gap-2" key={itemKey}>
                 <div className="flex w-full flex-row items-center justify-between">
                     <div className="flex w-full max-w-48 flex-col items-start justify-center gap-1">
                         <label className="font-bold">
@@ -121,36 +127,13 @@ export const MobileTableComponent = ({
                             </a>
                         )}
                     </>
-                ) : type === 'contacts' ? (
-                    <>
-                        <div
-                            onClick={() => {
-                                console.log('Send') // TODO: implement send to this address
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            {' '}
-                            Send to this address
-                        </div>
-                        <div
-                            onClick={() => {
-                                console.log('Delete') // TODO: implement delete
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            Delete
-                        </div>
-                    </>
                 ) : (
-                    type === 'accounts' && (
-                        <div
-                            onClick={() => {
-                                console.log('Delete') // TODO: implement delete
-                            }}
-                            className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                        >
-                            Delete
-                        </div>
+                    type === 'contacts' && (
+                        <Link href={`/send?recipientAddress=${encodeURIComponent(address as string)}`}>
+                            <div className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 ">
+                                Send to this address
+                            </div>
+                        </Link>
                     )
                 )}
             </Modal>

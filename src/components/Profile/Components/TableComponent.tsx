@@ -1,9 +1,12 @@
+'use client'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Sorting from '@/components/Global/Sorting'
 import Loading from '@/components/Global/Loading'
 import { OptionsComponent } from './OptionsComponent'
 import * as consts from '@/constants'
+import { useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 
 export const TableComponent = ({
     data,
@@ -12,10 +15,18 @@ export const TableComponent = ({
     itemsPerPage,
 }: {
     data: interfaces.IProfileTableData[]
-    selectedTab: 'contacts' | 'history' | 'accounts'
+    selectedTab: 'contacts' | 'history' | 'accounts' | undefined
     currentPage: number
     itemsPerPage: number
 }) => {
+    const router = useRouter()
+    const handleSendToAddress = useCallback(
+        (address: string) => {
+            router.push(`/send?recipientAddress=${encodeURIComponent(address)}`)
+        },
+        [router]
+    )
+
     return (
         <table className="table-custom hidden bg-background sm:table">
             <thead>
@@ -67,7 +78,7 @@ export const TableComponent = ({
                             <th className="th-custom">
                                 <Sorting title="Identifier" />
                             </th>
-                            <th className="th-custom"></th>
+                            {/* <th className="th-custom"></th> */}
                         </tr>
                     )
                 )}
@@ -167,7 +178,7 @@ export const TableComponent = ({
                             </tr>
                         )
                     ) : selectedTab === 'contacts' ? (
-                        <tr className="h-16 text-h8 font-normal" key={data.key + Math.random()}>
+                        <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                             <td className="td-custom w-[12px] font-bold">
                                 <div className="order w-max border-black border-n-1 p-2">
                                     <img alt="" loading="eager" src={data.avatar.avatarUrl} className="h-8 w-8" />
@@ -182,25 +193,26 @@ export const TableComponent = ({
                                         {
                                             name: 'Send to this address',
                                             action: () => {
-                                                console.log('Send') // TODO: implement send to this address
+                                                const recipientAddress = data.address as string
+                                                handleSendToAddress(recipientAddress)
                                             },
                                         },
-                                        {
-                                            name: 'Delete',
-                                            action: () => {
-                                                console.log('Delete') // TODO: implement delete
-                                            },
-                                        },
+                                        // {
+                                        //     name: 'Delete',
+                                        //     action: () => {
+                                        //         console.log('Delete') // TODO: implement delete
+                                        //     },
+                                        // },
                                     ]}
                                 />
                             </td>
                         </tr>
                     ) : (
                         selectedTab === 'accounts' && (
-                            <tr className="h-16 text-h8 font-normal" key={data.key + Math.random()}>
+                            <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
-                                <td className="td-custom text-end ">
+                                {/* <td className="td-custom text-end ">
                                     <OptionsComponent
                                         actionItems={[
                                             {
@@ -211,7 +223,7 @@ export const TableComponent = ({
                                             },
                                         ]}
                                     />
-                                </td>
+                                </td> */}
                             </tr>
                         )
                     )

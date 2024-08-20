@@ -25,11 +25,12 @@ export const OptionsComponent = ({
                 leaveTo="transform scale-95 opacity-0"
             >
                 <Menu.Items className="shadow-primary-4  absolute right-12 top-full z-30 mt-2.5 max-h-96 w-[14.69rem] divide-y divide-black overflow-auto rounded-sm border border-n-1 bg-white dark:divide-white dark:border-white dark:bg-n-1">
-                    {actionItems.map((actionItem) => (
+                    {actionItems.map((actionItem, index) => (
                         <Menu.Item
                             as={'button'}
                             onClick={actionItem.action}
                             className="flex h-12 w-full items-center gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            key={index}
                         >
                             <div className="text-h8">{actionItem.name}</div>
                         </Menu.Item>

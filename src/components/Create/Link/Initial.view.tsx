@@ -3,6 +3,7 @@
 import { useContext, useEffect, useState } from 'react'
 import validator from 'validator'
 import { parsePhoneNumberFromString } from 'libphonenumber-js'
+import { useSearchParams } from 'next/navigation'
 
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
@@ -22,7 +23,9 @@ export const CreateLinkInitialView = ({
     setRecipient,
     recentRecipients,
 }: _consts.ICreateScreenProps) => {
-    const [inputValue, setInputValue] = useState('')
+    const searchParams = useSearchParams()
+    const initialRecipientAddress = searchParams.get('recipientAddress') || ''
+    const [inputValue, setInputValue] = useState(initialRecipientAddress)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -143,6 +146,12 @@ export const CreateLinkInitialView = ({
     useEffect(() => {
         setErrorState({ showError: false, errorMessage: '' })
     }, [inputValue])
+
+    useEffect(() => {
+        if (initialRecipientAddress) {
+            handleOnNext(initialRecipientAddress)
+        }
+    }, [])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">

@@ -4,6 +4,8 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
+import { useBalance } from '@/hooks/useBalance'
+import Loading from '../../Loading'
 
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
@@ -36,7 +38,7 @@ export const AdvancedTokenSelectorButton = ({
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { address } = useAccount()
-
+    const { hasFetchedBalances } = useBalance()
     const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
 
     const getTokenBalance = async () => {
@@ -108,9 +110,20 @@ export const AdvancedTokenSelectorButton = ({
                         {tokenSymbol} on {chainName}
                     </div>
 
-                    {type === 'send' && (
-                        <p className="text-xs text-gray-1">Balance: {utils.formatTokenAmount(_tokenBalance ?? 0, 4)}</p>
-                    )}
+                    {type === 'send' &&
+                        (hasFetchedBalances ? (
+                            <p className="text-xs text-gray-1">
+                                Balance: {utils.formatTokenAmount(_tokenBalance ?? 0, 4)}
+                            </p>
+                        ) : address ? (
+                            <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
+                                Balance: <Loading className="h-2 w-2" />
+                            </div>
+                        ) : (
+                            <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
+                                Balance: 0
+                            </div>
+                        ))}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">
                             ${utils.formatTokenAmount(Number(tokenAmount ?? 0) * tokenPrice ?? 0, 4)}

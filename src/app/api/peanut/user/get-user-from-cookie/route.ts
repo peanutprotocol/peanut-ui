@@ -6,24 +6,38 @@ export async function GET(request: NextRequest) {
     const token = cookieStore.get('jwt-token')
 
     if (!token) {
-        return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+        return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
+    try {
+        const { protocol, hostname, port } = new URL(request.url)
+        const apiUrl = `${protocol}//${hostname}:${port}/api/peanut/user/get-user`
 
-    const { protocol, hostname, port } = new URL(request.url)
-    const apiUrl = `${protocol}//${hostname}:${port}/api/peanut/user/get-user`
+        const response = await fetch(apiUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ authToken: token.value }),
+        })
 
-    const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ authToken: token.value }),
-    })
+        if (response.status !== 200) {
+            return new NextResponse('Error in get-from-cookie', {
+                status: response.status,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+        }
 
-    if (response.ok) {
-        const userData = await response.json()
-        return NextResponse.json(userData)
+        const data = await response.json()
+        return new NextResponse(JSON.stringify(data), {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+    } catch (error) {
+        console.error('Error:', error)
+        return new NextResponse('Internal Server Error', { status: 500 })
     }
-
-    return NextResponse.json({ error: 'Failed to fetch user data' }, { status: 500 })
 }

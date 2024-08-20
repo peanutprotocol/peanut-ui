@@ -38,7 +38,16 @@ export async function POST(request: NextRequest) {
 
         const data = await response.json()
 
-        if (!response.ok) {
+        if (response.status === 409) {
+            return new NextResponse(JSON.stringify(data.message), {
+                status: 409,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+        }
+
+        if (response.status !== 200) {
             return new NextResponse(JSON.stringify(data), {
                 status: response.status,
                 headers: {

@@ -8,14 +8,14 @@ type TabsProps = {
     className?: string
     classButton?: string
     items: TabType[]
-    value: number | string
+    value: number | string | undefined
     setValue: any
 }
 
 export const Tabs = ({ className, classButton, items, value, setValue }: TabsProps) => {
     const handleClick = (value: string, onClick: any) => {
         setValue(value)
-        onClick && onClick()
+        onClick?.()
     }
 
     return (

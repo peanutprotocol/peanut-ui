@@ -22,9 +22,9 @@ export async function POST(request: NextRequest) {
             }),
         })
 
-        if (response.status === 404) {
-            return new NextResponse('Not Found', {
-                status: 404,
+        if (response.status != 200) {
+            return new NextResponse('Error in get-jwt-token', {
+                status: response.status,
                 headers: {
                     'Content-Type': 'application/json',
                 },
@@ -37,6 +37,7 @@ export async function POST(request: NextRequest) {
         // Set the JWT token in a cookie, nextjs requires to do this serverside
         cookies().set('jwt-token', token, {
             httpOnly: true,
+            secure: true,
             path: '/',
             sameSite: 'strict',
         })
