@@ -1,6 +1,7 @@
 'use client'
 import { useForm } from 'react-hook-form'
 import { useAccount, useConfig, useSendTransaction, useSwitchChain } from 'wagmi'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import peanut from '@squirrel-labs/peanut-sdk'
 
 import * as consts from '@/constants'
@@ -15,6 +16,7 @@ export const Refund = () => {
     const { isConnected, chain: currentChain } = useAccount()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
+    const { open } = useWeb3Modal()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
