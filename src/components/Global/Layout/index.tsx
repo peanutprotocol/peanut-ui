@@ -44,15 +44,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                 <div className="relative">
                     <div className="flex min-h-screen flex-col ">
                         <Header />
-                        <MarqueeWrapper
-                            backgroundColor="bg-purple-1"
-                            onClick={() => {
-                                setShowModal(true)
-                            }}
-                        >
-                            <p className="px-4 py-2 text-h4 text-white">Sign up and get rewards!</p>
-                            <img src={assets.SMILEY_ICON.src} className="h-6 w-6 fill-white" />
-                        </MarqueeWrapper>
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
