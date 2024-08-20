@@ -625,9 +625,8 @@ export const estimateStableCoin = (tokenPrice: number) => {
 
 export const getExplorerUrl = (chainId: string) => {
     const explorers = consts.supportedPeanutChains.find((detail) => detail.chainId === chainId)?.explorers
-
     // if the explorers array has blockscout, return the blockscout url, else return the first one
-    if (explorers?.find((explorer) => explorer.name === 'blockscout')) {
+    if (explorers?.find((explorer) => explorer.url.includes('blockscout'))) {
         return explorers?.find((explorer) => explorer.url.includes('blockscout'))?.url
     } else {
         return explorers?.[0].url
@@ -701,4 +700,45 @@ export async function rankAddressesByInteractions(portfolios: Portfolio[]) {
         .sort((a, b) => b.mostRecentInteraction - a.mostRecentInteraction)
 
     return rankedAddresses
+}
+
+export function formatDate(date: Date): string {
+    const day = date.getDate().toString().padStart(2, '0')
+    const month = (date.getMonth() + 1).toString().padStart(2, '0') // JavaScript months are zero-indexed
+    const year = date.getFullYear()
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    const seconds = date.getSeconds().toString().padStart(2, '0')
+
+    return `${day} ${month} ${year} ${hours}:${minutes}:${seconds}`
+}
+
+export function getIconName(type: string) {
+    switch (type) {
+        case 'Link Sent':
+            return 'send'
+        case 'Direct Sent':
+            return 'send'
+        case 'Link Received':
+            return 'receive'
+        case 'Offramp Claim':
+            return 'send'
+        default:
+            return undefined
+    }
+}
+
+import { SiweMessage } from 'siwe'
+
+export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
+    const message = new SiweMessage({
+        domain: window.location.host,
+        address,
+        statement,
+        uri: window.location.origin,
+        version: '1',
+        chainId: 1,
+    })
+
+    return message.prepareMessage()
 }

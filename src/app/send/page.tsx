@@ -5,7 +5,7 @@ import Layout from '@/components/Global/Layout'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
-    description: 'Send crypto via link',
+    description: 'Text Tokens',
     metadataBase: new URL('https://peanut.to'),
 
     icons: {

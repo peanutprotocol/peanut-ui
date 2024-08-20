@@ -1,38 +1,34 @@
-import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
+import type { NextRequest } from 'next/server'
 import * as consts from '@/constants'
 
-export async function GET(request: NextRequest) {
+export async function POST(request: NextRequest) {
+    const { authToken } = await request.json()
+    const apiKey = process.env.PEANUT_API_KEY
+
+    if (!authToken || !apiKey) {
+        return new NextResponse('Bad Request: missing required parameters', { status: 400 })
+    }
+
     try {
-        const { searchParams } = new URL(request.url)
-        const accountIdentifier = searchParams.get('accountIdentifier')
-        const apiKey = process.env.PEANUT_API_KEY
+        const response = await fetch(`${consts.PEANUT_API_URL}/get-user`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${authToken}`,
+                'api-key': apiKey,
+            },
+        })
 
-        if (!accountIdentifier || !apiKey) {
-            return new NextResponse('Bad Request: accountIdentifier and apiKey are required', { status: 400 })
-        }
-
-        const uniqueKey = `${Date.now()}-${accountIdentifier}`
-        const response = await fetch(
-            `${consts.PEANUT_API_URL}/user/fetch?accountIdentifier=${accountIdentifier}&uniqueKey=${uniqueKey}`,
-            {
-                method: 'GET',
-                headers: {
-                    'api-key': apiKey,
-                },
-            }
-        )
-
-        if (response.status === 404) {
-            return new NextResponse('Not Found', {
-                status: 404,
+        if (response.status !== 200) {
+            return new NextResponse('Error in get-user', {
+                status: response.status,
                 headers: {
                     'Content-Type': 'application/json',
                 },
             })
         }
-        const data = await response.json()
 
+        const data = await response.json()
         return new NextResponse(JSON.stringify(data), {
             status: 200,
             headers: {

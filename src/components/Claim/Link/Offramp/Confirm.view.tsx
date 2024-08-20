@@ -604,7 +604,7 @@ export const ConfirmClaimLinkIbanView = ({
             <Steps
                 variant={'circles'}
                 orientation="vertical"
-                colorScheme="purple"
+                colorScheme="pink"
                 activeStep={activeStep}
                 sx={{
                     '& .cui-steps__vertical-step': {

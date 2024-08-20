@@ -3,7 +3,6 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
-import * as _utils from '../Dashboard.utils'
 
 export const MobileItemComponent = ({
     linkDetail,
@@ -35,7 +34,7 @@ export const MobileItemComponent = ({
                     </span>
                 </div>
 
-                <label>{_utils.formatDate(new Date(linkDetail.date))}</label>
+                <label>{utils.formatDate(new Date(linkDetail.date))}</label>
             </div>
             <div className="flex w-full border-t border-dotted border-black" />
             <div className="flex w-full flex-row items-end justify-between">

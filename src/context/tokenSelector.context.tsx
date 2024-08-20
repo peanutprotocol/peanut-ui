@@ -22,8 +22,8 @@ export const tokenSelectorContext = createContext({
 })
 
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState('0x0000000000000000000000000000000000000000')
-    const [selectedChainID, setSelectedChainID] = useState('1')
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState('0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85')
+    const [selectedChainID, setSelectedChainID] = useState('10')
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
@@ -39,9 +39,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const resetTokenContextProvider = () => {
         if (preferences && preferences.tokenAddress == selectedTokenAddress && preferences.chainId == selectedChainID)
             return
-        setSelectedChainID(preferences?.tokenAddress ? preferences.chainId : '1')
+        setSelectedChainID(preferences?.tokenAddress ? preferences.chainId : '10')
         setSelectedTokenAddress(
-            preferences?.tokenAddress ? preferences.tokenAddress : '0x0000000000000000000000000000000000000000'
+            preferences?.tokenAddress ? preferences.tokenAddress : '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
         )
         setSelectedTokenPrice(undefined)
     }

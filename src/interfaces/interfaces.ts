@@ -274,3 +274,93 @@ export interface IBridgeLiquidationAddress {
     created_at: string
     updated_at: string
 }
+
+export interface IProfileTableData {
+    primaryText: string
+    secondaryText: string
+    tertiaryText: string
+    quaternaryText: string
+    itemKey: string
+    type: 'history' | 'contacts' | 'accounts'
+    address?: string
+    avatar: {
+        iconName?: string
+        avatarUrl?: string
+    }
+    dashboardItem?: IDashboardItem
+}
+
+interface Transaction {
+    tx_hash: string
+    chain_id: string
+    address: string
+    points: number
+    description: string | null
+    created_at: string
+}
+
+interface ReferralConnection {
+    user_id: string
+    referrer: string
+    account_identifier: string
+}
+
+interface PointsPerReferral {
+    address: string
+    points: number
+}
+
+interface User {
+    userId: string
+    email: string
+    profile_picture: string | null
+    username: string | null
+    kycStatus: string
+}
+
+interface Account {
+    account_id: string
+    user_id: string
+    bridge_account_id: string
+    account_type: string
+    account_identifier: string
+    account_details: string
+    created_at: string
+    updated_at: string
+    points: number
+    referrer: string | null
+    referred_users_points: number
+    totalReferralPoints: number
+}
+
+export interface IUserProfile {
+    points: number
+    transactions: Transaction[]
+    referralsPointsTxs: Transaction[]
+    totalReferralConnections: ReferralConnection[]
+    totalReferralPoints: number
+    pointsPerReferral: PointsPerReferral[]
+    referredUsers: number
+    streak: number
+    user: User
+    accounts: Account[]
+    contacts: Contact[]
+    totalPoints: number
+}
+
+export interface Contact {
+    user_id: string
+    contact_id: string
+    peanut_account_id: string | null
+    account_identifier: string
+    account_type: string
+    nickname: string | null
+    ens_name: string | null
+    created_at: string
+    updated_at: string
+    n_interactions: number
+    usd_volume_transacted: string
+    last_interacted_with: string | null
+    username: string | null
+    profile_picture: string | null
+}

@@ -231,10 +231,10 @@ const MenuLinks = () => {
             </Link>
 
             <Link
-                href={'/dashboard'}
-                className=" flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
+                href={'/profile'}
+                className=" flex h-full w-full items-center justify-start px-3 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
             >
-                <Text display="block"> Dashboard</Text>
+                <Text display="block"> Profile</Text>
             </Link>
             <button
                 onClick={() => {
@@ -254,11 +254,11 @@ const SocialLinks = () => {
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
-            <Link href={'/dashboard'} className="no-underline">
-                <button className="btn btn-large bg-white">Dashboard</button>
+            <Link href={'/profile'} className="no-underline">
+                <button className="btn btn-large bg-white px-3">Profile</button>
             </Link>
             <button
-                className="btn btn-large bg-white"
+                className="btn btn-large bg-white px-2"
                 onClick={() => {
                     web3modalOpen()
                 }}

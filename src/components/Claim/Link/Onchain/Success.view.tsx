@@ -158,12 +158,12 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
             </label>
             <Link
                 className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/dashboard'}
+                href={'/profile'}
             >
                 <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="dashboard" className="-mt-0.5" />
+                    <Icon name="profile" className="-mt-0.5" />
                 </div>
-                See your payments in the dashboard.
+                See your payments.
             </Link>
         </div>
     )

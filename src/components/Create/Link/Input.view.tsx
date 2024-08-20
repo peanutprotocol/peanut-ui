@@ -241,7 +241,7 @@ export const CreateLinkInputView = ({
                 style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
             >
                 {createType === 'link'
-                    ? 'Send crypto via link'
+                    ? 'Text Tokens'
                     : createType === 'direct'
                       ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
@@ -318,9 +318,11 @@ export const CreateLinkInputView = ({
                 )}
 
                 <span className="flex  flex-row items-center justify-center gap-1 text-center text-h8">
-                    Learn about offramp
+                    Learn about peanut cash out
                     <MoreInfo
-                        text={' Create a USDC link on Optimism of $5 minimum to offramp straight to your bank account!'}
+                        text={
+                            'You can use peanut to cash out your funds directly to your bank account! (US and EU only)'
+                        }
                     />
                 </span>
             </div>
