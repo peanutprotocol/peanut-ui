@@ -16,6 +16,8 @@ import { useSteps } from 'chakra-ui-steps'
 import * as consts from '@/constants'
 import IframeWrapper from '@/components/Global/IframeWrapper'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
+import { LinkAccountComponent } from '@/components/LinkAccount'
+import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
@@ -26,18 +28,9 @@ export const ConfirmClaimLinkIbanView = ({
     recipientType,
     setTransactionHash,
     tokenPrice,
-    liquidationAddress,
-    setLiquidationAddress,
     attachment,
     estimatedPoints,
-    peanutAccount,
-    setPeanutAccount,
-    peanutUser,
-    setPeanutUser,
     userType,
-    userId,
-    offrampChainAndToken,
-    offrampXchainNeeded,
     initialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [errorState, setErrorState] = useState<{
@@ -47,119 +40,101 @@ export const ConfirmClaimLinkIbanView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const { claimLink, claimLinkXchain } = useClaimLink()
 
-    const [iframeOptions, setIframeOptions] = useState<{
-        src: string
-        visible: boolean
-        onClose: () => void
-    }>({
-        src: '',
-        visible: false,
-        onClose: () => {
-            setIframeOptions({ ...iframeOptions, visible: false })
-        },
-    })
+    // const handleSubmitTransfer = async () => {
+    //     try {
+    //         const formData = accountFormWatch()
+    //         setLoadingState('Submitting Offramp')
+    //         console.log('liquidationAddressInfo:', liquidationAddress)
+    //         if (!liquidationAddress) return
+    //         const chainId = utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
+    //         const tokenAddress =
+    //             utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
+    //         console.log({
+    //             offrampXchainNeeded,
+    //             offrampChainAndToken,
+    //             liquidationAddress,
+    //             claimLinkData,
+    //             chainId,
+    //             tokenAddress,
+    //         })
 
-    const { watch: accountFormWatch, setValue: setAccountFormValue } = useForm({
-        mode: 'onChange',
-        defaultValues: {
-            street: '',
-            city: '',
-            state: '',
-            postalCode: '',
-            country: '',
-            accountNumber: offrampForm.recipient,
-            routingNumber: '',
-            BIC: '',
-            type: recipientType,
-        },
-    })
+    //         let hash
+    //         if (offrampXchainNeeded) {
+    //             const chainId = utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
+    //             const tokenAddress =
+    //                 utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
+    //             hash = await claimLinkXchain({
+    //                 address: liquidationAddress.address,
+    //                 link: claimLinkData.link,
+    //                 destinationChainId: chainId,
+    //                 destinationToken: tokenAddress,
+    //             })
+    //         } else {
+    //             hash = await claimLink({
+    //                 address: liquidationAddress.address,
+    //                 link: claimLinkData.link,
+    //             })
+    //         }
 
-    const handleSubmitTransfer = async () => {
-        try {
-            const formData = accountFormWatch()
-            setLoadingState('Submitting Offramp')
-            console.log('liquidationAddressInfo:', liquidationAddress)
-            if (!liquidationAddress) return
-            const chainId = utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
-            const tokenAddress =
-                utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
-            console.log({
-                offrampXchainNeeded,
-                offrampChainAndToken,
-                liquidationAddress,
-                claimLinkData,
-                chainId,
-                tokenAddress,
-            })
+    //         console.log(hash)
 
-            let hash
-            if (offrampXchainNeeded) {
-                const chainId = utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
-                const tokenAddress =
-                    utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
-                hash = await claimLinkXchain({
-                    address: liquidationAddress.address,
-                    link: claimLinkData.link,
-                    destinationChainId: chainId,
-                    destinationToken: tokenAddress,
-                })
-            } else {
-                hash = await claimLink({
-                    address: liquidationAddress.address,
-                    link: claimLinkData.link,
-                })
-            }
+    //         if (hash) {
+    //             utils.saveOfframpLinkToLocalstorage({
+    //                 data: {
+    //                     ...claimLinkData,
+    //                     depositDate: new Date(),
+    //                     USDTokenPrice: tokenPrice,
+    //                     points: estimatedPoints,
+    //                     txHash: hash,
+    //                     message: attachment.message ? attachment.message : undefined,
+    //                     attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
+    //                     liquidationAddress: liquidationAddress.address,
+    //                     recipientType: recipientType,
+    //                     accountNumber: formData.accountNumber,
+    //                     bridgeCustomerId: peanutUser.bridge_customer_id,
+    //                     bridgeExternalAccountId: peanutAccount.bridge_account_id,
+    //                     peanutCustomerId: peanutUser.user_id,
+    //                     peanutExternalAccountId: peanutAccount.account_id,
+    //                 },
+    //             })
+    //             setTransactionHash(hash)
+    //             console.log('Transaction hash:', hash)
+    //             setLoadingState('Idle')
+    //             onNext()
+    //         }
+    //     } catch (error) {
+    //         console.error('Error during the submission process:', error)
 
-            console.log(hash)
-
-            if (hash) {
-                utils.saveOfframpLinkToLocalstorage({
-                    data: {
-                        ...claimLinkData,
-                        depositDate: new Date(),
-                        USDTokenPrice: tokenPrice,
-                        points: estimatedPoints,
-                        txHash: hash,
-                        message: attachment.message ? attachment.message : undefined,
-                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-                        liquidationAddress: liquidationAddress.address,
-                        recipientType: recipientType,
-                        accountNumber: formData.accountNumber,
-                        bridgeCustomerId: peanutUser.bridge_customer_id,
-                        bridgeExternalAccountId: peanutAccount.bridge_account_id,
-                        peanutCustomerId: peanutUser.user_id,
-                        peanutExternalAccountId: peanutAccount.account_id,
-                    },
-                })
-                setTransactionHash(hash)
-                console.log('Transaction hash:', hash)
-                setLoadingState('Idle')
-                onNext()
-            }
-        } catch (error) {
-            console.error('Error during the submission process:', error)
-
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-            setLoadingState('Idle')
-        }
-    }
+    //         setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+    //         setLoadingState('Idle')
+    //     }
+    // }
 
     const { setStep: setActiveStep, activeStep } = useSteps({
         initialStep: initialKYCStep,
     })
 
+    const handleCompleteKYC = async (message: string) => {
+        if (message === 'account found') {
+            setActiveStep(4)
+        } else if (message === 'KYC completed') {
+            setActiveStep(3)
+        }
+    }
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
-            {activeStep < 4 ? (
+            {activeStep < 3 ? (
                 <GlobalKYCComponent
                     intialStep={initialKYCStep}
                     offrampForm={offrampForm}
-                    recipientType={recipientType}
                     setOfframpForm={setOfframpForm}
-                    setPeanutAccount={setPeanutAccount}
-                    userId={userId}
-                    userType={userType}
+                    onCompleted={(message) => {
+                        handleCompleteKYC(message)
+                    }}
                 />
+            ) : activeStep === 3 ? (
+                <GlobaLinkAccountComponent accountNumber={offrampForm?.recipient} />
             ) : (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -187,7 +162,7 @@ export const ConfirmClaimLinkIbanView = ({
                             <label className="font-bold">Bank account</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {accountFormWatch('accountNumber')}
+                            {offrampForm?.recipient}
                         </span>
                     </div>
 
@@ -196,7 +171,7 @@ export const ConfirmClaimLinkIbanView = ({
                             <Icon name={'forward'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Route</label>
                         </div>
-                        {offrampXchainNeeded ? (
+                        {false ? (
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {
                                     consts.supportedPeanutChains.find(
@@ -239,10 +214,10 @@ export const ConfirmClaimLinkIbanView = ({
             )}
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                {activeStep === 4 && (
+                {activeStep > 3 && (
                     <button
                         onClick={() => {
-                            handleSubmitTransfer()
+                            console.log('hey')
                         }}
                         className="btn-purple btn-xl"
                         disabled={isLoading}
@@ -263,18 +238,7 @@ export const ConfirmClaimLinkIbanView = ({
                         setActiveStep(0)
                         setErrorState({ showError: false, errorMessage: '' })
                         setOfframpForm({ email: '', name: '', recipient: '', password: '' })
-                        setAccountFormValue('accountNumber', '')
-                        setAccountFormValue('BIC', '')
-                        setAccountFormValue('routingNumber', '')
-                        setAccountFormValue('street', '')
-                        setAccountFormValue('city', '')
-                        setAccountFormValue('state', '')
-                        setAccountFormValue('postalCode', '')
-                        setAccountFormValue('country', '')
-                        setPeanutAccount({ account_id: '', bridge_account_id: '', user_id: '' })
-                        setPeanutUser({ user_id: '', bridge_customer_id: '' })
-                        setLiquidationAddress(undefined)
-                    }} // TODO: add reset of everything
+                    }}
                     disabled={isLoading}
                     type="button"
                 >
@@ -307,12 +271,6 @@ export const ConfirmClaimLinkIbanView = ({
                     </div>
                 )}
             </div>
-            <IframeWrapper
-                src={iframeOptions.src}
-                visible={iframeOptions.visible}
-                onClose={iframeOptions.onClose}
-                style={{ width: '100%', height: '500px', border: 'none' }}
-            />
         </div>
     )
 }

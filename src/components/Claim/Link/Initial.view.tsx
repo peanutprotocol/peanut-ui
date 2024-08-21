@@ -42,7 +42,6 @@ export const InitialClaimLinkView = ({
     setRecipientType,
     setOfframpForm,
     setUserType,
-    setUserId,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
@@ -184,10 +183,6 @@ export const InitialClaimLinkView = ({
                 })
 
                 const response = await userIdResponse.json()
-
-                console.log('response', response)
-
-                setUserId(response.userId)
                 if (response.isNewUser) {
                     setUserType('NEW')
                 } else {
@@ -199,6 +194,7 @@ export const InitialClaimLinkView = ({
                     password: '',
                     recipient: recipient.name ?? '',
                 })
+                setInitialKYCStep(0)
             } else {
                 console.log('user', user)
                 setOfframpForm({
@@ -213,31 +209,9 @@ export const InitialClaimLinkView = ({
                             account.account_identifier.toLowerCase() ===
                             recipient.name?.replaceAll(' ', '').toLowerCase()
                     )
+
+                    console.log(account)
                     if (account) {
-                        const allLiquidationAddresses = await utils.getLiquidationAddresses(
-                            user?.user?.bridge_customer_id ?? ''
-                        )
-                        let liquidationAddressDetails = allLiquidationAddresses.find(
-                            (address) =>
-                                address.chain === chainName &&
-                                address.currency === tokenName &&
-                                address.external_account_id === account.bridge_account_id
-                        )
-
-                        console.log(liquidationAddressDetails)
-
-                        if (!liquidationAddressDetails) {
-                            liquidationAddressDetails = await utils.createLiquidationAddress(
-                                user?.user?.bridge_customer_id ?? '',
-                                chainName ?? '',
-                                tokenName ?? '',
-                                account.bridge_account_id,
-                                recipientType === 'iban' ? 'sepa' : 'ach',
-                                recipientType === 'iban' ? 'eur' : 'usd'
-                            )
-                        }
-
-                        setLiquidationAddress(liquidationAddressDetails)
                         setInitialKYCStep(4)
                     } else {
                         setInitialKYCStep(3)
@@ -251,8 +225,6 @@ export const InitialClaimLinkView = ({
                         console.log('user not verified but has email and name')
                     }
                 }
-
-                // TODO: handle user that hasnt set name
             }
             // if (user?.user.kycStatus === 'verified') {
             //     setOfframpForm({

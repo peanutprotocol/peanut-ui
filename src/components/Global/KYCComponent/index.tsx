@@ -25,7 +25,7 @@ interface IKYCComponentProps {
     intialStep: number
     offrampForm: consts.IOfframpForm
     setOfframpForm: (form: consts.IOfframpForm) => void
-    onCompleted?: () => void
+    onCompleted?: (message: string) => void
 }
 
 export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, onCompleted }: IKYCComponentProps) => {
@@ -78,102 +78,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         try {
             console.log('inputFormData:', inputFormData)
 
-            // if (userType === 'NEW') {
-            //     const userRegisterResponse = await fetch('/api/peanut/user/register-user', {
-            //         method: 'POST',
-            //         headers: {
-            //             'Content-Type': 'application/json',
-            //         },
-            //         body: JSON.stringify({
-            //             email: inputFormData.email,
-            //             password: inputFormData.password,
-            //             userId: userId,
-            //         }),
-            //     })
-
-            //     const userRegister = await userRegisterResponse.json()
-
-            //     // If user already exists, login
-            //     // TODO: remove duplicate code
-            //     if (userRegisterResponse.status === 409) {
-            //         console.log(userRegister.userId)
-            //         const userLoginResponse = await fetch('/api/peanut/user/login-user', {
-            //             method: 'POST',
-            //             headers: {
-            //                 'Content-Type': 'application/json',
-            //             },
-            //             body: JSON.stringify({
-            //                 email: inputFormData.email,
-            //                 password: inputFormData.password,
-            //             }),
-            //         })
-            //         const userLogin = await userLoginResponse.json()
-            //         if (userLoginResponse.status !== 200) {
-            //             console.log(userLogin)
-            //             if (userLogin === 'Invalid email format') {
-            //                 errors.email = {
-            //                     message: 'Invalid email format',
-            //                     type: 'validate',
-            //                 }
-            //             }
-            //             if (userLogin === 'Invalid email, userId') {
-            //                 errors.email = {
-            //                     message: 'Incorrect email',
-            //                     type: 'validate',
-            //                 }
-            //             } else if (userLogin === 'Invalid password') {
-            //                 errors.password = {
-            //                     message: 'Invalid password',
-            //                     type: 'validate',
-            //                 }
-            //             }
-
-            //             return
-            //         }
-            //     }
-            // } else if (userType === 'EXISTING') {
-            //     const userLoginResponse = await fetch('/api/peanut/user/login-user', {
-            //         method: 'POST',
-            //         headers: {
-            //             'Content-Type': 'application/json',
-            //         },
-            //         body: JSON.stringify({
-            //             email: inputFormData.email,
-            //             password: inputFormData.password,
-            //         }),
-            //     })
-            //     const userLogin = await userLoginResponse.json()
-
-            //     if (userLoginResponse.status !== 200) {
-            //         if (userLogin === 'Invalid email format') {
-            //             errors.email = {
-            //                 message: 'Invalid email format',
-            //                 type: 'validate',
-            //             }
-            //         } else if (userLogin === 'Invalid email, userId') {
-            //             errors.email = {
-            //                 message: 'Incorrect email',
-            //                 type: 'validate',
-            //             }
-            //         } else if (userLogin === 'Invalid password') {
-            //             errors.password = {
-            //                 message: 'Invalid password',
-            //                 type: 'validate',
-            //             }
-            //         } else if (userLogin === 'User not found') {
-            //             errors.email = {
-            //                 message:
-            //                     'User not found. Make sure you login with the email linked to the bank account you entered',
-            //                 type: 'validate',
-            //             }
-            //         }
-
-            //         return
-            //     }
-
-            //     setLoadingState('Getting KYC status')
-            // }
-
             const _user = await fetchUser()
 
             console.log('user:', _user)
@@ -191,15 +95,13 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     )
                 ) {
                     setActiveStep(4)
-                    onCompleted && onCompleted()
+                    onCompleted?.('account found')
                 } else {
                     setActiveStep(3)
                 }
             } else {
                 let data = await utils.getUserLinks(inputFormData)
                 setCustomerObject(data)
-
-                console.log(data)
 
                 let { tos_status: tosStatus, kyc_status: kycStatus } = data
 
@@ -212,7 +114,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     setActiveStep(2)
                     return
                 }
-                // recipientType === 'us' && setAddressRequired(true)
                 setActiveStep(3)
             }
         } catch (error: any) {
@@ -328,7 +229,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')
 
-            onCompleted?.()
+            onCompleted?.('KYC completed')
         } catch (error) {
             console.error('Error during the submission process:', error)
 
