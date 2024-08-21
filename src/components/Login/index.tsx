@@ -6,9 +6,9 @@ import { useContext, useState } from 'react'
 import * as context from '@/context'
 import Loading from '../Global/Loading'
 import Link from 'next/link'
-
+import * as assets from '@/assets'
 export const LoginComponent = () => {
-    const { user, logoutUser } = useAuth()
+    const { user, logoutUser, isFetchingUser } = useAuth()
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -31,7 +31,14 @@ export const LoginComponent = () => {
 
     return (
         <div className="card ">
-            {user ? (
+            {!user && isFetchingUser ? (
+                <div className="relative flex w-full items-center justify-center">
+                    <div className="animate-spin">
+                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                </div>
+            ) : user ? (
                 <div className="flex flex-col items-center justify-center gap-4">
                     <p className="text-h4">Welcome back, {user?.user?.username ?? user?.user?.email}</p>
                     <p className="text-h8 font-light">You are now logged in!</p>

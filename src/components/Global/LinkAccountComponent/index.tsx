@@ -165,28 +165,53 @@ export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountCo
     const handleCheckIban = async ({ accountNumber }: { accountNumber: string | undefined }) => {
         console.log('Checking IBAN', accountNumber)
 
-        if (!accountNumber) return
+        try {
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+            setLoadingState('Loading')
 
-        if (isIBAN(accountNumber)) {
-            setAccountDetailsValue('type', 'iban')
-        } else if (/^[0-9]{6,17}$/.test(accountNumber)) {
-            setAccountDetailsValue('type', 'us')
+            if (!accountNumber) return
+
+            if (isIBAN(accountNumber)) {
+                setAccountDetailsValue('type', 'iban')
+            } else if (/^[0-9]{6,17}$/.test(accountNumber)) {
+                setAccountDetailsValue('type', 'us')
+            } else {
+                setIbanFormError('accountNumber', { message: 'Invalid account number' })
+                return
+            }
+
+            const isValidIban = await utils.validateBankAccount(accountNumber.replaceAll(' ', '').toLowerCase())
+            if (!isValidIban) {
+                setIbanFormError('accountNumber', { message: 'Invalid account number' })
+                return
+            }
+
+            goToNext()
+        } catch (error) {
+            console.error(error)
+        } finally {
+            setLoadingState('Idle')
         }
-
-        goToNext()
     }
 
     const handleSubmitLinkIban = async (formData: IRegisterAccountDetails) => {
         try {
             console.log('Checking IBAN ', formData)
+            setLoadingState('Loading')
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
 
-            const isFormValid = utils.validateAccountFormData(
+            const isFormValid = await utils.validateAccountFormData(
                 { ...formData, accountNumber: getIbanFormValue('accountNumber') },
                 setAccountDetailsError
             )
 
             if (!isFormValid) {
-                setErrorState({ showError: true, errorMessage: 'Please fill in all required fields' })
                 return
             }
 
@@ -252,7 +277,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountCo
                 customerId,
                 data.id,
                 accountType,
-                formData.accountNumber.replaceAll(' ', ''),
+                getIbanFormValue('accountNumber')?.replaceAll(' ', '') ?? '',
                 address
             )
             await fetchUser()

@@ -1,6 +1,5 @@
 'use client'
 import { useAuth } from '@/context/authContext'
-import { GlobalLoginComponent } from '../Global/LoginComponent'
 import { Divider } from '@chakra-ui/react'
 import { useContext, useState } from 'react'
 import * as context from '@/context'

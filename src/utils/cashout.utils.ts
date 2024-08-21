@@ -214,7 +214,7 @@ export async function createExternalAccount(
             body: JSON.stringify({
                 accountType,
                 accountDetails,
-                address,
+                address: address ? address : {},
                 accountOwnerName,
             }),
         })
@@ -234,7 +234,7 @@ export async function createExternalAccount(
     }
 }
 
-export const validateAccountFormData = (formData: any, setAccountFormError: any) => {
+export const validateAccountFormData = async (formData: any, setAccountFormError: any) => {
     let isValid = true
     if (!formData.accountNumber) {
         setAccountFormError('accountNumber', { type: 'required', message: 'Account number is required' })
@@ -246,6 +246,16 @@ export const validateAccountFormData = (formData: any, setAccountFormError: any)
         if (!formData.BIC) {
             setAccountFormError('BIC', { type: 'required', message: 'BIC is required' })
             console.log('BIC is required')
+            isValid = false
+        }
+        const isValidBic = await utils.validateBic(formData.BIC)
+
+        if (!isValidBic) {
+            setAccountFormError('BIC', {
+                type: 'invalid',
+                message: 'BIC not accepted, please get in contact via discord',
+            })
+            console.log('Invalid BIC')
             isValid = false
         }
     } else if (formData.type === 'us') {
@@ -373,4 +383,44 @@ export function getTokenAddressFromBridgeTokenName(chainId: string, tokenName: s
 export function getChainIdFromBridgeChainName(chainName: string): string | undefined {
     const chain = consts.supportedBridgeChainsDictionary.find((chain) => chain.chain === chainName)?.chainId
     return chain ?? undefined
+}
+
+export async function validateBankAccount(bankAccount: string): Promise<boolean> {
+    const response = await fetch(`/api/peanut/iban/validate-bank-account`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            bankAccount,
+        }),
+    })
+
+    if (response.status !== 200) {
+        return false
+    }
+
+    const { valid } = await response.json()
+
+    return valid
+}
+
+export async function validateBic(bic: string): Promise<boolean> {
+    const response = await fetch(`/api/peanut/iban/validate-bic`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            bic,
+        }),
+    })
+
+    if (response.status !== 200) {
+        return false
+    }
+
+    const { valid } = await response.json()
+
+    return valid
 }
