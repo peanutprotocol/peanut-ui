@@ -111,12 +111,13 @@ export const Claim = ({}) => {
 
                 const filteredXchainDetails = xchainDetails.map((chain) => {
                     if (chain.chainId === claimLinkData?.chainId) {
+                        const filteredTokens = chain.tokens.filter(
+                            (token: any) => token.address.toLowerCase() !== claimLinkData?.tokenAddress.toLowerCase()
+                        )
+
                         return {
                             ...chain,
-                            tokens: chain.tokens.filter(
-                                (token: any) =>
-                                    token.address.toLowerCase() !== claimLinkData?.tokenAddress.toLowerCase()
-                            ),
+                            tokens: filteredTokens,
                         }
                     }
                     return chain
