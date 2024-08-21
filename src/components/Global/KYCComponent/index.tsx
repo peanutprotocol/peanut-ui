@@ -347,7 +347,18 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             case 0:
                 return userState === 'login' ? (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <GlobalLoginComponent />{' '}
+                        <GlobalLoginComponent
+                            onSubmit={({ status, message }) => {
+                                if (status === 'success') {
+                                    handleEmail(watchOfframp())
+                                } else {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: message,
+                                    })
+                                }
+                            }}
+                        />{' '}
                         <span className="flex w-full flex-row items-center justify-center gap-2">
                             <Divider borderColor={'black'} />
                             <p>or</p>

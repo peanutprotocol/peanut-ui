@@ -41,14 +41,8 @@ export const InitialClaimLinkView = ({
     recipientType,
     setRecipientType,
     setOfframpForm,
-    offrampForm,
-    setLiquidationAddress,
-    setPeanutAccount,
-    setPeanutUser,
     setUserType,
     setUserId,
-    setOfframpXchainNeeded,
-    setOfframpChainAndToken,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
@@ -68,7 +62,7 @@ export const InitialClaimLinkView = ({
     const { estimatePoints, claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
+    const { user } = useAuth()
 
     const handleConnectWallet = async () => {
         if (isConnected && address) {
@@ -148,7 +142,6 @@ export const InitialClaimLinkView = ({
 
             if (tokenName && chainName) {
                 console.log('offramp without xchain possible')
-                setOfframpXchainNeeded(false)
             } else {
                 if (!crossChainDetails) {
                     setErrorState({
@@ -168,7 +161,6 @@ export const InitialClaimLinkView = ({
                     console.log('error', error)
                 }
 
-                console.log('route', route)
                 if (route === undefined) {
                     setErrorState({
                         showError: true,
@@ -176,24 +168,11 @@ export const InitialClaimLinkView = ({
                     })
                     return
                 }
-                setOfframpXchainNeeded(true)
-
-                tokenName = utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                chainName = utils.getBridgeChainName(optimismChainId)
             }
-
-            setOfframpChainAndToken({
-                chain: chainName ?? '',
-                token: tokenName ?? '',
-            })
 
             setLoadingState('Getting KYC status')
 
-            console.log(user)
-
             if (!user) {
-                console.log('hierzo')
-
                 const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
@@ -225,7 +204,7 @@ export const InitialClaimLinkView = ({
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipient.name ?? '',
+                    recipient: recipient.name ?? '', // TODO: recipient.name makes no sense here
                     password: '',
                 })
                 if (user?.user.kycStatus === 'verified') {
@@ -235,10 +214,6 @@ export const InitialClaimLinkView = ({
                             recipient.name?.replaceAll(' ', '').toLowerCase()
                     )
                     if (account) {
-                        console.log('account found') // TODO: set peanut account
-
-                        console.log()
-
                         const allLiquidationAddresses = await utils.getLiquidationAddresses(
                             user?.user?.bridge_customer_id ?? ''
                         )
@@ -401,7 +376,7 @@ export const InitialClaimLinkView = ({
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
+                              : address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -547,7 +522,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)

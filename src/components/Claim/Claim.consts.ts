@@ -44,17 +44,7 @@ export interface IClaimScreenProps {
     setRecipientType: (type: interfaces.RecipientType) => void
     offrampForm: consts.IOfframpForm
     setOfframpForm: (form: consts.IOfframpForm) => void
-    liquidationAddress: interfaces.IBridgeLiquidationAddress | undefined
-    setLiquidationAddress: (address: interfaces.IBridgeLiquidationAddress | undefined) => void
     isOfframpPossible: boolean
-    peanutUser: any
-    setPeanutUser: (user: any) => void
-    peanutAccount: any
-    setPeanutAccount: (account: any) => void
-    offrampXchainNeeded: boolean
-    setOfframpXchainNeeded: (needed: boolean) => void
-    offrampChainAndToken: { chain: string; token: string }
-    setOfframpChainAndToken: (chainAndToken: { chain: string; token: string }) => void
     userType: 'NEW' | 'EXISTING' | undefined
     setUserType: (type: 'NEW' | 'EXISTING' | undefined) => void
     userId: string | undefined

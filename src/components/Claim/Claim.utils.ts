@@ -57,3 +57,18 @@ export function mapToIPeanutChainDetailsArray(
 
     return combinedArray
 }
+
+export const sortCrossChainDetails = (details: any[], order: any[], sourceChainId: string) => {
+    const orderMap = new Map(order.map((item, index) => [item.chainId, index]))
+    return details.sort((a, b) => {
+        if (a.chainId === sourceChainId) return -1
+        if (b.chainId === sourceChainId) return 1
+
+        const indexA = orderMap.get(a.chainId)
+        const indexB = orderMap.get(b.chainId)
+        if (indexA === undefined || indexB === undefined) {
+            return 0 // Default to no order if not found
+        }
+        return indexA - indexB
+    })
+}

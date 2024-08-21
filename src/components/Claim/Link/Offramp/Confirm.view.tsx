@@ -144,12 +144,6 @@ export const ConfirmClaimLinkIbanView = ({
         }
     }
 
-    useEffect(() => {
-        if (liquidationAddress) {
-            setActiveStep(4)
-        }
-    }, [liquidationAddress])
-
     const { setStep: setActiveStep, activeStep } = useSteps({
         initialStep: initialKYCStep,
     })
