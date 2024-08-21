@@ -114,7 +114,8 @@ export const Claim = ({}) => {
                         return {
                             ...chain,
                             tokens: chain.tokens.filter(
-                                (token: any) => !utils.compareTokenAddresses(token.address, claimLinkData?.tokenAddress)
+                                (token: any) =>
+                                    token.address.toLowerCase() !== claimLinkData?.tokenAddress.toLowerCase()
                             ),
                         }
                     }
