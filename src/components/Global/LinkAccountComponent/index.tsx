@@ -2,13 +2,21 @@ import { Step, Steps, useSteps } from 'chakra-ui-steps'
 import { useContext, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
+import * as utils from '@/utils'
 import * as context from '@/context'
 import Loading from '../Loading'
 import CountryDropdown from '../CountrySelect'
+import Link from 'next/link'
+import Icon from '../Icon'
+import { useAuth } from '@/context/authContext'
+import { Divider } from '@chakra-ui/react'
+import { isIBAN } from 'validator'
 
 const steps = [{ label: 'Step 1: Enter bank account' }, { label: 'Step 2: Provide details' }]
 
-interface IGlobaLinkAccountComponentProps {}
+interface IGlobaLinkAccountComponentProps {
+    accountNumber?: string
+}
 
 interface IRegisterAccountDetails {
     street: string
@@ -22,7 +30,7 @@ interface IRegisterAccountDetails {
     type: string
 }
 
-export const GlobaLinkAccountComponent = () => {
+export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountComponentProps) => {
     const {
         setStep: setActiveStep,
         activeStep,
@@ -31,12 +39,17 @@ export const GlobaLinkAccountComponent = () => {
         initialStep: 0,
     })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
+    const [completedLinking, setCompletedLinking] = useState(false)
     const {
         register: registerAccountDetails,
         formState: { errors: accountDetailsErrors },
         watch: accountDetailsWatch,
         setValue: setAccountDetailsValue,
+        getValues: getAccountDetailsValue,
         setError: setAccountDetailsError,
         handleSubmit: handleAccountDetailsSubmit,
     } = useForm<IRegisterAccountDetails>({
@@ -47,7 +60,6 @@ export const GlobaLinkAccountComponent = () => {
             state: '',
             postalCode: '',
             country: '',
-            accountNumber: '',
             routingNumber: '',
             BIC: '',
             type: 'iban',
@@ -59,15 +71,15 @@ export const GlobaLinkAccountComponent = () => {
         watch: ibanFormWatch,
         setValue: setIbanFormValue,
         setError: setIbanFormError,
+        getValues: getIbanFormValue,
         handleSubmit: handleIbanSubmit,
     } = useForm({
         mode: 'onChange',
         defaultValues: {
-            accountNumber: '',
+            accountNumber: accountNumber,
         },
     })
-
-    const [recipientType, setRecipientType] = useState<'iban' | 'us'>('iban')
+    const { user, fetchUser } = useAuth()
 
     // const handleSubmitLinkIban = async () => {
     //     const formData = accountFormWatch()
@@ -150,14 +162,108 @@ export const GlobaLinkAccountComponent = () => {
     //     }
     // }
 
-    const handleCheckIban = async ({ accountNumber }: { accountNumber: string }) => {
+    const handleCheckIban = async ({ accountNumber }: { accountNumber: string | undefined }) => {
         console.log('Checking IBAN', accountNumber)
-        setRecipientType('us')
+
+        if (!accountNumber) return
+
+        if (isIBAN(accountNumber)) {
+            setAccountDetailsValue('type', 'iban')
+        } else if (/^[0-9]{6,17}$/.test(accountNumber)) {
+            setAccountDetailsValue('type', 'us')
+        }
+
         goToNext()
     }
 
     const handleSubmitLinkIban = async (formData: IRegisterAccountDetails) => {
-        console.log('Checking IBAN ', formData)
+        try {
+            console.log('Checking IBAN ', formData)
+
+            const isFormValid = utils.validateAccountFormData(
+                { ...formData, accountNumber: getIbanFormValue('accountNumber') },
+                setAccountDetailsError
+            )
+
+            if (!isFormValid) {
+                setErrorState({ showError: true, errorMessage: 'Please fill in all required fields' })
+                return
+            }
+
+            // Check if user?.accounts already has an account wit this identifier
+            const accountExists = user?.accounts.find(
+                (account) =>
+                    account.account_identifier.toLowerCase() ===
+                    getIbanFormValue('accountNumber')?.replaceAll(' ', '').toLowerCase()
+            )
+
+            if (accountExists) {
+                setErrorState({ showError: true, errorMessage: 'This account has already been linked' })
+                return
+            }
+
+            const customerId = user?.user?.bridge_customer_id ?? ''
+            const accountType = formData.type
+
+            const accountDetails =
+                accountType === 'iban'
+                    ? {
+                          accountNumber: getIbanFormValue('accountNumber'),
+                          bic: formData.BIC,
+                          country: utils.getThreeCharCountryCodeFromIban(getIbanFormValue('accountNumber') ?? ''),
+                      }
+                    : { accountNumber: getIbanFormValue('accountNumber'), routingNumber: formData.routingNumber }
+            const address = {
+                street: formData.street,
+                city: formData.city,
+                country: formData.country ?? 'BEL',
+                state: formData.state,
+                postalCode: formData.postalCode,
+            }
+            let accountOwnerName = user?.user?.full_name
+
+            console.log({
+                customerId,
+                accountType,
+                accountDetails,
+                address,
+                accountOwnerName,
+            })
+
+            if (!accountOwnerName) {
+                const bridgeCustomer = await utils.getCustomer(customerId)
+                accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
+            }
+
+            if (!customerId) {
+                throw new Error('Customer ID is missing')
+            }
+
+            const data = await utils.createExternalAccount(
+                customerId,
+                accountType as 'iban' | 'us',
+                accountDetails,
+                address,
+                accountOwnerName
+            )
+
+            await utils.createAccount(
+                user?.user?.userId ?? '',
+                customerId,
+                data.id,
+                accountType,
+                formData.accountNumber.replaceAll(' ', ''),
+                address
+            )
+            await fetchUser()
+
+            setCompletedLinking(true)
+        } catch (error) {
+            console.error('Error during the submission process:', error)
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+        } finally {
+            setLoadingState('Idle')
+        }
     }
 
     const renderComponent = () => {
@@ -187,6 +293,11 @@ export const GlobaLinkAccountComponent = () => {
                                 'Confirm'
                             )}
                         </button>
+                        {errorState.showError && (
+                            <div className="text-center">
+                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                        )}
                     </form>
                 )
             case 1:
@@ -195,11 +306,14 @@ export const GlobaLinkAccountComponent = () => {
                         className="flex w-full flex-col items-start justify-center gap-2"
                         onSubmit={handleAccountDetailsSubmit(handleSubmitLinkIban)}
                     >
-                        {recipientType === 'iban' ? (
+                        {getAccountDetailsValue('type') === 'iban' ? (
                             <>
                                 <input
                                     {...registerAccountDetails('BIC', {
-                                        required: recipientType === 'iban' ? 'This field is required' : false,
+                                        required:
+                                            getAccountDetailsValue('type') === 'iban'
+                                                ? 'This field is required'
+                                                : false,
                                     })}
                                     className={`custom-input ${accountDetailsErrors.BIC ? 'border border-red' : ''}`}
                                     placeholder="BIC"
@@ -214,7 +328,8 @@ export const GlobaLinkAccountComponent = () => {
                             <>
                                 <input
                                     {...registerAccountDetails('routingNumber', {
-                                        required: recipientType === 'us' ? 'This field is required' : false,
+                                        required:
+                                            getAccountDetailsValue('type') === 'us' ? 'This field is required' : false,
                                     })}
                                     className={`custom-input ${accountDetailsErrors.routingNumber ? 'border border-red' : ''}`}
                                     placeholder="Routing number"
@@ -226,11 +341,12 @@ export const GlobaLinkAccountComponent = () => {
                                 )}
                             </>
                         )}
-                        {recipientType === 'us' && (
+                        {getAccountDetailsValue('type') === 'us' && (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
                                 <input
                                     {...registerAccountDetails('street', {
-                                        required: recipientType === 'us' ? 'This field is required' : false,
+                                        required:
+                                            getAccountDetailsValue('type') === 'us' ? 'This field is required' : false,
                                     })}
                                     className={`custom-input ${accountDetailsErrors.street ? 'border border-red' : ''}`}
                                     placeholder="Your street and number"
@@ -245,7 +361,10 @@ export const GlobaLinkAccountComponent = () => {
                                     <div className="flex w-full flex-col items-start justify-center gap-2">
                                         <input
                                             {...registerAccountDetails('city', {
-                                                required: recipientType === 'us' ? 'This field is required' : false,
+                                                required:
+                                                    getAccountDetailsValue('type') === 'us'
+                                                        ? 'This field is required'
+                                                        : false,
                                             })}
                                             className={`custom-input ${accountDetailsErrors.city ? 'border border-red' : ''}`}
                                             placeholder="Your city"
@@ -259,7 +378,10 @@ export const GlobaLinkAccountComponent = () => {
                                     <div className="flex w-full flex-col items-center justify-center gap-2">
                                         <input
                                             {...registerAccountDetails('postalCode', {
-                                                required: recipientType === 'us' ? 'This field is required' : false,
+                                                required:
+                                                    getAccountDetailsValue('type') === 'us'
+                                                        ? 'This field is required'
+                                                        : false,
                                             })}
                                             className={`custom-input ${accountDetailsErrors.postalCode ? 'border border-red' : ''}`}
                                             placeholder="Your postal code"
@@ -275,7 +397,10 @@ export const GlobaLinkAccountComponent = () => {
                                     <div className="flex w-full flex-col items-start justify-center gap-2">
                                         <input
                                             {...registerAccountDetails('state', {
-                                                required: recipientType === 'us' ? 'This field is required' : false,
+                                                required:
+                                                    getAccountDetailsValue('type') === 'us'
+                                                        ? 'This field is required'
+                                                        : false,
                                             })}
                                             className={`custom-input ${accountDetailsErrors.state ? 'border border-red' : ''}`}
                                             placeholder="Your state "
@@ -308,44 +433,85 @@ export const GlobaLinkAccountComponent = () => {
                                 'Confirm'
                             )}
                         </button>
+                        {errorState.showError && (
+                            <div className="text-center">
+                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                        )}
                     </form>
                 )
         }
     }
 
-    return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
-            <p className="text-h8 font-normal">
-                This is your first time using a bank account on peanut. You'll have to pass a brief KYC check to
-                proceed.
+    return user?.user?.kycStatus === 'verified' ? (
+        completedLinking ? (
+            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
+                <p>You have successfully linked your account!</p>
+                <Link
+                    className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                    href={'/profile'}
+                >
+                    <div className=" border border-n-1 p-0 px-1">
+                        <Icon name="profile" className="-mt-0.5" />
+                    </div>
+                    See your accounts.
+                </Link>
+            </div>
+        ) : (
+            <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
+                <p className="text-h8 font-normal">
+                    Complete the following steps to link your bank account to your peanut profile for a smooth cashout
+                    experience.
+                </p>
+                <Steps
+                    variant={'circles'}
+                    orientation="vertical"
+                    colorScheme="purple"
+                    activeStep={activeStep}
+                    onClickStep={(step) => setActiveStep(step)}
+                    sx={{
+                        '& .cui-steps__vertical-step': {
+                            '&:last-of-type': {
+                                paddingBottom: '0px',
+                                gap: '0px',
+                            },
+                        },
+                        '& .cui-steps__vertical-step-content': {
+                            '&:last-of-type': {
+                                minHeight: '8px',
+                            },
+                        },
+                    }}
+                >
+                    {steps.map(({ label }, index) => (
+                        <Step label={label} key={label}>
+                            <div className="relative z-10 flex w-full items-center justify-center pr-[40px]">
+                                {renderComponent()}
+                            </div>
+                        </Step>
+                    ))}
+                </Steps>
+                {}
+            </div>
+        )
+    ) : (
+        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
+            <p className="text-h6">
+                Before you can link an account, please login or register & complete the kyc process.
             </p>
-            <Steps
-                variant={'circles'}
-                orientation="vertical"
-                colorScheme="purple"
-                activeStep={activeStep}
-                sx={{
-                    '& .cui-steps__vertical-step': {
-                        '&:last-of-type': {
-                            paddingBottom: '0px',
-                            gap: '0px',
-                        },
-                    },
-                    '& .cui-steps__vertical-step-content': {
-                        '&:last-of-type': {
-                            minHeight: '8px',
-                        },
-                    },
-                }}
-            >
-                {steps.map(({ label }, index) => (
-                    <Step label={label} key={label}>
-                        <div className="relative z-10 flex w-full items-center justify-center pr-[40px]">
-                            {renderComponent()}
-                        </div>
-                    </Step>
-                ))}
-            </Steps>
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                <Link className="btn btn-xl h-8" href={'/login'}>
+                    Login
+                </Link>
+                <span className="flex w-full flex-row items-center justify-center gap-2">
+                    <Divider borderColor={'black'} />
+                    <p>or</p>
+                    <Divider borderColor={'black'} />
+                </span>
+                <Link className="btn btn-xl h-8" href={'/register'}>
+                    Register
+                </Link>
+            </div>
         </div>
     )
 }
