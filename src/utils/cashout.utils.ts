@@ -379,12 +379,10 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
     })
 
     if (response.status !== 200) {
-        return false
+        return false // TODO: handle when iban country is not supported
+    } else {
+        return true
     }
-
-    const { valid } = await response.json()
-
-    return valid
 }
 
 export async function validateBic(bic: string): Promise<boolean> {
@@ -400,9 +398,7 @@ export async function validateBic(bic: string): Promise<boolean> {
 
     if (response.status !== 200) {
         return false
+    } else {
+        return true
     }
-
-    const { valid } = await response.json()
-
-    return valid
 }

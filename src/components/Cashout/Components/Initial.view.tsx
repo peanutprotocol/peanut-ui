@@ -92,6 +92,10 @@ export const InitialCashoutView = ({
                 return
             } // TODO: fix this if else fuckery & implement check bank account endpoint here
 
+            if (!user) {
+                await fetchUser()
+            }
+
             const preparedCreateLinkWrapperResponse = await prepareCreateLinkWrapper({
                 tokenValue: tokenValue ?? '',
             })

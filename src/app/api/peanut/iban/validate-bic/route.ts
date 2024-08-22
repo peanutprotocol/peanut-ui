@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
             return new NextResponse('Bad Request: missing required parameters', { status: 400 })
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/validate-bic`, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/is-valid-bic`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

@@ -98,6 +98,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     setActiveStep(4)
                     onCompleted?.('account found')
                 } else {
+                    onCompleted?.('KYC completed')
                     setActiveStep(3)
                 }
             } else {

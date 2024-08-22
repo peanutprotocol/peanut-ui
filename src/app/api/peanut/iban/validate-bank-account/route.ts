@@ -15,15 +15,16 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                // 'api-key': apiKey,
+                'api-key': apiKey,
             },
             body: JSON.stringify({
                 bankNumber: bankAccount,
             }),
         })
 
+        const data = await response.json()
         if (response.status !== 200) {
-            return new NextResponse('Error in validate-bank-account', {
+            return new NextResponse(JSON.stringify(data), {
                 status: response.status,
                 headers: {
                     'Content-Type': 'application/json',
@@ -31,7 +32,6 @@ export async function POST(request: NextRequest) {
             })
         }
 
-        const data = await response.json()
         return new NextResponse(JSON.stringify(data), {
             status: 200,
             headers: {
