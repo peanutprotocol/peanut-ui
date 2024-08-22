@@ -1,7 +1,7 @@
 import { useContext, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
-
+import crypto from 'crypto'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
@@ -49,10 +49,24 @@ export const GlobalRegisterComponent = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+
+    const hashPassword = (
+        password: string
+    ): {
+        salt: string
+        hash: string
+    } => {
+        const salt = crypto.randomBytes(16).toString('hex')
+
+        const hash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')
+
+        return { salt, hash }
+    }
+
     const handleOnSubmit = async (data: IRegisterForm) => {
         try {
             setLoadingState('Registering')
-            const { salt, hash } = utils.hashPassword(data.password)
+            const { salt, hash } = hashPassword(data.password)
             const registerResponse = await fetch('/api/peanut/user/register-user', {
                 method: 'POST',
                 headers: {
