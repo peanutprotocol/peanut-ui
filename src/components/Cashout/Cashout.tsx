@@ -2,7 +2,7 @@
 import { createElement, useState } from 'react'
 import * as _consts from './Cashout.consts'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-
+import * as consts from '@/constants'
 export const Cashout = ({}) => {
     const [step, setStep] = useState<_consts.ICashoutScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
@@ -32,6 +32,27 @@ export const Cashout = ({}) => {
         address: undefined,
         name: undefined,
     })
+
+    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
+        name: '',
+        email: '',
+        password: '',
+        recipient: '',
+    })
+
+    const [transactionHash, setTransactionHash] = useState<string | undefined>(undefined)
+
+    const [preparedCreateLinkWrapperResponse, setPreparedCreateLinkWrapperResponse] = useState<
+        | {
+              type: string
+              response: any
+              linkDetails: peanutInterfaces.IPeanutLinkDetails
+              password: string
+              feeOptions?: any
+              usdValue?: string
+          }
+        | undefined
+    >(undefined)
 
     const handleOnNext = () => {
         if (step.idx === _consts.CASHOUT_SCREEN_FLOW.length - 1) return
@@ -91,6 +112,13 @@ export const Cashout = ({}) => {
                 setRecipient,
                 usdValue,
                 setUsdValue,
+                preparedCreateLinkWrapperResponse,
+                setPreparedCreateLinkWrapperResponse,
+                offrampForm,
+                setOfframpForm,
+
+                transactionHash,
+                setTransactionHash,
             } as any)}
         </div>
     )

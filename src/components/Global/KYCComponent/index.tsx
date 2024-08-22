@@ -228,7 +228,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
             // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')
-
+            await fetchUser()
             onCompleted?.('KYC completed')
         } catch (error) {
             console.error('Error during the submission process:', error)

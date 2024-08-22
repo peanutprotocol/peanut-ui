@@ -18,6 +18,8 @@ import IframeWrapper from '@/components/Global/IframeWrapper'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { LinkAccountComponent } from '@/components/LinkAccount'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
+import { useAuth } from '@/context/authContext'
+import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
@@ -30,7 +32,7 @@ export const ConfirmClaimLinkIbanView = ({
     tokenPrice,
     attachment,
     estimatedPoints,
-    userType,
+    crossChainDetails,
     initialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [errorState, setErrorState] = useState<{
@@ -39,76 +41,151 @@ export const ConfirmClaimLinkIbanView = ({
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const { claimLink, claimLinkXchain } = useClaimLink()
+    const { fetchUser, user } = useAuth()
 
-    // const handleSubmitTransfer = async () => {
-    //     try {
-    //         const formData = accountFormWatch()
-    //         setLoadingState('Submitting Offramp')
-    //         console.log('liquidationAddressInfo:', liquidationAddress)
-    //         if (!liquidationAddress) return
-    //         const chainId = utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
-    //         const tokenAddress =
-    //             utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
-    //         console.log({
-    //             offrampXchainNeeded,
-    //             offrampChainAndToken,
-    //             liquidationAddress,
-    //             claimLinkData,
-    //             chainId,
-    //             tokenAddress,
-    //         })
+    const handleSubmitTransfer = async () => {
+        try {
+            setLoadingState('Submitting Offramp')
 
-    //         let hash
-    //         if (offrampXchainNeeded) {
-    //             const chainId = utils.getChainIdFromBridgeChainName(offrampChainAndToken.chain) ?? ''
-    //             const tokenAddress =
-    //                 utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', offrampChainAndToken.token) ?? ''
-    //             hash = await claimLinkXchain({
-    //                 address: liquidationAddress.address,
-    //                 link: claimLinkData.link,
-    //                 destinationChainId: chainId,
-    //                 destinationToken: tokenAddress,
-    //             })
-    //         } else {
-    //             hash = await claimLink({
-    //                 address: liquidationAddress.address,
-    //                 link: claimLinkData.link,
-    //             })
-    //         }
+            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+            console.log({
+                tokenName,
+                chainName,
+            })
+            let xchainNeeded
+            if (tokenName && chainName) {
+                xchainNeeded = false
+            } else {
+                xchainNeeded = true
+                const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
+                const optimismChainId = '10'
+                if (!crossChainDetails) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp unavailable',
+                    })
+                    return
+                }
 
-    //         console.log(hash)
+                let route
+                try {
+                    route = await fetchRoute(usdcAddressOptimism, optimismChainId)
+                } catch (error) {
+                    console.log('error', error)
+                }
 
-    //         if (hash) {
-    //             utils.saveOfframpLinkToLocalstorage({
-    //                 data: {
-    //                     ...claimLinkData,
-    //                     depositDate: new Date(),
-    //                     USDTokenPrice: tokenPrice,
-    //                     points: estimatedPoints,
-    //                     txHash: hash,
-    //                     message: attachment.message ? attachment.message : undefined,
-    //                     attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
-    //                     liquidationAddress: liquidationAddress.address,
-    //                     recipientType: recipientType,
-    //                     accountNumber: formData.accountNumber,
-    //                     bridgeCustomerId: peanutUser.bridge_customer_id,
-    //                     bridgeExternalAccountId: peanutAccount.bridge_account_id,
-    //                     peanutCustomerId: peanutUser.user_id,
-    //                     peanutExternalAccountId: peanutAccount.account_id,
-    //                 },
-    //             })
-    //             setTransactionHash(hash)
-    //             console.log('Transaction hash:', hash)
-    //             setLoadingState('Idle')
-    //             onNext()
-    //         }
-    //     } catch (error) {
-    //         console.error('Error during the submission process:', error)
+                console.log('route', route)
+                if (route === undefined) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp unavailable',
+                    })
+                    return
+                }
 
-    //         setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-    //         setLoadingState('Idle')
-    //     }
-    // }
+                tokenName = utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
+                chainName = utils.getBridgeChainName(optimismChainId)
+            }
+
+            console.log({
+                user,
+                chainName,
+                tokenName,
+            })
+
+            if (!user || !chainName || !tokenName) return
+
+            const peanutAccount = user.accounts.find(
+                (account) =>
+                    account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
+                    offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+            ) // TODO: tolowercase and replace all abstraction
+            const bridgeCustomerId = user?.user?.bridge_customer_id
+            const bridgeExternalAccountId = peanutAccount?.bridge_account_id
+
+            console.log({
+                peanutAccount,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+            })
+
+            if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) return
+            // TODO: check if values are asigned
+
+            const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
+
+            console.log('allLiquidationAddresses:', allLiquidationAddresses)
+
+            const liquidationAddress = allLiquidationAddresses.find(
+                (address) =>
+                    address.chain === chainName &&
+                    address.currency === tokenName &&
+                    address.external_account_id === bridgeExternalAccountId
+            )
+
+            console.log('liquidationAddressInfo:', liquidationAddress)
+            if (!liquidationAddress) return
+            const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
+            const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
+            console.log({
+                chainName,
+                tokenName,
+                xchainNeeded,
+                liquidationAddress,
+                claimLinkData,
+                chainId,
+                tokenAddress,
+            })
+
+            let hash
+            if (xchainNeeded) {
+                hash = await claimLinkXchain({
+                    address: liquidationAddress.address,
+                    link: claimLinkData.link,
+                    destinationChainId: chainId,
+                    destinationToken: tokenAddress,
+                })
+            } else {
+                hash = await claimLink({
+                    address: liquidationAddress.address,
+                    link: claimLinkData.link,
+                })
+            }
+
+            console.log(hash)
+
+            if (hash) {
+                utils.saveOfframpLinkToLocalstorage({
+                    data: {
+                        ...claimLinkData,
+                        depositDate: new Date(),
+                        USDTokenPrice: tokenPrice,
+                        points: estimatedPoints,
+                        txHash: hash,
+                        message: attachment.message ? attachment.message : undefined,
+                        attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
+                        liquidationAddress: liquidationAddress.address,
+                        recipientType: recipientType,
+                        accountNumber: offrampForm.recipient,
+                        bridgeCustomerId: bridgeCustomerId,
+                        bridgeExternalAccountId: bridgeExternalAccountId,
+                        peanutCustomerId: user?.user?.userId,
+                        peanutExternalAccountId: peanutAccount.account_id,
+                    },
+                })
+                setTransactionHash(hash)
+                console.log('Transaction hash:', hash)
+                setLoadingState('Idle')
+                onNext()
+            }
+        } catch (error) {
+            console.error('Error during the submission process:', error)
+            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+        } finally {
+            setLoadingState('Idle')
+        }
+    }
 
     const { setStep: setActiveStep, activeStep } = useSteps({
         initialStep: initialKYCStep,
@@ -122,6 +199,43 @@ export const ConfirmClaimLinkIbanView = ({
         }
     }
 
+    const handleCompleteLinkAccount = async (message: string) => {
+        if (message === 'success') {
+            setActiveStep(4)
+        }
+    }
+
+    const fetchRoute = async (toToken: string, toChain: string) => {
+        try {
+            const tokenAmount = Math.floor(
+                Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
+            ).toString()
+
+            const route = await getSquidRouteRaw({
+                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                fromChain: claimLinkData.chainId.toString(),
+                fromToken: claimLinkData.tokenAddress.toLowerCase(),
+                fromAmount: tokenAmount,
+                toChain: toChain,
+                toToken: toToken,
+                slippage: 1,
+                fromAddress: claimLinkData.senderAddress,
+
+                toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+            })
+            return route
+        } catch (error) {
+            console.error('Error fetching route:', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'No route found for the given token pair.',
+            })
+            return undefined
+        } finally {
+            setLoadingState('Idle')
+        }
+    } // TODO: move to utils
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
             {activeStep < 3 ? (
@@ -134,7 +248,12 @@ export const ConfirmClaimLinkIbanView = ({
                     }}
                 />
             ) : activeStep === 3 ? (
-                <GlobaLinkAccountComponent accountNumber={offrampForm?.recipient} />
+                <GlobaLinkAccountComponent
+                    accountNumber={offrampForm?.recipient}
+                    onCompleted={() => {
+                        handleCompleteLinkAccount('success')
+                    }}
+                />
             ) : (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -143,7 +262,7 @@ export const ConfirmClaimLinkIbanView = ({
                             <label className="font-bold">Name</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {offrampForm.name}
+                            {user?.user?.full_name}
                         </span>
                     </div>
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -152,7 +271,7 @@ export const ConfirmClaimLinkIbanView = ({
                             <label className="font-bold">Email</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {offrampForm.email}
+                            {user?.user?.email}
                         </span>
                     </div>
 
@@ -215,13 +334,7 @@ export const ConfirmClaimLinkIbanView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {activeStep > 3 && (
-                    <button
-                        onClick={() => {
-                            console.log('hey')
-                        }}
-                        className="btn-purple btn-xl"
-                        disabled={isLoading}
-                    >
+                    <button onClick={handleSubmitTransfer} className="btn-purple btn-xl" disabled={isLoading}>
                         {isLoading ? (
                             <div className="flex w-full flex-row items-center justify-center gap-2">
                                 <Loading /> {loadingState}

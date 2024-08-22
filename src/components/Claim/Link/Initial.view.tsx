@@ -196,7 +196,6 @@ export const InitialClaimLinkView = ({
                 })
                 setInitialKYCStep(0)
             } else {
-                console.log('user', user)
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
@@ -210,7 +209,6 @@ export const InitialClaimLinkView = ({
                             recipient.name?.replaceAll(' ', '').toLowerCase()
                     )
 
-                    console.log(account)
                     if (account) {
                         setInitialKYCStep(4)
                     } else {
@@ -226,53 +224,6 @@ export const InitialClaimLinkView = ({
                     }
                 }
             }
-            // if (user?.user.kycStatus === 'verified') {
-            //     setOfframpForm({
-            //         name: user.full_name,
-            //         email: user.email,
-            //         recipient: recipient.name ?? '',
-            //         password: '',
-            //     })
-
-            //     console.log(user)
-
-            //     const account = user.accounts.find(
-            //         (account: any) =>
-            //             account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
-            //     )
-            //     setPeanutAccount(account)
-            //     const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
-
-            //     console.log('allLiquidationAddresses', allLiquidationAddresses)
-
-            //     console.log(chainName, tokenName)
-
-            //     console.log(account.bridge_account_id)
-
-            //     let liquidationAddressDetails = allLiquidationAddresses.find(
-            //         (address) =>
-            //             address.chain === chainName &&
-            //             address.currency === tokenName &&
-            //             address.external_account_id === account.bridge_account_id
-            //     )
-
-            //     console.log(liquidationAddressDetails)
-
-            //     if (!liquidationAddressDetails) {
-            //         liquidationAddressDetails = await _utils.createLiquidationAddress(
-            //             user.bridge_customer_id ?? '',
-            //             chainName ?? '',
-            //             tokenName ?? '',
-            //             account.bridge_account_id,
-            //             recipientType === 'iban' ? 'sepa' : 'ach',
-            //             recipientType === 'iban' ? 'eur' : 'usd'
-            //         )
-            //     }
-
-            //     setLiquidationAddress(liquidationAddressDetails)
-            // } else {
-            //     setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
-            // }
 
             onNext()
         } catch (error) {

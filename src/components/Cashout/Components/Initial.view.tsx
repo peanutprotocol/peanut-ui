@@ -15,14 +15,22 @@ import { useAuth } from '@/context/authContext'
 import { set, useForm } from 'react-hook-form'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { isIBAN } from 'validator'
-
+import { useWalletType } from '@/hooks/useWalletType'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
+import { Divider } from '@chakra-ui/react'
+import * as assets from '@/assets'
 export const InitialCashoutView = ({
     onNext,
     tokenValue,
     usdValue,
     setUsdValue,
+    setTokenValue,
     setRecipient,
     recipient,
+    setPreparedCreateLinkWrapperResponse,
+    setInitialKYCStep,
+    setOfframpForm,
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
@@ -37,6 +45,9 @@ export const InitialCashoutView = ({
     const [_tokenValue, _setTokenValue] = useState<string | undefined>(
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
+
+    const { prepareCreateLinkWrapper } = useCreateLink()
+    const { walletType, environmentInfo } = useWalletType()
 
     const {
         register: registerLoginForm,
@@ -63,6 +74,7 @@ export const InitialCashoutView = ({
 
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
+        setErrorState({ showError: false, errorMessage: '' })
         try {
             if (!selectedBankAccount && !newBankAccount) {
                 setErrorState({ showError: true, errorMessage: 'Please select a bank account.' })
@@ -70,26 +82,20 @@ export const InitialCashoutView = ({
                 return
             }
             if (!_tokenValue) return
-            if (inputDenomination === 'TOKEN') {
-                if (selectedTokenPrice) {
-                    setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
-                }
-            } else if (inputDenomination === 'USD') {
-                if (selectedTokenPrice) {
-                    setUsdValue(parseFloat(_tokenValue).toString())
-                }
-            }
 
             const recipientBankAccount = selectedBankAccount || newBankAccount
 
             if (isIBAN(recipientBankAccount)) {
-                setRecipientType('iban')
             } else if (/^[0-9]{6,17}$/.test(recipientBankAccount)) {
-                setRecipientType('us')
             } else {
                 console.error('Invalid bank account')
                 return
-            }
+            } // TODO: fix this if else fuckery & implement check bank account endpoint here
+
+            const preparedCreateLinkWrapperResponse = await prepareCreateLinkWrapper({
+                tokenValue: tokenValue ?? '',
+            })
+            setPreparedCreateLinkWrapperResponse(preparedCreateLinkWrapperResponse)
 
             if (!user) {
                 const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
@@ -103,26 +109,26 @@ export const InitialCashoutView = ({
                 })
 
                 const response = await userIdResponse.json()
-
-                console.log(response)
-
                 if (response.isNewUser) {
                     setUserType('NEW')
                 } else {
                     setUserType('EXISTING')
                 }
 
-                setRecipient({ name: '', address: recipientBankAccount })
                 setOfframpForm({
                     name: '',
                     email: '',
                     password: '',
                     recipient: recipientBankAccount,
                 })
-                setUserId(response.userId)
-                setShowKyc(true)
                 setInitialKYCStep(0)
             } else {
+                setOfframpForm({
+                    email: user?.user?.email ?? '',
+                    name: user?.user?.full_name ?? '',
+                    recipient: recipientBankAccount, // TODO: recipient.name makes no sense here
+                    password: '',
+                })
                 if (user?.user.kycStatus == 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
@@ -131,102 +137,27 @@ export const InitialCashoutView = ({
                     )
 
                     if (account) {
-                        console.log('account found') // TODO: set peanut account
                         onNext()
-
-                        // console.log()
-
-                        // const allLiquidationAddresses = await utils.getLiquidationAddresses(
-                        //     user?.user?.bridge_customer_id ?? ''
-                        // )
-                        // let liquidationAddressDetails = allLiquidationAddresses.find(
-                        //     (address) =>
-                        //         address.chain === chainName &&
-                        //         address.currency === tokenName &&
-                        //         address.external_account_id === account.bridge_account_id
-                        // )
-
-                        // console.log(liquidationAddressDetails)
-
-                        // if (!liquidationAddressDetails) {
-                        //     liquidationAddressDetails = await utils.createLiquidationAddress(
-                        //         user?.user?.bridge_customer_id ?? '',
-                        //         chainName ?? '',
-                        //         tokenName ?? '',
-                        //         account.bridge_account_id,
-                        //         recipientType === 'iban' ? 'sepa' : 'ach',
-                        //         recipientType === 'iban' ? 'eur' : 'usd'
-                        //     )
-                        // }
-
-                        // setLiquidationAddress(liquidationAddressDetails)
                         setInitialKYCStep(4)
                     } else {
                         setInitialKYCStep(3)
                     }
+                } else {
+                    if (!user?.user.email || !user?.user.full_name) {
+                        setInitialKYCStep(0)
+                        console.log('user not verified and no email and name')
+                    } else {
+                        setInitialKYCStep(1)
+                        console.log('user not verified but has email and name')
+                    }
                 }
             }
-
-            // setRecipient({ name: '', address: selectedBankAccount || newBankAccount })
-            // setLoadingState('Idle')
-            // onNext()
+            onNext()
         } catch (error) {
+            console.error('Error:', error)
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again.' })
         } finally {
             setLoadingState('Idle')
-        }
-    }
-
-    const [showKyc, setShowKyc] = useState(false)
-    const [initialKYCStep, setInitialKYCStep] = useState(0)
-    const [userId, setUserId] = useState<string | undefined>(undefined)
-    const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('iban')
-
-    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
-        name: '',
-        email: '',
-        password: '',
-        recipient: '',
-    })
-    const handleLogin = async (loginFormData: { email: string; password: string }) => {
-        try {
-            const userLoginResponse = await fetch('/api/peanut/user/login-user', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    email: loginFormData.email,
-                    password: loginFormData.password,
-                }),
-            })
-            const userLogin = await userLoginResponse.json()
-
-            if (userLoginResponse.status !== 200) {
-                if (userLogin === 'Invalid email format') {
-                    errors.email = {
-                        message: 'Invalid email format',
-                        type: 'validate',
-                    }
-                }
-                if (userLogin === 'Invalid email, userId') {
-                    errors.email = {
-                        message: 'Incorrect email',
-                        type: 'validate',
-                    }
-                } else if (userLogin === 'Invalid password') {
-                    errors.password = {
-                        message: 'Invalid password',
-                        type: 'validate',
-                    }
-                }
-                return
-            }
-            await fetchUser()
-        } catch (error) {
-            console.error('Error:', error)
-            return
-        } finally {
         }
     }
 
@@ -238,20 +169,22 @@ export const InitialCashoutView = ({
         }
     }, [newBankAccount, selectedBankAccount])
 
-    return showKyc ? (
-        <GlobalKYCComponent
-            intialStep={initialKYCStep}
-            offrampForm={offrampForm}
-            recipientType={recipientType}
-            userType={userType}
-            setOfframpForm={setOfframpForm}
-            userId={userId}
-            onCompleted={() => {
-                setShowKyc(false)
-                onNext()
-            }}
-        />
-    ) : (
+    useEffect(() => {
+        if (!_tokenValue) return
+        if (inputDenomination === 'TOKEN') {
+            setTokenValue(_tokenValue)
+            if (selectedTokenPrice) {
+                setUsdValue((parseFloat(_tokenValue) * selectedTokenPrice).toString())
+            }
+        } else if (inputDenomination === 'USD') {
+            setUsdValue(_tokenValue)
+            if (selectedTokenPrice) {
+                setTokenValue((parseFloat(_tokenValue) / selectedTokenPrice).toString())
+            }
+        }
+    }, [_tokenValue, inputDenomination])
+
+    return (
         <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-6 text-center">
             <label className="text-h2">Cash Out</label>
             <div className="flex flex-col justify-center gap-3">
@@ -284,9 +217,16 @@ export const InitialCashoutView = ({
                     </div>
                 )}
             </div>
-            <div className="flex w-full flex-col justify-center gap-3">
-                <div className="max-h-48 space-y-2 overflow-y-scroll">
-                    {user ? (
+            <div className="flex w-full flex-col justify-center gap-3 p-3">
+                <div className="max-h-48 space-y-2 overflow-y-scroll ">
+                    {!user && isFetchingUser ? (
+                        <div className="relative flex h-16 w-full items-center justify-center">
+                            <div className="animate-spin">
+                                <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                                <span className="sr-only">Loading...</span>
+                            </div>
+                        </div>
+                    ) : user ? (
                         user?.accounts &&
                         user?.accounts
                             .filter((account) => account.account_type === 'iban' || account.account_type === 'us')
@@ -313,50 +253,17 @@ export const InitialCashoutView = ({
                                 </div>
                             ))
                     ) : (
-                        <div>
-                            <label>Login to see your bank accounts</label>
-                            <form
-                                className="flex w-full flex-col items-start justify-center gap-2"
-                                onSubmit={handleSubmit(handleLogin)}
-                            >
-                                <input
-                                    {...registerLoginForm('email', { required: 'This field is required' })}
-                                    className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
-                                    placeholder="Email"
-                                    type="email"
-                                />
-                                {errors.email && (
-                                    <span className="text-h9 font-normal text-red">{errors.email.message}</span>
-                                )}
-
-                                <input
-                                    {...registerLoginForm('password', { required: 'This field is required' })}
-                                    className={`custom-input custom-input-xs ${errors.password ? 'border border-red' : ''}`}
-                                    placeholder="Password"
-                                    type="password"
-                                    onKeyDown={(e) => {
-                                        // if (e.key === 'Enter') {
-                                        //     handleEmail(watchOfframp())
-                                        // }
-                                    }}
-                                />
-                                {errors.password && (
-                                    <span className="text-h9 font-normal text-red">{errors.password.message}</span>
-                                )}
-                                <button
-                                    className="wc-disable-mf btn-purple btn-xl w-full max-w-[100%]"
-                                    // onClick={() => {
-                                    //     handleEmail(watchOfframp())
-                                    // }}
-                                    type="submit"
-                                >
-                                    Login
-                                </button>
-                            </form>
+                        <div className="flex w-full flex-col items-start justify-center gap-2 ">
+                            <label>Login to see your linked bank accounts:</label>
+                            <GlobalLoginComponent />
                         </div>
                     )}
                 </div>
-
+                <span className="flex w-full flex-row items-center justify-center gap-2">
+                    <Divider borderColor={'black'} />
+                    <p>or</p>
+                    <Divider borderColor={'black'} />
+                </span>
                 <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
                 <div className="flex w-full cursor-pointer border border-black p-2">
                     <label className="ml-2 text-right">To:</label>
@@ -369,30 +276,31 @@ export const InitialCashoutView = ({
                         onFocus={() => setActiveInput('newBankAccount')}
                     />
                 </div>
-                <button
-                    className="wc-disable-mf btn-purple btn-xl w-full max-w-[100%]"
-                    onClick={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
-                    }}
-                    disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount)}
-                >
-                    {!isConnected ? (
-                        'Create or Connect Wallet'
-                    ) : isLoading ? (
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {loadingState}
-                        </div>
-                    ) : (
-                        'Proceed'
-                    )}
-                </button>
-                {errorState.showError && (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                    </div>
-                )}
             </div>
+
+            <button
+                className="wc-disable-mf btn-purple btn-xl w-full max-w-[100%]"
+                onClick={() => {
+                    if (!isConnected) handleConnectWallet()
+                    else handleOnNext()
+                }}
+                disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount)}
+            >
+                {!isConnected ? (
+                    'Create or Connect Wallet'
+                ) : isLoading ? (
+                    <div className="flex w-full flex-row items-center justify-center gap-2">
+                        <Loading /> {loadingState}
+                    </div>
+                ) : (
+                    'Proceed'
+                )}
+            </button>
+            {errorState.showError && (
+                <div className="text-center">
+                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                </div>
+            )}
         </div>
     )
 }

@@ -22,7 +22,8 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as _utils from './Create.utils'
 import { BigNumber, ethers } from 'ethers'
-
+import { assert } from 'console'
+import { useWalletType } from '@/hooks/useWalletType'
 interface IAssertValuesProps {
     tokenValue: string | undefined
 }
@@ -48,6 +49,7 @@ export const useCreateLink = () => {
     // step 1
     const assertValues = async ({ tokenValue }: IAssertValuesProps) => {
         // if inputDenomination is USD, the tokenPrice has to be defineds
+        console.log(inputDenomination)
         if (inputDenomination == 'USD') {
             if (!selectedTokenPrice) {
                 try {
@@ -83,7 +85,8 @@ export const useCreateLink = () => {
                     })
                 )
             }
-
+            console.log(balance)
+            console.log(tokenValue)
             if (!balance || (balance && balance < Number(tokenValue))) {
                 throw new Error('Please ensure that you have sufficient balance of the token you are trying to send')
             }
@@ -610,6 +613,122 @@ export const useCreateLink = () => {
             throw error
         }
     }
+    const { walletType, environmentInfo } = useWalletType()
+    const { refetchBalances } = useBalance()
+
+    const prepareCreateLinkWrapper = async ({ tokenValue }: { tokenValue: string }) => {
+        try {
+            await assertValues({ tokenValue })
+            const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
+            const password = await generatePassword()
+            await switchNetwork(selectedChainID)
+
+            const isGaslessDepositPossible = _utils.isGaslessDepositPossible({
+                chainId: selectedChainID,
+                tokenAddress: selectedTokenAddress,
+            })
+            if (isGaslessDepositPossible) {
+                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+                    _linkDetails: linkDetails,
+                    _password: password,
+                })
+
+                if (
+                    !makeGaslessDepositResponse ||
+                    !makeGaslessDepositResponse.payload ||
+                    !makeGaslessDepositResponse.message
+                )
+                    return
+
+                return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
+            } else {
+                let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
+                    await prepareDepositTxs({
+                        _linkDetails: linkDetails,
+                        _password: password,
+                    })
+
+                const feeOptions = await estimateGasFee({
+                    chainId: selectedChainID,
+                    preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                })
+
+                return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
+            }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    const createLinkWrapper = async ({
+        type,
+        response,
+        linkDetails,
+        password,
+        feeOptions,
+        usdValue,
+    }: {
+        type: string
+        response: any
+        linkDetails: peanutInterfaces.IPeanutLinkDetails
+        password: string
+        feeOptions?: any
+        usdValue?: string
+    }) => {
+        try {
+            let hash: string = ''
+
+            await submitClaimLinkInit({
+                password: password ?? '',
+                attachmentOptions: {
+                    attachmentFile: undefined,
+                    message: undefined,
+                },
+                senderAddress: address ?? '',
+            })
+
+            if (type === 'deposit') {
+                hash = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions })) ?? ''
+            } else if (type === 'gasless') {
+                const signature = await signTypedData({ gaslessMessage: response.message })
+                hash = await makeDepositGasless({ signature, payload: response.payload })
+            }
+
+            const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+
+            utils.saveCreatedLinkToLocalStorage({
+                address: address ?? '',
+                data: {
+                    link: link[0],
+                    depositDate: new Date().toISOString(),
+                    USDTokenPrice: selectedTokenPrice ?? 0,
+                    points: 0,
+                    txHash: hash,
+                    message: '',
+                    attachmentUrl: undefined,
+                    ...linkDetails,
+                },
+            })
+
+            console.log(link)
+
+            await submitClaimLinkConfirm({
+                chainId: selectedChainID,
+                link: link[0],
+                password: password ?? '',
+                txHash: hash,
+                senderAddress: address ?? '',
+                amountUsd: parseFloat(usdValue ?? '0'),
+                transaction: type === 'deposit' ? response && response.unsignedTxs[0] : undefined,
+            })
+
+            await refetchBalances()
+
+            return link[0]
+        } catch (error) {
+            throw error
+        }
+    }
 
     return {
         assertValues,
@@ -628,5 +747,7 @@ export const useCreateLink = () => {
         submitClaimLinkConfirm,
         prepareDirectSendTx,
         submitDirectTransfer,
+        prepareCreateLinkWrapper,
+        createLinkWrapper,
     }
 }

@@ -16,6 +16,7 @@ const steps = [{ label: 'Step 1: Enter bank account' }, { label: 'Step 2: Provid
 
 interface IGlobaLinkAccountComponentProps {
     accountNumber?: string
+    onCompleted?: () => void
 }
 
 interface IRegisterAccountDetails {
@@ -30,7 +31,7 @@ interface IRegisterAccountDetails {
     type: string
 }
 
-export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountComponentProps) => {
+export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGlobaLinkAccountComponentProps) => {
     const {
         setStep: setActiveStep,
         activeStep,
@@ -68,8 +69,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountCo
     const {
         register: registerIban,
         formState: { errors: ibanErrors },
-        watch: ibanFormWatch,
-        setValue: setIbanFormValue,
         setError: setIbanFormError,
         getValues: getIbanFormValue,
         handleSubmit: handleIbanSubmit,
@@ -80,87 +79,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountCo
         },
     })
     const { user, fetchUser } = useAuth()
-
-    // const handleSubmitLinkIban = async () => {
-    //     const formData = accountFormWatch()
-    //     const isFormValid = utils.validateAccountFormData(formData, setAccountFormError)
-
-    //     if (!isFormValid) {
-    //         console.log('Form is invalid')
-    //         return
-    //     }
-
-    //     try {
-    //         if (recipientType === 'iban') setLoadingState('Linking IBAN')
-    //         else if (recipientType === 'us') setLoadingState('Linking account')
-
-    //         const customerId = customerObject?.customer_id ?? user?.user?.bridge_customer_id
-    //         const accountType = formData.type
-    //         const accountDetails =
-    //             accountType === 'iban'
-    //                 ? {
-    //                       accountNumber: formData.accountNumber,
-    //                       bic: formData.BIC,
-    //                       country: utils.getThreeCharCountryCodeFromIban(formData.accountNumber),
-    //                   }
-    //                 : { accountNumber: formData.accountNumber, routingNumber: formData.routingNumber }
-    //         const address = {
-    //             street: formData.street,
-    //             city: formData.city,
-    //             country: formData.country ?? 'BEL',
-    //             state: formData.state,
-    //             postalCode: formData.postalCode,
-    //         }
-    //         let accountOwnerName = offrampForm.name ?? user?.user?.full_name
-
-    //         if (!customerId) {
-    //             throw new Error('Customer ID is missing')
-    //         }
-
-    //         if (!accountOwnerName) {
-    //             const bridgeCustomer = await utils.getCustomer(customerId)
-    //             accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
-    //         }
-
-    //         const data = await utils.createExternalAccount(
-    //             customerId,
-    //             accountType as 'iban' | 'us',
-    //             accountDetails,
-    //             address,
-    //             accountOwnerName
-    //         )
-
-    //         await utils.createAccount(
-    //             user?.user?.userId ?? '',
-    //             customerId,
-    //             data.id,
-    //             accountType,
-    //             formData.accountNumber.replaceAll(' ', ''),
-    //             address
-    //         )
-    //         await fetchUser()
-
-    //         // const liquidationAddressDetails = await utils.createLiquidationAddress(
-    //         //     customerId,
-    //         //     offrampChainAndToken.chain,
-    //         //     offrampChainAndToken.token,
-    //         //     data.id,
-    //         //     recipientType === 'iban' ? 'sepa' : 'ach',
-    //         //     recipientType === 'iban' ? 'eur' : 'usd'
-    //         // )
-
-    //         // setLiquidationAddress(liquidationAddressDetails)
-    //         setActiveStep(3)
-    //         setAddressRequired(false)
-    //         setLoadingState('Idle')
-    //         onCompleted && onCompleted()
-    //     } catch (error) {
-    //         console.error('Error during the submission process:', error)
-    //         setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-
-    //         setLoadingState('Idle')
-    //     }
-    // }
 
     const handleCheckIban = async ({ accountNumber }: { accountNumber: string | undefined }) => {
         console.log('Checking IBAN', accountNumber)
@@ -247,14 +165,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountCo
             }
             let accountOwnerName = user?.user?.full_name
 
-            console.log({
-                customerId,
-                accountType,
-                accountDetails,
-                address,
-                accountOwnerName,
-            })
-
             if (!accountOwnerName) {
                 const bridgeCustomer = await utils.getCustomer(customerId)
                 accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
@@ -282,7 +192,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber }: IGlobaLinkAccountCo
             )
             await fetchUser()
 
-            setCompletedLinking(true)
+            onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error during the submission process:', error)
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })

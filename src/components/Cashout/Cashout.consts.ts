@@ -1,6 +1,7 @@
 import { CreateScreens } from '../Create/Create.consts'
 import * as views from './Components'
-
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import * as consts from '@/constants'
 export type CashoutScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
 
 export type CashoutType = 'bank_transfer' | undefined
@@ -33,4 +34,32 @@ export interface ICashoutScreenProps {
     setRecipient: (recipient: { address: string | undefined; name: string | undefined }) => void
     usdValue: string | undefined
     setUsdValue: (value: string | number) => void
+    preparedCreateLinkWrapperResponse:
+        | {
+              type: string
+              response: any
+              linkDetails: peanutInterfaces.IPeanutLinkDetails
+              password: string
+              feeOptions?: any
+              usdValue?: string
+          }
+        | undefined
+    setPreparedCreateLinkWrapperResponse: (
+        response:
+            | {
+                  type: string
+                  response: any
+                  linkDetails: peanutInterfaces.IPeanutLinkDetails
+                  password: string
+                  feeOptions?: any
+                  usdValue?: string
+              }
+            | undefined
+    ) => void
+    initialKYCStep: number
+    setInitialKYCStep: (step: number) => void
+    offrampForm: consts.IOfframpForm
+    setOfframpForm: (form: consts.IOfframpForm) => void
+    transactionHash: string
+    setTransactionHash: (hash: string) => void
 }
