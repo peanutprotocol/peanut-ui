@@ -44,7 +44,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const { address: tokenAddress } = await tokenAddressResponse.json()
             if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
                 setIsFetchingUser(false)
-                return setUser(null)
+                setUser(null)
+                return null
             }
 
             const response = await fetch('/api/peanut/user/get-user-from-cookie')
