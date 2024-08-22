@@ -14,6 +14,16 @@ export async function POST(request: NextRequest) {
 
         const idempotencyKey = uuidv4()
 
+        console.log({
+            customer_id,
+            chain,
+            currency,
+            external_account_id,
+            destination_payment_rail,
+            destination_currency,
+            idempotencyKey,
+        })
+
         let response = await fetch(`https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`, {
             method: 'POST',
             headers: {
@@ -44,7 +54,7 @@ export async function POST(request: NextRequest) {
                 {
                     method: 'GET',
                     headers: {
-                        'Api-Key': 'sk-live-6ac1755eab8bdb95a455ab1e9515b525',
+                        'Api-Key': process.env.BRIDGE_API_KEY,
                         accept: 'application/json',
                     },
                 }

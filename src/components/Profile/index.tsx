@@ -16,6 +16,8 @@ import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
 import ImageEdit from '../Global/ImageEdit'
 import TextEdit from '../Global/TextEdit'
+import IframeWrapper from '../Global/IframeWrapper'
+import Link from 'next/link'
 
 const tabs = [
     {
@@ -329,13 +331,27 @@ export const Profile = () => {
                                 }}
                             />
 
-                            <TextEdit
-                                initialText={initialUserName}
-                                onTextChange={(text) => {
-                                    setInitialUserName(text)
-                                    updateUserName(text)
-                                }}
-                            />
+                            <div className="flex flex-col items-start justify-center gap-1">
+                                <TextEdit
+                                    initialText={initialUserName}
+                                    onTextChange={(text) => {
+                                        setInitialUserName(text)
+                                        updateUserName(text)
+                                    }}
+                                />
+                                {user?.user?.kycStatus === 'verified' ? (
+                                    <span className="flex justify-center text-h8 font-normal">
+                                        KYC <Icon name="check" />
+                                    </span>
+                                ) : (
+                                    <Link
+                                        href={'/kyc'}
+                                        className="flex cursor-pointer justify-center text-h8 font-normal underline"
+                                    >
+                                        Click here to KYC
+                                    </Link>
+                                )}
+                            </div>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.totalPoints} points</span>

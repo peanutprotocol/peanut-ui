@@ -11,6 +11,7 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import * as assets from '@/assets'
 import * as consts from '@/constants'
+import * as _utils from './Claim.utils'
 import FlowManager from './Link/FlowManager'
 
 export const Claim = ({}) => {
@@ -34,29 +35,21 @@ export const Claim = ({}) => {
     const [selectedRoute, setSelectedRoute] = useState<any>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>()
     const [hasFetchedRoute, setHasFetchedRoute] = useState<boolean>(false)
-    const [liquidationAddress, setLiquidationAddress] = useState<interfaces.IBridgeLiquidationAddress | undefined>(
-        undefined
-    )
-    const [peanutUser, setPeanutUser] = useState<any>(null)
-    const [peanutAccount, setPeanutAccount] = useState<any>(null)
 
     const [recipientType, setRecipientType] = useState<interfaces.RecipientType>('address')
-    const [offrampForm, setOfframpForm] = useState<_consts.IOfframpForm>({
+    const [offrampForm, setOfframpForm] = useState<consts.IOfframpForm>({
         name: '',
         email: '',
+        password: '',
         recipient: '',
-    })
-    const [offrampXchainNeeded, setOfframpXchainNeeded] = useState<boolean>(false)
-    const [offrampChainAndToken, setOfframpChainAndToken] = useState<{
-        chain: string
-        token: string
-    }>({
-        chain: '',
-        token: '',
     })
 
     const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
 
+    const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
+
+    const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
+    const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useAccount()
     const { getAttachmentInfo, estimatePoints } = useClaimLink()
 
@@ -82,7 +75,6 @@ export const Claim = ({}) => {
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
         }))
     }
-
     const getCrossChainDetails = async (linkDetails: interfaces.ILinkDetails) => {
         // xchain is only available for native and erc20
         if (linkDetails.tokenType != 0 && linkDetails.tokenType != 1) {
@@ -101,27 +93,27 @@ export const Claim = ({}) => {
 
             const contractVersionCheck = peanut.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
             if (crossChainDetails.length > 0 && contractVersionCheck) {
-                const xchainDetails = sortCrossChainDetails(
+                const xchainDetails = _utils.sortCrossChainDetails(
                     crossChainDetails.filter((chain: any) => chain.chainId != '1'),
                     consts.supportedPeanutChains,
                     linkDetails.chainId
                 )
-
-                console.log(xchainDetails)
+                console.log('Before map:', xchainDetails)
 
                 const filteredXchainDetails = xchainDetails.map((chain) => {
                     if (chain.chainId === claimLinkData?.chainId) {
                         return {
                             ...chain,
                             tokens: chain.tokens.filter(
-                                (token: any) => !utils.compareTokenAddresses(token.address, claimLinkData?.tokenAddress)
+                                (token: any) =>
+                                    token.address.toLowerCase() !== claimLinkData?.tokenAddress.toLowerCase()
                             ),
                         }
                     }
                     return chain
                 })
 
-                console.log(filteredXchainDetails)
+                console.log('After map, before log:', filteredXchainDetails)
 
                 setSelectedChainID(filteredXchainDetails[0].chainId)
                 setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)
@@ -134,22 +126,6 @@ export const Claim = ({}) => {
             return undefined
         }
     }
-
-    const sortCrossChainDetails = (details: any[], order: any[], sourceChainId: string) => {
-        const orderMap = new Map(order.map((item, index) => [item.chainId, index]))
-        return details.sort((a, b) => {
-            if (a.chainId === sourceChainId) return -1
-            if (b.chainId === sourceChainId) return 1
-
-            const indexA = orderMap.get(a.chainId)
-            const indexB = orderMap.get(b.chainId)
-            if (indexA === undefined || indexB === undefined) {
-                return 0 // Default to no order if not found
-            }
-            return indexA - indexB
-        })
-    }
-
     const checkLink = async (link: string) => {
         try {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
@@ -243,16 +219,12 @@ export const Claim = ({}) => {
                             setRecipientType,
                             offrampForm,
                             setOfframpForm,
-                            liquidationAddress,
-                            setLiquidationAddress,
-                            peanutUser,
-                            setPeanutUser,
-                            peanutAccount,
-                            setPeanutAccount,
-                            offrampXchainNeeded,
-                            setOfframpXchainNeeded,
-                            offrampChainAndToken,
-                            setOfframpChainAndToken,
+                            userType,
+                            setUserType,
+                            userId,
+                            setUserId,
+                            initialKYCStep,
+                            setInitialKYCStep,
                         } as _consts.IClaimScreenProps
                     }
                 />

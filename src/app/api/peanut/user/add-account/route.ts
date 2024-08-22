@@ -1,31 +1,34 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import * as consts from '@/constants'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
     try {
         const body = await request.json()
-        const { userId, bridgeCustomerId, bridgeAccountId, accountType, accountIdentifier, accountDetails } = body
+        const { userId, bridgeAccountId, accountType, accountIdentifier } = body
 
         const apiKey = process.env.PEANUT_API_KEY!
 
-        if (!apiKey || !bridgeCustomerId || !bridgeAccountId || !accountType || !accountIdentifier || !userId) {
+        const cookieStore = cookies()
+        const token = cookieStore.get('jwt-token')
+
+        if (!apiKey || !accountType || !accountIdentifier || !userId || !token) {
             return new NextResponse('Bad Request: Missing required fields', { status: 400 })
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/user/create-account`, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/add-account`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'api-key': apiKey,
+                Authorization: `Bearer ${token.value}`,
             },
             body: JSON.stringify({
                 userId,
-                bridgeCustomerId,
-                bridgeAccountId,
+                bridgeAccountIdentifier: bridgeAccountId,
                 accountType,
                 accountIdentifier,
-                accountDetails,
             }),
         })
 

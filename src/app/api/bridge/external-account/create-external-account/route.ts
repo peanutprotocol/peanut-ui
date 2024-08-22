@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         if (accountType === 'iban') {
             body = {
                 iban: {
-                    account_number: accountDetails.accountNumber.replaceAll(' ', ''),
+                    account_number: accountDetails.accountNumber.replace(/\s+/g, ''),
                     bic: accountDetails.bic,
                     country: accountDetails.country,
                 },
@@ -65,11 +65,13 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(body),
         })
 
+        const data = await response.json()
+        console.log('data', data)
+
         if (!response.ok) {
+            console.log('response', response)
             throw new Error(`HTTP error! status: ${response.status}`)
         }
-
-        const data = await response.json()
 
         return new NextResponse(JSON.stringify(data), {
             status: 200,
