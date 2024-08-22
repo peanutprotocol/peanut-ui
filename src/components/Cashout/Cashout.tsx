@@ -41,6 +41,7 @@ export const Cashout = ({}) => {
     })
 
     const [transactionHash, setTransactionHash] = useState<string | undefined>(undefined)
+    const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 
     const [preparedCreateLinkWrapperResponse, setPreparedCreateLinkWrapperResponse] = useState<
         | {
@@ -116,7 +117,8 @@ export const Cashout = ({}) => {
                 setPreparedCreateLinkWrapperResponse,
                 offrampForm,
                 setOfframpForm,
-
+                initialKYCStep,
+                setInitialKYCStep,
                 transactionHash,
                 setTransactionHash,
             } as any)}

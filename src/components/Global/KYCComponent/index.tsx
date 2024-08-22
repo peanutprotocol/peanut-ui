@@ -1,5 +1,5 @@
 'use client'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
 
 import * as utils from '@/utils'
@@ -48,7 +48,8 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
     const [kycLinkOpened, setKycLinkOpened] = useState<boolean>(false)
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [loadingState, setLoadingState] = useState<string>('Idle')
+    const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
     const { fetchUser, updateBridgeCustomerId } = useAuth()
 
     const {
@@ -349,10 +350,11 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     return (
         <div>
             <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
-                <p className="text-h8 font-normal">
+                <p className="w-full text-h8 font-normal">
                     Please login or register and finish the KYC process. After doing this, you can cashout straight to
                     your bank account!
                 </p>
+                {/* TODO: remove this above copy */}
                 <Steps
                     variant={'circles'}
                     orientation="vertical"
@@ -371,6 +373,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             },
                         },
                     }}
+                    className="w-full"
                 >
                     {steps.map(({ label }, index) => (
                         <Step label={label} key={label}>

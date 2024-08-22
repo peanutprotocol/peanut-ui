@@ -1,5 +1,5 @@
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
-import { useContext, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 
 import * as utils from '@/utils'
@@ -39,7 +39,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     } = useSteps({
         initialStep: 0,
     })
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [loadingState, setLoadingState] = useState<string>('Idle')
+    const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string

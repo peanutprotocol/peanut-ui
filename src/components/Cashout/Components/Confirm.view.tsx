@@ -401,21 +401,56 @@ export const ConfirmCashoutView = ({
                     </div>
                 </div>
             )}
-
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                <button className="btn-purple btn-xl w-full max-w-[100%]" onClick={handleConfirm} disabled={isLoading}>
-                    {isLoading ? (
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {loadingState}
-                        </div>
-                    ) : (
-                        'Submit'
-                    )}
-                </button>
-                <button className="btn btn-xl w-full max-w-[100%]" onClick={onPrev} disabled={isLoading}>
-                    Return
-                </button>
-                {errorState.showError && (
+                {activeStep > 3 && (
+                    <>
+                        <button onClick={handleConfirm} className="btn-purple btn-xl" disabled={isLoading}>
+                            {isLoading ? (
+                                <div className="flex w-full flex-row items-center justify-center gap-2">
+                                    <Loading /> {loadingState}
+                                </div>
+                            ) : (
+                                'Cashout'
+                            )}
+                        </button>
+                        <button
+                            className="btn btn-xl dark:border-white dark:text-white"
+                            onClick={() => {
+                                onPrev()
+                                setActiveStep(0)
+                                setErrorState({ showError: false, errorMessage: '' })
+                                setOfframpForm({ email: '', name: '', recipient: '', password: '' })
+                            }}
+                            disabled={isLoading}
+                            type="button"
+                        >
+                            Return
+                        </button>
+                    </>
+                )}
+
+                {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">
+                            KYC is under review, we might need additional documents. Please reach out via{' '}
+                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                discord
+                            </a>{' '}
+                            to finish the process.
+                        </label>
+                    </div>
+                ) : errorState.errorMessage === 'KYC rejected' ? (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">
+                            KYC has been rejected. Please reach out via{' '}
+                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                {' '}
+                                discord{' '}
+                            </a>{' '}
+                            .
+                        </label>
+                    </div>
+                ) : (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>

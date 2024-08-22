@@ -1,10 +1,10 @@
-import { useContext, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
 
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
-
+import crypto from 'crypto'
 interface ILoginComponentProps {
     email?: string
     password?: string
@@ -18,7 +18,8 @@ interface ILoginForm {
 }
 
 export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }: ILoginComponentProps) => {
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [loadingState, setLoadingState] = useState<string>('Idle')
+    const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
     const { fetchUser } = useAuth()
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -41,6 +42,25 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
         try {
             setLoadingState('Loading')
             console.log(data)
+
+            const saltResponse = await fetch('/api/peanut/user/get-user-salt', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email: data.email }),
+            })
+
+            if (saltResponse.status !== 200) {
+                const errorData = await saltResponse.json()
+                console.error('Failed to retrieve salt:', errorData)
+                return null
+            }
+
+            const { salt } = await saltResponse.json()
+
+            const hash = crypto.pbkdf2Sync(data.password, salt, 10000, 64, 'sha512').toString('hex')
+
             const loginResponse = await fetch('/api/peanut/user/login-user', {
                 method: 'POST',
                 headers: {
@@ -48,7 +68,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                 },
                 body: JSON.stringify({
                     email: data.email,
-                    password: data.password,
+                    hash: hash,
                 }),
             })
             const login = await loginResponse.json()

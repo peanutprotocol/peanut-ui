@@ -1,11 +1,11 @@
-import { useContext, useState } from 'react'
+import { useContext, useMemo, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import Loading from '../Loading'
 
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
-
+import * as utils from '@/utils'
 interface IRegisterComponentProps {
     userId?: string
     name?: string
@@ -29,7 +29,8 @@ export const GlobalRegisterComponent = ({
     onSubmit,
     redirectUrl,
 }: IRegisterComponentProps) => {
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const [loadingState, setLoadingState] = useState<string>('Idle')
+    const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
     const { fetchUser } = useAuth()
     const {
         register,
@@ -51,6 +52,7 @@ export const GlobalRegisterComponent = ({
     const handleOnSubmit = async (data: IRegisterForm) => {
         try {
             setLoadingState('Registering')
+            const { salt, hash } = utils.hashPassword(data.password)
             const registerResponse = await fetch('/api/peanut/user/register-user', {
                 method: 'POST',
                 headers: {
@@ -58,16 +60,19 @@ export const GlobalRegisterComponent = ({
                 },
                 body: JSON.stringify({
                     email: data.email,
-                    password: data.password,
+                    salt,
+                    hash,
                     fullName: data.name,
                 }),
             })
 
-            const register = await registerResponse.json()
+            await registerResponse.json()
 
             // If user already exists, login
             if (registerResponse.status === 409) {
                 throw new Error('User already exists')
+            } else if (registerResponse.status !== 200) {
+                throw new Error('Error registering user')
             }
 
             await fetchUser()

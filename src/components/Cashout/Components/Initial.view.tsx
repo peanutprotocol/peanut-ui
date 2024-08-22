@@ -108,11 +108,15 @@ export const InitialCashoutView = ({
                     }),
                 })
 
-                const response = await userIdResponse.json()
-                if (response.isNewUser) {
+                if (userIdResponse.status === 404) {
                     setUserType('NEW')
                 } else {
-                    setUserType('EXISTING')
+                    const response = await userIdResponse.json()
+                    if (response.isNewUser) {
+                        setUserType('NEW')
+                    } else {
+                        setUserType('EXISTING')
+                    }
                 }
 
                 setOfframpForm({
