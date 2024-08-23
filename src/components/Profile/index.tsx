@@ -171,7 +171,7 @@ export const Profile = () => {
                             primaryText: data.userName,
                             address: data.address,
                             secondaryText: '',
-                            tertiaryText: utils.shortenAddressLong(data.address),
+                            tertiaryText: utils.shortenAddressLong(data.address) ?? '',
                             quaternaryText: data.txs.toString(),
                             itemKey: data.userName + Math.random(),
                             type: 'contacts',
