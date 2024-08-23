@@ -40,8 +40,8 @@ export const MobileTableComponent = ({
                 <div className="flex w-full flex-row items-center justify-between">
                     <div className="flex w-full max-w-48 flex-col items-start justify-center gap-1">
                         <label className="font-bold">
-                            {primaryText.substring(0, 1).toUpperCase()}
-                            {primaryText.substring(1).toLowerCase()}
+                            {primaryText?.substring(0, 1).toUpperCase()}
+                            {primaryText?.substring(1).toLowerCase()}
                         </label>
                     </div>
                     <label>{secondaryText}</label>
