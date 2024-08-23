@@ -370,14 +370,16 @@ export const Profile = () => {
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
-                                <Icon
-                                    name={'info'}
-                                    className={`cursor-pointer transition-transform dark:fill-white`}
-                                    onClick={() => {
-                                        setModalVisible(true)
-                                        setModalType('Invites')
-                                    }}
-                                />
+                                {user?.referredUsers > 0 && (
+                                    <Icon
+                                        name={'info'}
+                                        className={`cursor-pointer transition-transform dark:fill-white`}
+                                        onClick={() => {
+                                            setModalVisible(true)
+                                            setModalType('Invites')
+                                        }}
+                                    />
+                                )}
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
