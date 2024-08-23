@@ -331,7 +331,7 @@ export function getThreeCharCountryCodeFromIban(iban: string): string {
         throw new Error('Invalid IBAN')
     }
 
-    const twoCharCountryCode = iban.substring(0, 2).toUpperCase()
+    const twoCharCountryCode = iban?.substring(0, 2).toUpperCase()
     const threeCharCountryCode = countries.alpha2ToAlpha3(twoCharCountryCode)
 
     if (!threeCharCountryCode) {
