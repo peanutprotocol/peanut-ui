@@ -315,8 +315,19 @@ export const ConfirmClaimLinkIbanView = ({
                             <label className="font-bold">Fee</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            $0
-                            <MoreInfo text={'Fees are on us, enjoy!'} />
+                            {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
+                                ?.account_type === 'iban'
+                                ? '$1'
+                                : '$0.50'}
+                            <MoreInfo
+                                text={
+                                    user?.accounts.find(
+                                        (account) => account.account_identifier === offrampForm.recipient
+                                    )?.account_type === 'iban'
+                                        ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
+                                        : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
+                                }
+                            />
                         </span>
                     </div>
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -327,6 +338,26 @@ export const ConfirmClaimLinkIbanView = ({
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                             ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
                             <MoreInfo text={'Woop Woop free offramp!'} />
+                        </span>
+                        <div className="flex w-max  flex-row items-center justify-center gap-1">
+                            <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Total</label>
+                        </div>
+                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            $
+                            {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
+                                ?.account_type === 'iban'
+                                ? utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1)
+                                : utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5)}
+                            <MoreInfo
+                                text={
+                                    user?.accounts.find(
+                                        (account) => account.account_identifier === offrampForm.recipient
+                                    )?.account_type === 'iban'
+                                        ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                        : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                }
+                            />
                         </span>
                     </div>
                 </div>

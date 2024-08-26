@@ -62,4 +62,5 @@ export interface ICashoutScreenProps {
     setOfframpForm: (form: consts.IOfframpForm) => void
     transactionHash: string
     setTransactionHash: (hash: string) => void
+    crossChainDetails: []
 }

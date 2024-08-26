@@ -15,11 +15,13 @@ import * as consts from '@/constants'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import useClaimLink from '@/components/Claim/useClaimLink'
+import Link from 'next/link'
 
 export const ConfirmCashoutView = ({
     onNext,
     onPrev,
     usdValue,
+
     preparedCreateLinkWrapperResponse,
     initialKYCStep,
     offrampForm,
@@ -36,8 +38,9 @@ export const ConfirmCashoutView = ({
         context.tokenSelectorContext
     )
     const { claimLink, claimLinkXchain } = useClaimLink()
-
+    const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
+    const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -56,7 +59,7 @@ export const ConfirmCashoutView = ({
             })
 
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
-
+            setCreatedLink(link)
             console.log(link)
 
             const claimLinkData = await getLinkDetails({ link: link })
@@ -95,6 +98,7 @@ export const ConfirmCashoutView = ({
                         showError: true,
                         errorMessage: 'offramp unavailable',
                     })
+                    setShowRefund(true)
                     return
                 }
 
@@ -287,8 +291,6 @@ export const ConfirmCashoutView = ({
                 errorMessage: 'No route found for the given token pair.',
             })
             return undefined
-        } finally {
-            setLoadingState('Idle')
         }
     } // TODO: move to utils
 
@@ -383,8 +385,19 @@ export const ConfirmCashoutView = ({
                                 <label className="font-bold">Fee</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                $0.50
-                                <MoreInfo text={'Fees are on us, enjoy!'} />
+                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
+                                    ?.account_type === 'iban'
+                                    ? '$1'
+                                    : '$0.50'}
+                                <MoreInfo
+                                    text={
+                                        user?.accounts.find(
+                                            (account) => account.account_identifier === offrampForm.recipient
+                                        )?.account_type === 'iban'
+                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
+                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
+                                    }
+                                />
                             </span>
                         </div>
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -393,10 +406,21 @@ export const ConfirmCashoutView = ({
                                 <label className="font-bold">Total</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                ${utils.formatTokenAmount(parseFloat(usdValue ?? ''))}{' '}
-                                <MoreInfo text={'Woop Woop free offramp!'} />
+                                $
+                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
+                                    ?.account_type === 'iban'
+                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
+                                    : utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)}
+                                <MoreInfo
+                                    text={
+                                        user?.accounts.find(
+                                            (account) => account.account_identifier === offrampForm.recipient
+                                        )?.account_type === 'iban'
+                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                    }
+                                />
                             </span>
-                            {/* TODO: update total with fees */}
                         </div>
                     </div>
                 </div>
@@ -454,6 +478,12 @@ export const ConfirmCashoutView = ({
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
+                )}
+                {showRefund && (
+                    <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click
+                        here to reclaim the link to your wallet.
+                    </Link>
                 )}
             </div>
         </div>

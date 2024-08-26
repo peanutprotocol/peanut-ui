@@ -4,7 +4,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
 import * as consts from '@/constants'
 import * as context from '@/context'
@@ -18,7 +18,7 @@ import { isIBAN } from 'validator'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
-import { Divider } from '@chakra-ui/react'
+import { Divider, Icon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 export const InitialCashoutView = ({
     onNext,
@@ -31,11 +31,19 @@ export const InitialCashoutView = ({
     setPreparedCreateLinkWrapperResponse,
     setInitialKYCStep,
     setOfframpForm,
+    crossChainDetails,
 }: _consts.ICashoutScreenProps) => {
-    const { selectedTokenPrice, inputDenomination } = useContext(context.tokenSelectorContext)
+    const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
     const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
+
+    const xchainAllowed = useMemo(
+        () =>
+            crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
+            selectedChainID === '1',
+        [crossChainDetails, selectedChainID]
+    )
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -241,21 +249,13 @@ export const InitialCashoutView = ({
                             ?.map((account, index) => (
                                 <div
                                     key={index}
-                                    className="flex w-full cursor-pointer border border-black p-2"
+                                    className={`flex w-full cursor-pointer border border-black p-2 transition-colors hover:bg-n-3/10 ${selectedBankAccount === account.account_identifier && `bg-n-3/10`}`}
                                     onClick={() => {
                                         setSelectedBankAccount(account.account_identifier)
                                         setActiveInput('selectedBankAccount')
                                     }}
                                 >
-                                    <input
-                                        type="checkbox"
-                                        id={`bank-${index}`}
-                                        name="bankAccount"
-                                        value={account.account_identifier}
-                                        checked={selectedBankAccount === account.account_identifier}
-                                        className="cursor-pointer"
-                                    />
-                                    <label htmlFor={`bank-${index}`} className="ml-2 cursor-pointer text-right">
+                                    <label htmlFor={`bank-${index}`} className={`ml-2 cursor-pointer text-right `}>
                                         {account.account_identifier}
                                     </label>
                                 </div>
@@ -278,10 +278,11 @@ export const InitialCashoutView = ({
                     <input
                         type="text"
                         className="ml-2 w-full border border-none outline-none"
-                        placeholder="Enter IBAN / ACH"
+                        placeholder="IBAN / US account number"
                         value={newBankAccount}
                         onChange={(e) => setNewBankAccount(e.target.value)}
                         onFocus={() => setActiveInput('newBankAccount')}
+                        spellCheck="false"
                     />
                 </div>
             </div>
@@ -292,7 +293,7 @@ export const InitialCashoutView = ({
                     if (!isConnected) handleConnectWallet()
                     else handleOnNext()
                 }}
-                disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount)}
+                disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount) || !xchainAllowed}
             >
                 {!isConnected ? (
                     'Create or Connect Wallet'
@@ -308,6 +309,12 @@ export const InitialCashoutView = ({
                 <div className="text-center">
                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                 </div>
+            )}
+            {(!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
+                selectedChainID === '1') && (
+                <span className=" text-h8 font-normal ">
+                    <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                </span>
             )}
         </div>
     )

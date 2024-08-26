@@ -1,5 +1,5 @@
 'use client'
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Cashout.consts'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as consts from '@/constants'
@@ -77,6 +77,25 @@ export const Cashout = ({}) => {
             idx: _consts.CASHOUT_SCREEN_FLOW.indexOf(screen),
         }))
     }
+    const [crossChainDetails, setCrossChainDetails] = useState<[]>([])
+
+    const fetchAndSetCrossChainDetails = async () => {
+        const response = await fetch('https://apiplus.squidrouter.com/v2/chains', {
+            headers: {
+                'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C',
+            },
+        })
+        if (!response.ok) {
+            throw new Error('Squid: Network response was not ok')
+        }
+        const data = await response.json()
+
+        setCrossChainDetails(data.chains)
+    }
+
+    useEffect(() => {
+        fetchAndSetCrossChainDetails()
+    }, [])
 
     return (
         <div className="card">
@@ -121,6 +140,7 @@ export const Cashout = ({}) => {
                 setInitialKYCStep,
                 transactionHash,
                 setTransactionHash,
+                crossChainDetails,
             } as any)}
         </div>
     )
