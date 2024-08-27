@@ -121,7 +121,7 @@ const AddressInput = ({
 
     return (
         <div
-            className={`relative w-full border border-n-1 dark:border-white${
+            className={`relative w-full max-w-96 border border-n-1 dark:border-white${
                 userInput && !isLoading && isValidRecipient
                     ? ' border border-n-1 dark:border-white'
                     : userInput && !isLoading && !isValidRecipient
