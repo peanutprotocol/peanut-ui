@@ -41,12 +41,14 @@ const AddressInput = ({
                 setRecipientType('iban')
                 setType('iban')
                 setAddress(recipient)
+                onSubmit(userInput, recipient)
             } else if (/^[0-9]{6,17}$/.test(recipient)) {
                 setIsValidRecipient(true)
                 _setIsValidRecipient(true)
                 setRecipientType('us')
                 setType('us')
                 setAddress(recipient)
+                onSubmit(userInput, recipient)
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
                 if (resolvedAddress) {
@@ -56,6 +58,7 @@ const AddressInput = ({
                     setAddress(recipient)
                     setRecipientType('ens')
                     setType('ens')
+                    onSubmit(userInput, recipient)
                 } else {
                     setIsValidRecipient(false)
                     _setIsValidRecipient(false)
@@ -66,6 +69,7 @@ const AddressInput = ({
                 _setIsValidRecipient(true)
                 setRecipientType('address')
                 setType('address')
+                onSubmit(undefined, recipient)
             } else {
                 setIsValidRecipient(false)
                 _setIsValidRecipient(false)
@@ -81,20 +85,6 @@ const AddressInput = ({
 
     useEffect(() => {
         if (recipient && isValidRecipient) {
-            switch (type) {
-                case 'address':
-                    onSubmit(undefined, recipient)
-                    break
-                case 'ens':
-                    onSubmit(userInput, recipient)
-                    break
-                case 'iban':
-                    onSubmit(userInput, recipient)
-                    break
-                case 'us':
-                    onSubmit(userInput, recipient)
-                    break
-            }
             _setIsValidRecipient(true)
         }
     }, [recipient])
