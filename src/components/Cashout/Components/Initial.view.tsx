@@ -278,11 +278,12 @@ export const InitialCashoutView = ({
                     <input
                         type="text"
                         className="ml-2 w-full border border-none outline-none"
-                        placeholder="IBAN / US account number"
+                        placeholder="wallet address / ENS / IBAN / US account number"
                         value={newBankAccount}
                         onChange={(e) => setNewBankAccount(e.target.value)}
                         onFocus={() => setActiveInput('newBankAccount')}
                         spellCheck="false"
+                        autoComplete="cc-number"
                     />
                 </div>
             </div>
