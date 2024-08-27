@@ -333,7 +333,7 @@ export const Profile = () => {
 
                             <div className="flex flex-col items-start justify-center gap-1">
                                 <TextEdit
-                                    initialText={initialUserName}
+                                    initialText={initialUserName ?? ''}
                                     onTextChange={(text) => {
                                         setInitialUserName(text)
                                         updateUserName(text)
