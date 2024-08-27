@@ -187,6 +187,12 @@ const MenuLinks = () => {
                         >
                             <Text display="block"> refund</Text>
                         </Link>
+                        <Link
+                            href={'/request/create'}
+                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block"> request</Text>
+                        </Link>
                     </div>
                 )}
             </div>
@@ -218,6 +224,12 @@ const MenuLinks = () => {
                             className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
                         >
                             <Text display="block"> refund</Text>
+                        </Link>
+                        <Link
+                            href={'/request/create'}
+                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block"> request</Text>
                         </Link>
                     </div>
                 )}
