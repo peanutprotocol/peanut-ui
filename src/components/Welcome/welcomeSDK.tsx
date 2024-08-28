@@ -264,7 +264,7 @@ export function WelcomeSDK() {
                     105k+ Unique wallet addresses
                 </label>
 
-                <label className="bg-teal-1 flex items-center justify-center border border-n-2 px-4 py-8 text-center  text-h3 font-black sm:px-16">
+                <label className="flex items-center justify-center border border-n-2 bg-teal-1 px-4 py-8 text-center  text-h3 font-black sm:px-16">
                     20+ Chains
                 </label>
             </div>
@@ -429,7 +429,7 @@ export function WelcomeSDK() {
                     </>
                 </MarqueeWrapper>
 
-                <div className="bg-teal-1 w-full border-y-[1px] border-black px-4">
+                <div className="w-full border-y-[1px] border-black bg-teal-1 px-4">
                     <div className="brutalborder-top flex w-full flex-col gap-4 px-4 py-4 text-black">
                         <label className="my-0 px-8 text-h2 font-bold">FAQ</label>
                         <div className="flex cursor-pointer flex-col gap-0">

@@ -116,11 +116,11 @@ export const TableComponent = ({
                                             <Loading />
                                         </div>
                                     ) : data.dashboardItem.status === 'claimed' ? (
-                                        <div className="border-teal-3 text-teal-3 border px-2 py-1 text-center">
+                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                             claimed
                                         </div>
                                     ) : data.dashboardItem.status === 'transfer' ? (
-                                        <div className="border-teal-3 text-teal-3 border px-2 py-1 text-center">
+                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                             sent
                                         </div>
                                     ) : (
