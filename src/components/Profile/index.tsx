@@ -476,16 +476,13 @@ export const Profile = () => {
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
                                 {user?.referredUsers > 0 &&
-                                    user?.totalReferralConnections.map((referral, index) => (
+                                    user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label>{utils.shortenAddressLong(referral.account_identifier)}</label>
+                                            <label>{utils.shortenAddressLong(referral.address)}</label>
                                             <label>
                                                 {Math.floor(
                                                     user.pointsPerReferral?.find((ref) =>
-                                                        utils.compareTokenAddresses(
-                                                            ref.address,
-                                                            referral.account_identifier
-                                                        )
+                                                        utils.compareTokenAddresses(ref.address, referral.address)
                                                     )?.points ?? 0
                                                 )}
                                             </label>
@@ -495,21 +492,7 @@ export const Profile = () => {
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>
-                                        {user?.totalReferralConnections.reduce((acc, referral) => {
-                                            return (
-                                                acc +
-                                                Math.floor(
-                                                    user.pointsPerReferral?.find((ref) =>
-                                                        utils.compareTokenAddresses(
-                                                            ref.address,
-                                                            referral.account_identifier
-                                                        )
-                                                    )?.points ?? 0
-                                                )
-                                            )
-                                        }, 0)}
-                                    </label>
+                                    <label>{user?.totalReferralPoints}</label>
                                 </div>
                             </div>
                         ) : (
