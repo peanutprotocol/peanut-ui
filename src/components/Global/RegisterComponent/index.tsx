@@ -166,9 +166,11 @@ export const GlobalRegisterComponent = ({
                     </span>
                 </div>
             ) : (
-                <div className="w-full text-center">
-                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                </div>
+                errorState.showError && (
+                    <div className="w-full text-center">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                    </div>
+                )
             )}
         </form>
     )

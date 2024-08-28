@@ -16,6 +16,7 @@ import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
+import { FAQComponent } from './Faq.comp'
 
 export const ConfirmCashoutView = ({
     onNext,
@@ -295,16 +296,13 @@ export const ConfirmCashoutView = ({
     } // TODO: move to utils
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
+        <div className="flex w-full flex-col items-center justify-center gap-4 px-2  text-center">
             <label className="text-h4">Confirm your details</label>
-            <div className="flex flex-col  justify-center gap-3">
-                <label className="max-w-96 text-left text-h8 font-light">
-                    Cashing out usually takes 20 minutes but can take up to two days. You will receive an email
-                    confirmation.
+            <div className="flex flex-col justify-center gap-3">
+                <label className="text-start text-h8 font-light">
+                    Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
                 </label>
-                <label className="max-w-96 text-left text-h9 font-light">
-                    Fees: $0.50. Requires KYC. Only US & Europe
-                </label>
+                <FAQComponent />
             </div>
             {activeStep < 3 ? (
                 <GlobalKYCComponent
@@ -379,6 +377,7 @@ export const ConfirmCashoutView = ({
                             </span>
                         )}
                 </div> */}
+                        {/* TODO: fix the above */}
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-gray-1" />
@@ -426,7 +425,7 @@ export const ConfirmCashoutView = ({
                 </div>
             )}
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                {activeStep > 3 && (
+                {activeStep > 3 ? (
                     <>
                         <button onClick={handleConfirm} className="btn-purple btn-xl" disabled={isLoading}>
                             {isLoading ? (
@@ -451,6 +450,20 @@ export const ConfirmCashoutView = ({
                             Return
                         </button>
                     </>
+                ) : (
+                    <button
+                        className="btn btn-xl dark:border-white dark:text-white"
+                        onClick={() => {
+                            onPrev()
+                            setActiveStep(0)
+                            setErrorState({ showError: false, errorMessage: '' })
+                            setOfframpForm({ email: '', name: '', recipient: '', password: '' })
+                        }}
+                        disabled={isLoading}
+                        type="button"
+                    >
+                        Cancel
+                    </button>
                 )}
 
                 {errorState.showError && errorState.errorMessage === 'KYC under review' ? (

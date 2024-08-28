@@ -744,3 +744,13 @@ export const createSiweMessage = ({ address, statement }: { address: string; sta
 
     return message.prepareMessage()
 }
+
+// uppercase and add a space inbetween every four characters
+export const formatIban = (iban: string) => {
+    // if the first two chars of the iban are not letters, return the iban as is (it's not an iban, us account number probably)
+    if (!/[a-zA-Z]{2}/.test(iban.substring(0, 2))) return iban
+    return iban
+        .toUpperCase()
+        .replace(/(.{4})/g, '$1 ')
+        .trim()
+}

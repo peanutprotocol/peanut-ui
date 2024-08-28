@@ -121,7 +121,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchUser()
         }
     }
-
     const updateBridgeCustomerId = async (bridgeCustomerId: string) => {
         if (!user) return
 
