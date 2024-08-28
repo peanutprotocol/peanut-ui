@@ -8,7 +8,7 @@ import { useContext, useState } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-
+import { peanut } from '@squirrel-labs/peanut-sdk'
 export const InitialView = ({ onNext, onPrev }: _consts.ICreateScreenProps) => {
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
@@ -20,12 +20,25 @@ export const InitialView = ({ onNext, onPrev }: _consts.ICreateScreenProps) => {
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-
+    const [recipientAddress, setRecipientAddress] = useState<string>('')
+    const [tokenValue, setTokenValue] = useState<string>('')
     const handleConnectWallet = async () => {
         open()
     }
 
-    const handleOnNext = () => {
+    const handleOnNext = async () => {
+        // TODO: add validation for recipient address
+
+        const link = await peanut.createRequestLink({
+            chainId: selectedChainID,
+            recipientAddress: recipientAddress,
+            tokenAddress: selectedTokenAddress,
+            tokenAmount: tokenValue,
+            tokenDecimals: 18,
+            tokenType: 1,
+        })
+
+        console.log(link)
         onNext()
     }
 
@@ -43,7 +56,13 @@ export const InitialView = ({ onNext, onPrev }: _consts.ICreateScreenProps) => {
             </label>
 
             <div className="flex w-full flex-col items-center justify-center gap-3">
-                <TokenAmountInput className="w-full" setTokenValue={() => {}} tokenValue="" />
+                <TokenAmountInput
+                    className="w-full"
+                    setTokenValue={(value) => {
+                        setTokenValue(value ?? '')
+                    }}
+                    tokenValue={tokenValue}
+                />
                 <TokenSelector classNameButton="w-full" />
 
                 <FileUploadInput
@@ -55,14 +74,17 @@ export const InitialView = ({ onNext, onPrev }: _consts.ICreateScreenProps) => {
                     setAttachmentOptions={() => {}}
                 />
                 <AddressInput
-                    value=""
+                    value={recipientAddress}
                     setRecipientType={() => {}}
                     _setIsValidRecipient={() => {}}
                     onDeleteClick={() => {}}
-                    onSubmit={() => {}}
+                    onSubmit={(recipient: string) => {
+                        setRecipientAddress(recipient)
+                    }}
                     placeholder="Enter recipient address"
                     className="w-full"
                 />
+                {/* TODO: fix this input to only accept addresses and nothing else */}
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-3">
