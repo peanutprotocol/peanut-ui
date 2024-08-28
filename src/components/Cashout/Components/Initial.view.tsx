@@ -283,7 +283,7 @@ export const InitialCashoutView = ({
                         onChange={(e) => setNewBankAccount(e.target.value)}
                         onFocus={() => setActiveInput('newBankAccount')}
                         spellCheck="false"
-                        autoComplete="cc-number"
+                        autoComplete="iban"
                     />
                 </div>
             </div>
