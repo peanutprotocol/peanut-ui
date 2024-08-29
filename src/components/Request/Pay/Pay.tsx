@@ -66,10 +66,17 @@ export const PayRequestLink = () => {
             )
             tokenPrice && setTokenPrice(tokenPrice?.price)
 
+            let recipientAddress = requestLinkDetails.recipientAddress
+            if (requestLinkDetails.recipientAddress.endsWith('eth')) {
+                recipientAddress = await utils.resolveFromEnsName(requestLinkDetails.recipientAddress.toLowerCase())
+            }
+
+            console.log('requestLinkDetails:', requestLinkDetails)
+
             // Prepare request link fulfillment transaction
             const tokenType = Number(requestLinkDetails.tokenType)
             const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
-                recipientAddress: requestLinkDetails.recipientAddress,
+                recipientAddress: recipientAddress,
                 tokenAddress: requestLinkDetails.tokenAddress,
                 tokenAmount: requestLinkDetails.tokenAmount,
                 tokenDecimals: requestLinkDetails.tokenDecimals,
