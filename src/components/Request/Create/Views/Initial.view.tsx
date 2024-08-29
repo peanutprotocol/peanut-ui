@@ -53,6 +53,8 @@ export const InitialView = ({
 
         const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
+        console.log('tokenDetails:', tokenDetails)
+
         try {
             const { link } = await peanut.createRequestLink({
                 chainId: selectedChainID,
@@ -62,7 +64,7 @@ export const InitialView = ({
                 tokenDecimals: tokenDetails.tokenDecimals.toString(),
                 tokenType: tokenDetails.tokenType,
                 apiUrl: '/api/proxy/withFormData',
-                baseUrl: 'http://localhost:3000/request/pay',
+                baseUrl: `${window.location.origin}/request/pay`,
                 APIKey: 'doesnt-matter',
                 attachment: attachmentOptions?.rawFile || undefined,
                 reference: attachmentOptions?.message || undefined,
