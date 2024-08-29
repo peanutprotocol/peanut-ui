@@ -1,5 +1,5 @@
 'use client'
-import AddressInput from '@/components/Global/AddressInput'
+import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
@@ -445,7 +445,7 @@ export const InitialClaimLinkView = ({
                             recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
                         }
                     />
-                    <AddressInput
+                    <GeneralRecipientInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
                         value={recipient.name ? recipient.name : (recipient.address ?? '')}

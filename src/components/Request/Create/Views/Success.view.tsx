@@ -3,26 +3,36 @@ import * as _consts from '../Create.consts'
 import CopyField from '@/components/Global/CopyField'
 import Link from 'next/link'
 import Icon from '@/components/Global/Icon'
+import * as context from '@/context'
+import * as consts from '@/constants'
+import * as utils from '@/utils'
+import { useContext } from 'react'
 
-export const SuccessView = ({ onNext, onPrev }: _consts.ICreateScreenProps) => {
+export const SuccessView = ({ onNext, onPrev, tokenValue, recipientAddress, link }: _consts.ICreateScreenProps) => {
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
+        context.tokenSelectorContext
+    )
     return (
         <div className={`flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center`}>
             <label className="text-h2">Request a payment</label>
             <label className="w-full max-w-96 text-h8 font-light">
-                You are requesting 12 ETH from on Arbitrum to 0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C
+                You are requesting {utils.formatTokenAmount(parseFloat(tokenValue ?? ''), 4)}{' '}
+                {
+                    consts.peanutTokenDetails
+                        .find((chain) => chain.chainId === selectedChainID)
+                        ?.tokens.find((token) => token.address === selectedTokenAddress)?.symbol
+                }{' '}
+                on {consts.supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.name} to{' '}
+                {recipientAddress}
             </label>
 
-            <QRCodeWrapper url={''} />
+            <QRCodeWrapper url={link} />
             <label className="text-h8 ">
                 Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any
                 token.
             </label>
 
-            <CopyField text={'https://peanut.to/claim?c=8453&v=v4.3&i=8344&t=ui#p=DmY2oT1G2jufHruA'} />
-
-            <Link className="cursor-pointer text-h8 font-bold text-gray-1 underline" target="_blank" href={``}>
-                Transaction hash
-            </Link>
+            <CopyField text={link} />
 
             <Link
                 className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"

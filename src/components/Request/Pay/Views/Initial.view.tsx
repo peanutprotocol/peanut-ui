@@ -1,7 +1,7 @@
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import * as _consts from '../Pay.consts'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import AddressInput from '@/components/Global/AddressInput'
+import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useContext, useState } from 'react'
