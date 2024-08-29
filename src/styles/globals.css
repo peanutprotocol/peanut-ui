@@ -145,3 +145,43 @@ Firefox input[type='number'] {
     left: 0.5rem;
     transform: rotate(-4deg);
 }
+
+@keyframes thumbsUp {
+    0% {
+        transform: translateY(0);
+        transform-origin: bottom left;
+    }
+    35% {
+        transform: translateY(0) rotate(-15deg);
+        transform-origin: bottom left;
+    }
+    50% {
+        transform: translateY(0)rotate(9deg);
+        transform-origin: bottom left;
+    }
+    60% {
+        transform: translateY(0)rotate(-5deg);
+        transform-origin: bottom left;
+    }
+    100% {
+        transform: translateY(0);
+        transform-origin: bottom left;
+    }
+}
+
+.animation-thumbsUp {
+    animation: thumbsUp 1.2s infinite;
+}
+
+@keyframes faceSpin {
+     0% {
+        transform: rotate(0deg);
+     }
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
+.animation-faceSpin {
+    animation: faceSpin 2s infinite ease-in-out;
+}
