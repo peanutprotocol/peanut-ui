@@ -49,22 +49,36 @@ export const InitialView = ({
     const handleOnNext = async () => {
         // TODO: add validation for recipient address
 
+        setLoadingState('Creating link')
+
         const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
-        const { link } = await peanut.createRequestLink({
-            chainId: selectedChainID,
-            recipientAddress: recipientAddress, // TODO: check wether works with ens name or not
-            tokenAddress: selectedTokenAddress,
-            tokenAmount: _tokenValue ?? '',
-            tokenDecimals: tokenDetails.tokenDecimals,
-            tokenType: tokenDetails.tokenType,
-            apiUrl: `${consts.next_proxy_url}`,
-            baseUrl: `http://localhost:3000/request/pay`,
-            APIKey: 'doesnt-matter',
-        })
+        try {
+            const { link } = await peanut.createRequestLink({
+                chainId: selectedChainID,
+                recipientAddress,
+                tokenAddress: selectedTokenAddress,
+                tokenAmount: _tokenValue ?? '',
+                tokenDecimals: tokenDetails.tokenDecimals.toString(),
+                tokenType: tokenDetails.tokenType,
+                apiUrl: '/api/proxy/withFormData',
+                baseUrl: 'http://localhost:3000/request/pay',
+                APIKey: 'doesnt-matter',
+                attachment: attachmentOptions?.rawFile || undefined,
+                reference: attachmentOptions?.message || undefined,
+            })
 
-        setLink(link)
-        onNext()
+            setLink(link)
+            onNext()
+        } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Failed to create link',
+            })
+            console.error('Failed to create link:', error)
+        } finally {
+            setLoadingState('Idle')
+        }
     }
 
     useEffect(() => {
@@ -142,9 +156,8 @@ export const InitialView = ({
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
                     }}
-                    disabled={!isValidRecipient || inputChanging || isLoading}
+                    disabled={!isValidRecipient || inputChanging || isLoading || (isConnected && !tokenValue)}
                 >
-                    {/* TODO: ^ tokenValueCheck */}
                     {!isConnected ? (
                         'Create or Connect Wallet'
                     ) : isLoading ? (

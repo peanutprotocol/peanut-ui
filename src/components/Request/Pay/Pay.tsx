@@ -1,27 +1,24 @@
 'use client'
 
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Pay.consts'
+import * as assets from '@/assets'
+import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+
+import * as generalViews from './Views/GeneralViews'
+import * as utils from '@/utils'
+import { useCreateLink } from '@/components/Create/useCreateLink'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
-
-    const [requestLinkData, setRequestLinkData] = useState<_consts.IRequestLinkData>({
-        attachmentInfo: {
-            message: 'test message',
-            attachmentUrl:
-                'https://peanut-notes.s3.eu-north-1.amazonaws.com/uploads%2Fpfp_7676141b-d199-4d5c-9d7c-10077ee0fc9e-090a0a88-07e0-4e0f-adbe-c920a757b640',
-        },
-        requestAddress: '0x1234567890',
-        tokenAmount: '100',
-        tokenPrice: 1,
-        tokenSymbol: 'USDC',
-        tokenAddress: '0x0b2c639c533813f4aa9d7837caf62653d097ff85',
-        chainId: '10',
-    })
-
-    const [estimatedPoints, setEstimatedPoints] = useState<number>(10)
+    const [linkState, setLinkState] = useState<_consts.IRequestLinkState>('LOADING')
+    const [tokenPrice, setTokenPrice] = useState<number>(0)
+    const [requestLinkData, setRequestLinkData] = useState<_consts.IRequestLinkData | undefined>(undefined)
+    const { estimateGasFee } = useCreateLink()
+    const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(10)
+    const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>('')
+    const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
 
     const handleOnNext = () => {
         if (step.idx === _consts.PAY_SCREEN_FLOW.length - 1) return
@@ -41,16 +38,97 @@ export const PayRequestLink = () => {
         }))
     }
 
+    const checkRequestLink = async (pageUrl: string) => {
+        try {
+            // Fetch request link details
+            const requestLinkDetails: any = await peanut.getRequestLinkDetails({
+                link: pageUrl,
+                APIKey: 'YOUR_API_KEY',
+                apiUrl: '/api/proxy/get',
+            })
+
+            // Check if request link is not found
+            if (requestLinkDetails.error === 'Request link not found') {
+                setLinkState('NOT_FOUND')
+                return
+            }
+
+            // Check if request link is already paid
+            if (requestLinkDetails.status === 'PAID') {
+                setLinkState('ALREADY_PAID')
+                return
+            }
+
+            // Fetch token price
+            const tokenPrice = await utils.fetchTokenPrice(
+                requestLinkDetails.tokenAddress.toLowerCase(),
+                requestLinkDetails.chainId
+            )
+            tokenPrice && setTokenPrice(tokenPrice?.price)
+
+            // Prepare request link fulfillment transaction
+            const tokenType = Number(requestLinkDetails.tokenType)
+            const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
+                recipientAddress: requestLinkDetails.recipientAddress,
+                tokenAddress: requestLinkDetails.tokenAddress,
+                tokenAmount: requestLinkDetails.tokenAmount,
+                tokenDecimals: requestLinkDetails.tokenDecimals,
+                tokenType: tokenType,
+            })
+            setUnsignedTx(unsignedTx)
+
+            // Estimate gas fee
+            try {
+                const { transactionCostUSD: _transactionCostUSD } = await estimateGasFee({
+                    chainId: requestLinkDetails.chainId,
+                    preparedTx: unsignedTx,
+                })
+
+                if (_transactionCostUSD) setEstimatedGasCost(_transactionCostUSD)
+            } catch (error) {
+                console.log('error calculating transaction cost:', error)
+            }
+
+            // TODO: points calculation
+
+            setRequestLinkData(requestLinkDetails)
+            setLinkState('PAY')
+        } catch (error) {
+            console.error('Failed to fetch request link details:', error)
+        }
+    }
+
+    useEffect(() => {
+        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
+        if (pageUrl) {
+            checkRequestLink(pageUrl)
+        }
+    }, [])
+
     return (
         <div className="card">
-            {createElement(_consts.PAY_SCREEN_MAP[step.screen].comp, {
-                onNext: handleOnNext,
-                onPrev: handleOnPrev,
-                requestLinkData,
-                estimatedPoints,
-                transactionHash,
-                setTransactionHash,
-            } as _consts.IPayScreenProps)}
+            {linkState === 'LOADING' && (
+                <div className="relative flex w-full items-center justify-center">
+                    <div className="animate-spin">
+                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                        <span className="sr-only">Loading...</span>
+                    </div>
+                </div>
+            )}
+            {linkState === 'PAY' &&
+                createElement(_consts.PAY_SCREEN_MAP[step.screen].comp, {
+                    onNext: handleOnNext,
+                    onPrev: handleOnPrev,
+                    requestLinkData,
+                    estimatedPoints,
+                    transactionHash,
+                    setTransactionHash,
+                    tokenPrice,
+                    estimatedGasCost,
+                    unsignedTx,
+                } as _consts.IPayScreenProps)}
+            {linkState === 'NOT_FOUND' && <generalViews.NotFoundClaimLink />}
+            {linkState === 'ALREADY_PAID' && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
         </div>
     )
 }

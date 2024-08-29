@@ -1,7 +1,5 @@
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import * as _consts from '../Pay.consts'
-import FileUploadInput from '@/components/Global/FileUploadInput'
-import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
+
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useContext, useState } from 'react'
@@ -11,12 +9,18 @@ import * as utils from '@/utils'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import { peanut } from '@squirrel-labs/peanut-sdk'
 export const InitialView = ({
     onNext,
     requestLinkData,
     estimatedPoints,
+    estimatedGasCost,
     setTransactionHash,
+    tokenPrice,
+    unsignedTx,
 }: _consts.IPayScreenProps) => {
+    const { sendTransactions } = useCreateLink()
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
@@ -32,24 +36,51 @@ export const InitialView = ({
         open()
     }
 
-    const handleOnNext = () => {
-        setTransactionHash('0x1234567890')
-        onNext()
+    const handleOnNext = async () => {
+        try {
+            if (!unsignedTx) return
+
+            setLoadingState('Sign in wallet')
+
+            const hash = await sendTransactions({
+                preparedDepositTxs: { unsignedTxs: [unsignedTx] },
+                feeOptions: undefined,
+            })
+            console.log('hash', hash)
+
+            setLoadingState('Executing transaction')
+
+            const updatedResponse = await peanut.submitRequestLinkFulfillment({
+                chainId: requestLinkData.chainId,
+                hash: hash ?? '',
+                payerAddress: address ?? '',
+                link: requestLinkData.link,
+                apiUrl: '/api/proxy/patch/',
+            })
+
+            console.log('updatedResponse', updatedResponse)
+            setTransactionHash(hash ?? '')
+            onNext()
+        } catch (error) {
+            console.error('Error while submitting request link fulfillment:', error)
+        } finally {
+            setLoadingState('Idle')
+        }
     }
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            {(requestLinkData.attachmentInfo?.message || requestLinkData.attachmentInfo?.attachmentUrl) && (
+            {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
                 <>
                     <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
-                        {requestLinkData.attachmentInfo?.message && (
+                        {requestLinkData.reference && (
                             <label className="max-w-full text-h8">
-                                Ref: <span className="font-normal"> {requestLinkData.attachmentInfo?.message} </span>
+                                Ref: <span className="font-normal"> {requestLinkData.reference} </span>
                             </label>
                         )}
-                        {requestLinkData.attachmentInfo?.attachmentUrl && (
+                        {requestLinkData.attachmentUrl && (
                             <a
-                                href={requestLinkData.attachmentInfo?.attachmentUrl}
+                                href={requestLinkData.attachmentUrl}
                                 download
                                 target="_blank"
                                 className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
@@ -64,10 +95,15 @@ export const InitialView = ({
             )}
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                <label className="text-h4">{utils.shortenAddress(requestLinkData.requestAddress)} is requesting</label>
-                {requestLinkData.tokenPrice ? (
+                <label className="text-h4">
+                    {requestLinkData.recipientAddress.endsWith('.eth')
+                        ? requestLinkData.recipientAddress
+                        : utils.shortenAddress(requestLinkData.recipientAddress)}{' '}
+                    is requesting
+                </label>
+                {tokenPrice ? (
                     <label className="text-h2">
-                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * requestLinkData.tokenPrice)}
+                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPrice)}
                     </label>
                 ) : (
                     <label className="text-h2 ">
@@ -97,40 +133,53 @@ export const InitialView = ({
                                 alt="logo"
                             />
                         </div>
-                        12 MATIC on POLYGON
+                        {requestLinkData.tokenAmount}{' '}
+                        {requestLinkData.tokenSymbol ??
+                            consts.peanutTokenDetails
+                                .find((chain) => chain.chainId === requestLinkData.chainId)
+                                ?.tokens.find((token) =>
+                                    utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+                                )
+                                ?.symbol.toUpperCase()}{' '}
+                        on{' '}
+                        {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'gas'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Fees</label>
+                {estimatedGasCost && (
+                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-max flex-row items-center justify-center gap-1">
+                            <Icon name={'gas'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Fees</label>
+                        </div>
+                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                        </span>
                     </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
-                    </span>
-                </div>
+                )}
 
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Points</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
-                        <MoreInfo
-                            text={
-                                estimatedPoints
-                                    ? estimatedPoints > 0
-                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                {estimatedPoints && (
+                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-max flex-row items-center justify-center gap-1">
+                            <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Points</label>
+                        </div>
+                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            +${estimatedPoints}
+                            <MoreInfo
+                                text={
+                                    estimatedPoints
+                                        ? estimatedPoints > 0
+                                            ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                            : 'This transaction will not add any points to your total points balance'
                                         : 'This transaction will not add any points to your total points balance'
-                                    : 'This transaction will not add any points to your total points balance'
-                            }
-                        />
-                    </span>
-                </div>
+                                }
+                            />
+                        </span>
+                    </div>
+                )}
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-3">

@@ -120,7 +120,7 @@ const AddressInput = ({
                 }}
                 spellCheck="false"
             />
-            {userInput.length > 0 ? (
+            {userInput?.length > 0 ? (
                 isLoading ? (
                     <div className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
                         <div
