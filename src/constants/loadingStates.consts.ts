@@ -18,3 +18,7 @@ export type LoadingStates =
     | 'Linking IBAN'
     | 'Linking account'
     | 'Submitting Offramp'
+    | 'Getting profile'
+    | 'Registering'
+    | 'Logging in'
+    | 'Logging out'

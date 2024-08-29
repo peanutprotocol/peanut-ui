@@ -200,11 +200,11 @@ export const Dashboard = () => {
                                                             <Loading />
                                                         </div>
                                                     ) : link.status === 'claimed' ? (
-                                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                                             claimed
                                                         </div>
                                                     ) : link.status === 'transfer' ? (
-                                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                                             sent
                                                         </div>
                                                     ) : (

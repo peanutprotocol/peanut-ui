@@ -16,6 +16,8 @@ import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
 import ImageEdit from '../Global/ImageEdit'
 import TextEdit from '../Global/TextEdit'
+import IframeWrapper from '../Global/IframeWrapper'
+import Link from 'next/link'
 
 const tabs = [
     {
@@ -188,7 +190,9 @@ export const Profile = () => {
                     accountsData.map((data) => ({
                         primaryText: data.type,
                         secondaryText: '',
-                        tertiaryText: data.accountIdentifier,
+                        tertiaryText: data.type.includes('Bank')
+                            ? utils.formatIban(data.accountIdentifier)
+                            : data.accountIdentifier,
                         quaternaryText: '',
                         itemKey: data.accountIdentifier + Math.random(),
                         type: 'accounts',
@@ -320,26 +324,47 @@ export const Profile = () => {
             <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
                 <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
-                        <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
-                            <ImageEdit
-                                initialProfilePicture={user?.user?.profile_picture ? user?.user?.profile_picture : svg}
-                                onImageChange={(file) => {
-                                    if (!file) return
-                                    submitProfilePhoto(file)
-                                }}
-                            />
+                        <div className="flex flex-col gap-2">
+                            <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
+                                <span className="flex flex-col items-center  justify-center gap-1 ">
+                                    <ImageEdit
+                                        initialProfilePicture={
+                                            user?.user?.profile_picture ? user?.user?.profile_picture : svg
+                                        }
+                                        onImageChange={(file) => {
+                                            if (!file) return
+                                            submitProfilePhoto(file)
+                                        }}
+                                    />
+                                </span>
+                                <div className="flex flex-col items-start justify-center gap-1">
+                                    <TextEdit
+                                        initialText={initialUserName ?? ''}
+                                        onTextChange={(text) => {
+                                            setInitialUserName(text)
+                                            updateUserName(text)
+                                        }}
+                                    />
 
-                            <TextEdit
-                                initialText={initialUserName ?? ''}
-                                onTextChange={(text) => {
-                                    setInitialUserName(text)
-                                    updateUserName(text)
-                                }}
-                            />
+                                    {user?.user?.email && (
+                                        <span className="flex justify-center gap-1 text-h8 font-normal">
+                                            {user?.user?.email}
+                                            <div className={`flex flex-row items-center justify-center `}>
+                                                <div
+                                                    className={`kyc-badge ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green text-black' : 'bg-gray-1 text-white'} w-max px-2 py-1 `}
+                                                >
+                                                    {user?.user?.kycStatus === 'verified' ? 'KYC' : 'NO KYC'}
+                                                </div>
+                                            </div>
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <button className="btn btn-xl h-8 w-full"> Log out</button>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.totalPoints} points</span>
-                            {/* <span className="flex items-center justify-center gap-1">
+                            <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
                                 Boost 1.4X
                                 <Icon
@@ -350,25 +375,26 @@ export const Profile = () => {
                                         setModalType('Boost')
                                     }}
                                 />
-                            </span> */}
+                            </span>
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
-                                <Icon
-                                    name={'info'}
-                                    className={`cursor-pointer transition-transform dark:fill-white`}
-                                    onClick={() => {
-                                        setModalVisible(true)
-                                        setModalType('Invites')
-                                    }}
-                                />
+                                {user?.referredUsers > 0 && (
+                                    <Icon
+                                        name={'info'}
+                                        className={`cursor-pointer transition-transform dark:fill-white`}
+                                        onClick={() => {
+                                            setModalVisible(true)
+                                            setModalType('Invites')
+                                        }}
+                                    />
+                                )}
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
                         <MoreInfo text="More info streak" />
                     </span> */}
                         </div>
-                        {/* <div>balance</div> */}
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
                         <components.Tabs
@@ -450,16 +476,13 @@ export const Profile = () => {
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
                                 {user?.referredUsers > 0 &&
-                                    user?.totalReferralConnections.map((referral, index) => (
+                                    user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label>{utils.shortenAddressLong(referral.account_identifier)}</label>
+                                            <label>{utils.shortenAddressLong(referral.address)}</label>
                                             <label>
                                                 {Math.floor(
                                                     user.pointsPerReferral?.find((ref) =>
-                                                        utils.compareTokenAddresses(
-                                                            ref.address,
-                                                            referral.account_identifier
-                                                        )
+                                                        utils.compareTokenAddresses(ref.address, referral.address)
                                                     )?.points ?? 0
                                                 )}
                                             </label>
@@ -469,21 +492,7 @@ export const Profile = () => {
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>
-                                        {user?.totalReferralConnections.reduce((acc, referral) => {
-                                            return (
-                                                acc +
-                                                Math.floor(
-                                                    user.pointsPerReferral?.find((ref) =>
-                                                        utils.compareTokenAddresses(
-                                                            ref.address,
-                                                            referral.account_identifier
-                                                        )
-                                                    )?.points ?? 0
-                                                )
-                                            )
-                                        }, 0)}
-                                    </label>
+                                    <label>{user?.totalReferralPoints}</label>
                                 </div>
                             </div>
                         ) : (

@@ -38,6 +38,7 @@ const AddressInput = ({
                     setIsValidRecipient(true)
                     _setIsValidRecipient(true)
                     setType('ens')
+                    onSubmit(userInput, recipient)
                 } else {
                     setIsValidRecipient(false)
                     _setIsValidRecipient(false)
@@ -47,6 +48,7 @@ const AddressInput = ({
                 setIsValidRecipient(true)
                 _setIsValidRecipient(true)
                 setType('address')
+                onSubmit(undefined, recipient)
             } else {
                 setIsValidRecipient(false)
                 _setIsValidRecipient(false)
