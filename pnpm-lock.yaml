@@ -50,6 +50,9 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.9
         version: 5.1.9(tsbch5ickwrqy2b74iufridj64)
+      auto-text-size:
+        specifier: ^0.2.3
+        version: 0.2.3(react@18.3.1)
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.4.47)
@@ -3695,6 +3698,11 @@ packages:
   auto-bind@5.0.1:
     resolution: {integrity: sha512-ooviqdwwgfIfNmDwo94wlshcdzfO64XV0Cg6oDsDYBJfITDz1EngD2z7DkbvCWn+XIMsIqW27sEVF6qcpJrRcg==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
+
+  auto-text-size@0.2.3:
+    resolution: {integrity: sha512-OycpKD8n5jxnNaOiAJoNr3BkBsxRzHHhFQk15rgsOYq+O9lsMSPLbVN7ZibxjTwT7bl6Y5jawOtZJxRWaoxdcQ==}
+    peerDependencies:
+      react: '*'
 
   autoprefixer@10.4.20:
     resolution: {integrity: sha512-XY25y5xSv/wEoqzDyXXME4AFfkZI0P23z6Fs3YgymDnKJkCGOnkL0iTxCa85UTqaSgfcqyf3UA6+c7wUvx/16g==}
@@ -14055,6 +14063,10 @@ snapshots:
   atomic-sleep@1.0.0: {}
 
   auto-bind@5.0.1: {}
+
+  auto-text-size@0.2.3(react@18.3.1):
+    dependencies:
+      react: 18.3.1
 
   autoprefixer@10.4.20(postcss@8.4.47):
     dependencies:

@@ -42,6 +42,19 @@ module.exports = {
                     3: '#5F646D',
                     4: '#E7E8E9',
                 },
+                violet: {
+                    3: '#6340DF',
+                    9: '#F1EBF8',
+                },
+                cyan: {
+                    8: '#A0E6E0'
+                },
+                gold: {
+                    3: '#FFD25C',
+                },
+                pink: {
+                    6: '#FDC5F6'
+                },
                 white: '#FFFFFF',
                 background: '#FAF4F0',
                 red: '#FF0000',
@@ -114,10 +127,14 @@ module.exports = {
             },
             fontFamily: {
                 sans: ['var(--font-roboto)', ...fontFamily.sans],
+                display: ['var(--font-londrina)'],
             },
             fontSize: {
                 0: ['0px', '0px'],
                 sm: ['0.875rem', '1.3125rem'],
+                '2xl': ['3rem', '3.25rem'],
+                '3xl': ['7rem', '7rem'],
+                '4xl': ['10rem', '10rem'],
                 h1: [
                     '3rem',
                     {
@@ -205,7 +222,7 @@ module.exports = {
             })
             addComponents({
                 '.btn': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-3 border border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors':
                         {},
                 },
                 '.btn svg': {
@@ -228,6 +245,10 @@ module.exports = {
                     '@apply btn bg-n-1 text-white fill-white hover:bg-n-1/80 dark:bg-white/10 dark:hover:bg-white/20':
                         {},
                 },
+                '.btn-ghost': {
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
+                        {},
+                },
                 '.btn-stroke': {
                     '@apply btn hover:bg-n-1 hover:text-white hover:fill-white dark:border-white dark:text-white dark:fill-white dark:hover:bg-white dark:hover:text-n-1 dark:hover:fill-n-1':
                         {},
@@ -248,10 +269,10 @@ module.exports = {
                     '@apply h-8 w-8 px-0 text-xs': {},
                 },
                 '.btn-medium': {
-                    '@apply h-9 px-2 text-xs': {},
+                    '@apply h-9 px-3 text-xs': {},
                 },
                 '.btn-large': {
-                    '@apply h-10 px-2 text-lg': {},
+                    '@apply h-10 px-3 text-lg': {},
                 },
                 '.btn-xl': {
                     '@apply w-full max-w-96 h-12 px-2 text-lg': {},
@@ -269,7 +290,7 @@ module.exports = {
                     '@apply w-9': {},
                 },
                 '.label': {
-                    '@apply inline-flex justify-center items-center h-6 px-3 border rounded-sm text-center text-xs font-bold text-n-1':
+                    '@apply inline-flex justify-center items-center h-6 px-3 border rounded-md text-center text-xs font-bold text-n-1':
                         {},
                 },
                 '.label-stroke': {

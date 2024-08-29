@@ -57,9 +57,11 @@ export const Header = () => {
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                        <span className="inline px-2 text-h5 sm:px-6 sm:text-h4">peanut protocol</span>
+                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
+                        <span className="inline px-3 sm:px-4">peanut protocol</span>
                     </div>
+                </Box>
+                <Box display={{ base: 'none', md: 'block' }} flexDirection={'row'} alignContent={'center'}>
                     <MenuLinks />
                 </Box>
                 <Box
@@ -278,7 +280,9 @@ const SocialLinks = () => {
     )
 }
 
-const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) => {
+const NavBarContainer = ({ children, newLayout, ...props }: { children: React.ReactNode; newLayout: Boolean }) => {
+    const themeBG = newLayout ? 'transparent' : 'black'
+    const themeColor = newLayout ? 'black' : 'white'
     return (
         <Flex
             as="nav"
@@ -286,10 +290,10 @@ const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) 
             justify="space-between"
             wrap="wrap"
             w="100%"
-            bg={{ base: 'black', md: 'black' }}
-            color={{ base: 'white', md: 'white' }}
+            bg={{ base: themeBG, md: themeBG }}
+            color={{ base: themeColor, md: themeColor }}
             {...props}
-            className="z-[9999] text-h6"
+            className="z-[9999] text-h6 font-black"
             zIndex={9999} // always on top
         >
             {children}
