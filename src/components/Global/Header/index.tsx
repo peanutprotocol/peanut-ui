@@ -25,6 +25,10 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 
+type HeaderProps = {
+    newLayout?: boolean
+}
+
 const defaultLottieOptions: LottieOptions = {
     animationData: assets.HAMBURGER_LOTTIE,
     loop: true,
@@ -39,7 +43,7 @@ const defaultLottieStyle = {
     width: 24,
 }
 
-export const Header = () => {
+export const Header = ({ newLayout = false }: HeaderProps) => {
     const { isOpen, onToggle } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
 
@@ -48,7 +52,7 @@ export const Header = () => {
     }, [isOpen])
 
     return (
-        <NavBarContainer>
+        <NavBarContainer newLayout={newLayout}>
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
                 <Box display={{ base: 'none', md: 'flex' }} flexDirection={'row'} height="100%">
                     <div
@@ -58,11 +62,15 @@ export const Header = () => {
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                        <span className="inline px-2 text-h5 sm:px-6 sm:px-6 sm:text-h4">peanut protocol</span>
+                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
+                        <span className="inline px-3 sm:px-4">peanut protocol</span>
                     </div>
+                </Box>
+
+                <Box display={{ base: 'none', md: 'block' }} flexDirection={'row'} alignContent={'center'}>
                     <MenuLinks />
                 </Box>
+
                 <Box
                     display={{ base: 'flex', md: 'none' }}
                     flexDirection={'row'}
@@ -79,15 +87,17 @@ export const Header = () => {
                         }}
                     >
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
-                        <span className="inline px-2 text-h5 ">peanut protocol</span>
+                        <span className="text-h5- inline px-2 ">peanut protocol</span>
                     </div>
 
                     <MenuToggle isOpen={isOpenState} toggle={onToggle} />
                 </Box>
+
                 <Box display={{ base: 'none', md: 'block' }}>
                     <SocialLinks />
                 </Box>
             </Flex>
+
             <Collapse unmountOnExit in={isOpen} animateOpacity className="w-full">
                 <MenuLinks />
             </Collapse>
@@ -109,7 +119,8 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
                 toggle()
                 goToAndStop(isOpen ? 37 : 0, true)
             }}
-            px={2}
+            px={3}
+            className="bg-n-1"
         >
             {lottieView}
         </Flex>
@@ -143,10 +154,11 @@ const MenuLinks = () => {
             <Link
                 href={'/send'}
                 onClick={handleClick}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
+                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center lg:px-6"
             >
                 <Text display="block"> app</Text>
             </Link>
+
             <div className="relative hidden h-full sm:block">
                 <button
                     onMouseEnter={() => {
@@ -155,7 +167,7 @@ const MenuLinks = () => {
                     onMouseLeave={() => {
                         setShowMenu(false)
                     }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
+                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-6"
                 >
                     tools
                 </button>
@@ -171,19 +183,19 @@ const MenuLinks = () => {
                     >
                         <Link
                             href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
                         >
                             <Text display="block"> raffle</Text>
                         </Link>
                         <Link
                             href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
                         >
                             <Text display="block"> batch</Text>
                         </Link>
                         <Link
                             href={'/refund'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
                         >
                             <Text display="block"> refund</Text>
                         </Link>
@@ -195,7 +207,7 @@ const MenuLinks = () => {
                     onClick={() => {
                         setShowMenu(!showMenu)
                     }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
+                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-6"
                 >
                     <Text display="block"> tools</Text>
                 </button>
@@ -203,19 +215,19 @@ const MenuLinks = () => {
                     <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <Link
                             href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start py-2  pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                            className="text-h6- flex h-full w-full items-center justify-start  py-2 pl-6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
                         >
                             <Text display="block"> raffle</Text>
                         </Link>
                         <Link
                             href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                            className="text-h6- flex h-full w-full items-center justify-start py-2 pl-6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
                         >
                             <Text display="block"> batch</Text>
                         </Link>
                         <Link
                             href={'/refund'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                            className="text-h6- flex h-full w-full items-center justify-start py-2 pl-6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
                         >
                             <Text display="block"> refund</Text>
                         </Link>
@@ -225,14 +237,14 @@ const MenuLinks = () => {
 
             <Link
                 href={'https://docs.peanut.to'}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
+                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-6"
             >
                 <Text display="block"> docs</Text>
             </Link>
 
             <Link
                 href={'/profile'}
-                className=" flex h-full w-full items-center justify-start px-3 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
+                className=" flex h-full w-full items-center justify-start px-3 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-6"
             >
                 <Text display="block"> Profile</Text>
             </Link>
@@ -240,9 +252,18 @@ const MenuLinks = () => {
                 onClick={() => {
                     web3modalOpen()
                 }}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
+                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-6"
             >
-                <Text display="block"> {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}</Text>
+                <Text display="block">
+                    {' '}
+                    {isConnected ? (
+                        utils.shortenAddress(address ?? '')
+                    ) : (
+                        <>
+                            <span className="md:hidden lg:block">Create or </span>Connect
+                        </>
+                    )}
+                </Text>
             </button>
         </Stack>
     )
@@ -253,23 +274,32 @@ const SocialLinks = () => {
     const { address, isConnected } = useAccount()
 
     return (
-        <Stack direction={'row'} spacing={2} mr={2}>
+        <Stack direction={'row'} spacing={3} mr={2}>
             <Link href={'/profile'} className="no-underline">
-                <button className="btn btn-large bg-white px-3">Profile</button>
+                <button className="btn-ghost h-10 px-3 uppercase">Profile</button>
             </Link>
             <button
-                className="btn btn-large bg-white px-2"
+                className="btn h-10 bg-n-1 px-3 uppercase text-white"
                 onClick={() => {
                     web3modalOpen()
                 }}
             >
-                {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
+                {isConnected ? (
+                    utils.shortenAddress(address ?? '')
+                ) : (
+                    <>
+                        <span className="md:hidden lg:block">Create or </span>Connect
+                    </>
+                )}
             </button>
         </Stack>
     )
 }
 
-const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) => {
+const NavBarContainer = ({ children, newLayout, ...props }: { children: React.ReactNode; newLayout: Boolean }) => {
+    const themeBG = newLayout ? 'transparent' : 'black'
+    const themeColor = newLayout ? 'black' : 'white'
+
     return (
         <Flex
             as="nav"
@@ -277,10 +307,10 @@ const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) 
             justify="space-between"
             wrap="wrap"
             w="100%"
-            bg={{ base: 'black', md: 'black' }}
-            color={{ base: 'white', md: 'white' }}
+            bg={{ base: themeBG, md: themeBG }}
+            color={{ base: themeColor, md: themeColor }}
             {...props}
-            className="text-h6"
+            className="font-black"
         >
             {children}
         </Flex>

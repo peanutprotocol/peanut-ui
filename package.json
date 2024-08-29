@@ -30,6 +30,7 @@
         "@web3inbox/react": "^1.2.0",
         "@web3modal/siwe": "^5.0.1",
         "@web3modal/wagmi": "^5.0.1",
+        "auto-text-size": "^0.2.3",
         "autoprefixer": "^10.4.14",
         "awesome-phonenumber": "^6.8.0",
         "axios": "^1.4.0",

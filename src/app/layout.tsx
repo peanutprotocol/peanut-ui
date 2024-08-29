@@ -1,5 +1,5 @@
 import '@/styles/globals.css'
-import { Roboto_Flex } from 'next/font/google'
+import { Roboto_Flex, Londrina_Solid } from 'next/font/google'
 import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
 import * as config from '@/config'
 import * as context from '@/context'
@@ -11,10 +11,18 @@ const roboto = Roboto_Flex({
     display: 'block',
     variable: '--font-roboto',
 })
+
+const londrina = Londrina_Solid({
+    weight: ['400', '900'],
+    subsets: ['latin'],
+    display: 'swap',
+    variable: '--font-londrina',
+})
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body className={`${roboto.variable} font-sans`}>
+            <body className={`${roboto.variable} ${londrina.variable} font-sans`}>
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"
