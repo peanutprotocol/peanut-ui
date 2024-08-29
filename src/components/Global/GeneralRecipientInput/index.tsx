@@ -1,54 +1,71 @@
 'use client'
 import { useEffect, useState } from 'react'
+import { isIBAN } from 'validator'
 import Icon from '@/components/Global/Icon'
+import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { ethers } from 'ethers'
 
-type AddressInputProps = {
+type GeneralRecipientInputProps = {
     className?: string
     placeholder: string
     value: string
     onSubmit: any
     _setIsValidRecipient: any
     setIsValueChanging?: any
+    setRecipientType: any
     onDeleteClick: any
 }
 
-const AddressInput = ({
+const GeneralRecipientInput = ({
     placeholder,
     value,
     onSubmit,
     _setIsValidRecipient,
     setIsValueChanging,
+    setRecipientType,
     onDeleteClick,
-}: AddressInputProps) => {
+}: GeneralRecipientInputProps) => {
     const [userInput, setUserInput] = useState<string>(value)
-    const [recipient, setRecipient] = useState<string>(value)
-    const [debouncedRecipient, setDebouncedRecipient] = useState<string>('')
+    const [recipient, setAddress] = useState<string>(value)
+    const [deboundedRecipient, setDeboundedRecipient] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [isLoading, setIsLoading] = useState(false)
-    const [type, setType] = useState<'address' | 'ens'>('address')
+    const [type, setType] = useState<interfaces.RecipientType>('address')
 
     async function checkAddress(recipient: string) {
         try {
-            if (recipient.toLowerCase().endsWith('.eth')) {
+            if (isIBAN(recipient)) {
+                setIsValidRecipient(true)
+                _setIsValidRecipient(true)
+                setRecipientType('iban')
+                setType('iban')
+                setAddress(recipient)
+            } else if (/^[0-9]{6,17}$/.test(recipient)) {
+                setIsValidRecipient(true)
+                _setIsValidRecipient(true)
+                setRecipientType('us')
+                setType('us')
+                setAddress(recipient)
+            } else if (recipient.toLowerCase().endsWith('.eth')) {
                 const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
                 if (resolvedAddress) {
-                    setRecipient(resolvedAddress)
+                    recipient = resolvedAddress
                     setIsValidRecipient(true)
                     _setIsValidRecipient(true)
+                    setAddress(recipient)
+                    setRecipientType('ens')
                     setType('ens')
-                    onSubmit(userInput, recipient)
                 } else {
                     setIsValidRecipient(false)
                     _setIsValidRecipient(false)
                 }
             } else if (ethers.utils.isAddress(recipient)) {
-                setRecipient(recipient)
+                setAddress(recipient)
                 setIsValidRecipient(true)
                 _setIsValidRecipient(true)
+                setRecipientType('address')
                 setType('address')
-                onSubmit(undefined, recipient)
             } else {
                 setIsValidRecipient(false)
                 _setIsValidRecipient(false)
@@ -64,7 +81,20 @@ const AddressInput = ({
 
     useEffect(() => {
         if (recipient && isValidRecipient) {
-            onSubmit(type === 'ens' ? userInput : undefined, recipient)
+            switch (type) {
+                case 'address':
+                    onSubmit(undefined, recipient)
+                    break
+                case 'ens':
+                    onSubmit(userInput, recipient)
+                    break
+                case 'iban':
+                    onSubmit(userInput, recipient)
+                    break
+                case 'us':
+                    onSubmit(userInput, recipient)
+                    break
+            }
             _setIsValidRecipient(true)
         }
     }, [recipient])
@@ -72,7 +102,7 @@ const AddressInput = ({
     useEffect(() => {
         setIsLoading(true)
         const handler = setTimeout(() => {
-            setDebouncedRecipient(userInput)
+            setDeboundedRecipient(userInput)
         }, 750)
         return () => {
             clearTimeout(handler)
@@ -80,10 +110,10 @@ const AddressInput = ({
     }, [userInput])
 
     useEffect(() => {
-        if (debouncedRecipient) {
-            checkAddress(debouncedRecipient)
+        if (deboundedRecipient) {
+            checkAddress(deboundedRecipient)
         }
-    }, [debouncedRecipient])
+    }, [deboundedRecipient])
 
     useEffect(() => {
         setUserInput(value)
@@ -122,7 +152,7 @@ const AddressInput = ({
                 }}
                 spellCheck="false"
             />
-            {userInput?.length > 0 ? (
+            {userInput.length > 0 ? (
                 isLoading ? (
                     <div className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
                         <div
@@ -149,4 +179,4 @@ const AddressInput = ({
     )
 }
 
-export default AddressInput
+export default GeneralRecipientInput

@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { PEANUT_API_URL } from '@/constants'
 
-export const maxDuration = 300 // vercel timeout
-
-/**
- * Proxy requests from the UI to the API.
- * To every request:
- * 1. Add `x-forwarded-for` header with the caller ip address.
- * 2. Add apiKey (the api key that's needed to use our API).
- */
-export async function POST(request: NextRequest) {
-    const separator = '/api/proxy/'
+export async function PATCH(request: NextRequest) {
+    const separator = '/api/proxy/patch/'
     const indexOfSeparator = request.url.indexOf(separator)
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
@@ -40,7 +32,7 @@ export async function POST(request: NextRequest) {
     } as any
 
     const apiResponse = await fetch(fullAPIUrl, {
-        method: 'POST',
+        method: 'PATCH',
         headers: headersToPass,
         body: JSON.stringify(jsonToPass),
     })
