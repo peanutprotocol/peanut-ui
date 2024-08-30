@@ -93,3 +93,82 @@ Firefox input[type='number'] {
     color: transparent; /* Make the text color transparent */
     animation: slide 3s linear infinite; /* Animation named 'slide', adjust timing as needed */
 }
+
+/* .testimonial { */
+    /* position: relative; */
+    /* z-index: 9; */
+    /* @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white; */
+/* } */
+
+/* .testimonial:after {
+    content: '';
+    z-index: -1;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white;
+} */
+
+.testimonial-0-bg {
+    top: 1.5rem;
+    left: -1rem;
+    transform: rotate(-6deg);
+}
+.testimonial-1-bg {
+    top: 1.3rem;
+    left: 0.6rem;
+    transform: rotate(4deg);
+}
+.testimonial-2-bg {
+    top: 0.75rem;
+    left: 0.65rem;
+    transform: rotate(3deg);
+}
+.testimonial-3-bg {
+    top: -0.5rem;
+    left: 0.5rem;
+    transform: rotate(-4deg);
+}
+
+@keyframes thumbsUp {
+    0% {
+        transform: translateY(0);
+        transform-origin: bottom left;
+    }
+    35% {
+        transform: translateY(0) rotate(-15deg);
+        transform-origin: bottom left;
+    }
+    50% {
+        transform: translateY(0)rotate(9deg);
+        transform-origin: bottom left;
+    }
+    60% {
+        transform: translateY(0)rotate(-5deg);
+        transform-origin: bottom left;
+    }
+    100% {
+        transform: translateY(0);
+        transform-origin: bottom left;
+    }
+}
+
+.animation-thumbsUp {
+    animation: thumbsUp 1.2s infinite;
+}
+
+@keyframes faceSpin {
+     0% {
+        transform: rotate(0deg);
+     }
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
+.animation-faceSpin {
+    animation: faceSpin 2s infinite ease-in-out;
+}
