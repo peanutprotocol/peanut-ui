@@ -38,12 +38,16 @@ export function Mike({ lines }: MikeProps) {
             />
 
             {lines.map((line, index) => (
-                <div
+                <motion.div
+                    initial={{ opacity: 0, translateY: 32, translateX: index % 2 === 0 ? -8 : 8, rotate: 4 }}
+                    whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 0 }}
+                    whileHover={{ translateY: 6, translateX: 2, rotate: 2 }}
+                    transition={{ type: 'spring', damping: 6 }}
                     key={index}
                     className={`relative z-10 mx-auto w-4/5 max-w-4xl text-center font-display uppercase leading-[0.825] text-violet-3`}
                 >
                     <AutoTextSize maxFontSizePx={400}>{line}</AutoTextSize>
-                </div>
+                </motion.div>
             ))}
         </Stack>
     )

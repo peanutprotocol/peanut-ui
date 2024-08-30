@@ -41,13 +41,17 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
             </Stack>
 
             {marquee.visible && (
-                <Box borderY={'2px solid'} borderColor={'white'} className="shadow">
-                    <MarqueeWrapper backgroundColor="bg-cyan-8" direction="left" className="border-y-2 border-n-1 py-1">
+                <Box borderY={'2px solid'} borderColor={'white'} className="overflow-hidden shadow ">
+                    <MarqueeWrapper
+                        backgroundColor="bg-cyan-8"
+                        direction="left"
+                        className="overflow-hidden border-y-2 border-n-1 py-1 "
+                    >
                         <div className="mx-2 font-display text-lg uppercase not-italic md:text-xl">
                             {marquee.message}
                         </div>
 
-                        <div className="mx-2">
+                        <div className="mx-2 overflow-hidden">
                             <img src={assets.SmileStars.src} className="animation-faceSpin h-auto w-9" />
                         </div>
                     </MarqueeWrapper>
