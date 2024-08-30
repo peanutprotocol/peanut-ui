@@ -95,9 +95,9 @@ Firefox input[type='number'] {
 }
 
 /* .testimonial { */
-    /* position: relative; */
-    /* z-index: 9; */
-    /* @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white; */
+/* position: relative; */
+/* z-index: 9; */
+/* @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white; */
 /* } */
 
 /* .testimonial:after {
@@ -143,11 +143,11 @@ Firefox input[type='number'] {
         transform-origin: bottom left;
     }
     50% {
-        transform: translateY(0)rotate(9deg);
+        transform: translateY(0) rotate(9deg);
         transform-origin: bottom left;
     }
     60% {
-        transform: translateY(0)rotate(-5deg);
+        transform: translateY(0) rotate(-5deg);
         transform-origin: bottom left;
     }
     100% {
@@ -161,9 +161,9 @@ Firefox input[type='number'] {
 }
 
 @keyframes faceSpin {
-     0% {
+    0% {
         transform: rotate(0deg);
-     }
+    }
     100% {
         transform: rotate(-360deg);
     }

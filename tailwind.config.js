@@ -47,13 +47,13 @@ module.exports = {
                     9: '#F1EBF8',
                 },
                 cyan: {
-                    8: '#A0E6E0'
+                    8: '#A0E6E0',
                 },
                 gold: {
                     3: '#FFD25C',
                 },
                 pink: {
-                    6: '#FDC5F6'
+                    6: '#FDC5F6',
                 },
                 white: '#FFFFFF',
                 background: '#FAF4F0',
