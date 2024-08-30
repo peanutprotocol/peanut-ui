@@ -39,6 +39,7 @@ export const InitialView = ({
     const handleOnNext = async () => {
         try {
             if (!unsignedTx) return
+            // TODO: balance check
 
             setLoadingState('Sign in wallet')
 
@@ -62,6 +63,10 @@ export const InitialView = ({
             setTransactionHash(hash ?? '')
             onNext()
         } catch (error) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error while fulfilling the request. Please make sure you have sufficient balance.',
+            })
             console.error('Error while submitting request link fulfillment:', error)
         } finally {
             setLoadingState('Idle')
@@ -74,7 +79,7 @@ export const InitialView = ({
                 <>
                     <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
                         {requestLinkData.reference && (
-                            <label className="max-w-full text-h8">
+                            <label className="text-h8 max-w-full">
                                 Ref: <span className="font-normal"> {requestLinkData.reference} </span>
                             </label>
                         )}
@@ -83,7 +88,7 @@ export const InitialView = ({
                                 href={requestLinkData.attachmentUrl}
                                 download
                                 target="_blank"
-                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
                             >
                                 <Icon name={'download'} />
                                 Download attachment
@@ -111,7 +116,7 @@ export const InitialView = ({
                     </label>
                 )}
                 <div>
-                    <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
+                    <div className="text-h7 flex flex-row items-center justify-center gap-2 pl-1">
                         <div className="relative h-6 w-6">
                             <img
                                 src={
@@ -149,9 +154,9 @@ export const InitialView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {estimatedGasCost && (
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="h-4 fill-gray-1" />
+                            <Icon name={'gas'} className="fill-gray-1 h-4" />
                             <label className="font-bold">Fees</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -161,9 +166,9 @@ export const InitialView = ({
                 )}
 
                 {estimatedPoints && (
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                            <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
                             <label className="font-bold">Points</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

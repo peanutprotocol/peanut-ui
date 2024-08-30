@@ -1,8 +1,9 @@
 'use client'
 
-import { createElement, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Create.consts'
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
+import { useAccount } from 'wagmi'
 
 export const CreateRequestLink = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -15,6 +16,9 @@ export const CreateRequestLink = () => {
         rawFile: undefined,
     })
     const [recipientAddress, setRecipientAddress] = useState<string>('')
+
+    const { address } = useAccount()
+
     const handleOnNext = () => {
         if (step.idx === _consts.CREATE_SCREEN_FLOW.length - 1) return
         const newIdx = step.idx + 1

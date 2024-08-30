@@ -3,7 +3,7 @@ import * as _consts from '../Create.consts'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useContext, useEffect, useState } from 'react'
+import { useCallback, useContext, useEffect, useState } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -12,7 +12,7 @@ import * as consts from '@/constants'
 import AddressInput from '@/components/Global/AddressInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import { useBalance } from '@/hooks/useBalance'
-
+import * as utils from '@/utils'
 export const InitialView = ({
     onNext,
     onPrev,
@@ -46,19 +46,26 @@ export const InitialView = ({
         open()
     }
 
-    const handleOnNext = async () => {
+    useEffect(() => {
+        if (!recipientAddress && address) {
+            setRecipientAddress(address)
+        }
+    }, [address])
+
+    const handleOnNext = useCallback(async () => {
         // TODO: add validation for recipient address
+
+        console.log('recipientAddress', recipientAddress)
 
         setLoadingState('Creating link')
 
         const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
-        console.log('tokenDetails:', tokenDetails)
-
+        return
         try {
             const { link } = await peanut.createRequestLink({
                 chainId: selectedChainID,
-                recipientAddress,
+                recipientAddress: recipientAddress,
                 tokenAddress: selectedTokenAddress,
                 tokenAmount: _tokenValue ?? '',
                 tokenDecimals: tokenDetails.tokenDecimals.toString(),
@@ -69,6 +76,10 @@ export const InitialView = ({
                 attachment: attachmentOptions?.rawFile || undefined,
                 reference: attachmentOptions?.message || undefined,
             })
+
+            const requestLinkDetails: any = await peanut.getRequestLinkDetails({ link: link, apiUrl: '/api/proxy/get' })
+
+            utils.saveRequestLinkToLocalStorage({ details: requestLinkDetails })
 
             setLink(link)
             onNext()
@@ -81,7 +92,7 @@ export const InitialView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }
+    }, [recipientAddress, _tokenValue, attachmentOptions])
 
     useEffect(() => {
         if (!_tokenValue) return
@@ -104,12 +115,12 @@ export const InitialView = ({
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label
-                className="max-h-[92px] w-full overflow-hidden text-h2"
+                className="text-h2 max-h-[92px] w-full overflow-hidden"
                 style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
             >
                 Request a payment
             </label>
-            <label className="w-full max-w-96 text-start text-h8 font-light">
+            <label className="text-h8 w-full max-w-96 text-start font-light">
                 You will request a payment to {recipientAddress ? recipientAddress : '...'} <br />
                 Choose your preffered token and chain.
             </label>
@@ -130,7 +141,7 @@ export const InitialView = ({
 
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
                 <AddressInput
-                    value={recipientAddress}
+                    value={recipientAddress ?? ''}
                     _setIsValidRecipient={() => {
                         setIsValidRecipient(true)
                         setInputChanging(false)
@@ -158,11 +169,9 @@ export const InitialView = ({
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
                     }}
-                    disabled={!isValidRecipient || inputChanging || isLoading || (isConnected && !tokenValue)}
+                    disabled={!isValidRecipient || inputChanging || isLoading || !tokenValue}
                 >
-                    {!isConnected ? (
-                        'Create or Connect Wallet'
-                    ) : isLoading ? (
+                    {isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
                         </div>

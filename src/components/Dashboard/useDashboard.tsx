@@ -31,6 +31,8 @@ export const useDashboard = () => {
         const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = utils.getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = utils.getOfframpClaimsFromLocalStorage()!
+        const requestLinks = utils.getRequestLinksFromLocalStorage()!
+        const requestLinkFulfillments = utils.getRequestLinkFulfillmentsFromLocalStorage()!
 
         let linkData: interfaces.IDashboardItem[] = []
 
@@ -107,6 +109,48 @@ export const useDashboard = () => {
                 attachmentUrl: undefined,
                 points: link.points,
                 txHash: link.txHash,
+            })
+        })
+
+        requestLinks.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'Request Link',
+                amount: link.tokenAmount.toString(),
+                tokenSymbol:
+                    consts.peanutTokenDetails
+                        .find((token) => token.chainId === link.chainId)
+                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.symbol ?? '',
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.createdAt.toString(),
+                address: link.recipientAddress,
+                status: 'pending',
+                message: link.reference ?? '',
+                attachmentUrl: link.attachmentUrl ?? '',
+                points: 0,
+                txHash: '',
+            })
+        })
+
+        requestLinkFulfillments.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'Request Link Fulfillment',
+                amount: link.tokenAmount.toString(),
+                tokenSymbol:
+                    consts.peanutTokenDetails
+                        .find((token) => token.chainId === link.chainId)
+                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.symbol ?? '',
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.createdAt.toString(),
+                address: link.recipientAddress,
+                status: 'claimed',
+                message: link.reference ?? '',
+                attachmentUrl: link.attachmentUrl ?? '',
+                points: 0,
+                txHash: link.destinationChainFulfillmentHash ?? '',
             })
         })
 
