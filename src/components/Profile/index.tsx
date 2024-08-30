@@ -5,7 +5,7 @@ import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Divider } from '@chakra-ui/react'
 import { useDashboard } from '../Dashboard/useDashboard'
 import * as interfaces from '@/interfaces'
@@ -18,7 +18,8 @@ import ImageEdit from '../Global/ImageEdit'
 import TextEdit from '../Global/TextEdit'
 import IframeWrapper from '../Global/IframeWrapper'
 import Link from 'next/link'
-
+import * as context from '@/context'
+import Loading from '../Global/Loading'
 const tabs = [
     {
         title: 'History',
@@ -36,7 +37,7 @@ const tabs = [
 
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts' | undefined>(undefined)
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
+    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto, logoutUser } = useAuth()
     const avatar = createAvatar(identicon, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
@@ -46,6 +47,7 @@ export const Profile = () => {
     }>({ showError: false, errorMessage: '' })
     const svg = avatar.toDataUri()
     const { address, isConnected } = useAccount()
+    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const { signMessageAsync } = useSignMessage()
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
@@ -245,10 +247,10 @@ export const Profile = () => {
         }
     }, [currentPage, dashboardData])
 
-    const [isLoading, setIsLoading] = useState(false)
+    const [_isLoading, _setIsLoading] = useState(false)
     const handleSiwe = async () => {
         try {
-            setIsLoading(true)
+            _setIsLoading(true)
             setErrorState({
                 showError: false,
                 errorMessage: '',
@@ -296,7 +298,22 @@ export const Profile = () => {
                 errorMessage: 'Error while authenticating. Please try again later.',
             })
         } finally {
-            setIsLoading(false)
+            _setIsLoading(false)
+        }
+    }
+
+    const handleLogout = async () => {
+        try {
+            setLoadingState('Logging out')
+            await logoutUser()
+        } catch (error) {
+            console.log('Error logging out', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error logging out',
+            })
+        } finally {
+            setLoadingState('Idle')
         }
     }
 
@@ -316,7 +333,7 @@ export const Profile = () => {
                 }}
                 showOverlay={!isFetchingUser}
                 errorState={errorState}
-                isLoading={isLoading}
+                isLoading={_isLoading}
             />
         )
     } else
@@ -347,7 +364,7 @@ export const Profile = () => {
                                     />
 
                                     {user?.user?.email && (
-                                        <span className="flex justify-center gap-1 text-h8 font-normal">
+                                        <span className="text-h8 flex justify-center gap-1 font-normal">
                                             {user?.user?.email}
                                             <div className={`flex flex-row items-center justify-center `}>
                                                 <div
@@ -360,9 +377,17 @@ export const Profile = () => {
                                     )}
                                 </div>
                             </div>
-                            <button className="btn btn-xl h-8 w-full"> Log out</button>
+                            <button className="btn btn-xl h-8 w-full" onClick={handleLogout}>
+                                {isLoading ? (
+                                    <div className="flex w-full flex-row items-center justify-center gap-2">
+                                        <Loading /> {loadingState}
+                                    </div>
+                                ) : (
+                                    'Log out'
+                                )}
+                            </button>
                         </div>
-                        <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
+                        <div className="border-n-1 bg-background text-h7 flex w-full flex-col items-start justify-center gap-2 border px-4 py-2 sm:w-96 ">
                             <span className="text-h5">{user?.totalPoints} points</span>
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
@@ -458,7 +483,7 @@ export const Profile = () => {
                         classNameWrapperDiv="px-5 pb-7 pt-8"
                     >
                         {modalType === 'Boost' ? (
-                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                            <div className="text-h7 flex w-full flex-col items-center justify-center gap-2">
                                 {/* <div className="flex w-full items-center justify-between">
                                     <label>Streak</label>
                                     <label>1.4X</label>
@@ -474,7 +499,7 @@ export const Profile = () => {
                                 </div>
                             </div>
                         ) : modalType === 'Invites' ? (
-                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                            <div className="text-h7 flex w-full flex-col items-center justify-center gap-2">
                                 {user?.referredUsers > 0 &&
                                     user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
