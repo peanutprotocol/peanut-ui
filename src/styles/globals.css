@@ -94,13 +94,13 @@ Firefox input[type='number'] {
     animation: slide 3s linear infinite; /* Animation named 'slide', adjust timing as needed */
 }
 
-.testimonial {
-    position: relative;
-    z-index: 9;
+/* .testimonial { */
+    /* position: relative; */
+    /* z-index: 9; */
     /* @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white; */
-}
+/* } */
 
-.testimonial:after {
+/* .testimonial:after {
     content: '';
     z-index: -1;
     display: block;
@@ -110,37 +110,24 @@ Firefox input[type='number'] {
     width: 100%;
     height: 100%;
     @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white;
-}
+} */
 
-.testimonial:before {
-    content: '';
-    display: block;
-    z-index: -1;
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: #6340DF;
-    border-radius: 1.5rem;
-}
-
-.testimonial-0:before {
+.testimonial-0-bg {
     top: 1.5rem;
     left: -1rem;
     transform: rotate(-6deg);
 }
-.testimonial-1:before {
+.testimonial-1-bg {
     top: 1.3rem;
     left: 0.6rem;
     transform: rotate(4deg);
 }
-.testimonial-2:before {
+.testimonial-2-bg {
     top: 0.75rem;
     left: 0.65rem;
     transform: rotate(3deg);
 }
-.testimonial-3:before {
+.testimonial-3-bg {
     top: -0.5rem;
     left: 0.5rem;
     transform: rotate(-4deg);

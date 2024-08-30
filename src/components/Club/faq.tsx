@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Box, Stack, Flex } from '@chakra-ui/react'
 import Icon from '@/components/Global/Icon'
 import { MarqueeWrapper } from '@/components/Global/MarqueeWrapper'
@@ -56,8 +56,8 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                     className="duration-400 md:-rotate-2- relative relative mx-auto max-w-3xl rounded-md border-2 border-n-1 bg-white px-2 py-6 shadow ring-2 ring-white transition-transform hover:rotate-0 md:p-14"
                 >
                     <motion.img
-                        initial={{ opacity: 0, translateY: 18, translateX: 5 }}
-                        whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
+                        initial={{ translateY: 18, translateX: 5 }}
+                        whileInView={{ translateY: 0, translateX: 0 }}
                         whileHover={{ scale: 1.15, translateY: 1, translateX: 2, rotate: 2 }}
                         transition={{ type: 'spring', damping: 6 }}
                         src={assets.SmilePink.src}
@@ -81,49 +81,79 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
 
                     <Stack spacing={1}>
                         {questions.map((faq, index) => (
-                            <Box key={index} className={`px-4 py-4 text-lg font-semibold md:text-xl`}>
-                                <Flex justify="space-between" className=" cursor-pointer" onClick={() => setFaq(index)}>
+                            <motion.div
+                                animate={{ height: 'auto' }}
+                                transition={{ duration: 0.4, delay: 0.3, type: 'spring', damping: 8 }}
+                                key={index}
+                                className={`px-4 py-4 text-lg font-semibold md:text-xl`}
+                            >
+                                <Flex
+                                    justify="space-between"
+                                    className="cursor-pointer items-start"
+                                    onClick={() => setFaq(index)}
+                                >
                                     <div className="uppercase leading-6 text-violet-3">{faq.question}</div>
-                                    <div className="grow-1 ml-6">
+
+                                    <motion.div
+                                        className="grow-1 ml-6"
+                                        animate={{ rotate: openFaq === index ? 180 : 0 }}
+                                        transition={{ duration: 0.3, transitionOrigin: 'center' }}
+                                    >
                                         <Icon
                                             name={openFaq === index ? 'minus-circle' : 'plus-circle'}
                                             className="h-6 w-6 fill-violet-3 md:h-8 md:w-8"
                                         />
-                                    </div>
+                                    </motion.div>
                                 </Flex>
 
-                                {openFaq == index && (
-                                    <p className="mt-1 leading-6 text-n-1">
-                                        {faq.answer}
-                                        {faq.calModal && (
-                                            <a
-                                                data-cal-link="kkonrad+hugo0/15min?duration=30"
-                                                data-cal-config='{"layout":"month_view"}'
-                                                className=" underline"
-                                            >
-                                                Let's talk!
-                                            </a>
-                                        )}
-                                        {faq.redirectUrl && (
-                                            <a href={faq.redirectUrl} target="_blank" className="text-black underline">
-                                                {faq.redirectText}
-                                            </a>
-                                        )}
-                                    </p>
-                                )}
-                            </Box>
+                                <AnimatePresence initial={false}>
+                                    {openFaq == index && (
+                                        <motion.p
+                                            initial={{ height: 0, opacity: 0 }}
+                                            animate={{ height: 'auto', opacity: 1 }}
+                                            exit={{ height: 0, opacity: 0 }}
+                                            transition={{ duration: 0.3, type: 'spring', damping: 12 }}
+                                            className="mt-1 overflow-hidden leading-6 text-n-1"
+                                        >
+                                            {faq.answer}
+                                            {faq.calModal && (
+                                                <a
+                                                    data-cal-link="kkonrad+hugo0/15min?duration=30"
+                                                    data-cal-config='{"layout":"month_view"}'
+                                                    className=" underline"
+                                                >
+                                                    Let's talk!
+                                                </a>
+                                            )}
+                                            {faq.redirectUrl && (
+                                                <a
+                                                    href={faq.redirectUrl}
+                                                    target="_blank"
+                                                    className="text-black underline"
+                                                >
+                                                    {faq.redirectText}
+                                                </a>
+                                            )}
+                                        </motion.p>
+                                    )}
+                                </AnimatePresence>
+                            </motion.div>
                         ))}
                     </Stack>
                 </motion.div>
             </Box>
             {marquee.visible && (
                 <Box borderY={'2px solid'} borderColor={'white'} className="shadow">
-                    <MarqueeWrapper backgroundColor="bg-cyan-8" direction="left" className="border-y-2 border-n-1 py-1">
+                    <MarqueeWrapper
+                        backgroundColor="bg-cyan-8"
+                        direction="left"
+                        className="  border-y-2 border-n-1 py-1"
+                    >
                         <div className="mx-2 font-display text-lg uppercase not-italic md:text-xl">
                             {marquee.message}
                         </div>
 
-                        <div className="mx-2">
+                        <div className="mx-2 overflow-hidden">
                             <img src={assets.SmileStars.src} className="animation-faceSpin h-auto w-9" />
                         </div>
                     </MarqueeWrapper>
