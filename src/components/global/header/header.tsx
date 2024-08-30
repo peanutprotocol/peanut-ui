@@ -236,13 +236,8 @@ export function Header({ showMarquee = true }: { showMarquee?: boolean }) {
                 )}
             </Disclosure>
             {/* <div className="brutalborder-bottom border-black bg-yellow p-2 text-center text-black"> */}
-            <div className="brutalborder-bottom bg-yellow border-black p-2 text-center ">
-                <a
-                    href="https://peanutprotocol.notion.site/TS-Fullstack-Nut-93f621339f744c9b8054a8140d2c06ea?pvs=74"
-                    className="text-md font-bold lowercase text-black"
-                >
-                    We're hiring!
-                </a>
+            <div className="brutalborder-bottom border-black bg-red p-2  text-center text-xl font-bold text-black ">
+                These functions are not actively maintained! Use at your own risk!
             </div>
         </>
     )
