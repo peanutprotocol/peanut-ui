@@ -22,7 +22,7 @@ export const ConfirmCashoutView = ({
     onNext,
     onPrev,
     usdValue,
-
+    tokenValue,
     preparedCreateLinkWrapperResponse,
     initialKYCStep,
     offrampForm,
@@ -123,6 +123,8 @@ export const ConfirmCashoutView = ({
             const bridgeCustomerId = user?.user?.bridge_customer_id
             const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
+            const recipientType = peanutAccount?.account_type
+
             console.log({
                 peanutAccount,
                 bridgeCustomerId,
@@ -136,7 +138,7 @@ export const ConfirmCashoutView = ({
 
             console.log('allLiquidationAddresses:', allLiquidationAddresses)
 
-            const liquidationAddress = allLiquidationAddresses.find(
+            let liquidationAddress = allLiquidationAddresses.find(
                 (address) =>
                     address.chain === chainName &&
                     address.currency === tokenName &&
@@ -144,7 +146,16 @@ export const ConfirmCashoutView = ({
             )
 
             console.log('liquidationAddressInfo:', liquidationAddress)
-            if (!liquidationAddress) return
+            if (!liquidationAddress)
+                liquidationAddress = await utils.createLiquidationAddress(
+                    bridgeCustomerId,
+                    claimLinkData.chainId,
+                    claimLinkData.tokenAddress,
+                    bridgeExternalAccountId,
+                    recipientType === 'iban' ? 'sepa' : 'ach',
+                    recipientType === 'iban' ? 'eur' : 'usd'
+                )
+
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
             console.log({
@@ -210,10 +221,6 @@ export const ConfirmCashoutView = ({
 
         onNext()
     }
-
-    // TODO: things to keep in mind
-    // - if link is created but cashout fails, what do?
-    // -
 
     const { setStep: setActiveStep, activeStep } = useSteps({
         initialStep: initialKYCStep,
@@ -299,7 +306,7 @@ export const ConfirmCashoutView = ({
         <div className="flex w-full flex-col items-center justify-center gap-4 px-2  text-center">
             <label className="text-h4">Confirm your details</label>
             <div className="flex flex-col justify-center gap-3">
-                <label className="text-start text-h8 font-light">
+                <label className="text-h8 text-start font-light">
                     Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
                 </label>
                 <FAQComponent />
@@ -322,20 +329,20 @@ export const ConfirmCashoutView = ({
                 />
             ) : (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="self-start text-h8 font-light">Please confirm all details:</label>
+                    <label className="text-h8 self-start font-light">Please confirm all details:</label>
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'profile'} className="h-4 fill-gray-1" />
+                                <Icon name={'profile'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Name</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {user?.user?.full_name}
                             </span>
                         </div>
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'email'} className="h-4 fill-gray-1" />
+                                <Icon name={'email'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Email</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -343,9 +350,9 @@ export const ConfirmCashoutView = ({
                             </span>
                         </div>
 
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'bank'} className="h-4 fill-gray-1" />
+                                <Icon name={'bank'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Bank account</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -378,9 +385,9 @@ export const ConfirmCashoutView = ({
                         )}
                 </div> */}
                         {/* TODO: fix the above */}
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                <Icon name={'gas'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Fee</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -399,16 +406,16 @@ export const ConfirmCashoutView = ({
                                 />
                             </span>
                         </div>
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                <Icon name={'transfer'} className="fill-gray-1 h-4" />
                                 <label className="font-bold">Total</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 $
                                 {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
                                     ?.account_type === 'iban'
-                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
+                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
                                     : utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)}
                                 <MoreInfo
                                     text={

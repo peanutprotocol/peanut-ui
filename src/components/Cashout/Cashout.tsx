@@ -71,12 +71,6 @@ export const Cashout = ({}) => {
             idx: newIdx,
         }))
     }
-    const handleOnCustom = (screen: _consts.CashoutScreens) => {
-        setStep(() => ({
-            screen: screen,
-            idx: _consts.CASHOUT_SCREEN_FLOW.indexOf(screen),
-        }))
-    }
     const [crossChainDetails, setCrossChainDetails] = useState<[]>([])
 
     const fetchAndSetCrossChainDetails = async () => {
