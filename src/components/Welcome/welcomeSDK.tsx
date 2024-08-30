@@ -256,7 +256,7 @@ export function WelcomeSDK() {
             </div>
 
             <div className="grid w-full grid-cols-1  gap-4 px-4 py-2 text-black lg:grid-cols-3">
-                <label className="flex items-center justify-center border border-n-2 bg-pink-1 px-4 py-8 text-center text-h3 font-black sm:px-16">
+                <label className="bg-pink-1 flex items-center justify-center border border-n-2 px-4 py-8 text-center text-h3 font-black sm:px-16">
                     300k+ Transactions
                 </label>
 
