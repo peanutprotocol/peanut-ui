@@ -132,9 +132,9 @@ module.exports = {
             fontSize: {
                 0: ['0px', '0px'],
                 sm: ['0.875rem', '1.3125rem'],
-                '2xl': ['3rem', '3.25rem'],
-                '3xl': ['7rem', '7rem'],
-                '4xl': ['10rem', '10rem'],
+                '6xl': ['3rem', '3.25rem'],
+                '7xl': ['7rem', '7rem'],
+                '8xl': ['10rem', '10rem'],
                 h1: [
                     '3rem',
                     {

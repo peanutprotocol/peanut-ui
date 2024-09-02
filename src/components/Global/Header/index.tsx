@@ -281,7 +281,7 @@ const SocialLinks = () => {
 }
 
 const NavBarContainer = ({ children, newLayout, ...props }: { children: React.ReactNode; newLayout: Boolean }) => {
-    const themeBG = newLayout ? 'transparent' : 'black'
+    const themeBG = newLayout ? 'white' : 'black'
     const themeColor = newLayout ? 'black' : 'white'
     return (
         <Flex
@@ -293,7 +293,7 @@ const NavBarContainer = ({ children, newLayout, ...props }: { children: React.Re
             bg={{ base: themeBG, md: themeBG }}
             color={{ base: themeColor, md: themeColor }}
             {...props}
-            className="z-[9999] text-h6 font-black"
+            className={`font-black z-[9999] text-h6 ${newLayout ? 'border-b-2 border-n-1 shadow ring-2 ring-white' : ''}`}
             zIndex={9999} // always on top
         >
             {children}
