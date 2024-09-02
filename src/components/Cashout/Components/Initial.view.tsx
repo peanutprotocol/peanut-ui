@@ -96,12 +96,15 @@ export const InitialCashoutView = ({
 
             const recipientBankAccount = selectedBankAccount || newBankAccount
 
-            if (isIBAN(recipientBankAccount)) {
-            } else if (/^[0-9]{6,17}$/.test(recipientBankAccount)) {
-            } else {
+            const validAccount = await utils.validateBankAccount(recipientBankAccount)
+            if (!validAccount) {
                 console.error('Invalid bank account')
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Invalid bank account. Please make sure your account is supported',
+                })
                 return
-            } // TODO: fix this if else fuckery & implement check bank account endpoint here
+            }
 
             if (!user) {
                 await fetchUser()

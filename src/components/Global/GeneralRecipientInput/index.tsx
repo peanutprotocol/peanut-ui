@@ -36,44 +36,60 @@ const GeneralRecipientInput = ({
     async function checkAddress(recipient: string) {
         try {
             if (isIBAN(recipient)) {
-                setIsValidRecipient(true)
-                _setIsValidRecipient(true)
-                setRecipientType('iban')
-                setType('iban')
-                setAddress(recipient)
+                const validAccount = await utils.validateBankAccount(recipient)
+                if (validAccount) {
+                    setIsValidRecipient(true)
+                    _setIsValidRecipient({ isValid: true })
+                    setRecipientType('iban')
+                    setType('iban')
+                    setAddress(recipient)
+                    onSubmit(userInput, recipient)
+                } else {
+                    setIsValidRecipient(false)
+                    _setIsValidRecipient({ isValid: false, error: 'Invalid IBAN, country not supported' })
+                }
             } else if (/^[0-9]{6,17}$/.test(recipient)) {
-                setIsValidRecipient(true)
-                _setIsValidRecipient(true)
-                setRecipientType('us')
-                setType('us')
-                setAddress(recipient)
+                const validateBankAccount = await utils.validateBankAccount(recipient)
+                if (validateBankAccount) {
+                    setIsValidRecipient(true)
+                    _setIsValidRecipient({ isValid: true })
+                    setRecipientType('us')
+                    setType('us')
+                    setAddress(recipient)
+                    onSubmit(userInput, recipient)
+                } else {
+                    setIsValidRecipient(false)
+                    _setIsValidRecipient({ isValid: false, error: 'Invalid US account number' })
+                }
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
                 if (resolvedAddress) {
                     recipient = resolvedAddress
                     setIsValidRecipient(true)
-                    _setIsValidRecipient(true)
+                    _setIsValidRecipient({ isValid: true })
                     setAddress(recipient)
                     setRecipientType('ens')
                     setType('ens')
+                    onSubmit(userInput, recipient)
                 } else {
                     setIsValidRecipient(false)
-                    _setIsValidRecipient(false)
+                    _setIsValidRecipient({ isValid: false })
                 }
             } else if (ethers.utils.isAddress(recipient)) {
                 setAddress(recipient)
                 setIsValidRecipient(true)
-                _setIsValidRecipient(true)
+                _setIsValidRecipient({ isValid: true })
                 setRecipientType('address')
                 setType('address')
+                onSubmit(undefined, recipient)
             } else {
                 setIsValidRecipient(false)
-                _setIsValidRecipient(false)
+                _setIsValidRecipient({ isValid: false })
             }
         } catch (error) {
             console.error('Error while validating recipient input field:', error)
             setIsValidRecipient(false)
-            _setIsValidRecipient(false)
+            _setIsValidRecipient({ isValid: false })
         } finally {
             setIsLoading(false)
         }
@@ -81,21 +97,7 @@ const GeneralRecipientInput = ({
 
     useEffect(() => {
         if (recipient && isValidRecipient) {
-            switch (type) {
-                case 'address':
-                    onSubmit(undefined, recipient)
-                    break
-                case 'ens':
-                    onSubmit(userInput, recipient)
-                    break
-                case 'iban':
-                    onSubmit(userInput, recipient)
-                    break
-                case 'us':
-                    onSubmit(userInput, recipient)
-                    break
-            }
-            _setIsValidRecipient(true)
+            _setIsValidRecipient({ isValid: true })
         }
     }, [recipient])
 
@@ -121,20 +123,20 @@ const GeneralRecipientInput = ({
 
     return (
         <div
-            className={`relative w-full max-w-96 border border-n-1 dark:border-white${
+            className={`border-n-1 relative w-full max-w-96 border dark:border-white${
                 userInput && !isLoading && isValidRecipient
-                    ? ' border border-n-1 dark:border-white'
+                    ? ' border-n-1 border dark:border-white'
                     : userInput && !isLoading && !isValidRecipient
                       ? ' border-n-1 border-red dark:border-red'
                       : ''
             }`}
         >
-            <div className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
+            <div className="text-h8 absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white font-medium">
                 To:
             </div>
             <input
-                className={`transition-color h-12 w-full rounded-none bg-transparent
-                bg-white px-4 pl-8 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
+                className={`transition-color text-h8 focus:border-purple-1 dark:bg-n-1 dark:focus:border-purple-1
+                h-12 w-full rounded-none bg-transparent bg-white px-4 pl-8 font-medium outline-none placeholder:text-sm dark:border-white dark:text-white dark:placeholder:text-white/75`}
                 type="text"
                 placeholder={placeholder}
                 value={userInput}
@@ -146,7 +148,7 @@ const GeneralRecipientInput = ({
                     if (e.target.value) {
                         setUserInput(e.target.value)
                     } else {
-                        _setIsValidRecipient(false)
+                        _setIsValidRecipient({ isValid: false })
                         setUserInput('')
                     }
                 }}

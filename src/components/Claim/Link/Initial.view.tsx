@@ -335,7 +335,7 @@ export const InitialClaimLinkView = ({
                             className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                         >
                             {attachment.message && (
-                                <label className="max-w-full text-h8">
+                                <label className="text-h8 max-w-full">
                                     Ref: <span className="font-normal"> {attachment.message} </span>
                                 </label>
                             )}
@@ -344,7 +344,7 @@ export const InitialClaimLinkView = ({
                                     href={attachment.attachmentUrl}
                                     download
                                     target="_blank"
-                                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                    className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
                                 >
                                     <Icon name={'download'} />
                                     Download attachment
@@ -450,8 +450,23 @@ export const InitialClaimLinkView = ({
                             setRecipient({ name, address })
                             setInputChanging(false)
                         }}
-                        _setIsValidRecipient={(valid: boolean) => {
-                            setIsValidRecipient(valid)
+                        _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
+                            console.log({
+                                isValid,
+                                error,
+                            })
+                            setIsValidRecipient(isValid)
+                            if (error) {
+                                setErrorState({
+                                    showError: true,
+                                    errorMessage: error,
+                                })
+                            } else {
+                                setErrorState({
+                                    showError: false,
+                                    errorMessage: '',
+                                })
+                            }
                             setInputChanging(false)
                         }}
                         setIsValueChanging={() => {
@@ -466,19 +481,23 @@ export const InitialClaimLinkView = ({
                                 name: undefined,
                                 address: '',
                             })
+                            setErrorState({
+                                showError: false,
+                                errorMessage: '',
+                            })
                         }}
                     />
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             {selectedRoute && (
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <Icon name={'forward'} className="fill-gray-1 h-4" />
                                         <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                         {isXchainLoading ? (
-                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                            <div className="animate-colorPulse bg-slate-700 h-2 w-12 rounded"></div>
                                         ) : (
                                             selectedRoute && (
                                                 <>
@@ -488,7 +507,7 @@ export const InitialClaimLinkView = ({
                                                                 chain.chainId === selectedRoute.route.params.fromChain
                                                         )?.name
                                                     }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                    <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
                                                     {
                                                         mappedData.find(
                                                             (chain) =>
@@ -516,14 +535,14 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <Icon name={'gas'} className="fill-gray-1 h-4" />
                                     <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                        <div className="animate-colorPulse bg-slate-700 h-2 w-12 rounded"></div>
                                     ) : (
                                         <>
                                             $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
@@ -532,9 +551,9 @@ export const InitialClaimLinkView = ({
                                 </span>
                             </div>
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                    <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
                                     <label className="font-bold">Points</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -587,9 +606,9 @@ export const InitialClaimLinkView = ({
                             'Claim now'
                         )}
                     </button>
-                    {!isValidRecipient && (
+                    {address && recipient.address.length < 0 && recipientType === 'address' && (
                         <div
-                            className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
+                            className="wc-disable-mf text-h7 flex cursor-pointer flex-row items-center  justify-center self-center"
                             onClick={() => {
                                 handleConnectWallet()
                             }}
@@ -597,7 +616,7 @@ export const InitialClaimLinkView = ({
                             {isConnected ? 'Or claim/swap to your connected wallet' : 'Create or connect a wallet'}
                         </div>
                     )}
-                    {errorState.showError && (
+                    {errorState.showError ? (
                         <div className="text-center">
                             {errorState.errorMessage === 'offramp unavailable' ? (
                                 <label className="text-h8 font-normal text-red">
@@ -614,7 +633,7 @@ export const InitialClaimLinkView = ({
                                         <>
                                             {' '}
                                             <span
-                                                className="cursor-pointer text-h8 font-normal text-red underline"
+                                                className="text-h8 cursor-pointer font-normal text-red underline"
                                                 onClick={() => {
                                                     setSelectedRoute(null)
                                                     setHasFetchedRoute(false)
@@ -631,15 +650,16 @@ export const InitialClaimLinkView = ({
                                 </>
                             )}
                         </div>
-                    )}
-                    {(recipientType === 'iban' || recipientType === 'us') && (
-                        <label className="text-h8 font-normal ">
-                            Only US and EU accounts are supported currently. Reach out on{' '}
-                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                discord
-                            </a>{' '}
-                            if you would like more info.
-                        </label>
+                    ) : (
+                        (recipientType === 'iban' || recipientType === 'us') && (
+                            <label className="text-h8 font-normal ">
+                                Only US and EU accounts are supported currently. Reach out on{' '}
+                                <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
+                                    discord
+                                </a>{' '}
+                                if you would like more info.
+                            </label>
+                        )
                     )}
                 </div>{' '}
             </div>

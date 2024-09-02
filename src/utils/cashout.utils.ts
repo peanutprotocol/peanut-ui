@@ -368,6 +368,7 @@ export function getChainIdFromBridgeChainName(chainName: string): string | undef
 }
 
 export async function validateBankAccount(bankAccount: string): Promise<boolean> {
+    bankAccount = bankAccount.replace(/\s/g, '')
     const response = await fetch(`/api/peanut/iban/validate-bank-account`, {
         method: 'POST',
         headers: {
