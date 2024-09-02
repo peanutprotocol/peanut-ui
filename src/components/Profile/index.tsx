@@ -503,8 +503,8 @@ export const Profile = () => {
                                 {user?.referredUsers > 0 &&
                                     user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label>{utils.shortenAddressLong(referral.address)}</label>
-                                            <label>
+                                            <label className="text-h9">{referral.account_identifier}</label>
+                                            <label className="text-h9">
                                                 {Math.floor(
                                                     user.pointsPerReferral?.find((ref) =>
                                                         utils.compareTokenAddresses(ref.address, referral.address)
