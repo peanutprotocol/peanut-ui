@@ -128,8 +128,8 @@ export const ConfirmClaimLinkIbanView = ({
             if (!liquidationAddress) {
                 liquidationAddress = await utils.createLiquidationAddress(
                     bridgeCustomerId,
-                    claimLinkData.chainId,
-                    claimLinkData.tokenAddress,
+                    chainName,
+                    tokenName,
                     bridgeExternalAccountId,
                     recipientType === 'iban' ? 'sepa' : 'ach',
                     recipientType === 'iban' ? 'eur' : 'usd'
