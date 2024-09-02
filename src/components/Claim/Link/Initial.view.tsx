@@ -1,5 +1,5 @@
 'use client'
-import AddressInput from '@/components/Global/AddressInput'
+import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
@@ -19,6 +19,8 @@ import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { PopupButton } from '@typeform/embed-react'
+import { useAuth } from '@/context/authContext'
+import { userInfo } from 'os'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -39,13 +41,8 @@ export const InitialClaimLinkView = ({
     recipientType,
     setRecipientType,
     setOfframpForm,
-    offrampForm,
-    setLiquidationAddress,
-    setPeanutAccount,
-    setPeanutUser,
-
-    setOfframpXchainNeeded,
-    setOfframpChainAndToken,
+    setUserType,
+    setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const [fileType, setFileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
@@ -64,6 +61,7 @@ export const InitialClaimLinkView = ({
     const { estimatePoints, claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
+    const { user } = useAuth()
 
     const handleConnectWallet = async () => {
         if (isConnected && address) {
@@ -138,12 +136,11 @@ export const InitialClaimLinkView = ({
                 errorMessage: '',
             })
             setLoadingState('Fetching route')
-            let tokenName = _utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = _utils.getBridgeChainName(claimLinkData.chainId)
+            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
 
             if (tokenName && chainName) {
                 console.log('offramp without xchain possible')
-                setOfframpXchainNeeded(false)
             } else {
                 if (!crossChainDetails) {
                     setErrorState({
@@ -163,7 +160,6 @@ export const InitialClaimLinkView = ({
                     console.log('error', error)
                 }
 
-                console.log('route', route)
                 if (route === undefined) {
                     setErrorState({
                         showError: true,
@@ -171,61 +167,62 @@ export const InitialClaimLinkView = ({
                     })
                     return
                 }
-                setOfframpXchainNeeded(true)
-
-                tokenName = _utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                chainName = _utils.getBridgeChainName(optimismChainId)
             }
 
-            setOfframpChainAndToken({
-                chain: chainName ?? '',
-                token: tokenName ?? '',
-            })
-
             setLoadingState('Getting KYC status')
-            const user = await _utils.fetchUser(recipient.name?.replaceAll(' ', '') ?? '')
-            setPeanutUser(user)
-            if (user) {
-                setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
-                console.log(user)
+            if (!user) {
+                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountIdentifier: recipient.name,
+                    }),
+                })
 
-                const account = user.accounts.find(
-                    (account: any) =>
-                        account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
-                )
-                setPeanutAccount(account)
-                const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
-
-                console.log('allLiquidationAddresses', allLiquidationAddresses)
-
-                console.log(chainName, tokenName)
-
-                console.log(account.bridge_account_id)
-
-                let liquidationAddressDetails = allLiquidationAddresses.find(
-                    (address) =>
-                        address.chain === chainName &&
-                        address.currency === tokenName &&
-                        address.external_account_id === account.bridge_account_id
-                )
-
-                console.log(liquidationAddressDetails)
-
-                if (!liquidationAddressDetails) {
-                    liquidationAddressDetails = await _utils.createLiquidationAddress(
-                        user.bridge_customer_id ?? '',
-                        chainName ?? '',
-                        tokenName ?? '',
-                        account.bridge_account_id,
-                        recipientType === 'iban' ? 'sepa' : 'ach',
-                        recipientType === 'iban' ? 'eur' : 'usd'
-                    )
+                const response = await userIdResponse.json()
+                if (response.isNewUser) {
+                    setUserType('NEW')
+                } else {
+                    setUserType('EXISTING')
                 }
-
-                setLiquidationAddress(liquidationAddressDetails)
+                setOfframpForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    recipient: recipient.name ?? '',
+                })
+                setInitialKYCStep(0)
             } else {
-                setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+                setOfframpForm({
+                    email: user?.user?.email ?? '',
+                    name: user?.user?.full_name ?? '',
+                    recipient: recipient.name ?? '', // TODO: recipient.name makes no sense here
+                    password: '',
+                })
+                if (user?.user.kycStatus === 'verified') {
+                    const account = user.accounts.find(
+                        (account: any) =>
+                            account.account_identifier.toLowerCase() ===
+                            recipient.name?.replaceAll(' ', '').toLowerCase()
+                    )
+
+                    if (account) {
+                        setInitialKYCStep(4)
+                    } else {
+                        setInitialKYCStep(3)
+                    }
+                } else {
+                    if (!user?.user.email || !user?.user.full_name) {
+                        setInitialKYCStep(0)
+                        console.log('user not verified and no email and name')
+                    } else {
+                        setInitialKYCStep(1)
+                        console.log('user not verified but has email and name')
+                    }
+                }
             }
 
             onNext()
@@ -445,7 +442,7 @@ export const InitialClaimLinkView = ({
                             recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
                         }
                     />
-                    <AddressInput
+                    <GeneralRecipientInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
                         value={recipient.name ? recipient.name : (recipient.address ?? '')}
@@ -576,7 +573,8 @@ export const InitialClaimLinkView = ({
                             !isValidRecipient ||
                             isXchainLoading ||
                             inputChanging ||
-                            (hasFetchedRoute && !selectedRoute)
+                            (hasFetchedRoute && !selectedRoute) ||
+                            recipient.address.length === 0
                         }
                     >
                         {isLoading || isXchainLoading ? (

@@ -1,37 +1,37 @@
-name: Continuous Integration
+# name: Continuous Integration
 
-on:
-    pull_request:
-    push:
-        # need a personal access token (PAT) instead of GITHUB_TOKEN
-        # branches:
-        # - main
-        # - staging
-        # - develop
+# on:
+#     pull_request:
+#     push:
+#         # need a personal access token (PAT) instead of GITHUB_TOKEN
+#         # branches:
+#         # - main
+#         # - staging
+#         # - develop
 
-jobs:
-    prettier:
-        runs-on: ubuntu-latest
+# jobs:
+#     prettier:
+#         runs-on: ubuntu-latest
 
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v3
-              with:
-                  token: ${{ secrets.GITHUB_TOKEN }} # Use GitHub token for authentication
-                  ref: ${{ github.head_ref }}
+#         steps:
+#             - name: Checkout
+#               uses: actions/checkout@v3
+#               with:
+#                   token: ${{ secrets.GITHUB_TOKEN }} # Use GitHub token for authentication
+#                   ref: ${{ github.head_ref }}
 
-            - name: Use Node.js
-              uses: actions/setup-node@v2
-              with:
-                  node-version: '18'
+#             - name: Use Node.js
+#               uses: actions/setup-node@v2
+#               with:
+#                   node-version: '18'
 
-            - name: Install Dependencies
-              run: yarn install --frozen-lockfile
+#             - name: Install Dependencies
+#               run: yarn install --frozen-lockfile
 
-            - name: Prettify code
-              uses: creyD/prettier_action@v4.3
-              with:
-                  # This part is also where you can pass other options, for example:
-                  prettier_options: --write .
-                  # Use GitHub token for authentication
-                  github_token: ${{ secrets.GITHUB_TOKEN }}
+#             - name: Prettify code
+#               uses: creyD/prettier_action@v4.3
+#               with:
+#                   # This part is also where you can pass other options, for example:
+#                   prettier_options: --write .
+#                   # Use GitHub token for authentication
+#                   github_token: ${{ secrets.GITHUB_TOKEN }}

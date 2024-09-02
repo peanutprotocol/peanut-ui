@@ -129,6 +129,15 @@ export function Welcome() {
         return classes.filter(Boolean).join(' ')
     }
 
+    useEffect(() => {
+        // Ensure this code only runs on the client
+        if (typeof window !== 'undefined' && window.parent) {
+            const currentOrigin = window.location.origin
+            // Send a message to the parent window to close the modal
+            window.parent.postMessage('close-modal', currentOrigin)
+        }
+    }, [])
+
     return (
         <div className="flex w-full flex-col items-center justify-center  dark:bg-black ">
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">

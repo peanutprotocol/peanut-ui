@@ -116,7 +116,7 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
 
 export interface IDashboardItem {
     link: string | undefined
-    type: 'Link Sent' | 'Direct Sent' | 'Link Received' | 'Offramp Claim'
+    type: 'Link Sent' | 'Direct Sent' | 'Link Received' | 'Offramp Claim' | 'Request Link' | 'Request Link Fulfillment'
     amount: string
     tokenSymbol: string
     date: string
@@ -316,6 +316,8 @@ interface User {
     profile_picture: string | null
     username: string | null
     kycStatus: string
+    bridge_customer_id: string | null
+    full_name: string
 }
 
 interface Account {

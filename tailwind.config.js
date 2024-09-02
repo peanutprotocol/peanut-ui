@@ -24,7 +24,7 @@ module.exports = {
                     1: '#90A8ED',
                     2: '#a2faff',
                 },
-                green: {
+                teal: {
                     // rename to teal
                     1: '#23A094',
                     2: '#75b2d7',
@@ -45,7 +45,9 @@ module.exports = {
                 white: '#FFFFFF',
                 background: '#FAF4F0',
                 red: '#FF0000',
+                'kyc-red': '#C80000',
                 black: '#000000',
+                'kyc-green': '#00C800',
             },
             zIndex: {
                 1: '1',
@@ -179,6 +181,13 @@ module.exports = {
                         fontWeight: '800',
                     },
                 ],
+                h10: [
+                    '0.625rem',
+                    {
+                        lineHeight: '0.75rem',
+                        fontWeight: '800',
+                    },
+                ],
             },
         },
     },
@@ -275,14 +284,14 @@ module.exports = {
                 '.label-stroke-purple': {
                     '@apply label border-purple-1 text-purple-1': {},
                 },
-                '.label-stroke-green': {
-                    '@apply label border-green-1 text-green-1': {},
+                '.label-stroke-teal': {
+                    '@apply label border-teal-1 text-teal-1': {},
                 },
                 '.label-purple': {
                     '@apply label border-purple-1 bg-purple-1': {},
                 },
-                '.label-green': {
-                    '@apply label border-green-1 bg-green-1': {},
+                '.label-teal': {
+                    '@apply label border-teal-1 bg-teal-1': {},
                 },
                 '.label-yellow': {
                     '@apply label border-yellow-1 bg-yellow-1': {},
@@ -371,6 +380,10 @@ module.exports = {
                 },
                 '.custom-input-xs': {
                     '@apply h-8': {},
+                },
+                '.kyc-badge': {
+                    '@apply relative flex items-center justify-center text-h10 font-normal text-black h-4 w-8 rounded-full':
+                        {},
                 },
             })
             addUtilities({
