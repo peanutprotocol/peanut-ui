@@ -1,5 +1,4 @@
 'use client'
-import { initWeb3InboxClient } from '@web3inbox/react'
 import * as config from '@/config'
 import { Analytics } from '@vercel/analytics/react'
 import { useEffect } from 'react'
@@ -23,15 +22,6 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
         LogRocket.init('x2zwq1/peanut-protocol')
         countries.registerLocale(enLocale)
     }, [])
-
-    initWeb3InboxClient({
-        // The project ID and domain you setup in the Domain Setup section
-        projectId: process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? '',
-        domain: 'peanut.to',
-
-        allApps: false,
-        logLevel: 'info',
-    })
 
     return (
         <config.ContextProvider>

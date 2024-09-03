@@ -51,8 +51,6 @@ export const SenderClaimLinkView = ({
                 link: claimLinkData.link,
             })
 
-            console.log('claimTxHash', claimTxHash)
-
             if (claimTxHash) {
                 changeToRecipientView()
                 setTransactionHash(claimTxHash)

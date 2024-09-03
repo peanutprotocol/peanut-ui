@@ -82,8 +82,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     const { user, fetchUser } = useAuth()
 
     const handleCheckIban = async ({ accountNumber }: { accountNumber: string | undefined }) => {
-        console.log('Checking IBAN', accountNumber)
-
         try {
             setErrorState({
                 showError: false,
@@ -118,7 +116,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
     const handleSubmitLinkIban = async (formData: IRegisterAccountDetails) => {
         try {
-            console.log('Checking IBAN ', formData)
             setLoadingState('Loading')
             setErrorState({
                 showError: false,

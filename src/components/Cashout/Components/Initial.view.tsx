@@ -167,10 +167,8 @@ export const InitialCashoutView = ({
                 } else {
                     if (!user?.user.email || !user?.user.full_name) {
                         setInitialKYCStep(0)
-                        console.log('user not verified and no email and name')
                     } else {
                         setInitialKYCStep(1)
-                        console.log('user not verified but has email and name')
                     }
                 }
             }
@@ -210,7 +208,7 @@ export const InitialCashoutView = ({
         <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 text-center">
             <label className="text-h2">Cash Out</label>
             <div className="flex flex-col justify-center gap-3">
-                <label className="text-h8 text-start font-light">
+                <label className="text-start text-h8 font-light">
                     Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
                 </label>
                 <FAQComponent />
@@ -231,7 +229,7 @@ export const InitialCashoutView = ({
                         onClick={() => {
                             open()
                         }}
-                        className="text-h9 cursor-pointer underline"
+                        className="cursor-pointer text-h9 underline"
                     >
                         ( Buy Tokens )
                     </div>
@@ -247,7 +245,7 @@ export const InitialCashoutView = ({
                             </div>
                         ) : user ? (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <label className="text-h8 text-left font-light">Recipient account:</label>
+                                <label className="text-left text-h8 font-light">Recipient account:</label>
                                 {user?.accounts.length > 0 &&
                                     user?.accounts
                                         .filter(
@@ -257,7 +255,7 @@ export const InitialCashoutView = ({
                                         ?.map((account, index) => (
                                             <div
                                                 key={index}
-                                                className={`hover:bg-n-3/10 flex w-full cursor-pointer border border-black p-2 transition-colors ${selectedBankAccount === account.account_identifier && `bg-n-3/10`}`}
+                                                className={`flex w-full cursor-pointer border border-black p-2 transition-colors hover:bg-n-3/10 ${selectedBankAccount === account.account_identifier && `bg-n-3/10`}`}
                                                 onClick={() => {
                                                     if (selectedBankAccount === account.account_identifier) {
                                                         setSelectedBankAccount(undefined)
@@ -300,7 +298,7 @@ export const InitialCashoutView = ({
                     </div>
                     {(!user || user?.accounts.length === 0) && (
                         <>
-                            <label className="text-h8 text-left font-light">Cashout to a new bank account:</label>
+                            <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
                             <div className="flex w-full cursor-pointer border border-black p-2">
                                 <label className="ml-2 text-right">To:</label>
                                 <input

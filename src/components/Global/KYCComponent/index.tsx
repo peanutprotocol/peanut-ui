@@ -77,11 +77,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         // TODO: add validation
 
         try {
-            console.log('inputFormData:', inputFormData)
-
             const _user = await fetchUser()
-
-            console.log('user:', _user)
 
             setOfframpFormValue('recipient', inputFormData.recipient)
             setOfframpFormValue('name', _user?.user?.full_name ?? '')
@@ -133,9 +129,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             let _customerObject
             const _offrampForm = watchOfframp()
 
-            console.log('offrampForm:', _offrampForm)
-            console.log('customerObject:', customerObject)
-
             // @ts-ignore
             if (!customerObject || customerObject.code === 'invalid_parameters') {
                 _customerObject = await utils.getUserLinks(_offrampForm)
@@ -145,8 +138,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
 
             const { tos_status: tosStatus, id, tos_link } = _customerObject
-
-            console.log('tosStatus:', tosStatus)
 
             if (tosStatus !== 'approved') {
                 setLoadingState('Awaiting TOS confirmation')
@@ -195,16 +186,17 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     showError: true,
                     errorMessage: 'KYC under review',
                 })
+                return
             } else if (kycStatus === 'rejected') {
                 setErrorState({
                     showError: true,
                     errorMessage: 'KYC rejected',
                 })
+                return
             } else if (kycStatus !== 'approved') {
                 setLoadingState('Awaiting KYC confirmation')
                 console.log('Awaiting KYC confirmation...')
                 const kyclink = utils.convertPersonaUrl(kyc_link)
-                console.log(kyclink)
                 setIframeOptions({ ...iframeOptions, src: kyclink, visible: true })
                 await utils.awaitStatusCompletion(
                     id,
@@ -226,7 +218,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
             // Update peanut user with bridge customer id
             const updatedUser = await updateBridgeCustomerId(customer.customer_id)
-            console.log('updatedUser:', updatedUser)
 
             // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')

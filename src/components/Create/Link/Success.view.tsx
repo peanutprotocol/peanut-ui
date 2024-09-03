@@ -9,13 +9,7 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as context from '@/context'
 import { useToast } from '@chakra-ui/react'
-import {
-    useWeb3InboxAccount,
-    useRegister,
-    useSubscribe,
-    useSubscription,
-    usePrepareRegistration,
-} from '@web3inbox/react'
+
 import { useAccount, useSignMessage } from 'wagmi'
 
 export const CreateLinkSuccessView = ({
@@ -32,12 +26,6 @@ export const CreateLinkSuccessView = ({
 
     const { address } = useAccount({})
     const { signMessageAsync } = useSignMessage()
-    const { data: account, setAccount, identityKey, isRegistered } = useWeb3InboxAccount()
-    const { register: registerIdentity } = useRegister()
-    const { subscribe, isLoading: isSubscribing } = useSubscribe()
-    const { data: subscription } = useSubscription()
-    const isSubscribed = Boolean(subscription)
-    const { prepareRegistration } = usePrepareRegistration()
 
     const [isLoading, setIsLoading] = useState(false)
 
@@ -78,55 +66,6 @@ export const CreateLinkSuccessView = ({
         },
         [signMessageAsync]
     )
-
-    useEffect(() => {
-        if (isSubscribed && isLoading) {
-            setIsLoading(false)
-        }
-    }, [isSubscribed, address])
-
-    const handleRegistration = useCallback(async () => {
-        if (!account) return
-        try {
-            setIsLoading(true)
-            const { message, registerParams } = await prepareRegistration()
-            const signature = await signMessageAsync({ message: message })
-            await registerIdentity({ registerParams, signature })
-                .then(async () => {
-                    await handleSubscribe(true)
-                })
-                .catch((err: any) => {
-                    console.error({ err })
-                    setIsLoading(false)
-                })
-        } catch (registerIdentityError) {
-            setIsLoading(true)
-            console.error({ registerIdentityError })
-        }
-    }, [signMessage, registerIdentity, account])
-
-    const handleSubscribe = useCallback(
-        async (hasJustRegistered?: boolean) => {
-            try {
-                if (!identityKey && !hasJustRegistered) {
-                    await handleRegistration()
-                }
-                setIsLoading(true)
-                await subscribe()
-            } catch (error) {
-                console.error({ error })
-            }
-        },
-        [subscribe, identityKey]
-    )
-
-    useEffect(() => {
-        if (!address) {
-            setAccount('')
-            return
-        }
-        setAccount(`eip155:1:${address}`)
-    }, [address])
 
     useEffect(() => {
         let value

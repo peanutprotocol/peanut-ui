@@ -49,10 +49,6 @@ export const ConfirmClaimLinkIbanView = ({
 
             let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
             let chainName = utils.getBridgeChainName(claimLinkData.chainId)
-            console.log({
-                tokenName,
-                chainName,
-            })
             let xchainNeeded
             if (tokenName && chainName) {
                 xchainNeeded = false
@@ -72,10 +68,9 @@ export const ConfirmClaimLinkIbanView = ({
                 try {
                     route = await fetchRoute(usdcAddressOptimism, optimismChainId)
                 } catch (error) {
-                    console.log('error', error)
+                    console.error('error fetching route', error)
                 }
 
-                console.log('route', route)
                 if (route === undefined) {
                     setErrorState({
                         showError: true,
@@ -88,12 +83,6 @@ export const ConfirmClaimLinkIbanView = ({
                 chainName = utils.getBridgeChainName(optimismChainId)
             }
 
-            console.log({
-                user,
-                chainName,
-                tokenName,
-            })
-
             if (!user || !chainName || !tokenName) return
 
             const peanutAccount = user.accounts.find(
@@ -104,18 +93,10 @@ export const ConfirmClaimLinkIbanView = ({
             const bridgeCustomerId = user?.user?.bridge_customer_id
             const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
-            console.log({
-                peanutAccount,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-            })
-
             if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) return
             // TODO: check if values are asigned
 
             const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
-
-            console.log('allLiquidationAddresses:', allLiquidationAddresses)
 
             let liquidationAddress = allLiquidationAddresses.find(
                 (address) =>
@@ -123,8 +104,6 @@ export const ConfirmClaimLinkIbanView = ({
                     address.currency === tokenName &&
                     address.external_account_id === bridgeExternalAccountId
             )
-
-            console.log('liquidationAddressInfo:', liquidationAddress)
             if (!liquidationAddress) {
                 liquidationAddress = await utils.createLiquidationAddress(
                     bridgeCustomerId,
@@ -137,15 +116,6 @@ export const ConfirmClaimLinkIbanView = ({
             }
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
-            console.log({
-                chainName,
-                tokenName,
-                xchainNeeded,
-                liquidationAddress,
-                claimLinkData,
-                chainId,
-                tokenAddress,
-            })
 
             let hash
             if (xchainNeeded) {
@@ -161,8 +131,6 @@ export const ConfirmClaimLinkIbanView = ({
                     link: claimLinkData.link,
                 })
             }
-
-            console.log(hash)
 
             if (hash) {
                 utils.saveOfframpLinkToLocalstorage({
@@ -184,7 +152,6 @@ export const ConfirmClaimLinkIbanView = ({
                     },
                 })
                 setTransactionHash(hash)
-                console.log('Transaction hash:', hash)
                 setLoadingState('Idle')
                 onNext()
             }
@@ -265,18 +232,18 @@ export const ConfirmClaimLinkIbanView = ({
                 />
             ) : (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'profile'} className="fill-gray-1 h-4" />
+                            <Icon name={'profile'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Name</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                             {user?.user?.full_name}
                         </span>
                     </div>
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'email'} className="fill-gray-1 h-4" />
+                            <Icon name={'email'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Email</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -284,9 +251,9 @@ export const ConfirmClaimLinkIbanView = ({
                         </span>
                     </div>
 
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'bank'} className="fill-gray-1 h-4" />
+                            <Icon name={'bank'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Bank account</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -294,9 +261,9 @@ export const ConfirmClaimLinkIbanView = ({
                         </span>
                     </div>
 
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'forward'} className="fill-gray-1 h-4" />
+                            <Icon name={'forward'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Route</label>
                         </div>
                         {false ? (
@@ -306,21 +273,21 @@ export const ConfirmClaimLinkIbanView = ({
                                         (chain) => chain.chainId === claimLinkData.chainId
                                     )?.name
                                 }{' '}
-                                <Icon name={'arrow-next'} className="fill-gray-1 h-4" /> Optimism{' '}
-                                <Icon name={'arrow-next'} className="fill-gray-1 h-4" /> {recipientType.toUpperCase()}{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
+                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
                                 <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                             </span>
                         ) : (
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                Offramp <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
+                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                 {recipientType.toUpperCase()}{' '}
                                 <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                             </span>
                         )}
                     </div>
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="fill-gray-1 h-4" />
+                            <Icon name={'gas'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Fee</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -339,9 +306,9 @@ export const ConfirmClaimLinkIbanView = ({
                             />
                         </span>
                     </div>
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'transfer'} className="fill-gray-1 h-4" />
+                            <Icon name={'transfer'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Total</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -349,7 +316,7 @@ export const ConfirmClaimLinkIbanView = ({
                             <MoreInfo text={'Woop Woop free offramp!'} />
                         </span>
                         <div className="flex w-max  flex-row items-center justify-center gap-1">
-                            <Icon name={'transfer'} className="fill-gray-1 h-4" />
+                            <Icon name={'transfer'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Total</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

@@ -26,7 +26,6 @@ export async function POST(request: NextRequest) {
                 bridge_customer_id,
             }),
         })
-        console.log('response:', response)
 
         if (response.status === 404) {
             return new NextResponse('Not Found', {
@@ -38,8 +37,6 @@ export async function POST(request: NextRequest) {
         }
 
         const data = await response.json()
-
-        console.log('data:', data)
 
         if (response.status === 409) {
             return new NextResponse(JSON.stringify(data.message), {

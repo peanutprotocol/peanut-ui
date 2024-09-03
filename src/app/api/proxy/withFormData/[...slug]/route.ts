@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
         apiFormData.append(key, value)
     })
 
-    console.log(apiFormData)
     const response = await fetch(fullAPIUrl, {
         method: 'POST',
         headers: {

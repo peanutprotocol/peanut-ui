@@ -62,15 +62,12 @@ export const ConfirmCashoutView = ({
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
             setCreatedLink(link)
             console.log(link)
+            // TODO: add to localstorage & consider removing after cashout completed
 
             const claimLinkData = await getLinkDetails({ link: link })
 
             let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
             let chainName = utils.getBridgeChainName(claimLinkData.chainId)
-            console.log({
-                tokenName,
-                chainName,
-            })
             let xchainNeeded
             if (tokenName && chainName) {
                 xchainNeeded = false
@@ -93,7 +90,6 @@ export const ConfirmCashoutView = ({
                     console.log('error', error)
                 }
 
-                console.log('route', route)
                 if (route === undefined) {
                     setErrorState({
                         showError: true,
@@ -107,12 +103,6 @@ export const ConfirmCashoutView = ({
                 chainName = utils.getBridgeChainName(optimismChainId)
             }
 
-            console.log({
-                user,
-                chainName,
-                tokenName,
-            })
-
             if (!user || !chainName || !tokenName) return
 
             const peanutAccount = user.accounts.find(
@@ -125,18 +115,10 @@ export const ConfirmCashoutView = ({
 
             const recipientType = peanutAccount?.account_type
 
-            console.log({
-                peanutAccount,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-            })
-
             if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) return
             // TODO: check if values are asigned
 
             const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
-
-            console.log('allLiquidationAddresses:', allLiquidationAddresses)
 
             let liquidationAddress = allLiquidationAddresses.find(
                 (address) =>
@@ -144,8 +126,6 @@ export const ConfirmCashoutView = ({
                     address.currency === tokenName &&
                     address.external_account_id === bridgeExternalAccountId
             )
-
-            console.log('liquidationAddressInfo:', liquidationAddress)
             if (!liquidationAddress)
                 liquidationAddress = await utils.createLiquidationAddress(
                     bridgeCustomerId,
@@ -158,16 +138,6 @@ export const ConfirmCashoutView = ({
 
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
-            console.log({
-                chainName,
-                tokenName,
-                xchainNeeded,
-                liquidationAddress,
-                claimLinkData,
-                chainId,
-                tokenAddress,
-            })
-
             let hash
             if (xchainNeeded) {
                 hash = await claimLinkXchain({
@@ -182,8 +152,6 @@ export const ConfirmCashoutView = ({
                     link: claimLinkData.link,
                 })
             }
-
-            console.log(hash)
 
             if (hash) {
                 utils.saveOfframpLinkToLocalstorage({
@@ -306,7 +274,7 @@ export const ConfirmCashoutView = ({
         <div className="flex w-full flex-col items-center justify-center gap-4 px-2  text-center">
             <label className="text-h4">Confirm your details</label>
             <div className="flex flex-col justify-center gap-3">
-                <label className="text-h8 text-start font-light">
+                <label className="text-start text-h8 font-light">
                     Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
                 </label>
                 <FAQComponent />
@@ -329,20 +297,20 @@ export const ConfirmCashoutView = ({
                 />
             ) : (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="text-h8 self-start font-light">Please confirm all details:</label>
+                    <label className="self-start text-h8 font-light">Please confirm all details:</label>
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'profile'} className="fill-gray-1 h-4" />
+                                <Icon name={'profile'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Name</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {user?.user?.full_name}
                             </span>
                         </div>
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'email'} className="fill-gray-1 h-4" />
+                                <Icon name={'email'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Email</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -350,9 +318,9 @@ export const ConfirmCashoutView = ({
                             </span>
                         </div>
 
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'bank'} className="fill-gray-1 h-4" />
+                                <Icon name={'bank'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Bank account</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -385,9 +353,9 @@ export const ConfirmCashoutView = ({
                         )}
                 </div> */}
                         {/* TODO: fix the above */}
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="fill-gray-1 h-4" />
+                                <Icon name={'gas'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Fee</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -406,9 +374,9 @@ export const ConfirmCashoutView = ({
                                 />
                             </span>
                         </div>
-                        <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between gap-1 px-2">
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'transfer'} className="fill-gray-1 h-4" />
+                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Total</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

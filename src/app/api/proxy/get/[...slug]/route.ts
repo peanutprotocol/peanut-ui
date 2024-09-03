@@ -7,8 +7,6 @@ export async function GET(request: NextRequest) {
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
-    console.log('fullAPIUrl:', fullAPIUrl)
-
     const userIp = request.headers.get('x-forwarded-for') || request.ip
     const headersToPass = {
         'Content-Type': 'application/json',

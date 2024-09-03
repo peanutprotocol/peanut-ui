@@ -187,7 +187,6 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
                 }
             }
         }
-        console.log(localStorageData)
         return localStorageData
     } catch (error) {
         console.error('Error getting data from localStorage:', error)

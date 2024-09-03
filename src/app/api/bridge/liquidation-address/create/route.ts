@@ -14,16 +14,6 @@ export async function POST(request: NextRequest) {
 
         const idempotencyKey = uuidv4()
 
-        console.log({
-            customer_id,
-            chain,
-            currency,
-            external_account_id,
-            destination_payment_rail,
-            destination_currency,
-            idempotencyKey,
-        })
-
         let response = await fetch(`https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses`, {
             method: 'POST',
             headers: {

@@ -71,8 +71,6 @@ export const PayRequestLink = () => {
                 recipientAddress = await utils.resolveFromEnsName(requestLinkDetails.recipientAddress.toLowerCase())
             }
 
-            console.log('requestLinkDetails:', requestLinkDetails)
-
             // Prepare request link fulfillment transaction
             const tokenType = Number(requestLinkDetails.tokenType)
             const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({

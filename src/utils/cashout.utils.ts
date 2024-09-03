@@ -113,7 +113,6 @@ export async function fetchApi(url: string, method: string, body?: any): Promise
 }
 
 export async function getUserLinks(formData: consts.IOfframpForm) {
-    console.log('formData', formData)
     return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
         type: 'individual',
         full_name: formData.name,
@@ -181,13 +180,6 @@ export async function createExternalAccount(
     accountOwnerName: string
 ): Promise<interfaces.IBridgeAccount> {
     try {
-        console.log({
-            customerId,
-            accountType,
-            accountDetails,
-            address,
-            accountOwnerName,
-        })
         const response = await fetch(`/api/bridge/external-account/create-external-account?customerId=${customerId}`, {
             method: 'POST',
             headers: {
@@ -202,13 +194,11 @@ export async function createExternalAccount(
         })
 
         if (!response.ok) {
-            console.log(response)
             throw new Error('Failed to create external account')
         }
 
         const data = await response.json()
 
-        console.log('External account created:', data)
         return data as interfaces.IBridgeAccount
     } catch (error) {
         console.error('Error:', error)
@@ -220,14 +210,12 @@ export const validateAccountFormData = async (formData: any, setAccountFormError
     let isValid = true
     if (!formData.accountNumber) {
         setAccountFormError('accountNumber', { type: 'required', message: 'Account number is required' })
-        console.log('Account number is required')
         isValid = false
     }
 
     if (formData.type === 'iban') {
         if (!formData.BIC) {
             setAccountFormError('BIC', { type: 'required', message: 'BIC is required' })
-            console.log('BIC is required')
             isValid = false
         }
         const isValidBic = await validateBic(formData.BIC)
@@ -237,38 +225,31 @@ export const validateAccountFormData = async (formData: any, setAccountFormError
                 type: 'invalid',
                 message: 'BIC not accepted, please get in contact via discord',
             })
-            console.log('Invalid BIC')
             isValid = false
         }
     } else if (formData.type === 'us') {
         if (!formData.routingNumber) {
             setAccountFormError('routingNumber', { type: 'required', message: 'Routing number is required' })
-            console.log('Routing number is required')
             isValid = false
         }
         if (!formData.street) {
             setAccountFormError('street', { type: 'required', message: 'Street is required' })
-            console.log('Street is required')
             isValid = false
         }
         if (!formData.city) {
             setAccountFormError('city', { type: 'required', message: 'City is required' })
-            console.log('City is required')
             isValid = false
         }
         if (!formData.country) {
             setAccountFormError('country', { type: 'required', message: 'Country is required' })
-            console.log('Country is required')
             isValid = false
         }
         if (!formData.postalCode) {
             setAccountFormError('postalCode', { type: 'required', message: 'Postal code is required' })
-            console.log('Postal code is required')
             isValid = false
         }
         if (!formData.state) {
             setAccountFormError('state', { type: 'required', message: 'State is required' })
-            console.log('State is required')
             isValid = false
         }
     }
@@ -300,7 +281,6 @@ export const createLiquidationAddress = async (
     })
 
     if (!response.ok) {
-        console.log(response)
         throw new Error('Failed to create liquidation address')
     }
 
@@ -310,7 +290,6 @@ export const createLiquidationAddress = async (
 }
 
 export const getLiquidationAddresses = async (customerId: string): Promise<interfaces.IBridgeLiquidationAddress[]> => {
-    console.log('customerId', customerId)
     const response = await fetch(`/api/bridge/liquidation-address/get-all?customerId=${customerId}`, {
         method: 'GET',
         headers: {

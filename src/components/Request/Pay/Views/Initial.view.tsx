@@ -47,7 +47,6 @@ export const InitialView = ({
                 preparedDepositTxs: { unsignedTxs: [unsignedTx] },
                 feeOptions: undefined,
             })
-            console.log('hash', hash)
 
             setLoadingState('Executing transaction')
 
@@ -59,7 +58,6 @@ export const InitialView = ({
                 apiUrl: '/api/proxy/patch/',
             })
 
-            console.log('updatedResponse', updatedResponse)
             setTransactionHash(hash ?? '')
             onNext()
         } catch (error) {
@@ -79,7 +77,7 @@ export const InitialView = ({
                 <>
                     <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
                         {requestLinkData.reference && (
-                            <label className="text-h8 max-w-full">
+                            <label className="max-w-full text-h8">
                                 Ref: <span className="font-normal"> {requestLinkData.reference} </span>
                             </label>
                         )}
@@ -88,7 +86,7 @@ export const InitialView = ({
                                 href={requestLinkData.attachmentUrl}
                                 download
                                 target="_blank"
-                                className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
+                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
                             >
                                 <Icon name={'download'} />
                                 Download attachment
@@ -116,7 +114,7 @@ export const InitialView = ({
                     </label>
                 )}
                 <div>
-                    <div className="text-h7 flex flex-row items-center justify-center gap-2 pl-1">
+                    <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
                             <img
                                 src={
@@ -154,9 +152,9 @@ export const InitialView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {estimatedGasCost && (
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="fill-gray-1 h-4" />
+                            <Icon name={'gas'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Fees</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -166,9 +164,9 @@ export const InitialView = ({
                 )}
 
                 {estimatedPoints && (
-                    <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
+                            <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Points</label>
                         </div>
                         <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">

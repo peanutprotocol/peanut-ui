@@ -140,7 +140,6 @@ export const InitialClaimLinkView = ({
             let chainName = utils.getBridgeChainName(claimLinkData.chainId)
 
             if (tokenName && chainName) {
-                console.log('offramp without xchain possible')
             } else {
                 if (!crossChainDetails) {
                     setErrorState({
@@ -149,7 +148,6 @@ export const InitialClaimLinkView = ({
                     })
                     return
                 }
-                console.log('offramp without xchain not possible')
                 const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
                 const optimismChainId = '10'
 
@@ -217,17 +215,14 @@ export const InitialClaimLinkView = ({
                 } else {
                     if (!user?.user.email || !user?.user.full_name) {
                         setInitialKYCStep(0)
-                        console.log('user not verified and no email and name')
                     } else {
                         setInitialKYCStep(1)
-                        console.log('user not verified but has email and name')
                     }
                 }
             }
 
             onNext()
         } catch (error) {
-            console.log('error', error)
             setErrorState({
                 showError: true,
                 errorMessage: 'You can not claim this link to your bank account.',
@@ -335,7 +330,7 @@ export const InitialClaimLinkView = ({
                             className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                         >
                             {attachment.message && (
-                                <label className="text-h8 max-w-full">
+                                <label className="max-w-full text-h8">
                                     Ref: <span className="font-normal"> {attachment.message} </span>
                                 </label>
                             )}
@@ -344,7 +339,7 @@ export const InitialClaimLinkView = ({
                                     href={attachment.attachmentUrl}
                                     download
                                     target="_blank"
-                                    className="text-h9 text-gray-1 flex w-full cursor-pointer flex-row items-center justify-center gap-1 font-normal underline "
+                                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
                                 >
                                     <Icon name={'download'} />
                                     Download attachment
@@ -490,14 +485,14 @@ export const InitialClaimLinkView = ({
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             {selectedRoute && (
-                                <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="fill-gray-1 h-4" />
+                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
                                         <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                         {isXchainLoading ? (
-                                            <div className="animate-colorPulse bg-slate-700 h-2 w-12 rounded"></div>
+                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                         ) : (
                                             selectedRoute && (
                                                 <>
@@ -507,7 +502,7 @@ export const InitialClaimLinkView = ({
                                                                 chain.chainId === selectedRoute.route.params.fromChain
                                                         )?.name
                                                     }
-                                                    <Icon name={'arrow-next'} className="fill-gray-1 h-4" />{' '}
+                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                                     {
                                                         mappedData.find(
                                                             (chain) =>
@@ -535,14 +530,14 @@ export const InitialClaimLinkView = ({
                                 </div>
                             )}
 
-                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="fill-gray-1 h-4" />
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
-                                        <div className="animate-colorPulse bg-slate-700 h-2 w-12 rounded"></div>
+                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         <>
                                             $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
@@ -551,9 +546,9 @@ export const InitialClaimLinkView = ({
                                 </span>
                             </div>
 
-                            <div className="text-h8 text-gray-1 flex w-full flex-row items-center justify-between px-2">
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="fill-gray-1 h-4" />
+                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Points</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
@@ -608,7 +603,7 @@ export const InitialClaimLinkView = ({
                     </button>
                     {address && recipient.address.length < 0 && recipientType === 'address' && (
                         <div
-                            className="wc-disable-mf text-h7 flex cursor-pointer flex-row items-center  justify-center self-center"
+                            className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
                             onClick={() => {
                                 handleConnectWallet()
                             }}
@@ -633,7 +628,7 @@ export const InitialClaimLinkView = ({
                                         <>
                                             {' '}
                                             <span
-                                                className="text-h8 cursor-pointer font-normal text-red underline"
+                                                className="cursor-pointer text-h8 font-normal text-red underline"
                                                 onClick={() => {
                                                     setSelectedRoute(null)
                                                     setHasFetchedRoute(false)

@@ -105,8 +105,6 @@ export const Profile = () => {
         const dashboardData = composeLinkDataArray(address ?? '')
         setDashboardData(dashboardData)
 
-        console.log(user)
-
         const contactsData =
             user?.contacts &&
             user.contacts.map((contact) => ({
@@ -156,7 +154,6 @@ export const Profile = () => {
             case 'contacts':
                 setTotalPages(Math.ceil(contactsData.length / itemsPerPage))
                 setCurrentPage(1)
-                console.log(contactsData)
                 setTableData(
                     contactsData.map((data) => {
                         const avatarUrl = data.avatar
@@ -269,7 +266,6 @@ export const Profile = () => {
 
             const response = await userIdResponse.json()
 
-            console.log('userId', response)
             const siwemsg = utils.createSiweMessage({
                 address: address ?? '',
                 statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
@@ -307,7 +303,7 @@ export const Profile = () => {
             setLoadingState('Logging out')
             await logoutUser()
         } catch (error) {
-            console.log('Error logging out', error)
+            console.error('Error logging out', error)
             setErrorState({
                 showError: true,
                 errorMessage: 'Error logging out',
@@ -364,7 +360,7 @@ export const Profile = () => {
                                     />
 
                                     {user?.user?.email && (
-                                        <span className="text-h8 flex justify-center gap-1 font-normal">
+                                        <span className="flex justify-center gap-1 text-h8 font-normal">
                                             {user?.user?.email}
                                             <div className={`flex flex-row items-center justify-center `}>
                                                 <div
@@ -387,7 +383,7 @@ export const Profile = () => {
                                 )}
                             </button>
                         </div>
-                        <div className="border-n-1 bg-background text-h7 flex w-full flex-col items-start justify-center gap-2 border px-4 py-2 sm:w-96 ">
+                        <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.totalPoints} points</span>
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
@@ -483,7 +479,7 @@ export const Profile = () => {
                         classNameWrapperDiv="px-5 pb-7 pt-8"
                     >
                         {modalType === 'Boost' ? (
-                            <div className="text-h7 flex w-full flex-col items-center justify-center gap-2">
+                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
                                 {/* <div className="flex w-full items-center justify-between">
                                     <label>Streak</label>
                                     <label>1.4X</label>
@@ -499,11 +495,11 @@ export const Profile = () => {
                                 </div>
                             </div>
                         ) : modalType === 'Invites' ? (
-                            <div className="text-h7 flex w-full flex-col items-center justify-center gap-2">
+                            <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
                                 {user?.referredUsers > 0 &&
                                     user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label className="text-h9">{referral.account_identifier}</label>
+                                            <label className="text-h9">{referral.address}</label>
                                             <label className="text-h9">
                                                 {Math.floor(
                                                     user.pointsPerReferral?.find((ref) =>

@@ -26,8 +26,6 @@
         "@typeform/embed-react": "^3.20.0",
         "@vercel/analytics": "^1.3.1",
         "@vercel/og": "^0.6.2",
-        "@web3inbox/core": "^1.4.0",
-        "@web3inbox/react": "^1.4.0",
         "@web3modal/siwe": "^5.1.2",
         "@web3modal/wagmi": "^5.1.2",
         "autoprefixer": "^10.4.20",

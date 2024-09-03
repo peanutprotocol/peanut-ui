@@ -109,7 +109,6 @@ export const CreateLinkInputView = ({
                     tokenAddress: selectedTokenAddress,
                 })
                 if (isGaslessDepositPossible) {
-                    console.log('gasless possible, creating gassles payload')
                     setTransactionType('gasless')
 
                     const makeGaslessDepositResponse = await makeGaslessDepositPayload({
@@ -127,9 +126,8 @@ export const CreateLinkInputView = ({
                     setGaslessPayloadMessage(makeGaslessDepositResponse.message)
 
                     setFeeOptions(undefined)
-                    setTransactionCostUSD(undefined)
+                    setTransactionCostUSD(0)
                 } else {
-                    console.log('gasless not possible, creating normal payload')
                     setTransactionType('not-gasless')
 
                     prepareDepositTxsResponse = await prepareDepositTxs({

@@ -98,8 +98,6 @@ export const Claim = ({}) => {
                     consts.supportedPeanutChains,
                     linkDetails.chainId
                 )
-                console.log('Before map:', xchainDetails)
-
                 const filteredXchainDetails = xchainDetails.map((chain) => {
                     if (chain.chainId === claimLinkData?.chainId) {
                         const filteredTokens = chain.tokens.filter(
@@ -113,8 +111,6 @@ export const Claim = ({}) => {
                     }
                     return chain
                 })
-
-                console.log('After map, before log:', filteredXchainDetails)
 
                 setSelectedChainID(filteredXchainDetails[0].chainId)
                 setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)

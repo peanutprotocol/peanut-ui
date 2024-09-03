@@ -19,7 +19,7 @@ export const LoginComponent = () => {
             setLoadingState('Logging out')
             await logoutUser()
         } catch (error) {
-            console.log('Error logging out', error)
+            console.error('Error logging out', error)
             setErrorState({
                 showError: true,
                 errorMessage: 'Error logging out',

@@ -49,7 +49,6 @@ export const useCreateLink = () => {
     // step 1
     const assertValues = async ({ tokenValue }: IAssertValuesProps) => {
         // if inputDenomination is USD, the tokenPrice has to be defineds
-        console.log(inputDenomination)
         if (inputDenomination == 'USD') {
             if (!selectedTokenPrice) {
                 try {
@@ -85,8 +84,6 @@ export const useCreateLink = () => {
                     })
                 )
             }
-            console.log(balance)
-            console.log(tokenValue)
             if (!balance || (balance && balance < Number(tokenValue))) {
                 throw new Error('Please ensure that you have sufficient balance of the token you are trying to send')
             }
@@ -131,7 +128,7 @@ export const useCreateLink = () => {
 
             return linkDetails
         } catch (error) {
-            console.log(error)
+            console.error('error generating linkdetails', error)
             throw new Error('Error getting the linkDetails.')
         }
     }
@@ -142,7 +139,7 @@ export const useCreateLink = () => {
 
             return password
         } catch (error) {
-            console.log(error)
+            console.error('error generating password', error)
             throw new Error('Error generating the password.')
         }
     }
@@ -507,7 +504,6 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
-                    console.log(tx.value)
 
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({
@@ -709,8 +705,6 @@ export const useCreateLink = () => {
                     ...linkDetails,
                 },
             })
-
-            console.log(link)
 
             await submitClaimLinkConfirm({
                 chainId: selectedChainID,

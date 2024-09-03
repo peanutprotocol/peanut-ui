@@ -20,7 +20,7 @@ export const useDashboard = () => {
                 })
             )
         } catch (error) {
-            console.log('Error fetching link details:', error)
+            console.error('Error fetching link details:', error)
         }
 
         return _data

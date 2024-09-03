@@ -15,8 +15,6 @@ export async function POST(request: NextRequest) {
     const endpointToCall = request.url.substring(indexOfSeparator + separator.length)
     const fullAPIUrl = `${PEANUT_API_URL}/${endpointToCall}`
 
-    console.log('fullAPIUrl:', fullAPIUrl)
-
     let jsonToPass
     try {
         jsonToPass = await request.json()
@@ -26,8 +24,6 @@ export async function POST(request: NextRequest) {
             status: 403,
         })
     }
-
-    console.log('jsonToPass:', jsonToPass)
 
     jsonToPass.apiKey = process.env.PEANUT_API_KEY!
 
