@@ -317,7 +317,7 @@ export const Profile = () => {
         )
     } else
         return (
-            <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
+            <div className="flex h-full w-full flex-col items-center justify-start gap-4 px-4">
                 <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
                         <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
