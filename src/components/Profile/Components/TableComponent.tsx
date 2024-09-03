@@ -153,7 +153,8 @@ export const TableComponent = ({
                                                     },
                                                 },
                                                 (data.dashboardItem?.type === 'Link Received' ||
-                                                    data.dashboardItem.type === 'Link Sent') &&
+                                                    data.dashboardItem.type === 'Link Sent' ||
+                                                    data.dashboardItem.type === 'Request Link') &&
                                                     data.dashboardItem?.link && {
                                                         name: 'Copy link',
                                                         action: () => {
@@ -169,6 +170,7 @@ export const TableComponent = ({
                                                     },
                                                 },
                                                 data.dashboardItem?.type !== 'Link Received' &&
+                                                    data.dashboardItem?.type !== 'Request Link' &&
                                                     data.dashboardItem.status === 'pending' && {
                                                         name: 'Refund',
                                                         action: () => {

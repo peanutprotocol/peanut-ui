@@ -58,8 +58,14 @@ export const MobileTableComponent = ({
                                     <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                         claimed
                                     </div>
+                                ) : quaternaryText === 'transfer' ? (
+                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">sent</div>
+                                ) : quaternaryText === 'paid' ? (
+                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">paid</div>
                                 ) : (
-                                    <div className="border border-gray-1 border-n-1 px-2 py-1 text-gray-1">pending</div>
+                                    <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                        pending
+                                    </div>
                                 )
                             ) : type === 'contacts' ? (
                                 <label className="font-bold">txs: {quaternaryText}</label>
@@ -80,17 +86,21 @@ export const MobileTableComponent = ({
                 <div className="flex w-full flex-col items-center justify-center p-2 "></div>
                 {type === 'history' ? (
                     <>
-                        {dashboardItem?.type !== 'Link Received' && dashboardItem?.status === 'pending' && (
-                            <div
-                                onClick={() => {
-                                    dashboardItem.link && window.open(dashboardItem?.link ?? '', '_blank')
-                                }}
-                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                            >
-                                Refund
-                            </div>
-                        )}
-                        {(dashboardItem?.type === 'Link Received' || dashboardItem?.type === 'Link Sent') && (
+                        {dashboardItem?.type !== 'Link Received' &&
+                            dashboardItem?.type === 'Request Link' &&
+                            dashboardItem?.status === 'pending' && (
+                                <div
+                                    onClick={() => {
+                                        dashboardItem.link && window.open(dashboardItem?.link ?? '', '_blank')
+                                    }}
+                                    className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                                >
+                                    Refund
+                                </div>
+                            )}
+                        {(dashboardItem?.type === 'Link Received' ||
+                            dashboardItem?.type === 'Link Sent' ||
+                            dashboardItem?.type === 'Request Link') && (
                             <div
                                 onClick={() => {
                                     utils.copyTextToClipboardWithFallback(dashboardItem?.link ?? '')
