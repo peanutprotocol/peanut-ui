@@ -222,12 +222,6 @@ export const getAllGigalinksFromLocalstorage = ({ address }: { address: string }
     }
 }
 
-export function formatAmountWithDecimals({ amount, decimals }: { amount: number; decimals: number }) {
-    const divider = 10 ** decimals
-    const formattedAmount = amount / divider
-    return formattedAmount
-}
-
 export function formatAmount(amount: number) {
     return amount.toFixed(2)
 }

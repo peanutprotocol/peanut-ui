@@ -3,7 +3,6 @@ import AddressInput from '@/components/Global/AddressInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
-import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
@@ -18,7 +17,7 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
-import { PopupButton } from '@typeform/embed-react'
+import { formatUnits } from 'viem'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -302,7 +301,7 @@ export const InitialClaimLinkView = ({
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
                               ? recipient.address
-                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
+                              : address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -421,10 +420,12 @@ export const InitialClaimLinkView = ({
                             hasFetchedRoute
                                 ? selectedRoute
                                     ? utils.formatTokenAmount(
-                                          utils.formatAmountWithDecimals({
-                                              amount: selectedRoute.route.estimate.toAmountMin,
-                                              decimals: selectedRoute.route.estimate.toToken.decimals,
-                                          }),
+                                          Number(
+                                              formatUnits(
+                                                  selectedRoute.route.estimate.toAmountMin,
+                                                  selectedRoute.route.estimate.toToken.decimals
+                                              )
+                                          ),
                                           4
                                       )
                                     : undefined
@@ -448,7 +449,7 @@ export const InitialClaimLinkView = ({
                     <AddressInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                        value={recipient.name ? recipient.name : recipient.address ?? ''}
                         onSubmit={(name: string, address: string) => {
                             setRecipient({ name, address })
                             setInputChanging(false)

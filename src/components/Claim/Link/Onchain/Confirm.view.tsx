@@ -6,13 +6,14 @@ import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
 import useClaimLink from '../../useClaimLink'
 import * as context from '@/context'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useState } from 'react'
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as _interfaces from '../../Claim.interfaces'
 import * as _utils from '../../Claim.utils'
 import * as consts from '@/constants'
 import { useBalance } from '@/hooks/useBalance'
+import { formatUnits } from 'viem'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -57,7 +58,7 @@ export const ConfirmClaimLinkView = ({
             let claimTxHash = ''
             if (selectedRoute) {
                 claimTxHash = await claimLinkXchain({
-                    address: recipient ? recipient.address : (address ?? ''),
+                    address: recipient ? recipient.address : address ?? '',
                     link: claimLinkData.link,
                     destinationChainId: selectedChainID,
                     destinationToken: selectedTokenAddress,
@@ -65,14 +66,14 @@ export const ConfirmClaimLinkView = ({
                 setClaimType('claimxchain')
             } else {
                 claimTxHash = await claimLink({
-                    address: recipient ? recipient.address : (address ?? ''),
+                    address: recipient ? recipient.address : address ?? '',
                     link: claimLinkData.link,
                 })
                 setClaimType('claim')
             }
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
-                    address: recipient ? recipient.address : (address ?? ''),
+                    address: recipient ? recipient.address : address ?? '',
                     data: {
                         ...claimLinkData,
                         depositDate: new Date(),
@@ -148,10 +149,12 @@ export const ConfirmClaimLinkView = ({
                         <label className="text-h2">
                             ${' '}
                             {utils.formatTokenAmount(
-                                utils.formatAmountWithDecimals({
-                                    amount: selectedRoute.route.estimate.toAmountMin,
-                                    decimals: selectedRoute.route.estimate.toToken.decimals,
-                                }) * selectedRoute.route.estimate.toToken.usdPrice
+                                Number(
+                                    formatUnits(
+                                        selectedRoute.route.estimate.toAmountMin,
+                                        selectedRoute.route.estimate.toToken.decimals
+                                    )
+                                ) * selectedRoute.route.estimate.toToken.usdPrice
                             )}
                         </label>
                     ) : (
@@ -167,10 +170,12 @@ export const ConfirmClaimLinkView = ({
                 {selectedRoute ? (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
                         {utils.formatTokenAmount(
-                            utils.formatAmountWithDecimals({
-                                amount: selectedRoute.route.estimate.toAmountMin,
-                                decimals: selectedRoute.route.estimate.toToken.decimals,
-                            })
+                            Number(
+                                formatUnits(
+                                    selectedRoute.route.estimate.toAmountMin,
+                                    selectedRoute.route.estimate.toToken.decimals
+                                )
+                            )
                         )}{' '}
                         {selectedRoute.route.estimate.toToken.symbol} on{' '}
                         {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
