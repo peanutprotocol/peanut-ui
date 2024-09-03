@@ -5,7 +5,7 @@ export function Privacy() {
             <div className="-ml-16 w-4/5 md:w-1/2 ">
                 <img src={assets.PEANUTMAN_CHEERING.src} className="h-full w-auto" />
             </div>
-            <div className="my-32 inline flex w-3/4 flex-col justify-center gap-0 self-end px-8 text-xl font-light italic  lg:self-auto lg:text-3xl">
+            <div className="my-32 flex w-3/4 flex-col justify-center gap-0 self-end px-8 text-xl font-light italic  lg:self-auto lg:text-3xl">
                 <div>
                     <span className="font-bold">{'<'} Hey there! This is how we treat ur data.</span>
                 </div>
