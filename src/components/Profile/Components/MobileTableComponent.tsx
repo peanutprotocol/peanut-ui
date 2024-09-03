@@ -53,14 +53,14 @@ export const MobileTableComponent = ({
                     </div>
                     <div className="flex flex-col items-end justify-end gap-2 text-end">
                         <div>
-                            {type === 'history' ? (
-                                quaternaryText === 'claimed' ? (
+                            {type === 'history' && dashboardItem ? (
+                                dashboardItem.status === 'claimed' ? (
                                     <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                         claimed
                                     </div>
-                                ) : quaternaryText === 'transfer' ? (
+                                ) : dashboardItem.status === 'transfer' ? (
                                     <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">sent</div>
-                                ) : quaternaryText === 'paid' ? (
+                                ) : dashboardItem.status === 'paid' ? (
                                     <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">paid</div>
                                 ) : (
                                     <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
