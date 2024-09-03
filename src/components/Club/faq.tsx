@@ -142,7 +142,13 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                     </Stack>
                 </motion.div>
             </Box>
-            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={assets.SmileStars.src} />}
+            {marquee.visible && (
+                <MarqueeComp
+                    message={marquee.message}
+                    imageSrc={assets.SmilePink.src}
+                    imageAnimationClass="animation-faceSpin"
+                />
+            )}
         </Box>
     )
 }

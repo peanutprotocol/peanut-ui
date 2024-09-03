@@ -28,14 +28,22 @@ export function MarqueeWrapper({
     )
 }
 
-export function MarqueeComp({ message, imageSrc }: { message?: string; imageSrc: string }) {
+export function MarqueeComp({
+    message,
+    imageSrc,
+    imageAnimationClass = 'animation-thumbsUp',
+}: {
+    message?: string
+    imageSrc: string
+    imageAnimationClass?: string
+}) {
     return (
         <Box borderY={'2px solid'} borderColor={'white'} className="shadow">
-            <MarqueeWrapper backgroundColor="bg-cyan-8" direction="left" className="border-y-2 border-n-1">
+            <MarqueeWrapper backgroundColor="bg-gold-3" direction="left" className="border-y-2 border-n-1">
                 <div className="mx-3 font-display text-lg uppercase not-italic md:text-xl">{message}</div>
 
                 <div className="mx-3 py-2">
-                    <img src={imageSrc} className="animation-thumbsUp h-auto w-8" />
+                    <img src={imageSrc} className={`${imageAnimationClass} h-auto w-8`} />
                 </div>
             </MarqueeWrapper>
         </Box>
