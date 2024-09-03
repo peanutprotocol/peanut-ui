@@ -17,7 +17,7 @@ type StoryProps = {
 export function Story({ stories, foot, marquee = { visible: false } }: StoryProps) {
     return (
         <Box className="overflow-x-hidden">
-            <Stack spacing={[14, 20, 28]} className="mx-auto max-w-4xl px-6 py-14 sm:py-20 md:px-8 md:py-36">
+            <Stack spacing={[12, 20]} className="mx-auto max-w-4xl px-6 py-12 sm:py-20 md:px-8 lg:py-20">
                 {stories.map((story, index) => (
                     <Box key={index}>
                         <div className={`relative w-5/6 max-w-3xl md:w-4/5 ${index === 0 ? 'ml-auto' : ''}`}>
@@ -40,7 +40,13 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
                 </div>
             </Stack>
 
-            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={assets.SmileStars.src} />}
+            {marquee.visible && (
+                <MarqueeComp
+                    message={marquee.message}
+                    imageSrc={assets.SmilePink.src}
+                    imageAnimationClass="animation-faceSpin"
+                />
+            )}
         </Box>
     )
 }

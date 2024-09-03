@@ -11,7 +11,7 @@ export const HeroImages = () => {
                 // whileHover={{ scale: 1.1, translateY: 2, translateX: 1, rotate: 2 }}
                 transition={{ type: 'spring', damping: 5 }}
                 src={assets.Star.src}
-                className="absolute left-[16%] top-[20%] w-12 lg:top-[28%]"
+                className="absolute left-[12%] top-[12%] w-12 md:left-[10%] md:top-[22%] lg:left-[10%] lg:top-[22%]"
             />
             <motion.img
                 initial={{ opacity: 0, translateY: 28, translateX: -5 }}
@@ -19,7 +19,7 @@ export const HeroImages = () => {
                 // whileHover={{ scale: 1.15, translateY: -1, translateX: -2, rotate: 3 }}
                 transition={{ type: 'spring', damping: 5 }}
                 src={assets.Star.src}
-                className="absolute right-[14%] top-[66%] w-12  lg:top-[54%]"
+                className="absolute right-[6%] top-[46%] w-12 md:right-[5%] md:top-[42%] lg:right-[14%] lg:top-[54%]"
             />
             <motion.img
                 initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5, transformOrigin: 'top left' }}
@@ -27,7 +27,7 @@ export const HeroImages = () => {
                 whileHover={{ rotate: 5, transformOrigin: 'top left' }}
                 transition={{ type: 'spring', damping: 10 }}
                 src={assets.HandToken.src}
-                className="absolute left-[7%] top-[63%] w-36 md:left-[10%] md:top-[70%] lg:left-[7%] lg:top-[63%] xl:left-[11%]"
+                className="absolute left-[7%] top-[63%] hidden w-36 md:left-[1%] md:top-[70%] lg:left-[7%] lg:top-[63%] lg:block xl:left-[11%]"
             />
         </>
     )

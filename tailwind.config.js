@@ -23,6 +23,8 @@ module.exports = {
                     // rename to lightblue
                     1: '#90A8ED',
                     2: '#a2faff',
+                    6: '#FDC5F6',
+                    9: '#FCD8DB',
                 },
                 teal: {
                     // rename to teal
@@ -51,9 +53,6 @@ module.exports = {
                 },
                 gold: {
                     3: '#FFD25C',
-                },
-                pink: {
-                    6: '#FDC5F6'
                 },
                 white: '#FFFFFF',
                 background: '#FAF4F0',
@@ -135,6 +134,7 @@ module.exports = {
                 '6xl': ['3rem', '3.25rem'],
                 '7xl': ['7rem', '7rem'],
                 '8xl': ['10rem', '10rem'],
+                '9xl': ['12rem', '12rem'],
                 h1: [
                     '3rem',
                     {
