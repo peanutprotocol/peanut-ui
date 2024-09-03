@@ -1,4 +1,4 @@
-import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import { getLinkDetails, peanut } from '@squirrel-labs/peanut-sdk'
 
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
@@ -7,10 +7,10 @@ import * as utils from '@/utils'
 export const useDashboard = () => {
     const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
         // only fetching details for send links that are visible on the current page
-        const _data = visibleData.filter((item) => item.type == 'Link Sent')
+        const _data1 = visibleData.filter((item) => item.type == 'Link Sent')
         try {
             await Promise.all(
-                _data.map(async (item) => {
+                _data1.map(async (item) => {
                     try {
                         const linkDetails = await getLinkDetails({ link: item.link ?? '' })
                         item.status = linkDetails.claimed ? 'claimed' : 'pending'
@@ -22,6 +22,27 @@ export const useDashboard = () => {
         } catch (error) {
             console.error('Error fetching link details:', error)
         }
+
+        const _data2 = visibleData.filter((item) => item.type == 'Request Link')
+
+        try {
+            await Promise.all(
+                _data2.map(async (item) => {
+                    try {
+                        const linkDetails = await peanut.getRequestLinkDetails({
+                            link: item.link ?? '',
+                            apiUrl: '/api/proxy/get',
+                        })
+                        console.log('linkDetails', linkDetails)
+                        item.status = linkDetails.status === 'PAID' ? 'paid' : 'pending'
+                    } catch (error) {
+                        console.error(error)
+                    }
+                })
+            )
+        } catch (error) {}
+
+        const _data = [..._data1, ..._data2]
 
         return _data
     }
@@ -125,7 +146,7 @@ export const useDashboard = () => {
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.createdAt.toString(),
                 address: link.recipientAddress,
-                status: 'pending',
+                status: undefined,
                 message: link.reference ?? '',
                 attachmentUrl: link.attachmentUrl ?? '',
                 points: 0,
@@ -146,7 +167,7 @@ export const useDashboard = () => {
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.createdAt.toString(),
                 address: link.recipientAddress,
-                status: 'claimed',
+                status: 'paid',
                 message: link.reference ?? '',
                 attachmentUrl: link.attachmentUrl ?? '',
                 points: 0,

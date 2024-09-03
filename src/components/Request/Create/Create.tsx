@@ -15,7 +15,7 @@ export const CreateRequestLink = () => {
         fileUrl: '',
         rawFile: undefined,
     })
-    const [recipientAddress, setRecipientAddress] = useState<string>('')
+    const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
 
     const { address } = useAccount()
 
@@ -36,6 +36,10 @@ export const CreateRequestLink = () => {
             idx: newIdx,
         }))
     }
+
+    useEffect(() => {
+        if (address && !recipientAddress) setRecipientAddress(address)
+    }, [address])
 
     return (
         <div className="card">

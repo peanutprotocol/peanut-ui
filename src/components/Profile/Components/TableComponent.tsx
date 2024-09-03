@@ -123,6 +123,10 @@ export const TableComponent = ({
                                         <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                             sent
                                         </div>
+                                    ) : data.dashboardItem.status === 'paid' ? (
+                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
+                                            paid
+                                        </div>
                                     ) : (
                                         <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
                                             pending

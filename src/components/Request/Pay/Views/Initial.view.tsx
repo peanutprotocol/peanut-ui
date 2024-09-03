@@ -50,12 +50,22 @@ export const InitialView = ({
 
             setLoadingState('Executing transaction')
 
-            const updatedResponse = await peanut.submitRequestLinkFulfillment({
+            await peanut.submitRequestLinkFulfillment({
                 chainId: requestLinkData.chainId,
                 hash: hash ?? '',
                 payerAddress: address ?? '',
                 link: requestLinkData.link,
                 apiUrl: '/api/proxy/patch/',
+            })
+
+            const currentDate = new Date().toISOString()
+            utils.saveRequestLinkFulfillmentToLocalStorage({
+                details: {
+                    ...requestLinkData,
+                    destinationChainFulfillmentHash: hash ?? '',
+                    createdAt: currentDate,
+                },
+                link: requestLinkData.link,
             })
 
             setTransactionHash(hash ?? '')
@@ -152,35 +162,25 @@ export const InitialView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {estimatedGasCost && (
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Fees</label>
+                            <label className="font-bold">Network cost</label>
                         </div>
-                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
-                        </span>
-                    </div>
-                )}
-
-                {estimatedPoints && (
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                        <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Points</label>
-                        </div>
-                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            +${estimatedPoints}
+                        <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            {estimatedGasCost === 0
+                                ? '$0'
+                                : estimatedGasCost < 0.01
+                                  ? '$<0.01'
+                                  : `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`}
                             <MoreInfo
                                 text={
-                                    estimatedPoints
-                                        ? estimatedPoints > 0
-                                            ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                            : 'This transaction will not add any points to your total points balance'
-                                        : 'This transaction will not add any points to your total points balance'
+                                    estimatedGasCost > 0
+                                        ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                        : 'This transaction is sponsored by peanut! Enjoy!'
                                 }
                             />
-                        </span>
+                        </label>
                     </div>
                 )}
             </div>

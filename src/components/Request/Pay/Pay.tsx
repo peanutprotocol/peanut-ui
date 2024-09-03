@@ -52,7 +52,6 @@ export const PayRequestLink = () => {
                 setLinkState('NOT_FOUND')
                 return
             }
-
             // Check if request link is already paid
             if (requestLinkDetails.status === 'PAID') {
                 setLinkState('ALREADY_PAID')
@@ -89,6 +88,7 @@ export const PayRequestLink = () => {
                     preparedTx: unsignedTx,
                 })
 
+                console.log('transactionCostUSD:', _transactionCostUSD)
                 if (_transactionCostUSD) setEstimatedGasCost(_transactionCostUSD)
             } catch (error) {
                 console.log('error calculating transaction cost:', error)

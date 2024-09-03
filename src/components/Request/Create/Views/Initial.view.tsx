@@ -46,12 +46,6 @@ export const InitialView = ({
         open()
     }
 
-    useEffect(() => {
-        if (!recipientAddress && address) {
-            setRecipientAddress(address)
-        }
-    }, [address])
-
     const handleOnNext = useCallback(async () => {
         // TODO: add validation for recipient address
 
@@ -60,8 +54,6 @@ export const InitialView = ({
         setLoadingState('Creating link')
 
         const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
-
-        return
         try {
             const { link } = await peanut.createRequestLink({
                 chainId: selectedChainID,
@@ -78,7 +70,6 @@ export const InitialView = ({
             })
 
             const requestLinkDetails: any = await peanut.getRequestLinkDetails({ link: link, apiUrl: '/api/proxy/get' })
-
             utils.saveRequestLinkToLocalStorage({ details: requestLinkDetails })
 
             setLink(link)
@@ -115,12 +106,12 @@ export const InitialView = ({
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <label
-                className="text-h2 max-h-[92px] w-full overflow-hidden"
+                className="max-h-[92px] w-full overflow-hidden text-h2"
                 style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
             >
                 Request a payment
             </label>
-            <label className="text-h8 w-full max-w-96 text-start font-light">
+            <label className="w-full max-w-96 text-start text-h8 font-light">
                 You will request a payment to {recipientAddress ? recipientAddress : '...'} <br />
                 Choose your preffered token and chain.
             </label>
@@ -142,8 +133,8 @@ export const InitialView = ({
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
                 <AddressInput
                     value={recipientAddress ?? ''}
-                    _setIsValidRecipient={() => {
-                        setIsValidRecipient(true)
+                    _setIsValidRecipient={(valid: boolean) => {
+                        setIsValidRecipient(valid)
                         setInputChanging(false)
                     }}
                     onDeleteClick={() => {

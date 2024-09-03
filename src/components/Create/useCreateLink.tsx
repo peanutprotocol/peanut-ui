@@ -212,10 +212,13 @@ export const useCreateLink = () => {
     }
     const estimateGasFee = async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
         try {
+            console.log(preparedTx)
             const feeOptions = await peanut.setFeeOptions({
                 chainId: chainId,
                 unsignedTx: preparedTx,
             })
+
+            console.log('feeOptions', feeOptions)
 
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
@@ -227,7 +230,32 @@ export const useCreateLink = () => {
                 transactionCostUSD,
             }
         } catch (error) {
-            throw error
+            try {
+                console.log(preparedTx)
+                const feeOptions = await peanut.setFeeOptions({
+                    chainId: chainId,
+                    unsignedTx: preparedTx,
+                    gasLimit: BigNumber.from(100000),
+                })
+
+                console.log('feeOptions', feeOptions)
+
+                let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+                let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
+                const nativeTokenPrice = await utils.fetchTokenPrice(
+                    '0x0000000000000000000000000000000000000000',
+                    chainId
+                )
+                const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice?.price
+
+                return {
+                    feeOptions,
+                    transactionCostUSD,
+                }
+            } catch (error) {
+                console.error('Failed to estimate gas fee:', error)
+                throw error
+            }
         }
     }
     const estimatePoints = async ({

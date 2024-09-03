@@ -122,7 +122,7 @@ export interface IDashboardItem {
     date: string
     chain: string
     address: string | undefined
-    status: 'claimed' | 'pending' | 'transfer' | undefined
+    status: 'claimed' | 'pending' | 'transfer' | 'paid' | undefined
     message: string | undefined
     attachmentUrl: string | undefined
     points: number

@@ -34,11 +34,11 @@ const AddressInput = ({
             if (recipient.toLowerCase().endsWith('.eth')) {
                 const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
                 if (resolvedAddress) {
-                    setRecipient(resolvedAddress)
+                    setRecipient(recipient)
                     setIsValidRecipient(true)
                     _setIsValidRecipient(true)
                     setType('ens')
-                    onSubmit(userInput, recipient)
+                    onSubmit(recipient)
                 } else {
                     setIsValidRecipient(false)
                     _setIsValidRecipient(false)
@@ -48,7 +48,7 @@ const AddressInput = ({
                 setIsValidRecipient(true)
                 _setIsValidRecipient(true)
                 setType('address')
-                onSubmit(undefined, recipient)
+                onSubmit(recipient)
             } else {
                 setIsValidRecipient(false)
                 _setIsValidRecipient(false)
@@ -64,7 +64,7 @@ const AddressInput = ({
 
     useEffect(() => {
         if (recipient && isValidRecipient) {
-            onSubmit(type === 'ens' ? userInput : undefined, recipient)
+            onSubmit(recipient)
             _setIsValidRecipient(true)
         }
     }, [recipient])

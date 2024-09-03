@@ -21,7 +21,7 @@
         "@n8tb1t/use-scroll-position": "^2.0.3",
         "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.26.0",
-        "@squirrel-labs/peanut-sdk": "^0.4.65",
+        "@squirrel-labs/peanut-sdk": "^0.4.67",
         "@tanstack/react-query": "^5.52.1",
         "@typeform/embed-react": "^3.20.0",
         "@vercel/analytics": "^1.3.1",
