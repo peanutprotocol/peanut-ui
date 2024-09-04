@@ -55,9 +55,13 @@ module.exports = {
                     3: '#FFD25C',
                 },
                 white: '#FFFFFF',
-                background: '#FAF4F0',
+                // background: '#FAF4F0',
                 red: '#FF0000',
                 black: '#000000',
+
+                primary: 'var(--primary-color)',
+                background: 'var(--background-color)',
+                accent: 'var(--accent-color)',
             },
             zIndex: {
                 1: '1',

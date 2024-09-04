@@ -43,7 +43,7 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
             {marquee.visible && (
                 <MarqueeComp
                     message={marquee.message}
-                    imageSrc={assets.SmilePink.src}
+                    imageSrc={assets.SmileStars.src}
                     imageAnimationClass="animation-faceSpin"
                 />
             )}

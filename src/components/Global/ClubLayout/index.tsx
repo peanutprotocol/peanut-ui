@@ -35,7 +35,7 @@ const Layout = ({ children, className, newLayout = false }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <div className="bg-pink-9 relative">
+                <div className="relative bg-background">
                     <div className="flex min-h-screen flex-col ">
                         <Header newLayout={newLayout} />
                         <div className="flex grow justify-center">

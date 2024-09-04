@@ -31,7 +31,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
 
     return (
         <Box
-            className="overflow-x-hidden bg-gold-3"
+            className="bg-primary overflow-x-hidden"
             style={{
                 backgroundImage: `url(${assets.PeanutsBG.src})`,
                 backgroundSize: '10rem auto',
@@ -60,7 +60,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                         whileInView={{ translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: 1, translateX: 2, rotate: 2 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.SmilePink.src}
+                        src={assets.SmileStars.src}
                         className="rotate- absolute -right-16 -top-16 w-28"
                     />
                     <motion.img
@@ -73,8 +73,8 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                     />
 
                     <h2
-                        className="absolute -left-6 -top-8 rounded-full border-2 border-violet-3
-                 bg-violet-3 px-5 py-3 font-display text-[1.5rem] font-bold uppercase text-white shadow ring-2 ring-white md:text-[2rem]"
+                        className="border-primary bg-primary absolute -left-6 -top-8 rounded-full
+                 border-2 px-5 py-3 font-display text-[1.5rem] font-bold uppercase text-white shadow ring-2 ring-white md:text-[2rem]"
                     >
                         {heading}
                     </h2>
@@ -92,7 +92,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                                     className="cursor-pointer items-start"
                                     onClick={() => setFaq(index)}
                                 >
-                                    <div className="uppercase leading-6 text-violet-3">{faq.question}</div>
+                                    <div className="text-accent uppercase leading-6">{faq.question}</div>
 
                                     <motion.div
                                         className="grow-1 ml-6"
@@ -101,7 +101,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                                     >
                                         <Icon
                                             name={openFaq === index ? 'minus-circle' : 'plus-circle'}
-                                            className="h-6 w-6 fill-violet-3 md:h-8 md:w-8"
+                                            className="fill-accent h-6 w-6 md:h-8 md:w-8"
                                         />
                                     </motion.div>
                                 </Flex>
@@ -145,7 +145,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
             {marquee.visible && (
                 <MarqueeComp
                     message={marquee.message}
-                    imageSrc={assets.SmilePink.src}
+                    imageSrc={assets.SmileStars.src}
                     imageAnimationClass="animation-faceSpin"
                 />
             )}
