@@ -106,16 +106,6 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
                                             : undefined,
                                     })
                             )}
-                            {/* TODO: hide testnets */}
-                            {/* <div className="w-full border border-n-2 dark:border-white"></div>
-                            {_chainsToDisplay.map(
-                                (chain) =>
-                                    !chain.mainnet &&
-                                    chainItem({
-                                        chain,
-                                        setChain: () => setChain(chain.chainId),
-                                    })
-                            )} */}
                         </Menu.Items>
                     </Transition>
                 </>

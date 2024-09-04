@@ -89,12 +89,18 @@ export const ConfirmClaimLinkIbanView = ({
                 (account) =>
                     account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
                     offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
-            ) // TODO: tolowercase and replace all abstraction
+            )
             const bridgeCustomerId = user?.user?.bridge_customer_id
             const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
-            if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) return
-            // TODO: check if values are asigned
+            if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
+                console.log('peanut account, bridgeCustomerId or bridgeExternalAccountId not found. ', {
+                    peanutAccount,
+                    bridgeCustomerId,
+                    bridgeExternalAccountId,
+                })
+                return
+            }
 
             const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
 

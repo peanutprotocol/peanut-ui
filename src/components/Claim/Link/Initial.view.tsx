@@ -197,7 +197,7 @@ export const InitialClaimLinkView = ({
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipient.name ?? '', // TODO: recipient.name makes no sense here
+                    recipient: recipient.name ?? '',
                     password: '',
                 })
                 if (user?.user.kycStatus === 'verified') {

@@ -144,7 +144,7 @@ const testimonials = [
         bgColorClass: 'bg-pink-1',
     },
     {
-        imageSrc: assets.SBF_PERSON.src, // TODO: replace with actual image@
+        imageSrc: assets.SBF_PERSON.src,
         altText: 'picture of pixel art SBF',
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',
@@ -310,12 +310,7 @@ export function WelcomeSDK() {
                             target="_blank"
                         >
                             <div className="mx-2 flex h-full items-center justify-center object-cover">
-                                <Lottie
-                                    options={defaultLottieOptions}
-                                    height={600}
-                                    width={400}
-                                    // TODO: update on mobile
-                                />
+                                <Lottie options={defaultLottieOptions} height={600} width={400} />
                             </div>
                         </a>
                     </div>

@@ -245,7 +245,14 @@ export const InitialCashoutView = ({
                             </div>
                         ) : user ? (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <label className="text-left text-h8 font-light">Recipient account:</label>
+                                <span className="flex items-center gap-1 ">
+                                    <label className="text-left text-h8 font-light">Recipient account:</label>
+                                    <MoreInfo
+                                        text={`You can claim directly to your IBAN OR US bank account. Click here to see if your region is supported.`}
+                                    />
+                                    {/* TODO: update click here to link to notion or docs */}
+                                </span>
+
                                 {user?.accounts.length > 0 &&
                                     user?.accounts
                                         .filter(

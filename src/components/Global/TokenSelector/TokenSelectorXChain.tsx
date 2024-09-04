@@ -55,7 +55,7 @@ const TokenSelectorXChain = ({
         }
 
         //only return the first 6 tokens if not filtering
-        return _tokens // TODO: fix styling to be three three and bigger (same size no matter of symbol)
+        return _tokens
     }, [filterValue, selectedChainID])
 
     function setToken(address: string): void {

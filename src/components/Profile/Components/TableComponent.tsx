@@ -203,12 +203,6 @@ export const TableComponent = ({
                                                 handleSendToAddress(recipientAddress)
                                             },
                                         },
-                                        // {
-                                        //     name: 'Delete',
-                                        //     action: () => {
-                                        //         console.log('Delete') // TODO: implement delete
-                                        //     },
-                                        // },
                                     ]}
                                 />
                             </td>
@@ -218,18 +212,6 @@ export const TableComponent = ({
                             <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
-                                {/* <td className="td-custom text-end ">
-                                    <OptionsComponent
-                                        actionItems={[
-                                            {
-                                                name: 'Delete',
-                                                action: () => {
-                                                    console.log('Delete') // TODO: implement delete
-                                                },
-                                            },
-                                        ]}
-                                    />
-                                </td> */}
                             </tr>
                         )
                     )

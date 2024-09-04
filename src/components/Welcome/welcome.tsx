@@ -113,7 +113,7 @@ const testimonials = [
         bgColorClass: 'bg-white',
     },
     {
-        imageSrc: assets.SBF_PERSON.src, // TODO: replace with actual image@
+        imageSrc: assets.SBF_PERSON.src,
         altText: 'picture of pixel art SBF',
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',

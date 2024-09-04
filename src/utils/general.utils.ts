@@ -285,7 +285,6 @@ export function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; c
     return `https://app.safe.global/share/safe-app?appUrl=${encodeURIComponent(currentUrl)}&chain=${chainId}`
 }
 
-// TODO: this is a hacky fix to copy in an iframe where the clipboard API is not supported/blocked
 export async function copyTextToClipboardWithFallback(text: string) {
     if (navigator.clipboard && window.isSecureContext) {
         try {

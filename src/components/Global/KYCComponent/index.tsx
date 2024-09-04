@@ -74,8 +74,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         setActiveStep(0)
         setLoadingState('Getting profile')
 
-        // TODO: add validation
-
         try {
             const _user = await fetchUser()
 

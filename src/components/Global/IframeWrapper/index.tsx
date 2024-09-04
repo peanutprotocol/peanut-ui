@@ -19,7 +19,6 @@ const IframeWrapper = ({
             const expectedOrigin = window.location.origin
 
             if (event.origin === `${expectedOrigin}` && event.data === 'close-modal') {
-                // TODO: add specific route for closing iframe
                 onClose()
             }
         }

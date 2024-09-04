@@ -47,7 +47,13 @@ export const InitialView = ({
     }
 
     const handleOnNext = useCallback(async () => {
-        // TODO: add validation for recipient address
+        if (!recipientAddress) {
+            setErrorState({
+                showError: true,
+                errorMessage: 'Please enter a recipient address',
+            })
+            return
+        }
 
         console.log('recipientAddress', recipientAddress)
 

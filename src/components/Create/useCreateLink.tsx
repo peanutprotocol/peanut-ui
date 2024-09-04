@@ -500,7 +500,7 @@ export const useCreateLink = () => {
                 signature: signature,
                 baseUrl: `${consts.next_proxy_url}/deposit-3009`,
                 APIKey: 'doesnt-matter',
-            }) //TODO: for safe app, check if this tx hash is correct
+            })
             return response.txHash
         } catch (error) {
             throw error
@@ -550,28 +550,6 @@ export const useCreateLink = () => {
                     })
 
                     setLoadingState('Executing transaction')
-
-                    // if (walletType === 'safe') {
-                    //     const sdk = new SafeAppsSDK({
-                    //         allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
-                    //         debug: true,
-                    //     })
-                    //     while (true) {
-                    //         const queued = await sdk.txs.getBySafeTxHash(hash)
-
-                    //         if (
-                    //             queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
-                    //             queued.txStatus === TransactionStatus.AWAITING_EXECUTION
-                    //         ) {
-                    //             console.log('waiting for safe tx')
-
-                    //             await new Promise((resolve) => setTimeout(resolve, 1000))
-                    //         } else if (queued.txHash) {
-                    //             hash = queued.txHash as `0x${string}`
-                    //             break
-                    //         }
-                    //     }
-                    // } // TODO: fix this when we decide to continue work on the safe app. Also do this within the gaslessDeposit stuff
 
                     // Wait for the transaction to be mined using wagmi/actions
                     // Only doing this for the approval transaction (the first tx)

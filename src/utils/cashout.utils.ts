@@ -359,7 +359,7 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
     })
 
     if (response.status !== 200) {
-        return false // TODO: handle when iban country is not supported
+        return false
     } else {
         return true
     }
