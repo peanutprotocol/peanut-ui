@@ -76,7 +76,7 @@ export const ErrorHandler = (error: any) => {
                 .toString()
                 .includes('Please ensure that you have sufficient balance of the token you are trying to send')
         ) {
-            return 'Please ensure that you have sufficient balance of the token you are trying to send.'
+            return 'Please ensure that you have sufficient balance of requested token.'
         } else if (error.toString().includes('The minimum amount to send is 0.0001')) {
             return 'The minimum amount to send is 0.0001.'
         } else if (error.toString().includes('Error getting the linkDetails')) {
@@ -98,7 +98,7 @@ export const ErrorHandler = (error: any) => {
         } else if (error.toString().includes('Error getting the link with transactionHash')) {
             return error.message
         } else {
-            return 'Something failed while claiming your link. Please try again.'
+            return 'Something failed. Please try again.'
         }
     }
 }

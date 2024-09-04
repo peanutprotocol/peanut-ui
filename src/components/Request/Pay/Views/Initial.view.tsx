@@ -20,7 +20,7 @@ export const InitialView = ({
     tokenPrice,
     unsignedTx,
 }: _consts.IPayScreenProps) => {
-    const { sendTransactions } = useCreateLink()
+    const { sendTransactions, assertValues } = useCreateLink()
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
@@ -38,8 +38,9 @@ export const InitialView = ({
 
     const handleOnNext = async () => {
         try {
+            setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            // TODO: balance check
+            await assertValues({ tokenValue: requestLinkData.tokenAmount })
 
             setLoadingState('Sign in wallet')
 
@@ -71,10 +72,15 @@ export const InitialView = ({
             setTransactionHash(hash ?? '')
             onNext()
         } catch (error) {
+            const errorString = utils.ErrorHandler(error)
             setErrorState({
                 showError: true,
-                errorMessage: 'Error while fulfilling the request. Please make sure you have sufficient balance.',
+                errorMessage: errorString,
             })
+            // setErrorState({
+            //     showError: true,
+            //     errorMessage: 'Error while fulfilling the request. Please make sure you have sufficient balance.',
+            // })
             console.error('Error while submitting request link fulfillment:', error)
         } finally {
             setLoadingState('Idle')
