@@ -21,7 +21,7 @@ export function Intro() {
 
     const lineClass =
         'relative mx-auto w-full items-center space-x-4 md:space-x-6 px-2 md:px-6 lg:px-10 xl:w-[92%] 2xl:w-4/5'
-    const boxClass = 'h-[10vw] md:h-[7vw] grow rounded-lg border-4 border-n-1 bg-gold-3 ring-2 ring-white shadow-md'
+    const boxClass = 'h-[10vw] md:h-[7vw] grow rounded-lg border-4 border-n-1 bg-primary ring-2 ring-white shadow-md'
     const textClass = 'text-[11vw] md:text-[8vw] font-semibold leading-[0.95]'
 
     return (

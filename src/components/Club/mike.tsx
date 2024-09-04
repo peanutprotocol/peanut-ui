@@ -44,7 +44,7 @@ export function Mike({ lines }: MikeProps) {
                     whileHover={{ translateY: 6, translateX: 2, rotate: 2 }}
                     transition={{ type: 'spring', damping: 6 }}
                     key={index}
-                    className={`relative z-10 mx-auto w-4/5 max-w-4xl text-center font-display uppercase leading-[0.825] text-violet-3`}
+                    className={`text-violet-3- relative z-10 mx-auto w-4/5 max-w-4xl text-center font-display uppercase leading-[0.825]`}
                 >
                     <AutoTextSize maxFontSizePx={400}>{line}</AutoTextSize>
                 </motion.div>

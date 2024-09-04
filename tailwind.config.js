@@ -55,11 +55,15 @@ module.exports = {
                     3: '#FFD25C',
                 },
                 white: '#FFFFFF',
-                background: '#FAF4F0',
+                // background: '#FAF4F0',
                 red: '#FF0000',
                 'kyc-red': '#C80000',
                 black: '#000000',
                 'kyc-green': '#00C800',
+
+                primary: 'var(--primary-color)',
+                background: 'var(--background-color)',
+                accent: 'var(--accent-color)',
             },
             zIndex: {
                 1: '1',
