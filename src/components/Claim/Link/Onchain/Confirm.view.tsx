@@ -185,9 +185,12 @@ export const ConfirmClaimLinkView = ({
 
             <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
                 <label className="text-h7 font-normal">Claiming to:</label>
-                <label className="text-h7">
-                    {recipient.name ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}
-                </label>
+                <span className="flex items-center gap-1 ">
+                    <label className="text-h7">
+                        {recipient.name ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}
+                    </label>
+                    {recipient.name && <MoreInfo text={`You will be claiming to ${recipient.address}`} />}
+                </span>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
