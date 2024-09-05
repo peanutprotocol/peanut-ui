@@ -1,7 +1,7 @@
 import { Metadata } from 'next'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/ClubLayout'
-import { Hero, FAQs, Features, Mike, Story } from '@/components/Club'
+import { Hero, FAQs, Features, Mike, Story, Intro } from '@/components/Club'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -158,6 +158,7 @@ export default function PeanutClub() {
     return (
         <Layout newLayout={true} className="!mx-0 w-full !px-0 !pt-0 ">
             <Hero heading={hero.heading} marquee={hero.marquee} />
+            <Intro />
             <Story stories={story.stories} foot={story.foot} marquee={story.marquee} />
             <Features sections={features.sections} marquee={features.marquee} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />

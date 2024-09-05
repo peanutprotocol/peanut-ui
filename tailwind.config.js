@@ -23,6 +23,8 @@ module.exports = {
                     // rename to lightblue
                     1: '#90A8ED',
                     2: '#a2faff',
+                    6: '#FDC5F6',
+                    9: '#FCD8DB',
                 },
                 green: {
                     // rename to teal
@@ -52,13 +54,14 @@ module.exports = {
                 gold: {
                     3: '#FFD25C',
                 },
-                pink: {
-                    6: '#FDC5F6',
-                },
                 white: '#FFFFFF',
-                background: '#FAF4F0',
+                // background: '#FAF4F0',
                 red: '#FF0000',
                 black: '#000000',
+
+                primary: 'var(--primary-color)',
+                background: 'var(--background-color)',
+                accent: 'var(--accent-color)',
             },
             zIndex: {
                 1: '1',
@@ -130,9 +133,10 @@ module.exports = {
             fontSize: {
                 0: ['0px', '0px'],
                 sm: ['0.875rem', '1.3125rem'],
-                '2xl': ['3rem', '3.25rem'],
-                '3xl': ['7rem', '7rem'],
-                '4xl': ['10rem', '10rem'],
+                '6xl': ['3rem', '3.25rem'],
+                '7xl': ['7rem', '7rem'],
+                '8xl': ['10rem', '10rem'],
+                '9xl': ['12rem', '12rem'],
                 h1: [
                     '3rem',
                     {

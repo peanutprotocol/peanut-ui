@@ -14,7 +14,7 @@ const Footer = ({ newLayout = false }: FooterProps) => {
     return (
         <footer>
             <div
-                className={`flex w-full items-center gap-4 px-4 py-2 pt-4 dark:border-white dark:bg-n-2 ${!newLayout ? 'justify-between border-t border-n-1 bg-black text-white' : 'flex-wrap justify-center py-4 md:p-6 lg:justify-between'}`}
+                className={`flex w-full items-center gap-4 px-4 py-2 pt-4 dark:border-white dark:bg-n-2 ${!newLayout ? 'justify-between border-t border-n-1 bg-black text-white' : 'flex-wrap justify-center border-t-2 border-n-1 bg-white py-4 shadow ring-2 ring-white md:p-6 lg:justify-between'}`}
             >
                 <div className="flex justify-center gap-2">
                     {_consts.LINKS.map((link) => {

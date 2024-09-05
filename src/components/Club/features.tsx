@@ -1,10 +1,12 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
+import { useMediaQuery } from '@chakra-ui/react'
 import { Stack, Box, Flex, SimpleGrid, GridItem } from '@chakra-ui/react'
 import { motion, useAnimation, useInView } from 'framer-motion'
 import { FeaturesImages, FeaturesBadgeImage } from './imageAssets'
-import { MarqueeWrapper } from '../Global/MarqueeWrapper'
+// import { MarqueeWrapper } from '../Global/MarqueeWrapper'
+import { MarqueeComp } from '../Global/MarqueeWrapper'
 import * as assets from '@/assets'
 
 type FeaturesProps = {
@@ -29,6 +31,7 @@ type FeaturesProps = {
 
 export function Features({ sections, marquee = { visible: false } }: FeaturesProps) {
     const ref = useRef(null)
+    const [isLargerThan768] = useMediaQuery('(min-width: 768px)')
 
     // Animation variants
     const gridItemVariants = [
@@ -141,16 +144,16 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
             hidden: { opacity: 0, translateY: 0, translateX: 0, rotate: 0 },
             visible: {
                 opacity: 1,
-                translateY: 8,
-                translateX: 12,
-                rotate: 6,
+                translateY: 6,
+                translateX: 10,
+                rotate: 4,
                 transition: { duration: 0.4, type: 'spring', damping: 14 },
             },
             hover: {
                 opacity: 1,
-                translateY: 14,
-                translateX: 14,
-                rotate: 7,
+                translateY: 12,
+                translateX: 12,
+                rotate: 5,
                 transition: { duration: 0.4, type: 'spring', damping: 14 },
             },
         },
@@ -181,7 +184,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                         <FeaturesImages index={index} />
 
                         <div className={`relative z-1 mx-auto lg:px-4 xl:w-[92%] 2xl:w-4/5`}>
-                            <h2 className="text-center font-display text-2xl font-black uppercase text-n-1">
+                            <h2 className="text-center font-display text-5xl font-black uppercase text-n-1">
                                 {section.heading}
                             </h2>
 
@@ -193,40 +196,30 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                 >
                                     {section.testimonials.map((testimonial, index) => (
                                         <GridItem key={index}>
-                                            <motion.div
-                                                ref={ref}
-                                                initial="hidden"
-                                                // animate="visible"
-                                                whileInView="visible"
-                                                variants={gridItemVariants[index]}
-                                                whileHover="hover"
-                                                className={`relative z-10 p-4 md:p-8`}
-                                            >
+                                            {isLargerThan768 ? (
                                                 <motion.div
-                                                    variants={testimonialBgVariants[index]}
-                                                    className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-violet-3 testimonial-${index}-bg`}
-                                                ></motion.div>
+                                                    ref={ref}
+                                                    initial="hidden"
+                                                    whileInView="visible"
+                                                    variants={gridItemVariants[index]}
+                                                    whileHover="hover"
+                                                    className={`relative z-10 p-4 md:p-8`}
+                                                >
+                                                    <motion.div
+                                                        variants={testimonialBgVariants[index]}
+                                                        className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
+                                                    ></motion.div>
 
-                                                <div
-                                                    className={`${testimonial.bgColorClass} absolute left-0 top-0 -z-1 h-full w-full rounded-3xl border-2 border-n-1 bg-white shadow-md ring-2 ring-white`}
-                                                ></div>
-
-                                                <img
-                                                    src={testimonial.imageSrc}
-                                                    alt={testimonial.altText}
-                                                    className="mx-auto h-20 w-20 rounded-full"
-                                                />
-
-                                                <div className="mt-4 text-center text-lg font-semibold leading-6">
-                                                    {testimonial.comment}
+                                                    <TestimonialBody testimonial={testimonial} />
+                                                </motion.div>
+                                            ) : (
+                                                <div className={`relative z-10 p-4 md:p-8`}>
+                                                    <div
+                                                        className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
+                                                    ></div>
+                                                    <TestimonialBody testimonial={testimonial} />
                                                 </div>
-
-                                                <div className="mt-4 text-center">
-                                                    <div className="font-semibold">
-                                                        {testimonial.name}, {testimonial.detail}
-                                                    </div>
-                                                </div>
-                                            </motion.div>
+                                            )}
                                         </GridItem>
                                     ))}
                                 </SimpleGrid>
@@ -261,7 +254,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                                 }}
                                                 transition={{ type: 'spring', damping: 15 }}
                                                 key={index}
-                                                className={`mx-auto flex w-auto rounded-full border-2 border-violet-3 px-5 py-3 font-display text-[1.4rem] font-bold uppercase text-violet-3 shadow ring-2 ring-white md:mr-auto md:text-[2rem] ${index % 2 === 0 ? 'bg-violet-3 text-white' : 'bg-white'}`}
+                                                className={`border-primary mx-auto flex w-auto rounded-full border-2 px-5 py-3 font-display text-[1.4rem] font-bold uppercase shadow ring-2 ring-white md:mr-auto md:text-[2rem] ${index % 2 === 0 ? 'bg-primary text-white' : 'text-primary bg-white'}`}
                                             >
                                                 {item}
                                             </motion.div>
@@ -280,19 +273,27 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                 ))}
             </Stack>
 
-            {marquee.visible && (
-                <Box borderY={'2px solid'} borderColor={'white'} className="shadow">
-                    <MarqueeWrapper backgroundColor="bg-cyan-8" direction="left" className="border-y-2 border-n-1">
-                        <div className="mx-3 font-display text-lg uppercase not-italic md:text-xl">
-                            {marquee.message}
-                        </div>
-
-                        <div className="mx-3 py-2">
-                            <img src={assets.HandThumbs.src} className="animation-thumbsUp h-auto w-8" />
-                        </div>
-                    </MarqueeWrapper>
-                </Box>
-            )}
+            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={assets.HandThumbs.src} />}
         </Flex>
+    )
+}
+
+const TestimonialBody = ({ testimonial }: { testimonial: any }) => {
+    return (
+        <>
+            <div
+                className={`${testimonial.bgColorClass} absolute left-0 top-0 -z-1 h-full w-full rounded-3xl border-2 border-n-1 bg-white shadow-md ring-2 ring-white`}
+            ></div>
+
+            <img src={testimonial.imageSrc} alt={testimonial.altText} className="mx-auto h-20 w-20 rounded-full" />
+
+            <div className="mt-4 text-center text-lg font-semibold leading-6">{testimonial.comment}</div>
+
+            <div className="mt-4 text-center">
+                <div className="font-semibold">
+                    {testimonial.name}, {testimonial.detail}
+                </div>
+            </div>
+        </>
     )
 }

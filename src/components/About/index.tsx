@@ -67,6 +67,7 @@ export function About() {
                     </h2>
                 </div>
             </div>
+
             <MarqueeWrapper backgroundColor="bg-black">
                 <>
                     <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">

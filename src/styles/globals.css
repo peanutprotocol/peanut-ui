@@ -1,6 +1,12 @@
 @tailwind base;
 @tailwind components;
-@tailwind utilities;
+@tailwind utilities
+
+;:root {
+    --primary-color: #F681DF;
+    --background-color: #FBFDD8;
+    --accent-color: #6340DF;
+}
 
 @layer components {
     .splide__pagination.splide__pagination-cards {
@@ -113,24 +119,53 @@ Firefox input[type='number'] {
 } */
 
 .testimonial-0-bg {
-    top: 1.5rem;
-    left: -1rem;
-    transform: rotate(-6deg);
+    top: 0.8rem;
+    left: -0.7rem;
+    transform: rotate(-4deg);
 }
+
 .testimonial-1-bg {
-    top: 1.3rem;
+    top: 1rem;
     left: 0.6rem;
-    transform: rotate(4deg);
+    transform: rotate(3deg);
 }
+
 .testimonial-2-bg {
     top: 0.75rem;
     left: 0.65rem;
     transform: rotate(3deg);
 }
+
 .testimonial-3-bg {
     top: -0.5rem;
     left: 0.5rem;
-    transform: rotate(-4deg);
+    transform: rotate(4deg);
+}
+
+@media (min-width: 768px) {
+    .testimonial-0-bg {
+        top: 1.5rem;
+        left: -1rem;
+        transform: rotate(-6deg);
+    }
+
+    .testimonial-1-bg {
+        top: 1.3rem;
+        left: 0.6rem;
+        transform: rotate(4deg);
+    }
+
+    .testimonial-2-bg {
+        top: 0.75rem;
+        left: 0.65rem;
+        transform: rotate(3deg);
+    }
+
+    .testimonial-3-bg {
+        top: -0.5rem;
+        left: 0.5rem;
+        transform: rotate(-4deg);
+    }
 }
 
 @keyframes thumbsUp {
