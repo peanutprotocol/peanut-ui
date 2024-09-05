@@ -71,7 +71,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                     />
 
                     <h2
-                        className="absolute -left-6 -top-8 rounded-full border-2 border-n-1
+                        className="absolute -left-6 -top-8 rounded-full border-2 border-primary
                  bg-primary px-5 py-3 font-display text-[1.5rem] font-bold uppercase text-white shadow ring-2 ring-white md:text-[2rem]"
                     >
                         {heading}
