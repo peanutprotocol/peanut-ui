@@ -1,4 +1,5 @@
 export { default as ClaimChainsBadge } from './claim-chains-badge.svg'
+export { default as Cloud } from './cloud.svg'
 export { default as HR } from './diagonal-lines.svg'
 export { default as EasySign } from './easy.svg'
 export { default as EasySignTight } from './easy-tight.svg'

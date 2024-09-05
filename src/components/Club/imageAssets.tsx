@@ -2,6 +2,81 @@
 import { motion } from 'framer-motion'
 import * as assets from '@/assets'
 
+const CloudAnimation = ({
+    top,
+    imageSrc,
+    styleMod,
+    screenWidth,
+    speed = 45,
+    startXOffset = 0,
+}: {
+    top: string
+    duration: number
+    imageSrc: string
+    styleMod?: string
+    screenWidth?: number
+    speed?: number
+    startXOffset?: number
+}) => {
+    const imageWidth = 340 // Width of the cloud image (adjust as needed)
+    const vpWidth = screenWidth || 1080
+
+    // Total travel distance is screen width + image width + offset
+    const totalDistance = vpWidth + imageWidth
+
+    return (
+        <motion.img
+            src={imageSrc}
+            alt="Floating Cloud"
+            className={`absolute left-0 ${styleMod || ''}`}
+            style={{ top, width: imageWidth }}
+            initial={{
+                x: startXOffset, // Use numeric values for pixels
+            }}
+            animate={{
+                x: [vpWidth, -imageWidth],
+            }}
+            transition={{
+                ease: 'linear',
+                duration: totalDistance / speed,
+                repeat: Infinity,
+            }}
+        />
+    )
+}
+
+export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
+    return (
+        <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+            <CloudAnimation
+                top="12%"
+                duration={10}
+                imageSrc={assets.Cloud.src}
+                screenWidth={screenWidth}
+                startXOffset={300}
+                speed={55}
+            />
+            <CloudAnimation
+                top="40%"
+                duration={12}
+                imageSrc={assets.Cloud.src}
+                screenWidth={screenWidth}
+                startXOffset={220}
+                speed={40}
+            />
+            <CloudAnimation
+                top="74%"
+                duration={8}
+                imageSrc={assets.Cloud.src}
+                styleMod="z-[99]"
+                screenWidth={screenWidth}
+                startXOffset={500}
+                speed={60}
+            />
+        </div>
+    )
+}
+
 export const HeroImages = () => {
     return (
         <>
@@ -11,7 +86,7 @@ export const HeroImages = () => {
                 // whileHover={{ scale: 1.1, translateY: 2, translateX: 1, rotate: 2 }}
                 transition={{ type: 'spring', damping: 5 }}
                 src={assets.Star.src}
-                className="absolute left-[12%] top-[12%] w-12 md:left-[10%] md:top-[22%] lg:left-[10%] lg:top-[22%]"
+                className="absolute left-[12%] top-[12%] w-12 md:left-[10%] md:top-[23%] lg:left-[10%] lg:top-[23%]"
             />
             <motion.img
                 initial={{ opacity: 0, translateY: 28, translateX: -5 }}
@@ -19,7 +94,7 @@ export const HeroImages = () => {
                 // whileHover={{ scale: 1.15, translateY: -1, translateX: -2, rotate: 3 }}
                 transition={{ type: 'spring', damping: 5 }}
                 src={assets.Star.src}
-                className="absolute right-[6%] top-[46%] w-12 md:right-[5%] md:top-[42%] lg:right-[14%] lg:top-[54%]"
+                className="absolute right-[6%] top-[8%] w-12 md:right-[5%] md:top-[16%] lg:right-[14%] lg:top-[16%]"
             />
             <motion.img
                 initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5, transformOrigin: 'top left' }}
