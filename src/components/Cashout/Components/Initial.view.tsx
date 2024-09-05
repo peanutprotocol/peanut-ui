@@ -23,6 +23,7 @@ import * as assets from '@/assets'
 import * as utils from '@/utils'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { FAQComponent } from './Faq.comp'
+import { RecipientInfoComponent } from './RecipientInfo.comp'
 export const InitialCashoutView = ({
     onNext,
     tokenValue,
@@ -235,6 +236,7 @@ export const InitialCashoutView = ({
                     </div>
                 )}
                 <div className="flex w-full flex-col justify-center gap-3 ">
+                    <RecipientInfoComponent />
                     <div className="max-h-48 space-y-2 overflow-y-scroll ">
                         {!user && isFetchingUser ? (
                             <div className="relative flex h-16 w-full items-center justify-center">
@@ -245,14 +247,6 @@ export const InitialCashoutView = ({
                             </div>
                         ) : user ? (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <span className="flex items-center gap-1 ">
-                                    <label className="text-left text-h8 font-light">Recipient account:</label>
-                                    <MoreInfo
-                                        text={`You can claim directly to your IBAN OR US bank account. Click here to see if your region is supported.`}
-                                    />
-                                    {/* TODO: update click here to link to notion or docs */}
-                                </span>
-
                                 {user?.accounts.length > 0 &&
                                     user?.accounts
                                         .filter(
