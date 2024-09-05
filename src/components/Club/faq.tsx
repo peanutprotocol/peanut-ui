@@ -31,7 +31,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
 
     return (
         <Box
-            className="bg-primary overflow-x-hidden"
+            className="overflow-x-hidden bg-primary"
             style={{
                 backgroundImage: `url(${assets.PeanutsBG.src})`,
                 backgroundSize: '10rem auto',
@@ -73,8 +73,8 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                     />
 
                     <h2
-                        className="border-primary bg-primary absolute -left-6 -top-8 rounded-full
-                 border-2 px-5 py-3 font-display text-[1.5rem] font-bold uppercase text-white shadow ring-2 ring-white md:text-[2rem]"
+                        className="absolute -left-6 -top-8 rounded-full border-2 border-primary
+                 bg-primary px-5 py-3 font-display text-[1.5rem] font-bold uppercase text-white shadow ring-2 ring-white md:text-[2rem]"
                     >
                         {heading}
                     </h2>
@@ -92,7 +92,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                                     className="cursor-pointer items-start"
                                     onClick={() => setFaq(index)}
                                 >
-                                    <div className="text-accent uppercase leading-6">{faq.question}</div>
+                                    <div className="uppercase leading-6 text-accent">{faq.question}</div>
 
                                     <motion.div
                                         className="grow-1 ml-6"
@@ -101,7 +101,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: FAQsP
                                     >
                                         <Icon
                                             name={openFaq === index ? 'minus-circle' : 'plus-circle'}
-                                            className="fill-accent h-6 w-6 md:h-8 md:w-8"
+                                            className="h-6 w-6 fill-accent md:h-8 md:w-8"
                                         />
                                     </motion.div>
                                 </Flex>

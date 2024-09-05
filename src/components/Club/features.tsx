@@ -207,7 +207,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                                 >
                                                     <motion.div
                                                         variants={testimonialBgVariants[index]}
-                                                        className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
+                                                        className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
                                                     ></motion.div>
 
                                                     <TestimonialBody testimonial={testimonial} />
@@ -215,7 +215,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                             ) : (
                                                 <div className={`relative z-10 p-4 md:p-8`}>
                                                     <div
-                                                        className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
+                                                        className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
                                                     ></div>
                                                     <TestimonialBody testimonial={testimonial} />
                                                 </div>
@@ -254,7 +254,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                                 }}
                                                 transition={{ type: 'spring', damping: 15 }}
                                                 key={index}
-                                                className={`border-primary mx-auto flex w-auto rounded-full border-2 px-5 py-3 font-display text-[1.4rem] font-bold uppercase shadow ring-2 ring-white md:mr-auto md:text-[2rem] ${index % 2 === 0 ? 'bg-primary text-white' : 'text-primary bg-white'}`}
+                                                className={`mx-auto flex w-auto rounded-full border-2 border-primary px-5 py-3 font-display text-[1.4rem] font-bold uppercase shadow ring-2 ring-white md:mr-auto md:text-[2rem] ${index % 2 === 0 ? 'bg-primary text-white' : 'bg-white text-primary'}`}
                                             >
                                                 {item}
                                             </motion.div>
