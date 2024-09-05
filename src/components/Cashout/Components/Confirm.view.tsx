@@ -139,6 +139,7 @@ export const ConfirmCashoutView = ({
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
             let hash
+
             if (xchainNeeded) {
                 hash = await claimLinkXchain({
                     address: liquidationAddress.address,
@@ -172,11 +173,21 @@ export const ConfirmCashoutView = ({
                         peanutExternalAccountId: peanutAccount.account_id,
                     },
                 })
+
+                await utils.submitCashoutLink({
+                    link: claimLinkData.link,
+                    bridgeCustomerId: bridgeCustomerId,
+                    liquidationAddressId: liquidationAddress.id,
+                    cashoutTransactionHash: hash,
+                    externalAccountId: bridgeExternalAccountId,
+                    chainName: chainName,
+                    tokenName: tokenName,
+                })
+
                 setTransactionHash(hash)
                 console.log('Transaction hash:', hash)
-                setLoadingState('Idle')
-                onNext()
             }
+            onNext()
         } catch (error) {
             setErrorState({
                 showError: true,
@@ -186,8 +197,6 @@ export const ConfirmCashoutView = ({
         } finally {
             setLoadingState('Idle')
         }
-
-        onNext()
     }
 
     const { setStep: setActiveStep, activeStep } = useSteps({

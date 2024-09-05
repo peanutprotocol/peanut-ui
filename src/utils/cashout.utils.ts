@@ -382,3 +382,55 @@ export async function validateBic(bic: string): Promise<boolean> {
         return true
     }
 }
+
+export async function submitCashoutLink(data: {
+    link: string
+    bridgeCustomerId: string
+    liquidationAddressId: string
+    cashoutTransactionHash: string
+    externalAccountId: string
+    chainName: string
+    tokenName: string
+}) {
+    try {
+        const response = await fetch('/api/peanut/submit-cashout-link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to submit cashout link, status: ${response.status}`)
+        }
+
+        const result = await response.json()
+        return result
+    } catch (error) {
+        console.error('Error in submitCashoutLink:', error)
+        throw error
+    }
+}
+
+export async function getCashoutStatus(link: string) {
+    try {
+        const response = await fetch('/api/cashout-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ link }),
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to get cashout status, status: ${response.status}`)
+        }
+
+        const result = await response.json()
+        return result
+    } catch (error) {
+        console.error('Error in getCashoutStatus:', error)
+        throw error
+    }
+}

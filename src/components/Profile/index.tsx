@@ -20,6 +20,7 @@ import IframeWrapper from '../Global/IframeWrapper'
 import Link from 'next/link'
 import * as context from '@/context'
 import Loading from '../Global/Loading'
+import peanut, { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 const tabs = [
     {
         title: 'History',
@@ -129,6 +130,9 @@ export const Profile = () => {
 
         setSelectedTab('history')
     }, [user])
+
+    const { address: pubKey } = generateKeysFromString('6y1TT0mCP6rkDax5')
+    console.log('pubKey, ', pubKey)
 
     useEffect(() => {
         switch (selectedTab) {
