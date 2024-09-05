@@ -94,8 +94,6 @@ export const PayRequestLink = () => {
                 console.log('error calculating transaction cost:', error)
             }
 
-            // TODO: points calculation
-
             setRequestLinkData(requestLinkDetails)
             setLinkState('PAY')
         } catch (error) {

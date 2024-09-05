@@ -66,7 +66,15 @@ export const ConfirmClaimLinkIbanView = ({
 
                 let route
                 try {
-                    route = await fetchRoute(usdcAddressOptimism, optimismChainId)
+                    route = await utils.fetchRouteRaw(
+                        claimLinkData.tokenAddress.toLowerCase,
+                        claimLinkData.chainId.toString(),
+                        usdcAddressOptimism,
+                        optimismChainId,
+                        claimLinkData.tokenDecimals,
+                        claimLinkData.tokenAmount,
+                        claimLinkData.senderAddress
+                    )
                 } catch (error) {
                     console.error('error fetching route', error)
                 }
@@ -186,37 +194,6 @@ export const ConfirmClaimLinkIbanView = ({
             setActiveStep(4)
         }
     }
-
-    const fetchRoute = async (toToken: string, toChain: string) => {
-        try {
-            const tokenAmount = Math.floor(
-                Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
-            ).toString()
-
-            const route = await getSquidRouteRaw({
-                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                fromChain: claimLinkData.chainId.toString(),
-                fromToken: claimLinkData.tokenAddress.toLowerCase(),
-                fromAmount: tokenAmount,
-                toChain: toChain,
-                toToken: toToken,
-                slippage: 1,
-                fromAddress: claimLinkData.senderAddress,
-
-                toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-            })
-            return route
-        } catch (error) {
-            console.error('Error fetching route:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the given token pair.',
-            })
-            return undefined
-        } finally {
-            setLoadingState('Idle')
-        }
-    } // TODO: move to utils
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">

@@ -45,6 +45,8 @@ export const useCreateLink = () => {
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
+    const { walletType, environmentInfo } = useWalletType()
+    const { refetchBalances } = useBalance()
 
     // step 1
     const assertValues = async ({ tokenValue }: IAssertValuesProps) => {
@@ -615,8 +617,6 @@ export const useCreateLink = () => {
             throw error
         }
     }
-    const { walletType, environmentInfo } = useWalletType()
-    const { refetchBalances } = useBalance()
 
     const prepareCreateLinkWrapper = async ({ tokenValue }: { tokenValue: string }) => {
         try {

@@ -149,7 +149,7 @@ export const InitialCashoutView = ({
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipientBankAccount, // TODO: recipient.name makes no sense here
+                    recipient: recipientBankAccount,
                     password: '',
                 })
                 if (user?.user.kycStatus == 'verified') {
@@ -324,10 +324,13 @@ export const InitialCashoutView = ({
                     if (!isConnected) handleConnectWallet()
                     else handleOnNext()
                 }}
-                disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount)}
+                disabled={
+                    !_tokenValue ||
+                    (!selectedBankAccount && !newBankAccount) ||
+                    !xchainAllowed ||
+                    (usdValue && parseFloat(usdValue) < 10 ? true : false)
+                }
             >
-                {/*  || !xchainAllowed */}
-                {/* ^ TODO: minimum 10USD value amount */}
                 {!isConnected ? (
                     'Create or Connect Wallet'
                 ) : isLoading ? (
