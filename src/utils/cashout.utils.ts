@@ -501,6 +501,8 @@ export async function getCashoutStatus(link: string): Promise<CashoutTransaction
     } catch (error) {
         console.error('Error in getCashoutStatus:', error)
         throw error
+    }
+}
 
 export const fetchRouteRaw = async (
     fromToken: string,
