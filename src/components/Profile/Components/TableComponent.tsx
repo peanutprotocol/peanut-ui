@@ -8,6 +8,11 @@ import * as consts from '@/constants'
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
+/**
+ * TableComponent renders a responsive table for displaying profile-related data based on the selected tab (e.g., history, contacts, or accounts).
+ * It handles sorting, pagination, and action buttons for each row, such as viewing transaction details or sending tokens.
+ * The component also integrates specific actions using the OptionsComponent, which provides a dropdown for additional functionality like showing transactions in an explorer, copying links, or downloading attachments.
+ */
 export const TableComponent = ({
     data,
     selectedTab,

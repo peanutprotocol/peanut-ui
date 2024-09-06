@@ -251,7 +251,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                         </div>
                         {!safeInfo && (
                             <button
-                                className="text-h8 font-normal underline"
+                                className="text-h8 font-normal underline outline-none"
                                 onClick={() => {
                                     setShowFallback(true)
                                 }}

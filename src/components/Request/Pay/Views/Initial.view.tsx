@@ -14,7 +14,6 @@ import { peanut } from '@squirrel-labs/peanut-sdk'
 export const InitialView = ({
     onNext,
     requestLinkData,
-    estimatedPoints,
     estimatedGasCost,
     setTransactionHash,
     tokenPrice,
@@ -23,9 +22,7 @@ export const InitialView = ({
     const { sendTransactions, assertValues } = useCreateLink()
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -77,10 +74,6 @@ export const InitialView = ({
                 showError: true,
                 errorMessage: errorString,
             })
-            // setErrorState({
-            //     showError: true,
-            //     errorMessage: 'Error while fulfilling the request. Please make sure you have sufficient balance.',
-            // })
             console.error('Error while submitting request link fulfillment:', error)
         } finally {
             setLoadingState('Idle')

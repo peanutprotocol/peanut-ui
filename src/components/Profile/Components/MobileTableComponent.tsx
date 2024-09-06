@@ -7,6 +7,11 @@ import * as consts from '@/constants'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+/**
+ * MobileTableComponent renders a mobile-friendly table for user profile data, such as accounts, contacts, or transaction history.
+ * It handles different types of items (e.g., history, contacts, accounts), provides UI for avatars, statuses, and actions.
+ * The component also includes a modal for additional actions like copying links, refunding, or viewing transactions in explorers.
+ */
 export const MobileTableComponent = ({
     itemKey,
     primaryText,

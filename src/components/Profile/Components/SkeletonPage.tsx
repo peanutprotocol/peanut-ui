@@ -7,6 +7,13 @@ import { errors } from 'ethers'
 import Loading from '@/components/Global/Loading'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
 import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
+
+/**
+ * ProfileSkeleton is a component that displays a loading skeleton for the profile section of the app.
+ * It shows animated placeholders while loading or when there is no data.
+ * Additionally, it handles user login or registration, with an overlay that prompts users to log in or connect a wallet.
+ * It also handles error states, providing feedback when login or registration encounters an issue.
+ */
 export const ProfileSkeleton = ({
     onClick,
     showOverlay = true,

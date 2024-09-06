@@ -21,6 +21,10 @@ export const tokenSelectorContext = createContext({
     resetTokenContextProvider: () => {},
 })
 
+/**
+ * Context provider to manage the selected token and chain ID set in the tokenSelector. Token price is fetched here and input denomination can be set here too.
+ * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
+ */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
     const [selectedTokenAddress, setSelectedTokenAddress] = useState('0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85')
     const [selectedChainID, setSelectedChainID] = useState('10')

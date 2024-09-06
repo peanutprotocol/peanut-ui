@@ -91,6 +91,76 @@ export const Profile = () => {
             setItemsPerPage(Math.max(calculatedItems, 1))
         }
     }
+
+    const [_isLoading, _setIsLoading] = useState(false)
+    const handleSiwe = async () => {
+        try {
+            _setIsLoading(true)
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+            if (!address) return
+
+            const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accountIdentifier: address,
+                }),
+            })
+
+            const response = await userIdResponse.json()
+
+            const siwemsg = utils.createSiweMessage({
+                address: address ?? '',
+                statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
+            })
+
+            const signature = await signMessageAsync({
+                message: siwemsg,
+            })
+
+            await fetch('/api/peanut/user/get-jwt-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    signature: signature,
+                    message: siwemsg,
+                }),
+            })
+
+            fetchUser()
+        } catch (error) {
+            console.error('Authentication error:', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error while authenticating. Please try again later.',
+            })
+        } finally {
+            _setIsLoading(false)
+        }
+    }
+
+    const handleLogout = async () => {
+        try {
+            setLoadingState('Logging out')
+            await logoutUser()
+        } catch (error) {
+            console.error('Error logging out', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error logging out',
+            })
+        } finally {
+            setLoadingState('Idle')
+        }
+    }
+
     useEffect(() => {
         calculateItemsPerPage()
         window.addEventListener('resize', calculateItemsPerPage)
@@ -99,6 +169,7 @@ export const Profile = () => {
         }
     }, [])
 
+    // UseEffect hook to set the contacts and account once the user is fetched
     useEffect(() => {
         if (!user) return
 
@@ -130,6 +201,7 @@ export const Profile = () => {
         setSelectedTab('history')
     }, [user])
 
+    // UseEffect hook to set the table data based on the selected tab
     useEffect(() => {
         switch (selectedTab) {
             case 'history':
@@ -225,6 +297,7 @@ export const Profile = () => {
         }
     }, [selectedTab])
 
+    // UseEffect hook to fetch the link details for the visible data
     useEffect(() => {
         async function _fetchLinkDetailsAsync(visibleData: interfaces.IDashboardItem[]) {
             const data = await fetchLinkDetailsAsync(visibleData)
@@ -244,81 +317,9 @@ export const Profile = () => {
         }
     }, [currentPage, dashboardData])
 
-    const [_isLoading, _setIsLoading] = useState(false)
-    const handleSiwe = async () => {
-        try {
-            _setIsLoading(true)
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-            if (!address) return
-
-            const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    accountIdentifier: address,
-                }),
-            })
-
-            const response = await userIdResponse.json()
-
-            const siwemsg = utils.createSiweMessage({
-                address: address ?? '',
-                statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
-            })
-
-            const signature = await signMessageAsync({
-                message: siwemsg,
-            })
-
-            await fetch('/api/peanut/user/get-jwt-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    signature: signature,
-                    message: siwemsg,
-                }),
-            })
-
-            fetchUser()
-        } catch (error) {
-            console.error('Authentication error:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'Error while authenticating. Please try again later.',
-            })
-        } finally {
-            _setIsLoading(false)
-        }
-    }
-
-    const handleLogout = async () => {
-        try {
-            setLoadingState('Logging out')
-            await logoutUser()
-        } catch (error) {
-            console.error('Error logging out', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'Error logging out',
-            })
-        } finally {
-            setLoadingState('Idle')
-        }
-    }
-
+    // UseEffect hook to set the initial user name
     useEffect(() => {
-        setInitialUserName(
-            user?.user?.username ??
-                user?.user?.email ??
-                (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
-        )
+        setInitialUserName(user?.user?.username ?? '')
     }, [user])
 
     if (!user) {

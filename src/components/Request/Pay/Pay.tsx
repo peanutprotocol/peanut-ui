@@ -15,7 +15,7 @@ export const PayRequestLink = () => {
     const [tokenPrice, setTokenPrice] = useState<number>(0)
     const [requestLinkData, setRequestLinkData] = useState<_consts.IRequestLinkData | undefined>(undefined)
     const { estimateGasFee } = useCreateLink()
-    const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(10)
+    const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(0)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)

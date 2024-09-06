@@ -8,11 +8,11 @@ import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { peanut } from '@squirrel-labs/peanut-sdk'
-import * as consts from '@/constants'
 import AddressInput from '@/components/Global/AddressInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import { useBalance } from '@/hooks/useBalance'
 import * as utils from '@/utils'
+
 export const InitialView = ({
     onNext,
     onPrev,

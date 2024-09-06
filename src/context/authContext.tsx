@@ -23,9 +23,13 @@ interface AuthContextType {
     isFetchingUser: boolean
     logoutUser: () => Promise<void>
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/**
+ * Context provider to manage user authentication and profile interactions.
+ * It handles fetching the user profile, updating user details (e.g., username, profile photo),
+ * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
+ */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address } = useAccount()
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
