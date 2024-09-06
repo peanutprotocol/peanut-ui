@@ -33,7 +33,6 @@ export const useDashboard = () => {
                             link: item.link ?? '',
                             apiUrl: '/api/proxy/get',
                         })
-                        console.log('linkDetails', linkDetails)
                         item.status = linkDetails.status === 'PAID' ? 'paid' : 'pending'
                     } catch (error) {
                         console.error(error)
@@ -51,9 +50,9 @@ export const useDashboard = () => {
                 _data3.map(async (item) => {
                     try {
                         const offrampStatus = await utils.getCashoutStatus(item.link ?? '')
-                        console.log('offrampStatus', offrampStatus)
-                        item.status = 'claimed'
+                        item.status = offrampStatus.status
                     } catch (error) {
+                        item.status = 'claimed'
                         console.error(error)
                     }
                 })

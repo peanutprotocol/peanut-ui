@@ -122,7 +122,26 @@ export interface IDashboardItem {
     date: string
     chain: string
     address: string | undefined
-    status: 'claimed' | 'pending' | 'transfer' | 'paid' | undefined
+    status:
+        | 'claimed'
+        | 'pending'
+        | 'transfer'
+        | 'paid'
+        | 'REFUNDED'
+        | 'READY'
+        | 'AWAITING_TX'
+        | 'FUNDS_IN_BRIDGE'
+        | 'FUNDS_MOVED_AWAY'
+        | 'FUNDS_IN_BANK'
+        | 'AWAITING_FUNDS'
+        | 'IN_REVIEW'
+        | 'FUNDS_RECEIVED'
+        | 'PAYMENT_SUBMITTED'
+        | 'PAYMENT_PROCESSED'
+        | 'CANCELED'
+        | 'ERROR'
+        | 'RETURNED'
+        | undefined
     message: string | undefined
     attachmentUrl: string | undefined
     points: number

@@ -127,6 +127,10 @@ export const TableComponent = ({
                                         <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                             paid
                                         </div>
+                                    ) : data.dashboardItem.status ? (
+                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                            {data.dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
+                                        </div>
                                     ) : (
                                         <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
                                             pending
@@ -175,6 +179,16 @@ export const TableComponent = ({
                                                         name: 'Refund',
                                                         action: () => {
                                                             window.open(data.dashboardItem?.link ?? '', '_blank')
+                                                        },
+                                                    },
+                                                data.dashboardItem?.type === 'Offramp Claim' &&
+                                                    data.dashboardItem.status !== 'claimed' && {
+                                                        name: 'Check status',
+                                                        action: () => {
+                                                            const url = new URL(data.dashboardItem?.link ?? '')
+                                                            url.pathname = '/cashout/status'
+
+                                                            window.open(url.toString(), '_blank')
                                                         },
                                                     },
                                             ].filter(Boolean) as { name: string; action: () => void }[]

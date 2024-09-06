@@ -1,50 +1,28 @@
 'use client'
 import { useEffect, useState } from 'react'
 import * as assets from '@/assets'
+import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
+import * as utils from '@/utils'
+import Link from 'next/link'
+import Icon from '../Global/Icon'
+
 export const CashoutStatus = () => {
     const [cashoutStatus, setCashoutStatus] = useState<'FOUND' | 'NOT FOUND' | undefined>(undefined)
-    const [cashoutStatusData, setCashoutStatusData] = useState<any>(undefined)
+    const [cashoutStatusData, setCashoutStatusData] = useState<utils.CashoutTransaction | undefined>(undefined)
 
-    useEffect(() => {
+    const getAndSetCashoutStatus = async () => {
         try {
-            const urlParams = new URLSearchParams(window.location.search)
-            console.log('urlParams', urlParams)
-            const createdLink = `${window.location.origin}/claim?${urlParams.toString()}`
-            console.log('createdLink', createdLink)
-
-            const x = {
-                id: '657d3aba-6935-4481-a5f4-5ceebe121716',
-                customer_id: 'ad4f340b-1917-4bce-b8b5-fa4dab86436c',
-                liquidation_address_id: '0af37924-2ec7-492d-a754-4976909d8c5b',
-                amount: '2.0',
-                currency: 'usdc',
-                state: 'payment_processed',
-                created_at: '2024-09-03T12:27:06.787Z',
-                destination: {
-                    payment_rail: 'sepa',
-                    currency: 'eur',
-                    external_account_id: '7907fc40-0171-4015-8e38-154975bba682',
-                },
-                deposit_tx_hash: '0x343ac75dd59529385b5694d7c667a0bbebfffd7f7c90cf6b9a7ecd99a3bf3b70',
-                deposit_tx_timestamp: '2024-09-03T12:25:27.888Z',
-                from_address: '0xc28551de08997e4c013f50f6e566a0f31fc46a61',
-                receipt: {
-                    initial_amount: '2.0',
-                    developer_fee: '0.0',
-                    subtotal_amount: '2.0',
-                    exchange_rate: '0.900000',
-                    converted_amount: '1.8',
-                    destination_currency: 'eur',
-                    outgoing_amount: '1.8',
-                    url: 'https://dashboard.bridge.xyz/transaction/4f881074-6f0c-4642-94c4-8f7866175b0a/receipt/7015a388-ffe1-4af0-95dc-eca52e63fa6f',
-                },
-            }
-
+            const response = await utils.getCashoutStatus(window.location.href)
+            setCashoutStatusData(response)
             setCashoutStatus('FOUND')
-            setCashoutStatusData(x)
         } catch (error) {
+            console.error(error)
             setCashoutStatus('NOT FOUND')
         }
+    }
+
+    useEffect(() => {
+        getAndSetCashoutStatus()
     }, [])
 
     return (
@@ -57,8 +35,22 @@ export const CashoutStatus = () => {
                     </div>
                 </div>
             ) : cashoutStatus === 'FOUND' ? (
-                <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 text-center">
+                <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 pb-20 text-center">
                     <label className="text-h2">Cashout status</label>
+                    <div className="flex flex-col justify-center gap-3">
+                        <label className="text-start text-h8 font-light">
+                            {cashoutStatusData && utils.CashoutStatusDescriptions[cashoutStatusData?.status]}{' '}
+                        </label>
+                    </div>
+                    <Link
+                        className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
+                        href={`/profile`}
+                    >
+                        <div className=" border border-n-1 p-0 px-1">
+                            <Icon name="dashboard" className="-mt-0.5" />
+                        </div>
+                        Go to profile
+                    </Link>
                 </div>
             ) : (
                 cashoutStatus === 'NOT FOUND' && 'Cashout Not Found'
