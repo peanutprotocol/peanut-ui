@@ -2,6 +2,10 @@ import { useAccount } from 'wagmi'
 import * as interfaces from '@/interfaces'
 import { useEffect, useState, useRef } from 'react'
 
+/**
+ * Custom React hook to fetch and manage user's wallet balances across multiple chains,
+ * convert API response to a structured format, and calculate total value per chain.
+ */
 export const useBalance = () => {
     const [balances, setBalances] = useState<interfaces.IUserBalance[]>([])
     const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)

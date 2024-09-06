@@ -113,7 +113,7 @@ const testimonials = [
         bgColorClass: 'bg-white',
     },
     {
-        imageSrc: assets.SBF_PERSON.src, // TODO: replace with actual image@
+        imageSrc: assets.SBF_PERSON.src,
         altText: 'picture of pixel art SBF',
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',
@@ -128,6 +128,15 @@ export function Welcome() {
     function classNames(...classes: any) {
         return classes.filter(Boolean).join(' ')
     }
+
+    useEffect(() => {
+        // Ensure this code only runs on the client
+        if (typeof window !== 'undefined' && window.parent) {
+            const currentOrigin = window.location.origin
+            // Send a message to the parent window to close the modal
+            window.parent.postMessage('close-modal', currentOrigin)
+        }
+    }, [])
 
     return (
         <div className="flex w-full flex-col items-center justify-center  dark:bg-black ">

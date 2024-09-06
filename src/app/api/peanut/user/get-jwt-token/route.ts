@@ -1,7 +1,6 @@
 import { NextResponse, NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 import * as consts from '@/constants'
-
 export async function POST(request: NextRequest) {
     const { signature, message } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY

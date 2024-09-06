@@ -8,6 +8,11 @@ import * as consts from '@/constants'
 import { useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 
+/**
+ * TableComponent renders a responsive table for displaying profile-related data based on the selected tab (e.g., history, contacts, or accounts).
+ * It handles sorting, pagination, and action buttons for each row, such as viewing transaction details or sending tokens.
+ * The component also integrates specific actions using the OptionsComponent, which provides a dropdown for additional functionality like showing transactions in an explorer, copying links, or downloading attachments.
+ */
 export const TableComponent = ({
     data,
     selectedTab,
@@ -116,12 +121,20 @@ export const TableComponent = ({
                                             <Loading />
                                         </div>
                                     ) : data.dashboardItem.status === 'claimed' ? (
-                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                             claimed
                                         </div>
                                     ) : data.dashboardItem.status === 'transfer' ? (
-                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                             sent
+                                        </div>
+                                    ) : data.dashboardItem.status === 'paid' ? (
+                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
+                                            paid
+                                        </div>
+                                    ) : data.dashboardItem.status ? (
+                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                            {data.dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
                                         </div>
                                     ) : (
                                         <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
@@ -149,7 +162,8 @@ export const TableComponent = ({
                                                     },
                                                 },
                                                 (data.dashboardItem?.type === 'Link Received' ||
-                                                    data.dashboardItem.type === 'Link Sent') &&
+                                                    data.dashboardItem.type === 'Link Sent' ||
+                                                    data.dashboardItem.type === 'Request Link') &&
                                                     data.dashboardItem?.link && {
                                                         name: 'Copy link',
                                                         action: () => {
@@ -165,10 +179,21 @@ export const TableComponent = ({
                                                     },
                                                 },
                                                 data.dashboardItem?.type !== 'Link Received' &&
+                                                    data.dashboardItem?.type !== 'Request Link' &&
                                                     data.dashboardItem.status === 'pending' && {
                                                         name: 'Refund',
                                                         action: () => {
                                                             window.open(data.dashboardItem?.link ?? '', '_blank')
+                                                        },
+                                                    },
+                                                data.dashboardItem?.type === 'Offramp Claim' &&
+                                                    data.dashboardItem.status !== 'claimed' && {
+                                                        name: 'Check status',
+                                                        action: () => {
+                                                            const url = new URL(data.dashboardItem?.link ?? '')
+                                                            url.pathname = '/cashout/status'
+
+                                                            window.open(url.toString(), '_blank')
                                                         },
                                                     },
                                             ].filter(Boolean) as { name: string; action: () => void }[]
@@ -197,12 +222,6 @@ export const TableComponent = ({
                                                 handleSendToAddress(recipientAddress)
                                             },
                                         },
-                                        // {
-                                        //     name: 'Delete',
-                                        //     action: () => {
-                                        //         console.log('Delete') // TODO: implement delete
-                                        //     },
-                                        // },
                                     ]}
                                 />
                             </td>
@@ -212,18 +231,6 @@ export const TableComponent = ({
                             <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
-                                {/* <td className="td-custom text-end ">
-                                    <OptionsComponent
-                                        actionItems={[
-                                            {
-                                                name: 'Delete',
-                                                action: () => {
-                                                    console.log('Delete') // TODO: implement delete
-                                                },
-                                            },
-                                        ]}
-                                    />
-                                </td> */}
                             </tr>
                         )
                     )

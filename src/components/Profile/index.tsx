@@ -5,7 +5,7 @@ import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
-import { useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import { Divider } from '@chakra-ui/react'
 import { useDashboard } from '../Dashboard/useDashboard'
 import * as interfaces from '@/interfaces'
@@ -16,7 +16,11 @@ import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
 import ImageEdit from '../Global/ImageEdit'
 import TextEdit from '../Global/TextEdit'
-
+import IframeWrapper from '../Global/IframeWrapper'
+import Link from 'next/link'
+import * as context from '@/context'
+import Loading from '../Global/Loading'
+import peanut, { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 const tabs = [
     {
         title: 'History',
@@ -34,7 +38,7 @@ const tabs = [
 
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts' | undefined>(undefined)
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
+    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto, logoutUser } = useAuth()
     const avatar = createAvatar(identicon, {
         seed: user?.user?.username ?? user?.user?.email ?? '',
     })
@@ -44,6 +48,7 @@ export const Profile = () => {
     }>({ showError: false, errorMessage: '' })
     const svg = avatar.toDataUri()
     const { address, isConnected } = useAccount()
+    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const { signMessageAsync } = useSignMessage()
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
@@ -87,6 +92,76 @@ export const Profile = () => {
             setItemsPerPage(Math.max(calculatedItems, 1))
         }
     }
+
+    const [_isLoading, _setIsLoading] = useState(false)
+    const handleSiwe = async () => {
+        try {
+            _setIsLoading(true)
+            setErrorState({
+                showError: false,
+                errorMessage: '',
+            })
+            if (!address) return
+
+            const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    accountIdentifier: address,
+                }),
+            })
+
+            const response = await userIdResponse.json()
+
+            const siwemsg = utils.createSiweMessage({
+                address: address ?? '',
+                statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
+            })
+
+            const signature = await signMessageAsync({
+                message: siwemsg,
+            })
+
+            await fetch('/api/peanut/user/get-jwt-token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    signature: signature,
+                    message: siwemsg,
+                }),
+            })
+
+            fetchUser()
+        } catch (error) {
+            console.error('Authentication error:', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error while authenticating. Please try again later.',
+            })
+        } finally {
+            _setIsLoading(false)
+        }
+    }
+
+    const handleLogout = async () => {
+        try {
+            setLoadingState('Logging out')
+            await logoutUser()
+        } catch (error) {
+            console.error('Error logging out', error)
+            setErrorState({
+                showError: true,
+                errorMessage: 'Error logging out',
+            })
+        } finally {
+            setLoadingState('Idle')
+        }
+    }
+
     useEffect(() => {
         calculateItemsPerPage()
         window.addEventListener('resize', calculateItemsPerPage)
@@ -95,13 +170,12 @@ export const Profile = () => {
         }
     }, [])
 
+    // UseEffect hook to set the contacts and account once the user is fetched
     useEffect(() => {
         if (!user) return
 
         const dashboardData = composeLinkDataArray(address ?? '')
         setDashboardData(dashboardData)
-
-        console.log(user)
 
         const contactsData =
             user?.contacts &&
@@ -128,6 +202,7 @@ export const Profile = () => {
         setSelectedTab('history')
     }, [user])
 
+    // UseEffect hook to set the table data based on the selected tab
     useEffect(() => {
         switch (selectedTab) {
             case 'history':
@@ -152,7 +227,6 @@ export const Profile = () => {
             case 'contacts':
                 setTotalPages(Math.ceil(contactsData.length / itemsPerPage))
                 setCurrentPage(1)
-                console.log(contactsData)
                 setTableData(
                     contactsData.map((data) => {
                         const avatarUrl = data.avatar
@@ -188,7 +262,9 @@ export const Profile = () => {
                     accountsData.map((data) => ({
                         primaryText: data.type,
                         secondaryText: '',
-                        tertiaryText: data.accountIdentifier,
+                        tertiaryText: data.type.includes('Bank')
+                            ? utils.formatIban(data.accountIdentifier)
+                            : data.accountIdentifier,
                         quaternaryText: '',
                         itemKey: data.accountIdentifier + Math.random(),
                         type: 'accounts',
@@ -222,8 +298,10 @@ export const Profile = () => {
         }
     }, [selectedTab])
 
+    // UseEffect hook to fetch the link details for the visible data
     useEffect(() => {
         async function _fetchLinkDetailsAsync(visibleData: interfaces.IDashboardItem[]) {
+            console.log('visibleData', visibleData)
             const data = await fetchLinkDetailsAsync(visibleData)
             setDashboardData((prevData) =>
                 prevData.map((item) => {
@@ -241,67 +319,9 @@ export const Profile = () => {
         }
     }, [currentPage, dashboardData])
 
-    const [isLoading, setIsLoading] = useState(false)
-    const handleSiwe = async () => {
-        try {
-            setIsLoading(true)
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-            if (!address) return
-
-            const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    accountIdentifier: address,
-                }),
-            })
-
-            const response = await userIdResponse.json()
-
-            console.log('userId', response)
-            const siwemsg = utils.createSiweMessage({
-                address: address ?? '',
-                statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
-            })
-
-            const signature = await signMessageAsync({
-                message: siwemsg,
-            })
-
-            await fetch('/api/peanut/user/get-jwt-token', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    signature: signature,
-                    message: siwemsg,
-                }),
-            })
-
-            fetchUser()
-        } catch (error) {
-            console.error('Authentication error:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'Error while authenticating. Please try again later.',
-            })
-        } finally {
-            setIsLoading(false)
-        }
-    }
-
+    // UseEffect hook to set the initial user name
     useEffect(() => {
-        setInitialUserName(
-            user?.user?.username ??
-                user?.user?.email ??
-                (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
-        )
+        setInitialUserName(user?.user?.username ?? '')
     }, [user])
 
     if (!user) {
@@ -312,7 +332,7 @@ export const Profile = () => {
                 }}
                 showOverlay={!isFetchingUser}
                 errorState={errorState}
-                isLoading={isLoading}
+                isLoading={_isLoading}
             />
         )
     } else
@@ -320,22 +340,51 @@ export const Profile = () => {
             <div className="flex h-full w-full flex-col items-center justify-start gap-4 px-4">
                 <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
-                        <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
-                            <ImageEdit
-                                initialProfilePicture={user?.user?.profile_picture ? user?.user?.profile_picture : svg}
-                                onImageChange={(file) => {
-                                    if (!file) return
-                                    submitProfilePhoto(file)
-                                }}
-                            />
+                        <div className="flex flex-col gap-2">
+                            <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
+                                <span className="flex flex-col items-center  justify-center gap-1 ">
+                                    <ImageEdit
+                                        initialProfilePicture={
+                                            user?.user?.profile_picture ? user?.user?.profile_picture : svg
+                                        }
+                                        onImageChange={(file) => {
+                                            if (!file) return
+                                            submitProfilePhoto(file)
+                                        }}
+                                    />
+                                </span>
+                                <div className="flex flex-col items-start justify-center gap-1">
+                                    <TextEdit
+                                        initialText={initialUserName ?? ''}
+                                        onTextChange={(text) => {
+                                            setInitialUserName(text)
+                                            updateUserName(text)
+                                        }}
+                                    />
 
-                            <TextEdit
-                                initialText={initialUserName ?? ''}
-                                onTextChange={(text) => {
-                                    setInitialUserName(text)
-                                    updateUserName(text)
-                                }}
-                            />
+                                    {user?.user?.email && (
+                                        <span className="flex justify-center gap-1 text-h8 font-normal">
+                                            {user?.user?.email}
+                                            <div className={`flex flex-row items-center justify-center `}>
+                                                <div
+                                                    className={`kyc-badge ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green text-black' : 'bg-gray-1 text-white'} w-max px-2 py-1 `}
+                                                >
+                                                    {user?.user?.kycStatus === 'verified' ? 'KYC' : 'NO KYC'}
+                                                </div>
+                                            </div>
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <button className="btn btn-xl h-8 w-full" onClick={handleLogout}>
+                                {isLoading ? (
+                                    <div className="flex w-full flex-row items-center justify-center gap-2">
+                                        <Loading /> {loadingState}
+                                    </div>
+                                ) : (
+                                    'Log out'
+                                )}
+                            </button>
                         </div>
                         <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
                             <span className="text-h5">{user?.totalPoints} points</span>
@@ -354,21 +403,22 @@ export const Profile = () => {
                             <span className="flex items-center justify-center gap-1">
                                 <Icon name={'heart'} />
                                 Invites {user?.referredUsers}
-                                <Icon
-                                    name={'info'}
-                                    className={`cursor-pointer transition-transform dark:fill-white`}
-                                    onClick={() => {
-                                        setModalVisible(true)
-                                        setModalType('Invites')
-                                    }}
-                                />
+                                {user?.referredUsers > 0 && (
+                                    <Icon
+                                        name={'info'}
+                                        className={`cursor-pointer transition-transform dark:fill-white`}
+                                        onClick={() => {
+                                            setModalVisible(true)
+                                            setModalType('Invites')
+                                        }}
+                                    />
+                                )}
                             </span>
                             {/* <span className="flex items-center justify-center gap-1">
                         <Icon name={'peanut'} />7 day streak
                         <MoreInfo text="More info streak" />
                     </span> */}
                         </div>
-                        {/* <div>balance</div> */}
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
                         <components.Tabs
@@ -450,16 +500,13 @@ export const Profile = () => {
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
                                 {user?.referredUsers > 0 &&
-                                    user?.totalReferralConnections.map((referral, index) => (
+                                    user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label>{utils.shortenAddressLong(referral.account_identifier)}</label>
-                                            <label>
+                                            <label className="text-h9">{referral.address}</label>
+                                            <label className="text-h9">
                                                 {Math.floor(
                                                     user.pointsPerReferral?.find((ref) =>
-                                                        utils.compareTokenAddresses(
-                                                            ref.address,
-                                                            referral.account_identifier
-                                                        )
+                                                        utils.compareTokenAddresses(ref.address, referral.address)
                                                     )?.points ?? 0
                                                 )}
                                             </label>
@@ -469,21 +516,7 @@ export const Profile = () => {
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label>Total</label>
-                                    <label>
-                                        {user?.totalReferralConnections.reduce((acc, referral) => {
-                                            return (
-                                                acc +
-                                                Math.floor(
-                                                    user.pointsPerReferral?.find((ref) =>
-                                                        utils.compareTokenAddresses(
-                                                            ref.address,
-                                                            referral.account_identifier
-                                                        )
-                                                    )?.points ?? 0
-                                                )
-                                            )
-                                        }, 0)}
-                                    </label>
+                                    <label>{user?.totalReferralPoints}</label>
                                 </div>
                             </div>
                         ) : (

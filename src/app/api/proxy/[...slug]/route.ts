@@ -19,10 +19,12 @@ export async function POST(request: NextRequest) {
     try {
         jsonToPass = await request.json()
     } catch (error: any) {
+        console.error('Error while parsing json:', error)
         return NextResponse.json('Pass a valid json', {
             status: 403,
         })
     }
+
     jsonToPass.apiKey = process.env.PEANUT_API_KEY!
 
     const userIp = request.headers.get('x-forwarded-for') || request.ip
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
         'Content-Type': 'application/json',
         'x-forwarded-for': userIp,
         'Accept-Encoding': 'gzip', // Explicitly accept gzip encoding
+        'Api-Key': process.env.PEANUT_API_KEY!,
     } as any
 
     const apiResponse = await fetch(fullAPIUrl, {

@@ -1,14 +1,8 @@
 'useClient'
 
-import { useContext, useState } from 'react'
+import { useContext } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
-import {
-    claimLinkGasless,
-    claimLinkXChainGasless,
-    generateKeysFromString,
-    getRawParamsFromLink,
-    interfaces,
-} from '@squirrel-labs/peanut-sdk'
+import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -31,7 +25,7 @@ export const useClaimLink = () => {
 
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {
-            console.log('Error claiming link:', error)
+            console.error('Error claiming link:', error)
 
             throw error
         } finally {
@@ -67,7 +61,7 @@ export const useClaimLink = () => {
 
             return claimTx.txHash
         } catch (error) {
-            console.log('Error claiming link:', error)
+            console.error('Error claiming link:', error)
             throw error
         } finally {
             setLoadingState('Idle')
@@ -101,8 +95,6 @@ export const useClaimLink = () => {
         }
     }
     const checkTxStatus = async (txHash: string) => {}
-
-    const sendNotification = async () => {}
 
     const estimatePoints = async ({
         address,
@@ -173,7 +165,6 @@ export const useClaimLink = () => {
         getSquidRoute,
         switchNetwork,
         checkTxStatus,
-        sendNotification,
         estimatePoints,
         getAttachmentInfo,
     }

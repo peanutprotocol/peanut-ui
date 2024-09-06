@@ -1,10 +1,19 @@
-import React from 'react'
+import React, { useState } from 'react'
 import { Divider } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { errors } from 'ethers'
 import Loading from '@/components/Global/Loading'
+import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
+import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
+
+/**
+ * ProfileSkeleton is a component that displays a loading skeleton for the profile section of the app.
+ * It shows animated placeholders while loading or when there is no data.
+ * Additionally, it handles user login or registration, with an overlay that prompts users to log in or connect a wallet.
+ * It also handles error states, providing feedback when login or registration encounters an issue.
+ */
 export const ProfileSkeleton = ({
     onClick,
     showOverlay = true,
@@ -21,6 +30,7 @@ export const ProfileSkeleton = ({
 }) => {
     const { open } = useWeb3Modal()
     const { address } = useAccount()
+    const [userState, setUserState] = useState<'login' | 'register'>('login')
 
     return (
         <div className="relative flex h-full w-full flex-col items-center justify-start gap-4 px-4">
@@ -126,31 +136,82 @@ export const ProfileSkeleton = ({
 
             {showOverlay && (
                 <div className="absolute inset-0 -top-2 z-10 flex items-center justify-center backdrop-blur-sm">
-                    <button
-                        onClick={() => {
-                            if (address) {
-                                onClick()
-                            } else {
-                                open()
-                            }
-                        }}
-                        className="z-20 w-max rounded border border-black bg-white px-4 py-2 text-h6 text-black"
-                    >
-                        {address ? (
-                            <span className="flex flex-row items-center justify-center gap-2 text-h6  text-black">
-                                <img src={assets.ETHEREUM_ICON.src} className="h-6 w-6" />
-                                Sign in with ethereum
-                                {isLoading && <Loading />}
-                            </span>
+                    <div className="flex w-max flex-col items-center justify-center gap-2 border border-black bg-white p-4">
+                        {userState === 'login' ? (
+                            <>
+                                <GlobalLoginComponent
+                                    onSubmit={({ status, message }) => {
+                                        // if (status === 'success') {
+                                        //     handleEmail(watchOfframp())
+                                        // } else {
+                                        //     setErrorState({
+                                        //         showError: true,
+                                        //         errorMessage: message,
+                                        //     })
+                                        // }
+                                    }}
+                                />
+                                <span className="text-h8 font-normal">
+                                    Click{' '}
+                                    <span
+                                        className="cursor-pointer underline"
+                                        onClick={() => {
+                                            setUserState('register')
+                                        }}
+                                    >
+                                        here
+                                    </span>{' '}
+                                    to register
+                                </span>
+                            </>
                         ) : (
-                            'Connect Wallet'
+                            <>
+                                <GlobalRegisterComponent />
+                                <span className="text-h8 font-normal">
+                                    Click{' '}
+                                    <span
+                                        className="cursor-pointer underline"
+                                        onClick={() => {
+                                            setUserState('login')
+                                        }}
+                                    >
+                                        here
+                                    </span>{' '}
+                                    to login
+                                </span>
+                            </>
                         )}
-                        {errorState.showError && (
-                            <div className="text-center">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                            </div>
-                        )}
-                    </button>
+                        <span className="flex w-full flex-row items-center justify-center gap-2">
+                            <Divider borderColor={'black'} />
+                            <p>Or</p>
+                            <Divider borderColor={'black'} />
+                        </span>
+                        <button
+                            onClick={() => {
+                                if (address) {
+                                    onClick()
+                                } else {
+                                    open()
+                                }
+                            }}
+                            className="z-20 w-max border border-black bg-white px-4 py-2 text-h6 text-black"
+                        >
+                            {address ? (
+                                <span className="flex flex-row items-center justify-center gap-2 text-h6  text-black">
+                                    <img src={assets.ETHEREUM_ICON.src} className="h-6 w-6" />
+                                    Sign in with ethereum
+                                    {isLoading && <Loading />}
+                                </span>
+                            ) : (
+                                'Connect Wallet'
+                            )}
+                            {errorState.showError && (
+                                <div className="text-center">
+                                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                                </div>
+                            )}
+                        </button>{' '}
+                    </div>
                 </div>
             )}
         </div>

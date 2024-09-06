@@ -109,7 +109,6 @@ export const CreateLinkInputView = ({
                     tokenAddress: selectedTokenAddress,
                 })
                 if (isGaslessDepositPossible) {
-                    console.log('gasless possible, creating gassles payload')
                     setTransactionType('gasless')
 
                     const makeGaslessDepositResponse = await makeGaslessDepositPayload({
@@ -127,9 +126,8 @@ export const CreateLinkInputView = ({
                     setGaslessPayloadMessage(makeGaslessDepositResponse.message)
 
                     setFeeOptions(undefined)
-                    setTransactionCostUSD(undefined)
+                    setTransactionCostUSD(0)
                 } else {
-                    console.log('gasless not possible, creating normal payload')
                     setTransactionType('not-gasless')
 
                     prepareDepositTxsResponse = await prepareDepositTxs({
@@ -319,7 +317,7 @@ export const CreateLinkInputView = ({
                 )}
 
                 <span className="flex  flex-row items-center justify-center gap-1 text-center text-h8">
-                    Learn about peanut cash out
+                    Learn about peanut cashout
                     <MoreInfo
                         text={
                             'You can use peanut to cash out your funds directly to your bank account! (US and EU only)'

@@ -21,7 +21,7 @@ const metadata = {
     name: 'Peanut Protocol',
     description: 'Peanut protocol - send crypto with links',
     url: 'https://peanut.to', // origin must match your domain & subdomain
-    icons: [''], // TODO: add icon
+    icons: [''],
 }
 
 const config = createConfig({

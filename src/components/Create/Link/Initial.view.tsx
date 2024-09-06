@@ -41,7 +41,7 @@ export const CreateLinkInitialView = ({
         //phone number check
         else if (value.startsWith('+') || (utils.isNumeric(value) && value.length > 4)) {
             return 'sms_link'
-        } //TODO: Add more validation checks for normal numbers without country code
+        }
         //address check
         else if (ethers.utils.isAddress(value)) {
             return 'direct'

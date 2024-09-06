@@ -3,12 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
-    const { userId, username } = await request.json()
+    const { userId, username, bridge_customer_id } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
 
-    if (!userId || !username || !apiKey || !token) {
+    if (!userId || !apiKey || !token) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
 
@@ -23,6 +23,7 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 userId,
                 username,
+                bridge_customer_id,
             }),
         })
 

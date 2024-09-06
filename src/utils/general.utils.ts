@@ -187,7 +187,6 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
                 }
             }
         }
-        console.log(localStorageData)
         return localStorageData
     } catch (error) {
         console.error('Error getting data from localStorage:', error)
@@ -286,7 +285,6 @@ export function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; c
     return `https://app.safe.global/share/safe-app?appUrl=${encodeURIComponent(currentUrl)}&chain=${chainId}`
 }
 
-// TODO: this is a hacky fix to copy in an iframe where the clipboard API is not supported/blocked
 export async function copyTextToClipboardWithFallback(text: string) {
     if (navigator.clipboard && window.isSecureContext) {
         try {
@@ -570,6 +568,94 @@ export const getOfframpClaimsFromLocalStorage = () => {
     }
 }
 
+export const saveRequestLinkToLocalStorage = ({ details }: { details: IRequestLinkData }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-links`
+
+        let storedData = localStorage.getItem(key)
+
+        let dataArr: IRequestLinkData[] = []
+
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        dataArr.push(details)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved request link to localStorage:', details)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getRequestLinksFromLocalStorage = () => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-links`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: IRequestLinkData[] = []
+
+        if (storedData) {
+            data = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const saveRequestLinkFulfillmentToLocalStorage = ({ details }: { details: IRequestLinkData; link: string }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-link-fulfillments`
+
+        let storedData = localStorage.getItem(key)
+
+        let dataArr: IRequestLinkData[] = []
+
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        dataArr.push(details)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved request link fulfillment to localStorage:', details)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getRequestLinkFulfillmentsFromLocalStorage = () => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-link-fulfillments`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: IRequestLinkData[] = []
+
+        if (storedData) {
+            data = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
 export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: string; tokenAddress?: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
@@ -731,6 +817,7 @@ export function getIconName(type: string) {
 }
 
 import { SiweMessage } from 'siwe'
+import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
     const message = new SiweMessage({
@@ -743,4 +830,14 @@ export const createSiweMessage = ({ address, statement }: { address: string; sta
     })
 
     return message.prepareMessage()
+}
+
+// uppercase and add a space inbetween every four characters
+export const formatIban = (iban: string) => {
+    // if the first two chars of the iban are not letters, return the iban as is (it's not an iban, us account number probably)
+    if (!/[a-zA-Z]{2}/.test(iban.substring(0, 2))) return iban
+    return iban
+        .toUpperCase()
+        .replace(/(.{4})/g, '$1 ')
+        .trim()
 }
