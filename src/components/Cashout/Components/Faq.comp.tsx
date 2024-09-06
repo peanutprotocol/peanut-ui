@@ -1,5 +1,5 @@
 import Icon from '@/components/Global/Icon'
-import { List, ListItem, UnorderedList } from '@chakra-ui/react'
+import { ListItem, UnorderedList } from '@chakra-ui/react'
 import { Menu, Transition } from '@headlessui/react'
 
 export const FAQComponent = ({ className }: { className?: string }) => {

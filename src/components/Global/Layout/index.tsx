@@ -8,7 +8,6 @@ import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
 import { default as NextImage } from 'next/image'
 import * as assets from '@/assets'
-import { MarqueeWrapper } from '../MarqueeWrapper'
 type LayoutProps = {
     children: React.ReactNode
     className?: string

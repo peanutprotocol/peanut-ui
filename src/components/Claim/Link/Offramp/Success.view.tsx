@@ -1,10 +1,8 @@
 import Icon from '@/components/Global/Icon'
 import * as _consts from '../../Claim.consts'
-import * as consts from '@/constants'
 import * as utils from '@/utils'
 import Link from 'next/link'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { claimLink } from '@squirrel-labs/peanut-sdk'
 export const SuccessClaimLinkIbanView = ({
     claimLinkData,
     offrampForm,

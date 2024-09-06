@@ -1,6 +1,5 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
-import * as interfaces from '@/interfaces'
 
 export async function POST(request: NextRequest) {
     try {

@@ -34,10 +34,8 @@ export const ConfirmCashoutView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const { user } = useAuth()
+    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { claimLink, claimLinkXchain } = useClaimLink()
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
@@ -122,7 +120,7 @@ export const ConfirmCashoutView = ({
                 (account) =>
                     account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
                     offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
-            ) // TODO: tolowercase and replace all abstraction
+            )
             const bridgeCustomerId = user?.user?.bridge_customer_id
             const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
@@ -316,32 +314,6 @@ export const ConfirmCashoutView = ({
                                 {offrampForm.recipient}
                             </span>
                         </div>
-
-                        {/* <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'forward'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Route</label>
-                    </div>
-                    {offrampXchainNeeded ? (
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.chainId === claimLinkData.chainId
-                                    )?.name
-                                }{' '}
-                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
-                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
-                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                            </span>
-                        ) : (
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                {recipientType.toUpperCase()}{' '}
-                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                            </span>
-                        )}
-                </div> */}
-                        {/* TODO: fix the above */}
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-gray-1" />

@@ -6,24 +6,20 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
-import * as consts from '@/constants'
 import * as context from '@/context'
-import * as interfaces from '@/interfaces'
 import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
-import { set, useForm } from 'react-hook-form'
-import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
-import { isIBAN } from 'validator'
+import { useForm } from 'react-hook-form'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
-import { Divider, Icon } from '@chakra-ui/react'
+import { Icon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
-import MoreInfo from '@/components/Global/MoreInfo'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
+
 export const InitialCashoutView = ({
     onNext,
     tokenValue,
@@ -39,8 +35,8 @@ export const InitialCashoutView = ({
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
+    const { user, fetchUser, isFetchingUser } = useAuth()
+    const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
     const xchainAllowed = useMemo(
         () =>
@@ -59,19 +55,6 @@ export const InitialCashoutView = ({
     )
 
     const { prepareCreateLinkWrapper } = useCreateLink()
-    const { walletType, environmentInfo } = useWalletType()
-
-    const {
-        register: registerLoginForm,
-        formState: { errors },
-        handleSubmit,
-    } = useForm<{
-        email: string
-        password: string
-    }>({
-        mode: 'onChange',
-        defaultValues: { email: '', password: '' },
-    })
 
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()

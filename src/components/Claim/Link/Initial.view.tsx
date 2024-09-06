@@ -3,7 +3,6 @@ import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
-import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
@@ -18,9 +17,7 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
-import { PopupButton } from '@typeform/embed-react'
 import { useAuth } from '@/context/authContext'
-import { userInfo } from 'os'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -44,7 +41,7 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
-    const [fileType, setFileType] = useState<string>('')
+    const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -55,8 +52,9 @@ export const InitialClaimLinkView = ({
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
-        useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
+        context.tokenSelectorContext
+    )
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { estimatePoints, claimLink } = useClaimLink()
     const { open } = useWeb3Modal()

@@ -472,7 +472,7 @@ export const useCreateLink = () => {
             const signature = await signTypedDataAsync({
                 domain: {
                     ...gaslessMessage.domain,
-                    chainId: Number(gaslessMessage.domain.chainId), //TODO: non-evm chains wont work
+                    chainId: Number(gaslessMessage.domain.chainId), //TODO: (mentioning) non-evm chains wont work
                     verifyingContract: gaslessMessage.domain.verifyingContract as `0x${string}`,
                 },
                 types: gaslessMessage.types,
@@ -548,7 +548,7 @@ export const useCreateLink = () => {
                         maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
                             ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
                             : undefined,
-                        chainId: Number(selectedChainID), //TODO: chainId as number here
+                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
                     })
 
                     setLoadingState('Executing transaction')

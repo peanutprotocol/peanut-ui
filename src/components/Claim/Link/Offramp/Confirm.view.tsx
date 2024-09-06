@@ -2,24 +2,18 @@
 
 import * as _consts from '../../Claim.consts'
 import * as context from '@/context'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useState } from 'react'
 import Loading from '@/components/Global/Loading'
 import * as _interfaces from '../../Claim.interfaces'
-import * as interfaces from '@/interfaces'
-
-import { useForm } from 'react-hook-form'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import useClaimLink from '../../useClaimLink'
 import * as utils from '@/utils'
 import { useSteps } from 'chakra-ui-steps'
 import * as consts from '@/constants'
-import IframeWrapper from '@/components/Global/IframeWrapper'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
-import { LinkAccountComponent } from '@/components/LinkAccount'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import { useAuth } from '@/context/authContext'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
