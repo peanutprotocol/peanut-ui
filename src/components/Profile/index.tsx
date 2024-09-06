@@ -131,9 +131,6 @@ export const Profile = () => {
         setSelectedTab('history')
     }, [user])
 
-    const { address: pubKey } = generateKeysFromString('6y1TT0mCP6rkDax5')
-    console.log('pubKey, ', pubKey)
-
     useEffect(() => {
         switch (selectedTab) {
             case 'history':
@@ -231,6 +228,7 @@ export const Profile = () => {
 
     useEffect(() => {
         async function _fetchLinkDetailsAsync(visibleData: interfaces.IDashboardItem[]) {
+            console.log('visibleData', visibleData)
             const data = await fetchLinkDetailsAsync(visibleData)
             setDashboardData((prevData) =>
                 prevData.map((item) => {

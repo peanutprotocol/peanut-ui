@@ -40,9 +40,27 @@ export const useDashboard = () => {
                     }
                 })
             )
+        } catch (error) {
+            console.error('Error fetching link details:', error)
+        }
+
+        const _data3 = visibleData.filter((item) => item.type == 'Offramp Claim')
+
+        try {
+            await Promise.all(
+                _data3.map(async (item) => {
+                    try {
+                        const offrampStatus = await utils.getCashoutStatus(item.link ?? '')
+                        console.log('offrampStatus', offrampStatus)
+                        item.status = 'claimed'
+                    } catch (error) {
+                        console.error(error)
+                    }
+                })
+            )
         } catch (error) {}
 
-        const _data = [..._data1, ..._data2]
+        const _data = [..._data1, ..._data2, ..._data3]
 
         return _data
     }
@@ -83,7 +101,7 @@ export const useDashboard = () => {
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
-                status: 'claimed',
+                status: undefined,
                 message: link.message,
                 attachmentUrl: link.attachmentUrl,
                 points: link.points,

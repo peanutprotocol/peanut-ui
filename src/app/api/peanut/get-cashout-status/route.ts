@@ -4,16 +4,15 @@ import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     try {
-        const { link } = await request.json()
+        const { pubKey } = await request.json()
+        const apiKey = process.env.PEANUT_API_KEY!
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/cashout-status`, {
-            method: 'POST',
+        const response = await fetch(`${consts.PEANUT_API_URL}/cashouts/${pubKey}/status`, {
+            method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
+                'api-key': apiKey,
             },
-            body: JSON.stringify({
-                link: link,
-            }),
         })
 
         if (!response.ok) {

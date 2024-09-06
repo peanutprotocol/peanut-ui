@@ -2,6 +2,7 @@ import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import countries from 'i18n-iso-countries'
+import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 
 export const convertPersonaUrl = (url: string) => {
     const parsedUrl = new URL(url)
@@ -389,16 +390,28 @@ export async function submitCashoutLink(data: {
     liquidationAddressId: string
     cashoutTransactionHash: string
     externalAccountId: string
-    chainName: string
+    chainId: string
     tokenName: string
 }) {
+    const fragment = data.link.split('#')[1]
+    const password = new URLSearchParams(fragment).get('p')!
+    const { address: pubKey } = generateKeysFromString(password)
+
     try {
         const response = await fetch('/api/peanut/submit-cashout-link', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify(data),
+            body: JSON.stringify({
+                bridgeCustomerId: data.bridgeCustomerId,
+                liquidationAddressId: data.liquidationAddressId,
+                cashoutTransactionHash: data.cashoutTransactionHash,
+                externalAccountId: data.externalAccountId,
+                chainId: data.chainId,
+                tokenName: data.tokenName,
+                pubKey,
+            }),
         })
 
         if (!response.ok) {
@@ -415,13 +428,22 @@ export async function submitCashoutLink(data: {
 
 export async function getCashoutStatus(link: string) {
     try {
-        const response = await fetch('/api/cashout-status', {
+        // Extract pubKey from the link
+        const fragment = link.split('#')[1]
+        const password = new URLSearchParams(fragment).get('p')!
+        const { address: pubKey } = generateKeysFromString(password)
+
+        console.log('pubKey:', pubKey)
+
+        const response = await fetch('/api/peanut/get-cashout-status', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ link }),
+            body: JSON.stringify({ pubKey }),
         })
+
+        console.log('response:', response)
 
         if (!response.ok) {
             throw new Error(`Failed to get cashout status, status: ${response.status}`)

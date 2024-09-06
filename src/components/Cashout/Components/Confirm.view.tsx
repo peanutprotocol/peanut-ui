@@ -180,7 +180,7 @@ export const ConfirmCashoutView = ({
                     liquidationAddressId: liquidationAddress.id,
                     cashoutTransactionHash: hash,
                     externalAccountId: bridgeExternalAccountId,
-                    chainName: chainName,
+                    chainId: chainId,
                     tokenName: tokenName,
                 })
 
@@ -188,6 +188,7 @@ export const ConfirmCashoutView = ({
                 console.log('Transaction hash:', hash)
             }
             onNext()
+            setLoadingState('Idle')
         } catch (error) {
             setErrorState({
                 showError: true,
@@ -195,7 +196,6 @@ export const ConfirmCashoutView = ({
             })
             return
         } finally {
-            setLoadingState('Idle')
         }
     }
 

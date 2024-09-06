@@ -7,31 +7,26 @@ import { url } from 'inspector'
 export async function POST(request: NextRequest) {
     try {
         const {
-            link,
+            pubKey,
             bridgeCustomerId,
             liquidationAddressId,
             cashoutTransactionHash,
             externalAccountId,
-            chainName,
+            chainId,
             tokenName,
         } = await request.json()
 
-        const fragment = link.split('#')[1]
-        const password = new URLSearchParams(fragment).get('p')!
-        const { address: pubKey } = generateKeysFromString(password)
-
-        const response = await fetch(`${consts.PEANUT_API_URL}/submit-cashout-link`, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/cashouts`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
             body: JSON.stringify({
-                link: link,
                 bridgeCustomerId: bridgeCustomerId,
                 liquidationAddressId: liquidationAddressId,
                 cashoutTransactionHash: cashoutTransactionHash,
                 externalAccountId: externalAccountId,
-                chainName: chainName,
+                chainId: chainId,
                 tokenName: tokenName,
                 pubKey: pubKey,
             }),
