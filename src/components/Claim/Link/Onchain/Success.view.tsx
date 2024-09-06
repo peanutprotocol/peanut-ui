@@ -1,7 +1,6 @@
 import Icon from '@/components/Global/Icon'
 import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
-import * as consts from '@/constants'
 import * as context from '@/context'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -10,7 +9,6 @@ import axios from 'axios'
 import { useAccount, useConnections, useSwitchChain } from 'wagmi'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
-    const router = useRouter()
     const connections = useConnections()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()

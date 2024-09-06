@@ -9,7 +9,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import * as utils from '@/utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { useSteps } from 'chakra-ui-steps'
-import peanut, { getLinkDetails, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
+import peanut, { getLatestContractVersion, getLinkDetails, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { sortCrossChainDetails } from '@/components/Claim/Claim.utils'
 import * as consts from '@/constants'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
@@ -34,10 +34,8 @@ export const ConfirmCashoutView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const { user } = useAuth()
+    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { claimLink, claimLinkXchain } = useClaimLink()
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
@@ -53,16 +51,21 @@ export const ConfirmCashoutView = ({
         try {
             if (!preparedCreateLinkWrapperResponse) return
 
+            const tokenType = utils.isNativeCurrency(selectedTokenAddress) ? 0 : 1
+            const contractVersion = await getLatestContractVersion({
+                chainId: selectedChainID,
+                type: 'normal',
+                experimental: false,
+            })
             const crossChainDetails = await getCrossChainDetails({
                 chainId: selectedChainID,
-                tokenType: 1, // TODO: replace with correct token type
-                contractVersion: 'v4.2', // TODO: replace with correct contract version
+                tokenType,
+                contractVersion: contractVersion,
             })
 
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
             setCreatedLink(link)
             console.log(link)
-            // TODO: add to localstorage & consider removing after cashout completed
 
             const claimLinkData = await getLinkDetails({ link: link })
 
@@ -85,7 +88,15 @@ export const ConfirmCashoutView = ({
 
                 let route
                 try {
-                    route = await fetchRoute(usdcAddressOptimism, optimismChainId, claimLinkData)
+                    route = await utils.fetchRouteRaw(
+                        claimLinkData.tokenAddress.toLowerCase,
+                        claimLinkData.chainId.toString(),
+                        usdcAddressOptimism,
+                        optimismChainId,
+                        claimLinkData.tokenDecimals,
+                        claimLinkData.tokenAmount,
+                        claimLinkData.senderAddress
+                    )
                 } catch (error) {
                     console.log('error', error)
                 }
@@ -109,14 +120,19 @@ export const ConfirmCashoutView = ({
                 (account) =>
                     account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
                     offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
-            ) // TODO: tolowercase and replace all abstraction
+            )
             const bridgeCustomerId = user?.user?.bridge_customer_id
             const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
             const recipientType = peanutAccount?.account_type
 
-            if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) return
-            // TODO: check if values are asigned
+            if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Something went wrong. Please try again.',
+                })
+                return
+            }
 
             const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
 
@@ -250,35 +266,6 @@ export const ConfirmCashoutView = ({
         }
     }
 
-    const fetchRoute = async (toToken: string, toChain: string, claimLinkData: any) => {
-        try {
-            const tokenAmount = Math.floor(
-                Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
-            ).toString()
-
-            const route = await getSquidRouteRaw({
-                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                fromChain: claimLinkData.chainId.toString(),
-                fromToken: claimLinkData.tokenAddress.toLowerCase(),
-                fromAmount: tokenAmount,
-                toChain: toChain,
-                toToken: toToken,
-                slippage: 1,
-                fromAddress: claimLinkData.senderAddress,
-
-                toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
-            })
-            return route
-        } catch (error) {
-            console.error('Error fetching route:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the given token pair.',
-            })
-            return undefined
-        }
-    } // TODO: move to utils
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-4 px-2  text-center">
             <label className="text-h4">Confirm your details</label>
@@ -336,32 +323,6 @@ export const ConfirmCashoutView = ({
                                 {offrampForm.recipient}
                             </span>
                         </div>
-
-                        {/* <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'forward'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Route</label>
-                    </div>
-                    {offrampXchainNeeded ? (
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.chainId === claimLinkData.chainId
-                                    )?.name
-                                }{' '}
-                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
-                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType.toUpperCase()}{' '}
-                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                            </span>
-                        ) : (
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                {recipientType.toUpperCase()}{' '}
-                                <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                            </span>
-                        )}
-                </div> */}
-                        {/* TODO: fix the above */}
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-gray-1" />

@@ -45,6 +45,8 @@ export const useCreateLink = () => {
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
+    const { walletType, environmentInfo } = useWalletType()
+    const { refetchBalances } = useBalance()
 
     // step 1
     const assertValues = async ({ tokenValue }: IAssertValuesProps) => {
@@ -212,13 +214,10 @@ export const useCreateLink = () => {
     }
     const estimateGasFee = async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
         try {
-            console.log(preparedTx)
             const feeOptions = await peanut.setFeeOptions({
                 chainId: chainId,
                 unsignedTx: preparedTx,
             })
-
-            console.log('feeOptions', feeOptions)
 
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
@@ -231,14 +230,11 @@ export const useCreateLink = () => {
             }
         } catch (error) {
             try {
-                console.log(preparedTx)
                 const feeOptions = await peanut.setFeeOptions({
                     chainId: chainId,
                     unsignedTx: preparedTx,
                     gasLimit: BigNumber.from(100000),
                 })
-
-                console.log('feeOptions', feeOptions)
 
                 let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
                 let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
@@ -470,7 +466,7 @@ export const useCreateLink = () => {
             const signature = await signTypedDataAsync({
                 domain: {
                     ...gaslessMessage.domain,
-                    chainId: Number(gaslessMessage.domain.chainId), //TODO: non-evm chains wont work
+                    chainId: Number(gaslessMessage.domain.chainId), //TODO: (mentioning) non-evm chains wont work
                     verifyingContract: gaslessMessage.domain.verifyingContract as `0x${string}`,
                 },
                 types: gaslessMessage.types,
@@ -546,7 +542,7 @@ export const useCreateLink = () => {
                         maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
                             ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
                             : undefined,
-                        chainId: Number(selectedChainID), //TODO: chainId as number here
+                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
                     })
 
                     setLoadingState('Executing transaction')
@@ -615,8 +611,6 @@ export const useCreateLink = () => {
             throw error
         }
     }
-    const { walletType, environmentInfo } = useWalletType()
-    const { refetchBalances } = useBalance()
 
     const prepareCreateLinkWrapper = async ({ tokenValue }: { tokenValue: string }) => {
         try {

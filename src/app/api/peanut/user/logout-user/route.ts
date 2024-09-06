@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server'
-import * as consts from '@/constants'
 import { cookies } from 'next/headers'
 
 export async function GET(request: NextRequest) {

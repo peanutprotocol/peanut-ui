@@ -1,19 +1,12 @@
 'use client'
 import Icon from '@/components/Global/Icon'
-import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import * as _consts from '../Cashout.consts'
-import { useAccount } from 'wagmi'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useAuth } from '@/context/authContext'
 import * as utils from '@/utils'
 
-export const CashoutSuccessView = ({
-    offrampForm,
-    usdValue,
-
-    transactionHash,
-}: _consts.ICashoutScreenProps) => {
+export const CashoutSuccessView = ({ offrampForm, usdValue }: _consts.ICashoutScreenProps) => {
     const { user } = useAuth()
 
     const accountType = user?.accounts?.find(

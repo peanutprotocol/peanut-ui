@@ -1,14 +1,8 @@
 'useClient'
 
-import { useContext, useState } from 'react'
+import { useContext } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
-import {
-    claimLinkGasless,
-    claimLinkXChainGasless,
-    generateKeysFromString,
-    getRawParamsFromLink,
-    interfaces,
-} from '@squirrel-labs/peanut-sdk'
+import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as context from '@/context'
 import * as consts from '@/constants'

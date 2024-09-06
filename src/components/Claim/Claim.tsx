@@ -1,6 +1,6 @@
 'use client'
-import { createElement, useEffect, useState, useContext, useMemo } from 'react'
-import peanut, { claimLink, getSquidChains, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useEffect, useState, useContext } from 'react'
+import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
 

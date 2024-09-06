@@ -6,23 +6,20 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
-import * as consts from '@/constants'
 import * as context from '@/context'
-import * as interfaces from '@/interfaces'
 import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
-import { set, useForm } from 'react-hook-form'
-import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
-import { isIBAN } from 'validator'
+import { useForm } from 'react-hook-form'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
-import { Divider, Icon } from '@chakra-ui/react'
+import { Icon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
-import MoreInfo from '@/components/Global/MoreInfo'
 import { FAQComponent } from './Faq.comp'
+import { RecipientInfoComponent } from './RecipientInfo.comp'
+
 export const InitialCashoutView = ({
     onNext,
     tokenValue,
@@ -38,8 +35,8 @@ export const InitialCashoutView = ({
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
     const { balances, hasFetchedBalances } = useBalance()
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto } = useAuth()
-    const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
+    const { user, fetchUser, isFetchingUser } = useAuth()
+    const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
     const xchainAllowed = useMemo(
         () =>
@@ -58,19 +55,6 @@ export const InitialCashoutView = ({
     )
 
     const { prepareCreateLinkWrapper } = useCreateLink()
-    const { walletType, environmentInfo } = useWalletType()
-
-    const {
-        register: registerLoginForm,
-        formState: { errors },
-        handleSubmit,
-    } = useForm<{
-        email: string
-        password: string
-    }>({
-        mode: 'onChange',
-        defaultValues: { email: '', password: '' },
-    })
 
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
@@ -148,7 +132,7 @@ export const InitialCashoutView = ({
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipientBankAccount, // TODO: recipient.name makes no sense here
+                    recipient: recipientBankAccount,
                     password: '',
                 })
                 if (user?.user.kycStatus == 'verified') {
@@ -235,6 +219,7 @@ export const InitialCashoutView = ({
                     </div>
                 )}
                 <div className="flex w-full flex-col justify-center gap-3 ">
+                    <RecipientInfoComponent />
                     <div className="max-h-48 space-y-2 overflow-y-scroll ">
                         {!user && isFetchingUser ? (
                             <div className="relative flex h-16 w-full items-center justify-center">
@@ -245,14 +230,6 @@ export const InitialCashoutView = ({
                             </div>
                         ) : user ? (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <span className="flex items-center gap-1 ">
-                                    <label className="text-left text-h8 font-light">Recipient account:</label>
-                                    <MoreInfo
-                                        text={`You can claim directly to your IBAN OR US bank account. Click here to see if your region is supported.`}
-                                    />
-                                    {/* TODO: update click here to link to notion or docs */}
-                                </span>
-
                                 {user?.accounts.length > 0 &&
                                     user?.accounts
                                         .filter(
@@ -330,10 +307,13 @@ export const InitialCashoutView = ({
                     if (!isConnected) handleConnectWallet()
                     else handleOnNext()
                 }}
-                disabled={!_tokenValue || (!selectedBankAccount && !newBankAccount)}
+                disabled={
+                    !_tokenValue ||
+                    (!selectedBankAccount && !newBankAccount) ||
+                    !xchainAllowed ||
+                    (usdValue && parseFloat(usdValue) < 10 ? true : false)
+                }
             >
-                {/*  || !xchainAllowed */}
-                {/* ^ TODO: minimum 10USD value amount */}
                 {!isConnected ? (
                     'Create or Connect Wallet'
                 ) : isLoading ? (

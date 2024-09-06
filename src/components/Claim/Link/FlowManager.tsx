@@ -1,4 +1,3 @@
-// components/FlowManager.tsx
 import { createElement } from 'react'
 import * as onchainViews from './Onchain'
 import * as offrampViews from './Offramp'

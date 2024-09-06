@@ -3,6 +3,7 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 import countries from 'i18n-iso-countries'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
+import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
 export const convertPersonaUrl = (url: string) => {
     const parsedUrl = new URL(url)
@@ -500,5 +501,34 @@ export async function getCashoutStatus(link: string): Promise<CashoutTransaction
     } catch (error) {
         console.error('Error in getCashoutStatus:', error)
         throw error
+
+export const fetchRouteRaw = async (
+    fromToken: string,
+    fromChain: string,
+    toToken: string,
+    toChain: string,
+    tokenDecimals: number,
+    tokenAmount: string,
+    senderAddress: string
+) => {
+    try {
+        const _tokenAmount = Math.floor(Number(tokenAmount) * Math.pow(10, tokenDecimals)).toString()
+
+        const route = await getSquidRouteRaw({
+            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+            fromChain: fromChain,
+            fromToken: fromToken.toLowerCase(),
+            fromAmount: _tokenAmount,
+            toChain: toChain,
+            toToken: toToken,
+            slippage: 1,
+            fromAddress: senderAddress,
+
+            toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+        })
+        return route
+    } catch (error) {
+        console.error('Error fetching route:', error)
+        return undefined
     }
 }

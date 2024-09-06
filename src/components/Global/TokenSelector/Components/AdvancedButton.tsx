@@ -106,7 +106,7 @@ export const AdvancedTokenSelectorButton = ({
                 </div>
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0)}{' '}
+                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
                         {tokenSymbol} on {chainName}
                     </div>
 

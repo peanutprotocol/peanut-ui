@@ -88,13 +88,10 @@ export const PayRequestLink = () => {
                     preparedTx: unsignedTx,
                 })
 
-                console.log('transactionCostUSD:', _transactionCostUSD)
                 if (_transactionCostUSD) setEstimatedGasCost(_transactionCostUSD)
             } catch (error) {
                 console.log('error calculating transaction cost:', error)
             }
-
-            // TODO: points calculation
 
             setRequestLinkData(requestLinkDetails)
             setLinkState('PAY')

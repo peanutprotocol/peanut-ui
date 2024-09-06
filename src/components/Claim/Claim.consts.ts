@@ -1,4 +1,3 @@
-import * as views from './Link'
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
