@@ -33,7 +33,6 @@ export const useDashboard = () => {
                             link: item.link ?? '',
                             apiUrl: '/api/proxy/get',
                         })
-                        console.log('linkDetails', linkDetails)
                         item.status = linkDetails.status === 'PAID' ? 'paid' : 'pending'
                     } catch (error) {
                         console.error(error)

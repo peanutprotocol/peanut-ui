@@ -444,10 +444,6 @@ export const InitialClaimLinkView = ({
                             setInputChanging(false)
                         }}
                         _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
-                            console.log({
-                                isValid,
-                                error,
-                            })
                             setIsValidRecipient(isValid)
                             if (error) {
                                 setErrorState({
@@ -570,7 +566,6 @@ export const InitialClaimLinkView = ({
                         className="btn-purple btn-xl"
                         onClick={() => {
                             if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                                console.log('recipientType', recipientType)
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {

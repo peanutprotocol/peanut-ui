@@ -55,8 +55,6 @@ export const InitialView = ({
             return
         }
 
-        console.log('recipientAddress', recipientAddress)
-
         setLoadingState('Creating link')
 
         const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
