@@ -5,10 +5,10 @@ export const dynamic = 'force-dynamic'
 
 // TODO: add metadata
 
-export default function CashoutPage() {
+export default function CashoutStatusPage() {
     return (
         <Layout>
-            <components.Cashout />
+            <components.CashoutStatus />
         </Layout>
     )
 }

@@ -67,6 +67,10 @@ export const MobileTableComponent = ({
                                     <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">sent</div>
                                 ) : dashboardItem.status === 'paid' ? (
                                     <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">paid</div>
+                                ) : dashboardItem.status ? (
+                                    <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                        {dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
+                                    </div>
                                 ) : (
                                     <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
                                         pending
@@ -139,6 +143,19 @@ export const MobileTableComponent = ({
                                 className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Download attachment
+                            </a>
+                        )}
+                        {dashboardItem?.type === 'Offramp Claim' && dashboardItem.status !== 'claimed' && (
+                            <a
+                                href={(() => {
+                                    const url = new URL(dashboardItem?.link ?? '')
+                                    url.pathname = '/cashout/status'
+                                    return url.toString()
+                                })()}
+                                target="_blank"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            >
+                                Check Status
                             </a>
                         )}
                     </>

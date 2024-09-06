@@ -20,6 +20,7 @@ import IframeWrapper from '../Global/IframeWrapper'
 import Link from 'next/link'
 import * as context from '@/context'
 import Loading from '../Global/Loading'
+import peanut, { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 const tabs = [
     {
         title: 'History',
@@ -300,6 +301,7 @@ export const Profile = () => {
     // UseEffect hook to fetch the link details for the visible data
     useEffect(() => {
         async function _fetchLinkDetailsAsync(visibleData: interfaces.IDashboardItem[]) {
+            console.log('visibleData', visibleData)
             const data = await fetchLinkDetailsAsync(visibleData)
             setDashboardData((prevData) =>
                 prevData.map((item) => {

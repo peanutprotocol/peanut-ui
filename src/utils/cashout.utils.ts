@@ -2,6 +2,7 @@ import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import countries from 'i18n-iso-countries'
+import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
 export const convertPersonaUrl = (url: string) => {
@@ -381,6 +382,125 @@ export async function validateBic(bic: string): Promise<boolean> {
         return false
     } else {
         return true
+    }
+}
+
+export async function submitCashoutLink(data: {
+    link: string
+    bridgeCustomerId: string
+    liquidationAddressId: string
+    cashoutTransactionHash: string
+    externalAccountId: string
+    chainId: string
+    tokenName: string
+}) {
+    const fragment = data.link.split('#')[1]
+    const password = new URLSearchParams(fragment).get('p')!
+    const { address: pubKey } = generateKeysFromString(password)
+
+    try {
+        const response = await fetch('/api/peanut/submit-cashout-link', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                bridgeCustomerId: data.bridgeCustomerId,
+                liquidationAddressId: data.liquidationAddressId,
+                cashoutTransactionHash: data.cashoutTransactionHash,
+                externalAccountId: data.externalAccountId,
+                chainId: data.chainId,
+                tokenName: data.tokenName,
+                pubKey,
+            }),
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to submit cashout link, status: ${response.status}`)
+        }
+
+        const result = await response.json()
+        return result
+    } catch (error) {
+        console.error('Error in submitCashoutLink:', error)
+        throw error
+    }
+}
+
+export type CashoutStatus =
+    | 'PAYMENT_PROCESSED'
+    | 'REFUNDED'
+    | 'READY'
+    | 'AWAITING_TX'
+    | 'FUNDS_IN_BRIDGE'
+    | 'FUNDS_MOVED_AWAY'
+    | 'FUNDS_IN_BANK'
+    | 'AWAITING_FUNDS'
+    | 'IN_REVIEW'
+    | 'FUNDS_RECEIVED'
+    | 'PAYMENT_SUBMITTED'
+    | 'CANCELED'
+    | 'ERROR'
+    | 'RETURNED'
+
+export interface CashoutTransaction {
+    status: CashoutStatus
+    currency: string | null
+    amount: string
+    bridge_customer_id: string
+    liquidation_address: string | null
+    created_at: string // ISO timestamp format
+    updated_at: string // ISO timestamp format
+    cashout_transaction_hash: string
+    external_account_id: string
+    liquidation_address_id: string
+    chain_id: string
+    token_name: string
+    pub_key: string
+    user_id: string | null
+}
+
+export const CashoutStatusDescriptions: { [key in CashoutStatus]: string } = {
+    REFUNDED: 'The funds will be refunded to your address.',
+    READY: 'The cashout is ready and can be processed.',
+    AWAITING_TX: 'Awaiting the transaction to be broadcast on the blockchain.',
+    FUNDS_IN_BRIDGE: 'Funds are currently in the bridge, moving to the destination chain.',
+    FUNDS_MOVED_AWAY: 'Funds have been moved from the bridge to another chain.',
+    FUNDS_IN_BANK: 'Funds have been deposited into your bank account.',
+    AWAITING_FUNDS: 'Awaiting the availability of funds to process the transaction.',
+    IN_REVIEW: 'The cashout is currently under review by the system or team.',
+    FUNDS_RECEIVED: 'Funds have been successfully received by the recipient.',
+    PAYMENT_SUBMITTED: 'The payment has been submitted for processing.',
+    PAYMENT_PROCESSED: 'The payment has been successfully processed.',
+    CANCELED: 'The transaction has been canceled by the user or system.',
+    ERROR: 'An error occurred during the cashout process.',
+    RETURNED: 'The funds have been returned to the original account or address.',
+}
+
+export async function getCashoutStatus(link: string): Promise<CashoutTransaction> {
+    try {
+        // Extract pubKey from the link
+        const fragment = link.split('#')[1]
+        const password = new URLSearchParams(fragment).get('p')!
+        const { address: pubKey } = generateKeysFromString(password)
+
+        const response = await fetch('/api/peanut/get-cashout-status', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ pubKey }),
+        })
+
+        if (!response.ok) {
+            throw new Error(`Failed to get cashout status, status: ${response.status}`)
+        }
+
+        const result = await response.json()
+        return result
+    } catch (error) {
+        console.error('Error in getCashoutStatus:', error)
+        throw error
     }
 }
 
