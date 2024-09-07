@@ -512,16 +512,23 @@ export const Profile = () => {
                                 {user?.referredUsers > 0 &&
                                     user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label className="w-[40%] truncate text-h8">
+                                            <label
+                                                className="w-[40%] cursor-pointer truncate text-h8"
+                                                onClick={() => {
+                                                    window.open(
+                                                        `https://debank.com/profile/${referral.address}/history`,
+                                                        '_blank'
+                                                    )
+                                                }}
+                                            >
                                                 <Icon
-                                                    name={'copy'}
-                                                    className="mr-1 h-4 cursor-pointer"
+                                                    name={'external'}
+                                                    className="mb-1 cursor-pointer"
                                                     onClick={() => {
-                                                        navigator.clipboard.writeText(referral.address)
-                                                        toastIdRef.current = toast({
-                                                            status: 'success',
-                                                            title: 'Address copied to clipboard',
-                                                        }) as ToastId
+                                                        window.open(
+                                                            `https://debank.com/profile/${referral.address}/history`,
+                                                            '_blank'
+                                                        )
                                                     }}
                                                 />
                                                 {utils.shortenAddressLong(referral.address, 6)}
