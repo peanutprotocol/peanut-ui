@@ -5,8 +5,8 @@ import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
-import { useContext, useEffect, useState } from 'react'
-import { Divider } from '@chakra-ui/react'
+import { useContext, useEffect, useRef, useState } from 'react'
+import { Divider, ToastId, useToast } from '@chakra-ui/react'
 import { useDashboard } from '../Dashboard/useDashboard'
 import * as interfaces from '@/interfaces'
 import { useAccount, useSignMessage } from 'wagmi'
@@ -80,6 +80,13 @@ export const Profile = () => {
             user?.user?.email ??
             (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
     )
+    const toastIdRef = useRef<ToastId | undefined>(undefined)
+    const toast = useToast({
+        position: 'bottom-right',
+        duration: 5000,
+        isClosable: true,
+        icon: '🥜',
+    })
 
     // Calculate the number of items that can be displayed on the page
     // Calculate the number of items that can be displayed on the page
@@ -499,11 +506,40 @@ export const Profile = () => {
                             </div>
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
+                                <div className="flex w-full items-center justify-between">
+                                    <label className="w-[42%] text-h9">Address</label>
+                                    <label className="w-[28%] text-h9">Referred Users</label>
+                                    <label className="w-[30%] text-right text-h9">Points</label>
+                                </div>
+                                <Divider borderColor={'black'}></Divider>
                                 {user?.referredUsers > 0 &&
                                     user?.pointsPerReferral.map((referral, index) => (
                                         <div key={index} className="flex w-full items-center justify-between">
-                                            <label className="text-h9">{referral.address}</label>
-                                            <label className="text-h9">
+                                            <label
+                                                className="w-[40%] cursor-pointer truncate text-h8"
+                                                onClick={() => {
+                                                    window.open(
+                                                        `https://debank.com/profile/${referral.address}/history`,
+                                                        '_blank'
+                                                    )
+                                                }}
+                                            >
+                                                <Icon
+                                                    name={'external'}
+                                                    className="mb-1 cursor-pointer"
+                                                    onClick={() => {
+                                                        window.open(
+                                                            `https://debank.com/profile/${referral.address}/history`,
+                                                            '_blank'
+                                                        )
+                                                    }}
+                                                />
+                                                {utils.shortenAddressLong(referral.address, 6)}
+                                            </label>
+                                            <label className="w-[30%] text-center text-h8">
+                                                {referral?.totalReferrals ?? 0}
+                                            </label>
+                                            <label className="w-[30%] text-right text-h8">
                                                 {Math.floor(
                                                     user.pointsPerReferral?.find((ref) =>
                                                         utils.compareTokenAddresses(ref.address, referral.address)
@@ -515,8 +551,9 @@ export const Profile = () => {
 
                                 <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
-                                    <label>Total</label>
-                                    <label>{user?.totalReferralPoints}</label>
+                                    <label className="w-[40%]">Total</label>
+                                    <label className="w-[30%] text-center">{user?.totalReferralConnections}</label>
+                                    <label className="w-[30%] text-right">{user?.totalReferralPoints}</label>
                                 </div>
                             </div>
                         ) : (

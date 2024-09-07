@@ -327,6 +327,7 @@ interface ReferralConnection {
 interface PointsPerReferral {
     address: string
     points: number
+    totalReferrals: number
 }
 
 interface User {
@@ -358,8 +359,8 @@ export interface IUserProfile {
     points: number
     transactions: Transaction[]
     referralsPointsTxs: Transaction[]
-    totalReferralConnections: ReferralConnection[]
     totalReferralPoints: number
+    totalReferralConnections: number
     pointsPerReferral: PointsPerReferral[]
     referredUsers: number
     streak: number
