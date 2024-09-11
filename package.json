@@ -9,8 +9,6 @@
         "lint": "next lint"
     },
     "dependencies": {
-        "@0xsquid/sdk": "^2.8.24",
-        "@0xsquid/squid-types": "^0.1.104",
         "@calcom/embed-react": "^1.5.0",
         "@chakra-ui/color-mode": "^2.2.0",
         "@chakra-ui/react": "^2.8.2",
@@ -33,7 +31,6 @@
         "encoding": "^0.1.13",
         "eslint-config-next": "^14.2.6",
         "ethers": "5.7.2",
-        "ethersv5": "^1.0.0",
         "fs-extra": "^11.2.0",
         "i18n-iso-countries": "^7.11.3",
         "install": "^0.13.0",

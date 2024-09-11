@@ -851,3 +851,27 @@ export const formatIban = (iban: string) => {
         .replace(/(.{4})/g, '$1 ')
         .trim()
 }
+
+export const switchNetwork = async ({
+    chainId,
+    currentChainId,
+    setLoadingState,
+    switchChainAsync,
+}: {
+    chainId: string
+    currentChainId: string | undefined
+    setLoadingState: (state: consts.LoadingStates) => void
+    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
+}) => {
+    if (currentChainId !== chainId) {
+        setLoadingState('Allow network switch')
+        try {
+            await switchChainAsync({ chainId: Number(chainId) })
+            setLoadingState('Switching network')
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+            setLoadingState('Loading')
+        } catch (error) {
+            throw new Error('Error switching network.')
+        }
+    }
+}

@@ -1,8 +1,7 @@
 import * as _consts from '../Pay.consts'
-
 import { useAccount, useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useState } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as utils from '@/utils'
@@ -12,7 +11,7 @@ import * as consts from '@/constants'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { Squid } from '@0xsquid/sdk'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType, getFromAmount, NATIVE_TOKEN_ADDRESS } from '../utils'
 
 export const InitialView = ({
@@ -39,16 +38,16 @@ export const InitialView = ({
     }
 
     const switchNetwork = async (chainId: string) => {
-        if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('Allow network switch')
-            try {
-                await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('Switching network')
-                await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('Loading')
-            } catch (error) {
-                throw new Error('Error switching network.')
-            }
+        try {
+            await switchNetworkUtil({
+                chainId,
+                currentChainId: currentChain?.id,
+                setLoadingState,
+                switchChainAsync,
+            })
+            console.log(`Switched to chain ${chainId}`)
+        } catch (error) {
+            console.error('Failed to switch network:', error)
         }
     }
 
