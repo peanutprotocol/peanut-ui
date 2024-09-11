@@ -1,6 +1,6 @@
 import * as _consts from '../Pay.consts'
 
-import { useAccount } from 'wagmi'
+import { useAccount, useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useContext, useEffect, useState } from 'react'
 import * as context from '@/context'
@@ -13,6 +13,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { Squid } from '@0xsquid/sdk'
+import { ADDRESS_ZERO, EPeanutLinkType, getFromAmount, NATIVE_TOKEN_ADDRESS } from '../utils'
 
 export const InitialView = ({
     onNext,
@@ -23,13 +24,11 @@ export const InitialView = ({
     unsignedTx,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, assertValues } = useCreateLink()
-    const { isConnected, address } = useAccount()
+    const { isConnected, address, chain: currentChain } = useAccount()
+    const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
-
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
-        context.tokenSelectorContext
-    )
+    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -39,13 +38,30 @@ export const InitialView = ({
         open()
     }
 
+    const switchNetwork = async (chainId: string) => {
+        if (currentChain?.id.toString() !== chainId.toString()) {
+            setLoadingState('Allow network switch')
+            try {
+                await switchChainAsync({ chainId: Number(chainId) })
+                setLoadingState('Switching network')
+                await new Promise((resolve) => setTimeout(resolve, 2000))
+                setLoadingState('Loading')
+            } catch (error) {
+                throw new Error('Error switching network.')
+            }
+        }
+    }
+
     const handleOnNext = async () => {
+        if (selectedChainID !== currentChain) {
+            await switchNetwork(selectedChainID)
+        }
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            await assertValues({ tokenValue: requestLinkData.tokenAmount })
-            setLoadingState('Sign in wallet')
             if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+                await assertValues({ tokenValue: requestLinkData.tokenAmount })
+                setLoadingState('Sign in wallet')
                 const hash = await sendTransactions({
                     preparedDepositTxs: { unsignedTxs: [unsignedTx] },
                     feeOptions: undefined,
@@ -74,26 +90,38 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
-                // TODO: Check this
-                // const squid = new Squid({ integratorId: 'squid-sdk' })
-                // squid.setConfig({
-                //     baseUrl: 'https://api.squidrouter.com',
-                // })
-                // await squid.init()
-                // const fromTokenData = squid.getTokenData(selectedTokenAddress, String(selectedChainID))
-                // const toTokenData = squid.getTokenData(requestLinkData.tokenAddress, String(requestLinkData.chainId))
-                // const estimatedFromAmount = await squid.getFromAmount({
-                //     fromToken: fromTokenData,
-                //     toAmount: requestLinkData.tokenAmount,
-                //     toToken: toTokenData,
-                // })
-                // console.log('estimatedFromAmount', estimatedFromAmount)
+                const fromTokenData = {
+                    address: selectedTokenAddress,
+                    chainId: String(selectedChainID),
+                    decimals: selectedTokenDecimals as number,
+                }
+                const toTokenData = {
+                    address: requestLinkData.tokenAddress,
+                    chainId: String(requestLinkData.chainId),
+                    decimals: requestLinkData.tokenDecimals as number,
+                }
+                const estimatedFromAmount = await getFromAmount({
+                    fromToken: fromTokenData,
+                    toAmount: requestLinkData.tokenAmount,
+                    toToken: toTokenData,
+                })
+
+                if (!estimatedFromAmount) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'No route found for this transaction',
+                    })
+                    return
+                }
+
+                await assertValues({ tokenValue: estimatedFromAmount })
+                setLoadingState('Sign in wallet')
 
                 const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
                     fromToken: selectedTokenAddress,
-                    fromAmount: '0.1', // estimatedFromAmount
+                    fromAmount: estimatedFromAmount ?? '0',
                     fromChainId: selectedChainID,
-                    senderAddress: address,
+                    senderAddress: address ?? '',
                     recipientAddress: requestLinkData.recipientAddress as string,
                     destinationChainId: requestLinkData.chainId,
                     destinationToken: requestLinkData.tokenAddress,
@@ -101,6 +129,8 @@ export const InitialView = ({
                     squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                     apiUrl: '/api/proxy/get',
                     provider: await peanut.getDefaultProvider(selectedChainID),
+                    tokenType: selectedTokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+                    fromTokenDecimals: selectedTokenDecimals as number,
                 })
 
                 const { unsignedTxs } = xchainUnsignedTxs

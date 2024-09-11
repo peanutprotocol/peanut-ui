@@ -80,6 +80,9 @@ importers:
       ethers:
         specifier: 5.7.2
         version: 5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      ethersv5:
+        specifier: ^1.0.0
+        version: 1.0.0
       fs-extra:
         specifier: ^11.2.0
         version: 11.2.0
@@ -4980,6 +4983,9 @@ packages:
   ethers@6.8.1:
     resolution: {integrity: sha512-iEKm6zox5h1lDn6scuRWdIdFJUCGg3+/aQWu0F4K0GVyEZiktFkqrJbRjTn1FlYEPz7RKA707D6g5Kdk6j7Ljg==}
     engines: {node: '>=14.0.0'}
+
+  ethersv5@1.0.0:
+    resolution: {integrity: sha512-hY3qI2bGglczmIGM/e260GEauag5hMwjnnN/8V3lJcd64XLqWSJGgMPo0wsPcBe8QtmT8zh7uPS0zN6iivAjmg==}
 
   ethjs-unit@0.1.6:
     resolution: {integrity: sha512-/Sn9Y0oKl0uqQuvgFk/zQgR7aw1g36qX/jzSQ5lSwlO0GigPymk4eGQfeNTD03w1dPOqfz8V77Cy43jH56pagw==}
@@ -16046,6 +16052,18 @@ snapshots:
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
+
+  ethersv5@1.0.0:
+    dependencies:
+      '@ethersproject/address': 5.7.0
+      '@ethersproject/bignumber': 5.7.0
+      '@ethersproject/bytes': 5.7.0
+      '@ethersproject/constants': 5.7.0
+      '@ethersproject/hash': 5.7.0
+      '@ethersproject/keccak256': 5.7.0
+      '@ethersproject/logger': 5.7.0
+      '@ethersproject/properties': 5.7.0
+      '@ethersproject/strings': 5.7.0
 
   ethjs-unit@0.1.6:
     dependencies:

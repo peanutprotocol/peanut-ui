@@ -26,6 +26,7 @@ export const fetchTokenPrice = async (tokenAddress: string, chainId: string, hos
             let data = {
                 price: json.data.price,
                 chainId: chainId,
+                decimals: json.data.contracts.find((contract: any) => contract.blockchainId === chainId)?.decimals,
             }
             if (utils.estimateStableCoin(json.data.price)) {
                 data.price = 1

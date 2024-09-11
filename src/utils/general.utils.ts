@@ -656,7 +656,15 @@ export const getRequestLinkFulfillmentsFromLocalStorage = () => {
     }
 }
 
-export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: string; tokenAddress?: string }) => {
+export const updatePeanutPreferences = ({
+    chainId,
+    tokenAddress,
+    decimals,
+}: {
+    chainId?: string
+    tokenAddress?: string
+    decimals?: number
+}) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -665,6 +673,7 @@ export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: s
         let data = {
             chainId: chainId,
             tokenAddress: tokenAddress,
+            decimals: decimals,
         }
 
         localStorage.setItem(key, JSON.stringify(data))
@@ -684,6 +693,7 @@ export const getPeanutPreferences = () => {
         let data = {
             chainId: '',
             tokenAddress: '',
+            decimals: undefined,
         }
 
         if (storedData) {
