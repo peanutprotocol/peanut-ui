@@ -12,7 +12,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { ADDRESS_ZERO, EPeanutLinkType, getFromAmount, NATIVE_TOKEN_ADDRESS } from '../utils'
+import { ADDRESS_ZERO, EPeanutLinkType } from '../utils'
 
 export const InitialView = ({
     onNext,
@@ -89,36 +89,10 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
-                const fromTokenData = {
-                    address: selectedTokenAddress,
-                    chainId: String(selectedChainID),
-                    decimals: selectedTokenDecimals as number,
-                }
-                const toTokenData = {
-                    address: requestLinkData.tokenAddress,
-                    chainId: String(requestLinkData.chainId),
-                    decimals: requestLinkData.tokenDecimals as number,
-                }
-                const estimatedFromAmount = await getFromAmount({
-                    fromToken: fromTokenData,
-                    toAmount: requestLinkData.tokenAmount,
-                    toToken: toTokenData,
-                })
-
-                if (!estimatedFromAmount) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'No route found for this transaction',
-                    })
-                    return
-                }
-
-                await assertValues({ tokenValue: estimatedFromAmount })
                 setLoadingState('Sign in wallet')
 
                 const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-                    fromToken: selectedTokenAddress,
-                    fromAmount: estimatedFromAmount ?? '0',
+                    fromToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
                     fromChainId: selectedChainID,
                     senderAddress: address ?? '',
                     recipientAddress: requestLinkData.recipientAddress as string,
