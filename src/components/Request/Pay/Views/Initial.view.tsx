@@ -92,12 +92,9 @@ export const InitialView = ({
                 setLoadingState('Sign in wallet')
 
                 const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-                    fromToken: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
+                    fromToken: selectedTokenAddress,
                     fromChainId: selectedChainID,
                     senderAddress: address ?? '',
-                    recipientAddress: requestLinkData.recipientAddress as string,
-                    destinationChainId: requestLinkData.chainId,
-                    destinationToken: requestLinkData.tokenAddress,
                     link: requestLinkData.link,
                     squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                     apiUrl: '/api/proxy/get',
