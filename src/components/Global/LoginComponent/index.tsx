@@ -114,11 +114,18 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
     return (
         <form className="flex w-full flex-col items-start justify-center gap-2" onSubmit={handleSubmit(handleOnSubmit)}>
             <input
-                {...register('email', { required: 'This field is required' })}
+                {...register('email', {
+                    required: 'This field is required',
+                    pattern: {
+                        value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: 'Invalid email address',
+                    },
+                })}
                 className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
                 placeholder="Email"
                 type="email"
             />
+
             {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
 
             <input

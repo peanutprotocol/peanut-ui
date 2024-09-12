@@ -19,16 +19,17 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >
-                        <Menu.Items className="shadow-primary-4 absolute bottom-full right-0 z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-4 py-2 md:left-0 md:right-auto">
-                            <Menu.Item as={'label'} className={'text-h8 font-normal'}>
+                        <Menu.Items className="shadow-primary-4 absolute bottom-full  z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-6 py-3 md:left-0 md:right-auto">
+                            <Menu.Item as={'label'} className={' text-h8 font-normal'}>
                                 Fees:
                                 <br />
-                                <UnorderedList title="Fees:" className="pl-3">
+                                <UnorderedList title="Fees:" className="space-y-1 pl-3">
                                     <ListItem>Gas is sponsored by Peanut</ListItem>
                                     <ListItem>Minimum cashout amount: $10</ListItem>
                                     <ListItem>Cashout fee of $1 to IBAN </ListItem>
                                     <ListItem>Cashout fee of $0.50 to US accounts (ACH)</ListItem>
                                     <ListItem>Processing time is between 20 minutes and 2 business days</ListItem>
+                                    <ListItem>Requires KYC.</ListItem>
                                 </UnorderedList>
                             </Menu.Item>
                         </Menu.Items>

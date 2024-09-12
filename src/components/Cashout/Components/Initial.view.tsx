@@ -311,7 +311,7 @@ export const InitialCashoutView = ({
                     !_tokenValue ||
                     (!selectedBankAccount && !newBankAccount) ||
                     !xchainAllowed ||
-                    (usdValue && parseFloat(usdValue) < 10 ? true : false)
+                    (usdValue && parseFloat(usdValue) < 9.9 ? true : false)
                 }
             >
                 {!isConnected ? (
@@ -328,6 +328,11 @@ export const InitialCashoutView = ({
                 <div className="text-center">
                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                 </div>
+            )}
+            {usdValue && parseFloat(usdValue) < 9.9 && (
+                <span className=" text-h8 font-normal ">
+                    <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is $10.
+                </span>
             )}
             {(!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
                 selectedChainID === '1') && (
