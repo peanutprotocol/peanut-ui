@@ -1,7 +1,7 @@
 import * as _consts from '../Pay.consts'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as utils from '@/utils'
@@ -13,6 +13,7 @@ import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType } from '../utils'
+import { ethers } from 'ethersv5'
 
 export const InitialView = ({
     onNext,
@@ -32,6 +33,38 @@ export const InitialView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [txFee, setTxFee] = useState<string>('0')
+
+    const createXChainUnsignedTx = async () => {
+        const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
+            fromToken: selectedTokenAddress,
+            fromChainId: selectedChainID,
+            senderAddress: address ?? '',
+            link: requestLinkData.link,
+            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+            apiUrl: '/api/proxy/get',
+            provider: await peanut.getDefaultProvider(selectedChainID),
+            tokenType: selectedTokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            fromTokenDecimals: selectedTokenDecimals as number,
+        })
+        return xchainUnsignedTxs
+    }
+
+    useEffect(() => {
+        const estimateTxFee = async () => {
+            const xchainUnsignedTxs = await createXChainUnsignedTx()
+            const txFee = await peanut.calculateCrossChainTxFee({
+                unsignedTxs: xchainUnsignedTxs.unsignedTxs,
+                isNativeTxValue: selectedTokenAddress === ADDRESS_ZERO ? true : false,
+                fromAmount: requestLinkData.tokenAmount,
+            })
+
+            const tokenPriceData = await utils.fetchTokenPrice(ADDRESS_ZERO, selectedChainID)
+            const price = tokenPriceData?.price ?? 0
+            setTxFee((Number(ethers.utils.formatEther(txFee)) * price).toFixed(2))
+        }
+        estimateTxFee()
+    }, [selectedTokenAddress])
 
     const handleConnectWallet = async () => {
         open()
@@ -90,18 +123,7 @@ export const InitialView = ({
                 onNext()
             } else {
                 setLoadingState('Sign in wallet')
-
-                const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-                    fromToken: selectedTokenAddress,
-                    fromChainId: selectedChainID,
-                    senderAddress: address ?? '',
-                    link: requestLinkData.link,
-                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                    apiUrl: '/api/proxy/get',
-                    provider: await peanut.getDefaultProvider(selectedChainID),
-                    tokenType: selectedTokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
-                    fromTokenDecimals: selectedTokenDecimals as number,
-                })
+                const xchainUnsignedTxs = await createXChainUnsignedTx()
 
                 const { unsignedTxs } = xchainUnsignedTxs
                 const hash = await sendTransactions({
@@ -228,25 +250,31 @@ export const InitialView = ({
             </div>
             <TokenSelector classNameButton="w-full" />
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                {estimatedGasCost && (
+                {txFee !== '0' && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Network cost</label>
                         </div>
                         <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {estimatedGasCost === 0
-                                ? '$0'
-                                : estimatedGasCost < 0.01
-                                  ? '$<0.01'
-                                  : `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`}
-                            <MoreInfo
-                                text={
-                                    estimatedGasCost > 0
-                                        ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                        : 'This transaction is sponsored by peanut! Enjoy!'
-                                }
-                            />
+                            {requestLinkData.chainId === selectedChainID &&
+                            requestLinkData.tokenAddress === selectedTokenAddress
+                                ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
+                                : `$${txFee}`}
+                            {requestLinkData.chainId === selectedChainID &&
+                            requestLinkData.tokenAddress === selectedTokenAddress ? (
+                                <MoreInfo
+                                    text={
+                                        estimatedGasCost > 0
+                                            ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                            : 'This transaction is sponsored by peanut! Enjoy!'
+                                    }
+                                />
+                            ) : (
+                                <MoreInfo
+                                    text={`This transaction will cost you $${utils.formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                />
+                            )}
                         </label>
                     </div>
                 )}
