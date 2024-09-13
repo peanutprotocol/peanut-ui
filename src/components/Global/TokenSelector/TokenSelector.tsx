@@ -129,7 +129,10 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                             balance.chainId === selectedChainID
                     )?.amount ?? 0
                 }
-                chainIconUri={supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.icon.url ?? ''}
+                chainIconUri={
+                    (IconPlaceholderChecker(selectedChainID) as string) ??
+                    consts.supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.icon.url
+                }
                 chainName={supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.name ?? ''}
                 classNameButton={classNameButton}
             />
