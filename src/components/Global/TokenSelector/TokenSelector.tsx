@@ -15,6 +15,7 @@ import * as _consts from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
+import Icon from '../Icon'
 
 const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
@@ -29,6 +30,15 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
     const { safeInfo, walletType, environmentInfo } = useWalletType()
+    const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
+    const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
+
+    const IconPlaceholderChecker = (chainId: string) => {
+        if (chainId == '42161') {
+            return 'https://cdn.zerion.io/0xb50721bcf8d664c30412cfbc6cf7a15145234ad1.png'
+        }
+        return null
+    }
 
     const _tokensToDisplay = useMemo(() => {
         let _tokens
@@ -204,20 +214,57 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                                                 <td className="py-2 pr-2">
                                                     <div className="flex flex-row items-center justify-center gap-2 pl-1">
                                                         <div className="relative h-6 w-6">
-                                                            <img
-                                                                src={balance.logoURI}
-                                                                className="absolute left-0 top-0 h-6 w-6"
-                                                                alt="logo"
-                                                            />
-                                                            <img
-                                                                src={
-                                                                    consts.supportedPeanutChains.find(
-                                                                        (chain) => chain.chainId === balance.chainId
-                                                                    )?.icon.url
-                                                                }
-                                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
-                                                                alt="logo"
-                                                            />
+                                                            {tokenPlaceholders[
+                                                                `${balance.address}_${balance.chainId}`
+                                                            ] ? (
+                                                                <Icon
+                                                                    name="token_placeholder"
+                                                                    className="absolute left-0 top-0 h-6 w-6"
+                                                                    fill="#999"
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={balance.logoURI}
+                                                                    className="absolute left-0 top-0 h-6 w-6"
+                                                                    alt="logo"
+                                                                    onError={(e) => {
+                                                                        console.log(e)
+                                                                        e.currentTarget.style.display = 'none'
+                                                                        setTokenPlaceholders((prev) => ({
+                                                                            ...prev,
+                                                                            [`${balance.address}_${balance.chainId}`]:
+                                                                                true,
+                                                                        }))
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {chainPlaceholders[
+                                                                `${balance.address}_${balance.chainId}`
+                                                            ] ? (
+                                                                <Icon
+                                                                    name="token_placeholder"
+                                                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                                                    fill="#999"
+                                                                />
+                                                            ) : (
+                                                                <img
+                                                                    src={
+                                                                        IconPlaceholderChecker(balance.chainId) ??
+                                                                        consts.supportedPeanutChains.find(
+                                                                            (chain) => chain.chainId === balance.chainId
+                                                                        )?.icon.url
+                                                                    }
+                                                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                                                    alt="logo"
+                                                                    onError={(e) => {
+                                                                        setChainPlaceholders((prev) => ({
+                                                                            ...prev,
+                                                                            [`${balance.address}_${balance.chainId}`]:
+                                                                                true,
+                                                                        }))
+                                                                    }}
+                                                                />
+                                                            )}
                                                         </div>
                                                     </div>
                                                 </td>
