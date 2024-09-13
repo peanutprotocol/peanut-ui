@@ -115,8 +115,9 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                 }}
                 isVisible={visible}
                 tokenLogoUri={
+                    (IconPlaceholderChecker(selectedChainID) as string) ??
                     _tokensToDisplay.find((token) => utils.compareTokenAddresses(token.address, selectedTokenAddress))
-                        ?.logoURI ?? ''
+                        ?.logoURI
                 }
                 tokenSymbol={
                     _tokensToDisplay.find((token) => utils.compareTokenAddresses(token.address, selectedTokenAddress))
