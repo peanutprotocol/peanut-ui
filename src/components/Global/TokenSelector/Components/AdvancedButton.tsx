@@ -126,7 +126,7 @@ export const AdvancedTokenSelectorButton = ({
                         ))}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">
-                            ${utils.formatTokenAmount(Number(tokenAmount ?? 0) * tokenPrice ?? 0, 4)}
+                            ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
                         </p>
                     )}
                 </div>

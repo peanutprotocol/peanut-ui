@@ -203,9 +203,11 @@ export const useCreateLink = () => {
         try {
             await switchNetworkUtil({
                 chainId,
-                currentChainId: currentChain?.id,
+                currentChainId: String(currentChain?.id),
                 setLoadingState,
-                switchChainAsync,
+                switchChainAsync: async ({ chainId }) => {
+                    await switchChainAsync({ chainId: chainId as number });
+                },
             })
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
