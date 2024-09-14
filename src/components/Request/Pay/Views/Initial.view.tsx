@@ -13,7 +13,7 @@ import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType } from '../utils'
-import { ethers } from 'ethersv5'
+import { ethers } from 'ethers'
 
 export const InitialView = ({
     onNext,
@@ -74,9 +74,11 @@ export const InitialView = ({
         try {
             await switchNetworkUtil({
                 chainId,
-                currentChainId: currentChain?.id,
+                currentChainId: String(currentChain?.id),
                 setLoadingState,
-                switchChainAsync,
+                switchChainAsync: async ({ chainId }) => {
+                    await switchChainAsync({ chainId: chainId as number });
+                },
             })
             console.log(`Switched to chain ${chainId}`)
         } catch (error) {
@@ -85,7 +87,7 @@ export const InitialView = ({
     }
 
     const handleOnNext = async () => {
-        if (selectedChainID !== currentChain) {
+        if (selectedChainID !== String(currentChain?.id)) {
             await switchNetwork(selectedChainID)
         }
         try {
@@ -265,7 +267,7 @@ export const InitialView = ({
                             requestLinkData.tokenAddress === selectedTokenAddress ? (
                                 <MoreInfo
                                     text={
-                                        estimatedGasCost > 0
+                                        estimatedGasCost && estimatedGasCost > 0
                                             ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
                                             : 'This transaction is sponsored by peanut! Enjoy!'
                                     }
