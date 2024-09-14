@@ -3,6 +3,7 @@
 import { useContext } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -79,19 +80,16 @@ export const useClaimLink = () => {
     }) => {}
 
     const switchNetwork = async (chainId: string) => {
-        if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('Allow network switch')
-
-            try {
-                await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('Switching network')
-                await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('Loading')
-            } catch (error) {
-                setLoadingState('Idle')
-                console.error('Error switching network:', error)
-                // TODO: handle error, either throw or return error
-            }
+        try {
+            await switchNetworkUtil({
+                chainId,
+                currentChainId: currentChain?.id,
+                setLoadingState,
+                switchChainAsync,
+            })
+            console.log(`Switched to chain ${chainId}`)
+        } catch (error) {
+            console.error('Failed to switch network:', error)
         }
     }
     const checkTxStatus = async (txHash: string) => {}

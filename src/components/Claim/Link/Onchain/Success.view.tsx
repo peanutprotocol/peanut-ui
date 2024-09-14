@@ -5,8 +5,8 @@ import * as context from '@/context'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
-import axios from 'axios'
 import { useAccount, useConnections, useSwitchChain } from 'wagmi'
+import { loopUntilSuccess } from '@/components/utils/utils'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
@@ -32,49 +32,6 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
         )
     }, [connections, address])
 
-    async function checkTransactionStatus(txHash: string): Promise<void> {
-        try {
-            const response = await axios.get('https://apiplus.squidrouter.com/v2/status', {
-                params: { transactionId: txHash },
-                headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' },
-            })
-            return response.data
-        } catch (error) {
-            console.error('Error fetching transaction status:', error)
-            throw error
-        }
-    }
-
-    async function loopUntilSuccess(txHash: string) {
-        let intervalId = setInterval(async () => {
-            const result = await checkTransactionStatus(txHash)
-
-            //@ts-ignore
-            if (result.squidTransactionStatus === 'success') {
-                //@ts-ignore
-                const explorerUrl = utils.getExplorerUrl(result.toChain.chainData.chainId.toString())
-                if (explorerUrl) {
-                    setExplorerUrlDestChainWithTxHash({
-                        //@ts-ignore
-                        transactionUrl: explorerUrl + '/tx/' + result.toChain.transactionId,
-                        //@ts-ignore
-                        transactionId: result.toChain.transactionId,
-                    })
-                } else {
-                    setExplorerUrlDestChainWithTxHash({
-                        //@ts-ignore
-                        transactionUrl: result.toChain.transactionUrl,
-                        //@ts-ignore
-                        transactionId: result.toChain.transactionId,
-                    })
-                }
-                clearInterval(intervalId)
-            } else {
-                console.log('Checking status again...')
-            }
-        }, 5000)
-    }
-
     const checkNetwork = async (chainId: string) => {
         //check if the user is on the correct chain
         if (currentChain?.id.toString() !== chainId.toString()) {
@@ -89,7 +46,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     useEffect(() => {
         resetTokenContextProvider()
         if (transactionHash && type === 'claimxchain') {
-            loopUntilSuccess(transactionHash)
+            loopUntilSuccess(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
 

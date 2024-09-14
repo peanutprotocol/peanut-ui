@@ -10,6 +10,7 @@ type inputDenominationType = 'USD' | 'TOKEN'
 export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
     selectedChainID: '',
+    selectedTokenDecimals: 0 as number | undefined,
     setSelectedTokenAddress: (address: string) => {},
     setSelectedChainID: (chainID: string) => {},
     selectedTokenPrice: 0 as number | undefined,
@@ -31,6 +32,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
+    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
 
     const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
@@ -48,6 +50,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             preferences?.tokenAddress ? preferences.tokenAddress : '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
         )
         setSelectedTokenPrice(undefined)
+        setSelectedTokenDecimals(undefined)
     }
 
     useEffect(() => {
@@ -57,6 +60,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             try {
                 if (!consts.supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
                     setSelectedTokenPrice(undefined)
+                    setSelectedTokenDecimals(undefined)
                     setInputDenomination('TOKEN')
                     return
                 } else {
@@ -66,7 +70,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     }
                     if (tokenPriceResponse?.price) {
                         setSelectedTokenPrice(tokenPriceResponse.price)
-
+                        setSelectedTokenDecimals(tokenPriceResponse.decimals)
                         if (tokenPriceResponse.price === 1) {
                             setInputDenomination('TOKEN')
                         } else {
@@ -74,6 +78,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                         }
                     } else {
                         setSelectedTokenPrice(undefined)
+                        setSelectedTokenDecimals(undefined)
                         setInputDenomination('TOKEN')
                     }
                 }
@@ -84,9 +89,11 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
         if (!isConnected) {
             setSelectedTokenPrice(undefined)
+            setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
         } else if (selectedTokenAddress && selectedChainID) {
             setSelectedTokenPrice(undefined)
+            setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
             fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
             return () => {
@@ -97,9 +104,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
 
     useEffect(() => {
         const prefs = utils.getPeanutPreferences()
-        if (prefs && prefs.tokenAddress && prefs.chainId) {
+        if (prefs && prefs.tokenAddress && prefs.chainId && prefs.decimals) {
             setSelectedTokenAddress(prefs.tokenAddress)
             setSelectedChainID(prefs.chainId)
+            setSelectedTokenDecimals(prefs.decimals)
         }
     }, [])
 
@@ -108,6 +116,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             value={{
                 selectedTokenAddress,
                 setSelectedTokenAddress,
+                selectedTokenDecimals,
                 selectedChainID,
                 setSelectedChainID: updateSelectedChainID,
                 selectedTokenPrice,

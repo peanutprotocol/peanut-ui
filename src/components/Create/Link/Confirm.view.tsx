@@ -41,7 +41,9 @@ export const CreateLinkConfirmView = ({
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
 
-    const { selectedChainID, selectedTokenAddress, selectedTokenPrice } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenPrice, selectedTokenDecimals } = useContext(
+        context.tokenSelectorContext
+    )
 
     const { walletType } = useWalletType()
 
@@ -162,6 +164,7 @@ export const CreateLinkConfirmView = ({
             utils.updatePeanutPreferences({
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
+                decimals: selectedTokenDecimals,
             })
 
             onNext()

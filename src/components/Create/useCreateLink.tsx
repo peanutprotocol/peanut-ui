@@ -15,7 +15,7 @@ import {
     usePrepareTransactionRequest,
 } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { useBalance } from '@/hooks/useBalance'
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -200,16 +200,16 @@ export const useCreateLink = () => {
         [address, selectedChainID, selectedTokenAddress, balances]
     )
     const switchNetwork = async (chainId: string) => {
-        if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('Allow network switch')
-            try {
-                await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('Switching network')
-                await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('Loading')
-            } catch (error) {
-                throw new Error('Error switching network.')
-            }
+        try {
+            await switchNetworkUtil({
+                chainId,
+                currentChainId: currentChain?.id,
+                setLoadingState,
+                switchChainAsync,
+            })
+            console.log(`Switched to chain ${chainId}`)
+        } catch (error) {
+            console.error('Failed to switch network:', error)
         }
     }
     const estimateGasFee = async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {

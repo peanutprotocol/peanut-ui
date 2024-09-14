@@ -1,8 +1,7 @@
 import * as _consts from '../Pay.consts'
-
-import { useAccount } from 'wagmi'
+import { useAccount, useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useContext, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as utils from '@/utils'
@@ -11,6 +10,11 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut } from '@squirrel-labs/peanut-sdk'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { ADDRESS_ZERO, EPeanutLinkType } from '../utils'
+import { ethers } from 'ethersv5'
+
 export const InitialView = ({
     onNext,
     requestLinkData,
@@ -20,54 +24,135 @@ export const InitialView = ({
     unsignedTx,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, assertValues } = useCreateLink()
-    const { isConnected, address } = useAccount()
+    const { isConnected, address, chain: currentChain } = useAccount()
+    const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
-
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    const [txFee, setTxFee] = useState<string>('0')
+
+    const createXChainUnsignedTx = async () => {
+        const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
+            fromToken: selectedTokenAddress,
+            fromChainId: selectedChainID,
+            senderAddress: address ?? '',
+            link: requestLinkData.link,
+            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+            apiUrl: '/api/proxy/get',
+            provider: await peanut.getDefaultProvider(selectedChainID),
+            tokenType: selectedTokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            fromTokenDecimals: selectedTokenDecimals as number,
+        })
+        return xchainUnsignedTxs
+    }
+
+    useEffect(() => {
+        const estimateTxFee = async () => {
+            const xchainUnsignedTxs = await createXChainUnsignedTx()
+            const txFee = await peanut.calculateCrossChainTxFee({
+                unsignedTxs: xchainUnsignedTxs.unsignedTxs,
+                isNativeTxValue: selectedTokenAddress === ADDRESS_ZERO ? true : false,
+                fromAmount: requestLinkData.tokenAmount,
+            })
+
+            const tokenPriceData = await utils.fetchTokenPrice(ADDRESS_ZERO, selectedChainID)
+            const price = tokenPriceData?.price ?? 0
+            setTxFee((Number(ethers.utils.formatEther(txFee)) * price).toFixed(2))
+        }
+        estimateTxFee()
+    }, [selectedTokenAddress])
 
     const handleConnectWallet = async () => {
         open()
     }
 
+    const switchNetwork = async (chainId: string) => {
+        try {
+            await switchNetworkUtil({
+                chainId,
+                currentChainId: currentChain?.id,
+                setLoadingState,
+                switchChainAsync,
+            })
+            console.log(`Switched to chain ${chainId}`)
+        } catch (error) {
+            console.error('Failed to switch network:', error)
+        }
+    }
+
     const handleOnNext = async () => {
+        if (selectedChainID !== currentChain) {
+            await switchNetwork(selectedChainID)
+        }
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            await assertValues({ tokenValue: requestLinkData.tokenAmount })
+            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+                await assertValues({ tokenValue: requestLinkData.tokenAmount })
+                setLoadingState('Sign in wallet')
+                const hash = await sendTransactions({
+                    preparedDepositTxs: { unsignedTxs: [unsignedTx] },
+                    feeOptions: undefined,
+                })
 
-            setLoadingState('Sign in wallet')
+                setLoadingState('Executing transaction')
 
-            const hash = await sendTransactions({
-                preparedDepositTxs: { unsignedTxs: [unsignedTx] },
-                feeOptions: undefined,
-            })
+                await peanut.submitRequestLinkFulfillment({
+                    chainId: requestLinkData.chainId,
+                    hash: hash ?? '',
+                    payerAddress: address ?? '',
+                    link: requestLinkData.link,
+                    apiUrl: '/api/proxy/patch/',
+                })
 
-            setLoadingState('Executing transaction')
+                const currentDate = new Date().toISOString()
+                utils.saveRequestLinkFulfillmentToLocalStorage({
+                    details: {
+                        ...requestLinkData,
+                        destinationChainFulfillmentHash: hash ?? '',
+                        createdAt: currentDate,
+                    },
+                    link: requestLinkData.link,
+                })
 
-            await peanut.submitRequestLinkFulfillment({
-                chainId: requestLinkData.chainId,
-                hash: hash ?? '',
-                payerAddress: address ?? '',
-                link: requestLinkData.link,
-                apiUrl: '/api/proxy/patch/',
-            })
+                setTransactionHash(hash ?? '')
+                onNext()
+            } else {
+                setLoadingState('Sign in wallet')
+                const xchainUnsignedTxs = await createXChainUnsignedTx()
 
-            const currentDate = new Date().toISOString()
-            utils.saveRequestLinkFulfillmentToLocalStorage({
-                details: {
-                    ...requestLinkData,
-                    destinationChainFulfillmentHash: hash ?? '',
-                    createdAt: currentDate,
-                },
-                link: requestLinkData.link,
-            })
+                const { unsignedTxs } = xchainUnsignedTxs
+                const hash = await sendTransactions({
+                    preparedDepositTxs: { unsignedTxs },
+                    feeOptions: undefined,
+                })
+                setLoadingState('Executing transaction')
 
-            setTransactionHash(hash ?? '')
-            onNext()
+                await peanut.submitRequestLinkFulfillment({
+                    chainId: requestLinkData.chainId,
+                    hash: hash ?? '',
+                    payerAddress: address ?? '',
+                    link: requestLinkData.link,
+                    apiUrl: '/api/proxy/patch/',
+                })
+
+                const currentDate = new Date().toISOString()
+                utils.saveRequestLinkFulfillmentToLocalStorage({
+                    details: {
+                        ...requestLinkData,
+                        destinationChainFulfillmentHash: hash ?? '',
+                        createdAt: currentDate,
+                    },
+                    link: requestLinkData.link,
+                })
+
+                setTransactionHash(hash ?? '')
+                onNext()
+            }
         } catch (error) {
             const errorString = utils.ErrorHandler(error)
             setErrorState({
@@ -113,6 +198,7 @@ export const InitialView = ({
                         : utils.shortenAddress(requestLinkData.recipientAddress)}{' '}
                     is requesting
                 </label>
+
                 {tokenPrice ? (
                     <label className="text-h2">
                         $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPrice)}
@@ -157,28 +243,38 @@ export const InitialView = ({
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
+                <label className="text-h9 font-light">
+                    You can fulfill this payment request with any token on any chain. Pick the token and chain that you
+                    want to fulfill this request with.
+                </label>
             </div>
-
+            <TokenSelector classNameButton="w-full" />
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                {estimatedGasCost && (
+                {txFee !== '0' && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Network cost</label>
                         </div>
                         <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {estimatedGasCost === 0
-                                ? '$0'
-                                : estimatedGasCost < 0.01
-                                  ? '$<0.01'
-                                  : `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`}
-                            <MoreInfo
-                                text={
-                                    estimatedGasCost > 0
-                                        ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                        : 'This transaction is sponsored by peanut! Enjoy!'
-                                }
-                            />
+                            {requestLinkData.chainId === selectedChainID &&
+                            requestLinkData.tokenAddress === selectedTokenAddress
+                                ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
+                                : `$${txFee}`}
+                            {requestLinkData.chainId === selectedChainID &&
+                            requestLinkData.tokenAddress === selectedTokenAddress ? (
+                                <MoreInfo
+                                    text={
+                                        estimatedGasCost > 0
+                                            ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                            : 'This transaction is sponsored by peanut! Enjoy!'
+                                    }
+                                />
+                            ) : (
+                                <MoreInfo
+                                    text={`This transaction will cost you $${utils.formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                />
+                            )}
                         </label>
                     </div>
                 )}

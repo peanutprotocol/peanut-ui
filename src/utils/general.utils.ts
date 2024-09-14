@@ -656,7 +656,15 @@ export const getRequestLinkFulfillmentsFromLocalStorage = () => {
     }
 }
 
-export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: string; tokenAddress?: string }) => {
+export const updatePeanutPreferences = ({
+    chainId,
+    tokenAddress,
+    decimals,
+}: {
+    chainId?: string
+    tokenAddress?: string
+    decimals?: number
+}) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -665,6 +673,7 @@ export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: s
         let data = {
             chainId: chainId,
             tokenAddress: tokenAddress,
+            decimals: decimals,
         }
 
         localStorage.setItem(key, JSON.stringify(data))
@@ -684,6 +693,7 @@ export const getPeanutPreferences = () => {
         let data = {
             chainId: '',
             tokenAddress: '',
+            decimals: undefined,
         }
 
         if (storedData) {
@@ -840,4 +850,28 @@ export const formatIban = (iban: string) => {
         .toUpperCase()
         .replace(/(.{4})/g, '$1 ')
         .trim()
+}
+
+export const switchNetwork = async ({
+    chainId,
+    currentChainId,
+    setLoadingState,
+    switchChainAsync,
+}: {
+    chainId: string
+    currentChainId: string | undefined
+    setLoadingState: (state: consts.LoadingStates) => void
+    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
+}) => {
+    if (currentChainId !== chainId) {
+        setLoadingState('Allow network switch')
+        try {
+            await switchChainAsync({ chainId: Number(chainId) })
+            setLoadingState('Switching network')
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+            setLoadingState('Loading')
+        } catch (error) {
+            throw new Error('Error switching network.')
+        }
+    }
 }
