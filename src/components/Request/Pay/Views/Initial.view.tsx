@@ -12,7 +12,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { ADDRESS_ZERO, EPeanutLinkType, RequestScreens } from '../utils'
+import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
 import * as assets from '@/assets'
 
 export const InitialView = ({
@@ -35,7 +35,7 @@ export const InitialView = ({
     }>({ showError: false, errorMessage: '' })
     const [txFee, setTxFee] = useState<string>('0')
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
-    const [linkState, setLinkState] = useState<RequestScreens>(RequestScreens.LOADING)
+    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.LOADING)
 
     const createXChainUnsignedTx = async () => {
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
@@ -54,11 +54,11 @@ export const InitialView = ({
 
     useEffect(() => {
         const estimateTxFee = async () => {
-            setLinkState(RequestScreens.LOADING)
+            setLinkState(RequestStatus.LOADING)
             if(selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
-                setLinkState(RequestScreens.CLAIM)
+                setLinkState(RequestStatus.CLAIM)
                 return
             }
             try {
@@ -68,16 +68,16 @@ export const InitialView = ({
                 if(Number(feeEstimation) > 0) {
                     setIsFeeEstimationError(false)
                     setTxFee(Number(feeEstimation).toFixed(2))
-                    setLinkState(RequestScreens.CLAIM)
+                    setLinkState(RequestStatus.CLAIM)
                 } else {
                     setErrorState({ showError: true, errorMessage: 'No route found' })
                     setIsFeeEstimationError(true)
                     setTxFee('0')
-                    setLinkState(RequestScreens.NOT_FOUND)
+                    setLinkState(RequestStatus.NOT_FOUND)
                 }
             } catch (error) {
                 setErrorState({ showError: true, errorMessage: 'No route found' })
-                setLinkState(RequestScreens.NOT_FOUND)
+                setLinkState(RequestStatus.NOT_FOUND)
                 setIsFeeEstimationError(true)
                 setTxFee('0')
             }
@@ -304,13 +304,13 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
-                    disabled={linkState === RequestScreens.LOADING || linkState === RequestScreens.NOT_FOUND || isLoading}
+                    disabled={linkState === RequestStatus.LOADING || linkState === RequestStatus.NOT_FOUND || isLoading}
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
                     }}
                 >
-                    {linkState === RequestScreens.LOADING ? (
+                    {linkState === RequestStatus.LOADING ? (
                         <div className="relative flex w-full items-center justify-center">
                             <div className="animate-spin">
                                 <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />

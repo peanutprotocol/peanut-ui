@@ -11,7 +11,7 @@ export enum EPeanutLinkType {
     erc20,
 }
 
-export enum RequestScreens {
+export enum RequestStatus {
     LOADING = 'LOADING',
     CLAIM = 'CLAIM',
     NOT_FOUND = 'NOT_FOUND',
