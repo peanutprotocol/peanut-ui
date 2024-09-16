@@ -11,6 +11,7 @@ export const tokenSelectorContext = createContext({
     selectedTokenAddress: '',
     selectedChainID: '',
     selectedTokenDecimals: 0 as number | undefined,
+    setSelectedTokenDecimals: (decimals: number | undefined) => {},
     setSelectedTokenAddress: (address: string) => {},
     setSelectedChainID: (chainID: string) => {},
     selectedTokenPrice: 0 as number | undefined,
@@ -114,6 +115,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     return (
         <tokenSelectorContext.Provider
             value={{
+                setSelectedTokenDecimals,
                 selectedTokenAddress,
                 setSelectedTokenAddress,
                 selectedTokenDecimals,
