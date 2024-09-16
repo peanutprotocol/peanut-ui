@@ -281,11 +281,11 @@ export function Welcome() {
             {/* </div> */}
 
             <div className="flex w-full flex-col items-center justify-center">
-                {/* <MarqueeComp message={`Frens send links`} imageSrc={HandThumbs.src} /> */}
+                <MarqueeComp message={`Frens send links`} imageSrc={HandThumbs.src} />
 
                 <FAQsPanel heading="FAQs" questions={faqs} />
 
-                {/* <MarqueeComp message={`Frens`} imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin" /> */}
+                <MarqueeComp message={`Frens`} imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin" />
             </div>
 
             <div role="list" className="relative z-1 mx-auto pb-20 pt-8 md:pb-36 md:pt-20 lg:px-4 xl:w-[92%] 2xl:w-4/5">
