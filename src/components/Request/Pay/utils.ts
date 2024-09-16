@@ -10,3 +10,9 @@ export enum EPeanutLinkType {
     native,
     erc20,
 }
+
+export enum RequestScreens {
+    LOADING = 'LOADING',
+    CLAIM = 'CLAIM',
+    NOT_FOUND = 'NOT_FOUND',
+}

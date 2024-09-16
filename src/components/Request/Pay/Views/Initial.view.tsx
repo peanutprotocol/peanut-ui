@@ -12,8 +12,8 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { ADDRESS_ZERO, EPeanutLinkType } from '../utils'
-import { ethers } from 'ethers'
+import { ADDRESS_ZERO, EPeanutLinkType, RequestScreens } from '../utils'
+import * as assets from '@/assets'
 
 export const InitialView = ({
     onNext,
@@ -34,6 +34,8 @@ export const InitialView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [txFee, setTxFee] = useState<string>('0')
+    const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
+    const [linkState, setLinkState] = useState<RequestScreens>(RequestScreens.LOADING)
 
     const createXChainUnsignedTx = async () => {
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
@@ -52,19 +54,36 @@ export const InitialView = ({
 
     useEffect(() => {
         const estimateTxFee = async () => {
-            const xchainUnsignedTxs = await createXChainUnsignedTx()
-            const txFee = await peanut.calculateCrossChainTxFee({
-                unsignedTxs: xchainUnsignedTxs.unsignedTxs,
-                isNativeTxValue: selectedTokenAddress === ADDRESS_ZERO ? true : false,
-                fromAmount: requestLinkData.tokenAmount,
-            })
-
-            const tokenPriceData = await utils.fetchTokenPrice(ADDRESS_ZERO, selectedChainID)
-            const price = tokenPriceData?.price ?? 0
-            setTxFee((Number(ethers.utils.formatEther(txFee)) * price).toFixed(2))
+            setLinkState(RequestScreens.LOADING)
+            if(selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+                setErrorState({ showError: false, errorMessage: '' })
+                setIsFeeEstimationError(false)
+                setLinkState(RequestScreens.CLAIM)
+                return
+            }
+            try {
+                setErrorState({ showError: false, errorMessage: '' })
+                const txData = await createXChainUnsignedTx()
+                const {feeEstimation} = txData
+                if(Number(feeEstimation) > 0) {
+                    setIsFeeEstimationError(false)
+                    setTxFee(Number(feeEstimation).toFixed(2))
+                    setLinkState(RequestScreens.CLAIM)
+                } else {
+                    setErrorState({ showError: true, errorMessage: 'No route found' })
+                    setIsFeeEstimationError(true)
+                    setTxFee('0')
+                    setLinkState(RequestScreens.NOT_FOUND)
+                }
+            } catch (error) {
+                setErrorState({ showError: true, errorMessage: 'No route found' })
+                setLinkState(RequestScreens.NOT_FOUND)
+                setIsFeeEstimationError(true)
+                setTxFee('0')
+            }
         }
         estimateTxFee()
-    }, [selectedTokenAddress])
+    }, [selectedTokenAddress, selectedChainID])
 
     const handleConnectWallet = async () => {
         open()
@@ -252,7 +271,7 @@ export const InitialView = ({
             </div>
             <TokenSelector classNameButton="w-full" />
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                {txFee !== '0' && (
+                { !isFeeEstimationError && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
@@ -285,14 +304,21 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
+                    disabled={linkState === RequestScreens.LOADING || linkState === RequestScreens.NOT_FOUND || isLoading}
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
                     }}
-                    disabled={isLoading}
                 >
-                    {!isConnected ? (
-                        'Create or Connect Wallet'
+                    {linkState === RequestScreens.LOADING ? (
+                        <div className="relative flex w-full items-center justify-center">
+                            <div className="animate-spin">
+                                <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                                <span className="sr-only">Loading...</span>
+                        </div>
+                    </div>
+                ) : !isConnected ? (
+                    'Create or Connect Wallet'
                     ) : isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
