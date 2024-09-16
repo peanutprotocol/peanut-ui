@@ -21,7 +21,13 @@ import {
     SBF_PERSON,
     SmileStars,
     PEANUTMAN_HAPPY,
+    HandThumbs,
+    Star,
+    EyesEmoiji,
+    GoodIdeaSign,
+    SmileSide,
 } from '@/assets'
+import { motion } from 'framer-motion'
 import * as chain_logos from '@/assets/chains'
 import { MarqueeWrapper, MarqueeComp } from '../Global/MarqueeWrapper'
 import { FAQsPanel } from '../Global/FAQs'
@@ -141,16 +147,39 @@ const testimonials = [
 ]
 
 export function Welcome() {
-    // const [openedFaq, setOpenedFaq] = useState<number | null>(null)
-
-    // function classNames(...classes: any) {
-    //     return classes.filter(Boolean).join(' ')
-    // }
-
     return (
-        <div className="flex w-full flex-col items-center justify-center">
+        <div className=" flex w-full flex-col items-center justify-center">
             <div className="flex w-full text-black dark:text-white">
-                <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 md:gap-12 lg:mx-0 lg:px-0">
+                <div className="relative flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 md:gap-12 md:py-20 lg:mx-0 lg:px-0 lg:py-24">
+                    <motion.img
+                        initial={{ opacity: 0, translateY: 20, translateX: 5 }}
+                        whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
+                        transition={{ type: 'spring', damping: 5 }}
+                        src={Star.src}
+                        className="absolute left-[6%] top-[12%] w-12 md:left-[10%] md:top-[23%] lg:left-[10%] lg:top-[23%]"
+                    />
+                    <motion.img
+                        initial={{ opacity: 0, translateY: 28, translateX: -5 }}
+                        whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
+                        transition={{ type: 'spring', damping: 5 }}
+                        src={Star.src}
+                        className="absolute right-[4%] top-[8%] w-12 md:right-[5%] md:top-[16%] lg:right-[14%] lg:top-[16%]"
+                    />
+                    <motion.img
+                        initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5, transformOrigin: 'top left' }}
+                        whileInView={{
+                            rotate: -6,
+                            opacity: 1,
+                            translateY: 0,
+                            translateX: 0,
+                            transformOrigin: 'top left',
+                        }}
+                        // whileHover={{ rotate: 5, transformOrigin: 'top left' }}
+                        transition={{ type: 'spring', damping: 10 }}
+                        src={EyesEmoiji.src}
+                        className="absolute left-[7%] top-[58%] hidden w-36 md:left-[1%] md:top-[65%] lg:left-[7%] lg:top-[58%] lg:block xl:left-[11%]"
+                    />
+
                     <div className="space-y-8">
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             <div className="mx-auto flex flex-row items-center justify-center gap-2 font-display text-h1 uppercase md:text-[4rem] lg:text-[5rem]">
@@ -211,17 +240,9 @@ export function Welcome() {
                         })}
                     </div>
                 </div>
-
-                {/* <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black py-3 lg:flex lg:pb-16 lg:pt-16 ">
-                    <img
-                        src={PEANUTMAN_HAPPY.src}
-                        className="absolute z-50 duration-200 hover:rotate-12 "
-                        alt="Peanutman Cheering"
-                    />
-                </div> */}
             </div>
 
-            <div className="grid- -cols-1- lg:grid-cols-3- grid- flex w-full flex-wrap items-center gap-4 bg-transparent px-4 py-6">
+            <div className="flex w-full flex-wrap items-center gap-4 bg-transparent px-4 py-6 md:py-10 md:pb-20 lg:pb-30">
                 <label className="feature feature-primary grow -rotate-2">300k+ Transactions</label>
                 <label className="feature grow rotate-1">105k+ Unique wallet addresses</label>
                 <label className="feature feature-primary grow -rotate-1">20+ Chains</label>
@@ -240,12 +261,42 @@ export function Welcome() {
             {/* </div> */}
 
             <div className="flex w-full flex-col items-center justify-center">
+                <MarqueeComp message={`Frens send links`} imageSrc={HandThumbs.src} />
+
                 <FAQsPanel heading="FAQs" questions={faqs} />
 
-                {/* <MarqueeComp message={`Frens`} imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin" /> */}
+                <MarqueeComp message={`Frens`} imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin" />
             </div>
 
             <div role="list" className="relative z-1 mx-auto pb-20 pt-8 md:pb-36 md:pt-20 lg:px-4 xl:w-[92%] 2xl:w-4/5">
+                <motion.img
+                    initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5, transformOrigin: 'top left' }}
+                    whileInView={{
+                        rotate: -6,
+                        opacity: 1,
+                        translateY: 0,
+                        translateX: 0,
+                        transformOrigin: 'top left',
+                    }}
+                    transition={{ type: 'spring', damping: 10 }}
+                    src={GoodIdeaSign.src}
+                    className="absolute bottom-[1%] left-[7%] hidden w-36 md:bottom-[7%] md:left-[1%] lg:bottom-[2%] lg:left-[2%] lg:block xl:left-[11%]"
+                />
+
+                <motion.img
+                    initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5, transformOrigin: 'top left' }}
+                    whileInView={{
+                        rotate: -6,
+                        opacity: 1,
+                        translateY: 0,
+                        translateX: 0,
+                        transformOrigin: 'top left',
+                    }}
+                    transition={{ type: 'spring', damping: 10 }}
+                    src={SmileSide.src}
+                    className="absolute bottom-[1%] right-[7%] hidden w-36 md:bottom-[2%] md:right-[1%] lg:bottom-[1.5%] lg:right-[2%] lg:block xl:right-[11%]"
+                />
+
                 <Testimonials testimonials={testimonials} />
             </div>
         </div>
