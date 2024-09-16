@@ -9,7 +9,7 @@ import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
-import * as components from './Components'
+import { tokenDisplay, AdvancedTokenSelectorButton } from './Components'
 
 import * as _consts from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
@@ -99,7 +99,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
 
     return (
         <>
-            <components.AdvancedTokenSelectorButton
+            <AdvancedTokenSelectorButton
                 onClick={() => {
                     setVisible(!visible)
                 }}
@@ -158,7 +158,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                             <a
                                 href="https://docs.peanut.to/learn/supported-chains-and-tokens"
                                 target="_blank"
-                                className="underline"
+                                className="text-link-decoration font-medium"
                             >
                                 See the full list
                             </a>
@@ -276,8 +276,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                             <ChainSelector />
                         </div>
 
-                        {filterValue.length > 0 &&
-                            components.tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID)}
+                        {filterValue.length > 0 && tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID)}
                         <a
                             className="cursor-pointer text-center text-h8 font-normal underline"
                             href="https://discord.gg/BX9Ak7AW28"

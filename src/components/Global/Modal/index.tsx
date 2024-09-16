@@ -68,7 +68,7 @@ const Modal = ({
                 >
                     <Dialog.Panel
                         className={twMerge(
-                            `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end border border-transparent bg-white dark:border-white dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            `border-rounded relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end bg-white dark:bg-n-1 sm:m-auto sm:self-auto ${
                                 video
                                     ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''
@@ -101,13 +101,13 @@ const Modal = ({
                                 )}
                                 <button
                                     className={twMerge(
-                                        `absolute right-5 top-4.5 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 ${
-                                            video ? 'absolute right-6 top-6 h-10 w-10 fill-white' : ''
+                                        `absolute right-4 top-4 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 ${
+                                            video ? 'absolute right-5 top-5 h-10 w-10 fill-white' : ''
                                         } ${classButtonClose}`
                                     )}
                                     onClick={onClose}
                                 >
-                                    <Icon className="fill-inherit transition-colors" name="close" />
+                                    <Icon className="h-6 w-6 fill-inherit transition-colors" name="close" />
                                 </button>
                             </>
                         ) : (

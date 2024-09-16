@@ -1,4 +1,4 @@
-import * as components from '@/components'
+// import * as components from '@/components'
 import Layout from '@/components/Global/Layout'
 import ToggleTheme from '@/components/Global/ToggleTheme'
 

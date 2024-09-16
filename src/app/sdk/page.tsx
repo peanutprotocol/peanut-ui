@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Layout from '@/components/Global/Layout'
-import * as components from '@/components'
+// import * as components from '@/components'
+import { WelcomeSDK } from '@/components'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -20,7 +21,7 @@ export const metadata: Metadata = {
 export default function Home() {
     return (
         <Layout className="!mx-0 w-full !px-0 !pt-0 ">
-            <components.WelcomeSDK />
+            <WelcomeSDK />
         </Layout>
     )
 }

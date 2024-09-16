@@ -1,8 +1,8 @@
 import peanut from '@squirrel-labs/peanut-sdk'
 
-import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import {peanutTokenDetails} from '@/constants'
+import {IUserBalance} from '@/interfaces'
+import {compareTokenAddresses, isNativeCurrency} from '@/utils'
 
 export const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
     return tokenValue / tokenPrice
@@ -48,24 +48,24 @@ export function toLowerCaseKeys(obj: any): any {
     return newObj
 }
 
-export const getTokenDetails = (tokenAddress: string, chainId: string, userBalances: interfaces.IUserBalance[]) => {
+export const getTokenDetails = (tokenAddress: string, chainId: string, userBalances: IUserBalance[]) => {
     let tokenDecimals: number = 18
     if (
         userBalances.some(
-            (balance) => utils.compareTokenAddresses(balance.address, tokenAddress) && balance.chainId == chainId
+            (balance) => compareTokenAddresses(balance.address, tokenAddress) && balance.chainId == chainId
         )
     ) {
         tokenDecimals =
             userBalances.find(
-                (balance) => balance.chainId == chainId && utils.compareTokenAddresses(balance.address, tokenAddress)
+                (balance) => balance.chainId == chainId && compareTokenAddresses(balance.address, tokenAddress)
             )?.decimals ?? 18
     } else {
         tokenDecimals =
-            consts.peanutTokenDetails
+            peanutTokenDetails
                 .find((detail) => detail.chainId.toString() == chainId)
-                ?.tokens.find((token) => utils.compareTokenAddresses(token.address, tokenAddress))?.decimals ?? 18
+                ?.tokens.find((token) => compareTokenAddresses(token.address, tokenAddress))?.decimals ?? 18
     }
-    const tokenType = utils.isNativeCurrency(tokenAddress) ? 0 : 1
+    const tokenType = isNativeCurrency(tokenAddress) ? 0 : 1
 
     return { tokenDecimals, tokenType }
 }

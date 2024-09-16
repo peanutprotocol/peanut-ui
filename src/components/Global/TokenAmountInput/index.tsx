@@ -39,10 +39,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
     utils.estimateStableCoin(1)
 
     return (
-        <form
-            className={`relative max-w-96 rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}
-            action=""
-        >
+        <form className={`border-rounded relative max-w-96  px-2 py-4 ${className}`} action="">
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1 ">
                 {}
                 {selectedTokenPrice &&

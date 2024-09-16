@@ -1,6 +1,20 @@
 'use client'
 import { motion } from 'framer-motion'
-import * as assets from '@/assets'
+import {
+    Cloud,
+    HandToken,
+    Star,
+    StopSign,
+    EasySign,
+    HeyDudeSign,
+    ClaimChainsBadge,
+    SmileHigh,
+    SmileFinder,
+    HandSnap,
+    GoodIdeaSign,
+    EyesEmoiji,
+    HandBag,
+} from '@/assets'
 
 const CloudAnimation = ({
     top,
@@ -51,7 +65,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
             <CloudAnimation
                 top="12%"
                 duration={10}
-                imageSrc={assets.Cloud.src}
+                imageSrc={Cloud.src}
                 screenWidth={screenWidth}
                 startXOffset={300}
                 speed={55}
@@ -59,7 +73,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
             <CloudAnimation
                 top="40%"
                 duration={12}
-                imageSrc={assets.Cloud.src}
+                imageSrc={Cloud.src}
                 screenWidth={screenWidth}
                 startXOffset={220}
                 speed={40}
@@ -67,7 +81,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
             <CloudAnimation
                 top="74%"
                 duration={8}
-                imageSrc={assets.Cloud.src}
+                imageSrc={Cloud.src}
                 styleMod="z-[99]"
                 screenWidth={screenWidth}
                 startXOffset={500}
@@ -85,7 +99,7 @@ export const HeroImages = () => {
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 // whileHover={{ scale: 1.1, translateY: 2, translateX: 1, rotate: 2 }}
                 transition={{ type: 'spring', damping: 5 }}
-                src={assets.Star.src}
+                src={Star.src}
                 className="absolute left-[12%] top-[12%] w-12 md:left-[10%] md:top-[23%] lg:left-[10%] lg:top-[23%]"
             />
             <motion.img
@@ -93,7 +107,7 @@ export const HeroImages = () => {
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 // whileHover={{ scale: 1.15, translateY: -1, translateX: -2, rotate: 3 }}
                 transition={{ type: 'spring', damping: 5 }}
-                src={assets.Star.src}
+                src={Star.src}
                 className="absolute right-[6%] top-[8%] w-12 md:right-[5%] md:top-[16%] lg:right-[14%] lg:top-[16%]"
             />
             <motion.img
@@ -101,7 +115,7 @@ export const HeroImages = () => {
                 whileInView={{ rotate: 0, opacity: 1, translateY: 0, translateX: 0, transformOrigin: 'top left' }}
                 whileHover={{ rotate: 5, transformOrigin: 'top left' }}
                 transition={{ type: 'spring', damping: 10 }}
-                src={assets.HandToken.src}
+                src={HandToken.src}
                 className="absolute left-[7%] top-[63%] hidden w-36 md:left-[1%] md:top-[70%] lg:left-[7%] lg:top-[63%] lg:block xl:left-[11%]"
             />
         </>
@@ -118,7 +132,7 @@ export const StoryImages = ({ index }: { index: number }) => {
                         whileInView={{ scale: 1, rotate: 0, translateY: 0 }}
                         // whileHover={{ rotate: 4 }}
                         transition={{ type: 'spring', damping: 10 }}
-                        src={assets.StopSign.src}
+                        src={StopSign.src}
                         className="absolute -left-[52%] -top-4 w-40 -rotate-3 md:-left-[28%]"
                     />
                     <motion.img
@@ -126,7 +140,7 @@ export const StoryImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.1, translateY: 2, translateX: 1, rotate: 2 }}
                         transition={{ type: 'spring', damping: 5 }}
-                        src={assets.Star.src}
+                        src={Star.src}
                         className="absolute -left-[32%] top-[42%] w-14"
                     />
                 </>
@@ -139,7 +153,7 @@ export const StoryImages = ({ index }: { index: number }) => {
                         whileInView={{ scale: 1, rotate: 0, translateY: 0 }}
                         // whileHover={{ rotate: 4 }}
                         transition={{ type: 'spring', damping: 10 }}
-                        src={assets.EasySign.src}
+                        src={EasySign.src}
                         className="absolute -right-[66%] top-[20%] w-48 rotate-6 md:-right-[38%] lg:-right-[48%]"
                     />
                     <motion.img
@@ -147,7 +161,7 @@ export const StoryImages = ({ index }: { index: number }) => {
                         whileInView={{ scale: 1, rotate: 0, translateY: 0 }}
                         // whileHover={{ rotate: -4 }}
                         transition={{ type: 'spring', damping: 10 }}
-                        src={assets.HeyDudeSign.src}
+                        src={HeyDudeSign.src}
                         className="absolute -right-[48%] -top-2 w-40 -rotate-3 md:-right-[25%] lg:-right-[35%]"
                     />
 
@@ -156,7 +170,7 @@ export const StoryImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: -1, translateX: -2, rotate: 3 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.Star.src}
+                        src={Star.src}
                         className="absolute -bottom-16 -right-[8%] w-14"
                     />
                 </>
@@ -172,7 +186,7 @@ export const FeaturesBadgeImage = () => {
             whileInView={{ opacity: 1, translateY: 0, translateX: 0, rotate: 3, transformOrigin: 'bottom right' }}
             whileHover={{ translateY: 1, translateX: 2, rotate: 0.5, transformOrigin: 'bottom right' }}
             transition={{ type: 'spring', damping: 15 }}
-            src={assets.ClaimChainsBadge.src}
+            src={ClaimChainsBadge.src}
             className="mx-auto w-80 -rotate-6 md:mt-8"
             alt="Send a link. Claim on 20+ Chains."
         />
@@ -189,7 +203,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: -1, translateX: -2, rotate: 3 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.SmileHigh.src}
+                        src={SmileHigh.src}
                         className="absolute -left-20 top-4 w-30 md:-top-16 md:left-[1%] lg:left-[14%] xl:left-[20%]"
                     />
                     <motion.img
@@ -197,7 +211,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: 1, translateX: 2, rotate: 2 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.SmileFinder.src}
+                        src={SmileFinder.src}
                         className="absolute -left-10 top-16 w-28 md:-left-[2%] md:-top-4 lg:left-[12%] xl:left-[18%]"
                     />
                     <motion.img
@@ -217,7 +231,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         }}
                         whileHover={{ rotate: -6, transformOrigin: 'bottom left' }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.HandSnap.src}
+                        src={HandSnap.src}
                         className="absolute -right-8 top-12 w-20 md:-top-8 md:right-[1%] md:w-28 lg:-top-12 lg:right-[10%] xl:right-[20%]"
                     />
                 </>
@@ -230,7 +244,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: -1, translateX: -2, rotate: 3 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.Star.src}
+                        src={Star.src}
                         className="absolute -left-6 -top-6 w-14 -rotate-3 md:left-[3%] lg:left-[2%] xl:left-[8%]"
                     />
                     <motion.img
@@ -238,7 +252,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: 1, translateX: 2, rotate: 2 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.GoodIdeaSign.src}
+                        src={GoodIdeaSign.src}
                         className="absolute -right-20 top-20 w-48 rotate-6 md:right-[2%] md:top-18 lg:-right-[3%] lg:top-32 xl:right-[7%] xl:top-18"
                     />
                     <motion.img
@@ -246,7 +260,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                         // whileHover={{ scale: 1.15, translateY: 1, translateX: 2, rotate: 2 }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.EyesEmoiji.src}
+                        src={EyesEmoiji.src}
                         className="absolute -left-16 bottom-0 w-36 -rotate-6 md:-bottom-12 lg:-bottom-8 lg:left-[0%] xl:-bottom-18 xl:left-[7%]"
                     />
                     <motion.img
@@ -262,7 +276,7 @@ export const FeaturesImages = ({ index }: { index: number }) => {
                         }}
                         whileHover={{ rotate: -6, transformOrigin: 'bottom left' }}
                         transition={{ type: 'spring', damping: 6 }}
-                        src={assets.HandBag.src}
+                        src={HandBag.src}
                         className="absolute -bottom-16 right-[0%] hidden w-36 md:block lg:-bottom-32 lg:right-[20%] xl:-bottom-18 xl:right-6"
                     />
                 </>

@@ -1,13 +1,14 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useRef } from 'react'
 import { useMediaQuery } from '@chakra-ui/react'
 import { Stack, Box, Flex, SimpleGrid, GridItem } from '@chakra-ui/react'
 import { motion, useAnimation, useInView } from 'framer-motion'
 import { FeaturesImages, FeaturesBadgeImage } from './imageAssets'
 // import { MarqueeWrapper } from '../Global/MarqueeWrapper'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
-import * as assets from '@/assets'
+import { Testimonials } from '../Global/Testimonials'
+import { HR, HandThumbs } from '@/assets'
 
 type FeaturesProps = {
     sections: Array<{
@@ -189,40 +190,43 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                             </h2>
 
                             {section.testimonials && (
-                                <SimpleGrid
-                                    spacing={8}
-                                    columns={{ sm: 1, md: 2, lg: 4 }}
-                                    className="mt-12 items-start md:mt-20"
-                                >
-                                    {section.testimonials.map((testimonial, index) => (
-                                        <GridItem key={index}>
-                                            {isLargerThan768 ? (
-                                                <motion.div
-                                                    ref={ref}
-                                                    initial="hidden"
-                                                    whileInView="visible"
-                                                    variants={gridItemVariants[index]}
-                                                    whileHover="hover"
-                                                    className={`relative z-10 p-4 md:p-8`}
-                                                >
-                                                    <motion.div
-                                                        variants={testimonialBgVariants[index]}
-                                                        className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
-                                                    ></motion.div>
+                                // <SimpleGrid
+                                //     spacing={8}
+                                //     columns={{ sm: 1, md: 2, lg: 4 }}
+                                //     className="mt-12 items-start md:mt-20"
+                                // >
+                                //     {section.testimonials.map((testimonial, index) => (
+                                //         <GridItem key={index}>
+                                //             {isLargerThan768 ? (
+                                //                 <motion.div
+                                //                     ref={ref}
+                                //                     initial="hidden"
+                                //                     whileInView="visible"
+                                //                     variants={gridItemVariants[index]}
+                                //                     whileHover="hover"
+                                //                     className={`relative z-10 p-4 md:p-8`}
+                                //                 >
+                                //                     <motion.div
+                                //                         variants={testimonialBgVariants[index]}
+                                //                         className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
+                                //                     ></motion.div>
 
-                                                    <TestimonialBody testimonial={testimonial} />
-                                                </motion.div>
-                                            ) : (
-                                                <div className={`relative z-10 p-4 md:p-8`}>
-                                                    <div
-                                                        className={`bg-primary absolute left-0 top-0 -z-1 h-full w-full rounded-3xl testimonial-${index}-bg`}
-                                                    ></div>
-                                                    <TestimonialBody testimonial={testimonial} />
-                                                </div>
-                                            )}
-                                        </GridItem>
-                                    ))}
-                                </SimpleGrid>
+                                //                     <TestimonialBody testimonial={testimonial} />
+                                //                 </motion.div>
+                                //             ) : (
+                                //                 <div className={`relative z-10 p-4 md:p-8`}>
+                                //                     <div
+                                //                         className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
+                                //                     ></div>
+                                //                     <TestimonialBody testimonial={testimonial} />
+                                //                 </div>
+                                //             )}
+                                //         </GridItem>
+                                //     ))}
+                                // </SimpleGrid>
+                                <div className="mt-12 md:mt-20">
+                                    <Testimonials testimonials={section.testimonials} />
+                                </div>
                             )}
 
                             {section.list && (
@@ -254,7 +258,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                                 }}
                                                 transition={{ type: 'spring', damping: 15 }}
                                                 key={index}
-                                                className={`border-primary mx-auto flex w-auto rounded-full border-2 px-5 py-3 font-display text-[1.4rem] font-bold uppercase shadow ring-2 ring-white md:mr-auto md:text-[2rem] ${index % 2 === 0 ? 'bg-primary text-white' : 'text-primary bg-white'}`}
+                                                className={`feature ${index % 2 === 0 ? 'feature-primary' : ''}`}
                                             >
                                                 {item}
                                             </motion.div>
@@ -266,34 +270,34 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
 
                         {index + 1 < sections.length && (
                             <Box className="mt-16 md:mt-20 lg:mt-28 xl:mt-36">
-                                <img src={assets.HR.src} className="mx-auto h-5" />
+                                <img src={HR.src} className="mx-auto h-5" />
                             </Box>
                         )}
                     </Box>
                 ))}
             </Stack>
 
-            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={assets.HandThumbs.src} />}
+            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={HandThumbs.src} />}
         </Flex>
     )
 }
 
-const TestimonialBody = ({ testimonial }: { testimonial: any }) => {
-    return (
-        <>
-            <div
-                className={`${testimonial.bgColorClass} absolute left-0 top-0 -z-1 h-full w-full rounded-3xl border-2 border-n-1 bg-white shadow-md ring-2 ring-white`}
-            ></div>
+// const TestimonialBody = ({ testimonial }: { testimonial: any }) => {
+//     return (
+//         <>
+//             <div
+//                 className={`${testimonial.bgColorClass} absolute left-0 top-0 -z-1 h-full w-full rounded-3xl border-2 border-n-1 bg-white shadow-md ring-2 ring-white`}
+//             ></div>
 
-            <img src={testimonial.imageSrc} alt={testimonial.altText} className="mx-auto h-20 w-20 rounded-full" />
+//             <img src={testimonial.imageSrc} alt={testimonial.altText} className="mx-auto h-20 w-20 rounded-full" />
 
-            <div className="mt-4 text-center text-lg font-semibold leading-6">{testimonial.comment}</div>
+//             <div className="mt-4 text-center text-lg font-semibold leading-6">{testimonial.comment}</div>
 
-            <div className="mt-4 text-center">
-                <div className="font-semibold">
-                    {testimonial.name}, {testimonial.detail}
-                </div>
-            </div>
-        </>
-    )
-}
+//             <div className="mt-4 text-center">
+//                 <div className="font-semibold">
+//                     {testimonial.name}, {testimonial.detail}
+//                 </div>
+//             </div>
+//         </>
+//     )
+// }

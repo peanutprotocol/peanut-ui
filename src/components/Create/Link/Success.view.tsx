@@ -4,10 +4,10 @@ import Icon from '@/components/Global/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
 import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import * as _consts from '../Create.consts'
-import * as consts from '@/constants'
-import * as utils from '@/utils'
-import * as context from '@/context'
+import { ICreateScreenProps } from '../Create.consts'
+// import * as consts from '@/constants'
+import { getExplorerUrl, copyTextToClipboardWithFallback, shortenAddressLong, shareToEmail, shareToSms } from '@/utils'
+import { tokenSelectorContext } from '@/context'
 import { useToast } from '@chakra-ui/react'
 import {
     useWeb3InboxAccount,
@@ -18,16 +18,9 @@ import {
 } from '@web3inbox/react'
 import { useAccount, useSignMessage } from 'wagmi'
 
-export const CreateLinkSuccessView = ({
-    link,
-    txHash,
-    createType,
-    recipient,
-    tokenValue,
-}: _consts.ICreateScreenProps) => {
-    const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
-        context.tokenSelectorContext
-    )
+export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tokenValue }: ICreateScreenProps) => {
+    const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } =
+        useContext(tokenSelectorContext)
     const toast = useToast()
 
     const { address } = useAccount({})
@@ -44,7 +37,7 @@ export const CreateLinkSuccessView = ({
     const [txUsdValue, setTxUsdValue] = useState<string | undefined>(undefined)
 
     const explorerUrlWithTx = useMemo(
-        () => `${utils.getExplorerUrl(selectedChainID)}/tx/${txHash}`,
+        () => `${getExplorerUrl(selectedChainID)}/tx/${txHash}`,
         [txHash, selectedChainID]
     )
     const share = async (url: string) => {
@@ -63,7 +56,7 @@ export const CreateLinkSuccessView = ({
                 isClosable: true,
                 variant: 'subtle',
             })
-            utils.copyTextToClipboardWithFallback(url)
+            copyTextToClipboardWithFallback(url)
             console.log(error)
         }
     }
@@ -147,7 +140,7 @@ export const CreateLinkSuccessView = ({
             {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">
                 {createType === 'direct'
-                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}.`
+                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : shortenAddressLong(recipient.address ?? '')}.`
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
             {link && (
@@ -157,7 +150,7 @@ export const CreateLinkSuccessView = ({
                             <button
                                 className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
                                 onClick={() => {
-                                    utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
+                                    shareToEmail(recipient.name ?? '', link, txUsdValue)
                                 }}
                             >
                                 Share via email
@@ -170,7 +163,7 @@ export const CreateLinkSuccessView = ({
                             <button
                                 className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
                                 onClick={() => {
-                                    utils.shareToSms(recipient.name ?? '', link, txUsdValue)
+                                    shareToSms(recipient.name ?? '', link, txUsdValue)
                                 }}
                             >
                                 Share via SMS

@@ -1,4 +1,5 @@
-import * as components from '@/components'
+// import * as components from '@/components'
+import { Terms } from '@/components'
 import Layout from '@/components/Global/Layout'
 
 import { Metadata } from 'next'
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 export default function TermsPage() {
     return (
         <Layout>
-            <components.Terms />
+            <Terms />
         </Layout>
     )
 }
