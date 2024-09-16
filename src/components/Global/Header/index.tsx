@@ -1,11 +1,11 @@
 'use client'
-
 import React, { useEffect, useState, useCallback } from 'react'
 import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
 import Link from 'next/link'
-import * as assets from '@/assets'
-import * as utils from '@/utils'
+
+import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
+import { shortenAddress } from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
@@ -13,7 +13,7 @@ import { breakpoints, emToPx } from '@/styles/theme'
 import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
-    animationData: assets.HAMBURGER_LOTTIE,
+    animationData: HAMBURGER_LOTTIE,
     loop: true,
     autoplay: false,
     rendererSettings: {
@@ -57,7 +57,7 @@ export const Header = () => {
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
                         <span className="inline px-3 sm:px-4">peanut protocol</span>
                     </div>
                 </Box>
@@ -79,8 +79,8 @@ export const Header = () => {
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
-                        <span className="inline px-2 text-h5 ">peanut protocol</span>
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
+                        <span className="text-h5- inline px-2 ">peanut protocol</span>
                     </div>
 
                     <MenuToggle isOpen={isOpenState} toggle={onToggle} />
@@ -175,7 +175,7 @@ const ToolsDropdown = () => {
                         onMouseLeave={() => {
                             setShowMenu(false)
                         }}
-                        className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        className="border-rounded ring-sm absolute left-0 z-10 w-48 origin-top-right bg-white p-0 p-1 font-medium uppercase text-black no-underline shadow-lg transition-colors"
                     >
                         <MenuLink route={'/raffle/create'} title={'raffle'} />
                         <MenuLink route={'/batch/create'} title={'batch'} />
@@ -280,9 +280,9 @@ const SocialLinks = () => {
     )
 }
 
-const NavBarContainer = ({ children, newLayout, ...props }: { children: React.ReactNode; newLayout: Boolean }) => {
-    const themeBG = newLayout ? 'white' : 'black'
-    const themeColor = newLayout ? 'black' : 'white'
+const NavBarContainer = ({ children }: { children: React.ReactNode; }) => {
+    const themeBG = 'white'
+    const themeColor ='black'
     return (
         <Flex
             as="nav"
@@ -293,8 +293,8 @@ const NavBarContainer = ({ children, newLayout, ...props }: { children: React.Re
             bg={{ base: themeBG, md: themeBG }}
             color={{ base: themeColor, md: themeColor }}
             {...props}
-            className={`font-black z-[9999] text-h6 ${newLayout ? 'border-b-2 border-n-1 shadow ring-2 ring-white' : ''}`}
             zIndex={9999} // always on top
+            className="border-b-2 z-[9999] border-n-1 font-black shadow ring-2 ring-white"
         >
             {children}
         </Flex>

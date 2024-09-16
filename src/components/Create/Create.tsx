@@ -121,7 +121,7 @@ export const Create = () => {
     }, [address])
 
     return (
-        <div className="card">
+        <div className="panel panel-sm panel-center">
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onPrev: handleOnPrev,
                 onNext: handleOnNext,

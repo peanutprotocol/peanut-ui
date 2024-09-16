@@ -420,7 +420,7 @@ export const Profile = () => {
                                 )}
                             </button>
                         </div>
-                        <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
+                        <div className="border-rounded ring-sm flex w-full flex-col items-start justify-center gap-2 bg-white px-4 py-2 text-h7 sm:w-96">
                             <span className="text-h5">{user?.totalPoints} points</span>
                             {/* <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />
@@ -459,10 +459,10 @@ export const Profile = () => {
                             items={tabs}
                             value={selectedTab}
                             setValue={setSelectedTab}
-                            className="mx-0 w-full gap-0 px-0"
-                            classButton="w-1/3 mx-0 px-0 ml-0 !rounded-none"
+                            className="mx-0 mt-2 w-full gap-0 px-0 md:mt-4"
+                            classButton="w-1/3 mx-0 px-0 ml-0"
                         />
-                        <Divider borderColor={'black'}></Divider>
+                        <Divider borderColor={'black'} borderWidth={1}></Divider>
                         <div className="block w-full sm:hidden">
                             {tableData
                                 .slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage)

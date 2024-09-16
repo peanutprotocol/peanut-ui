@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import * as components from '@/components'
+import { About } from '@/components'
 import Layout from '@/components/Global/Layout'
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default function AboutPage() {
     return (
         <Layout className="!mx-0 w-full !px-0 ">
-            <components.About />
+            <About />
         </Layout>
     )
 }

@@ -175,7 +175,7 @@ export const Claim = ({}) => {
     }, [])
 
     return (
-        <div className="card">
+        <div className="panel panel-sm panel-center">
             {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">

@@ -154,38 +154,41 @@ export const CreateLinkInitialView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label className="text-h2">Send crypto</label>
-            {/* <button
-                onClick={() => {
-                    utils.shareToSms('+32475385638', 'link')
-                }}
-                className="btn h-max w-full cursor-pointer py-1 text-h1"
-            >
-                test sms
-            </button>
-            <button
-                onClick={() => {
-                    utils.shareToEmail('borcherd@me.com', 'link')
-                }}
-                className="btn h-max w-full cursor-pointer py-1 text-h1"
-            >
-                test email
-            </button> */}
+            <div className="space-y-2">
+                <h2 className="text-h2">Send crypto</h2>
+                {/* <button
+                    onClick={() => {
+                        utils.shareToSms('+32475385638', 'link')
+                    }}
+                    className="btn h-max w-full cursor-pointer py-1 text-h1"
+                >
+                    test sms
+                </button>
+                <button
+                    onClick={() => {
+                        utils.shareToEmail('borcherd@me.com', 'link')
+                    }}
+                    className="btn h-max w-full cursor-pointer py-1 text-h1"
+                >
+                    test email
+                </button> */}
 
-            <label className="max-w-96 text-start text-h8 font-light">
-                Transfer tokens via link or to an email, phone number, ENS, or wallet address.
-            </label>
+                <div className="max-w-96 text-center">
+                    Transfer tokens via link or to an email, phone number, ENS, or wallet address.
+                </div>
+            </div>
+
             <div className="flex w-full  flex-col items-center justify-center gap-2">
                 <button
                     onClick={() => {
                         setCreateType('link')
                         onNext()
                     }}
-                    className="btn btn-purple h-10 w-full px-2 text-lg "
+                    className="h-12- btn btn-purple w-full px-2 text-lg "
                 >
                     Send via link
                 </button>
-                or
+                <div className="font-medium">or</div>
                 <RecipientInput
                     placeholder="Email / Phone / ENS / wallet address"
                     value={inputValue}
@@ -197,16 +200,16 @@ export const CreateLinkInitialView = ({
             </div>
             {inputValue.length > 0 && (
                 <div className="flex w-full flex-col items-start  justify-center gap-2">
-                    <label className="text-h7 font-bold text-gray-2">Search results</label>
+                    <label className="text-h7 font-bold text-n-2">Search results</label>
                     <div
-                        className="flex w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2"
+                        className="border-rounded flex w-full cursor-pointer flex-row items-center justify-between p-2 transition-colors hover:bg-n-3/10"
                         onClick={() => {
                             handleOnNext()
                         }}
                     >
                         <div className="flex max-w-full flex-row items-center justify-center gap-2 overflow-hidden text-h7">
-                            <div className="rounded-full border border-n-1">
-                                <Icon name="profile" className="h-6 w-6" />
+                            <div className="rounded-full border-2 border-n-1">
+                                <Icon name="profile" className="h-6 w-6 p-1" />
                             </div>
                             <div className="truncate">{inputValue}</div>
                         </div>
@@ -217,7 +220,7 @@ export const CreateLinkInitialView = ({
             {errorState.showError && (
                 <>
                     <div className="w-full text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        <label className="text-sm text-red ">{errorState.errorMessage}</label>
                     </div>
                     {errorState.errorMessage.includes('We currently dont support ') && (
                         <CrispButton className="btn h-8 w-full cursor-pointer px-2">Reach out!</CrispButton>

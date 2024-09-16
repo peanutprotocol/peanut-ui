@@ -1,5 +1,5 @@
 import { Stack, Box } from '@chakra-ui/react'
-import * as assets from '@/assets'
+import { HR, SmileStars } from '@/assets'
 import { StoryImages } from './imageAssets'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
 
@@ -30,7 +30,7 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
 
                         {index + 1 < stories.length && (
                             <Box className="mt-18 md:mt-20 lg:mt-28">
-                                <img src={assets.HR.src} className="mx-auto h-5" />
+                                <img src={HR.src} className="mx-auto h-5" />
                             </Box>
                         )}
                     </Box>
@@ -43,7 +43,7 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
             {marquee.visible && (
                 <MarqueeComp
                     message={marquee.message}
-                    imageSrc={assets.SmileStars.src}
+                    imageSrc={SmileStars.src}
                     imageAnimationClass="animation-faceSpin"
                 />
             )}

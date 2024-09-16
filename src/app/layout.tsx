@@ -1,9 +1,15 @@
 import '@/styles/globals.css'
 import { Roboto_Flex, Londrina_Solid } from 'next/font/google'
 import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
+<<<<<<< HEAD
 import * as config from '@/config'
 import * as context from '@/context'
 import CrispChat from '../components/CrispChat'
+=======
+import { PeanutProvider } from '@/config'
+import { ContextProvider } from '@/config'
+import Head from 'next/head'
+>>>>>>> 3495f4ff (Updated components and pages to integrate the styling from the new club landing page. Have added some styling classes to the global.css)
 
 const roboto = Roboto_Flex({
     weight: ['400', '500', '700', '800'],
@@ -22,7 +28,7 @@ const londrina = Londrina_Solid({
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body className={`${roboto.variable} ${londrina.variable} font-sans`}>
+            <body className={`${roboto.variable} ${londrina.variable} chakra-ui-light font-sans`}>
                 <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"

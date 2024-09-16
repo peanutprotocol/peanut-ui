@@ -1,4 +1,5 @@
-import * as components from '@/components'
+// import * as components from '@/components'
+import { Claim } from '@/components'
 import Layout from '@/components/Global/Layout'
 import { Metadata } from 'next'
 import { headers } from 'next/headers'
@@ -75,7 +76,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 export default function ClaimPage() {
     return (
         <Layout>
-            <components.Claim />
+            <Claim />
         </Layout>
     )
 }

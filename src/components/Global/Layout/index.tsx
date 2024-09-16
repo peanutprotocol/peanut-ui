@@ -21,7 +21,6 @@ const roboto = Roboto_Flex({
 
 const Layout = ({ children, className }: LayoutProps) => {
     const [isReady, setIsReady] = useState(false)
-    const [loaded, setLoaded] = useState(false)
     const [showModal, setShowModal] = useState(false)
 
     useEffect(() => {
@@ -36,8 +35,8 @@ const Layout = ({ children, className }: LayoutProps) => {
                         font-family: ${roboto.style.fontFamily};
                     }
                 `}</style>
-                <div className="relative">
-                    <div className="flex min-h-screen flex-col bg-teal-2">
+                <div className="relative bg-background">
+                    <div className="flex min-h-screen flex-col ">
                         <Header />
                         <Banner />
                         <div className="flex grow justify-center">

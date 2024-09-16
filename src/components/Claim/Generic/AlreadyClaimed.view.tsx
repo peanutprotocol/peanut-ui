@@ -80,20 +80,13 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
 
             <label className="text-h9 font-normal">
                 We would like to hear from your experience. Hit us up on{' '}
-                <a
-                    className="cursor-pointer text-black underline dark:text-white"
-                    target="_blank"
-                    href="https://discord.gg/BX9Ak7AW28"
-                >
+                <a className="text-link-decoration" target="_blank" href="https://discord.gg/BX9Ak7AW28">
                     Discord!
                 </a>
             </label>
-            <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/send'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="send" className="-mt-0.5" />
+            <Link className="btn-purple btn-xl flex w-full flex-row items-center justify-center gap-1" href={'/send'}>
+                <div className="">
+                    <Icon name="send" className="" />
                 </div>
                 Make a payment yourself!
             </Link>

@@ -9,7 +9,7 @@ import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
-import * as components from './Components'
+import { AdvancedTokenSelectorButton } from './Components'
 import { IToken, IUserBalance } from '@/interfaces'
 
 import * as _consts from './TokenSelector.consts'
@@ -229,7 +229,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
 
     return (
         <>
-            <components.AdvancedTokenSelectorButton
+            <AdvancedTokenSelectorButton
                 onClick={() => {
                     setVisible(!visible)
                 }}
@@ -273,7 +273,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                             <a
                                 href="https://docs.peanut.to/learn/supported-chains-and-tokens"
                                 target="_blank"
-                                className="underline"
+                                className="text-link-decoration font-medium"
                             >
                                 See the full list
                             </a>

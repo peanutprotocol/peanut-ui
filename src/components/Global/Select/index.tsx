@@ -46,7 +46,7 @@ const Select = ({
                         <Listbox.Button
                             ref={buttonRef}
                             className={twMerge(
-                                `flex h-16 w-full items-center rounded-sm border border-n-1 bg-white px-5 text-sm font-bold text-n-1 outline-none transition-colors tap-highlight-color dark:border-white dark:bg-n-1 dark:text-white ${
+                                `border-rounded flex h-16 w-full items-center bg-white px-5 text-sm font-bold text-n-1 outline-none transition-colors tap-highlight-color dark:bg-n-1 dark:text-white ${
                                     small ? 'h-6 px-4 text-xs' : ''
                                 } ${open ? 'border-purple-1 dark:border-purple-1' : ''} ${classButton}`
                             )}
@@ -73,7 +73,7 @@ const Select = ({
                                 <Transition leave="transition duration-200" leaveFrom="opacity-100" leaveTo="opacity-0">
                                     <Listbox.Options
                                         className={twMerge(
-                                            `absolute left-0 right-0 mt-1 w-full rounded-sm border border-n-3 bg-white p-2 shadow-lg dark:border-white dark:bg-n-1 ${
+                                            `absolute left-0 right-0 mt-1 w-full rounded-md border-2 border-n-3 bg-white p-2 shadow-lg dark:border-white dark:bg-n-1 ${
                                                 small ? 'p-0' : ''
                                             } ${up ? 'bottom-full top-auto mb-1 mt-0' : ''} z-50 ${classOptions}`
                                         )}
