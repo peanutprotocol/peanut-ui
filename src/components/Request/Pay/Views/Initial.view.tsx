@@ -29,7 +29,7 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals, setSelectedChainID, setSelectedTokenAddress, setSelectedTokenDecimals } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -56,7 +56,7 @@ export const InitialView = ({
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
-            if(selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
@@ -65,8 +65,8 @@ export const InitialView = ({
             try {
                 setErrorState({ showError: false, errorMessage: '' })
                 const txData = await createXChainUnsignedTx()
-                const {feeEstimation} = txData
-                if(Number(feeEstimation) > 0) {
+                const { feeEstimation } = txData
+                if (Number(feeEstimation) > 0) {
                     setIsFeeEstimationError(false)
                     setTxFee(Number(feeEstimation).toFixed(2))
                     setLinkState(RequestStatus.CLAIM)
@@ -97,7 +97,7 @@ export const InitialView = ({
                 currentChainId: String(currentChain?.id),
                 setLoadingState,
                 switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number });
+                    await switchChainAsync({ chainId: chainId as number })
                 },
             })
             console.log(`Switched to chain ${chainId}`)
@@ -270,20 +270,9 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelectorXChain 
-                classNameButton="w-full"   
-                onReset={() => {
-                    setSelectedChainID(requestLinkData.chainId)
-                    setSelectedTokenAddress(requestLinkData.tokenAddress)
-                    setSelectedTokenDecimals(requestLinkData.tokenDecimals)
-                    setErrorState({
-                        showError: false,
-                        errorMessage: '',
-                    })
-                }} 
-            />
+            <TokenSelector classNameButton="w-full" />
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                { !isFeeEstimationError && (
+                {!isFeeEstimationError && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
@@ -324,13 +313,13 @@ export const InitialView = ({
                 >
                     {linkState === RequestStatus.LOADING ? (
                         <div className="relative flex w-full items-center justify-center">
-                            <div className="animate-spin">
-                                <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                                <span className="sr-only">Loading...</span>
+                            <div className="mr-1 animate-spin">
+                                <Loading />
+                            </div>
+                            Preparing transaction
                         </div>
-                    </div>
-                ) : !isConnected ? (
-                    'Create or Connect Wallet'
+                    ) : !isConnected ? (
+                        'Create or Connect Wallet'
                     ) : isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
