@@ -27,11 +27,11 @@ export interface IPayScreenProps {
     onNext: () => void
     onPrev: () => void
     requestLinkData: IRequestLinkData
+    setEstimatedPoints: (value: number) => void
     estimatedPoints: number | undefined
     transactionHash: string
     setTransactionHash: (value: string) => void
     tokenPrice: number
-    setTokenPrice: (value: number) => void
     estimatedGasCost: number | undefined
     unsignedTx: peanutInterfaces.IPeanutUnsignedTransaction | undefined
 }

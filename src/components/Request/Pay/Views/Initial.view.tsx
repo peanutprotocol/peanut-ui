@@ -15,6 +15,7 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
 import * as assets from '@/assets'
 import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
+import useClaimLink from '@/components/Claim/useClaimLink'
 
 export const InitialView = ({
     onNext,
@@ -23,13 +24,23 @@ export const InitialView = ({
     setTransactionHash,
     tokenPrice,
     unsignedTx,
+    setEstimatedPoints,
+    estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, assertValues } = useCreateLink()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals, setSelectedChainID, setSelectedTokenAddress, setSelectedTokenDecimals } = useContext(context.tokenSelectorContext)
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        selectedTokenDecimals,
+        setSelectedChainID,
+        setSelectedTokenAddress,
+        setSelectedTokenDecimals,
+    } = useContext(context.tokenSelectorContext)
+    const { estimatePoints } = useClaimLink()
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -54,9 +65,21 @@ export const InitialView = ({
     }
 
     useEffect(() => {
+        const fetchPointsEstimation = async () => {
+            const estimatedPoints = await estimatePoints({
+                address: address ?? '',
+                chainId: requestLinkData.chainId,
+                amountUSD: Number(requestLinkData.tokenAmount) * (tokenPrice ?? 0),
+            })
+            setEstimatedPoints(estimatedPoints)
+        }
+        fetchPointsEstimation()
+    }, [])
+
+    useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
-            if(selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
@@ -65,8 +88,8 @@ export const InitialView = ({
             try {
                 setErrorState({ showError: false, errorMessage: '' })
                 const txData = await createXChainUnsignedTx()
-                const {feeEstimation} = txData
-                if(Number(feeEstimation) > 0) {
+                const { feeEstimation } = txData
+                if (Number(feeEstimation) > 0) {
                     setIsFeeEstimationError(false)
                     setTxFee(Number(feeEstimation).toFixed(2))
                     setLinkState(RequestStatus.CLAIM)
@@ -97,7 +120,7 @@ export const InitialView = ({
                 currentChainId: String(currentChain?.id),
                 setLoadingState,
                 switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number });
+                    await switchChainAsync({ chainId: chainId as number })
                 },
             })
             console.log(`Switched to chain ${chainId}`)
@@ -270,8 +293,8 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelectorXChain 
-                classNameButton="w-full"   
+            <TokenSelectorXChain
+                classNameButton="w-full"
                 onReset={() => {
                     setSelectedChainID(requestLinkData.chainId)
                     setSelectedTokenAddress(requestLinkData.tokenAddress)
@@ -280,10 +303,10 @@ export const InitialView = ({
                         showError: false,
                         errorMessage: '',
                     })
-                }} 
+                }}
             />
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                { !isFeeEstimationError && (
+                {!isFeeEstimationError && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
@@ -311,6 +334,25 @@ export const InitialView = ({
                         </label>
                     </div>
                 )}
+                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                        <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                        <label className="font-bold">Points</label>
+                    </div>
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        {estimatedPoints !== undefined &&
+                            (estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`)}
+                        <MoreInfo
+                            text={
+                                estimatedPoints !== undefined
+                                    ? estimatedPoints > 0
+                                        ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                        : 'This transaction will not add any points to your total points balance'
+                                    : 'This transaction will not add any points to your total points balance'
+                            }
+                        />
+                    </span>
+                </div>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-3">
@@ -327,10 +369,10 @@ export const InitialView = ({
                             <div className="animate-spin">
                                 <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
                                 <span className="sr-only">Loading...</span>
+                            </div>
                         </div>
-                    </div>
-                ) : !isConnected ? (
-                    'Create or Connect Wallet'
+                    ) : !isConnected ? (
+                        'Create or Connect Wallet'
                     ) : isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
