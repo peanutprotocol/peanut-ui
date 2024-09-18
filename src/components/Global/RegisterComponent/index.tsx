@@ -120,7 +120,13 @@ export const GlobalRegisterComponent = ({
             />
             {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
             <input
-                {...register('email', { required: 'This field is required' })}
+                {...register('email', {
+                    required: 'This field is required',
+                    pattern: {
+                        value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                        message: 'Invalid email address',
+                    },
+                })}
                 className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
                 placeholder="Email"
                 type="email"

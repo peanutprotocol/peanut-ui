@@ -32,15 +32,7 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const {
-        selectedChainID,
-        selectedTokenAddress,
-        selectedTokenDecimals,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        setSelectedTokenDecimals,
-    } = useContext(context.tokenSelectorContext)
-    const { estimatePoints } = useClaimLink()
+    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -293,18 +285,7 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelectorXChain
-                classNameButton="w-full"
-                onReset={() => {
-                    setSelectedChainID(requestLinkData.chainId)
-                    setSelectedTokenAddress(requestLinkData.tokenAddress)
-                    setSelectedTokenDecimals(requestLinkData.tokenDecimals)
-                    setErrorState({
-                        showError: false,
-                        errorMessage: '',
-                    })
-                }}
-            />
+            <TokenSelector classNameButton="w-full" />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -366,10 +347,10 @@ export const InitialView = ({
                 >
                     {linkState === RequestStatus.LOADING ? (
                         <div className="relative flex w-full items-center justify-center">
-                            <div className="animate-spin">
-                                <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                                <span className="sr-only">Loading...</span>
+                            <div className="mr-1 animate-spin">
+                                <Loading />
                             </div>
+                            Preparing transaction
                         </div>
                     ) : !isConnected ? (
                         'Create or Connect Wallet'
