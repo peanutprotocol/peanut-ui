@@ -29,9 +29,8 @@ export const InitialView = ({
     const { isConnected, address } = useAccount()
     const { open } = useWeb3Modal()
     const { balances } = useBalance()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress, selectedTokenDecimals } =
+        useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -46,7 +45,7 @@ export const InitialView = ({
         open()
     }
 
-    const handleOnNext = useCallback(async () => {
+    const handleOnNext = async () => {
         if (!recipientAddress) {
             setErrorState({
                 showError: true,
@@ -59,11 +58,15 @@ export const InitialView = ({
 
         const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
         try {
+            let inputValue = tokenValue ?? ''
+            if (inputDenomination === 'USD') {
+                inputValue = parseFloat(tokenValue as string).toFixed(selectedTokenDecimals)
+            }
             const { link } = await peanut.createRequestLink({
                 chainId: selectedChainID,
                 recipientAddress: recipientAddress,
                 tokenAddress: selectedTokenAddress,
-                tokenAmount: _tokenValue ?? '',
+                tokenAmount: inputValue,
                 tokenDecimals: tokenDetails.tokenDecimals.toString(),
                 tokenType: tokenDetails.tokenType,
                 apiUrl: '/api/proxy/withFormData',
@@ -87,7 +90,7 @@ export const InitialView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }, [recipientAddress, _tokenValue, attachmentOptions])
+    }
 
     useEffect(() => {
         if (!_tokenValue) return
