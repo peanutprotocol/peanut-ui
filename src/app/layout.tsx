@@ -3,7 +3,7 @@ import { Roboto_Flex } from 'next/font/google'
 import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
 import * as config from '@/config'
 import * as context from '@/context'
-import Head from 'next/head'
+import CrispChat from '../components/CrispChat'
 
 const roboto = Roboto_Flex({
     weight: ['400', '500', '700', '800'],
@@ -11,6 +11,7 @@ const roboto = Roboto_Flex({
     display: 'block',
     variable: '--font-roboto',
 })
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
@@ -22,7 +23,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         storageKey="chakra-ui-color-mode"
                     />
                     <config.PeanutProvider>
-                        <context.ContextProvider>{children}</context.ContextProvider>
+                        <context.ContextProvider>
+                            {children}
+                            <CrispChat />
+                        </context.ContextProvider>
                     </config.PeanutProvider>
                 </ColorModeProvider>
             </body>
