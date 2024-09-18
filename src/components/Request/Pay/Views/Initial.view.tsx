@@ -109,6 +109,7 @@ export const InitialView = ({
         if (selectedChainID !== String(currentChain?.id)) {
             await switchNetwork(selectedChainID)
         }
+        const amountUsd = (Number(requestLinkData.tokenAmount) * tokenPrice).toFixed(2)
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
@@ -128,6 +129,8 @@ export const InitialView = ({
                     payerAddress: address ?? '',
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
+                    estimatedPoints,
+                    amountUsd,
                 })
 
                 const currentDate = new Date().toISOString()
@@ -159,6 +162,8 @@ export const InitialView = ({
                     payerAddress: address ?? '',
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
+                    estimatedPoints,
+                    amountUsd,
                 })
 
                 const currentDate = new Date().toISOString()
