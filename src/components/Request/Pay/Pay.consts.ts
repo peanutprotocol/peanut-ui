@@ -27,7 +27,6 @@ export interface IPayScreenProps {
     onNext: () => void
     onPrev: () => void
     requestLinkData: IRequestLinkData
-    setEstimatedPoints: (value: number) => void
     estimatedPoints: number | undefined
     transactionHash: string
     setTransactionHash: (value: string) => void
