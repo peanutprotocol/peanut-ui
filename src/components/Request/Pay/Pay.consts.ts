@@ -31,7 +31,6 @@ export interface IPayScreenProps {
     transactionHash: string
     setTransactionHash: (value: string) => void
     tokenPrice: number
-    setTokenPrice: (value: number) => void
     estimatedGasCost: number | undefined
     unsignedTx: peanutInterfaces.IPeanutUnsignedTransaction | undefined
 }

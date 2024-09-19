@@ -13,8 +13,6 @@ import { peanut } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
-import * as assets from '@/assets'
-import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
 
 export const InitialView = ({
     onNext,
@@ -23,6 +21,7 @@ export const InitialView = ({
     setTransactionHash,
     tokenPrice,
     unsignedTx,
+    estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, assertValues } = useCreateLink()
     const { isConnected, address, chain: currentChain } = useAccount()
@@ -110,6 +109,7 @@ export const InitialView = ({
         if (selectedChainID !== String(currentChain?.id)) {
             await switchNetwork(selectedChainID)
         }
+        const amountUsd = (Number(requestLinkData.tokenAmount) * tokenPrice).toFixed(2)
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
@@ -129,6 +129,8 @@ export const InitialView = ({
                     payerAddress: address ?? '',
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
+                    estimatedPoints,
+                    amountUsd,
                 })
 
                 const currentDate = new Date().toISOString()
@@ -160,6 +162,7 @@ export const InitialView = ({
                     payerAddress: address ?? '',
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
+                    amountUsd,
                 })
 
                 const currentDate = new Date().toISOString()
@@ -273,32 +276,53 @@ export const InitialView = ({
             <TokenSelector classNameButton="w-full" />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
-                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                        <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Network cost</label>
+                    <>
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Network cost</label>
+                            </div>
+                            <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {requestLinkData.chainId === selectedChainID &&
+                                requestLinkData.tokenAddress === selectedTokenAddress
+                                    ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
+                                    : `$${txFee}`}
+                                {requestLinkData.chainId === selectedChainID &&
+                                requestLinkData.tokenAddress === selectedTokenAddress ? (
+                                    <MoreInfo
+                                        text={
+                                            estimatedGasCost && estimatedGasCost > 0
+                                                ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                                : 'This transaction is sponsored by peanut! Enjoy!'
+                                        }
+                                    />
+                                ) : (
+                                    <MoreInfo
+                                        text={`This transaction will cost you $${utils.formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                    />
+                                )}
+                            </label>
                         </div>
-                        <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {requestLinkData.chainId === selectedChainID &&
-                            requestLinkData.tokenAddress === selectedTokenAddress
-                                ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
-                                : `$${txFee}`}
-                            {requestLinkData.chainId === selectedChainID &&
-                            requestLinkData.tokenAddress === selectedTokenAddress ? (
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Points</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {estimatedPoints !== undefined &&
+                                    (estimatedPoints > 0 ? `+${estimatedPoints}` : estimatedPoints)}
                                 <MoreInfo
                                     text={
-                                        estimatedGasCost && estimatedGasCost > 0
-                                            ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                            : 'This transaction is sponsored by peanut! Enjoy!'
+                                        estimatedPoints !== undefined
+                                            ? estimatedPoints > 0
+                                                ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                                : 'This transaction will not add any points to your total points balance'
+                                            : 'This transaction will not add any points to your total points balance'
                                     }
                                 />
-                            ) : (
-                                <MoreInfo
-                                    text={`This transaction will cost you $${utils.formatTokenAmount(Number(txFee), 3)} in network fees.`}
-                                />
-                            )}
-                        </label>
-                    </div>
+                            </span>
+                        </div>
+                    </>
                 )}
             </div>
 

@@ -8,6 +8,7 @@ import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sd
 import * as generalViews from './Views/GeneralViews'
 import * as utils from '@/utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import { ActionType, estimatePoints } from '@/components/utils/utils'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
@@ -19,6 +20,20 @@ export const PayRequestLink = () => {
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
+
+    const fetchPointsEstimation = async (
+        requestLinkDetails: { recipientAddress: any; chainId: any; tokenAmount: any },
+        tokenPrice: { price: number; chainId: string; decimals: any } | undefined
+    ) => {
+        const estimatedPoints = await estimatePoints({
+            address: requestLinkDetails.recipientAddress,
+            chainId: requestLinkDetails.chainId,
+            amountUSD: Number(requestLinkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+            actionType: ActionType.FULFILL,
+        })
+
+        setEstimatedPoints(estimatedPoints)
+    }
 
     const handleOnNext = () => {
         if (step.idx === _consts.PAY_SCREEN_FLOW.length - 1) return
@@ -64,6 +79,8 @@ export const PayRequestLink = () => {
                 requestLinkDetails.chainId
             )
             tokenPrice && setTokenPrice(tokenPrice?.price)
+
+            await fetchPointsEstimation(requestLinkDetails, tokenPrice)
 
             let recipientAddress = requestLinkDetails.recipientAddress
             if (requestLinkDetails.recipientAddress.endsWith('eth')) {

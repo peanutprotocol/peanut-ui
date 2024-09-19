@@ -18,6 +18,7 @@ import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
+import { ActionType, estimatePoints } from '@/components/utils/utils'
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -56,7 +57,7 @@ export const InitialClaimLinkView = ({
         context.tokenSelectorContext
     )
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
-    const { estimatePoints, claimLink } = useClaimLink()
+    const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
     const { user } = useAuth()
@@ -123,6 +124,7 @@ export const InitialClaimLinkView = ({
             address: recipient.address ?? address ?? '',
             chainId: claimLinkData.chainId,
             amountUSD: USDValue,
+            actionType: ActionType.CLAIM,
         })
         setEstimatedPoints(estimatedPoints)
     }

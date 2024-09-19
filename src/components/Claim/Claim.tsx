@@ -13,6 +13,7 @@ import * as assets from '@/assets'
 import * as consts from '@/constants'
 import * as _utils from './Claim.utils'
 import FlowManager from './Link/FlowManager'
+import { ActionType, estimatePoints } from '../utils/utils'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -51,7 +52,7 @@ export const Claim = ({}) => {
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
     const { address } = useAccount()
-    const { getAttachmentInfo, estimatePoints } = useClaimLink()
+    const { getAttachmentInfo } = useClaimLink()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -153,6 +154,7 @@ export const Claim = ({}) => {
                         address: address ?? '',
                         chainId: linkDetails.chainId,
                         amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+                        actionType: ActionType.CLAIM,
                     })
                     setEstimatedPoints(estimatedPoints)
                 }
