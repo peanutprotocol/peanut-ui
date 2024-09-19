@@ -23,7 +23,7 @@ export const InitialView = ({
     unsignedTx,
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
-    const { sendTransactions, assertValues } = useCreateLink()
+    const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
@@ -112,7 +112,7 @@ export const InitialView = ({
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
             if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
-                await assertValues({ tokenValue: requestLinkData.tokenAmount })
+                await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
                 }
@@ -146,7 +146,7 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
-                await assertValues({ tokenValue: estimatedFromValue })
+                await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
                 }

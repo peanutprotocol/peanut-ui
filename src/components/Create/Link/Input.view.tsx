@@ -44,7 +44,7 @@ export const CreateLinkInputView = ({
 }: _consts.ICreateScreenProps) => {
     const {
         generateLinkDetails,
-        assertValues,
+        checkUserHasEnoughBalance,
         generatePassword,
         makeGaslessDepositPayload,
         prepareDepositTxs,
@@ -86,7 +86,7 @@ export const CreateLinkInputView = ({
                 errorMessage: '',
             })
             setLoadingState('Asserting values')
-            await assertValues({ tokenValue: tokenValue })
+            await checkUserHasEnoughBalance({ tokenValue: tokenValue })
 
             setLoadingState('Generating details')
 
