@@ -612,6 +612,14 @@ export const getRequestLinksFromLocalStorage = () => {
     }
 }
 
+export const setRequestLinksToLocalStorage = (updatedRequestLinks: IRequestLinkData[]) => {
+    if (typeof localStorage === 'undefined') return
+
+    const key = `request-links`
+    localStorage.setItem(key, JSON.stringify(updatedRequestLinks))
+    console.log('Updated request links in localStorage:', updatedRequestLinks)
+}
+
 export const saveRequestLinkFulfillmentToLocalStorage = ({ details }: { details: IRequestLinkData; link: string }) => {
     try {
         if (typeof localStorage === 'undefined') return

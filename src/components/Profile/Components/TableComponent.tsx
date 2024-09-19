@@ -18,11 +18,13 @@ export const TableComponent = ({
     selectedTab,
     currentPage,
     itemsPerPage,
+    handleDeleteLink,
 }: {
     data: interfaces.IProfileTableData[]
     selectedTab: 'contacts' | 'history' | 'accounts' | undefined
     currentPage: number
-    itemsPerPage: number
+    itemsPerPage?: number
+    handleDeleteLink: (link: string) => void
 }) => {
     const router = useRouter()
     const handleSendToAddress = useCallback(
@@ -89,152 +91,165 @@ export const TableComponent = ({
                 )}
             </thead>
             <tbody>
-                {data.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((data) =>
-                    selectedTab === 'history' ? (
-                        data.dashboardItem && (
-                            <tr
-                                className="h-16 text-h8 font-normal"
-                                key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}
-                            >
-                                <td className="td-custom font-bold">{data.dashboardItem.type}</td>
-                                <td className="td-custom font-bold">
-                                    {utils.formatTokenAmount(Number(data.dashboardItem.amount), 4)}{' '}
-                                    {data.dashboardItem.tokenSymbol}
-                                </td>
-                                <td className="td-custom font-bold">{data.dashboardItem.chain}</td>
-                                <td className="td-custom">{utils.formatDate(new Date(data.dashboardItem.date))}</td>
-                                <td className="td-custom">
-                                    {utils.shortenAddressLong(data.dashboardItem.address ?? '')}
-                                </td>
-                                <td className="td-custom max-w-32">
-                                    <span
-                                        className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
-                                        title={data.dashboardItem.message ? data.dashboardItem.message : ''}
-                                    >
-                                        {data.dashboardItem.message ? data.dashboardItem.message : ''}
-                                    </span>
-                                </td>
+                {data
+                    .slice((currentPage - 1) * (itemsPerPage as number), currentPage * (itemsPerPage as number))
+                    .map((data) =>
+                        selectedTab === 'history' ? (
+                            data.dashboardItem && (
+                                <tr
+                                    className="h-16 text-h8 font-normal"
+                                    key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}
+                                >
+                                    <td className="td-custom font-bold">{data.dashboardItem.type}</td>
+                                    <td className="td-custom font-bold">
+                                        {utils.formatTokenAmount(Number(data.dashboardItem.amount), 4)}{' '}
+                                        {data.dashboardItem.tokenSymbol}
+                                    </td>
+                                    <td className="td-custom font-bold">{data.dashboardItem.chain}</td>
+                                    <td className="td-custom">{utils.formatDate(new Date(data.dashboardItem.date))}</td>
+                                    <td className="td-custom">
+                                        {utils.shortenAddressLong(data.dashboardItem.address ?? '')}
+                                    </td>
+                                    <td className="td-custom max-w-32">
+                                        <span
+                                            className="block flex-grow overflow-hidden text-ellipsis whitespace-nowrap"
+                                            title={data.dashboardItem.message ? data.dashboardItem.message : ''}
+                                        >
+                                            {data.dashboardItem.message ? data.dashboardItem.message : ''}
+                                        </span>
+                                    </td>
 
-                                <td className="td-custom">
-                                    {!data.dashboardItem.status ? (
-                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                            <Loading />
-                                        </div>
-                                    ) : data.dashboardItem.status === 'claimed' ? (
-                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
-                                            claimed
-                                        </div>
-                                    ) : data.dashboardItem.status === 'transfer' ? (
-                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
-                                            sent
-                                        </div>
-                                    ) : data.dashboardItem.status === 'paid' ? (
-                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
-                                            paid
-                                        </div>
-                                    ) : data.dashboardItem.status ? (
-                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                            {data.dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
-                                        </div>
-                                    ) : (
-                                        <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                            pending
-                                        </div>
-                                    )}
-                                </td>
-                                <td className="td-custom text-end ">
-                                    <OptionsComponent
-                                        actionItems={
-                                            [
-                                                data.dashboardItem?.txHash && {
-                                                    name: 'Show in explorer',
-                                                    action: () => {
-                                                        const chainId =
-                                                            consts.supportedPeanutChains.find(
-                                                                (chain) => chain.name === data.dashboardItem?.chain
-                                                            )?.chainId ?? ''
-
-                                                        const explorerUrl = utils.getExplorerUrl(chainId)
-                                                        window.open(
-                                                            `${explorerUrl}/tx/${data?.dashboardItem?.txHash ?? ''}`,
-                                                            '_blank'
-                                                        )
-                                                    },
-                                                },
-                                                (data.dashboardItem?.type === 'Link Received' ||
-                                                    data.dashboardItem.type === 'Link Sent' ||
-                                                    data.dashboardItem.type === 'Request Link') &&
-                                                    data.dashboardItem?.link && {
-                                                        name: 'Copy link',
+                                    <td className="td-custom">
+                                        {!data.dashboardItem.status ? (
+                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                <Loading />
+                                            </div>
+                                        ) : data.dashboardItem.status === 'claimed' ? (
+                                            <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
+                                                claimed
+                                            </div>
+                                        ) : data.dashboardItem.status === 'transfer' ? (
+                                            <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
+                                                sent
+                                            </div>
+                                        ) : data.dashboardItem.status === 'paid' ? (
+                                            <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
+                                                paid
+                                            </div>
+                                        ) : data.dashboardItem.status ? (
+                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                {data.dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
+                                            </div>
+                                        ) : (
+                                            <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                                pending
+                                            </div>
+                                        )}
+                                    </td>
+                                    <td className="td-custom text-end ">
+                                        <OptionsComponent
+                                            actionItems={
+                                                [
+                                                    data.dashboardItem?.txHash && {
+                                                        name: 'Show in explorer',
                                                         action: () => {
-                                                            utils.copyTextToClipboardWithFallback(
-                                                                data.dashboardItem?.link ?? ''
+                                                            const chainId =
+                                                                consts.supportedPeanutChains.find(
+                                                                    (chain) => chain.name === data.dashboardItem?.chain
+                                                                )?.chainId ?? ''
+
+                                                            const explorerUrl = utils.getExplorerUrl(chainId)
+                                                            window.open(
+                                                                `${explorerUrl}/tx/${data?.dashboardItem?.txHash ?? ''}`,
+                                                                '_blank'
                                                             )
                                                         },
                                                     },
-                                                data.dashboardItem?.attachmentUrl && {
-                                                    name: 'Download attachment',
-                                                    action: () => {
-                                                        window.open(data.dashboardItem?.attachmentUrl ?? '', '_blank')
-                                                    },
-                                                },
-                                                data.dashboardItem?.type !== 'Link Received' &&
-                                                    data.dashboardItem?.type !== 'Request Link' &&
-                                                    data.dashboardItem.status === 'pending' && {
-                                                        name: 'Refund',
+                                                    (data.dashboardItem?.type === 'Link Received' ||
+                                                        data.dashboardItem.type === 'Link Sent' ||
+                                                        data.dashboardItem.type === 'Request Link') &&
+                                                        data.dashboardItem?.link && {
+                                                            name: 'Copy link',
+                                                            action: () => {
+                                                                utils.copyTextToClipboardWithFallback(
+                                                                    data.dashboardItem?.link ?? ''
+                                                                )
+                                                            },
+                                                        },
+                                                    data.dashboardItem?.attachmentUrl && {
+                                                        name: 'Download attachment',
                                                         action: () => {
-                                                            window.open(data.dashboardItem?.link ?? '', '_blank')
+                                                            window.open(
+                                                                data.dashboardItem?.attachmentUrl ?? '',
+                                                                '_blank'
+                                                            )
                                                         },
                                                     },
-                                                data.dashboardItem?.type === 'Offramp Claim' &&
-                                                    data.dashboardItem.status !== 'claimed' && {
-                                                        name: 'Check status',
-                                                        action: () => {
-                                                            const url = new URL(data.dashboardItem?.link ?? '')
-                                                            url.pathname = '/cashout/status'
+                                                    data.dashboardItem?.type !== 'Link Received' &&
+                                                        data.dashboardItem?.type !== 'Request Link' &&
+                                                        data.dashboardItem.status === 'pending' && {
+                                                            name: 'Refund',
+                                                            action: () => {
+                                                                window.open(data.dashboardItem?.link ?? '', '_blank')
+                                                            },
+                                                        },
+                                                    data.dashboardItem?.type === 'Offramp Claim' &&
+                                                        data.dashboardItem.status !== 'claimed' && {
+                                                            name: 'Check status',
+                                                            action: () => {
+                                                                const url = new URL(data.dashboardItem?.link ?? '')
+                                                                url.pathname = '/cashout/status'
 
-                                                            window.open(url.toString(), '_blank')
+                                                                window.open(url.toString(), '_blank')
+                                                            },
                                                         },
-                                                    },
-                                            ].filter(Boolean) as { name: string; action: () => void }[]
-                                        }
+                                                    data.dashboardItem.type === 'Request Link' &&
+                                                        data.dashboardItem?.link &&
+                                                        data.dashboardItem.status === 'pending' && {
+                                                            name: 'Delete',
+                                                            action: () => {
+                                                                handleDeleteLink(data.dashboardItem?.link as string)
+                                                            },
+                                                        },
+                                                ].filter(Boolean) as { name: string; action: () => void }[]
+                                            }
+                                        />
+                                    </td>
+                                </tr>
+                            )
+                        ) : selectedTab === 'contacts' ? (
+                            <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
+                                <td className="td-custom w-[12px] font-bold">
+                                    <div className="order w-max border-black border-n-1 p-2">
+                                        <img alt="" loading="eager" src={data.avatar.avatarUrl} className="h-8 w-8" />
+                                    </div>
+                                </td>
+                                <td className="td-custom font-bold">{data.primaryText}</td>
+                                <td className="td-custom font-bold">{data.tertiaryText}</td>
+                                <td className="td-custom font-bold">{data.quaternaryText}</td>
+                                <td className="td-custom text-end ">
+                                    <OptionsComponent
+                                        actionItems={[
+                                            {
+                                                name: 'Send to this address',
+                                                action: () => {
+                                                    const recipientAddress = data.address as string
+                                                    handleSendToAddress(recipientAddress)
+                                                },
+                                            },
+                                        ]}
                                     />
                                 </td>
                             </tr>
+                        ) : (
+                            selectedTab === 'accounts' && (
+                                <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
+                                    <td className="td-custom font-bold">{data.primaryText}</td>
+                                    <td className="td-custom font-bold">{data.tertiaryText}</td>
+                                </tr>
+                            )
                         )
-                    ) : selectedTab === 'contacts' ? (
-                        <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
-                            <td className="td-custom w-[12px] font-bold">
-                                <div className="order w-max border-black border-n-1 p-2">
-                                    <img alt="" loading="eager" src={data.avatar.avatarUrl} className="h-8 w-8" />
-                                </div>
-                            </td>
-                            <td className="td-custom font-bold">{data.primaryText}</td>
-                            <td className="td-custom font-bold">{data.tertiaryText}</td>
-                            <td className="td-custom font-bold">{data.quaternaryText}</td>
-                            <td className="td-custom text-end ">
-                                <OptionsComponent
-                                    actionItems={[
-                                        {
-                                            name: 'Send to this address',
-                                            action: () => {
-                                                const recipientAddress = data.address as string
-                                                handleSendToAddress(recipientAddress)
-                                            },
-                                        },
-                                    ]}
-                                />
-                            </td>
-                        </tr>
-                    ) : (
-                        selectedTab === 'accounts' && (
-                            <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
-                                <td className="td-custom font-bold">{data.primaryText}</td>
-                                <td className="td-custom font-bold">{data.tertiaryText}</td>
-                            </tr>
-                        )
-                    )
-                )}
+                    )}
             </tbody>
         </table>
     )

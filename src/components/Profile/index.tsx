@@ -1,6 +1,6 @@
 'use client'
 import Icon from '../Global/Icon'
-
+import * as consts from '@/constants'
 import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
 import MoreInfo from '../Global/MoreInfo'
@@ -55,7 +55,7 @@ export const Profile = () => {
     const [currentPage, setCurrentPage] = useState(1)
     const [totalPages, setTotalPages] = useState(1)
     const [itemsPerPage, setItemsPerPage] = useState(5)
-    const { composeLinkDataArray, fetchLinkDetailsAsync } = useDashboard()
+    const { composeLinkDataArray, fetchLinkDetailsAsync, removeRequestLinkFromLocalStorage } = useDashboard()
     const [dashboardData, setDashboardData] = useState<interfaces.IDashboardItem[]>([])
     const [contactsData, setContactsData] = useState<
         {
@@ -167,6 +167,28 @@ export const Profile = () => {
         } finally {
             setLoadingState('Idle')
         }
+    }
+
+    const handleDeleteLink = async (link: string) => {
+        const url = new URL(link ?? '')
+        const id = url.searchParams.get('id')
+
+        removeRequestLinkFromLocalStorage(link)
+
+        setTableData((prevData) =>
+            prevData.filter((item) => {
+                return item.dashboardItem?.link !== link
+            })
+        )
+        await fetch(`${consts.PEANUT_API_URL}/request-links/${id}/cancel`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                apiKey: process.env.PEANUT_API_KEY,
+            }),
+        })
     }
 
     useEffect(() => {
@@ -461,6 +483,7 @@ export const Profile = () => {
                                 selectedTab={selectedTab}
                                 currentPage={currentPage}
                                 itemsPerPage={itemsPerPage}
+                                handleDeleteLink={handleDeleteLink}
                             />
                         </div>
                         {dashboardData.length > 0 && totalPages > 1 && (

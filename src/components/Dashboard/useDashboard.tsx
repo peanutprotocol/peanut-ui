@@ -64,6 +64,12 @@ export const useDashboard = () => {
         return _data
     }
 
+    const removeRequestLinkFromLocalStorage = (link: string) => {
+        const requestLinks = utils.getRequestLinksFromLocalStorage()!
+        const updatedRequestLinks = requestLinks.filter((item) => item.link !== link)
+        utils.setRequestLinksToLocalStorage(updatedRequestLinks)
+    }
+
     const composeLinkDataArray = (address: string) => {
         const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })!
         const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })!
@@ -274,6 +280,7 @@ export const useDashboard = () => {
         return filteredData
     }
     return {
+        removeRequestLinkFromLocalStorage,
         fetchLinkDetailsAsync,
         composeLinkDataArray,
         sortDashboardData,
