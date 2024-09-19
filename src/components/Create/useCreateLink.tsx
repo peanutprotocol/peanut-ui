@@ -24,7 +24,7 @@ import * as _utils from './Create.utils'
 import { BigNumber, ethers } from 'ethers'
 import { assert } from 'console'
 import { useWalletType } from '@/hooks/useWalletType'
-interface IAssertValuesProps {
+interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
@@ -49,7 +49,7 @@ export const useCreateLink = () => {
     const { refetchBalances } = useBalance()
 
     // step 1
-    const assertValues = async ({ tokenValue }: IAssertValuesProps) => {
+    const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
         // if inputDenomination is USD, the tokenPrice has to be defineds
         if (inputDenomination == 'USD') {
             if (!selectedTokenPrice) {
@@ -206,7 +206,7 @@ export const useCreateLink = () => {
                 currentChainId: String(currentChain?.id),
                 setLoadingState,
                 switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number });
+                    await switchChainAsync({ chainId: chainId as number })
                 },
             })
             console.log(`Switched to chain ${chainId}`)
@@ -616,7 +616,7 @@ export const useCreateLink = () => {
 
     const prepareCreateLinkWrapper = async ({ tokenValue }: { tokenValue: string }) => {
         try {
-            await assertValues({ tokenValue })
+            await checkUserHasEnoughBalance({ tokenValue })
             const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
             const password = await generatePassword()
             await switchNetwork(selectedChainID)
@@ -727,7 +727,7 @@ export const useCreateLink = () => {
     }
 
     return {
-        assertValues,
+        checkUserHasEnoughBalance,
         generateLinkDetails,
         generatePassword,
         makeGaslessDepositPayload,
