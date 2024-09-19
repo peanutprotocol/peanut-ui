@@ -29,7 +29,7 @@ export const PayRequestLink = () => {
             address: requestLinkDetails.recipientAddress,
             chainId: requestLinkDetails.chainId,
             amountUSD: Number(requestLinkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
-            actionType: ActionType.FULFILL,
+            actionType: ActionType.CLAIM, // When API on prod will be ready lets change it to ActionType.FULFILL
         })
 
         setEstimatedPoints(estimatedPoints)
