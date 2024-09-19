@@ -147,6 +147,7 @@ export const PayRequestLink = () => {
                     unsignedTx,
                 } as _consts.IPayScreenProps)}
             {linkState === 'NOT_FOUND' && <generalViews.NotFoundClaimLink />}
+            {linkState === 'CANCELED' && <generalViews.CanceledClaimLink />}
             {linkState === 'ALREADY_PAID' && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
         </div>
     )

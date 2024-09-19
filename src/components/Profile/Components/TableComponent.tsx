@@ -18,11 +18,13 @@ export const TableComponent = ({
     selectedTab,
     currentPage,
     itemsPerPage,
+    handleDeleteLink,
 }: {
     data: interfaces.IProfileTableData[]
     selectedTab: 'contacts' | 'history' | 'accounts' | undefined
     currentPage: number
-    itemsPerPage: number
+    itemsPerPage?: number
+    handleDeleteLink: (link: string) => void
 }) => {
     const router = useRouter()
     const handleSendToAddress = useCallback(
@@ -194,6 +196,14 @@ export const TableComponent = ({
                                                             url.pathname = '/cashout/status'
 
                                                             window.open(url.toString(), '_blank')
+                                                        },
+                                                    },
+                                                data.dashboardItem.type === 'Request Link' &&
+                                                    data.dashboardItem?.link &&
+                                                    data.dashboardItem.status === 'pending' && {
+                                                        name: 'Delete',
+                                                        action: () => {
+                                                            handleDeleteLink(data.dashboardItem?.link as string)
                                                         },
                                                     },
                                             ].filter(Boolean) as { name: string; action: () => void }[]
