@@ -16,10 +16,12 @@ export async function POST(request: NextRequest) {
             tokenName,
         } = await request.json()
 
+        const apiKey = process.env.PEANUT_API_KEY!
         const response = await fetch(`${consts.PEANUT_API_URL}/cashouts`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
+                'api-key': apiKey,
             },
             body: JSON.stringify({
                 bridgeCustomerId: bridgeCustomerId,
