@@ -1,4 +1,5 @@
 import axios from 'axios'
+import * as consts from '@/constants'
 
 export async function checkTransactionStatus(txHash: string): Promise<void> {
     try {
@@ -44,4 +45,51 @@ export async function loopUntilSuccess(
             console.log('Checking status again...')
         }
     }, 5000)
+}
+
+export enum ActionType {
+    CLAIM = 'CLAIM',
+    FULFILL = 'FULFILL',
+}
+
+export const estimatePoints = async ({
+    address,
+    chainId,
+    amountUSD,
+    actionType,
+}: {
+    address: string
+    chainId: string
+    amountUSD: number
+    actionType: ActionType
+}) => {
+    try {
+        const response = await fetch(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                actionType: actionType,
+                userAddress: address,
+                chainId: chainId,
+                amountUsd: amountUSD,
+                transaction: {
+                    from: address,
+                    to: address,
+                    data: '',
+                    value: '',
+                },
+            }),
+        })
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const data = await response.json()
+        return Math.round(data.points)
+    } catch (error) {
+        console.error('Failed to estimate points:', error)
+        return 0
+    }
 }

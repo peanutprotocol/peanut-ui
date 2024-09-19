@@ -86,7 +86,7 @@ export const useClaimLink = () => {
                 currentChainId: String(currentChain?.id),
                 setLoadingState,
                 switchChainAsync: async ({ chainId }) => {
-                    await switchChainAsync({ chainId: chainId as number });
+                    await switchChainAsync({ chainId: chainId as number })
                 },
             })
             console.log(`Switched to chain ${chainId}`)
@@ -95,46 +95,6 @@ export const useClaimLink = () => {
         }
     }
     const checkTxStatus = async (txHash: string) => {}
-
-    const estimatePoints = async ({
-        address,
-        chainId,
-        amountUSD,
-    }: {
-        address: string
-        chainId: string
-        amountUSD: number
-    }) => {
-        try {
-            const response = await fetch(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    actionType: 'CLAIM',
-                    userAddress: address,
-                    chainId: chainId,
-                    amountUsd: amountUSD,
-                    transaction: {
-                        from: address,
-                        to: address,
-                        data: '',
-                        value: '',
-                    },
-                }),
-            })
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-
-            const data = await response.json()
-            return Math.round(data.points)
-        } catch (error) {
-            console.error('Failed to estimate points:', error)
-            return 0
-        }
-    }
 
     const getAttachmentInfo = async (link: string) => {
         try {
@@ -165,7 +125,6 @@ export const useClaimLink = () => {
         getSquidRoute,
         switchNetwork,
         checkTxStatus,
-        estimatePoints,
         getAttachmentInfo,
     }
 }

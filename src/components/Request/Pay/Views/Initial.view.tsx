@@ -162,7 +162,6 @@ export const InitialView = ({
                     payerAddress: address ?? '',
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
-                    estimatedPoints,
                     amountUsd,
                 })
 
