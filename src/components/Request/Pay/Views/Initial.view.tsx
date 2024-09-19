@@ -36,7 +36,7 @@ export const InitialView = ({
     const [txFee, setTxFee] = useState<string>('0')
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
     const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.LOADING)
-
+    const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const createXChainUnsignedTx = async () => {
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
             fromToken: selectedTokenAddress,
@@ -64,7 +64,8 @@ export const InitialView = ({
             try {
                 setErrorState({ showError: false, errorMessage: '' })
                 const txData = await createXChainUnsignedTx()
-                const { feeEstimation } = txData
+                const { feeEstimation, estimatedFromAmount } = txData
+                setEstimatedFromValue(estimatedFromAmount)
                 if (Number(feeEstimation) > 0) {
                     setIsFeeEstimationError(false)
                     setTxFee(Number(feeEstimation).toFixed(2))
@@ -106,15 +107,16 @@ export const InitialView = ({
     }
 
     const handleOnNext = async () => {
-        if (selectedChainID !== String(currentChain?.id)) {
-            await switchNetwork(selectedChainID)
-        }
         const amountUsd = (Number(requestLinkData.tokenAmount) * tokenPrice).toFixed(2)
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
             if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+                setLoadingState('Asserting values')
                 await assertValues({ tokenValue: requestLinkData.tokenAmount })
+                if (selectedChainID !== String(currentChain?.id)) {
+                    await switchNetwork(selectedChainID)
+                }
                 setLoadingState('Sign in wallet')
                 const hash = await sendTransactions({
                     preparedDepositTxs: { unsignedTxs: [unsignedTx] },
@@ -129,7 +131,6 @@ export const InitialView = ({
                     payerAddress: address ?? '',
                     link: requestLinkData.link,
                     apiUrl: '/api/proxy/patch/',
-                    estimatedPoints,
                     amountUsd,
                 })
 
@@ -146,6 +147,11 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
+                setLoadingState('Asserting values')
+                await assertValues({ tokenValue: estimatedFromValue })
+                if (selectedChainID !== String(currentChain?.id)) {
+                    await switchNetwork(selectedChainID)
+                }
                 setLoadingState('Sign in wallet')
                 const xchainUnsignedTxs = await createXChainUnsignedTx()
 
@@ -337,7 +343,7 @@ export const InitialView = ({
                 >
                     {linkState === RequestStatus.LOADING ? (
                         <div className="relative flex w-full items-center justify-center">
-                            <div className="mr-1 animate-spin">
+                            <div className="mr-2 animate-spin">
                                 <Loading />
                             </div>
                             Preparing transaction
