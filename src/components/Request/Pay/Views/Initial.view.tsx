@@ -112,7 +112,6 @@ export const InitialView = ({
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
             if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
-                setLoadingState('Asserting values')
                 await assertValues({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
@@ -147,7 +146,6 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
-                setLoadingState('Asserting values')
                 await assertValues({ tokenValue: estimatedFromValue })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
