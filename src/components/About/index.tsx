@@ -1,5 +1,6 @@
 import * as assets from '@/assets'
-import { MarqueeWrapper } from '../Global/MarqueeWrapper'
+import { MarqueeComp } from '../Global/MarqueeWrapper'
+import { SmileStars } from '@/assets'
 
 const listItems = [
     {
@@ -57,43 +58,33 @@ const listItems = [
 export function About() {
     return (
         <div>
-            <div className="bg-lightblue flex-grow">
-                <div className="brutalborder shadow-primary-4 mx-auto mb-8 mt-8 w-5/6 bg-white px-2 px-4 py-4 tracking-wide sm:mb-16 sm:mt-16 sm:w-2/3 md:py-8 lg:w-1/2 ">
-                    <h2 className="mx-auto px-4 text-center text-xl font-black text-black lg:text-4xl">
-                        <p>
-                            Peanut Protocol. Bring currency back to cryptocurrency. Build a world where value flows
-                            freely through buttery smooth transactions.{' '}
-                        </p>
-                    </h2>
-                </div>
+            <div className="mx-auto my-8 w-5/6 tracking-wide sm:my-16 sm:w-2/3 lg:max-w-4xl ">
+                <h2 className="text-center text-xl text-black lg:text-4xl lg:leading-[1.2]">
+                    Peanut Protocol. Bring currency back to cryptocurrency. Build a world where value flows freely
+                    through buttery smooth transactions.
+                </h2>
             </div>
 
-            <MarqueeWrapper backgroundColor="bg-black">
-                <>
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        GO
-                    </div>
-                    <img src={assets.SMILEY_ICON.src} alt="logo" className=" mr-1 h-5 md:h-8" />
-                    <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
-                        NUTS
-                    </div>
-                    <img src={assets.SMILEY_ICON.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                </>
-            </MarqueeWrapper>
+            <MarqueeComp message="Go Nuts" imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin" />
 
             <div>
-                <div role="list" className="grid grid-cols-1 gap-0 gap-y-4 md:grid-cols-3">
-                    {listItems.map((item, idx) => listItem(item))}
+                <div
+                    role="list"
+                    className="grid grid-cols-1 gap-2 gap-y-4 px-8 pb-6 pt-8 md:grid-cols-3 md:px-12 md:pb-10 md:pt-12"
+                >
+                    {listItems.map((item, idx) => listItem(item, idx))}
                 </div>
             </div>
         </div>
     )
 }
 
-const listItem = (item: any) => {
+const listItem = (item: any, idx: number) => {
+    const bg = idx % 2 === 0 ? 'md:-rotate-2 md:mt-6' : 'md:rotate-3 z-[9]'
+
     return (
         <div
-            className={`brutalborder mx-4 mt-4 flex w-full flex-col p-8 text-center text-black ${item.bg}`}
+            className={`panel panel-sm flex w-full flex-col text-center ${bg} ${idx === 0 ? 'z-10' : ''}`}
             key={item.imgUrl}
         >
             <div className="w-full">
@@ -103,22 +94,19 @@ const listItem = (item: any) => {
                     className="rainbow-border m-2 mx-auto w-1/2 rounded-full bg-white p-4"
                 />
 
-                <h1 className="mx-auto mt-8 w-3/4 text-2xl font-black uppercase">{item.name}</h1>
+                <h1 className="mt-8 font-display text-2xl uppercase md:text-3xl">{item.name}</h1>
                 <p className="mb-4 text-sm font-black uppercase">{item.name}</p>
                 <div dangerouslySetInnerHTML={{ __html: item.description }} />
             </div>
 
-            <div className="center-xy flex-end my-6 flex justify-around gap-12">
-                <p className="mt-4 text-sm font-black uppercase text-black">
-                    {item.socials.map((social: any, idx: number) => (
-                        <div key={social.name}>
-                            <a className="text-black underline" href={social.url}>
-                                {social.name}
-                            </a>
-                            {idx < item.socials.length - 1 ? ' | ' : ''}
-                        </div>
-                    ))}
-                </p>
+            <div className="my-6 space-y-1 text-sm uppercase">
+                {item.socials.map((social: any, idx: number) => (
+                    <div key={social.name}>
+                        <a className="text-link" href={social.url}>
+                            {social.name}
+                        </a>
+                    </div>
+                ))}
             </div>
         </div>
     )

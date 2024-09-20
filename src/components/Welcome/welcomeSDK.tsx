@@ -5,25 +5,50 @@ import { getCalApi } from '@calcom/embed-react'
 import Lottie from 'react-lottie'
 import Link from 'next/link'
 
-import * as assets from '@/assets'
+// import * as assets from '@/assets'
+import {
+    WALLETCONNECT_LOGO,
+    CLAVE_LOGO,
+    ECO_LOGO,
+    MANTLE_ICON,
+    BRUME_LOGO,
+    WOOFI_LOGO,
+    TIMESWAP_LOGO,
+    CLEO_LOGO,
+    KTX_LOGO,
+    LENDLE_LOGO,
+    IZUMI_LOGO,
+    LOGX_LOGO,
+    BYBIT_LOGO,
+    DEREK_PERSON,
+    SHARUK_PERSON,
+    KOFIME_PERSON,
+    SBF_PERSON,
+    SmileStars,
+    PEANUTMAN_HAPPY,
+    REDPACKET_LOTTIE,
+    TEAL_MOCKUP_1,
+    DROPDOWN_ICON,
+} from '@/assets'
+
 import * as chain_logos from '@/assets/chains'
-import { MarqueeWrapper } from '../Global/MarqueeWrapper'
+import { MarqueeWrapper, MarqueeComp } from '../Global/MarqueeWrapper'
 import { Disclosure } from '@headlessui/react'
 
 const logoCloudLogos = [
-    { icon: assets.WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
-    { icon: assets.CLAVE_LOGO, link: 'https://www.getclave.io/' },
-    { icon: assets.BRUME_LOGO, link: 'https://bento.me/brume' },
-    { icon: assets.ECO_LOGO, link: 'https://eco.org/?ref=com' },
-    { icon: assets.MANTLE_ICON, link: 'https://www.mantle.xyz/' },
-    { icon: assets.WOOFI_LOGO, link: 'https://woo.org/' },
-    { icon: assets.TIMESWAP_LOGO, link: 'https://timeswap.io/' },
-    { icon: assets.CLEO_LOGO, link: 'https://cleo.exchange/swap' },
-    { icon: assets.KTX_LOGO, link: 'https://ktx.finance/' },
-    { icon: assets.LENDLE_LOGO, link: 'https://lendle.xyz/' },
-    { icon: assets.IZUMI_LOGO, link: 'https://izumi.finance/' },
-    { icon: assets.LOGX_LOGO, link: 'https://www.logx.trade/' },
-    { icon: assets.BYBIT_LOGO, link: 'https://www.bybit.com/' },
+    { icon: WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
+    { icon: CLAVE_LOGO, link: 'https://www.getclave.io/' },
+    { icon: BRUME_LOGO, link: 'https://bento.me/brume' },
+    { icon: ECO_LOGO, link: 'https://eco.org/?ref=com' },
+    { icon: MANTLE_ICON, link: 'https://www.mantle.xyz/' },
+    { icon: WOOFI_LOGO, link: 'https://woo.org/' },
+    { icon: TIMESWAP_LOGO, link: 'https://timeswap.io/' },
+    { icon: CLEO_LOGO, link: 'https://cleo.exchange/swap' },
+    { icon: KTX_LOGO, link: 'https://ktx.finance/' },
+    { icon: LENDLE_LOGO, link: 'https://lendle.xyz/' },
+    { icon: IZUMI_LOGO, link: 'https://izumi.finance/' },
+    { icon: LOGX_LOGO, link: 'https://www.logx.trade/' },
+    { icon: BYBIT_LOGO, link: 'https://www.bybit.com/' },
 ]
 
 const features = [
@@ -117,7 +142,7 @@ const faqs = [
 ]
 const testimonials = [
     {
-        imageSrc: assets.DEREK_PERSON.src,
+        imageSrc: DEREK_PERSON.src,
         altText: 'picture of chad',
         comment: 'How did this not exist before?! Great UX!',
         name: 'Derek Rein',
@@ -126,7 +151,7 @@ const testimonials = [
         bgColorClass: 'bg-red',
     },
     {
-        imageSrc: assets.SHARUK_PERSON.src,
+        imageSrc: SHARUK_PERSON.src,
         altText: 'eco man',
         comment: 'Peanut allows us to elegantly solve the cold start problem!',
         name: 'shahrukh Rao',
@@ -135,7 +160,7 @@ const testimonials = [
         bgColorClass: 'bg-green-1',
     },
     {
-        imageSrc: assets.KOFIME_PERSON.src,
+        imageSrc: KOFIME_PERSON.src,
         altText: 'kofi',
         comment: 'Very buttery experience!',
         name: 'Kofi.me',
@@ -144,7 +169,7 @@ const testimonials = [
         bgColorClass: 'bg-pink-1',
     },
     {
-        imageSrc: assets.SBF_PERSON.src, // TODO: replace with actual image@
+        imageSrc: SBF_PERSON.src, // TODO: replace with actual image@
         altText: 'picture of pixel art SBF',
         comment: 'I have a peanut allergy. Help!',
         name: 'CEx CEO',
@@ -155,7 +180,7 @@ const testimonials = [
 const defaultLottieOptions = {
     loop: true,
     autoplay: true,
-    animationData: assets.REDPACKET_LOTTIE,
+    animationData: REDPACKET_LOTTIE,
     rendererSettings: {
         preserveAspectRatio: 'xMidYMid slice',
     },
@@ -248,7 +273,7 @@ export function WelcomeSDK() {
 
                 <div className="center-xy z-index-1 relative hidden w-1/3 items-center justify-center overflow-hidden border-l-2 border-black bg-purple-1 py-3 lg:flex lg:pb-16 lg:pt-16 ">
                     <img
-                        src={assets.PEANUTMAN_HAPPY.src}
+                        src={PEANUTMAN_HAPPY.src}
                         className="absolute duration-200 hover:rotate-12"
                         alt="Peanutman Cheering"
                     />
@@ -273,7 +298,7 @@ export function WelcomeSDK() {
                     <div className="relative flex items-center justify-center px-8 lg:h-1/3 lg:w-1/3">
                         <a href="https://docs.peanut.to/overview/what-are-links" target="_blank">
                             <img
-                                src={assets.TEAL_MOCKUP_1.src}
+                                src={TEAL_MOCKUP_1.src}
                                 className="brutalborder brutalshadow mx-2 h-full w-64 object-cover sm:w-full"
                                 alt="Peanutman Cheering"
                                 loading="eager"
@@ -416,18 +441,18 @@ export function WelcomeSDK() {
             </section>
 
             <div className="flex w-full flex-col items-center justify-center ">
-                <MarqueeWrapper backgroundColor="bg-black" direction="right">
-                    <>
+                <MarqueeComp message="Go Nuts" imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin">
+                    {/* <>
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                             GO
                         </div>
-                        <img loading="eager" src={assets.SMILEY_ICON.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                        <img loading="eager" src={SMILEY_ICON.src} alt="logo" className=" mr-1 h-5 md:h-8" />
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                             NUTS
                         </div>
-                        <img loading="eager" src={assets.SMILEY_ICON.src} alt="logo" className="mr-1 h-5 md:h-8" />
-                    </>
-                </MarqueeWrapper>
+                        <img loading="eager" src={SMILEY_ICON.src} alt="logo" className="mr-1 h-5 md:h-8" />
+                    </> */}
+                </MarqueeComp>
 
                 <div className="w-full border-y-[1px] border-black bg-green-1 px-4">
                     <div className="brutalborder-top flex w-full flex-col gap-4 px-4 py-4 text-black">
@@ -459,7 +484,7 @@ export function WelcomeSDK() {
                                                 transform: openedFaq === idx ? 'scaleY(-1)' : 'none',
                                                 transition: 'transform 0.3s ease-in-out',
                                             }}
-                                            src={assets.DROPDOWN_ICON.src}
+                                            src={DROPDOWN_ICON.src}
                                             alt=""
                                             className={'h-6 pr-2'}
                                         />
@@ -495,14 +520,14 @@ export function WelcomeSDK() {
                     </div>
                 </div>
 
-                <MarqueeWrapper backgroundColor="bg-black" direction="right">
-                    <>
-                        <img loading="eager" src={assets.SMILEY_ICON.src} alt="logo" className=" mr-1 h-5 md:h-8" />
+                <MarqueeComp message="Frens" imageSrc={SmileStars.src} imageAnimationClass="animation-faceSpin">
+                    {/* <>
+                        <img loading="eager" src={SMILEY_ICON.src} alt="logo" className=" mr-1 h-5 md:h-8" />
                         <div className="mr-2 py-2 text-center font-black uppercase italic tracking-wide text-white md:py-4 md:text-4xl">
                             FRENS
                         </div>
-                    </>
-                </MarqueeWrapper>
+                    </> */}
+                </MarqueeComp>
             </div>
 
             <div role="list" className="grid:cols-1 grid gap-4 px-4 text-black md:grid-cols-2 lg:grid-cols-4">

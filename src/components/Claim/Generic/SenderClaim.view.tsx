@@ -73,10 +73,12 @@ export const SenderClaimLinkView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Hello, {utils.shortenAddress(address ?? '')}</label>
-            <label className="text-h8 font-bold ">
-                This is a link that you have created. You can refund it or go to the recipient view.
-            </label>
+            <div className="space-y-2">
+                <label className="text-h2">Hello, {utils.shortenAddress(address ?? '')}</label>
+                <label className="">
+                    This is a link that you have created. You can refund it or go to the recipient view.
+                </label>
+            </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <button className="btn-purple btn-xl" onClick={handleOnCancel} disabled={isLoading}>
@@ -101,22 +103,30 @@ export const SenderClaimLinkView = ({
                     </div>
                 )}
             </div>
-            <label className="text-h9 font-normal">
+
+            <label className="text-h8 font-normal">
                 We would like to hear from your experience. Hit us up on{' '}
-                <a
-                    className="cursor-pointer text-black underline dark:text-white"
-                    target="_blank"
-                    href="https://discord.gg/BX9Ak7AW28"
-                >
+                <a className="text-link-decoration" target="_blank" href="https://discord.gg/BX9Ak7AW28">
                     Discord!
                 </a>
             </label>
-            <Link
+
+            {/* <Link
                 className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
                 href={'/profile'}
             >
                 <div className=" border border-n-1 p-0 px-1">
                     <Icon name="profile" className="-mt-0.5" />
+                </div>
+                See your payments.
+            </Link> */}
+
+            <Link
+                className="btn-purple btn-xl flex w-full flex-row items-center justify-center gap-1"
+                href={'/profile'}
+            >
+                <div className="">
+                    <Icon name="profile" className="" />
                 </div>
                 See your payments.
             </Link>

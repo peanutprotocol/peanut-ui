@@ -9,7 +9,6 @@ import { Widget } from '@typeform/embed-react'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
-    newLayout?: boolean
 }
 
 const roboto = Roboto_Flex({
@@ -19,7 +18,7 @@ const roboto = Roboto_Flex({
     variable: '--font-roboto',
 })
 
-const Layout = ({ children, className, newLayout = false }: LayoutProps) => {
+const Layout = ({ children, className }: LayoutProps) => {
     const [isReady, setIsReady] = useState(false)
     const [showModal, setShowModal] = useState(false)
 
@@ -37,7 +36,7 @@ const Layout = ({ children, className, newLayout = false }: LayoutProps) => {
                 `}</style>
                 <div className="relative bg-background">
                     <div className="flex min-h-screen flex-col ">
-                        <Header newLayout={newLayout} />
+                        <Header />
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}
@@ -46,7 +45,7 @@ const Layout = ({ children, className, newLayout = false }: LayoutProps) => {
                                 {children}
                             </div>
                         </div>
-                        <Footer newLayout={newLayout} />
+                        <Footer />
                         <Modal
                             visible={showModal}
                             onClose={() => {

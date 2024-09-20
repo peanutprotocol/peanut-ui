@@ -1,34 +1,22 @@
 'use client'
-import { useCallback, useContext, useEffect, useState, useRef } from 'react'
-import peanut, {
-    generateKeysFromString,
-    getRandomString,
-    getRawParamsFromLink,
-    interfaces as peanutInterfaces,
-} from '@squirrel-labs/peanut-sdk'
-import {
-    useAccount,
-    useSendTransaction,
-    useSignTypedData,
-    useSwitchChain,
-    useConfig,
-    usePrepareTransactionRequest,
-} from 'wagmi'
+import { useCallback, useContext } from 'react'
+import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 
 import { useBalance } from '@/hooks/useBalance'
-import * as context from '@/context'
-import * as consts from '@/constants'
-import * as utils from '@/utils'
-import * as _utils from './Create.utils'
-import { BigNumber, ethers } from 'ethers'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { PEANUT_API_URL, next_proxy_url } from '@/constants'
+import { fetchTokenPrice, compareTokenAddresses, isNativeCurrency } from '@/utils'
+import { getTokenDetails } from './Create.utils'
+import { ethers } from 'ethers'
 
 interface IAssertValuesProps {
     tokenValue: string | undefined
 }
 
 export const useCreateLink = () => {
-    const { setLoadingState } = useContext(context.loadingStateContext)
+    const { setLoadingState } = useContext(loadingStateContext)
     const {
         inputDenomination,
         selectedChainID,
@@ -36,7 +24,7 @@ export const useCreateLink = () => {
         selectedTokenAddress,
         setSelectedTokenPrice,
         setInputDenomination,
-    } = useContext(context.tokenSelectorContext)
+    } = useContext(tokenSelectorContext)
     const { balances } = useBalance()
 
     const { chain: currentChain, address } = useAccount()
@@ -51,7 +39,7 @@ export const useCreateLink = () => {
         if (inputDenomination == 'USD') {
             if (!selectedTokenPrice) {
                 try {
-                    const _selectedTokenPrice = await utils.fetchTokenPrice(selectedTokenAddress, selectedChainID)
+                    const _selectedTokenPrice = await fetchTokenPrice(selectedTokenAddress, selectedChainID)
                     setSelectedTokenPrice(_selectedTokenPrice?.price)
                 } catch (error) {
                     setInputDenomination('TOKEN')
@@ -71,8 +59,7 @@ export const useCreateLink = () => {
         if (balances.length > 0) {
             let balance = balances.find(
                 (balance) =>
-                    utils.compareTokenAddresses(balance.address, selectedTokenAddress) &&
-                    balance.chainId === selectedChainID
+                    compareTokenAddresses(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID
             )?.amount
             if (!balance) {
                 balance = Number(
@@ -105,7 +92,7 @@ export const useCreateLink = () => {
     }) => {
         try {
             // get tokenDetails (type and decimals)
-            const tokenDetails = _utils.getTokenDetails(selectedTokenAddress, selectedChainID, balances)
+            const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
 
             // baseUrl
             let baseUrl = ''
@@ -219,7 +206,7 @@ export const useCreateLink = () => {
 
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
-            const nativeTokenPrice = await utils.fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
+            const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
             const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice?.price
 
             return {
@@ -244,7 +231,7 @@ export const useCreateLink = () => {
         actionType: 'CREATE' | 'TRANSFER'
     }) => {
         try {
-            const response = await fetch(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
+            const response = await fetch(`${PEANUT_API_URL}/calculate-pts-for-action`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -412,7 +399,7 @@ export const useCreateLink = () => {
     }) => {
         let transactionRequest
 
-        if (!utils.isNativeCurrency(tokenAddress)) {
+        if (!isNativeCurrency(tokenAddress)) {
             // ERC20 Token transfer
             const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
             const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
@@ -470,7 +457,7 @@ export const useCreateLink = () => {
             const response = await peanut.makeDepositGasless({
                 payload: payload,
                 signature: signature,
-                baseUrl: `${consts.next_proxy_url}/deposit-3009`,
+                baseUrl: `${next_proxy_url}/deposit-3009`,
                 APIKey: 'doesnt-matter',
             }) //TODO: for safe app, check if this tx hash is correct
             return response.txHash

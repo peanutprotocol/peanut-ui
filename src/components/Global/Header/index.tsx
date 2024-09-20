@@ -1,36 +1,19 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import {
-    Box,
-    Flex,
-    Text,
-    Stack,
-    Collapse,
-    useDisclosure,
-    Button,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuList,
-} from '@chakra-ui/react'
+import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
 
 import Link from 'next/link'
-import Image from 'next/image'
+// import Image from 'next/image'
 
-import * as assets_icons from '@/assets/icons'
-import * as assets from '@/assets'
-import * as utils from '@/utils'
+import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
+import { shortenAddress } from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 
-type HeaderProps = {
-    newLayout?: boolean
-}
-
 const defaultLottieOptions: LottieOptions = {
-    animationData: assets.HAMBURGER_LOTTIE,
+    animationData: HAMBURGER_LOTTIE,
     loop: true,
     autoplay: false,
     rendererSettings: {
@@ -43,7 +26,7 @@ const defaultLottieStyle = {
     width: 24,
 }
 
-export const Header = ({ newLayout = false }: HeaderProps) => {
+export const Header = () => {
     const { isOpen, onToggle } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
 
@@ -52,7 +35,7 @@ export const Header = ({ newLayout = false }: HeaderProps) => {
     }, [isOpen])
 
     return (
-        <NavBarContainer newLayout={newLayout}>
+        <NavBarContainer>
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
                 <Box display={{ base: 'none', md: 'flex' }} flexDirection={'row'} height="100%">
                     <div
@@ -62,7 +45,7 @@ export const Header = ({ newLayout = false }: HeaderProps) => {
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
                         <span className="inline px-3 sm:px-4">peanut protocol</span>
                     </div>
                 </Box>
@@ -86,7 +69,7 @@ export const Header = ({ newLayout = false }: HeaderProps) => {
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
                         <span className="text-h5- inline px-2 ">peanut protocol</span>
                     </div>
 
@@ -154,7 +137,7 @@ const MenuLinks = () => {
             <Link
                 href={'/send'}
                 onClick={handleClick}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center lg:px-6"
+                className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-black sm:w-max sm:justify-center lg:px-6"
             >
                 <Text display="block"> app</Text>
             </Link>
@@ -167,7 +150,7 @@ const MenuLinks = () => {
                     onMouseLeave={() => {
                         setShowMenu(false)
                     }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-6"
+                    className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-black sm:w-max sm:justify-center sm:px-6"
                 >
                     tools
                 </button>
@@ -179,23 +162,23 @@ const MenuLinks = () => {
                         onMouseLeave={() => {
                             setShowMenu(false)
                         }}
-                        className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        className="border-rounded ring-sm absolute left-0 z-10 w-48 origin-top-right bg-white p-0 p-1 font-medium uppercase text-black no-underline shadow-lg transition-colors"
                     >
                         <Link
                             href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
+                            className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:justify-start sm:px-6"
                         >
                             <Text display="block"> raffle</Text>
                         </Link>
                         <Link
                             href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
+                            className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:justify-start sm:px-6"
                         >
                             <Text display="block"> batch</Text>
                         </Link>
                         <Link
                             href={'/refund'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
+                            className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:justify-start sm:px-6"
                         >
                             <Text display="block"> refund</Text>
                         </Link>
@@ -207,27 +190,27 @@ const MenuLinks = () => {
                     onClick={() => {
                         setShowMenu(!showMenu)
                     }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-6"
+                    className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase text-black transition-colors hover:bg-n-4/50 hover:text-n-1 sm:w-max sm:justify-center sm:px-6"
                 >
                     <Text display="block"> tools</Text>
                 </button>
                 {showMenu && (
-                    <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="border-rounded ring-sm bg-white p-0 p-1 font-medium uppercase text-n-1 no-underline shadow-lg">
                         <Link
                             href={'/raffle/create'}
-                            className="text-h6- flex h-full w-full items-center justify-start  py-2 pl-6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
+                            className="flex h-full w-full items-center justify-start rounded-md py-2 pl-6 uppercase text-black transition-colors hover:bg-n-4/50 hover:text-n-1 sm:justify-start sm:px-6"
                         >
                             <Text display="block"> raffle</Text>
                         </Link>
                         <Link
                             href={'/batch/create'}
-                            className="text-h6- flex h-full w-full items-center justify-start py-2 pl-6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
+                            className="flex h-full w-full items-center justify-start rounded-md py-2 pl-6 uppercase text-black transition-colors hover:bg-n-4/50 hover:text-n-1 sm:justify-start sm:px-6"
                         >
                             <Text display="block"> batch</Text>
                         </Link>
                         <Link
                             href={'/refund'}
-                            className="text-h6- flex h-full w-full items-center justify-start py-2 pl-6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-6"
+                            className="flex h-full w-full items-center justify-start rounded-md py-2 pl-6 uppercase text-black transition-colors hover:bg-n-4/50 hover:text-n-1 sm:justify-start sm:px-6"
                         >
                             <Text display="block"> refund</Text>
                         </Link>
@@ -237,7 +220,7 @@ const MenuLinks = () => {
 
             <Link
                 href={'https://docs.peanut.to'}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-6"
+                className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-black sm:w-max sm:justify-center sm:px-6"
             >
                 <Text display="block"> docs</Text>
             </Link>
@@ -257,7 +240,7 @@ const MenuLinks = () => {
                 <Text display="block">
                     {' '}
                     {isConnected ? (
-                        utils.shortenAddress(address ?? '')
+                        shortenAddress(address ?? '')
                     ) : (
                         <>
                             <span className="md:hidden lg:block">Create or </span>Connect
@@ -285,10 +268,10 @@ const SocialLinks = () => {
                 }}
             >
                 {isConnected ? (
-                    utils.shortenAddress(address ?? '')
+                    shortenAddress(address ?? '')
                 ) : (
                     <>
-                        <span className="md:hidden lg:block">Create or </span>Connect
+                        <span className="md:hidden lg:block">Create or &nbsp;</span>Connect
                     </>
                 )}
             </button>
@@ -296,9 +279,9 @@ const SocialLinks = () => {
     )
 }
 
-const NavBarContainer = ({ children, newLayout, ...props }: { children: React.ReactNode; newLayout: Boolean }) => {
-    const themeBG = newLayout ? 'white' : 'black'
-    const themeColor = newLayout ? 'black' : 'white'
+const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) => {
+    const themeBG = 'white'
+    const themeColor = 'black'
 
     return (
         <Flex
@@ -310,7 +293,7 @@ const NavBarContainer = ({ children, newLayout, ...props }: { children: React.Re
             bg={{ base: themeBG, md: themeBG }}
             color={{ base: themeColor, md: themeColor }}
             {...props}
-            className={`font-black ${newLayout ? 'border-b-2 border-n-1 shadow ring-2 ring-white' : ''}`}
+            className="border-b-2 border-n-1 font-black shadow ring-2 ring-white"
         >
             {children}
         </Flex>

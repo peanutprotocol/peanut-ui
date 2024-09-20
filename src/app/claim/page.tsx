@@ -1,4 +1,5 @@
-import * as components from '@/components'
+// import * as components from '@/components'
+import { Claim } from '@/components'
 import Layout from '@/components/Global/Layout'
 import { Metadata, ResolvingMetadata } from 'next'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
@@ -76,7 +77,7 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 export default function ClaimPage() {
     return (
         <Layout>
-            <components.Claim />
+            <Claim />
         </Layout>
     )
 }

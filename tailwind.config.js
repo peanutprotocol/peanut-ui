@@ -217,7 +217,7 @@ module.exports = {
             })
             addComponents({
                 '.btn': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-3 border border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40':
                         {},
                 },
                 '.btn svg': {
@@ -241,7 +241,7 @@ module.exports = {
                         {},
                 },
                 '.btn-ghost': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border-2 border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
                         {},
                 },
                 '.btn-stroke': {
@@ -271,6 +271,9 @@ module.exports = {
                 },
                 '.btn-xl': {
                     '@apply w-full max-w-96 h-12 px-2 text-lg': {},
+                },
+                '.btn-2xl': {
+                    '@apply w-full max-w-96 h-14 px-4 text-lg md:text-xl': {},
                 },
                 '.btn-xl-fixed': {
                     '@apply w-18 h-12 px-2 text-lg': {},
@@ -316,7 +319,7 @@ module.exports = {
                     '@apply label border-n-1 bg-n-1 text-white dark:bg-white/10': {},
                 },
                 '.table-custom': {
-                    '@apply table w-full border border-n-1 bg-white dark:bg-n-1 dark:border-white': {},
+                    '@apply table w-full border-2 border-n-1 bg-white dark:bg-n-1 dark:border-white ring-2 ring-white dark:ring-n-1 shadow-md': {},
                 },
                 '.table-select': {
                     '@apply table-custom [&>thead>tr>*:nth-child(2)]:pl-0 [&>thead>tr>*:nth-child(1)]:w-13 [&>thead>tr>*:nth-child(1)]:px-0 [&>thead>tr>*:nth-child(1)]:text-0 [&>thead>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(2)]:pl-0 [&>tbody>tr>*:nth-child(1)]:w-13 [&>tbody>tr>*:nth-child(1)]:px-0 [&>tbody>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(1)]:text-0':

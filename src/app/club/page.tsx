@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import * as assets from '@/assets'
-import Layout from '@/components/Global/ClubLayout'
+import Layout from '@/components/Global/Layout'
 import { Hero, FAQs, Features, Mike, Story, Intro } from '@/components/Club'
 
 export const metadata: Metadata = {
@@ -156,7 +156,7 @@ export default function PeanutClub() {
     }
 
     return (
-        <Layout newLayout={true} className="!mx-0 w-full !px-0 !pt-0 ">
+        <Layout className="!mx-0 w-full !px-0 !pt-0 ">
             <Hero heading={hero.heading} marquee={hero.marquee} />
             <Intro />
             <Story stories={story.stories} foot={story.foot} marquee={story.marquee} />

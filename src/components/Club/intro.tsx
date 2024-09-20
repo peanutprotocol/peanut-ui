@@ -2,7 +2,7 @@
 
 import { Flex, Stack, Box } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import * as assets from '@/assets'
+import { PeanutsBG, HR, EasySignTight, PeaceFingers } from '@/assets'
 
 type HeroProps = {
     heading: string
@@ -14,7 +14,7 @@ type HeroProps = {
 
 export function Intro() {
     const inlineStyle = {
-        backgroundImage: `url(${assets.PeanutsBG.src})`,
+        backgroundImage: `url(${PeanutsBG.src})`,
         backgroundSize: '8rem auto',
         backgroundRepeat: 'repeat',
     }
@@ -34,7 +34,7 @@ export function Intro() {
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5 }}
-                    src={assets.EasySignTight.src}
+                    src={EasySignTight.src}
                     className="hidden h-[7.5vw] w-auto md:block"
                 />
             </Flex>
@@ -44,7 +44,7 @@ export function Intro() {
                     initial={{ opacity: 0, translateY: 24, translateX: -5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5 }}
-                    src={assets.PeaceFingers.src}
+                    src={PeaceFingers.src}
                     className="h-[8vw] w-auto -rotate-6"
                 />
                 <span className={textClass}>WITH</span>
@@ -53,7 +53,7 @@ export function Intro() {
             </Flex>
 
             <Box className="mt-12 px-6 md:mt-20 md:px-8 lg:mt-28">
-                <img src={assets.HR.src} className="mx-auto h-5" />
+                <img src={HR.src} className="mx-auto h-5" />
             </Box>
         </Stack>
     )

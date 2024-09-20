@@ -117,13 +117,16 @@ export const Refund = () => {
     }
 
     return (
-        <div className="card">
-            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
-                <label className="text-h2">Refund</label>
-                <div className="max-w-96 text-start text-h8 font-light">
-                    This is a page specific for refunding links that failed while creating, but the funds did leave your
-                    wallet. Please provide the transaction hash and chainId, and you will be able to claim. Please note
-                    that you will have to be connected with the same wallet that you tried creating the link with.
+        <div className="panel panel-sm panel-center">
+            <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
+                <div className="space-y-2">
+                    <label className="text-h2">Refund</label>
+                    <div className="text-sm- max-w-96">
+                        This is a page specific for refunding links that failed while creating, but the funds did leave
+                        your wallet. Please provide the transaction hash and chainId, and you will be able to claim.
+                        Please note that you will have to be connected with the same wallet that you tried creating the
+                        link with.
+                    </div>
                 </div>
 
                 <form
@@ -133,7 +136,7 @@ export const Refund = () => {
                     <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
                         <label className="font-h7 font-bold">Chain</label>
                         <Select
-                            className="h-8 border border-n-1 p-1 outline-none"
+                            className="border-rounded h-10 px-3 py-2 outline-none"
                             classButton="h-auto px-0 border-none bg-trasparent text-sm !font-normal"
                             classOptions="-left-4 -right-3 w-auto py-1 overflow-auto max-h-36"
                             classArrow="ml-1"
@@ -150,14 +153,14 @@ export const Refund = () => {
                         <label className="font-h7 font-bold">Transaction hash</label>
                         <input
                             placeholder="0x123..."
-                            className="h-8 border border-n-1 p-1 outline-none"
+                            className="input-text !h-10"
                             {...refundForm.register('transactionHash')}
                         />
                     </div>
                     <div
                         className={
                             errorState.showError
-                                ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
+                                ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-6 sm:mt-0'
                                 : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
                         }
                     >
@@ -201,7 +204,7 @@ export const Refund = () => {
                         ) : (
                             errorState.showError && (
                                 <div className="text-center">
-                                    <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                                    <label className="text-red ">{errorState.errorMessage}</label>
                                 </div>
                             )
                         )}
