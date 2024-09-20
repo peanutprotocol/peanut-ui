@@ -1,5 +1,5 @@
 'use client'
-import { useContext, useState } from 'react'
+import { useContext, useState, useCallback } from 'react'
 import * as context from '@/context'
 import * as _consts from '../Cashout.consts'
 import Loading from '@/components/Global/Loading'
@@ -9,7 +9,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import * as utils from '@/utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { useSteps } from 'chakra-ui-steps'
-import peanut, { getLatestContractVersion, getLinkDetails, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
+import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import { sortCrossChainDetails } from '@/components/Claim/Claim.utils'
 import * as consts from '@/constants'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
@@ -41,178 +41,254 @@ export const ConfirmCashoutView = ({
     const { createLinkWrapper } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
 
+    const fetchNecessaryDetails = useCallback(async () => {
+        if (!user || !selectedChainID || !selectedTokenAddress) {
+            throw new Error('Missing user or token information')
+        }
+
+        const tokenType = utils.isNativeCurrency(selectedTokenAddress) ? 0 : 1
+        const contractVersion = await getLatestContractVersion({
+            chainId: selectedChainID,
+            type: 'normal',
+            experimental: false,
+        })
+
+        const crossChainDetails = await getCrossChainDetails({
+            chainId: selectedChainID,
+            tokenType,
+            contractVersion,
+        })
+
+        const peanutAccount = user.accounts.find(
+            (account) =>
+                account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
+                offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+        )
+        const bridgeCustomerId = user?.user?.bridge_customer_id
+        const bridgeExternalAccountId = peanutAccount?.bridge_account_id
+
+        if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
+            throw new Error('Missing account information')
+        }
+
+        const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
+
+        return {
+            crossChainDetails,
+            peanutAccount,
+            bridgeCustomerId,
+            bridgeExternalAccountId,
+            allLiquidationAddresses,
+        }
+    }, [user, selectedChainID, selectedTokenAddress, offrampForm])
+
     const handleConfirm = async () => {
         setLoadingState('Loading')
-        setErrorState({
-            showError: false,
-            errorMessage: '',
-        })
+        setErrorState({ showError: false, errorMessage: '' })
 
         try {
             if (!preparedCreateLinkWrapperResponse) return
 
-            const tokenType = utils.isNativeCurrency(selectedTokenAddress) ? 0 : 1
-            const contractVersion = await getLatestContractVersion({
-                chainId: selectedChainID,
-                type: 'normal',
-                experimental: false,
-            })
-            const crossChainDetails = await getCrossChainDetails({
-                chainId: selectedChainID,
-                tokenType,
-                contractVersion: contractVersion,
-            })
+            const {
+                crossChainDetails,
+                peanutAccount,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                allLiquidationAddresses,
+            } = await fetchNecessaryDetails()
 
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
             setCreatedLink(link)
-            console.log(link)
+            console.log(`created claimlink: ${link}`)
 
             const claimLinkData = await getLinkDetails({ link: link })
 
-            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
-            let xchainNeeded
-            if (tokenName && chainName) {
-                xchainNeeded = false
-            } else {
-                xchainNeeded = true
-                const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
-                const optimismChainId = '10'
-                if (!crossChainDetails) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'offramp unavailable',
-                    })
-                    return
-                }
-
-                let route
-                try {
-                    route = await utils.fetchRouteRaw(
-                        claimLinkData.tokenAddress.toLowerCase,
-                        claimLinkData.chainId.toString(),
-                        usdcAddressOptimism,
-                        optimismChainId,
-                        claimLinkData.tokenDecimals,
-                        claimLinkData.tokenAmount,
-                        claimLinkData.senderAddress
-                    )
-                } catch (error) {
-                    console.log('error', error)
-                }
-
-                if (route === undefined) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'offramp unavailable',
-                    })
-                    setShowRefund(true)
-                    return
-                }
-
-                tokenName = utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                chainName = utils.getBridgeChainName(optimismChainId)
-            }
-
-            if (!user || !chainName || !tokenName) return
-
-            const peanutAccount = user.accounts.find(
-                (account) =>
-                    account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
-                    offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+            const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
+                claimLinkData,
+                crossChainDetails,
+                allLiquidationAddresses,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                peanutAccount.account_type
             )
-            const bridgeCustomerId = user?.user?.bridge_customer_id
-            const bridgeExternalAccountId = peanutAccount?.bridge_account_id
 
-            const recipientType = peanutAccount?.account_type
-
-            if (!peanutAccount || !bridgeCustomerId || !bridgeExternalAccountId) {
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Something went wrong. Please try again.',
-                })
-                return
+            if (!tokenName || !chainName) {
+                throw new Error('Unable to determine token or chain information')
             }
-
-            const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
-
-            let liquidationAddress = allLiquidationAddresses.find(
-                (address) =>
-                    address.chain === chainName &&
-                    address.currency === tokenName &&
-                    address.external_account_id === bridgeExternalAccountId
-            )
-            if (!liquidationAddress)
-                liquidationAddress = await utils.createLiquidationAddress(
-                    bridgeCustomerId,
-                    chainName,
-                    tokenName,
-                    bridgeExternalAccountId,
-                    recipientType === 'iban' ? 'sepa' : 'ach',
-                    recipientType === 'iban' ? 'eur' : 'usd'
-                )
 
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
-            let hash
 
-            if (xchainNeeded) {
-                hash = await claimLinkXchain({
-                    address: liquidationAddress.address,
-                    link: claimLinkData.link,
-                    destinationChainId: chainId,
-                    destinationToken: tokenAddress,
-                })
-            } else {
-                hash = await claimLink({
-                    address: liquidationAddress.address,
-                    link: claimLinkData.link,
-                })
-            }
+            const hash = await claimAndProcessLink(
+                xchainNeeded,
+                liquidationAddress.address,
+                claimLinkData,
+                chainId,
+                tokenAddress
+            )
 
             if (hash) {
-                utils.saveOfframpLinkToLocalstorage({
-                    data: {
-                        ...claimLinkData,
-                        depositDate: new Date(),
-                        USDTokenPrice: parseFloat(usdValue ?? ''),
-                        points: 0,
-                        txHash: hash,
-                        message: undefined,
-                        attachmentUrl: undefined,
-                        liquidationAddress: liquidationAddress.address,
-                        recipientType: 'bank',
-                        accountNumber: offrampForm.recipient,
-                        bridgeCustomerId: bridgeCustomerId,
-                        bridgeExternalAccountId: bridgeExternalAccountId,
-                        peanutCustomerId: user?.user?.userId,
-                        peanutExternalAccountId: peanutAccount.account_id,
-                    },
-                })
-
-                await utils.submitCashoutLink({
-                    link: claimLinkData.link,
-                    bridgeCustomerId: bridgeCustomerId,
-                    liquidationAddressId: liquidationAddress.id,
-                    cashoutTransactionHash: hash,
-                    externalAccountId: bridgeExternalAccountId,
-                    chainId: chainId,
-                    tokenName: tokenName,
-                })
+                await saveAndSubmitCashoutLink(
+                    claimLinkData,
+                    hash,
+                    liquidationAddress,
+                    bridgeCustomerId,
+                    bridgeExternalAccountId,
+                    chainId,
+                    tokenName,
+                    peanutAccount
+                )
 
                 setTransactionHash(hash)
                 console.log('Transaction hash:', hash)
             }
+
             onNext()
             setLoadingState('Idle')
         } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please enter a valid amount',
-            })
-            return
+            handleError(error)
         } finally {
+            setLoadingState('Idle')
         }
+    }
+
+    const processLinkDetails = async (
+        claimLinkData,
+        crossChainDetails,
+        allLiquidationAddresses,
+        bridgeCustomerId,
+        bridgeExternalAccountId,
+        accountType
+    ) => {
+        let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+        let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+        let xchainNeeded = false
+
+        if (!tokenName || !chainName) {
+            xchainNeeded = true
+            const { tokenName: xchainTokenName, chainName: xchainChainName } = await handleCrossChainScenario(
+                claimLinkData,
+                crossChainDetails
+            )
+            tokenName = xchainTokenName
+            chainName = xchainChainName
+        }
+
+        let liquidationAddress = allLiquidationAddresses.find(
+            (address) =>
+                address.chain === chainName &&
+                address.currency === tokenName &&
+                address.external_account_id === bridgeExternalAccountId
+        )
+
+        if (!liquidationAddress) {
+            liquidationAddress = await utils.createLiquidationAddress(
+                bridgeCustomerId,
+                chainName,
+                tokenName,
+                bridgeExternalAccountId,
+                accountType === 'iban' ? 'sepa' : 'ach',
+                accountType === 'iban' ? 'eur' : 'usd'
+            )
+        }
+
+        return { tokenName, chainName, xchainNeeded, liquidationAddress }
+    }
+
+    const handleCrossChainScenario = async (claimLinkData, crossChainDetails) => {
+        const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
+        const optimismChainId = '10'
+
+        if (!crossChainDetails) {
+            throw new Error('Offramp unavailable')
+        }
+
+        const route = await utils.fetchRouteRaw(
+            claimLinkData.tokenAddress.toLowerCase(),
+            claimLinkData.chainId.toString(),
+            usdcAddressOptimism,
+            optimismChainId,
+            claimLinkData.tokenDecimals,
+            claimLinkData.tokenAmount,
+            claimLinkData.senderAddress
+        )
+
+        if (route === undefined) {
+            throw new Error('Offramp unavailable')
+        }
+
+        return {
+            tokenName: utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism),
+            chainName: utils.getBridgeChainName(optimismChainId),
+        }
+    }
+
+    const claimAndProcessLink = async (xchainNeeded, address, claimLinkData, chainId, tokenAddress) => {
+        if (xchainNeeded) {
+            return await claimLinkXchain({
+                address,
+                link: claimLinkData.link,
+                destinationChainId: chainId,
+                destinationToken: tokenAddress,
+            })
+        } else {
+            return await claimLink({
+                address,
+                link: claimLinkData.link,
+            })
+        }
+    }
+
+    const saveAndSubmitCashoutLink = async (
+        claimLinkData,
+        hash,
+        liquidationAddress,
+        bridgeCustomerId,
+        bridgeExternalAccountId,
+        chainId,
+        tokenName,
+        peanutAccount
+    ) => {
+        utils.saveOfframpLinkToLocalstorage({
+            data: {
+                ...claimLinkData,
+                depositDate: new Date(),
+                USDTokenPrice: parseFloat(usdValue ?? ''),
+                points: 0,
+                txHash: hash,
+                message: undefined,
+                attachmentUrl: undefined,
+                liquidationAddress: liquidationAddress.address,
+                recipientType: 'bank',
+                accountNumber: offrampForm.recipient,
+                bridgeCustomerId: bridgeCustomerId,
+                bridgeExternalAccountId: bridgeExternalAccountId,
+                peanutCustomerId: user?.user?.userId,
+                peanutExternalAccountId: peanutAccount.account_id,
+            },
+        })
+
+        await utils.submitCashoutLink({
+            link: claimLinkData.link,
+            bridgeCustomerId: bridgeCustomerId,
+            liquidationAddressId: liquidationAddress.id,
+            cashoutTransactionHash: hash,
+            externalAccountId: bridgeExternalAccountId,
+            chainId: chainId,
+            tokenName: tokenName,
+        })
+    }
+
+    const handleError = (error) => {
+        console.error('Error in handleConfirm:', error)
+        setErrorState({
+            showError: true,
+            errorMessage:
+                error instanceof Error
+                    ? error.message
+                    : "We've encountered an error. Your funds are SAFU, please reach out to support",
+        })
+        setShowRefund(true)
     }
 
     const { setStep: setActiveStep, activeStep } = useSteps({
@@ -320,7 +396,7 @@ export const ConfirmCashoutView = ({
                                 <label className="font-bold">Bank account</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {offrampForm.recipient}
+                                {offrampForm.recipient.toUpperCase()}
                             </span>
                         </div>
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -346,8 +422,8 @@ export const ConfirmCashoutView = ({
                         </div>
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Total</label>
+                                {/* <Icon name={'transfer'} className="h-4 fill-gray-1" /> */}
+                                <label className="font-bold">Total Received</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 $

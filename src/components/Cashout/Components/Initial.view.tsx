@@ -14,12 +14,13 @@ import { useForm } from 'react-hook-form'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
-import { Icon } from '@chakra-ui/react'
+import { Icon as ChakraIcon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
 import { motion, AnimatePresence } from 'framer-motion'
+import Icon from '@/components/Global/Icon'
 
 export const InitialCashoutView = ({
     onNext,
@@ -211,7 +212,7 @@ export const InitialCashoutView = ({
             <label className="text-h2">Cash Out</label>
             <div className="flex flex-col justify-center gap-3">
                 <label className="text-start text-h8 font-light">
-                    Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
+                    Convert your crypto to FIAT. From any token, any chain, directly to your bank account.
                 </label>
                 <FAQComponent />
             </div>
@@ -261,7 +262,7 @@ export const InitialCashoutView = ({
                                             ?.map((account, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`flex w-full cursor-pointer items-center justify-between border border-black p-2 transition-colors hover:bg-pink-400 ${
+                                                    className={`flex w-full cursor-pointer items-center justify-between border border-black p-2 hover:bg-pink-400 ${
                                                         selectedBankAccount === account.account_identifier &&
                                                         `bg-pink-400`
                                                     }`}
@@ -274,23 +275,28 @@ export const InitialCashoutView = ({
                                                         }
                                                     }}
                                                 >
-                                                    <label
-                                                        htmlFor={`bank-${index}`}
-                                                        className="ml-2 cursor-pointer text-right"
-                                                    >
-                                                        {utils.formatIban(account.account_identifier)}
-                                                    </label>
-                                                    {selectedBankAccount === account.account_identifier && (
-                                                        <button
-                                                            className="mr-2 text-gray-500 hover:text-black"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation()
-                                                                setSelectedBankAccount(undefined)
-                                                            }}
+                                                    <div className="flex flex-grow items-center">
+                                                        <Icon name={'bank'} className="mr-2 h-4 fill-gray-1" />
+                                                        <label
+                                                            htmlFor={`bank-${index}`}
+                                                            className="cursor-pointer text-right"
                                                         >
-                                                            ✕
-                                                        </button>
-                                                    )}
+                                                            {utils.formatIban(account.account_identifier)}
+                                                        </label>
+                                                    </div>
+                                                    <div className="flex w-6 justify-center">
+                                                        {selectedBankAccount === account.account_identifier && (
+                                                            <button
+                                                                className="text-lg text-black"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    setSelectedBankAccount(undefined)
+                                                                }}
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             ))}
                                     </div>
@@ -356,8 +362,8 @@ export const InitialCashoutView = ({
                     !_tokenValue ||
                     (!selectedBankAccount && !newBankAccount) ||
                     !xchainAllowed ||
-                    isBelowMinLimit ||
-                    isExceedingMaxLimit
+                    !!isBelowMinLimit ||
+                    !!isExceedingMaxLimit
                 }
             >
                 {!isConnected ? (
@@ -377,19 +383,19 @@ export const InitialCashoutView = ({
             )}
             {isBelowMinLimit && (
                 <span className=" text-h8 font-normal ">
-                    <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
+                    <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
                 </span>
             )}
             {isExceedingMaxLimit && (
                 <span className=" text-h8 font-normal ">
-                    <Icon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
+                    <ChakraIcon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
                     {MAX_CASHOUT_LIMIT.toLocaleString()}.
                 </span>
             )}
             {(!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
                 selectedChainID === '1') && (
                 <span className=" text-h8 font-normal ">
-                    <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                    <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                 </span>
             )}
         </div>
