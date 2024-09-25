@@ -6,13 +6,18 @@ This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next
 
 First install the dependencies (location: root folder):
 
+Make sure your node version is **v18.17.0**
+
 ```bash
 pnpm install
 ```
 
 Secondly, copy the .env.example to .env and fill in the values:
 there are 4 .env values:
-you can get WalletConnect, GA (google analytics) from their docs, and reach out to us for the Peanut api key.
+1. NEXT_PUBLIC_WC_PROJECT_ID --> WalletConnect
+2. PEANUT_API_KEY --> Can be found/requested from https://docs.peanut.to/integrate/using-the-sdk/api-keys
+3. MOBULA_API_KEY --> Can be created from https://admin.mobula.fi/
+4. NEXT_PUBLIC_GA_KEY(Google Analytics) --> Can be created from Google Cloud Platform
 
 ```bash
 cp .env.example .env
