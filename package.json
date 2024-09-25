@@ -31,6 +31,7 @@
         "encoding": "^0.1.13",
         "eslint-config-next": "^14.2.13",
         "ethers": "5.7.2",
+        "framer-motion": "^11.6.0",
         "fs-extra": "^11.2.0",
         "i18n-iso-countries": "^7.12.0",
         "install": "^0.13.0",
