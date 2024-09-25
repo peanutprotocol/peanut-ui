@@ -119,8 +119,8 @@ export const InitialView = ({
                 Request a payment
             </label>
             <label className="w-full max-w-96 text-start text-h8 font-light">
-                You will request a payment to {recipientAddress ? recipientAddress : '...'} <br />
-                Choose your preffered token and chain.
+                Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if you
+                want to.
             </label>
 
             <div className="flex w-full flex-col items-center justify-center gap-3">

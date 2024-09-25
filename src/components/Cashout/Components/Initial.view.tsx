@@ -14,11 +14,13 @@ import { useForm } from 'react-hook-form'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
-import { Icon } from '@chakra-ui/react'
+import { Icon as ChakraIcon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
+import { motion, AnimatePresence } from 'framer-motion'
+import Icon from '@/components/Global/Icon'
 
 export const InitialCashoutView = ({
     onNext,
@@ -66,6 +68,17 @@ export const InitialCashoutView = ({
     const [selectedBankAccount, setSelectedBankAccount] = useState<string | undefined>(undefined)
     const [newBankAccount, setNewBankAccount] = useState<string>('')
     const [activeInput, setActiveInput] = useState<'newBankAccount' | 'selectedBankAccount'>()
+
+    const MIN_CASHOUT_LIMIT = 10 // $10 minimum
+    const MAX_CASHOUT_LIMIT = 101000 // $101,000 maximum
+
+    const isBelowMinLimit = useMemo(() => {
+        return usdValue && parseFloat(usdValue) < MIN_CASHOUT_LIMIT
+    }, [usdValue])
+
+    const isExceedingMaxLimit = useMemo(() => {
+        return usdValue && parseFloat(usdValue) > MAX_CASHOUT_LIMIT
+    }, [usdValue])
 
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
@@ -165,6 +178,12 @@ export const InitialCashoutView = ({
         }
     }
 
+    const [showNewBankAccount, setShowNewBankAccount] = useState(true)
+
+    useEffect(() => {
+        setShowNewBankAccount(!selectedBankAccount)
+    }, [selectedBankAccount])
+
     useEffect(() => {
         if (activeInput === 'newBankAccount') {
             setSelectedBankAccount(undefined)
@@ -193,7 +212,7 @@ export const InitialCashoutView = ({
             <label className="text-h2">Cash Out</label>
             <div className="flex flex-col justify-center gap-3">
                 <label className="text-start text-h8 font-light">
-                    Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
+                    Convert your crypto to FIAT. From any token, any chain, directly to your bank account.
                 </label>
                 <FAQComponent />
             </div>
@@ -218,9 +237,9 @@ export const InitialCashoutView = ({
                         ( Buy Tokens )
                     </div>
                 )}
-                <div className="flex w-full flex-col justify-center gap-3 ">
+                <div className="flex w-full flex-col justify-center gap-3">
                     <RecipientInfoComponent />
-                    <div className="max-h-48 space-y-2 overflow-y-scroll ">
+                    <div className="space-y-4">
                         {!user && isFetchingUser ? (
                             <div className="relative flex h-16 w-full items-center justify-center">
                                 <div className="animate-spin">
@@ -229,75 +248,107 @@ export const InitialCashoutView = ({
                                 </div>
                             </div>
                         ) : user ? (
-                            <div className="flex w-full flex-col items-start justify-center gap-2">
-                                {user?.accounts.length > 0 &&
-                                    user?.accounts
-                                        .filter(
-                                            (account) =>
-                                                account.account_type === 'iban' || account.account_type === 'us'
-                                        )
-                                        ?.map((account, index) => (
-                                            <div
-                                                key={index}
-                                                className={`flex w-full cursor-pointer border border-black p-2 transition-colors hover:bg-n-3/10 ${selectedBankAccount === account.account_identifier && `bg-n-3/10`}`}
-                                                onClick={() => {
-                                                    if (selectedBankAccount === account.account_identifier) {
-                                                        setSelectedBankAccount(undefined)
-                                                    } else {
-                                                        setSelectedBankAccount(account.account_identifier)
-                                                        setActiveInput('selectedBankAccount')
-                                                    }
-                                                }}
-                                            >
-                                                <label
-                                                    htmlFor={`bank-${index}`}
-                                                    className="ml-2 cursor-pointer text-right"
+                            <>
+                                {user.accounts.length > 0 && (
+                                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                                        <label className="text-left text-h8 font-light">
+                                            Your linked bank accounts:
+                                        </label>
+                                        {user.accounts
+                                            .filter(
+                                                (account) =>
+                                                    account.account_type === 'iban' || account.account_type === 'us'
+                                            )
+                                            ?.map((account, index) => (
+                                                <div
+                                                    key={index}
+                                                    className={`flex w-full cursor-pointer items-center justify-between border border-black p-2  hover:bg-pink-400 ${
+                                                        selectedBankAccount === account.account_identifier &&
+                                                        `bg-pink-400`
+                                                    }`}
+                                                    onClick={() => {
+                                                        if (selectedBankAccount === account.account_identifier) {
+                                                            setSelectedBankAccount(undefined)
+                                                        } else {
+                                                            setSelectedBankAccount(account.account_identifier)
+                                                            setActiveInput('selectedBankAccount')
+                                                        }
+                                                    }}
                                                 >
-                                                    {utils.formatIban(account.account_identifier)}
-                                                </label>
-                                            </div>
-                                        ))}
-                                {!selectedBankAccount && (
-                                    <div className="flex w-full cursor-pointer border border-black p-2">
-                                        <label className="ml-2 text-right">To:</label>
-                                        <input
-                                            type="text"
-                                            className="ml-2 w-full border-none outline-none"
-                                            placeholder="IBAN / US account number"
-                                            value={newBankAccount}
-                                            onChange={(e) => setNewBankAccount(e.target.value)}
-                                            onFocus={() => setActiveInput('newBankAccount')}
-                                            spellCheck="false"
-                                            autoComplete="iban"
-                                        />
+                                                    <div className="flex flex-grow items-center">
+                                                        <Icon name={'bank'} className="mr-2 h-4 fill-gray-1" />
+                                                        <label
+                                                            htmlFor={`bank-${index}`}
+                                                            className="cursor-pointer text-right"
+                                                        >
+                                                            {utils.formatIban(account.account_identifier)}
+                                                        </label>
+                                                    </div>
+                                                    <div className="flex w-6 justify-center">
+                                                        {selectedBankAccount === account.account_identifier && (
+                                                            <button
+                                                                className="text-lg text-black"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation()
+                                                                    setSelectedBankAccount(undefined)
+                                                                }}
+                                                            >
+                                                                ✕
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
                                     </div>
                                 )}
-                            </div>
+                                <AnimatePresence>
+                                    {showNewBankAccount && (
+                                        <motion.div
+                                            initial={{ opacity: 0, height: 0 }}
+                                            animate={{ opacity: 1, height: 'auto' }}
+                                            exit={{ opacity: 0, height: 0 }}
+                                            transition={{ duration: 0.3 }}
+                                            className="flex w-full flex-col items-start justify-center gap-2 overflow-hidden"
+                                        >
+                                            <label className="text-left text-h8 font-light">
+                                                Cashout to a new bank account:
+                                            </label>
+                                            <div className="flex w-full cursor-pointer border border-black p-2">
+                                                <label className="ml-2 text-right">To:</label>
+                                                <input
+                                                    type="text"
+                                                    className="ml-2 w-full border-none outline-none"
+                                                    placeholder="IBAN / US account number"
+                                                    value={newBankAccount}
+                                                    onChange={(e) => setNewBankAccount(e.target.value)}
+                                                    onFocus={() => setActiveInput('newBankAccount')}
+                                                    spellCheck="false"
+                                                    autoComplete="iban"
+                                                />
+                                            </div>
+                                        </motion.div>
+                                    )}
+                                </AnimatePresence>
+                            </>
                         ) : (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <label>Login to see your linked bank accounts:</label>
-                                <GlobalLoginComponent />
+                                <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
+                                <div className="flex w-full cursor-pointer border border-black p-2">
+                                    <label className="ml-2 text-right">To:</label>
+                                    <input
+                                        type="text"
+                                        className="ml-2 w-full border-none outline-none"
+                                        placeholder="IBAN / US account number"
+                                        value={newBankAccount}
+                                        onChange={(e) => setNewBankAccount(e.target.value)}
+                                        onFocus={() => setActiveInput('newBankAccount')}
+                                        spellCheck="false"
+                                        autoComplete="iban"
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
-                    {(!user || user?.accounts.length === 0) && (
-                        <>
-                            <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
-                            <div className="flex w-full cursor-pointer border border-black p-2">
-                                <label className="ml-2 text-right">To:</label>
-                                <input
-                                    type="text"
-                                    className="ml-2 w-full border border-none outline-none"
-                                    placeholder="IBAN / US account number"
-                                    value={newBankAccount}
-                                    onChange={(e) => setNewBankAccount(e.target.value)}
-                                    onFocus={() => setActiveInput('newBankAccount')}
-                                    spellCheck="false"
-                                    autoComplete="iban"
-                                />
-                            </div>
-                        </>
-                    )}
                 </div>
             </div>
 
@@ -311,7 +362,8 @@ export const InitialCashoutView = ({
                     !_tokenValue ||
                     (!selectedBankAccount && !newBankAccount) ||
                     !xchainAllowed ||
-                    (usdValue && parseFloat(usdValue) < 9.9 ? true : false)
+                    !!isBelowMinLimit ||
+                    !!isExceedingMaxLimit
                 }
             >
                 {!isConnected ? (
@@ -329,15 +381,21 @@ export const InitialCashoutView = ({
                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                 </div>
             )}
-            {usdValue && parseFloat(usdValue) < 9.9 && (
+            {isBelowMinLimit && (
                 <span className=" text-h8 font-normal ">
-                    <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is $10.
+                    <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
+                </span>
+            )}
+            {isExceedingMaxLimit && (
+                <span className=" text-h8 font-normal ">
+                    <ChakraIcon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
+                    {MAX_CASHOUT_LIMIT.toLocaleString()}.
                 </span>
             )}
             {(!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
                 selectedChainID === '1') && (
                 <span className=" text-h8 font-normal ">
-                    <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                    <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                 </span>
             )}
         </div>

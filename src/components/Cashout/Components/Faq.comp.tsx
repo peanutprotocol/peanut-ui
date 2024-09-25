@@ -1,5 +1,4 @@
 import Icon from '@/components/Global/Icon'
-import { ListItem, UnorderedList } from '@chakra-ui/react'
 import { Menu, Transition } from '@headlessui/react'
 
 export const FAQComponent = ({ className }: { className?: string }) => {
@@ -19,18 +18,31 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >
-                        <Menu.Items className="shadow-primary-4 absolute bottom-full  z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-6 py-3 md:left-0 md:right-auto">
-                            <Menu.Item as={'label'} className={' text-h8 font-normal'}>
-                                Fees:
-                                <br />
-                                <UnorderedList title="Fees:" className="space-y-1 pl-3">
-                                    <ListItem>Gas is sponsored by Peanut</ListItem>
-                                    <ListItem>Minimum cashout amount: $10</ListItem>
-                                    <ListItem>Cashout fee of $1 to IBAN </ListItem>
-                                    <ListItem>Cashout fee of $0.50 to US accounts (ACH)</ListItem>
-                                    <ListItem>Processing time is between 20 minutes and 2 business days</ListItem>
-                                    <ListItem>Requires KYC.</ListItem>
-                                </UnorderedList>
+                        <Menu.Items className="shadow-primary-4 absolute bottom-full z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-6 py-3 md:left-0 md:right-auto">
+                            <Menu.Item as={'div'} className={'text-h8 font-normal'}>
+                                <p>
+                                    Cashing out requires KYC. <br></br>Min cashout: $10, max $100k.
+                                </p>
+                                <br></br>
+                                <p>Fees:</p>
+                                <ul className="list-disc pl-5">
+                                    <li>Peanut sponsors gas</li>
+                                    <li>we have to charge a $1 fee for EU cashouts, and $0.5 for US transfers</li>
+                                </ul>
+                                <br></br>
+                                <p>Usually takes 20mins, but can take up to 3 business days.</p>
+                                <button
+                                    className="mt-2 text-blue-600 underline"
+                                    onClick={() => {
+                                        // @ts-ignore
+                                        if (window.$crisp) {
+                                            // @ts-ignore
+                                            window.$crisp.push(['do', 'chat:open'])
+                                        }
+                                    }}
+                                >
+                                    Need help? Chat with support
+                                </button>
                             </Menu.Item>
                         </Menu.Items>
                     </Transition>

@@ -124,6 +124,8 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                 className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
                 placeholder="Email"
                 type="email"
+                autoComplete="username"
+                name="email"
             />
 
             {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
@@ -133,6 +135,8 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                 className={`custom-input custom-input-xs ${errors.password ? 'border border-red' : ''}`}
                 placeholder="Password"
                 type="password"
+                autoComplete="current-password"
+                name="password"
             />
             {errors.password && <span className="text-h9 font-normal text-red">{errors.password.message}</span>}
 

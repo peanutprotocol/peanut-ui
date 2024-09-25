@@ -298,7 +298,8 @@ const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) 
             bg={{ base: 'black', md: 'black' }}
             color={{ base: 'white', md: 'white' }}
             {...props}
-            className="text-h6"
+            className="z-[9999] text-h6"
+            zIndex={9999} // always on top
         >
             {children}
         </Flex>
