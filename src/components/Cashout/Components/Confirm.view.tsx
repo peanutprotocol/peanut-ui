@@ -18,6 +18,23 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { FAQComponent } from './Faq.comp'
 
+interface CrossChainDetails {
+    chainId: string
+    // ... ?
+}
+
+interface LiquidationAddress {
+    id: string
+    address: string
+    chain: string
+    currency: string
+    external_account_id: string
+}
+
+interface PeanutAccount {
+    account_id: string
+}
+
 export const ConfirmCashoutView = ({
     onNext,
     onPrev,
@@ -59,6 +76,7 @@ export const ConfirmCashoutView = ({
             contractVersion,
         })
 
+        // Find the user's Peanut account that matches the offramp form recipient
         const peanutAccount = user.accounts.find(
             (account) =>
                 account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
@@ -71,6 +89,7 @@ export const ConfirmCashoutView = ({
             throw new Error('Missing account information')
         }
 
+        // Fetch all liquidation addresses for the user
         const allLiquidationAddresses = await utils.getLiquidationAddresses(bridgeCustomerId)
 
         return {
@@ -89,6 +108,8 @@ export const ConfirmCashoutView = ({
         try {
             if (!preparedCreateLinkWrapperResponse) return
 
+            // Fetch all necessary details before creating the link
+            // (and make sure we have all the data we need)
             const {
                 crossChainDetails,
                 peanutAccount,
@@ -101,11 +122,23 @@ export const ConfirmCashoutView = ({
             setCreatedLink(link)
             console.log(`created claimlink: ${link}`)
 
+            // Save link temporarily in localStorage with TEMP tag
+            const tempKey = `TEMP_CASHOUT_LINK_${Date.now()}`
+            localStorage.setItem(
+                tempKey,
+                JSON.stringify({
+                    link,
+                    createdAt: Date.now(),
+                })
+            )
+            console.log(`Temporarily saved link in localStorage with key: ${tempKey}`)
+
             const claimLinkData = await getLinkDetails({ link: link })
 
+            // Process link details and determine if cross-chain transfer is needed
             const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
                 claimLinkData,
-                crossChainDetails,
+                crossChainDetails as CrossChainDetails[],
                 allLiquidationAddresses,
                 bridgeCustomerId,
                 bridgeExternalAccountId,
@@ -116,6 +149,7 @@ export const ConfirmCashoutView = ({
                 throw new Error('Unable to determine token or chain information')
             }
 
+            // get chainId and tokenAddress (default to optimism)
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
 
@@ -127,21 +161,22 @@ export const ConfirmCashoutView = ({
                 tokenAddress
             )
 
-            if (hash) {
-                await saveAndSubmitCashoutLink(
-                    claimLinkData,
-                    hash,
-                    liquidationAddress,
-                    bridgeCustomerId,
-                    bridgeExternalAccountId,
-                    chainId,
-                    tokenName,
-                    peanutAccount
-                )
+            localStorage.removeItem(tempKey)
+            console.log(`Removed temporary link from localStorage: ${tempKey}`)
 
-                setTransactionHash(hash)
-                console.log('Transaction hash:', hash)
-            }
+            await saveAndSubmitCashoutLink(
+                claimLinkData,
+                hash,
+                liquidationAddress,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                chainId,
+                tokenName,
+                peanutAccount
+            )
+
+            setTransactionHash(hash)
+            console.log('Transaction hash:', hash)
 
             onNext()
             setLoadingState('Idle')
@@ -153,17 +188,18 @@ export const ConfirmCashoutView = ({
     }
 
     const processLinkDetails = async (
-        claimLinkData,
-        crossChainDetails,
-        allLiquidationAddresses,
-        bridgeCustomerId,
-        bridgeExternalAccountId,
-        accountType
+        claimLinkData: any, // TODO: fix type
+        crossChainDetails: CrossChainDetails[],
+        allLiquidationAddresses: LiquidationAddress[],
+        bridgeCustomerId: string,
+        bridgeExternalAccountId: string,
+        accountType: string
     ) => {
         let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
         let chainName = utils.getBridgeChainName(claimLinkData.chainId)
         let xchainNeeded = false
 
+        // if we don't have a token and chain name (meaning bridge supports it), we do x-chain transfer to optimism usdc
         if (!tokenName || !chainName) {
             xchainNeeded = true
             const { tokenName: xchainTokenName, chainName: xchainChainName } = await handleCrossChainScenario(
@@ -184,8 +220,8 @@ export const ConfirmCashoutView = ({
         if (!liquidationAddress) {
             liquidationAddress = await utils.createLiquidationAddress(
                 bridgeCustomerId,
-                chainName,
-                tokenName,
+                chainName as string,
+                tokenName as string,
                 bridgeExternalAccountId,
                 accountType === 'iban' ? 'sepa' : 'ach',
                 accountType === 'iban' ? 'eur' : 'usd'
@@ -195,7 +231,9 @@ export const ConfirmCashoutView = ({
         return { tokenName, chainName, xchainNeeded, liquidationAddress }
     }
 
-    const handleCrossChainScenario = async (claimLinkData, crossChainDetails) => {
+    // TODO: fix type
+    const handleCrossChainScenario = async (claimLinkData: any, crossChainDetails: CrossChainDetails[]) => {
+        // default to optimism and usdc (and then bridge to this)
         const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
         const optimismChainId = '10'
 
@@ -223,7 +261,13 @@ export const ConfirmCashoutView = ({
         }
     }
 
-    const claimAndProcessLink = async (xchainNeeded, address, claimLinkData, chainId, tokenAddress) => {
+    const claimAndProcessLink = async (
+        xchainNeeded: boolean,
+        address: string,
+        claimLinkData: any, // TODO: fix type
+        chainId: string,
+        tokenAddress: string
+    ) => {
         if (xchainNeeded) {
             return await claimLinkXchain({
                 address,
@@ -240,14 +284,14 @@ export const ConfirmCashoutView = ({
     }
 
     const saveAndSubmitCashoutLink = async (
-        claimLinkData,
-        hash,
-        liquidationAddress,
-        bridgeCustomerId,
-        bridgeExternalAccountId,
-        chainId,
-        tokenName,
-        peanutAccount
+        claimLinkData: any, // TODO: fix type
+        hash: string,
+        liquidationAddress: LiquidationAddress,
+        bridgeCustomerId: string,
+        bridgeExternalAccountId: string,
+        chainId: string,
+        tokenName: string,
+        peanutAccount: PeanutAccount
     ) => {
         utils.saveOfframpLinkToLocalstorage({
             data: {
@@ -279,7 +323,7 @@ export const ConfirmCashoutView = ({
         })
     }
 
-    const handleError = (error) => {
+    const handleError = (error: unknown) => {
         console.error('Error in handleConfirm:', error)
         setErrorState({
             showError: true,

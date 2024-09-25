@@ -304,6 +304,7 @@ export const getLiquidationAddresses = async (customerId: string): Promise<inter
     }
 
     const data: interfaces.IBridgeLiquidationAddress[] = await response.json()
+    console.log(`successfully fetched liquidation addresses: ${data}`)
     return data
 }
 
