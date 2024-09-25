@@ -385,33 +385,33 @@ export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExte
     }
 }
 
-export const updateOfframpLinkInLocalstorage = (
-    id: string,
-    updateData: Partial<interfaces.IExtendedLinkDetailsOfframp>
-) => {
-    try {
-        if (typeof localStorage === 'undefined') return
+// export const updateOfframpLinkInLocalstorage = (
+//     id: string,
+//     updateData: Partial<interfaces.IExtendedLinkDetailsOfframp>
+// ) => {
+//     try {
+//         if (typeof localStorage === 'undefined') return
 
-        const key = `offramped links`
+//         const key = `offramped links`
 
-        const storedData = localStorage.getItem(key)
+//         const storedData = localStorage.getItem(key)
 
-        if (storedData) {
-            let dataArr: interfaces.IExtendedLinkDetailsOfframp[] = JSON.parse(storedData)
-            const index = dataArr.findIndex((item) => item.id === id)
+//         if (storedData) {
+//             let dataArr: interfaces.IExtendedLinkDetailsOfframp[] = JSON.parse(storedData)
+//             const index = dataArr.findIndex((item) => item.id === id)
 
-            if (index !== -1) {
-                dataArr[index] = { ...dataArr[index], ...updateData }
-                localStorage.setItem(key, JSON.stringify(dataArr))
-                console.log('Updated offramp link in localStorage:', dataArr[index])
-            } else {
-                console.error('Offramp link not found in localStorage')
-            }
-        }
-    } catch (error) {
-        console.error('Error updating data in localStorage:', error)
-    }
-}
+//             if (index !== -1) {
+//                 dataArr[index] = { ...dataArr[index], ...updateData }
+//                 localStorage.setItem(key, JSON.stringify(dataArr))
+//                 console.log('Updated offramp link in localStorage:', dataArr[index])
+//             } else {
+//                 console.error('Offramp link not found in localStorage')
+//             }
+//         }
+//     } catch (error) {
+//         console.error('Error updating data in localStorage:', error)
+//     }
+// }
 
 export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
     try {
