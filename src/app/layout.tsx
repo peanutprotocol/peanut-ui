@@ -23,16 +23,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body className={`${roboto.variable} ${londrina.variable} chakra-ui-light font-sans`}>
-                <ColorModeProvider>
+                {/* <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"
                         key="chakra-ui-no-flash"
                         storageKey="chakra-ui-color-mode"
-                    />
-                    <PeanutProvider>
-                        <ContextProvider>{children}</ContextProvider>
-                    </PeanutProvider>
-                </ColorModeProvider>
+                    /> */}
+                <PeanutProvider>
+                    <ContextProvider>{children}</ContextProvider>
+                </PeanutProvider>
+                {/* </ColorModeProvider> */}
             </body>
         </html>
     )

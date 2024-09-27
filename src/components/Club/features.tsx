@@ -190,40 +190,6 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                             </h2>
 
                             {section.testimonials && (
-                                // <SimpleGrid
-                                //     spacing={8}
-                                //     columns={{ sm: 1, md: 2, lg: 4 }}
-                                //     className="mt-12 items-start md:mt-20"
-                                // >
-                                //     {section.testimonials.map((testimonial, index) => (
-                                //         <GridItem key={index}>
-                                //             {isLargerThan768 ? (
-                                //                 <motion.div
-                                //                     ref={ref}
-                                //                     initial="hidden"
-                                //                     whileInView="visible"
-                                //                     variants={gridItemVariants[index]}
-                                //                     whileHover="hover"
-                                //                     className={`relative z-10 p-4 md:p-8`}
-                                //                 >
-                                //                     <motion.div
-                                //                         variants={testimonialBgVariants[index]}
-                                //                         className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
-                                //                     ></motion.div>
-
-                                //                     <TestimonialBody testimonial={testimonial} />
-                                //                 </motion.div>
-                                //             ) : (
-                                //                 <div className={`relative z-10 p-4 md:p-8`}>
-                                //                     <div
-                                //                         className={`absolute left-0 top-0 -z-1 h-full w-full rounded-3xl bg-primary testimonial-${index}-bg`}
-                                //                     ></div>
-                                //                     <TestimonialBody testimonial={testimonial} />
-                                //                 </div>
-                                //             )}
-                                //         </GridItem>
-                                //     ))}
-                                // </SimpleGrid>
                                 <div className="mt-12 md:mt-20">
                                     <Testimonials testimonials={section.testimonials} />
                                 </div>
