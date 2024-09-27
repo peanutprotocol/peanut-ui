@@ -223,7 +223,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                                 }}
                                                 transition={{ type: 'spring', damping: 15 }}
                                                 key={index}
-                                                className={`mx-auto flex w-auto rounded-full border-2 border-primary px-5 py-3 font-display text-[1.4rem] font-bold uppercase shadow ring-2 ring-white md:mr-auto md:text-[2rem] ${index % 2 === 0 ? 'bg-primary text-white' : 'bg-white text-primary'}`}
+                                                className={`feature ${index % 2 === 0 ? 'feature-primary' : ''}`}
                                             >
                                                 {item}
                                             </motion.div>
