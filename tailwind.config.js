@@ -335,7 +335,8 @@ module.exports = {
                     '@apply label border-n-1 bg-n-1 text-white dark:bg-white/10': {},
                 },
                 '.table-custom': {
-                    '@apply table w-full border-2 border-n-1 bg-white dark:bg-n-1 dark:border-white ring-2 ring-white dark:ring-n-1 shadow-md': {},
+                    '@apply table w-full border-2 border-n-1 bg-white dark:bg-n-1 dark:border-white ring-2 ring-white dark:ring-n-1 shadow-md':
+                        {},
                 },
                 '.table-select': {
                     '@apply table-custom [&>thead>tr>*:nth-child(2)]:pl-0 [&>thead>tr>*:nth-child(1)]:w-13 [&>thead>tr>*:nth-child(1)]:px-0 [&>thead>tr>*:nth-child(1)]:text-0 [&>thead>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(2)]:pl-0 [&>tbody>tr>*:nth-child(1)]:w-13 [&>tbody>tr>*:nth-child(1)]:px-0 [&>tbody>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(1)]:text-0':

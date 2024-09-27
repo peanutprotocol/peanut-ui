@@ -1,8 +1,8 @@
 import peanut from '@squirrel-labs/peanut-sdk'
 
-import {peanutTokenDetails} from '@/constants'
-import {IUserBalance} from '@/interfaces'
-import {areTokenAddressesEqual, isNativeCurrency} from '@/utils'
+import { peanutTokenDetails } from '@/constants'
+import { IUserBalance } from '@/interfaces'
+import { areTokenAddressesEqual, isNativeCurrency } from '@/utils'
 
 export const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
     return tokenValue / tokenPrice
