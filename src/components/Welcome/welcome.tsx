@@ -223,7 +223,7 @@ export function Welcome() {
                             </div>
 
                             <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
-                                <Link href={'/send'} className="btn-2xl btn-purple max-w-64">
+                                <Link href={'/send'} className="btn-purple btn-2xl max-w-64">
                                     App
                                 </Link>
 

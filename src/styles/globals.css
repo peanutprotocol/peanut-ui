@@ -221,11 +221,11 @@ Firefox input[type='number'] {
 }
 
 .text-link-decoration {
-    @apply underline decoration-neutral-400 underline-offset-4 decoration-2 hover:decoration-purple-1 transition-colors duration-200;
+    @apply underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-purple-1;
 }
 
 .text-link {
-    @apply text-black underline decoration-neutral-400 underline-offset-4 decoration-2 font-black hover:decoration-purple-1 transition-colors duration-200;
+    @apply font-black text-black underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-purple-1;
 }
 
 .text-h2 {
@@ -234,7 +234,7 @@ Firefox input[type='number'] {
 
 /* Panel styling */
 .panel {
-    @apply bg-white rounded-md shadow-lg border-2 border-n-1 ring-2 ring-white shadow-md dark:border-white dark:bg-n-1 dark:ring-n-1;
+    @apply rounded-md border-2 border-n-1 bg-white shadow-lg shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
 }
 
 .panel-sm {
@@ -247,7 +247,7 @@ Firefox input[type='number'] {
 
 /* Feature styling */
 .feature {
-    @apply mx-auto justify-center flex w-auto rounded-full border-2 border-primary px-5 py-3 font-display text-[1.4rem] font-bold uppercase shadow-md ring-2 ring-white md:mr-auto md:text-[2rem] bg-white text-primary;
+    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-primary bg-white px-5 py-3 font-display text-[1.4rem] font-bold uppercase text-primary shadow-md ring-2 ring-white md:mr-auto md:text-[2rem];
 }
 
 .feature-primary {
@@ -256,18 +256,18 @@ Firefox input[type='number'] {
 
 /* Form styling */
 .input-text {
-    @apply transition-colors h-12 w-full border-n-1 dark:border-white rounded-md border-2 bg-white px-3 font-medium outline-none focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1 ring-2 ring-white;
+    @apply h-12 w-full rounded-md border-2 border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-purple-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1;
 }
 
 .input-text-inset {
-    @apply pl-9 px-6;
+    @apply px-6 pl-9;
 }
 
 /* Decoration */
 .border-rounded {
-    @apply border-2 border-n-1 rounded-md dark:border-white;
+    @apply rounded-md border-2 border-n-1 dark:border-white;
 }
 
 .ring-sm {
-    @apply ring-2 ring-white dark:ring-n-1 shadow-md;
+    @apply shadow-md ring-2 ring-white dark:ring-n-1;
 }
