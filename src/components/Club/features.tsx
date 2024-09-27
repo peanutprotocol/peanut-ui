@@ -189,7 +189,6 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                             </h2>
 
                             {section.testimonials && (
-
                                 <div className="mt-12 md:mt-20">
                                     <Testimonials testimonials={section.testimonials} />
                                 </div>
