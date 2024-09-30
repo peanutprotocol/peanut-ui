@@ -165,7 +165,7 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
 
     return (
         <div className={``}>
-            <SimpleGrid spacing={8} columns={{ sm: 1, md: 2, lg: 4 }} className="items-start">
+            <SimpleGrid spacing={8} columns={{ sm: 1, md: 2, lg: 3 }} className="items-start px-8">
                 {testimonials.map((testimonial, index) => (
                     <GridItem key={index}>
                         {isLargerThan768 ? (

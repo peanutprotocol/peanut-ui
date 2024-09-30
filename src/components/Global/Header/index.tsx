@@ -190,7 +190,7 @@ const MenuLinks = () => {
                     onClick={() => {
                         setShowMenu(!showMenu)
                     }}
-                    className="flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase text-black transition-colors hover:bg-n-4/50 hover:text-n-1 sm:w-max sm:justify-center sm:px-6"
+                    className="text-bold flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:w-max sm:justify-center sm:px-6"
                 >
                     <Text display="block"> tools</Text>
                 </button>
