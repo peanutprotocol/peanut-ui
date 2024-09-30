@@ -335,7 +335,7 @@ export const Profile = () => {
             setDashboardData((prevData) =>
                 prevData.map((item) => {
                     const updatedItem = data.find((updated) => updated.link === item.link)
-                    return updatedItem ? { ...item, status: updatedItem.status } : item
+                    return updatedItem && item.status === undefined ? { ...item, status: updatedItem.status } : item
                 })
             )
         }
@@ -346,7 +346,7 @@ export const Profile = () => {
         if (selectedTab === 'history' && visibleData.length > 0) {
             _fetchLinkDetailsAsync(visibleData)
         }
-    }, [currentPage, dashboardData])
+    }, [currentPage, selectedTab])
 
     // UseEffect hook to set the initial user name
     useEffect(() => {

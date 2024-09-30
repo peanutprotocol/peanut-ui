@@ -262,9 +262,10 @@ export const InitialCashoutView = ({
                                             ?.map((account, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`flex w-full cursor-pointer items-center justify-between border border-black p-2  hover:bg-pink-400 ${
-                                                        selectedBankAccount === account.account_identifier &&
-                                                        `bg-pink-400`
+                                                    className={`flex w-full cursor-pointer items-center justify-between border border-black p-2 ${
+                                                        selectedBankAccount === account.account_identifier
+                                                            ? 'bg-purple-1'
+                                                            : 'hover:bg-gray-100'
                                                     }`}
                                                     onClick={() => {
                                                         if (selectedBankAccount === account.account_identifier) {

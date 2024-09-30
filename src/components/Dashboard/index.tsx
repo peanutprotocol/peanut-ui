@@ -91,6 +91,7 @@ export const Dashboard = () => {
         if (visibleData.length > 0) {
             _fetchLinkDetailsAsync(visibleData)
         }
+        // }, [currentPage, dashboardData])
     }, [currentPage, dashboardData])
 
     useEffect(() => {

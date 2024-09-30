@@ -57,7 +57,9 @@ export const useDashboard = () => {
                     }
                 })
             )
-        } catch (error) {}
+        } catch (error) {
+            console.error('Error fetching offramp claim details:', error)
+        }
 
         const _data = [..._data1, ..._data2, ..._data3]
 
