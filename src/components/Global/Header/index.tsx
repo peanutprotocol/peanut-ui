@@ -189,7 +189,7 @@ const ToolsDropdown = () => {
                         onClick={() => {
                             setShowMenu(!showMenu)
                         }}
-                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
+                        className="text-bold flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:w-max sm:justify-center sm:px-6"
                     >
                         <Text display="block"> tools</Text>
                     </button>
@@ -280,7 +280,7 @@ const SocialLinks = () => {
     )
 }
 
-const NavBarContainer = ({ children }: { children: React.ReactNode; }) => {
+const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) => {
     const themeBG = 'white'
     const themeColor ='black'
     return (

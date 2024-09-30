@@ -1,3 +1,4 @@
+const { connected } = require('process')
 const { fontFamily } = require('tailwindcss/defaultTheme')
 const plugin = require('tailwindcss/plugin')
 
@@ -133,7 +134,10 @@ module.exports = {
             },
             fontFamily: {
                 sans: ['var(--font-roboto)', ...fontFamily.sans],
-                display: ['var(--font-londrina)'],
+                display: ['var(--font-sniglet)', ...fontFamily.sans],
+                condensed: ['var(--font-roboto)', {
+                    fontVariationSettings: '"wdth" 50'
+                }],
             },
             fontSize: {
                 0: ['0px', '0px'],
@@ -141,7 +145,7 @@ module.exports = {
                 '6xl': ['3rem', '3.25rem'],
                 '7xl': ['7rem', '7rem'],
                 '8xl': ['10rem', '10rem'],
-                '9xl': ['12rem', '12rem'],
+                '9xl': ['12rem', '0.9'],
                 h1: [
                     '3rem',
                     {
@@ -229,7 +233,7 @@ module.exports = {
             })
             addComponents({
                 '.btn': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
                         {},
                 },
                 '.btn svg': {

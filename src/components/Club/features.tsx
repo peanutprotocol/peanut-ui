@@ -7,7 +7,32 @@ import { motion, useAnimation, useInView } from 'framer-motion'
 import { FeaturesImages, FeaturesBadgeImage } from './imageAssets'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { Testimonials } from '../Global/Testimonials'
-import { HR, HandThumbs } from '@/assets'
+import { MarqueeWrapper } from '../Global/MarqueeWrapper'
+import {
+    WALLETCONNECT_LOGO,
+    CLAVE_LOGO,
+    ECO_LOGO,
+    MANTLE_ICON,
+    BLOCKSCOUT_LOGO,
+    HYPERSPHERE_LOGO_SQUARE,
+    ZEEPRIME_LOGO_SQUARE,
+    LONGHASH_LOGO_SQUARE,
+    NAZARE_LOGO_SQUARE,
+    DEREK_PERSON,
+    SHARUK_PERSON,
+    KOFIME_PERSON,
+    SBF_PERSON,
+    SmileStars,
+    PEANUTMAN_HAPPY,
+    HandThumbs,
+    HR,
+    Star,
+    EyesEmoiji,
+    GoodIdeaSign,
+    SmileSide,
+    PeanutGuy,
+} from '@/assets'
+import * as chain_logos from '@/assets/chains'
 
 type FeaturesProps = {
     sections: Array<{
@@ -178,13 +203,13 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
 
     return (
         <Flex direction={'column'} width={'100%'}>
-            <Stack spacing={[14, 20, 28, 36]} className="overflow-x-hidden px-6 py-14 sm:py-20 md:px-8 md:py-36">
+            <Stack spacing={[14, 20, 28, 36]} className="overflow-x-hidden py-14 sm:py-20 md:py-36">
                 {sections.map((section, index) => (
                     <Box key={index} className="relative">
                         <FeaturesImages index={index} />
 
-                        <div className={`relative z-1 mx-auto lg:px-4 xl:w-[92%] 2xl:w-4/5`}>
-                            <h2 className="text-center font-display text-5xl font-black uppercase text-n-1">
+                        <div className={`relative z-1 mx-auto px-6 md:px-8 lg:px-4 xl:w-[92%] 2xl:w-4/5`}>
+                            <h2 className="text-center text-5xl font-black font-bold uppercase text-n-1">
                                 {section.heading}
                             </h2>
 
@@ -234,9 +259,26 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                         </div>
 
                         {index + 1 < sections.length && (
-                            <Box className="mt-16 md:mt-20 lg:mt-28 xl:mt-36">
-                                <img src={HR.src} className="mx-auto h-5" />
-                            </Box>
+                            // <Box className="mt-16 md:mt-20 lg:mt-28 xl:mt-36">
+                            //     <img src={HR.src} className="mx-auto h-5" />
+                            // </Box>
+
+                            <div className="mt-16 md:mt-20 lg:mt-28 xl:mt-36">
+                                <MarqueeWrapper backgroundColor="bg-transparent" direction="right" className="">
+                                    {Object.entries(chain_logos).map(([chain, logo]) => {
+                                        return (
+                                            <div className="pl-3" key={chain}>
+                                                <img
+                                                    loading="eager"
+                                                    src={logo.src}
+                                                    className="h-16 w-16"
+                                                    alt={`${chain} Logo`}
+                                                />
+                                            </div>
+                                        )
+                                    })}
+                                </MarqueeWrapper>
+                            </div>
                         )}
                     </Box>
                 ))}

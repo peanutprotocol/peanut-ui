@@ -24,7 +24,7 @@ export function Mike({ lines }: MikeProps) {
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 6 }}
                 src={SmileSide.src}
-                className="absolute right-4 top-[14%] w-30 -rotate-[15deg] md:right-[4%] lg:right-[12%]"
+                className="absolute right-4 top-[12%] w-30 -rotate-[15deg] md:right-[4%] lg:right-[12%]"
             />
             <motion.img
                 initial={{ opacity: 0, translateY: 18, translateX: 8 }}
