@@ -62,7 +62,7 @@ export const ConfirmClaimLinkIbanView = ({
                 let route
                 try {
                     route = await utils.fetchRouteRaw(
-                        claimLinkData.tokenAddress.toLowerCase,
+                        claimLinkData.tokenAddress,
                         claimLinkData.chainId.toString(),
                         usdcAddressOptimism,
                         optimismChainId,

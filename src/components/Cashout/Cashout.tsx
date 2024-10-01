@@ -3,6 +3,7 @@ import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Cashout.consts'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as consts from '@/constants'
+import { OfframpType } from '../Offramp/Offramp.consts'
 export const Cashout = ({}) => {
     const [step, setStep] = useState<_consts.ICashoutScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
@@ -135,6 +136,7 @@ export const Cashout = ({}) => {
                 transactionHash,
                 setTransactionHash,
                 crossChainDetails,
+                offrampType: OfframpType.CASHOUT
             } as any)}
         </div>
     )
