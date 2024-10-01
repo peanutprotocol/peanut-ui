@@ -1,4 +1,4 @@
-import { ChatWithSupport } from '@/components/CrispChat'
+import { CrispButton } from '@/components/CrispChat'
 import Icon from '@/components/Global/Icon'
 import { Menu, Transition } from '@headlessui/react'
 
@@ -32,9 +32,9 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                                 </ul>
                                 <br></br>
                                 <p>Usually takes 20mins, but can take up to 3 business days.</p>
-                                <ChatWithSupport className="mt-2 text-blue-600 underline">
+                                <CrispButton className="mt-2 text-blue-600 underline">
                                     Need help? Chat with support
-                                </ChatWithSupport>
+                                </CrispButton>
                             </Menu.Item>
                         </Menu.Items>
                     </Transition>

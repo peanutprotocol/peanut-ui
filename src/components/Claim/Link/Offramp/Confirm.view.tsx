@@ -14,7 +14,7 @@ import * as consts from '@/constants'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import { useAuth } from '@/context/authContext'
-import { ChatWithSupport } from '@/components/CrispChat'
+import { CrispButton } from '@/components/CrispChat'
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
@@ -348,12 +348,12 @@ export const ConfirmClaimLinkIbanView = ({
                             KYC is under review, we might need additional documents. Chat with support to finish the
                             process.
                         </label>
-                        <ChatWithSupport className="text-blue-600 underline">Chat with support</ChatWithSupport>
+                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                     </div>
                 ) : errorState.errorMessage === 'KYC rejected' ? (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>{' '}
-                        <ChatWithSupport className="text-blue-600 underline">Chat with support</ChatWithSupport>
+                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                     </div>
                 ) : (
                     <div className="text-center">

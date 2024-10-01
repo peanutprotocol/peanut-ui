@@ -14,7 +14,7 @@ import { ethers } from 'ethers'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
 import { useAccount } from 'wagmi'
-import { ChatWithSupport } from '@/components/CrispChat'
+import { CrispButton } from '@/components/CrispChat'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -268,7 +268,7 @@ export const CreateLinkInitialView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                     {errorState.errorMessage.includes('We currently dont support ') && (
-                        <ChatWithSupport className="btn h-8 w-full cursor-pointer px-2">Reach out!</ChatWithSupport>
+                        <CrispButton className="btn h-8 w-full cursor-pointer px-2">Reach out!</CrispButton>
                     )}
                 </>
             )}

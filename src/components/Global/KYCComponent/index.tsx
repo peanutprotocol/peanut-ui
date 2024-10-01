@@ -13,7 +13,7 @@ import Loading from '../Loading'
 import { GlobalLoginComponent } from '../LoginComponent'
 import { GlobalRegisterComponent } from '../RegisterComponent'
 import { Divider } from '@chakra-ui/react'
-import { ChatWithSupport } from '@/components/CrispChat'
+import { CrispButton } from '@/components/CrispChat'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -381,12 +381,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                                 KYC is under review, we might need additional documents. Chat with support to finish the
                                 process.
                             </label>
-                            <ChatWithSupport className="text-blue-600 underline">Chat with support</ChatWithSupport>
+                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                         </div>
                     ) : errorState.errorMessage === 'KYC rejected' ? (
                         <div className="text-center">
                             <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>
-                            <ChatWithSupport className="text-blue-600 underline">Chat with support</ChatWithSupport>
+                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                         </div>
                     ) : (
                         <div className="text-center">

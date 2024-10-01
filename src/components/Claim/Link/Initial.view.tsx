@@ -19,7 +19,7 @@ import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
-import { ChatWithSupport } from '@/components/CrispChat'
+import { CrispButton } from '@/components/CrispChat'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -613,9 +613,7 @@ export const InitialClaimLinkView = ({
                             {errorState.errorMessage === 'offramp unavailable' ? (
                                 <label className="text-h8 font-normal text-red">
                                     You can not claim this token to your bank account.{' '}
-                                    <ChatWithSupport className="text-blue-600 underline">
-                                        Chat with support
-                                    </ChatWithSupport>
+                                    <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                                 </label>
                             ) : (
                                 <>
@@ -645,7 +643,7 @@ export const InitialClaimLinkView = ({
                         (recipientType === 'iban' || recipientType === 'us') && (
                             <label className="text-h8 font-normal ">
                                 Only US and EU accounts are supported currently.{' '}
-                                <ChatWithSupport className="mr-1 underline">Reach out</ChatWithSupport>
+                                <CrispButton className="mr-1 underline">Reach out</CrispButton>
                                 if you would like more info.
                             </label>
                         )

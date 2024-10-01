@@ -6,7 +6,7 @@ export const openCrispChat = () => {
     }
 }
 
-export const ChatWithSupport = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
+export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
     return (
         <button {...rest} onClick={openCrispChat}>
             {children}

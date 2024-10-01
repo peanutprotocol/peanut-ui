@@ -16,7 +16,7 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
-import { ChatWithSupport } from '@/components/CrispChat'
+import { CrispButton } from '@/components/CrispChat'
 
 const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
@@ -330,9 +330,9 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
 
                         {filterValue.length > 0 &&
                             components.tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID)}
-                        <ChatWithSupport className="cursor-pointer text-center text-h8 font-normal underline">
+                        <CrispButton className="cursor-pointer text-center text-h8 font-normal underline">
                             Chat with us if you want to add a custom token
-                        </ChatWithSupport>
+                        </CrispButton>
                     </div>
                 )}
             </Modal>
