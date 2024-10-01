@@ -1,12 +1,9 @@
 import '@/styles/globals.css'
 import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
-import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
-import * as config from '@/config'
-import * as context from '@/context'
 import CrispChat from '../components/CrispChat'
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/config'
-import Head from 'next/head'
+import { FooterVisibilityProvider } from '@/context/footerVisibility'
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
@@ -33,12 +30,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body className={`${roboto.variable} ${londrina.variable} ${sniglet.variable} chakra-ui-light font-sans`}>
-                    <config.PeanutProvider>
-                        <context.ContextProvider>
-                            {children}
+                    <PeanutProvider>
+                        <ContextProvider>
                             <CrispChat />
-                        </context.ContextProvider>
-                    </config.PeanutProvider>
+                                <FooterVisibilityProvider>
+                                    {children}
+                                </FooterVisibilityProvider>
+                            <CrispChat />
+                        </ContextProvider>
+                    </PeanutProvider>
             </body>
         </html>
     )
