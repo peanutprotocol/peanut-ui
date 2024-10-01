@@ -16,7 +16,6 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
-import { ethers } from 'ethers'
 
 const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
