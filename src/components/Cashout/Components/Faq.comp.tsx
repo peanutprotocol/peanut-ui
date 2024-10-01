@@ -1,3 +1,4 @@
+import { CrispButton } from '@/components/CrispChat'
 import Icon from '@/components/Global/Icon'
 import { Menu, Transition } from '@headlessui/react'
 
@@ -31,18 +32,9 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                                 </ul>
                                 <br></br>
                                 <p>Usually takes 20mins, but can take up to 3 business days.</p>
-                                <button
-                                    className="mt-2 text-blue-600 underline"
-                                    onClick={() => {
-                                        // @ts-ignore
-                                        if (window.$crisp) {
-                                            // @ts-ignore
-                                            window.$crisp.push(['do', 'chat:open'])
-                                        }
-                                    }}
-                                >
+                                <CrispButton className="mt-2 text-blue-600 underline">
                                     Need help? Chat with support
-                                </button>
+                                </CrispButton>
                             </Menu.Item>
                         </Menu.Items>
                     </Transition>

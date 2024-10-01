@@ -1,5 +1,19 @@
 import Script from 'next/script'
 
+export const openCrispChat = () => {
+    if (window.$crisp) {
+        window.$crisp.push(['do', 'chat:open'])
+    }
+}
+
+export const CrispButton = ({ children, ...rest }: React.HTMLAttributes<HTMLButtonElement>) => {
+    return (
+        <button {...rest} onClick={openCrispChat}>
+            {children}
+        </button>
+    )
+}
+
 export default function CrispChat() {
     return (
         <Script strategy="afterInteractive">

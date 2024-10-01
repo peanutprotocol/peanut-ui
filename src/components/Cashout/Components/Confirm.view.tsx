@@ -17,6 +17,7 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { FAQComponent } from './Faq.comp'
+import { CrispButton } from '@/components/CrispChat'
 
 interface CrossChainDetails {
     chainId: string
@@ -534,23 +535,15 @@ export const ConfirmCashoutView = ({
                 {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">
-                            KYC is under review, we might need additional documents. Please reach out via{' '}
-                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                discord
-                            </a>{' '}
-                            to finish the process.
+                            KYC is under review, we might need additional documents. Chat with support to finish the
+                            process.
                         </label>
+                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                     </div>
                 ) : errorState.errorMessage === 'KYC rejected' ? (
                     <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">
-                            KYC has been rejected. Please reach out via{' '}
-                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                {' '}
-                                discord{' '}
-                            </a>{' '}
-                            .
-                        </label>
+                        <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>
+                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                     </div>
                 ) : (
                     <div className="text-center">

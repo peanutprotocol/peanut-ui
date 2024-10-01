@@ -2,7 +2,6 @@
 
 import { useContext, useEffect, useState } from 'react'
 import validator from 'validator'
-import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import { useSearchParams } from 'next/navigation'
 
 import * as _consts from '../Create.consts'
@@ -11,11 +10,11 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import RecipientInput from '@/components/Global/RecipientInput'
 import Icon from '@/components/Global/Icon'
-import { errors, ethers } from 'ethers'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { ethers } from 'ethers'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
 import { useAccount } from 'wagmi'
+import { CrispButton } from '@/components/CrispChat'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -269,13 +268,7 @@ export const CreateLinkInitialView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                     {errorState.errorMessage.includes('We currently dont support ') && (
-                        <a
-                            href={'https://discord.gg/BX9Ak7AW28'}
-                            target={'_blank'}
-                            className="btn h-8 w-full cursor-pointer px-2"
-                        >
-                            Reach out!
-                        </a>
+                        <CrispButton className="btn h-8 w-full cursor-pointer px-2">Reach out!</CrispButton>
                     )}
                 </>
             )}
