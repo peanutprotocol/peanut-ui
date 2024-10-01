@@ -1,14 +1,29 @@
 'use client'
 import React, { useEffect, useState } from 'react'
-import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
+import {
+    Box,
+    Flex,
+    Text,
+    Stack,
+    Collapse,
+    useDisclosure,
+    Button,
+    Menu,
+    MenuButton,
+    MenuItem,
+    MenuList,
+} from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
+
 import Link from 'next/link'
+import Image from 'next/image'
+
+import * as assets_icons from '@/assets/icons'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
-import { breakpoints, emToPx } from '@/styles/theme'
 
 const defaultLottieOptions: LottieOptions = {
     animationData: assets.HAMBURGER_LOTTIE,
@@ -25,29 +40,17 @@ const defaultLottieStyle = {
 }
 
 export const Header = () => {
-    const { isOpen, onToggle, onClose } = useDisclosure()
+    const { isOpen, onToggle } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
 
     useEffect(() => {
-        const handleMediaQueryChange = () => {
-            if (window.innerWidth >= emToPx(breakpoints.lg) && isOpen) {
-                onClose()
-                setIsOpenState(false)
-            }
-        }
-
-        window.addEventListener('resize', handleMediaQueryChange)
-
-        // Clean up the listener when the component unmounts
-        return () => {
-            window.removeEventListener('resize', handleMediaQueryChange)
-        }
-    }, [isOpen, onClose])
+        setIsOpenState(!isOpen)
+    }, [isOpen])
 
     return (
         <NavBarContainer>
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
-                <Box display={{ base: 'none', lg: 'flex' }} flexDirection={'row'} height="100%">
+                <Box display={{ base: 'none', md: 'flex' }} flexDirection={'row'} height="100%">
                     <div
                         className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
@@ -56,12 +59,12 @@ export const Header = () => {
                         }}
                     >
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                        <span className="inline px-2 text-h5 sm:px-6 sm:text-h4">peanut protocol</span>
+                        <span className="inline px-2 text-h5 sm:px-6 sm:px-6 sm:text-h4">peanut protocol</span>
                     </div>
                     <MenuLinks />
                 </Box>
                 <Box
-                    display={{ base: 'flex', lg: 'none' }}
+                    display={{ base: 'flex', md: 'none' }}
                     flexDirection={'row'}
                     justifyContent={'space-between'}
                     alignContent={'center'}
@@ -81,7 +84,7 @@ export const Header = () => {
 
                     <MenuToggle isOpen={isOpenState} toggle={onToggle} />
                 </Box>
-                <Box display={{ base: 'none', lg: 'block' }}>
+                <Box display={{ base: 'none', md: 'block' }}>
                     <SocialLinks />
                 </Box>
             </Flex>
@@ -101,7 +104,7 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
             justifyContent={'center'}
             alignContent={'center'}
             alignItems={'center'}
-            display={{ base: 'flex', lg: 'none' }}
+            display={{ base: 'flex', md: 'none' }}
             onClick={() => {
                 toggle()
                 goToAndStop(isOpen ? 37 : 0, true)
@@ -155,17 +158,6 @@ const MenuLinks = () => {
                     </span>
                 </Text>
             </Link>
-            <Link
-                href={'/cashout'}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block">
-                    cashout
-                    <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                        BETA
-                    </span>
-                </Text>
-            </Link>
             <div className="relative hidden h-full sm:block">
                 <button
                     onMouseEnter={() => {
@@ -188,6 +180,17 @@ const MenuLinks = () => {
                         }}
                         className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     >
+                        <Link
+                            href={'/cashout'}
+                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block" className="flex items-center">
+                                cashout
+                                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                                    BETA
+                                </span>
+                            </Text>
+                        </Link>
                         <Link
                             href={'/raffle/create'}
                             className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
@@ -220,6 +223,17 @@ const MenuLinks = () => {
                 </button>
                 {showMenu && (
                     <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <Link
+                            href={'/cashout'}
+                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
+                        >
+                            <Text display="block" className="flex items-center">
+                                cashout
+                                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                                    BETA
+                                </span>
+                            </Text>
+                        </Link>
                         <Link
                             href={'/raffle/create'}
                             className="flex h-full w-full items-center justify-start py-2  pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
