@@ -515,7 +515,7 @@ export const fetchRouteRaw = async (
     senderAddress: string
 ) => {
     try {
-        const _tokenAmount = Math.floor(Number(tokenAmount) * Math.pow(10, tokenDecimals)).toString()
+        const _tokenAmount = BigInt(Math.floor(Number(tokenAmount) * Math.pow(10, tokenDecimals))).toString()
 
         const route = await getSquidRouteRaw({
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
