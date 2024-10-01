@@ -108,6 +108,21 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
         }
     }, [visible])
 
+    const displayedToken = _tokensToDisplay.find((token) =>
+        utils.compareTokenAddresses(token.address, selectedTokenAddress)
+    )
+    const displayedChain = supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)
+    const displayedTokenBalance = balances.find(
+        (balance) =>
+            utils.compareTokenAddresses(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID
+    )
+
+    useEffect(() => {
+        if (displayedToken === undefined && _tokensToDisplay[0]) {
+            setSelectedTokenAddress(_tokensToDisplay[0].address)
+        }
+    }, [displayedToken])
+
     return (
         <>
             <components.AdvancedTokenSelectorButton
@@ -115,27 +130,11 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                     setVisible(!visible)
                 }}
                 isVisible={visible}
-                tokenLogoUri={
-                    (IconPlaceholderChecker(selectedChainID) as string) ??
-                    _tokensToDisplay.find((token) => utils.compareTokenAddresses(token.address, selectedTokenAddress))
-                        ?.logoURI
-                }
-                tokenSymbol={
-                    _tokensToDisplay.find((token) => utils.compareTokenAddresses(token.address, selectedTokenAddress))
-                        ?.symbol ?? ''
-                }
-                tokenBalance={
-                    balances.find(
-                        (balance) =>
-                            utils.compareTokenAddresses(balance.address, selectedTokenAddress) &&
-                            balance.chainId === selectedChainID
-                    )?.amount ?? 0
-                }
-                chainIconUri={
-                    (IconPlaceholderChecker(selectedChainID) as string) ??
-                    consts.supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.icon.url
-                }
-                chainName={supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)?.name ?? ''}
+                tokenLogoUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedToken?.logoURI}
+                tokenSymbol={displayedToken?.symbol ?? ''}
+                tokenBalance={displayedTokenBalance?.amount ?? 0}
+                chainIconUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedChain?.icon.url}
+                chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
             />
 
