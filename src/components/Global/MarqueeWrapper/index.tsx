@@ -20,7 +20,7 @@ export function MarqueeWrapper({
     direction = 'left',
     className = 'border-b-2 border-black border',
 }: MarqueeWrapperProps) {
-    const baseClass = `mx-auto w-full items-center italic text-black ${className} ${backgroundColor}`
+    const baseClass = `${className} ${backgroundColor}`
     const _className = onClick ? `${baseClass} cursor-pointer` : baseClass
 
     return (
@@ -44,9 +44,9 @@ export function MarqueeComp({
     return (
         <Box className="border-y-1 border-white shadow">
             <MarqueeWrapper backgroundColor="bg-primary" direction="left" className="border-y-2 border-n-1">
-                {message && <div className="mx-3 text-lg font-bold uppercase not-italic md:text-xl">{message}</div>}
+                {message && <div className="mx-3 text-lg font-bold uppercase md:text-xl">{message}</div>}
 
-                <div className="mx-3 py-2">
+                <div className="mx-3 inline-flex min-h-12 items-center py-2">
                     <img src={imageSrc} alt="Marquee Image" className={`${imageAnimationClass || ''} h-auto w-8`} />
                 </div>
             </MarqueeWrapper>

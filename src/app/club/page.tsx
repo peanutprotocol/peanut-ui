@@ -1,9 +1,13 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { Metadata } from 'next'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/Layout'
 import { Hero, FAQs, Features, Mike, Story, Intro } from '@/components/Club'
+import { useFooterVisibility } from '@/context/footerVisibility'
 
-export const metadata: Metadata = {
+const metadata: Metadata = {
     title: 'Peanut Protocol',
     description: 'Text Tokens',
     metadataBase: new URL('https://peanut.to'),
@@ -18,12 +22,17 @@ export const metadata: Metadata = {
         ],
     },
 }
+
 export default function PeanutClub() {
     const hero = {
         heading: 'Peanut',
         marquee: {
             visible: true,
             message: 'Peanut Frens',
+        },
+        cta: {
+            label: 'JOIN NOW',
+            href: 'https://peanut.to',
         },
     }
     const story = {
@@ -144,9 +153,20 @@ export default function PeanutClub() {
         lines: ['Peanut', "Don't be Mike", ' Send a PEANUT link'],
     }
 
+    const { isFooterVisible } = useFooterVisibility()
+    const [buttonVisible, setButtonVisible] = useState(true)
+
+    useEffect(() => {
+        if (isFooterVisible) {
+            setButtonVisible(false)
+        } else {
+            setButtonVisible(true)
+        }
+    }, [isFooterVisible])
+
     return (
-        <Layout className="!mx-0 w-full !px-0 !pt-0 ">
-            <Hero heading={hero.heading} marquee={hero.marquee} />
+        <Layout className="!mx-0 w-full !px-0 !pt-0">
+            <Hero heading={hero.heading} marquee={hero.marquee} cta={hero.cta} buttonVisible={buttonVisible} />
             <Intro />
             <Story marquee={story.marquee} />
             <Features sections={features.sections} marquee={features.marquee} />

@@ -23,13 +23,14 @@ import {
     PEANUTMAN_HAPPY,
     HandThumbs,
     Star,
-    EyesEmoiji,
+    Eyes,
     GoodIdeaSign,
     SmileSide,
     PeanutGuy,
+    HandThumbsUp,
 } from '@/assets'
 import * as chain_logos from '@/assets/chains'
-import { MarqueeWrapper } from '../Global/MarqueeWrapper'
+import { MarqueeWrapper, MarqueeComp } from '../Global/MarqueeWrapper'
 import { FAQsPanel } from '../Global/FAQs'
 import { Testimonials } from '../Global/Testimonials'
 
@@ -166,14 +167,14 @@ export function Welcome() {
     return (
         <div className="flex w-full flex-col items-center justify-center">
             <div className="relative">
-                <motion.img
+                {/* <motion.img
                     initial={{ opacity: 0, translateY: 28, translateX: -5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5 }}
                     src={PeanutGuy.src}
                     alt="Peanut Guy"
-                    className="absolute bottom-[3%] right-[-2%] z-0 hidden h-1/3 md:bottom-[6%] md:right-[-12%] md:h-1/2 lg:right-[-14%] lg:block"
-                />
+                    className="absolute bottom-[3%] right-[-2%] z-0 hidden h-1/3 md:bottom-[6%] md:right-[-12%] md:h-1/2 lg:right-0 lg:block"
+                /> */}
 
                 <div className="space-y-12 py-12 sm:py-16 md:space-y-24 md:py-20 lg:space-y-28 lg:py-24">
                     <div className="relative flex w-full text-black dark:text-white">
@@ -183,7 +184,7 @@ export function Welcome() {
                             transition={{ type: 'spring', damping: 5 }}
                             src={Star.src}
                             alt="Star Icon"
-                            className="absolute left-[2%] top-[15%] hidden w-12 md:left-[5%] md:top-[10%] md:block lg:left-[5%] lg:top-[10%]"
+                            className="absolute left-[2%] top-[15%] hidden w-12 md:left-[2%] md:top-[15%] md:block lg:left-[-3%] lg:top-[10%]"
                         />
                         <motion.img
                             initial={{ opacity: 0, translateY: 28, translateX: -5 }}
@@ -191,10 +192,10 @@ export function Welcome() {
                             transition={{ type: 'spring', damping: 5 }}
                             src={Star.src}
                             alt="Star Icon"
-                            className="absolute right-[3%] top-[18%] hidden w-12 md:right-[4%] md:top-[8%] md:block lg:right-[4%] lg:top-[8%]"
+                            className="absolute right-[3%] top-[18%] hidden w-12 md:-top-10 md:right-[3%] md:block lg:right-[-3%]"
                         />
 
-                        <motion.img
+                        {/* <motion.img
                             initial={{
                                 rotate: 5,
                                 opacity: 0,
@@ -208,17 +209,17 @@ export function Welcome() {
                                 translateX: 0,
                             }}
                             transition={{ type: 'spring', damping: 10 }}
-                            src={EyesEmoiji.src}
+                            src={Eyes.src}
                             alt="Eyes Emoji"
                             className="absolute left-[7%] top-[58%] hidden w-36 md:left-[1%] md:top-[65%] lg:left-[7%] lg:top-[58%] lg:block xl:left-[11%]"
-                        />
+                        /> */}
 
                         <div className="flex w-full flex-col items-center justify-center gap-8 text-center sm:px-6 md:gap-12 lg:mx-0 lg:px-0">
                             <div className="space-y-8">
                                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                                    <div className="mx-auto flex flex-row items-center justify-center gap-2 font-display text-h1 uppercase md:text-[4rem] lg:text-[5rem]">
+                                    <div className="mx-auto flex flex-row flex-wrap items-center justify-center gap-2 text-h1 uppercase md:text-[4rem] lg:text-[5rem]">
                                         Send{' '}
-                                        <div className="scroller w-[6rem] text-h1 md:w-[8.5rem] md:text-[4rem] lg:w-[10rem] lg:text-[5rem]">
+                                        <div className="scroller w-[8.5rem] text-h1 md:w-[11rem] md:text-[4rem] lg:w-[14.75rem] lg:text-[5rem]">
                                             <span>
                                                 NFTs
                                                 <br />
@@ -239,7 +240,7 @@ export function Welcome() {
                             </div>
 
                             <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
-                                <Link href={'/send'} className="btn-2xl btn-purple max-w-64">
+                                <Link href={'/send'} className="btn-purple btn-2xl max-w-64">
                                     App
                                 </Link>
 
@@ -259,8 +260,10 @@ export function Welcome() {
                         <label className="feature feature-primary grow origin-center md:-rotate-2">
                             300k+ Transactions
                         </label>
-                        <label className="feature grow md:rotate-1">105k+ Unique wallet addresses</label>
-                        <label className="feature feature-primary grow md:-rotate-1">20+ Chains</label>
+                        <label className="feature grow md:rotate-1">20+ Chains</label>
+                        <label className="feature feature-primary grow md:-rotate-1">
+                            105k+ Unique wallet addresses
+                        </label>
                     </div>
 
                     <div className="relative mx-5 flex flex-row flex-wrap items-center justify-center gap-4">
@@ -284,61 +287,29 @@ export function Welcome() {
                 </div>
             </div>
 
+            <MarqueeComp message="Frens send links" imageSrc={HandThumbsUp.src} />
+
             <div className="flex w-full flex-col items-center justify-center">
-                <MarqueeWrapper backgroundColor="bg-primary" direction="left" className="border-y-2 border-n-1">
-                    <div className="mx-3 font-display text-lg uppercase not-italic md:text-xl">Frens send links</div>
-
-                    <div className="mx-3 py-2">
-                        <img src={HandThumbs.src} className="animation-thumbsUp h-auto w-8" alt="Hand Thumbs Up" />
-                    </div>
-                </MarqueeWrapper>
-
                 <FAQsPanel heading="FAQs" questions={faqs} />
-
-                <MarqueeWrapper backgroundColor="bg-primary" direction="left" className="border-y-2 border-n-1">
-                    <div className="mx-3 font-display text-lg uppercase not-italic md:text-xl">Frens</div>
-
-                    <div className="mx-3 py-2">
-                        <img src={SmileStars.src} className="animation-faceSpin h-auto w-8" alt="Smile Stars" />
-                    </div>
-                </MarqueeWrapper>
             </div>
 
             <div
                 role="list"
-                className="relative z-10 mx-auto pb-20 pt-8 md:pb-36 md:pt-20 lg:px-4 xl:w-[92%] 2xl:w-4/5"
+                className="relative z-10 mx-auto pb-20 pt-8 md:pb-24 md:pt-20 lg:px-4 xl:w-[92%] 2xl:w-4/5"
             >
-                <motion.img
-                    initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5 }}
-                    whileInView={{ rotate: -6, opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 10 }}
-                    src={GoodIdeaSign.src}
-                    alt="Good Idea Sign"
-                    className="absolute bottom-[1%] left-[7%] hidden w-36 md:bottom-[7%] md:left-[1%] lg:bottom-[2%] lg:left-[2%] lg:block xl:left-[11%]"
-                />
-
-                <motion.img
-                    initial={{ rotate: 5, opacity: 0, translateY: 28, translateX: -5 }}
-                    whileInView={{ rotate: -6, opacity: 1, translateY: 0, translateX: 0 }}
-                    transition={{ type: 'spring', damping: 10 }}
-                    src={SmileSide.src}
-                    alt="Smile Side"
-                    className="absolute bottom-[1%] right-[7%] hidden w-36 md:bottom-[2%] md:right-[1%] lg:bottom-[1.5%] lg:right-[2%] lg:block xl:right-[11%]"
-                />
-
                 <Testimonials testimonials={testimonials} />
-                {/* Commented Out Sections */}
-                <div className="py-6">
-                    <MarqueeWrapper backgroundColor="bg-transparent" direction="right" className="">
-                        {Object.entries(chain_logos).map(([chain, logo]) => {
-                            return (
-                                <div className="pl-3" key={chain}>
-                                    <img loading="eager" src={logo.src} className="h-16 w-16" alt={`${chain} Logo`} />
-                                </div>
-                            )
-                        })}
-                    </MarqueeWrapper>
-                </div>
+            </div>
+
+            <div className="pb-14 md:pb-20">
+                <MarqueeWrapper backgroundColor="bg-transparent" direction="right" className="">
+                    {Object.entries(chain_logos).map(([chain, logo]) => {
+                        return (
+                            <div className="pl-3" key={chain}>
+                                <img loading="eager" src={logo.src} className="h-16 w-16" alt={`${chain} Logo`} />
+                            </div>
+                        )
+                    })}
+                </MarqueeWrapper>
             </div>
         </div>
     )

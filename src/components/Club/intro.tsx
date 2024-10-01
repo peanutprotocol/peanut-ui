@@ -2,7 +2,7 @@
 
 import { Flex, Stack, Box } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import { PeanutsBG, EasySignTight, PeaceFingers } from '@/assets'
+import { PeanutsBG, HandThumbsRight, Eyes } from '@/assets'
 import { NutsDivider } from './nutsDivider'
 
 export function Intro() {
@@ -26,8 +26,8 @@ export function Intro() {
                     initial={{ opacity: 0, translateY: 20, translateX: 5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5 }}
-                    src={EasySignTight.src}
-                    className="hidden h-[7.5vw] w-auto md:block"
+                    src={Eyes.src}
+                    className="hidden h-[5.5vw] w-auto md:block"
                 />
             </Flex>
 
@@ -37,8 +37,8 @@ export function Intro() {
                     initial={{ opacity: 0, translateY: 24, translateX: -5 }}
                     whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                     transition={{ type: 'spring', damping: 5 }}
-                    src={PeaceFingers.src}
-                    className="h-[8vw] w-auto -rotate-6"
+                    src={HandThumbsRight.src}
+                    className="h-[6.5vw] w-auto -rotate-6"
                 />
                 <span className={textClass}>YOUR</span>
                 <NutsDivider />

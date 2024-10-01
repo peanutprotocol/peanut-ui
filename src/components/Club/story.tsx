@@ -1,5 +1,5 @@
 import { Stack, Box } from '@chakra-ui/react'
-import { SmileStars, PeanutGuy } from '@/assets'
+import { Eyes, PeanutGuy } from '@/assets'
 import { StoryImages } from './imageAssets'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
 import { NutsDivider } from './nutsDivider'
@@ -33,11 +33,7 @@ export function Story({ stories, foot, marquee = { visible: false } }: StoryProp
             </Stack>
 
             {marquee.visible && (
-                <MarqueeComp
-                    message={marquee.message}
-                    imageSrc={SmileStars.src}
-                    imageAnimationClass="animation-faceSpin"
-                />
+                <MarqueeComp message={marquee.message} imageSrc={Eyes.src} imageAnimationClass="animation-rock" />
             )}
         </Box>
     )

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Box } from '@chakra-ui/react'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
-import { PeanutsBG, SmileStars } from '@/assets'
+import { PeanutsBG, Eyes } from '@/assets'
 import { FAQsPanel, FAQsProps } from '../Global/FAQs'
 
 type LocalFAQsProps = FAQsProps & {
@@ -32,11 +32,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
             <FAQsPanel heading={heading} questions={questions} />
 
             {marquee.visible && (
-                <MarqueeComp
-                    message={marquee.message}
-                    imageSrc={SmileStars.src}
-                    imageAnimationClass="animation-faceSpin"
-                />
+                <MarqueeComp message={marquee.message} imageSrc={Eyes.src} imageAnimationClass="animation-rock" />
             )}
         </Box>
     )

@@ -185,21 +185,52 @@ Firefox input[type='number'] {
         transform: translateY(0);
         transform-origin: bottom left;
     }
+
     35% {
         transform: translateY(0) rotate(-15deg);
         transform-origin: bottom left;
     }
+
     50% {
         transform: translateY(0) rotate(9deg);
         transform-origin: bottom left;
     }
+
     60% {
         transform: translateY(0) rotate(-5deg);
         transform-origin: bottom left;
     }
+
     100% {
         transform: translateY(0);
         transform-origin: bottom left;
+    }
+}
+
+@keyframes rock {
+    0% {
+        transform: translateY(0);
+        /* transform-origin: bottom left; */
+    }
+
+    25% {
+        transform: translateY(0) rotate(-10deg);
+        /* transform-origin: bottom left; */
+    }
+
+    50% {
+        transform: translateY(0) rotate(0);
+        /* transform-origin: bottom left; */
+    }
+
+    75% {
+        transform: translateY(0) rotate(10deg);
+        /* transform-origin: bottom left; */
+    }
+
+    100% {
+        transform: translateY(0);
+        /* transform-origin: bottom left; */
     }
 }
 
@@ -218,6 +249,11 @@ Firefox input[type='number'] {
 
 .animation-faceSpin {
     animation: faceSpin 2s infinite ease-in-out;
+}
+
+.animation-rock {
+    animation: rock 2s infinite ease-in-out;
+    
 }
 
 .text-link-decoration {
@@ -247,7 +283,7 @@ Firefox input[type='number'] {
 
 /* Feature styling */
 .feature {
-    @apply mx-auto justify-center flex w-auto rounded-full border-2 border-primary px-5 py-3 text-[1.375rem] font-black uppercase shadow-md ring-2 ring-white md:mr-auto lg:text-[1.75rem] text-center bg-white text-primary;
+    @apply mx-auto justify-center flex w-auto rounded-full border-2 border-primary px-5 py-3 text-[1.375rem] font-black uppercase shadow-md ring-2 ring-white md:mr-auto text-center bg-white text-primary;
 }
 
 .feature-primary {

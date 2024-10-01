@@ -24,10 +24,10 @@ import {
     SBF_PERSON,
     SmileStars,
     PEANUTMAN_HAPPY,
-    HandThumbs,
+    HandThumbsUp,
     HR,
     Star,
-    EyesEmoiji,
+    Eyes,
     GoodIdeaSign,
     SmileSide,
     PeanutGuy,
@@ -203,7 +203,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
 
     return (
         <Flex direction={'column'} width={'100%'}>
-            <Stack spacing={[14, 20, 28, 36]} className="overflow-x-hidden py-14 sm:py-20 md:py-36">
+            <Stack spacing={[14, 20, 28]} className="overflow-hidden py-14 md:py-20">
                 {sections.map((section, index) => (
                     <Box key={index} className="relative">
                         <FeaturesImages index={index} />
@@ -265,7 +265,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                             //     <img src={HR.src} className="mx-auto h-5" />
                             // </Box>
 
-                            <div className="mt-16 md:mt-20 lg:mt-28 xl:mt-36">
+                            <div className="mt-16 md:mt-28 lg:mt-36">
                                 <MarqueeWrapper backgroundColor="bg-transparent" direction="right" className="">
                                     {Object.entries(chain_logos).map(([chain, logo]) => {
                                         return (
@@ -286,7 +286,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                 ))}
             </Stack>
 
-            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={HandThumbs.src} />}
+            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} />}
         </Flex>
     )
 }

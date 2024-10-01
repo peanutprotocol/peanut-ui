@@ -1,10 +1,12 @@
 'use client'
+import React from 'react'
 import Link from 'next/link'
 import { useColorMode } from '@chakra-ui/color-mode'
 
 import { LINKS, SOCIALS } from './consts'
 
-const Footer = () => {
+// const Footer = ({ footerRef }: footerProps) => {
+export const Footer: React.FC = () => {
     const { colorMode } = useColorMode()
 
     return (

@@ -4,6 +4,7 @@ import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/config'
 import Head from 'next/head'
+import { FooterVisibilityProvider } from '@/context/footerVisibility'
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
@@ -37,7 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         storageKey="chakra-ui-color-mode"
                     /> */}
                 <PeanutProvider>
-                    <ContextProvider>{children}</ContextProvider>
+                    <ContextProvider>
+                        <FooterVisibilityProvider>{children}</FooterVisibilityProvider>
+                    </ContextProvider>
                 </PeanutProvider>
                 {/* </ColorModeProvider> */}
             </body>
