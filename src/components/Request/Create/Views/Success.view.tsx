@@ -28,8 +28,8 @@ export const SuccessView = ({ onNext, onPrev, tokenValue, recipientAddress, link
 
             <QRCodeWrapper url={link} />
             <label className="text-h8 ">
-                Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any
-                token.
+                Share this link or QR with anyone. They will be able to pay you
+                from any chain in any token.
             </label>
 
             <CopyField text={link} />
