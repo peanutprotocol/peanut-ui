@@ -19,6 +19,8 @@ import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
+import { ChatWithSupport } from '@/components/CrispChat'
+
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -610,11 +612,10 @@ export const InitialClaimLinkView = ({
                         <div className="text-center">
                             {errorState.errorMessage === 'offramp unavailable' ? (
                                 <label className="text-h8 font-normal text-red">
-                                    You can not claim this token to your bank account, reach out on{' '}
-                                    <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                        discord
-                                    </a>{' '}
-                                    for support.
+                                    You can not claim this token to your bank account.{' '}
+                                    <ChatWithSupport className="text-blue-600 underline">
+                                        Chat with support
+                                    </ChatWithSupport>
                                 </label>
                             ) : (
                                 <>
@@ -643,10 +644,8 @@ export const InitialClaimLinkView = ({
                     ) : (
                         (recipientType === 'iban' || recipientType === 'us') && (
                             <label className="text-h8 font-normal ">
-                                Only US and EU accounts are supported currently. Reach out on{' '}
-                                <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                    discord
-                                </a>{' '}
+                                Only US and EU accounts are supported currently.{' '}
+                                <ChatWithSupport className="mr-1 underline">Reach out</ChatWithSupport>
                                 if you would like more info.
                             </label>
                         )

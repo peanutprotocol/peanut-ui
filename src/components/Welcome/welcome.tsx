@@ -1,14 +1,11 @@
 'use client'
 import '@/styles/globals.css'
 import { useEffect, useState } from 'react'
-import { getCalApi } from '@calcom/embed-react'
-import Lottie from 'react-lottie'
 import Link from 'next/link'
 
 import * as assets from '@/assets'
 import * as chain_logos from '@/assets/chains'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
-import { Disclosure } from '@headlessui/react'
 
 const logoCloudLogos = [
     { icon: assets.WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
@@ -139,7 +136,7 @@ export function Welcome() {
     }, [])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center  dark:bg-black ">
+        <div className="flex w-full flex-col items-center justify-center  dark:bg-black">
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">
                 <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:px-0">
                     <div className="flex w-full flex-col items-center justify-center gap-2">
