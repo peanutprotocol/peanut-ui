@@ -158,6 +158,17 @@ const MenuLinks = () => {
                     </span>
                 </Text>
             </Link>
+            <Link
+                href={'/cashout'}
+                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
+            >
+                <Text display="block">
+                    cashout
+                    <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                        BETA
+                    </span>
+                </Text>
+            </Link>
             <div className="relative hidden h-full sm:block">
                 <button
                     onMouseEnter={() => {
@@ -180,17 +191,6 @@ const MenuLinks = () => {
                         }}
                         className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     >
-                        <Link
-                            href={'/cashout'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block" className="flex items-center">
-                                cashout
-                                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                                    BETA
-                                </span>
-                            </Text>
-                        </Link>
                         <Link
                             href={'/raffle/create'}
                             className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
@@ -223,17 +223,6 @@ const MenuLinks = () => {
                 </button>
                 {showMenu && (
                     <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <Link
-                            href={'/cashout'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block" className="flex items-center">
-                                cashout
-                                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                                    BETA
-                                </span>
-                            </Text>
-                        </Link>
                         <Link
                             href={'/raffle/create'}
                             className="flex h-full w-full items-center justify-start py-2  pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
