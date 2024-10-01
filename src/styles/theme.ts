@@ -5,7 +5,18 @@ const config = {
     initialColorMode: 'light' as 'light',
     useSystemColorMode: false,
 }
-const breakpoints = {
+/**
+ * Breakpoints for responsive design.
+ * 
+ * The breakpoints are defined in em units and their equivalent in pixels are:
+ * - xs: 22em (352px)
+ * - sm: 30em (480px)
+ * - md: 48em (768px)
+ * - lg: 62em (992px)
+ * - xl: 80em (1280px)
+ * - 2xl: 96em (1536px)
+ */
+export const breakpoints = {
     xs: '22em',
     sm: '30em',
     md: '48em',
@@ -13,6 +24,8 @@ const breakpoints = {
     xl: '80em',
     '2xl': '96em',
 }
+
+export const emToPx = (em: string) => parseFloat(em) * 16
 
 export const theme = extendTheme({
     breakpoints,
