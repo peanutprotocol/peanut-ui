@@ -253,7 +253,6 @@ Firefox input[type='number'] {
 
 .animation-rock {
     animation: rock 2s infinite ease-in-out;
-    
 }
 
 .text-link-decoration {
@@ -283,7 +282,7 @@ Firefox input[type='number'] {
 
 /* Feature styling */
 .feature {
-    @apply mx-auto justify-center flex w-auto rounded-full border-2 border-primary px-5 py-3 text-[1.375rem] font-black uppercase shadow-md ring-2 ring-white md:mr-auto text-center bg-white text-primary;
+    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-primary bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase text-primary shadow-md ring-2 ring-white md:mr-auto;
 }
 
 .feature-primary {
