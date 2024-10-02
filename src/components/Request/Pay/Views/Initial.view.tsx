@@ -55,7 +55,10 @@ export const InitialView = ({
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId
+                && utils.compareTokenAddresses(selectedTokenAddress, requestLinkData.tokenAddress)
+            ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
@@ -111,7 +114,10 @@ export const InitialView = ({
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId
+                && utils.compareTokenAddresses(selectedTokenAddress, requestLinkData.tokenAddress)
+            ){
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
