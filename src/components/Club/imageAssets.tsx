@@ -75,6 +75,7 @@ export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
                 top="40%"
                 duration={12}
                 imageSrc={Cloud.src}
+                styleMod="z-[99]"
                 screenWidth={screenWidth}
                 startXOffset={220}
                 speed={40}

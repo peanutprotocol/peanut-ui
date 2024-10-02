@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Stack } from '@chakra-ui/react'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
-import { HandThumbsUp, PeanutGuy } from '@/assets'
+import { HandThumbsUp, Sparkle } from '@/assets'
 import { HeroImages, CloudImages } from './imageAssets'
 import { motion } from 'framer-motion'
 
@@ -39,7 +39,13 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
         <div className="relative flex min-h-[96vh] flex-col justify-between overflow-x-hidden md:min-h-[97vh]">
             <CloudImages screenWidth={screenWidth} />
 
-            <div className="mb-8 mt-12 flex flex-col justify-between space-y-6 md:mb-10 md:mt-12 lg:mb-16 lg:mt-24">
+            <div className="lg:mb-16- lg:mt-24- relative mb-8 mt-12 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-12">
+                <img
+                    src="/peanut_guy.gif" // Updated to use animated gif
+                    className="mg:bottom-0 absolute bottom-4 left-1/2 mx-auto h-3/5 w-auto max-w-[none] -translate-x-1/2 transform md:w-auto"
+                    alt=""
+                />
+
                 <Stack spacing={2} className="relative h-1/3 justify-center px-4 text-center lg:h-auto">
                     <HeroImages />
 
@@ -51,12 +57,6 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
                         buttery smooth global money
                     </h2>
                 </Stack>
-
-                <img
-                    src={PeanutGuy.src}
-                    className="lg:max-h-90 mx-auto h-auto w-3/5 md:h-3/5 md:w-auto lg:h-auto lg:w-1/5"
-                    alt=""
-                />
             </div>
 
             <div className="relative z-1">
@@ -85,6 +85,12 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
                     }}
                     transition={{ type: 'spring', damping: 15 }}
                 >
+                    <img
+                        src={Sparkle.src}
+                        className="absolute -right-4 -top-4 h-auto w-5 sm:-right-5 sm:-top-5 sm:w-6"
+                        alt="Sparkle"
+                    />
+
                     <a href={cta.href} className="btn-purple px-5 shadow-md">
                         {cta.label}
                     </a>
