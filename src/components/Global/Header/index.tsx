@@ -1,29 +1,16 @@
 'use client'
+
 import React, { useEffect, useState } from 'react'
-import {
-    Box,
-    Flex,
-    Text,
-    Stack,
-    Collapse,
-    useDisclosure,
-    Button,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuList,
-} from '@chakra-ui/react'
+import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
-
 import Link from 'next/link'
-import Image from 'next/image'
-
-import * as assets_icons from '@/assets/icons'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
+import { breakpoints, emToPx } from '@/styles/theme'
+import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
     animationData: assets.HAMBURGER_LOTTIE,
@@ -40,17 +27,29 @@ const defaultLottieStyle = {
 }
 
 export const Header = () => {
-    const { isOpen, onToggle } = useDisclosure()
+    const { isOpen, onToggle, onClose } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
 
     useEffect(() => {
-        setIsOpenState(!isOpen)
-    }, [isOpen])
+        const handleMediaQueryChange = () => {
+            if (window.innerWidth >= emToPx(breakpoints.lg) && isOpen) {
+                onClose()
+                setIsOpenState(false)
+            }
+        }
+
+        window.addEventListener('resize', handleMediaQueryChange)
+
+        // Clean up the listener when the component unmounts
+        return () => {
+            window.removeEventListener('resize', handleMediaQueryChange)
+        }
+    }, [isOpen, onClose])
 
     return (
         <NavBarContainer>
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
-                <Box display={{ base: 'none', md: 'flex' }} flexDirection={'row'} height="100%">
+                <Box display={{ base: 'none', lg: 'flex' }} flexDirection={'row'} height="100%">
                     <div
                         className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
@@ -59,12 +58,12 @@ export const Header = () => {
                         }}
                     >
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                        <span className="inline px-2 text-h5 sm:px-6 sm:px-6 sm:text-h4">peanut protocol</span>
+                        <span className="inline px-2 text-h5 sm:px-6 sm:text-h4">peanut protocol</span>
                     </div>
                     <MenuLinks />
                 </Box>
                 <Box
-                    display={{ base: 'flex', md: 'none' }}
+                    display={{ base: 'flex', lg: 'none' }}
                     flexDirection={'row'}
                     justifyContent={'space-between'}
                     alignContent={'center'}
@@ -84,7 +83,7 @@ export const Header = () => {
 
                     <MenuToggle isOpen={isOpenState} toggle={onToggle} />
                 </Box>
-                <Box display={{ base: 'none', md: 'block' }}>
+                <Box display={{ base: 'none', lg: 'block' }}>
                     <SocialLinks />
                 </Box>
             </Flex>
@@ -104,7 +103,7 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
             justifyContent={'center'}
             alignContent={'center'}
             alignItems={'center'}
-            display={{ base: 'flex', md: 'none' }}
+            display={{ base: 'flex', lg: 'none' }}
             onClick={() => {
                 toggle()
                 goToAndStop(isOpen ? 37 : 0, true)
@@ -116,60 +115,25 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
     )
 }
 
-const MenuLinks = () => {
+const ToolsDropdown = () => {
     const [showMenu, setShowMenu] = useState<boolean>(false)
-    const { open: web3modalOpen } = useWeb3Modal()
-    const { address, isConnected } = useAccount()
-    const router = useRouter()
-
-    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        // Prevent the default behavior of the link
-        e.preventDefault()
-        // Force a reload of the current route
-        if (window?.location.pathname == '/send') window?.location.reload()
-        else router.push('/send')
-    }
 
     return (
-        <Stack
-            align={{ base: 'start', md: 'center' }}
-            justify={{ base: 'center', md: 'center' }}
-            direction={{ base: 'column', md: 'row' }}
-            // pt={ 4}
-            pb={{ base: 4, md: 0 }}
-            height="100%"
-            gap={0}
-        >
-            <Link
-                href={'/send'}
-                onClick={handleClick}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block"> send</Text>
-            </Link>
-            <Link
-                href={'/request/create'}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block" className="flex items-center">
-                    request
-                    <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                        BETA
-                    </span>
-                </Text>
-            </Link>
+        <>
             <div className="relative hidden h-full sm:block">
-                <button
-                    onMouseEnter={() => {
-                        setShowMenu(true)
-                    }}
-                    onMouseLeave={() => {
-                        setShowMenu(false)
-                    }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-                >
-                    tools
-                </button>
+                <NavItemBox>
+                    <button
+                        onMouseEnter={() => {
+                            setShowMenu(true)
+                        }}
+                        onMouseLeave={() => {
+                            setShowMenu(false)
+                        }}
+                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
+                    >
+                        tools
+                    </button>
+                </NavItemBox>
                 {showMenu && (
                     <div
                         onMouseEnter={() => {
@@ -180,17 +144,6 @@ const MenuLinks = () => {
                         }}
                         className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     >
-                        <Link
-                            href={'/cashout'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block" className="flex items-center">
-                                cashout
-                                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                                    BETA
-                                </span>
-                            </Text>
-                        </Link>
                         <Link
                             href={'/raffle/create'}
                             className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
@@ -213,27 +166,18 @@ const MenuLinks = () => {
                 )}
             </div>
             <div className="relative block h-full w-full sm:hidden">
-                <button
-                    onClick={() => {
-                        setShowMenu(!showMenu)
-                    }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-                >
-                    <Text display="block"> tools</Text>
-                </button>
+                <NavItemBox>
+                    <button
+                        onClick={() => {
+                            setShowMenu(!showMenu)
+                        }}
+                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
+                    >
+                        <Text display="block"> tools</Text>
+                    </button>
+                </NavItemBox>
                 {showMenu && (
                     <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <Link
-                            href={'/cashout'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block" className="flex items-center">
-                                cashout
-                                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                                    BETA
-                                </span>
-                            </Text>
-                        </Link>
                         <Link
                             href={'/raffle/create'}
                             className="flex h-full w-full items-center justify-start py-2  pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
@@ -255,28 +199,75 @@ const MenuLinks = () => {
                     </div>
                 )}
             </div>
+        </>
+    )
+}
 
-            <Link
-                href={'https://docs.peanut.to'}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-            >
+const MenuLinks = () => {
+    const { open: web3modalOpen } = useWeb3Modal()
+    const { address, isConnected } = useAccount()
+    const router = useRouter()
+
+    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+        // Prevent the default behavior of the link
+        e.preventDefault()
+        // Force a reload of the current route
+        if (window?.location.pathname == '/send') window?.location.reload()
+        else router.push('/send')
+    }
+
+    return (
+        <Stack
+            align={{ base: 'start', md: 'center' }}
+            justify={{ base: 'center', md: 'center' }}
+            direction={{ base: 'column', md: 'row' }}
+            pb={{ base: 4, md: 0 }}
+            height="100%"
+            gap={0}
+        >
+            <NavLink href={'/send'} onClick={handleClick}>
+                <Text display="block">send</Text>
+            </NavLink>
+            <NavLink href={'/request/create'}>
+                <Text display="block" className="flex items-center">
+                    request
+                </Text>
+                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                    BETA
+                </span>
+            </NavLink>
+            <NavLink href={'/cashout'}>
+                <Text display="block">cashout</Text>
+                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                    BETA
+                </span>
+            </NavLink>
+            <ToolsDropdown />
+            <NavLink href={'https://docs.peanut.to'}>
                 <Text display="block"> docs</Text>
-            </Link>
+            </NavLink>
 
-            <Link
-                href={'/profile'}
-                className=" flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block"> Profile</Text>
-            </Link>
-            <button
-                onClick={() => {
-                    web3modalOpen()
-                }}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block"> {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}</Text>
-            </button>
+            <NavItemBox>
+                <Link
+                    href={'/profile'}
+                    className=" flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                >
+                    <Text display="block"> Profile</Text>
+                </Link>
+            </NavItemBox>
+            <NavItemBox>
+                <button
+                    onClick={() => {
+                        web3modalOpen()
+                    }}
+                    className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                >
+                    <Text display="block">
+                        {' '}
+                        {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
+                    </Text>
+                </button>
+            </NavItemBox>
         </Stack>
     )
 }
