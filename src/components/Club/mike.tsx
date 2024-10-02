@@ -2,7 +2,7 @@
 
 import { Stack } from '@chakra-ui/react'
 import { motion } from 'framer-motion'
-import { Star, SmileSide, SmileStars } from '@/assets'
+import { Star, SmileSide, SmileStars, HandPeace } from '@/assets'
 import { AutoTextSize } from 'auto-text-size'
 
 type MikeProps = {
@@ -17,21 +17,14 @@ export function Mike({ lines }: MikeProps) {
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 6 }}
                 src={Star.src}
-                className="absolute left-0 top-[12%] w-14 md:left-[4%] lg:left-[10%]"
-            />
-            <motion.img
-                initial={{ opacity: 0, translateY: 12, translateX: 5 }}
-                whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
-                transition={{ type: 'spring', damping: 6 }}
-                src={SmileSide.src}
-                className="absolute right-4 top-[14%] w-30 -rotate-[15deg] md:right-[4%] lg:right-[12%]"
+                className="absolute left-0 top-[12%] w-14 md:left-[4%] lg:left-[10%] lg:top-[14%] xl:left-[12%]"
             />
             <motion.img
                 initial={{ opacity: 0, translateY: 18, translateX: 8 }}
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 6 }}
-                src={SmileStars.src}
-                className="absolute -right-8 top-[4%] w-32 rotate-2 md:right-[1%] lg:right-[9%]"
+                src={HandPeace.src}
+                className="absolute -right-8 top-[6%] w-12 rotate-2 md:right-[7%] lg:right-[9%] xl:right-[12%]"
             />
 
             {lines.map((line, index) => (
@@ -41,7 +34,7 @@ export function Mike({ lines }: MikeProps) {
                     whileHover={{ translateY: 6, translateX: 2, rotate: 2 }}
                     transition={{ type: 'spring', damping: 6 }}
                     key={index}
-                    className={`text-violet-3- relative z-10 mx-auto w-4/5 max-w-4xl text-center font-display uppercase leading-[0.825]`}
+                    className={`relative z-10 mx-auto w-4/5 max-w-4xl text-center font-display uppercase leading-[0.825]`}
                 >
                     <AutoTextSize maxFontSizePx={400}>{line}</AutoTextSize>
                 </motion.div>

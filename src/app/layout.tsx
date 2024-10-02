@@ -1,15 +1,16 @@
 import '@/styles/globals.css'
-import { Roboto_Flex, Londrina_Solid } from 'next/font/google'
+import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
 import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
 import { PeanutProvider } from '@/config'
 import { ContextProvider } from '@/config'
 import Head from 'next/head'
+import { FooterVisibilityProvider } from '@/context/footerVisibility'
 
 const roboto = Roboto_Flex({
-    weight: ['400', '500', '700', '800'],
     subsets: ['latin'],
-    display: 'block',
+    display: 'swap',
     variable: '--font-roboto',
+    axes: ['wdth'],
 })
 
 const londrina = Londrina_Solid({
@@ -19,10 +20,17 @@ const londrina = Londrina_Solid({
     variable: '--font-londrina',
 })
 
+const sniglet = Sniglet({
+    weight: ['400', '800'],
+    subsets: ['latin'],
+    display: 'swap',
+    variable: '--font-sniglet',
+})
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body className={`${roboto.variable} ${londrina.variable} chakra-ui-light font-sans`}>
+            <body className={`${roboto.variable} ${londrina.variable} ${sniglet.variable} chakra-ui-light font-sans`}>
                 {/* <ColorModeProvider>
                     <ColorModeScript
                         initialColorMode="light"
@@ -30,7 +38,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         storageKey="chakra-ui-color-mode"
                     /> */}
                 <PeanutProvider>
-                    <ContextProvider>{children}</ContextProvider>
+                    <ContextProvider>
+                        <FooterVisibilityProvider>{children}</FooterVisibilityProvider>
+                    </ContextProvider>
                 </PeanutProvider>
                 {/* </ColorModeProvider> */}
             </body>

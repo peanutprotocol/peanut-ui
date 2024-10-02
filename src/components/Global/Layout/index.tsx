@@ -1,11 +1,13 @@
 'use client'
 
+import React, { useRef } from 'react'
 import Header from '@/components/Global/Header'
 import Footer from '@/components/Global/Footer'
 import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
+import { FooterVisibilityProvider, useFooterVisibility } from '@/context/footerVisibility'
 // import { default as NextImage } from 'next/image'
 // import * as assets from '@/assets'
 // import { MarqueeWrapper } from '../MarqueeWrapper'
@@ -49,34 +51,8 @@ const Layout = ({ children, className }: LayoutProps) => {
                                 {children}
                             </div>
                         </div>
+                        <FooterVisibilityObserver />
                         <Footer />
-                        {/* <div className="pointer-events-none absolute inset-0 -z-1 overflow-hidden dark:opacity-70">
-                            <div className="absolute -right-96 top-2/3 w-[93.75rem] -translate-y-1/2 2xl:w-[118.75rem]">
-                                <NextImage
-                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
-                                        loaded ? 'opacity-100' : ''
-                                    } ${className}`}
-                                    onLoadingComplete={() => setLoaded(true)}
-                                    src={assets.BG_SVG.src}
-                                    width={1686}
-                                    height={1520} // also adjust the height to maintain aspect ratio
-                                    alt=""
-                                />
-                            </div>
-                            <div className="absolute -left-96 top-1/4 w-[68.75rem] -translate-y-1/2 2xl:w-[93.75rem]">
-                                <NextImage
-                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
-                                        loaded ? 'opacity-100' : ''
-                                    } ${className}`}
-                                    onLoadingComplete={() => setLoaded(true)}
-                                    src={assets.BG_SVG.src}
-                                    width={1686}
-                                    height={1520} // also adjust the height to maintain aspect ratio
-                                    alt=""
-                                    style={{ transform: 'scale(-1, -1)' }}
-                                />
-                            </div>
-                        </div> */}
                         <Modal
                             visible={showModal}
                             onClose={() => {
@@ -100,6 +76,39 @@ const Layout = ({ children, className }: LayoutProps) => {
             </>
         )
     )
+}
+
+// Observer Component to detect Footer visibility
+const FooterVisibilityObserver: React.FC = () => {
+    const footerRef = useRef<HTMLDivElement>(null)
+    const { setIsFooterVisible } = useFooterVisibility()
+
+    useEffect(() => {
+        const observerOptions = {
+            root: null, // relative to viewport
+            rootMargin: '0px',
+            threshold: 0.1, // 10% of the footer is visible
+        }
+
+        const observerCallback: IntersectionObserverCallback = (entries) => {
+            entries.forEach((entry) => {
+                setIsFooterVisible(entry.isIntersecting)
+            })
+        }
+
+        const observer = new IntersectionObserver(observerCallback, observerOptions)
+        if (footerRef.current) {
+            observer.observe(footerRef.current)
+        }
+
+        return () => {
+            if (footerRef.current) {
+                observer.unobserve(footerRef.current)
+            }
+        }
+    }, [setIsFooterVisible])
+
+    return <div ref={footerRef}></div>
 }
 
 export default Layout
