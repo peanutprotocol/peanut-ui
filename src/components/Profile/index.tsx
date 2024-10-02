@@ -392,7 +392,7 @@ export const Profile = () => {
 
                                     <span className="flex justify-center gap-1 text-h8 font-normal">
                                         {user?.user?.email ??
-                                            utils.shortenAddressLong(user.accounts[0].account_identifier)}
+                                            utils.shortenAddressLong(user.accounts?.[0]?.account_identifier)}
                                         <div className={`flex flex-row items-center justify-center `}>
                                             <div
                                                 className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
