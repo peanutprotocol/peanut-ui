@@ -1,9 +1,9 @@
 'use client'
+
 import Icon from '../Global/Icon'
 import * as consts from '@/constants'
 import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
-import MoreInfo from '../Global/MoreInfo'
 import * as components from './Components'
 import { useContext, useEffect, useRef, useState } from 'react'
 import { Divider, ToastId, useToast } from '@chakra-ui/react'
@@ -16,11 +16,10 @@ import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
 import ImageEdit from '../Global/ImageEdit'
 import TextEdit from '../Global/TextEdit'
-import IframeWrapper from '../Global/IframeWrapper'
 import Link from 'next/link'
 import * as context from '@/context'
 import Loading from '../Global/Loading'
-import peanut, { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
+
 const tabs = [
     {
         title: 'History',
@@ -396,9 +395,15 @@ export const Profile = () => {
                                             {user?.user?.email}
                                             <div className={`flex flex-row items-center justify-center `}>
                                                 <div
-                                                    className={`kyc-badge ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green text-black' : 'bg-gray-1 text-white'} w-max px-2 py-1 `}
+                                                    className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
                                                 >
-                                                    {user?.user?.kycStatus === 'verified' ? 'KYC' : 'NO KYC'}
+                                                    {user?.user?.kycStatus === 'verified' ? (
+                                                        'KYC'
+                                                    ) : (
+                                                        <Link className="px-2 py-1" href={'/kyc'}>
+                                                            NO KYC
+                                                        </Link>
+                                                    )}
                                                 </div>
                                             </div>
                                         </span>
