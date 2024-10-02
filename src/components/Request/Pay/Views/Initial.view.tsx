@@ -28,7 +28,12 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        selectedTokenDecimals,
+        tokenPriceCompleted
+    } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -86,8 +91,19 @@ export const InitialView = ({
                 setTxFee('0')
             }
         }
+
+        // wait for token selector to fetch token price, both effects depend on
+        // selectedTokenAddress and selectedChainID, but we depend on that
+        // effect being completed first
+        if (!tokenPriceCompleted) return
+
         estimateTxFee()
-    }, [selectedTokenAddress, selectedChainID])
+    }, [
+        selectedTokenAddress,
+        selectedChainID,
+        selectedTokenDecimals,
+        tokenPriceCompleted
+    ])
 
     const handleConnectWallet = async () => {
         open()
