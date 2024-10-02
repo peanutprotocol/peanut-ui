@@ -18,6 +18,7 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { FAQComponent } from './Faq.comp'
 import { CrispButton } from '@/components/CrispChat'
+import { optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
 
 interface CrossChainDetails {
     chainId: string
@@ -235,8 +236,8 @@ export const ConfirmCashoutView = ({
     // TODO: fix type
     const handleCrossChainScenario = async (claimLinkData: any, crossChainDetails: CrossChainDetails[]) => {
         // default to optimism and usdc (and then bridge to this)
-        const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
-        const optimismChainId = '10'
+        // imported from Offramp consts
+
 
         if (!crossChainDetails) {
             throw new Error('Offramp unavailable')

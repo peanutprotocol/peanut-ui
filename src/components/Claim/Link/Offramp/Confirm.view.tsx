@@ -15,6 +15,7 @@ import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import { useAuth } from '@/context/authContext'
 import { CrispButton } from '@/components/CrispChat'
+import { optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
 
 export const ConfirmClaimLinkIbanView = ({
     onPrev,
@@ -49,8 +50,6 @@ export const ConfirmClaimLinkIbanView = ({
                 xchainNeeded = false
             } else {
                 xchainNeeded = true
-                const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
-                const optimismChainId = '10'
                 if (!crossChainDetails) {
                     setErrorState({
                         showError: true,
