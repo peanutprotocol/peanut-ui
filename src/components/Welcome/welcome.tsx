@@ -174,7 +174,7 @@ export function Welcome() {
     }, [])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center">
+        <div className="flex w-full flex-col items-center justify-center overflow-x-hidden">
             <div className="relative">
                 {/* <motion.img
                     initial={{ opacity: 0, translateY: 28, translateX: -5 }}
@@ -248,7 +248,7 @@ export function Welcome() {
                                 </div>
                             </div>
 
-                            <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
+                            <div className="flex w-full items-center justify-center space-x-4 p-2 px-4 sm:gap-4">
                                 <Link href={'/send'} className="btn-purple btn-2xl max-w-64">
                                     App
                                 </Link>
@@ -294,9 +294,9 @@ export function Welcome() {
                         ))}
                     </div>
                 </div>
-            </div>
 
-            <MarqueeComp message="Frens send links" imageSrc={HandThumbsUp.src} />
+                <MarqueeComp message="Frens send links" imageSrc={HandThumbsUp.src} />
+            </div>
 
             <div className="flex w-full flex-col items-center justify-center">
                 <FAQsPanel heading="FAQs" questions={faqs} />
