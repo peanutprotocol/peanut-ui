@@ -390,24 +390,23 @@ export const Profile = () => {
                                         }}
                                     />
 
-                                    {user?.user?.email && (
-                                        <span className="flex justify-center gap-1 text-h8 font-normal">
-                                            {user?.user?.email}
-                                            <div className={`flex flex-row items-center justify-center `}>
-                                                <div
-                                                    className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
-                                                >
-                                                    {user?.user?.kycStatus === 'verified' ? (
-                                                        'KYC'
-                                                    ) : (
-                                                        <Link className="px-2 py-1" href={'/kyc'}>
-                                                            NO KYC
-                                                        </Link>
-                                                    )}
-                                                </div>
+                                    <span className="flex justify-center gap-1 text-h8 font-normal">
+                                        {user?.user?.email ??
+                                            utils.shortenAddressLong(user.accounts[0].account_identifier)}
+                                        <div className={`flex flex-row items-center justify-center `}>
+                                            <div
+                                                className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
+                                            >
+                                                {user?.user?.kycStatus === 'verified' ? (
+                                                    'KYC'
+                                                ) : (
+                                                    <Link className="px-2 py-1" href={'/kyc'}>
+                                                        NO KYC
+                                                    </Link>
+                                                )}
                                             </div>
-                                        </span>
-                                    )}
+                                        </div>
+                                    </span>
                                 </div>
                             </div>
                             <button className="btn btn-xl h-8 w-full" onClick={handleLogout}>
