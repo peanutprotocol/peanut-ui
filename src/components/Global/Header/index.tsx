@@ -262,7 +262,7 @@ const MenuLinks = () => {
                     }}
                     className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
                 >
-                    <Text display="block">
+                    <Text display="block text-nowrap">
                         {' '}
                         {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
                     </Text>
@@ -282,7 +282,7 @@ const SocialLinks = () => {
                 <button className="btn btn-large bg-white px-2 ">Profile</button>
             </Link>
             <button
-                className="btn btn-large bg-white px-2"
+                className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
                     web3modalOpen()
                 }}

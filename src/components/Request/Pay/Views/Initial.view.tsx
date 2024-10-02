@@ -194,6 +194,12 @@ export const InitialView = ({
         }
     }
 
+    const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
+
+    const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
+        utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+    )?.logoURI
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
@@ -240,16 +246,7 @@ export const InitialView = ({
                 <div>
                     <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
-                            <img
-                                src={
-                                    consts.peanutTokenDetails
-                                        .find((chain) => chain.chainId === requestLinkData.chainId)
-                                        ?.tokens.find((token) => token.address === requestLinkData.tokenAddress)
-                                        ?.logoURI
-                                }
-                                className="absolute left-0 top-0 h-6 w-6"
-                                alt="logo"
-                            />
+                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
                             <img
                                 src={
                                     consts.supportedPeanutChains.find(

@@ -4,8 +4,10 @@ import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Create.consts'
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { useAccount } from 'wagmi'
+import { useRouter } from 'next/navigation'
 
 export const CreateRequestLink = () => {
+    const router = useRouter()
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
     const [usdValue, setUsdValue] = useState<undefined | string>(undefined)
@@ -29,7 +31,9 @@ export const CreateRequestLink = () => {
     }
 
     const handleOnPrev = () => {
-        if (step.idx === 0) return
+        if (step.idx === 0) {
+            return router.push('/')
+        }
         const newIdx = step.idx - 1
         setStep(() => ({
             screen: _consts.CREATE_SCREEN_FLOW[newIdx],

@@ -18,11 +18,15 @@ import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
 
-const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
+const TokenSelector = ({ classNameButton, shouldBeConnected = true }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const focusButtonRef = useRef<HTMLButtonElement>(null)
-    const [showFallback, setShowFallback] = useState(false)
+    /**
+     * If the user is not connected, we show a fallback screen to search for tokens directly,
+     * instead of showing the balances.
+     */
+    const [showFallback, setShowFallback] = useState(!shouldBeConnected)
 
     const { balances, hasFetchedBalances } = useBalance()
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID } = useContext(
@@ -30,7 +34,7 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
     )
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
-    const { safeInfo, walletType, environmentInfo } = useWalletType()
+    const { safeInfo, walletType } = useWalletType()
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
@@ -151,12 +155,12 @@ const TokenSelector = ({ classNameButton }: _consts.TokenSelectorProps) => {
                 title={'Select Token'}
                 classNameWrapperDiv="px-2 pb-7 pt-8"
                 classWrap="max-w-[32rem]"
-                showPrev={showFallback}
+                showPrev={shouldBeConnected ? showFallback : false}
                 onPrev={() => {
                     setShowFallback(false)
                 }}
             >
-                {!isConnected ? (
+                {!isConnected && shouldBeConnected ? (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-2 ">
                         <label className="text-center text-h5">Connect a wallet to select a token to send.</label>
                         <button
