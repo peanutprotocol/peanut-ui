@@ -8,8 +8,8 @@ export const NavItemBox = ({ children }: { children: React.ReactNode }) => {
             className="h-full w-full hover:bg-white hover:text-black"
             px={{
                 base: 8,
-                sm: 4,
-                lg: 2,
+                lg: 4,
+                xl: 8,
             }}
         >
             {children}
