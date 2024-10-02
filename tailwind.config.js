@@ -130,9 +130,12 @@ module.exports = {
             fontFamily: {
                 sans: ['var(--font-roboto)', ...fontFamily.sans],
                 display: ['var(--font-sniglet)', ...fontFamily.sans],
-                condensed: ['var(--font-roboto)', {
-                    fontVariationSettings: '"wdth" 50'
-                }],
+                condensed: [
+                    'var(--font-roboto)',
+                    {
+                        fontVariationSettings: '"wdth" 50',
+                    },
+                ],
             },
             fontSize: {
                 0: ['0px', '0px'],

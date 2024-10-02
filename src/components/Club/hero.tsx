@@ -47,7 +47,7 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
                         {heading}
                     </h1>
 
-                    <h2 className="font-condensed relative text-4xl uppercase leading-[1.15] lg:text-[3rem]">
+                    <h2 className="relative font-condensed text-4xl uppercase leading-[1.15] lg:text-[3rem]">
                         buttery smooth global money
                     </h2>
                 </Stack>
