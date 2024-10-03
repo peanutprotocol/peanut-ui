@@ -613,24 +613,16 @@ export const OfframpConfirmView = ({
                                     <Icon name={'forward'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Route</label>
                                 </div>
-                                {false ? (
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        {
-                                            consts.supportedPeanutChains.find(
-                                                (chain) => chain.chainId === claimLinkData?.chainId
-                                            )?.name
-                                        }{' '}
-                                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Optimism{' '}
-                                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType?.toUpperCase()}{' '}
-                                        <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                                    </span>
-                                ) : (
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                        {recipientType?.toUpperCase()}{' '}
-                                        <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                                    </span>
-                                )}
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {
+                                        consts.supportedPeanutChains.find(
+                                            (chain) => chain.chainId === claimLinkData?.chainId
+                                        )?.name
+                                    }{' '}
+                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
+                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType?.toUpperCase()}{' '}
+                                    <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                                </span>
                             </div>
                         )}
 
