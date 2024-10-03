@@ -28,14 +28,19 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        selectedTokenDecimals,
+        isTokenPriceFetchingComplete
+    } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [txFee, setTxFee] = useState<string>('0')
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
-    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.LOADING)
+    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const createXChainUnsignedTx = async () => {
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
@@ -55,7 +60,10 @@ export const InitialView = ({
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId
+                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
@@ -83,11 +91,25 @@ export const InitialView = ({
                 setTxFee('0')
             }
         }
+
+        // wait for token selector to fetch token price, both effects depend on
+        // selectedTokenAddress and selectedChainID, but we depend on that
+        // effect being completed first
+        if (!isConnected || !isTokenPriceFetchingComplete) return
+
         estimateTxFee()
-    }, [selectedTokenAddress, selectedChainID])
+    }, [
+        selectedTokenAddress,
+        selectedChainID,
+        selectedTokenDecimals,
+        isTokenPriceFetchingComplete,
+        requestLinkData
+    ])
 
     const handleConnectWallet = async () => {
-        open()
+        open().finally(() => {
+            if (isConnected) setLinkState(RequestStatus.LOADING)
+        })
     }
 
     const switchNetwork = async (chainId: string) => {
@@ -111,7 +133,10 @@ export const InitialView = ({
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId
+                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            ){
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
@@ -197,7 +222,7 @@ export const InitialView = ({
     const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
 
     const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
-        utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+        utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
     )?.logoURI
 
     return (
@@ -262,7 +287,7 @@ export const InitialView = ({
                             consts.peanutTokenDetails
                                 .find((chain) => chain.chainId === requestLinkData.chainId)
                                 ?.tokens.find((token) =>
-                                    utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+                                    utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
                                 )
                                 ?.symbol.toUpperCase()}{' '}
                         on{' '}
@@ -333,7 +358,7 @@ export const InitialView = ({
                     disabled={linkState === RequestStatus.LOADING || linkState === RequestStatus.NOT_FOUND || isLoading}
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
+                        else if (RequestStatus.CLAIM === linkState) handleOnNext()
                     }}
                 >
                     {linkState === RequestStatus.LOADING ? (

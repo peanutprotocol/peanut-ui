@@ -124,7 +124,7 @@ export const useDashboard = () => {
                 tokenSymbol:
                     consts.peanutTokenDetails
                         .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress ?? ''))
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress ?? ''))
                         ?.symbol ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
@@ -145,7 +145,7 @@ export const useDashboard = () => {
                 tokenSymbol:
                     consts.peanutTokenDetails
                         .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
                         ?.symbol ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.date.toString(),
@@ -166,7 +166,7 @@ export const useDashboard = () => {
                 tokenSymbol:
                     consts.peanutTokenDetails
                         .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
                         ?.symbol ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.createdAt.toString(),
@@ -187,7 +187,7 @@ export const useDashboard = () => {
                 tokenSymbol:
                     consts.peanutTokenDetails
                         .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
                         ?.symbol ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.createdAt.toString(),

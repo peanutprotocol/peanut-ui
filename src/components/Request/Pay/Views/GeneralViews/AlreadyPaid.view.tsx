@@ -19,7 +19,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                     consts.peanutTokenDetails
                         .find((chain) => chain.chainId === requestLinkData?.chainId)
                         ?.tokens.find((token) =>
-                            utils.compareTokenAddresses(token.address, requestLinkData?.tokenAddress ?? '')
+                            utils.areTokenAddressesEqual(token.address, requestLinkData?.tokenAddress ?? '')
                         )?.symbol}{' '}
                 on{' '}
                 {consts.supportedPeanutChains &&

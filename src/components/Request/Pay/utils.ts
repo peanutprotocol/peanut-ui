@@ -14,5 +14,6 @@ export enum EPeanutLinkType {
 export enum RequestStatus {
     LOADING = 'LOADING',
     CLAIM = 'CLAIM',
+    NOT_CONNECTED = 'NOT_CONNECTED',
     NOT_FOUND = 'NOT_FOUND',
 }
