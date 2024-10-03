@@ -14,6 +14,8 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
 
+const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
+
 export const InitialView = ({
     onNext,
     requestLinkData,
@@ -30,9 +32,12 @@ export const InitialView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedChainID,
+        setSelectedChainID,
         selectedTokenAddress,
+        setSelectedTokenAddress,
         selectedTokenDecimals,
-        isTokenPriceFetchingComplete
+        isTokenPriceFetchingComplete,
+        setIsXChain,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -79,23 +84,30 @@ export const InitialView = ({
                     setTxFee(Number(feeEstimation).toFixed(2))
                     setLinkState(RequestStatus.CLAIM)
                 } else {
-                    setErrorState({ showError: true, errorMessage: 'No route found' })
+                    setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                     setIsFeeEstimationError(true)
                     setTxFee('0')
                     setLinkState(RequestStatus.NOT_FOUND)
                 }
             } catch (error) {
-                setErrorState({ showError: true, errorMessage: 'No route found' })
+                setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                 setLinkState(RequestStatus.NOT_FOUND)
                 setIsFeeEstimationError(true)
                 setTxFee('0')
             }
         }
 
+        const isXChain = selectedChainID !== requestLinkData.chainId
+            || !utils.areTokenAddressesEqual(
+                selectedTokenAddress,
+                requestLinkData.tokenAddress
+                )
+        setIsXChain(isXChain)
+
         // wait for token selector to fetch token price, both effects depend on
         // selectedTokenAddress and selectedChainID, but we depend on that
         // effect being completed first
-        if (!isConnected || !isTokenPriceFetchingComplete) return
+        if (!isConnected || (isXChain && !isTokenPriceFetchingComplete)) return
 
         estimateTxFee()
     }, [
@@ -219,6 +231,11 @@ export const InitialView = ({
         }
     }
 
+    const resetTokenAndChain = () => {
+        setSelectedChainID(requestLinkData.chainId)
+        setSelectedTokenAddress(requestLinkData.tokenAddress)
+    }
+
     const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
 
     const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
@@ -299,7 +316,10 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelector classNameButton="w-full" />
+            <TokenSelector
+                classNameButton="w-full"
+                onReset={resetTokenAndChain}
+            />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>

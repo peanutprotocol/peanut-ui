@@ -20,6 +20,7 @@ interface IAdvancedTokenSelectorButtonProps {
     classNameButton?: string
     isStatic?: boolean
     type?: 'xchain' | 'send'
+    onReset?: () => void
 }
 
 export const AdvancedTokenSelectorButton = ({
@@ -35,6 +36,7 @@ export const AdvancedTokenSelectorButton = ({
     classNameButton,
     isStatic = false,
     type = 'send',
+    onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { address } = useAccount()
@@ -89,9 +91,16 @@ export const AdvancedTokenSelectorButton = ({
         //         <div className="">{chainName}</div>
         //     </div>
         // </div>
-        <div
+        <section
+            role="button"
+            tabIndex={0}
+            aria-label="Open token selector"
             className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 dark:border-white  ${classNameButton}`}
             onClick={() => {
+                !isStatic && onClick()
+            }}
+            onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return
                 !isStatic && onClick()
             }}
         >
@@ -131,16 +140,41 @@ export const AdvancedTokenSelectorButton = ({
                     )}
                 </div>
             </div>
-            <div className="flex flex-row items-center justify-center gap-2">
-                <div className="block">
-                    {!isStatic && (
-                        <Icon
-                            name={'arrow-bottom'}
-                            className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
-                        />
-                    )}
+            {!isStatic && (
+                <div className="flex flex-row items-center justify-center gap-2">
+                    {'send' === type &&
+                        <button
+                            aria-label="Open token selector"
+                            className="block"
+                        >
+                                <Icon
+                                    name={'arrow-bottom'}
+                                    className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
+                                />
+                        </button>
+                    }
+                    {'xchain' === type &&
+                        <button
+                            aria-label="Reset token selection"
+                            className="block"
+                            onClick={(e) => {
+                                e.stopPropagation()  //don't open modal
+                                onReset?.()
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key !== 'Enter') return
+                                e.stopPropagation()
+                                onReset?.()
+                            }}
+                        >
+                            <Icon
+                                name={'close'}
+                                className={`h-10 w-10 transition-transform dark:fill-white`}
+                            />
+                        </button>
+                    }
                 </div>
-            </div>
-        </div>
+            )}
+        </section>
     )
 }
