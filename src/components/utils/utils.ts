@@ -15,7 +15,7 @@ export async function checkTransactionStatus(txHash: string): Promise<void> {
     }
 }
 
-export async function loopUntilSuccess(
+export async function fetchDestinationChain(
     txHash: string,
     setExplorerUrlDestChainWithTxHash: (value: { transactionId: string; transactionUrl: string }) => void
 ) {

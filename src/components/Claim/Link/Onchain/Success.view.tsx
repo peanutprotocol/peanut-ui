@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount, useConnections, useSwitchChain } from 'wagmi'
-import { loopUntilSuccess } from '@/components/utils/utils'
+import { fetchDestinationChain } from '@/components/utils/utils'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
@@ -46,7 +46,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     useEffect(() => {
         resetTokenContextProvider()
         if (transactionHash && type === 'claimxchain') {
-            loopUntilSuccess(transactionHash, setExplorerUrlDestChainWithTxHash)
+            fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
 

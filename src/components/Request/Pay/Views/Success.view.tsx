@@ -3,7 +3,7 @@ import * as _consts from '../Pay.consts'
 import Icon from '@/components/Global/Icon'
 import * as utils from '@/utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { loopUntilSuccess } from '@/components/utils/utils'
+import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 
 export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPayScreenProps) => {
@@ -20,7 +20,7 @@ export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPaySc
 
     useEffect(() => {
         if (transactionHash) {
-            loopUntilSuccess(transactionHash, setExplorerUrlDestChainWithTxHash)
+            fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
     return (
