@@ -28,7 +28,7 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                                 <p>Fees:</p>
                                 <ul className="list-disc pl-5">
                                     <li>Peanut sponsors gas</li>
-                                    <li>we have to charge a $1 fee for EU cashouts, and $0.5 for US transfers</li>
+                                    <li>We have to charge a $1 fee for EU cashouts, and $0.5 for US transfers</li>
                                 </ul>
                                 <br></br>
                                 <p>Usually takes 20mins, but can take up to 3 business days.</p>
