@@ -2,7 +2,75 @@ import axios from 'axios'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 
-export async function checkTransactionStatus(txHash: string): Promise<void> {
+type ISquidChainData = {
+  id: string,
+  chainId: string,
+  networkIdentifier: string,
+  chainName: string,
+  axelarChainName: string,
+  type: string,
+  networkName: string,
+  nativeCurrency: {
+    name: string,
+    symbol: string,
+    decimals: number,
+    icon: string,
+  },
+  chainIconURI: string,
+  blockExplorerUrls: string[],
+  swapAmountForGas: string,
+  sameChainSwapsSupported: boolean,
+  compliance: {
+    trmIdentifier: string,
+  },
+  boostSupported: boolean,
+  enableBoostByDefault: boolean,
+  rpcList: string[],
+  chainNativeContracts: {
+    wrappedNativeToken: string,
+    ensRegistry: string,
+    multicall: string,
+    usdcToken: string,
+  },
+  feeCurrencies: any[],
+  currencies: any[],
+  features: any[],
+}
+
+type ISquidStatusResponse = {
+  id: string,
+  status: string,
+  gasStatus: string,
+  isGMPTransaction: boolean,
+  axelarTransactionUrl: string,
+  fromChain: {
+    transactionId: string,
+    blockNumber: number,
+    callEventStatus: string,
+    callEventLog: any[],
+    chainData: ISquidChainData,
+    transactionUrl: string,
+  },
+  toChain: {
+    transactionId: string,
+    blockNumber: number,
+    callEventStatus: string,
+    callEventLog: any[],
+    chainData: ISquidChainData,
+    transactionUrl: string,
+  },
+  timeSpent: {
+    call_express_executed: number,
+    total: number,
+  },
+  routeStatus: any[],
+  error: any,
+  squidTransactionStatus: string,
+}
+
+export async function checkTransactionStatus(
+  txHash: string
+): Promise<ISquidStatusResponse> {
     try {
         const response = await axios.get('https://apiplus.squidrouter.com/v2/status', {
             params: { transactionId: txHash },
@@ -22,22 +90,16 @@ export async function fetchDestinationChain(
     let intervalId = setInterval(async () => {
         const result = await checkTransactionStatus(txHash)
 
-        //@ts-ignore
         if (result.squidTransactionStatus === 'success') {
-            //@ts-ignore
             const explorerUrl = utils.getExplorerUrl(result.toChain.chainData.chainId.toString())
             if (explorerUrl) {
                 setExplorerUrlDestChainWithTxHash({
-                    //@ts-ignore
                     transactionUrl: explorerUrl + '/tx/' + result.toChain.transactionId,
-                    //@ts-ignore
                     transactionId: result.toChain.transactionId,
                 })
             } else {
                 setExplorerUrlDestChainWithTxHash({
-                    //@ts-ignore
                     transactionUrl: result.toChain.transactionUrl,
-                    //@ts-ignore
                     transactionId: result.toChain.transactionId,
                 })
             }
