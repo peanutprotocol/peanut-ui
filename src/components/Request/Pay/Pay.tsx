@@ -67,6 +67,9 @@ export const PayRequestLink = () => {
                 setLinkState('NOT_FOUND')
                 return
             }
+
+            setRequestLinkData(requestLinkDetails)
+
             // Check if request link is already paid
             if (requestLinkDetails.status === 'PAID') {
                 setLinkState('ALREADY_PAID')
@@ -110,7 +113,6 @@ export const PayRequestLink = () => {
                 console.log('error calculating transaction cost:', error)
             }
 
-            setRequestLinkData(requestLinkDetails)
             setLinkState('PAY')
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
