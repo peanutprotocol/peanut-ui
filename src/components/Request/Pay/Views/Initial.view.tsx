@@ -40,7 +40,7 @@ export const InitialView = ({
     }>({ showError: false, errorMessage: '' })
     const [txFee, setTxFee] = useState<string>('0')
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
-    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.LOADING)
+    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const createXChainUnsignedTx = async () => {
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
@@ -95,7 +95,7 @@ export const InitialView = ({
         // wait for token selector to fetch token price, both effects depend on
         // selectedTokenAddress and selectedChainID, but we depend on that
         // effect being completed first
-        if (!isTokenPriceFetchingComplete) return
+        if (!isConnected || !isTokenPriceFetchingComplete) return
 
         estimateTxFee()
     }, [
@@ -107,7 +107,9 @@ export const InitialView = ({
     ])
 
     const handleConnectWallet = async () => {
-        open()
+        open().finally(() => {
+            if (isConnected) setLinkState(RequestStatus.LOADING)
+        })
     }
 
     const switchNetwork = async (chainId: string) => {
@@ -356,7 +358,7 @@ export const InitialView = ({
                     disabled={linkState === RequestStatus.LOADING || linkState === RequestStatus.NOT_FOUND || isLoading}
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
+                        else if (RequestStatus.CLAIM === linkState) handleOnNext()
                     }}
                 >
                     {linkState === RequestStatus.LOADING ? (
