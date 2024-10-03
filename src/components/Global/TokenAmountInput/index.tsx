@@ -38,10 +38,20 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
 
     utils.estimateStableCoin(1)
 
+    const formRef = useRef<HTMLFormElement>(null)
+
+    const handleContainerClick = () => {
+        if (inputRef.current) {
+            inputRef.current.focus()
+        }
+    }
+
     return (
         <form
-            className={`relative max-w-96 rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}
+            ref={formRef}
+            className={`relative max-w-96 cursor-text rounded-none border border-n-1 px-2 py-4 dark:border-white ${className}`}
             action=""
+            onClick={handleContainerClick}
         >
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
                 {}
