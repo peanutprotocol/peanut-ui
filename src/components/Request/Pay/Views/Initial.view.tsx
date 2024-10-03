@@ -14,6 +14,8 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
 
+const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
+
 export const InitialView = ({
     onNext,
     requestLinkData,
@@ -82,13 +84,13 @@ export const InitialView = ({
                     setTxFee(Number(feeEstimation).toFixed(2))
                     setLinkState(RequestStatus.CLAIM)
                 } else {
-                    setErrorState({ showError: true, errorMessage: 'No route found' })
+                    setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                     setIsFeeEstimationError(true)
                     setTxFee('0')
                     setLinkState(RequestStatus.NOT_FOUND)
                 }
             } catch (error) {
-                setErrorState({ showError: true, errorMessage: 'No route found' })
+                setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                 setLinkState(RequestStatus.NOT_FOUND)
                 setIsFeeEstimationError(true)
                 setTxFee('0')
