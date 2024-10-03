@@ -1,1 +1,1 @@
-export * from './Confirm.view'
+
