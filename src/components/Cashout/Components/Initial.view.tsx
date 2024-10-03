@@ -26,18 +26,12 @@ export const InitialCashoutView = ({
     usdValue,
     setUsdValue,
     setTokenValue,
-    setRecipient,
-    recipient,
     setPreparedCreateLinkWrapperResponse,
     setInitialKYCStep,
     setOfframpForm,
     crossChainDetails,
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
-
-    const cannotCashoutOnSelectedChain =
-        !Boolean(crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString())) ||
-        selectedChainID === '1'
 
     const { balances, hasFetchedBalances } = useBalance()
     const { user, fetchUser, isFetchingUser } = useAuth()
@@ -277,10 +271,10 @@ export const InitialCashoutView = ({
                                                         selectedBankAccount === account.account_identifier
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
-                                                        cannotCashoutOnSelectedChain && 'opacity-60'
+                                                        !xchainAllowed && 'opacity-60'
                                                     )}
                                                     onClick={() => {
-                                                        if (cannotCashoutOnSelectedChain) return
+                                                        if (!xchainAllowed) return
                                                         if (selectedBankAccount === account.account_identifier) {
                                                             setSelectedBankAccount(undefined)
                                                         } else {
@@ -327,14 +321,14 @@ export const InitialCashoutView = ({
                                             <div
                                                 className={twMerge(
                                                     'flex w-full cursor-pointer border border-black p-2',
-                                                    cannotCashoutOnSelectedChain && 'opacity-60'
+                                                    !xchainAllowed && 'opacity-60'
                                                 )}
                                             >
                                                 <label className="ml-2 text-right">To:</label>
                                                 <input
                                                     type="text"
                                                     className={twMerge(
-                                                        cannotCashoutOnSelectedChain && 'bg-transparent',
+                                                        !xchainAllowed && 'bg-transparent',
                                                         'ml-2 w-full border-none outline-none'
                                                     )}
                                                     placeholder="IBAN / US account number"
@@ -343,7 +337,7 @@ export const InitialCashoutView = ({
                                                     onFocus={() => setActiveInput('newBankAccount')}
                                                     spellCheck="false"
                                                     autoComplete="iban"
-                                                    disabled={cannotCashoutOnSelectedChain}
+                                                    disabled={!xchainAllowed}
                                                 />
                                             </div>
                                         </motion.div>
@@ -356,14 +350,14 @@ export const InitialCashoutView = ({
                                 <div
                                     className={twMerge(
                                         'flex w-full cursor-pointer border border-black p-2',
-                                        cannotCashoutOnSelectedChain && 'cursor-not-allowed opacity-60'
+                                        !xchainAllowed && 'cursor-not-allowed opacity-60'
                                     )}
                                 >
                                     <label className="ml-2 text-right">To:</label>
                                     <input
                                         type="text"
                                         className={twMerge(
-                                            cannotCashoutOnSelectedChain && 'cursor-not-allowed bg-transparent',
+                                            !xchainAllowed && 'cursor-not-allowed bg-transparent',
                                             'ml-2 w-full border-none outline-none'
                                         )}
                                         placeholder="IBAN / US account number"
@@ -372,7 +366,7 @@ export const InitialCashoutView = ({
                                         onFocus={() => setActiveInput('newBankAccount')}
                                         spellCheck="false"
                                         autoComplete="iban"
-                                        disabled={cannotCashoutOnSelectedChain}
+                                        disabled={!xchainAllowed}
                                     />
                                 </div>
                             </div>
@@ -392,8 +386,7 @@ export const InitialCashoutView = ({
                     (!selectedBankAccount && !newBankAccount) ||
                     !xchainAllowed ||
                     !!isBelowMinLimit ||
-                    !!isExceedingMaxLimit ||
-                    cannotCashoutOnSelectedChain
+                    !!isExceedingMaxLimit
                 }
             >
                 {!isConnected ? (
@@ -422,7 +415,7 @@ export const InitialCashoutView = ({
                     {MAX_CASHOUT_LIMIT.toLocaleString()}.
                 </span>
             )}
-            {cannotCashoutOnSelectedChain && (
+            {!xchainAllowed && (
                 <span className=" text-h8 font-normal ">
                     <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                 </span>
