@@ -91,9 +91,16 @@ export const AdvancedTokenSelectorButton = ({
         //         <div className="">{chainName}</div>
         //     </div>
         // </div>
-        <div
+        <section
+            role="button"
+            tabIndex={0}
+            aria-label="Open token selector"
             className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 dark:border-white  ${classNameButton}`}
             onClick={() => {
+                !isStatic && onClick()
+            }}
+            onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return
                 !isStatic && onClick()
             }}
         >
@@ -136,29 +143,38 @@ export const AdvancedTokenSelectorButton = ({
             {!isStatic && (
                 <div className="flex flex-row items-center justify-center gap-2">
                     {'send' === type &&
-                        <div className="block">
+                        <button
+                            aria-label="Open token selector"
+                            className="block"
+                        >
                                 <Icon
                                     name={'arrow-bottom'}
                                     className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
                                 />
-                        </div>
+                        </button>
                     }
                     {'xchain' === type &&
-                        <div
+                        <button
+                            aria-label="Reset token selection"
                             className="block"
                             onClick={(e) => {
                                 e.stopPropagation()  //don't open modal
-                                onReset && onReset()
+                                onReset?.()
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key !== 'Enter') return
+                                e.stopPropagation()
+                                onReset?.()
                             }}
                         >
                             <Icon
                                 name={'close'}
                                 className={`h-10 w-10 transition-transform dark:fill-white`}
                             />
-                        </div>
+                        </button>
                     }
                 </div>
             )}
-        </div>
+        </section>
     )
 }
