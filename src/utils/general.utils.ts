@@ -320,7 +320,7 @@ export const isTestnetChain = (chainId: string) => {
     return isTestnet
 }
 
-export const compareTokenAddresses = (address1: string, address2: string): boolean => {
+export const areTokenAddressesEqual = (address1: string, address2: string): boolean => {
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
         address1 = '0x0000000000000000000000000000000000000000'
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())

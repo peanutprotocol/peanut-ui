@@ -62,7 +62,7 @@ export const InitialView = ({
             setLinkState(RequestStatus.LOADING)
             if (
                 selectedChainID === requestLinkData.chainId
-                && utils.compareTokenAddresses(selectedTokenAddress, requestLinkData.tokenAddress)
+                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
             ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
@@ -133,7 +133,7 @@ export const InitialView = ({
             if (!unsignedTx) return
             if (
                 selectedChainID === requestLinkData.chainId
-                && utils.compareTokenAddresses(selectedTokenAddress, requestLinkData.tokenAddress)
+                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
             ){
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
@@ -220,7 +220,7 @@ export const InitialView = ({
     const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
 
     const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
-        utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+        utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
     )?.logoURI
 
     return (
@@ -285,7 +285,7 @@ export const InitialView = ({
                             consts.peanutTokenDetails
                                 .find((chain) => chain.chainId === requestLinkData.chainId)
                                 ?.tokens.find((token) =>
-                                    utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+                                    utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
                                 )
                                 ?.symbol.toUpperCase()}{' '}
                         on{' '}

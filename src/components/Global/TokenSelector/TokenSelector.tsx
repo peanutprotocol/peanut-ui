@@ -113,12 +113,12 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true }: _consts.To
     }, [visible])
 
     const displayedToken = _tokensToDisplay.find((token) =>
-        utils.compareTokenAddresses(token.address, selectedTokenAddress)
+        utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
     )
     const displayedChain = supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)
     const displayedTokenBalance = balances.find(
         (balance) =>
-            utils.compareTokenAddresses(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID
+            utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID
     )
 
     useEffect(() => {
