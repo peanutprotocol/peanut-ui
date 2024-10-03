@@ -41,6 +41,14 @@ export const InitialCashoutView = ({
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
     const xchainAllowed = useMemo( (): boolean => {
+        /**
+         * Checks to validate if the chain we want to cash out from allows cross-chain operations.
+         *
+         * This is necessary because the current flow for offramping is:
+         * (any token, any chain) -> (usdc, optimism) with Squid's router in between.
+         * There may be chains that are not supported to conduct that cross-chain operation (e.g., due to gas costs,
+         * business strategy, etc.), so we'd like to block user action in that case.
+         */
         return crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) != undefined
         },
         [selectedChainID]
