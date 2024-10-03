@@ -4,7 +4,7 @@ import * as offrampViews from './Offramp'
 import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
 import * as interfaces from '@/interfaces'
-import { OfframpSuccessView } from '@/components/Offramp'
+import { OfframpConfirmView, OfframpSuccessView } from '@/components/Offramp'
 import { IOfframpSuccessScreenProps, OfframpType } from '@/components/Offramp/Offramp.consts'
 
 
@@ -22,7 +22,7 @@ const FlowManager = ({
         CONFIRM:
             recipientType != 'iban' && recipientType != 'us'
                 ? onchainViews.ConfirmClaimLinkView
-                : offrampViews.ConfirmClaimLinkIbanView,
+                : OfframpConfirmView,
         SUCCESS:
             recipientType != 'iban' && recipientType != 'us'
                 ? onchainViews.SuccessClaimLinkView
@@ -30,7 +30,7 @@ const FlowManager = ({
     }
 
     let componentProps:  _consts.IClaimScreenProps | IOfframpSuccessScreenProps = props
-    if (step.screen == 'SUCCESS' && (recipientType == 'iban' || recipientType == 'us')) {
+    if (recipientType == 'iban' || recipientType == 'us') {
         componentProps = {
             ...props,
             offrampType: OfframpType.CLAIM // adds an additional required type on the props

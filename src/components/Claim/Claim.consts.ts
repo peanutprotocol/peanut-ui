@@ -1,7 +1,7 @@
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
+import { IOfframpConfirmScreenProps, IOfframpSuccessScreenProps } from '../Offramp/Offramp.consts'
 export type ClaimType = 'claim' | 'claimxchain'
 
 export type ClaimScreens = 'INITIAL' | 'CONFIRM' | 'SUCCESS'
@@ -20,7 +20,7 @@ export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS
 
 export interface IFlowManagerClaimComponents {
     INITIAL: ({}: IClaimScreenProps) => {},
-    CONFIRM: ({}: IClaimScreenProps) => {},
+    CONFIRM: (({}: IClaimScreenProps) => {}) | (({}: IOfframpConfirmScreenProps) => {}),
     SUCCESS: (({}: IClaimScreenProps) => {}) | (({}: IOfframpSuccessScreenProps) => {}),
 }
 
