@@ -55,7 +55,10 @@ export const InitialView = ({
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId &&
+                utils.compareTokenAddresses(selectedTokenAddress, requestLinkData.tokenAddress)
+            ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
