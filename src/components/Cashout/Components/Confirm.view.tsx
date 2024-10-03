@@ -243,7 +243,7 @@ export const ConfirmCashoutView = ({
         }
 
         const route = await utils.fetchRouteRaw(
-            claimLinkData.tokenAddress.toLowerCase(),
+            claimLinkData.tokenAddress,
             claimLinkData.chainId.toString(),
             usdcAddressOptimism,
             optimismChainId,

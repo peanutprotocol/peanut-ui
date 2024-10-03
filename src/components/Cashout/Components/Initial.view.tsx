@@ -40,11 +40,10 @@ export const InitialCashoutView = ({
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
-    const xchainAllowed = useMemo(
-        () =>
-            crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
-            selectedChainID === '1',
-        [crossChainDetails, selectedChainID]
+    const xchainAllowed = useMemo( (): boolean => {
+        return crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) != undefined
+        },
+        [selectedChainID]
     )
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -393,8 +392,7 @@ export const InitialCashoutView = ({
                     {MAX_CASHOUT_LIMIT.toLocaleString()}.
                 </span>
             )}
-            {(!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) ||
-                selectedChainID === '1') && (
+            {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
                 <span className=" text-h8 font-normal ">
                     <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                 </span>
