@@ -74,7 +74,7 @@ export const useCreateLink = () => {
         if (balances.length > 0) {
             let balance = balances.find(
                 (balance) =>
-                    utils.compareTokenAddresses(balance.address, selectedTokenAddress) &&
+                    utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
                     balance.chainId === selectedChainID
             )?.amount
             if (!balance) {

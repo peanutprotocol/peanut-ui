@@ -14,6 +14,8 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
 
+const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
+
 export const InitialView = ({
     onNext,
     requestLinkData,
@@ -28,14 +30,22 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, selectedTokenDecimals } = useContext(context.tokenSelectorContext)
+    const {
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        selectedTokenDecimals,
+        isTokenPriceFetchingComplete,
+        setIsXChain,
+    } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [txFee, setTxFee] = useState<string>('0')
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
-    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.LOADING)
+    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const createXChainUnsignedTx = async () => {
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
@@ -55,7 +65,10 @@ export const InitialView = ({
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId
+                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
@@ -71,23 +84,44 @@ export const InitialView = ({
                     setTxFee(Number(feeEstimation).toFixed(2))
                     setLinkState(RequestStatus.CLAIM)
                 } else {
-                    setErrorState({ showError: true, errorMessage: 'No route found' })
+                    setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                     setIsFeeEstimationError(true)
                     setTxFee('0')
                     setLinkState(RequestStatus.NOT_FOUND)
                 }
             } catch (error) {
-                setErrorState({ showError: true, errorMessage: 'No route found' })
+                setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                 setLinkState(RequestStatus.NOT_FOUND)
                 setIsFeeEstimationError(true)
                 setTxFee('0')
             }
         }
+
+        const isXChain = selectedChainID !== requestLinkData.chainId
+            || !utils.areTokenAddressesEqual(
+                selectedTokenAddress,
+                requestLinkData.tokenAddress
+                )
+        setIsXChain(isXChain)
+
+        // wait for token selector to fetch token price, both effects depend on
+        // selectedTokenAddress and selectedChainID, but we depend on that
+        // effect being completed first
+        if (!isConnected || (isXChain && !isTokenPriceFetchingComplete)) return
+
         estimateTxFee()
-    }, [selectedTokenAddress, selectedChainID])
+    }, [
+        selectedTokenAddress,
+        selectedChainID,
+        selectedTokenDecimals,
+        isTokenPriceFetchingComplete,
+        requestLinkData
+    ])
 
     const handleConnectWallet = async () => {
-        open()
+        open().finally(() => {
+            if (isConnected) setLinkState(RequestStatus.LOADING)
+        })
     }
 
     const switchNetwork = async (chainId: string) => {
@@ -111,7 +145,10 @@ export const InitialView = ({
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            if (selectedChainID === requestLinkData.chainId && selectedTokenAddress === requestLinkData.tokenAddress) {
+            if (
+                selectedChainID === requestLinkData.chainId
+                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            ){
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
@@ -194,6 +231,17 @@ export const InitialView = ({
         }
     }
 
+    const resetTokenAndChain = () => {
+        setSelectedChainID(requestLinkData.chainId)
+        setSelectedTokenAddress(requestLinkData.tokenAddress)
+    }
+
+    const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
+
+    const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
+        utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
+    )?.logoURI
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
@@ -240,16 +288,7 @@ export const InitialView = ({
                 <div>
                     <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
-                            <img
-                                src={
-                                    consts.peanutTokenDetails
-                                        .find((chain) => chain.chainId === requestLinkData.chainId)
-                                        ?.tokens.find((token) => token.address === requestLinkData.tokenAddress)
-                                        ?.logoURI
-                                }
-                                className="absolute left-0 top-0 h-6 w-6"
-                                alt="logo"
-                            />
+                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
                             <img
                                 src={
                                     consts.supportedPeanutChains.find(
@@ -265,7 +304,7 @@ export const InitialView = ({
                             consts.peanutTokenDetails
                                 .find((chain) => chain.chainId === requestLinkData.chainId)
                                 ?.tokens.find((token) =>
-                                    utils.compareTokenAddresses(token.address, requestLinkData.tokenAddress)
+                                    utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
                                 )
                                 ?.symbol.toUpperCase()}{' '}
                         on{' '}
@@ -277,7 +316,10 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelector classNameButton="w-full" />
+            <TokenSelector
+                classNameButton="w-full"
+                onReset={resetTokenAndChain}
+            />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
@@ -336,7 +378,7 @@ export const InitialView = ({
                     disabled={linkState === RequestStatus.LOADING || linkState === RequestStatus.NOT_FOUND || isLoading}
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
+                        else if (RequestStatus.CLAIM === linkState) handleOnNext()
                     }}
                 >
                     {linkState === RequestStatus.LOADING ? (

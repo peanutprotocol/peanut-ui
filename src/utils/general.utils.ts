@@ -2,6 +2,7 @@ import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { exportTraceState } from 'next/dist/trace'
+import { ethers } from 'ethers'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
@@ -319,12 +320,14 @@ export const isTestnetChain = (chainId: string) => {
     return isTestnet
 }
 
-export const compareTokenAddresses = (address1: string, address2: string) => {
+export const areTokenAddressesEqual = (address1: string, address2: string): boolean => {
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
         address1 = '0x0000000000000000000000000000000000000000'
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
         address2 = '0x0000000000000000000000000000000000000000'
-    return address1.toLowerCase() === address2.toLowerCase()
+    // By using ethers.getAddress we are safe from different cases
+    // and other address formatting
+    return ethers.utils.getAddress(address1) === ethers.utils.getAddress(address2)
 }
 
 export const isNativeCurrency = (address: string) => {

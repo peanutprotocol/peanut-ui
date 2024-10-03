@@ -18,7 +18,7 @@ export function LinkPreviewImg({
 }) {
     const tokenImage = consts.peanutTokenDetails
         .find((detail) => detail.chainId === chainId)
-        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, tokenAddress))?.logoURI
+        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.logoURI
     const chainImage = consts.supportedPeanutChains.find((chain) => chain.chainId === chainId)?.icon.url
 
     const bgImageUrl = `https://peanut.to/bg.svg`

@@ -1,9 +1,7 @@
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import * as _consts from '../Create.consts'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useCallback, useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -26,8 +24,6 @@ export const InitialView = ({
     recipientAddress,
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
-    const { isConnected, address } = useAccount()
-    const { open } = useWeb3Modal()
     const { balances } = useBalance()
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress, selectedTokenDecimals } =
         useContext(context.tokenSelectorContext)
@@ -40,10 +36,6 @@ export const InitialView = ({
     const [_tokenValue, _setTokenValue] = useState<string | undefined>(
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
-
-    const handleConnectWallet = async () => {
-        open()
-    }
 
     const handleOnNext = async () => {
         if (!recipientAddress) {
@@ -131,11 +123,10 @@ export const InitialView = ({
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
+                        handleOnNext()
                     }}
                 />
-                <TokenSelector classNameButton="w-full" />
+                <TokenSelector classNameButton="w-full" shouldBeConnected={false} />
 
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
                 <AddressInput
@@ -164,8 +155,7 @@ export const InitialView = ({
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
                     onClick={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
+                        handleOnNext()
                     }}
                     disabled={!isValidRecipient || inputChanging || isLoading || !tokenValue}
                 >

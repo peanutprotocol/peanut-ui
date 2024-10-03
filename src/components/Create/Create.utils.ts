@@ -52,18 +52,18 @@ export const getTokenDetails = (tokenAddress: string, chainId: string, userBalan
     let tokenDecimals: number = 18
     if (
         userBalances.some(
-            (balance) => utils.compareTokenAddresses(balance.address, tokenAddress) && balance.chainId == chainId
+            (balance) => utils.areTokenAddressesEqual(balance.address, tokenAddress) && balance.chainId == chainId
         )
     ) {
         tokenDecimals =
             userBalances.find(
-                (balance) => balance.chainId == chainId && utils.compareTokenAddresses(balance.address, tokenAddress)
+                (balance) => balance.chainId == chainId && utils.areTokenAddressesEqual(balance.address, tokenAddress)
             )?.decimals ?? 18
     } else {
         tokenDecimals =
             consts.peanutTokenDetails
                 .find((detail) => detail.chainId.toString() == chainId)
-                ?.tokens.find((token) => utils.compareTokenAddresses(token.address, tokenAddress))?.decimals ?? 18
+                ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.decimals ?? 18
     }
     const tokenType = utils.isNativeCurrency(tokenAddress) ? 0 : 1
 

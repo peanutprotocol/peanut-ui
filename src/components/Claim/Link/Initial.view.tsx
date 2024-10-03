@@ -271,7 +271,7 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === selectedChainID &&
-                    utils.compareTokenAddresses(route.toToken, selectedTokenAddress)
+                    utils.areTokenAddressesEqual(route.toToken, selectedTokenAddress)
             )
             if (existingRoute) {
                 setSelectedRoute(existingRoute)
@@ -381,7 +381,7 @@ export const InitialClaimLinkView = ({
                                     : mappedData
                                           .find((data) => data.chainId === selectedChainID)
                                           ?.tokens?.find((token) =>
-                                              utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                           )?.symbol
                                 : claimLinkData.tokenSymbol
                         }
@@ -392,12 +392,12 @@ export const InitialClaimLinkView = ({
                                     : mappedData
                                           .find((data) => data.chainId === selectedChainID)
                                           ?.tokens?.find((token) =>
-                                              utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                           )?.logoURI
                                 : consts.peanutTokenDetails
                                       .find((chain) => chain.chainId === claimLinkData.chainId)
                                       ?.tokens.find((token) =>
-                                          utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress)
+                                          utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
                                       )?.logoURI
                         }
                         chainLogoUrl={

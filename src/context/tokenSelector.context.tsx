@@ -21,6 +21,9 @@ export const tokenSelectorContext = createContext({
     refetchXchainRoute: false as boolean,
     setRefetchXchainRoute: (value: boolean) => {},
     resetTokenContextProvider: () => {},
+    isTokenPriceFetchingComplete: false as boolean,
+    isXChain: false as boolean,
+    setIsXChain: (value: boolean) => {},
 })
 
 /**
@@ -34,6 +37,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
+    const [isTokenPriceFetchingComplete, setTokenPriceFetchingComplete] = useState<boolean>(false)
+    const [isXChain, setIsXChain] = useState<boolean>(false)
+
 
     const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
@@ -72,6 +78,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     if (tokenPriceResponse?.price) {
                         setSelectedTokenPrice(tokenPriceResponse.price)
                         setSelectedTokenDecimals(tokenPriceResponse.decimals)
+                        setTokenPriceFetchingComplete(true)
                         if (tokenPriceResponse.price === 1) {
                             setInputDenomination('TOKEN')
                         } else {
@@ -88,10 +95,14 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             }
         }
 
+
         if (!isConnected) {
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
+            return () => {
+                setTokenPriceFetchingComplete(false)
+            }
         } else if (selectedTokenAddress && selectedChainID) {
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
@@ -99,6 +110,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
             return () => {
                 isCurrent = false
+                setTokenPriceFetchingComplete(false)
             }
         }
     }, [selectedTokenAddress, selectedChainID, isConnected])
@@ -109,6 +121,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             setSelectedTokenAddress(prefs.tokenAddress)
             setSelectedChainID(prefs.chainId)
             setSelectedTokenDecimals(prefs.decimals)
+            setTokenPriceFetchingComplete(true)
         }
     }, [])
 
@@ -128,6 +141,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 refetchXchainRoute,
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
+                isTokenPriceFetchingComplete,
+                isXChain,
+                setIsXChain,
             }}
         >
             {children}

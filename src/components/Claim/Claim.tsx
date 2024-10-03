@@ -81,9 +81,6 @@ export const Claim = ({}) => {
         if (linkDetails.tokenType != 0 && linkDetails.tokenType != 1) {
             return undefined
         }
-        if (linkDetails.chainId === '1') {
-            return undefined
-        }
 
         try {
             const crossChainDetails = await peanut.getXChainOptionsForLink({
