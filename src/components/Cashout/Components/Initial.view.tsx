@@ -267,10 +267,11 @@ export const InitialCashoutView = ({
                                                 <div
                                                     key={index}
                                                     className={twMerge(
-                                                        'flex w-full cursor-pointer items-center justify-between border border-black p-2',
+                                                        'flex w-full  items-center justify-between border border-black p-2',
                                                         selectedBankAccount === account.account_identifier
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
+                                                        xchainAllowed && 'cursor-pointer',
                                                         !xchainAllowed && 'opacity-60'
                                                     )}
                                                     onClick={() => {
@@ -320,7 +321,8 @@ export const InitialCashoutView = ({
                                             </label>
                                             <div
                                                 className={twMerge(
-                                                    'flex w-full cursor-pointer border border-black p-2',
+                                                    'flex w-full border border-black p-2',
+                                                    xchainAllowed && 'cursor-pointer',
                                                     !xchainAllowed && 'opacity-60'
                                                 )}
                                             >
@@ -349,15 +351,16 @@ export const InitialCashoutView = ({
                                 <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
                                 <div
                                     className={twMerge(
-                                        'flex w-full cursor-pointer border border-black p-2',
-                                        !xchainAllowed && 'cursor-not-allowed opacity-60'
+                                        'flex w-full border border-black p-2',
+                                        xchainAllowed && 'cursor-pointer',
+                                        !xchainAllowed && 'opacity-60'
                                     )}
                                 >
                                     <label className="ml-2 text-right">To:</label>
                                     <input
                                         type="text"
                                         className={twMerge(
-                                            !xchainAllowed && 'cursor-not-allowed bg-transparent',
+                                            !xchainAllowed && 'bg-transparent',
                                             'ml-2 w-full border-none outline-none'
                                         )}
                                         placeholder="IBAN / US account number"
