@@ -32,7 +32,7 @@ export const InitialView = ({
         selectedChainID,
         selectedTokenAddress,
         selectedTokenDecimals,
-        tokenPriceCompleted
+        isTokenPriceFetchingComplete
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -95,14 +95,14 @@ export const InitialView = ({
         // wait for token selector to fetch token price, both effects depend on
         // selectedTokenAddress and selectedChainID, but we depend on that
         // effect being completed first
-        if (!tokenPriceCompleted) return
+        if (!isTokenPriceFetchingComplete) return
 
         estimateTxFee()
     }, [
         selectedTokenAddress,
         selectedChainID,
         selectedTokenDecimals,
-        tokenPriceCompleted
+        isTokenPriceFetchingComplete,
     ])
 
     const handleConnectWallet = async () => {
