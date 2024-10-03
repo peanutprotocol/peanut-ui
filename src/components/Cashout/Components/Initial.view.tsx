@@ -10,10 +10,7 @@ import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
-import { useForm } from 'react-hook-form'
-import { useWalletType } from '@/hooks/useWalletType'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
 import { Icon as ChakraIcon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
@@ -21,6 +18,7 @@ import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
 import { motion, AnimatePresence } from 'framer-motion'
 import Icon from '@/components/Global/Icon'
+import { twMerge } from 'tailwind-merge'
 
 export const InitialCashoutView = ({
     onNext,
@@ -36,11 +34,16 @@ export const InitialCashoutView = ({
     crossChainDetails,
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
+
+    const cannotCashoutOnSelectedChain =
+        !Boolean(crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString())) ||
+        selectedChainID === '1'
+
     const { balances, hasFetchedBalances } = useBalance()
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
-    const xchainAllowed = useMemo( (): boolean => {
+    const xchainAllowed = useMemo((): boolean => {
         /**
          * Checks to validate if the chain we want to cash out from allows cross-chain operations.
          *
@@ -49,10 +52,10 @@ export const InitialCashoutView = ({
          * There may be chains that are not supported to conduct that cross-chain operation (e.g., due to gas costs,
          * business strategy, etc.), so we'd like to block user action in that case.
          */
-        return crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) != undefined
-        },
-        [selectedChainID]
-    )
+        return (
+            crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) != undefined
+        )
+    }, [selectedChainID])
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -269,12 +272,15 @@ export const InitialCashoutView = ({
                                             ?.map((account, index) => (
                                                 <div
                                                     key={index}
-                                                    className={`flex w-full cursor-pointer items-center justify-between border border-black p-2 ${
+                                                    className={twMerge(
+                                                        'flex w-full cursor-pointer items-center justify-between border border-black p-2',
                                                         selectedBankAccount === account.account_identifier
                                                             ? 'bg-purple-1'
-                                                            : 'hover:bg-gray-100'
-                                                    }`}
+                                                            : 'hover:bg-gray-100',
+                                                        cannotCashoutOnSelectedChain && 'opacity-60'
+                                                    )}
                                                     onClick={() => {
+                                                        if (cannotCashoutOnSelectedChain) return
                                                         if (selectedBankAccount === account.account_identifier) {
                                                             setSelectedBankAccount(undefined)
                                                         } else {
@@ -285,10 +291,7 @@ export const InitialCashoutView = ({
                                                 >
                                                     <div className="flex flex-grow items-center">
                                                         <Icon name={'bank'} className="mr-2 h-4 fill-gray-1" />
-                                                        <label
-                                                            htmlFor={`bank-${index}`}
-                                                            className="cursor-pointer text-right"
-                                                        >
+                                                        <label htmlFor={`bank-${index}`} className="text-right">
                                                             {utils.formatIban(account.account_identifier)}
                                                         </label>
                                                     </div>
@@ -321,17 +324,26 @@ export const InitialCashoutView = ({
                                             <label className="text-left text-h8 font-light">
                                                 Cashout to a new bank account:
                                             </label>
-                                            <div className="flex w-full cursor-pointer border border-black p-2">
+                                            <div
+                                                className={twMerge(
+                                                    'flex w-full cursor-pointer border border-black p-2',
+                                                    cannotCashoutOnSelectedChain && 'opacity-60'
+                                                )}
+                                            >
                                                 <label className="ml-2 text-right">To:</label>
                                                 <input
                                                     type="text"
-                                                    className="ml-2 w-full border-none outline-none"
+                                                    className={twMerge(
+                                                        cannotCashoutOnSelectedChain && 'bg-transparent',
+                                                        'ml-2 w-full border-none outline-none'
+                                                    )}
                                                     placeholder="IBAN / US account number"
                                                     value={newBankAccount}
                                                     onChange={(e) => setNewBankAccount(e.target.value)}
                                                     onFocus={() => setActiveInput('newBankAccount')}
                                                     spellCheck="false"
                                                     autoComplete="iban"
+                                                    disabled={cannotCashoutOnSelectedChain}
                                                 />
                                             </div>
                                         </motion.div>
@@ -341,17 +353,26 @@ export const InitialCashoutView = ({
                         ) : (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
                                 <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
-                                <div className="flex w-full cursor-pointer border border-black p-2">
+                                <div
+                                    className={twMerge(
+                                        'flex w-full cursor-pointer border border-black p-2',
+                                        cannotCashoutOnSelectedChain && 'cursor-not-allowed opacity-60'
+                                    )}
+                                >
                                     <label className="ml-2 text-right">To:</label>
                                     <input
                                         type="text"
-                                        className="ml-2 w-full border-none outline-none"
+                                        className={twMerge(
+                                            cannotCashoutOnSelectedChain && 'cursor-not-allowed bg-transparent',
+                                            'ml-2 w-full border-none outline-none'
+                                        )}
                                         placeholder="IBAN / US account number"
                                         value={newBankAccount}
                                         onChange={(e) => setNewBankAccount(e.target.value)}
                                         onFocus={() => setActiveInput('newBankAccount')}
                                         spellCheck="false"
                                         autoComplete="iban"
+                                        disabled={cannotCashoutOnSelectedChain}
                                     />
                                 </div>
                             </div>
@@ -371,7 +392,8 @@ export const InitialCashoutView = ({
                     (!selectedBankAccount && !newBankAccount) ||
                     !xchainAllowed ||
                     !!isBelowMinLimit ||
-                    !!isExceedingMaxLimit
+                    !!isExceedingMaxLimit ||
+                    cannotCashoutOnSelectedChain
                 }
             >
                 {!isConnected ? (
@@ -400,7 +422,7 @@ export const InitialCashoutView = ({
                     {MAX_CASHOUT_LIMIT.toLocaleString()}.
                 </span>
             )}
-            {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
+            {cannotCashoutOnSelectedChain && (
                 <span className=" text-h8 font-normal ">
                     <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                 </span>
