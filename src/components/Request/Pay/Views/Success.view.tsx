@@ -3,24 +3,24 @@ import * as _consts from '../Pay.consts'
 import Icon from '@/components/Global/Icon'
 import * as utils from '@/utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { loopUntilSuccess } from '@/components/utils/utils'
+import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 
 export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPayScreenProps) => {
-    const explorerUrlWithTx = useMemo(
-        () => `${utils.getExplorerUrl(requestLinkData.chainId)}/tx/${transactionHash}`,
-        [transactionHash, requestLinkData.chainId]
+    const { selectedChainID } = useContext(context.tokenSelectorContext)
+    const sourceUrlWithTx = useMemo(
+        () => `${utils.getExplorerUrl(selectedChainID)}/tx/${transactionHash}`,
+        [transactionHash, selectedChainID]
     )
     const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
         { transactionId: string; transactionUrl: string } | undefined
     >(undefined)
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
-    const { selectedChainID } = useContext(context.tokenSelectorContext)
 
     useEffect(() => {
         if (transactionHash) {
-            loopUntilSuccess(transactionHash, setExplorerUrlDestChainWithTxHash)
+            fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
     return (
@@ -37,7 +37,7 @@ export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPaySc
                 <label className="text-h8 font-normal text-gray-1">Transaction details</label>
                 <div className="flex w-full flex-row items-center justify-start gap-1">
                     <label className="">Source chain:</label>
-                    <Link className="cursor-pointer underline" href={explorerUrlWithTx}>
+                    <Link className="cursor-pointer underline" href={sourceUrlWithTx}>
                         {utils.shortenAddressLong(transactionHash ?? '')}
                     </Link>
                 </div>
