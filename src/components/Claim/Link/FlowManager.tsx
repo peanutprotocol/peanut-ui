@@ -1,12 +1,12 @@
 import { createElement } from 'react'
 import * as onchainViews from './Onchain'
-import * as offrampViews from './Offramp'
 import { InitialClaimLinkView } from './Initial.view'
 import * as _consts from '../Claim.consts'
 import * as interfaces from '@/interfaces'
 import { OfframpConfirmView, OfframpSuccessView } from '@/components/Offramp'
-import { IOfframpSuccessScreenProps, OfframpType } from '@/components/Offramp/Offramp.consts'
+import { IOfframpConfirmScreenProps, IOfframpSuccessScreenProps, OfframpType } from '@/components/Offramp/Offramp.consts'
 
+type ClaimPropsType = _consts.IClaimScreenProps | IOfframpSuccessScreenProps | IOfframpConfirmScreenProps
 
 const FlowManager = ({
     recipientType,
@@ -29,7 +29,7 @@ const FlowManager = ({
                 : OfframpSuccessView
     }
 
-    let componentProps:  _consts.IClaimScreenProps | IOfframpSuccessScreenProps = props
+    let componentProps:  ClaimPropsType = props
     if (recipientType == 'iban' || recipientType == 'us') {
         componentProps = {
             ...props,
@@ -38,7 +38,7 @@ const FlowManager = ({
     }
 
     return createElement(
-        viewComponents[step.screen] as React.FC<_consts.IClaimScreenProps | IOfframpSuccessScreenProps>, 
+        viewComponents[step.screen] as React.FC<ClaimPropsType>, 
         componentProps
     )
 
