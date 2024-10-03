@@ -103,6 +103,7 @@ export const InitialView = ({
         selectedChainID,
         selectedTokenDecimals,
         isTokenPriceFetchingComplete,
+        requestLinkData
     ])
 
     const handleConnectWallet = async () => {
