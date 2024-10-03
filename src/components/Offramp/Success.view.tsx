@@ -8,12 +8,14 @@ import * as utils from '@/utils'
 
 export const OfframpSuccessView = ({ 
     offrampForm,        // available on all offramps
+    offrampType,        // available on all offramps
+
     usdValue,           // available on cashouts
+    
     claimLinkData,      // available on claims
     tokenPrice,         // available on claims
     recipientType,      // available on claims
     transactionHash,    // available on claims
-    offrampType         // available on all offramps
 }: _consts.IOfframpSuccessScreenProps) => {
 
     // setup offrampType == CASHOUT props
