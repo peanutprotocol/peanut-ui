@@ -18,7 +18,11 @@ import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
 
-const TokenSelector = ({ classNameButton, shouldBeConnected = true }: _consts.TokenSelectorProps) => {
+const TokenSelector = ({
+    classNameButton,
+    shouldBeConnected = true,
+    onReset,
+}: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const focusButtonRef = useRef<HTMLButtonElement>(null)
@@ -29,7 +33,13 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true }: _consts.To
     const [showFallback, setShowFallback] = useState(!shouldBeConnected)
 
     const { balances, hasFetchedBalances } = useBalance()
-    const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID } = useContext(
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        isXChain,
+    } = useContext(
         context.tokenSelectorContext
     )
     const { isConnected } = useAccount()
@@ -140,6 +150,8 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true }: _consts.To
                 chainIconUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedChain?.icon.url}
                 chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
+                type={isXChain ? 'xchain' : 'send'}
+                onReset={onReset}
             />
 
             <Modal

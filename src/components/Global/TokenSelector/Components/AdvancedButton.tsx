@@ -20,6 +20,7 @@ interface IAdvancedTokenSelectorButtonProps {
     classNameButton?: string
     isStatic?: boolean
     type?: 'xchain' | 'send'
+    onReset?: () => void
 }
 
 export const AdvancedTokenSelectorButton = ({
@@ -35,6 +36,7 @@ export const AdvancedTokenSelectorButton = ({
     classNameButton,
     isStatic = false,
     type = 'send',
+    onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { address } = useAccount()
@@ -131,16 +133,32 @@ export const AdvancedTokenSelectorButton = ({
                     )}
                 </div>
             </div>
-            <div className="flex flex-row items-center justify-center gap-2">
-                <div className="block">
-                    {!isStatic && (
-                        <Icon
-                            name={'arrow-bottom'}
-                            className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
-                        />
-                    )}
+            {!isStatic && (
+                <div className="flex flex-row items-center justify-center gap-2">
+                    {'send' === type &&
+                        <div className="block">
+                                <Icon
+                                    name={'arrow-bottom'}
+                                    className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
+                                />
+                        </div>
+                    }
+                    {'xchain' === type &&
+                        <div
+                            className="block"
+                            onClick={(e) => {
+                                e.stopPropagation()  //don't open modal
+                                onReset && onReset()
+                            }}
+                        >
+                            <Icon
+                                name={'close'}
+                                className={`h-10 w-10 transition-transform dark:fill-white`}
+                            />
+                        </div>
+                    }
                 </div>
-            </div>
+            )}
         </div>
     )
 }

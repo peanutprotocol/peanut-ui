@@ -22,6 +22,8 @@ export const tokenSelectorContext = createContext({
     setRefetchXchainRoute: (value: boolean) => {},
     resetTokenContextProvider: () => {},
     isTokenPriceFetchingComplete: false as boolean,
+    isXChain: false as boolean,
+    setIsXChain: (value: boolean) => {},
 })
 
 /**
@@ -36,6 +38,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
     const [isTokenPriceFetchingComplete, setTokenPriceFetchingComplete] = useState<boolean>(false)
+    const [isXChain, setIsXChain] = useState<boolean>(false)
 
 
     const { isConnected } = useAccount()
@@ -139,6 +142,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
                 isTokenPriceFetchingComplete,
+                isXChain,
+                setIsXChain,
             }}
         >
             {children}

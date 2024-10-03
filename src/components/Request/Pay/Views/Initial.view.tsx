@@ -30,9 +30,12 @@ export const InitialView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedChainID,
+        setSelectedChainID,
         selectedTokenAddress,
+        setSelectedTokenAddress,
         selectedTokenDecimals,
-        isTokenPriceFetchingComplete
+        isTokenPriceFetchingComplete,
+        setIsXChain,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -92,10 +95,17 @@ export const InitialView = ({
             }
         }
 
+        const isXChain = selectedChainID !== requestLinkData.chainId
+            || !utils.areTokenAddressesEqual(
+                selectedTokenAddress,
+                requestLinkData.tokenAddress
+                )
+        setIsXChain(isXChain)
+
         // wait for token selector to fetch token price, both effects depend on
         // selectedTokenAddress and selectedChainID, but we depend on that
         // effect being completed first
-        if (!isConnected || !isTokenPriceFetchingComplete) return
+        if (!isConnected || (isXChain && !isTokenPriceFetchingComplete)) return
 
         estimateTxFee()
     }, [
@@ -219,6 +229,11 @@ export const InitialView = ({
         }
     }
 
+    const resetTokenAndChain = () => {
+        setSelectedChainID(requestLinkData.chainId)
+        setSelectedTokenAddress(requestLinkData.tokenAddress)
+    }
+
     const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
 
     const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
@@ -299,7 +314,10 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelector classNameButton="w-full" />
+            <TokenSelector
+                classNameButton="w-full"
+                onReset={resetTokenAndChain}
+            />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
