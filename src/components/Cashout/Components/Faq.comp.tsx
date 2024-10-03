@@ -19,7 +19,7 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >
-                        <Menu.Items className="shadow-primary-4 absolute bottom-full z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-6 py-3 md:left-0 md:right-auto">
+                        <Menu.Items className="shadow-primary-4 absolute bottom-full z-[10000] mb-1 mr-1 w-64 border border-n-1 bg-white px-6 py-3 md:left-0 md:right-auto">
                             <Menu.Item as={'div'} className={'text-h8 font-normal'}>
                                 <p>
                                     Cashing out requires KYC. <br></br>Min cashout: $10, max $100k.
