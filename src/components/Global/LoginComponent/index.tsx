@@ -149,7 +149,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
             />
             {errors.password && <span className="text-h9 font-normal text-red">{errors.password.message}</span>}
 
-            <button type="submit" className="btn btn-purple h-8 w-full" disabled={isLoading}>
+            <button type="submit" className="btn btn-purple h-8 w-full text-h8" disabled={isLoading}>
                 {isLoading ? (
                     <div className="flex w-full flex-row items-center justify-center gap-2">
                         <Loading /> {loadingState}

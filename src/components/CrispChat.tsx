@@ -27,6 +27,7 @@ export default function CrispChat() {
           s.async=1;
           d.getElementsByTagName("head")[0].appendChild(s);
         })();
+        window.$crisp.push(["safe", true]);
       `}
         </Script>
     )

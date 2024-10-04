@@ -166,8 +166,8 @@ export async function awaitStatusCompletion(
         status = statusData[`${type}_status`]
 
         if (status === 'under_review') {
-            if (type === 'tos') throw new Error('TOS is under review')
-            else if (type === 'kyc') throw new Error('KYC is under review.')
+            if (type === 'tos') throw new Error('TOS_UNDER_REVIEW')
+            else if (type === 'kyc') throw new Error('KYC_UNDER_REVIEW')
         } else if (status !== 'approved') {
             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
         }

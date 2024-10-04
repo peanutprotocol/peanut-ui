@@ -18,7 +18,8 @@ export const RecipientInfoComponent = ({ className }: { className?: string }) =>
                         leaveFrom="opacity-100"
                         leaveTo="opacity-0"
                     >
-                        <Menu.Items className="shadow-primary-4 absolute bottom-full right-0 z-[999] mb-1 mr-1 w-64 border border-n-1 bg-white px-4 py-2 md:left-0 md:right-auto">
+                        {/* TODO: these need to be standardized. It's dumb to have 10000 tw classes in here but also in Faq.comp.tsx etc... */}
+                        <Menu.Items className="shadow-primary-4 absolute bottom-full left-0 z-[999] mb-1 mr-1 w-64 border border-n-1 bg-white px-4 py-2 md:left-0 md:right-auto">
                             <Menu.Item as={'label'} className={'text-h8 font-normal'}>
                                 You can claim directly to your IBAN OR US bank account. Click{' '}
                                 <a
