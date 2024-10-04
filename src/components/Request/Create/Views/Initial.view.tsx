@@ -157,7 +157,7 @@ export const InitialView = ({
                     onClick={() => {
                         handleOnNext()
                     }}
-                    disabled={!isValidRecipient || inputChanging || isLoading || !tokenValue}
+                    disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
                 >
                     {isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
