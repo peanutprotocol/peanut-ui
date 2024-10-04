@@ -14,7 +14,7 @@ export const convertPersonaUrl = (url: string) => {
     const referenceId = parsedUrl.searchParams.get('reference-id')
     const origin = encodeURIComponent(window.location.origin)
 
-    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=http%3A%2F%2Flocalhost%3A3000&fields[developer_id]=${developerId}&reference-id=${referenceId}`
+    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
 export const fetchUser = async (accountIdentifier: string): Promise<any> => {
     const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
@@ -152,14 +152,6 @@ export async function awaitStatusCompletion(
     kycLinkOpened: boolean
 ) {
     let status = initialStatus
-
-    // if (type === 'tos' && !tosLinkOpened) {
-    //     window.open(link, '_blank')
-    //     setTosLinkOpened(true)
-    // } else if (type === 'kyc' && !kycLinkOpened) {
-    //     window.open(link, '_blank')
-    //     setKycLinkOpened(true)
-    // }
 
     while (status !== 'approved') {
         const statusData = await getStatus(userId, type)
