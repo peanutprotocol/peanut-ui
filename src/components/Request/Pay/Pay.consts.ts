@@ -1,5 +1,6 @@
 import * as views from './Views'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { type ITokenPriceData } from '@/interfaces'
 
 export type PayScreens = 'INITIAL' | 'SUCCESS'
 
@@ -30,7 +31,7 @@ export interface IPayScreenProps {
     estimatedPoints: number | undefined
     transactionHash: string
     setTransactionHash: (value: string) => void
-    tokenPrice: number
+    tokenPriceData?: ITokenPriceData
     estimatedGasCost: number | undefined
     unsignedTx: peanutInterfaces.IPeanutUnsignedTransaction | undefined
 }

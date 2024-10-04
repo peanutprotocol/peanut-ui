@@ -9,11 +9,12 @@ import * as generalViews from './Views/GeneralViews'
 import * as utils from '@/utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
+import { type ITokenPriceData } from '@/interfaces'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.IRequestLinkState>('LOADING')
-    const [tokenPrice, setTokenPrice] = useState<number>(0)
+    const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [requestLinkData, setRequestLinkData] = useState<_consts.IRequestLinkData | undefined>(undefined)
     const { estimateGasFee } = useCreateLink()
     const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(0)
@@ -23,12 +24,12 @@ export const PayRequestLink = () => {
 
     const fetchPointsEstimation = async (
         requestLinkDetails: { recipientAddress: any; chainId: any; tokenAmount: any },
-        tokenPrice: { price: number; chainId: string; decimals: any } | undefined
+        tokenPriceData: ITokenPriceData | undefined
     ) => {
         const estimatedPoints = await estimatePoints({
             address: requestLinkDetails.recipientAddress,
             chainId: requestLinkDetails.chainId,
-            amountUSD: Number(requestLinkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+            amountUSD: Number(requestLinkDetails.tokenAmount) * (tokenPriceData?.price ?? 0),
             actionType: ActionType.CLAIM, // When API on prod will be ready lets change it to ActionType.FULFILL
         })
 
@@ -77,13 +78,13 @@ export const PayRequestLink = () => {
             }
 
             // Fetch token price
-            const tokenPrice = await utils.fetchTokenPrice(
+            const tokenPriceData = await utils.fetchTokenPrice(
                 requestLinkDetails.tokenAddress.toLowerCase(),
                 requestLinkDetails.chainId
             )
-            tokenPrice && setTokenPrice(tokenPrice?.price)
+            tokenPriceData && setTokenPriceData(tokenPriceData)
 
-            await fetchPointsEstimation(requestLinkDetails, tokenPrice)
+            await fetchPointsEstimation(requestLinkDetails, tokenPriceData)
 
             let recipientAddress = requestLinkDetails.recipientAddress
             if (requestLinkDetails.recipientAddress.endsWith('eth')) {
@@ -144,7 +145,7 @@ export const PayRequestLink = () => {
                     estimatedPoints,
                     transactionHash,
                     setTransactionHash,
-                    tokenPrice,
+                    tokenPriceData,
                     estimatedGasCost,
                     unsignedTx,
                 } as _consts.IPayScreenProps)}

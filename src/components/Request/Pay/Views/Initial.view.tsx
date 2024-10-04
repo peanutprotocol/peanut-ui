@@ -21,7 +21,7 @@ export const InitialView = ({
     requestLinkData,
     estimatedGasCost,
     setTransactionHash,
-    tokenPrice,
+    tokenPriceData,
     unsignedTx,
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
@@ -41,6 +41,7 @@ export const InitialView = ({
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
     const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
+    const [tokenRequestedLogoURI, setTokenRequestedLogoURI] = useState<string | undefined>(undefined)
     const createXChainUnsignedTx = async () => {
         // This function is only makes sense if selectedTokenData is defined
         // Check that it is defined before calling this function
@@ -49,15 +50,14 @@ export const InitialView = ({
         }
 
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-            fromToken: selectedTokenData!.tokenAddress,
+            fromToken: selectedTokenData!.address,
             fromChainId: selectedTokenData!.chainId,
             senderAddress: address ?? '',
             link: requestLinkData.link,
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
             apiUrl: '/api/proxy/get',
             provider: await peanut.getDefaultProvider(selectedTokenData!.chainId),
-            tokenType:
-                selectedTokenData!.tokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            tokenType: selectedTokenData!.address === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
             fromTokenDecimals: selectedTokenData!.decimals as number,
         })
         return xchainUnsignedTxs
@@ -98,7 +98,7 @@ export const InitialView = ({
 
         const isXChain =
             selectedTokenData?.chainId !== requestLinkData.chainId ||
-            !utils.areTokenAddressesEqual(selectedTokenData?.tokenAddress, requestLinkData.tokenAddress)
+            !utils.areTokenAddressesEqual(selectedTokenData?.address, requestLinkData.tokenAddress)
         setIsXChain(isXChain)
 
         // wait for token selector to fetch token price, both effects depend on
@@ -108,6 +108,16 @@ export const InitialView = ({
 
         estimateTxFee()
     }, [isConnected, address, selectedTokenData, requestLinkData])
+
+    useEffect(() => {
+        const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
+        const logoURI =
+            chainDetails?.tokens.find((token) =>
+                utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
+            )?.logoURI ?? tokenPriceData?.logoURI
+
+        setTokenRequestedLogoURI(logoURI)
+    }, [requestLinkData, tokenPriceData])
 
     const handleConnectWallet = async () => {
         open().finally(() => {
@@ -132,7 +142,7 @@ export const InitialView = ({
     }
 
     const handleOnNext = async () => {
-        const amountUsd = (Number(requestLinkData.tokenAmount) * tokenPrice).toFixed(2)
+        const amountUsd = (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2)
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
@@ -224,12 +234,6 @@ export const InitialView = ({
         setSelectedTokenAddress(requestLinkData.tokenAddress)
     }
 
-    const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
-
-    const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
-        utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
-    )?.logoURI
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
@@ -264,9 +268,9 @@ export const InitialView = ({
                     is requesting
                 </label>
 
-                {tokenPrice ? (
+                {tokenPriceData ? (
                     <label className="text-h2">
-                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPrice)}
+                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPriceData.price)}
                     </label>
                 ) : (
                     <label className="text-h2 ">
@@ -294,7 +298,8 @@ export const InitialView = ({
                                 ?.tokens.find((token) =>
                                     utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
                                 )
-                                ?.symbol.toUpperCase()}{' '}
+                                ?.symbol.toUpperCase() ??
+                            tokenPriceData?.symbol}{' '}
                         on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
