@@ -46,8 +46,10 @@ export const InitialView = ({
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const createXChainUnsignedTx = async () => {
         // This function is only makes sense if selectedTokenData is defined
-        // Chack that it is defined before calling this function
-        console.assert(selectedTokenData, 'selectedTokenData must be defined before estimating tx fee')
+        // Check that it is defined before calling this function
+        if (!selectedTokenData) {
+          throw new Error('selectedTokenData must be defined before estimating tx fee');
+        }
 
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
             fromToken: selectedTokenData!.tokenAddress,
