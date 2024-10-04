@@ -174,9 +174,16 @@ export const InitialCashoutView = ({
                 }
             }
             onNext()
-        } catch (error) {
-            console.error('Error:', error)
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again.' })
+        } catch (err) {
+            if (err instanceof Error) {
+                if (err.message.includes('sufficient balance')) {
+                    setErrorState({ showError: true, errorMessage: 'Insufficient balance. Please try again.' })
+                } else {
+                    setErrorState({ showError: true, errorMessage: 'An unexpected error occurred. Please try again.' })
+                }
+            } else {
+                setErrorState({ showError: true, errorMessage: 'An unknown error occurred. Please try again.' })
+            }
         } finally {
             setLoadingState('Idle')
         }
