@@ -20,6 +20,7 @@ import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { CrispButton } from '@/components/CrispChat'
+import { optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -150,8 +151,6 @@ export const InitialClaimLinkView = ({
                     })
                     return
                 }
-                const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
-                const optimismChainId = '10'
 
                 let route
                 try {
