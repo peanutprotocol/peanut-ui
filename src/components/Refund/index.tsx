@@ -178,7 +178,7 @@ export const Refund = () => {
                                     </span>
                                 </div>
                             ) : !isConnected ? (
-                                'Create or Connect Wallet'
+                                'Connect Wallet'
                             ) : claimedExploredUrlWithHash ? (
                                 'Success'
                             ) : (

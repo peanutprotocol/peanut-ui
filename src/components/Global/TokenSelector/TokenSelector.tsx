@@ -18,11 +18,7 @@ import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
 
-const TokenSelector = ({
-    classNameButton,
-    shouldBeConnected = true,
-    onReset,
-}: _consts.TokenSelectorProps) => {
+const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const focusButtonRef = useRef<HTMLButtonElement>(null)
@@ -33,13 +29,7 @@ const TokenSelector = ({
     const [showFallback, setShowFallback] = useState(!shouldBeConnected)
 
     const { balances, hasFetchedBalances } = useBalance()
-    const {
-        selectedChainID,
-        selectedTokenAddress,
-        setSelectedTokenAddress,
-        setSelectedChainID,
-        isXChain,
-    } = useContext(
+    const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID, isXChain } = useContext(
         context.tokenSelectorContext
     )
     const { isConnected } = useAccount()
@@ -181,7 +171,7 @@ const TokenSelector = ({
                                 open()
                             }}
                         >
-                            Create or Connect Wallet
+                            Connect Wallet
                         </button>
                         <div className="flex w-full flex-col gap-2 text-center text-h8 font-normal">
                             We support 30+ chains and 1000+ tokens.

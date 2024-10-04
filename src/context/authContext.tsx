@@ -43,6 +43,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const toastIdRef = useRef<ToastId | undefined>(undefined)
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
+        // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
         try {
             const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
             const { address: tokenAddress } = await tokenAddressResponse.json()
@@ -52,17 +53,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 return null
             }
 
-            const response = await fetch('/api/peanut/user/get-user-from-cookie')
-            if (response.ok) {
-                const userData: interfaces.IUserProfile | null = await response.json()
+            const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
+            if (userResponse.ok) {
+                const userData: interfaces.IUserProfile | null = await userResponse.json()
                 setUser(userData)
                 return userData
             } else {
-                console.error('Failed to fetch user: response not ok')
+                console.warn('Failed to fetch user. Probably not logged in.')
                 return null
             }
         } catch (error) {
-            console.error('Failed to fetch user', error)
+            console.error('ERROR WHEN FETCHING USER', error)
             return null
         } finally {
             setTimeout(() => {

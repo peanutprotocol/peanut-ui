@@ -54,7 +54,11 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
             if (saltResponse.status !== 200) {
                 const errorData = await saltResponse.json()
                 console.error('Failed to retrieve salt:', errorData)
-                return null
+                setError('email', {
+                    type: 'validate',
+                    message: 'User not found',
+                })
+                return
             }
 
             const { salt } = await saltResponse.json()
@@ -93,6 +97,11 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                     setError('email', {
                         type: 'validate',
                         message: 'User not found',
+                    })
+                } else {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Login Error',
                     })
                 }
 

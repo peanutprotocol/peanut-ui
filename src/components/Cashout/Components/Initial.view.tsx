@@ -393,7 +393,7 @@ export const InitialCashoutView = ({
                 }
             >
                 {!isConnected ? (
-                    'Create or Connect Wallet'
+                    'Connect Wallet'
                 ) : isLoading ? (
                     <div className="flex w-full flex-row items-center justify-center gap-2">
                         <Loading /> {loadingState}

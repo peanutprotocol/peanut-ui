@@ -66,8 +66,8 @@ export const InitialView = ({
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
             if (
-                selectedChainID === requestLinkData.chainId
-                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+                selectedChainID === requestLinkData.chainId &&
+                utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
             ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
@@ -97,11 +97,9 @@ export const InitialView = ({
             }
         }
 
-        const isXChain = selectedChainID !== requestLinkData.chainId
-            || !utils.areTokenAddressesEqual(
-                selectedTokenAddress,
-                requestLinkData.tokenAddress
-                )
+        const isXChain =
+            selectedChainID !== requestLinkData.chainId ||
+            !utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
         setIsXChain(isXChain)
 
         // wait for token selector to fetch token price, both effects depend on
@@ -110,13 +108,7 @@ export const InitialView = ({
         if (!isConnected || (isXChain && !isTokenPriceFetchingComplete)) return
 
         estimateTxFee()
-    }, [
-        selectedTokenAddress,
-        selectedChainID,
-        selectedTokenDecimals,
-        isTokenPriceFetchingComplete,
-        requestLinkData
-    ])
+    }, [selectedTokenAddress, selectedChainID, selectedTokenDecimals, isTokenPriceFetchingComplete, requestLinkData])
 
     const handleConnectWallet = async () => {
         open().finally(() => {
@@ -146,9 +138,9 @@ export const InitialView = ({
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
             if (
-                selectedChainID === requestLinkData.chainId
-                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
-            ){
+                selectedChainID === requestLinkData.chainId &&
+                utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            ) {
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedChainID !== String(currentChain?.id)) {
                     await switchNetwork(selectedChainID)
@@ -316,10 +308,7 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelector
-                classNameButton="w-full"
-                onReset={resetTokenAndChain}
-            />
+            <TokenSelector classNameButton="w-full" onReset={resetTokenAndChain} />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
@@ -389,7 +378,7 @@ export const InitialView = ({
                             Preparing transaction
                         </div>
                     ) : !isConnected ? (
-                        'Create or Connect Wallet'
+                        'Connect Wallet'
                     ) : isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}

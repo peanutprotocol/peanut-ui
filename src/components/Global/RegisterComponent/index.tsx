@@ -117,6 +117,7 @@ export const GlobalRegisterComponent = ({
                 {...register('name', { required: 'This field is required' })}
                 className={`custom-input custom-input-xs ${errors.name ? 'border border-red' : ''}`}
                 placeholder="Full name"
+                autoComplete="name"
             />
             {errors.name && <span className="text-h9 font-normal text-red">{errors.name.message}</span>}
             <input
@@ -130,6 +131,7 @@ export const GlobalRegisterComponent = ({
                 className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
                 placeholder="Email"
                 type="email"
+                autoComplete="email"
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         handleOnSubmit(watch())
@@ -143,6 +145,7 @@ export const GlobalRegisterComponent = ({
                 className={`custom-input custom-input-xs ${errors.password ? 'border border-red' : ''}`}
                 placeholder="Password"
                 type="password"
+                autoComplete="new-password"
                 onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                         handleOnSubmit(watch())
