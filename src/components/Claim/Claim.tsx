@@ -1,6 +1,7 @@
 'use client'
+
 import { useEffect, useState, useContext } from 'react'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import peanut from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
 
@@ -14,15 +15,66 @@ import * as consts from '@/constants'
 import * as _utils from './Claim.utils'
 import FlowManager from './Link/FlowManager'
 import { ActionType, estimatePoints } from '../utils/utils'
+import { useQuery } from '@tanstack/react-query'
+import { CrossChainDetails, getCrossChainDetails } from './services/cross-chain'
+import { Attachement, CheckLinkReturnType } from './types'
 
 export const Claim = ({}) => {
+    const { address } = useAccount()
+    const { data, error, isLoading } = useQuery<CheckLinkReturnType>({
+        enabled: typeof window !== 'undefined' && address !== undefined,
+        queryKey: [address, '-claiming-', window.location.href],
+        queryFn: async ({ queryKey }) => {
+            const address = queryKey[0] as string
+            const link = typeof window !== 'undefined' ? window.location.href : ''
+            let linkState: _consts.claimLinkState = 'ALREADY_CLAIMED'
+            let crossChainDetails: CrossChainDetails | undefined = undefined
+            let tokenPrice: number = 0
+            let estimatedPoints: number = 0
+            let recipient: { name: string | undefined; address: string } = { name: undefined, address: '' }
+
+            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
+                link,
+            })
+            const attachmentInfo = await getAttachmentInfo(linkDetails.link)
+
+            if (linkDetails.claimed) {
+                linkState = 'ALREADY_CLAIMED'
+            } else {
+                crossChainDetails = await getCrossChainDetails(linkDetails)
+                tokenPrice =
+                    (await utils.fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId))?.price ??
+                    0
+                estimatedPoints = await estimatePoints({
+                    address,
+                    chainId: linkDetails.chainId,
+                    amountUSD: Number(linkDetails.tokenAmount) * tokenPrice,
+                    actionType: ActionType.CLAIM,
+                })
+
+                if (linkDetails.senderAddress === address) {
+                    linkState = 'CLAIM_SENDER'
+                } else {
+                    linkState = 'CLAIM'
+                }
+            }
+            return {
+                linkDetails,
+                attachmentInfo: {
+                    message: attachmentInfo?.message,
+                    attachmentUrl: attachmentInfo?.fileUrl,
+                },
+                crossChainDetails,
+                tokenPrice,
+                estimatedPoints,
+                recipient,
+                linkState,
+            }
+        },
+    })
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
-    const [claimLinkData, setClaimLinkData] = useState<interfaces.ILinkDetails | undefined>(undefined)
-    const [crossChainDetails, setCrossChainDetails] = useState<
-        Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
-    >(undefined)
-    const [attachment, setAttachment] = useState<{ message: string | undefined; attachmentUrl: string | undefined }>({
+    const [attachment, setAttachment] = useState<Attachement>({
         message: undefined,
         attachmentUrl: undefined,
     })
@@ -51,7 +103,6 @@ export const Claim = ({}) => {
 
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
-    const { address } = useAccount()
     const { getAttachmentInfo } = useClaimLink()
 
     const handleOnNext = () => {
@@ -76,107 +127,23 @@ export const Claim = ({}) => {
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
         }))
     }
-    const getCrossChainDetails = async (linkDetails: interfaces.ILinkDetails) => {
-        // xchain is only available for native and erc20
-        if (linkDetails.tokenType != 0 && linkDetails.tokenType != 1) {
-            return undefined
-        }
-
-        try {
-            const crossChainDetails = await peanut.getXChainOptionsForLink({
-                isTestnet: utils.isTestnetChain(linkDetails.chainId.toString()),
-                sourceChainId: linkDetails.chainId.toString(),
-                tokenType: linkDetails.tokenType,
-            })
-
-            const contractVersionCheck = peanut.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
-            if (crossChainDetails.length > 0 && contractVersionCheck) {
-                const xchainDetails = _utils.sortCrossChainDetails(
-                    crossChainDetails.filter((chain: any) => chain.chainId != '1'),
-                    consts.supportedPeanutChains,
-                    linkDetails.chainId
-                )
-                const filteredXchainDetails = xchainDetails.map((chain) => {
-                    if (chain.chainId === claimLinkData?.chainId) {
-                        const filteredTokens = chain.tokens.filter(
-                            (token: any) => token.address.toLowerCase() !== claimLinkData?.tokenAddress.toLowerCase()
-                        )
-
-                        return {
-                            ...chain,
-                            tokens: filteredTokens,
-                        }
-                    }
-                    return chain
-                })
-
-                setSelectedChainID(filteredXchainDetails[0].chainId)
-                setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)
-                return filteredXchainDetails
-            } else {
-                return undefined
-            }
-        } catch (error) {
-            console.log('error fetching cross chain details: ' + error)
-            return undefined
-        }
-    }
-    const checkLink = async (link: string) => {
-        try {
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
-                link,
-            })
-            const attachmentInfo = await getAttachmentInfo(linkDetails.link)
-            setAttachment({
-                message: attachmentInfo?.message,
-                attachmentUrl: attachmentInfo?.fileUrl,
-            })
-
-            setClaimLinkData(linkDetails)
-            if (linkDetails.claimed) {
-                setLinkState('ALREADY_CLAIMED')
-            } else {
-                const crossChainDetails = await getCrossChainDetails(linkDetails)
-                setCrossChainDetails(crossChainDetails)
-                const tokenPrice = await utils.fetchTokenPrice(
-                    linkDetails.tokenAddress.toLowerCase(),
-                    linkDetails.chainId
-                )
-                tokenPrice && setTokenPrice(tokenPrice?.price)
-
-                if (address) {
-                    setRecipient({ name: '', address })
-
-                    const estimatedPoints = await estimatePoints({
-                        address: address ?? '',
-                        chainId: linkDetails.chainId,
-                        amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
-                        actionType: ActionType.CLAIM,
-                    })
-                    setEstimatedPoints(estimatedPoints)
-                }
-
-                if (address && linkDetails.senderAddress === address) {
-                    setLinkState('CLAIM_SENDER')
-                } else {
-                    setLinkState('CLAIM')
-                }
-            }
-        } catch (error) {
-            setLinkState('NOT_FOUND')
-        }
-    }
 
     useEffect(() => {
-        const pageUrl = typeof window !== 'undefined' ? window.location.href : ''
-        if (pageUrl) {
-            checkLink(pageUrl)
+        if (data) {
+            setLinkState(data.linkState)
+            setRecipient(data.recipient)
+            setTokenPrice(data.tokenPrice)
+            setEstimatedPoints(data.estimatedPoints)
+            if (data.crossChainDetails) {
+                setSelectedChainID(data?.crossChainDetails?.[0]?.chainId)
+                setSelectedTokenAddress(data?.crossChainDetails?.[0]?.tokens[0]?.address)
+            }
         }
-    }, [])
+    }, [data])
 
     return (
         <div className="card">
-            {linkState === 'LOADING' && (
+            {isLoading && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
@@ -184,7 +151,7 @@ export const Claim = ({}) => {
                     </div>
                 </div>
             )}
-            {linkState === 'CLAIM' && (
+            {data && linkState === 'CLAIM' && (
                 <FlowManager
                     recipientType={recipientType}
                     step={step}
@@ -193,8 +160,8 @@ export const Claim = ({}) => {
                             onPrev: handleOnPrev,
                             onNext: handleOnNext,
                             onCustom: handleOnCustom,
-                            claimLinkData,
-                            crossChainDetails,
+                            claimLinkData: data.linkDetails,
+                            crossChainDetails: data.crossChainDetails,
                             type,
                             setClaimType: setType,
                             recipient,
@@ -226,14 +193,16 @@ export const Claim = ({}) => {
                 />
             )}
 
-            {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
-            {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}
-            {linkState === 'CLAIM_SENDER' && (
+            {data && linkState === 'ALREADY_CLAIMED' && (
+                <genericViews.AlreadyClaimedLinkView claimLinkData={data.linkDetails} />
+            )}
+            {error && <genericViews.NotFoundClaimLink />}
+            {data && linkState === 'CLAIM_SENDER' && (
                 <genericViews.SenderClaimLinkView
                     changeToRecipientView={() => {
                         setLinkState('CLAIM')
                     }}
-                    claimLinkData={claimLinkData}
+                    claimLinkData={data?.linkDetails}
                     setTransactionHash={setTransactionHash}
                     onCustom={handleOnCustom}
                 />
