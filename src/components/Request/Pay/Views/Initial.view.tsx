@@ -80,6 +80,7 @@ export const InitialView = ({
                 const { feeEstimation, estimatedFromAmount } = txData
                 setEstimatedFromValue(estimatedFromAmount)
                 if (Number(feeEstimation) > 0) {
+                    setErrorState({ showError: false, errorMessage: '' })
                     setIsFeeEstimationError(false)
                     setTxFee(Number(feeEstimation).toFixed(2))
                     setLinkState(RequestStatus.CLAIM)
