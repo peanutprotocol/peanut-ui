@@ -22,10 +22,11 @@ import { Attachement, CheckLinkReturnType } from './types'
 export const Claim = ({}) => {
     const { address } = useAccount()
     const { data, error, isLoading } = useQuery<CheckLinkReturnType>({
-        enabled: typeof window !== 'undefined' && address !== undefined,
+        enabled: typeof window !== 'undefined',
         queryKey: [address, '-claiming-', window.location.href],
+        refetchOnWindowFocus: false,
         queryFn: async ({ queryKey }) => {
-            const address = queryKey[0] as string
+            const address = queryKey[0] as string | undefined
             const link = typeof window !== 'undefined' ? window.location.href : ''
             let linkState: _consts.claimLinkState = 'ALREADY_CLAIMED'
             let crossChainDetails: CrossChainDetails | undefined = undefined
@@ -46,7 +47,7 @@ export const Claim = ({}) => {
                     (await utils.fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId))?.price ??
                     0
                 estimatedPoints = await estimatePoints({
-                    address,
+                    address: address ?? '',
                     chainId: linkDetails.chainId,
                     amountUSD: Number(linkDetails.tokenAmount) * tokenPrice,
                     actionType: ActionType.CLAIM,
