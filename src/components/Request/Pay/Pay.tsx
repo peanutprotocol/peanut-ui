@@ -36,6 +36,17 @@ export const PayRequestLink = () => {
         setEstimatedPoints(estimatedPoints)
     }
 
+    const fetchRecipientAddress = async (address: string): Promise<string> => {
+        if (!address.endsWith('eth')) {
+            return address
+        }
+        const resolvedAddress = await utils.resolveFromEnsName(address.toLowerCase())
+        if (!resolvedAddress) {
+            throw new Error('Failed to resolve ENS name')
+        }
+        return resolvedAddress
+    }
+
     const handleOnNext = () => {
         if (step.idx === _consts.PAY_SCREEN_FLOW.length - 1) return
         const newIdx = step.idx + 1
@@ -76,44 +87,6 @@ export const PayRequestLink = () => {
                 setLinkState('ALREADY_PAID')
                 return
             }
-
-            // Fetch token price
-            const tokenPriceData = await utils.fetchTokenPrice(
-                requestLinkDetails.tokenAddress.toLowerCase(),
-                requestLinkDetails.chainId
-            )
-            tokenPriceData && setTokenPriceData(tokenPriceData)
-
-            await fetchPointsEstimation(requestLinkDetails, tokenPriceData)
-
-            let recipientAddress = requestLinkDetails.recipientAddress
-            if (requestLinkDetails.recipientAddress.endsWith('eth')) {
-                recipientAddress = await utils.resolveFromEnsName(requestLinkDetails.recipientAddress.toLowerCase())
-            }
-
-            // Prepare request link fulfillment transaction
-            const tokenType = Number(requestLinkDetails.tokenType)
-            const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
-                recipientAddress: recipientAddress,
-                tokenAddress: requestLinkDetails.tokenAddress,
-                tokenAmount: requestLinkDetails.tokenAmount,
-                tokenDecimals: requestLinkDetails.tokenDecimals,
-                tokenType: tokenType,
-            })
-            setUnsignedTx(unsignedTx)
-
-            // Estimate gas fee
-            try {
-                const { transactionCostUSD: _transactionCostUSD } = await estimateGasFee({
-                    chainId: requestLinkDetails.chainId,
-                    preparedTx: unsignedTx,
-                })
-
-                if (_transactionCostUSD) setEstimatedGasCost(_transactionCostUSD)
-            } catch (error) {
-                console.log('error calculating transaction cost:', error)
-            }
-
             setLinkState('PAY')
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
@@ -126,6 +99,47 @@ export const PayRequestLink = () => {
             checkRequestLink(pageUrl)
         }
     }, [])
+
+    useEffect(() => {
+        if (!requestLinkData) return
+
+        // Fetch token price
+        utils
+            .fetchTokenPrice(requestLinkData.tokenAddress.toLowerCase(), requestLinkData.chainId)
+            .then((tokenPriceData) => {
+                setTokenPriceData(tokenPriceData)
+            })
+
+        fetchRecipientAddress(requestLinkData.recipientAddress).then((recipientAddress) => {
+            const tokenType = Number(requestLinkData.tokenType)
+            const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
+                recipientAddress: recipientAddress,
+                tokenAddress: requestLinkData.tokenAddress,
+                tokenAmount: requestLinkData.tokenAmount,
+                tokenDecimals: requestLinkData.tokenDecimals,
+                tokenType: tokenType,
+            })
+            setUnsignedTx(unsignedTx)
+        })
+
+        // Prepare request link fulfillment transaction
+    }, [requestLinkData])
+
+    useEffect(() => {
+        if (!requestLinkData || !tokenPriceData) return
+        fetchPointsEstimation(requestLinkData, tokenPriceData)
+    }, [tokenPriceData, requestLinkData])
+
+    useEffect(() => {
+        if (!requestLinkData || !unsignedTx) return
+
+        // Estimate gas fee
+        estimateGasFee({ chainId: requestLinkData.chainId, preparedTx: unsignedTx })
+            .then(({ transactionCostUSD }) => {
+                if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
+            })
+            .catch((error) => console.log('error calculating transaction cost:', error))
+    }, [unsignedTx, requestLinkData])
 
     return (
         <div className="card">

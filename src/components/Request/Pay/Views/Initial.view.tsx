@@ -1,7 +1,7 @@
 import * as _consts from '../Pay.consts'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as utils from '@/utils'
@@ -62,6 +62,10 @@ export const InitialView = ({
         })
         return xchainUnsignedTxs
     }
+
+    const calculatedFee = useMemo(() => {
+        return isXChain ? Number(txFee) : utils.formatTokenAmount(estimatedGasCost, 3)
+    }, [isXChain, estimatedGasCost, txFee])
 
     useEffect(() => {
         const estimateTxFee = async () => {
@@ -319,7 +323,11 @@ export const InitialView = ({
                                 <label className="font-bold">Network cost</label>
                             </div>
                             <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {!isXChain ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}` : `$${txFee}`}
+                                {calculatedFee ? (
+                                    `$${calculatedFee}`
+                                ) : (
+                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                )}
                                 {!isXChain ? (
                                     <MoreInfo
                                         text={
@@ -341,8 +349,11 @@ export const InitialView = ({
                                 <label className="font-bold">Points</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {estimatedPoints !== undefined &&
-                                    (estimatedPoints > 0 ? `+${estimatedPoints}` : estimatedPoints)}
+                                {estimatedPoints ? (
+                                    `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
+                                ) : (
+                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                )}
                                 <MoreInfo
                                     text={
                                         estimatedPoints !== undefined
@@ -361,7 +372,12 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
-                    disabled={linkState === RequestStatus.LOADING || linkState === RequestStatus.NOT_FOUND || isLoading}
+                    disabled={
+                        linkState === RequestStatus.LOADING ||
+                        linkState === RequestStatus.NOT_FOUND ||
+                        isLoading ||
+                        !calculatedFee
+                    }
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
                         else if (RequestStatus.CLAIM === linkState) handleOnNext()
