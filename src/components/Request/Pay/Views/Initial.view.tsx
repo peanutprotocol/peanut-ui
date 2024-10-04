@@ -34,6 +34,7 @@ export const InitialView = ({
         selectedTokenData,
         setSelectedChainID,
         setSelectedTokenAddress,
+        isXChain,
         setIsXChain,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
@@ -69,10 +70,7 @@ export const InitialView = ({
         const estimateTxFee = async () => {
 
             setLinkState(RequestStatus.LOADING)
-            if (
-                selectedTokenData!.chainId === requestLinkData.chainId
-                && utils.areTokenAddressesEqual(selectedTokenData!.tokenAddress, requestLinkData.tokenAddress)
-            ) {
+            if (!isXChain) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
@@ -144,10 +142,7 @@ export const InitialView = ({
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            if (
-                selectedTokenData!.chainId === requestLinkData.chainId
-                && utils.areTokenAddressesEqual(selectedTokenData!.tokenAddress, requestLinkData.tokenAddress)
-            ){
+            if (!isXChain){
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedTokenData?.chainId !== String(currentChain?.id)) {
                     await switchNetwork(selectedTokenData!.chainId)
@@ -328,12 +323,10 @@ export const InitialView = ({
                                 <label className="font-bold">Network cost</label>
                             </div>
                             <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {requestLinkData.chainId === selectedTokenData?.chainId &&
-                                requestLinkData.tokenAddress === selectedTokenData?.tokenAddress
+                                {!isXChain
                                     ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
                                     : `$${txFee}`}
-                                {requestLinkData.chainId === selectedTokenData?.chainId &&
-                                requestLinkData.tokenAddress === selectedTokenData?.tokenAddress ? (
+                                {!isXChain ? (
                                     <MoreInfo
                                         text={
                                             estimatedGasCost && estimatedGasCost > 0
