@@ -757,8 +757,7 @@ export const OfframpConfirmView = ({
                 {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">
-                            KYC is under review, we might need additional documents. Chat with support to finish the
-                            process. You'll likely have to wait up to 24hrs
+                            KYC is under review, it might take up to 24hrs. Chat with support to finish the process.
                         </label>
                         <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                     </div>
