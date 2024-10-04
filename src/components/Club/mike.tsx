@@ -17,14 +17,14 @@ export function Mike({ lines }: MikeProps) {
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 6 }}
                 src={Star.src}
-                className="absolute left-0 top-[12%] w-14 md:left-[4%] lg:left-[10%] lg:top-[14%] xl:left-[12%]"
+                className="absolute left-1 top-[14%] w-10 sm:top-[12%] sm:w-14 md:left-[4%] lg:left-[10%] lg:top-[14%] xl:left-[12%]"
             />
             <motion.img
                 initial={{ opacity: 0, translateY: 18, translateX: 8 }}
                 whileInView={{ opacity: 1, translateY: 0, translateX: 0 }}
                 transition={{ type: 'spring', damping: 6 }}
                 src={HandPeace.src}
-                className="absolute -right-8 top-[6%] w-12 rotate-2 md:right-[7%] lg:right-[9%] xl:right-[12%]"
+                className="absolute right-1 top-[5%] w-12 rotate-2 sm:top-[6%] md:right-[7%] lg:right-[9%] xl:right-[12%]"
             />
 
             {lines.map((line, index) => (
