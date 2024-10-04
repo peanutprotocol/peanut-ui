@@ -47,7 +47,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [isXChain, setIsXChain] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenData | undefined>(undefined)
 
-
     const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
 
@@ -87,10 +86,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                         setSelectedTokenPrice(tokenPriceResponse.price)
                         setSelectedTokenDecimals(tokenPriceResponse.decimals)
                         setSelectedTokenData({
-                          tokenAddress,
-                          chainId,
-                          decimals: tokenPriceResponse.decimals,
-                          price: tokenPriceResponse.price,
+                            tokenAddress,
+                            chainId,
+                            decimals: tokenPriceResponse.decimals,
+                            price: tokenPriceResponse.price,
                         })
                         if (tokenPriceResponse.price === 1) {
                             setInputDenomination('TOKEN')

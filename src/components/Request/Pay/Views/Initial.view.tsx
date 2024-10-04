@@ -30,13 +30,9 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const {
-        selectedTokenData,
-        setSelectedChainID,
-        setSelectedTokenAddress,
-        isXChain,
-        setIsXChain,
-    } = useContext(context.tokenSelectorContext)
+    const { selectedTokenData, setSelectedChainID, setSelectedTokenAddress, isXChain, setIsXChain } = useContext(
+        context.tokenSelectorContext
+    )
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -49,7 +45,7 @@ export const InitialView = ({
         // This function is only makes sense if selectedTokenData is defined
         // Check that it is defined before calling this function
         if (!selectedTokenData) {
-          throw new Error('selectedTokenData must be defined before estimating tx fee');
+            throw new Error('selectedTokenData must be defined before estimating tx fee')
         }
 
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
@@ -60,7 +56,8 @@ export const InitialView = ({
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
             apiUrl: '/api/proxy/get',
             provider: await peanut.getDefaultProvider(selectedTokenData!.chainId),
-            tokenType: selectedTokenData!.tokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            tokenType:
+                selectedTokenData!.tokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
             fromTokenDecimals: selectedTokenData!.decimals as number,
         })
         return xchainUnsignedTxs
@@ -68,7 +65,6 @@ export const InitialView = ({
 
     useEffect(() => {
         const estimateTxFee = async () => {
-
             setLinkState(RequestStatus.LOADING)
             if (!isXChain) {
                 setErrorState({ showError: false, errorMessage: '' })
@@ -100,11 +96,9 @@ export const InitialView = ({
             }
         }
 
-        const isXChain = selectedTokenData?.chainId !== requestLinkData.chainId
-            || !utils.areTokenAddressesEqual(
-                selectedTokenData?.tokenAddress,
-                requestLinkData.tokenAddress
-                )
+        const isXChain =
+            selectedTokenData?.chainId !== requestLinkData.chainId ||
+            !utils.areTokenAddressesEqual(selectedTokenData?.tokenAddress, requestLinkData.tokenAddress)
         setIsXChain(isXChain)
 
         // wait for token selector to fetch token price, both effects depend on
@@ -142,7 +136,7 @@ export const InitialView = ({
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
-            if (!isXChain){
+            if (!isXChain) {
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
                 if (selectedTokenData?.chainId !== String(currentChain?.id)) {
                     await switchNetwork(selectedTokenData!.chainId)
@@ -310,10 +304,7 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelector
-                classNameButton="w-full"
-                onReset={resetTokenAndChain}
-            />
+            <TokenSelector classNameButton="w-full" onReset={resetTokenAndChain} />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
@@ -323,9 +314,7 @@ export const InitialView = ({
                                 <label className="font-bold">Network cost</label>
                             </div>
                             <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {!isXChain
-                                    ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
-                                    : `$${txFee}`}
+                                {!isXChain ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}` : `$${txFee}`}
                                 {!isXChain ? (
                                     <MoreInfo
                                         text={
