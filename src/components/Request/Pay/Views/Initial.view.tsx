@@ -115,7 +115,7 @@ export const InitialView = ({
         if (!isConnected || (isXChain && !selectedTokenData)) return
 
         estimateTxFee()
-    }, [selectedTokenData, requestLinkData])
+    }, [isConnected, address, selectedTokenData, requestLinkData])
 
     const handleConnectWallet = async () => {
         open().finally(() => {
