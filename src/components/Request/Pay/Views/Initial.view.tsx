@@ -31,12 +31,9 @@ export const InitialView = ({
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const {
-        selectedChainID,
+        selectedTokenData,
         setSelectedChainID,
-        selectedTokenAddress,
         setSelectedTokenAddress,
-        selectedTokenDecimals,
-        isTokenPriceFetchingComplete,
         setIsXChain,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
@@ -48,26 +45,31 @@ export const InitialView = ({
     const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const createXChainUnsignedTx = async () => {
+        // This function is only makes sense if selectedTokenData is defined
+        // Chack that it is defined before calling this function
+        console.assert(selectedTokenData, 'selectedTokenData must be defined before estimating tx fee')
+
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-            fromToken: selectedTokenAddress,
-            fromChainId: selectedChainID,
+            fromToken: selectedTokenData!.tokenAddress,
+            fromChainId: selectedTokenData!.chainId,
             senderAddress: address ?? '',
             link: requestLinkData.link,
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
             apiUrl: '/api/proxy/get',
-            provider: await peanut.getDefaultProvider(selectedChainID),
-            tokenType: selectedTokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
-            fromTokenDecimals: selectedTokenDecimals as number,
+            provider: await peanut.getDefaultProvider(selectedTokenData!.chainId),
+            tokenType: selectedTokenData!.tokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            fromTokenDecimals: selectedTokenData!.decimals as number,
         })
         return xchainUnsignedTxs
     }
 
     useEffect(() => {
         const estimateTxFee = async () => {
+
             setLinkState(RequestStatus.LOADING)
             if (
-                selectedChainID === requestLinkData.chainId
-                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+                selectedTokenData!.chainId === requestLinkData.chainId
+                && utils.areTokenAddressesEqual(selectedTokenData!.tokenAddress, requestLinkData.tokenAddress)
             ) {
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
@@ -98,9 +100,9 @@ export const InitialView = ({
             }
         }
 
-        const isXChain = selectedChainID !== requestLinkData.chainId
+        const isXChain = selectedTokenData?.chainId !== requestLinkData.chainId
             || !utils.areTokenAddressesEqual(
-                selectedTokenAddress,
+                selectedTokenData?.tokenAddress,
                 requestLinkData.tokenAddress
                 )
         setIsXChain(isXChain)
@@ -108,16 +110,10 @@ export const InitialView = ({
         // wait for token selector to fetch token price, both effects depend on
         // selectedTokenAddress and selectedChainID, but we depend on that
         // effect being completed first
-        if (!isConnected || (isXChain && !isTokenPriceFetchingComplete)) return
+        if (!isConnected || (isXChain && !selectedTokenData)) return
 
         estimateTxFee()
-    }, [
-        selectedTokenAddress,
-        selectedChainID,
-        selectedTokenDecimals,
-        isTokenPriceFetchingComplete,
-        requestLinkData
-    ])
+    }, [selectedTokenData, requestLinkData])
 
     const handleConnectWallet = async () => {
         open().finally(() => {
@@ -147,12 +143,12 @@ export const InitialView = ({
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
             if (
-                selectedChainID === requestLinkData.chainId
-                && utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+                selectedTokenData!.chainId === requestLinkData.chainId
+                && utils.areTokenAddressesEqual(selectedTokenData!.tokenAddress, requestLinkData.tokenAddress)
             ){
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
-                if (selectedChainID !== String(currentChain?.id)) {
-                    await switchNetwork(selectedChainID)
+                if (selectedTokenData?.chainId !== String(currentChain?.id)) {
+                    await switchNetwork(selectedTokenData!.chainId)
                 }
                 setLoadingState('Sign in wallet')
                 const hash = await sendTransactions({
@@ -185,8 +181,8 @@ export const InitialView = ({
                 onNext()
             } else {
                 await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
-                if (selectedChainID !== String(currentChain?.id)) {
-                    await switchNetwork(selectedChainID)
+                if (selectedTokenData!.chainId !== String(currentChain?.id)) {
+                    await switchNetwork(selectedTokenData!.chainId)
                 }
                 setLoadingState('Sign in wallet')
                 const xchainUnsignedTxs = await createXChainUnsignedTx()
@@ -330,12 +326,12 @@ export const InitialView = ({
                                 <label className="font-bold">Network cost</label>
                             </div>
                             <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {requestLinkData.chainId === selectedChainID &&
-                                requestLinkData.tokenAddress === selectedTokenAddress
+                                {requestLinkData.chainId === selectedTokenData?.chainId &&
+                                requestLinkData.tokenAddress === selectedTokenData?.tokenAddress
                                     ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}`
                                     : `$${txFee}`}
-                                {requestLinkData.chainId === selectedChainID &&
-                                requestLinkData.tokenAddress === selectedTokenAddress ? (
+                                {requestLinkData.chainId === selectedTokenData?.chainId &&
+                                requestLinkData.tokenAddress === selectedTokenData?.tokenAddress ? (
                                     <MoreInfo
                                         text={
                                             estimatedGasCost && estimatedGasCost > 0
