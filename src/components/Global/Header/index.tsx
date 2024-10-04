@@ -247,27 +247,36 @@ const MenuLinks = () => {
                 <Text display="block"> docs</Text>
             </NavLink>
 
-            <NavItemBox>
-                <Link
-                    href={'/profile'}
-                    className=" flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
-                >
-                    <Text display="block"> Profile</Text>
-                </Link>
-            </NavItemBox>
-            <NavItemBox>
-                <button
-                    onClick={() => {
-                        web3modalOpen()
-                    }}
-                    className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
-                >
-                    <Text display="block text-nowrap">
-                        {' '}
-                        {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
-                    </Text>
-                </button>
-            </NavItemBox>
+            <Box
+                display={{
+                    base: 'flex',
+                    lg: 'none',
+                }}
+                flexDirection="column"
+                width={'100%'}
+            >
+                <NavItemBox>
+                    <Link
+                        href={'/profile'}
+                        className=" flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                    >
+                        <Text display="block"> Profile</Text>
+                    </Link>
+                </NavItemBox>
+                <NavItemBox>
+                    <button
+                        onClick={() => {
+                            web3modalOpen()
+                        }}
+                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                    >
+                        <Text display="block text-nowrap">
+                            {' '}
+                            {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
+                        </Text>
+                    </button>
+                </NavItemBox>
+            </Box>
         </Stack>
     )
 }
