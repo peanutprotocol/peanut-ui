@@ -49,7 +49,7 @@ export const InitialCashoutView = ({
         return (
             crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) != undefined
         )
-    }, [selectedChainID])
+    }, [selectedChainID, crossChainDetails])
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
