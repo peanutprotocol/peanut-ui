@@ -33,8 +33,8 @@ export const InitialView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
-    const [_tokenValue, _setTokenValue] = useState<string | undefined>(
-        inputDenomination === 'TOKEN' ? tokenValue : usdValue
+    const [_tokenValue, _setTokenValue] = useState<string>(
+        (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
 
     const handleOnNext = async () => {
