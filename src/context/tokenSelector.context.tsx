@@ -21,10 +21,17 @@ export const tokenSelectorContext = createContext({
     refetchXchainRoute: false as boolean,
     setRefetchXchainRoute: (value: boolean) => {},
     resetTokenContextProvider: () => {},
-    isTokenPriceFetchingComplete: false as boolean,
     isXChain: false as boolean,
     setIsXChain: (value: boolean) => {},
+    selectedTokenData: undefined as ITokenData | undefined,
 })
+
+type ITokenData = {
+    tokenAddress: string
+    chainId: string
+    decimals: number
+    price: number
+}
 
 /**
  * Context provider to manage the selected token and chain ID set in the tokenSelector. Token price is fetched here and input denomination can be set here too.
@@ -37,9 +44,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
-    const [isTokenPriceFetchingComplete, setTokenPriceFetchingComplete] = useState<boolean>(false)
     const [isXChain, setIsXChain] = useState<boolean>(false)
-
+    const [selectedTokenData, setSelectedTokenData] = useState<ITokenData | undefined>(undefined)
 
     const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
@@ -66,6 +72,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
             try {
                 if (!consts.supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
+                    setSelectedTokenData(undefined)
                     setSelectedTokenPrice(undefined)
                     setSelectedTokenDecimals(undefined)
                     setInputDenomination('TOKEN')
@@ -78,13 +85,19 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     if (tokenPriceResponse?.price) {
                         setSelectedTokenPrice(tokenPriceResponse.price)
                         setSelectedTokenDecimals(tokenPriceResponse.decimals)
-                        setTokenPriceFetchingComplete(true)
+                        setSelectedTokenData({
+                            tokenAddress,
+                            chainId,
+                            decimals: tokenPriceResponse.decimals,
+                            price: tokenPriceResponse.price,
+                        })
                         if (tokenPriceResponse.price === 1) {
                             setInputDenomination('TOKEN')
                         } else {
                             setInputDenomination('USD')
                         }
                     } else {
+                        setSelectedTokenData(undefined)
                         setSelectedTokenPrice(undefined)
                         setSelectedTokenDecimals(undefined)
                         setInputDenomination('TOKEN')
@@ -95,22 +108,19 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             }
         }
 
-
         if (!isConnected) {
+            setSelectedTokenData(undefined)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
-            return () => {
-                setTokenPriceFetchingComplete(false)
-            }
         } else if (selectedTokenAddress && selectedChainID) {
+            setSelectedTokenData(undefined)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
             fetchAndSetTokenPrice(selectedTokenAddress, selectedChainID)
             return () => {
                 isCurrent = false
-                setTokenPriceFetchingComplete(false)
             }
         }
     }, [selectedTokenAddress, selectedChainID, isConnected])
@@ -121,7 +131,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             setSelectedTokenAddress(prefs.tokenAddress)
             setSelectedChainID(prefs.chainId)
             setSelectedTokenDecimals(prefs.decimals)
-            setTokenPriceFetchingComplete(true)
         }
     }, [])
 
@@ -141,9 +150,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 refetchXchainRoute,
                 setRefetchXchainRoute,
                 resetTokenContextProvider,
-                isTokenPriceFetchingComplete,
                 isXChain,
                 setIsXChain,
+                selectedTokenData,
             }}
         >
             {children}
