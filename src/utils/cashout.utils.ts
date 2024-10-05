@@ -14,7 +14,7 @@ export const convertPersonaUrl = (url: string) => {
     const referenceId = parsedUrl.searchParams.get('reference-id')
     const origin = encodeURIComponent(window.location.origin)
 
-    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=http%3A%2F%2Flocalhost%3A3000&fields[developer_id]=${developerId}&reference-id=${referenceId}`
+    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
 export const fetchUser = async (accountIdentifier: string): Promise<any> => {
     const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
@@ -153,21 +153,13 @@ export async function awaitStatusCompletion(
 ) {
     let status = initialStatus
 
-    // if (type === 'tos' && !tosLinkOpened) {
-    //     window.open(link, '_blank')
-    //     setTosLinkOpened(true)
-    // } else if (type === 'kyc' && !kycLinkOpened) {
-    //     window.open(link, '_blank')
-    //     setKycLinkOpened(true)
-    // }
-
     while (status !== 'approved') {
         const statusData = await getStatus(userId, type)
         status = statusData[`${type}_status`]
 
         if (status === 'under_review') {
-            if (type === 'tos') throw new Error('TOS is under review')
-            else if (type === 'kyc') throw new Error('KYC is under review.')
+            if (type === 'tos') throw new Error('TOS_UNDER_REVIEW')
+            else if (type === 'kyc') throw new Error('KYC_UNDER_REVIEW')
         } else if (status !== 'approved') {
             await new Promise((resolve) => setTimeout(resolve, 5000)) // wait 5 seconds before checking again
         }

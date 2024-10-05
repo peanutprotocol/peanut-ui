@@ -56,9 +56,16 @@ export const InitialCashoutView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
+    // TODO: @Hugo0 value is ambigous with price - it should be tokenAmount and tokenPrice. But this means changes across a bunch of files.
     const [_tokenValue, _setTokenValue] = useState<string | undefined>(
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
+
+    useEffect(() => {
+        if (!_tokenValue) {
+            _setTokenValue('0')
+        }
+    }, [])
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
@@ -77,12 +84,22 @@ export const InitialCashoutView = ({
     const MAX_CASHOUT_LIMIT = 101000 // $101,000 maximum
 
     const isBelowMinLimit = useMemo(() => {
-        return usdValue && parseFloat(usdValue) < MIN_CASHOUT_LIMIT
+        return !usdValue || parseFloat(usdValue) < MIN_CASHOUT_LIMIT
     }, [usdValue])
 
     const isExceedingMaxLimit = useMemo(() => {
         return usdValue && parseFloat(usdValue) > MAX_CASHOUT_LIMIT
     }, [usdValue])
+
+    const isDisabled = useMemo(() => {
+        return (
+            !_tokenValue ||
+            (!selectedBankAccount && !newBankAccount) ||
+            !xchainAllowed ||
+            !!isBelowMinLimit ||
+            !!isExceedingMaxLimit
+        )
+    }, [_tokenValue, selectedBankAccount, newBankAccount, xchainAllowed, isBelowMinLimit, isExceedingMaxLimit])
 
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
@@ -174,9 +191,12 @@ export const InitialCashoutView = ({
                 }
             }
             onNext()
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error:', error)
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again.' })
+            setErrorState({
+                showError: true,
+                errorMessage: error.message || 'An error occurred. Please try again.',
+            })
         } finally {
             setLoadingState('Idle')
         }
@@ -384,16 +404,10 @@ export const InitialCashoutView = ({
                     if (!isConnected) handleConnectWallet()
                     else handleOnNext()
                 }}
-                disabled={
-                    !_tokenValue ||
-                    (!selectedBankAccount && !newBankAccount) ||
-                    !xchainAllowed ||
-                    !!isBelowMinLimit ||
-                    !!isExceedingMaxLimit
-                }
+                disabled={isDisabled}
             >
                 {!isConnected ? (
-                    'Create or Connect Wallet'
+                    'Connect Wallet'
                 ) : isLoading ? (
                     <div className="flex w-full flex-row items-center justify-center gap-2">
                         <Loading /> {loadingState}
@@ -408,7 +422,7 @@ export const InitialCashoutView = ({
                 </div>
             )}
             {isBelowMinLimit && (
-                <span className=" text-h8 font-normal ">
+                <span className="text-h8 font-normal">
                     <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
                 </span>
             )}

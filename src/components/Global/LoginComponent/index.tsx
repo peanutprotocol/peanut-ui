@@ -54,7 +54,11 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
             if (saltResponse.status !== 200) {
                 const errorData = await saltResponse.json()
                 console.error('Failed to retrieve salt:', errorData)
-                return null
+                setError('email', {
+                    type: 'validate',
+                    message: 'User not found',
+                })
+                return
             }
 
             const { salt } = await saltResponse.json()
@@ -93,6 +97,11 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                     setError('email', {
                         type: 'validate',
                         message: 'User not found',
+                    })
+                } else {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Login Error',
                     })
                 }
 
@@ -140,7 +149,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
             />
             {errors.password && <span className="text-h9 font-normal text-red">{errors.password.message}</span>}
 
-            <button type="submit" className="btn btn-purple h-8 w-full" disabled={isLoading}>
+            <button type="submit" className="btn btn-purple h-8 w-full text-h8" disabled={isLoading}>
                 {isLoading ? (
                     <div className="flex w-full flex-row items-center justify-center gap-2">
                         <Loading /> {loadingState}

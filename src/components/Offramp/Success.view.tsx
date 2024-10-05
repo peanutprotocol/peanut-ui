@@ -6,18 +6,17 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { useAuth } from '@/context/authContext'
 import * as utils from '@/utils'
 
-export const OfframpSuccessView = ({ 
-    offrampForm,        // available on all offramps
-    offrampType,        // available on all offramps
+export const OfframpSuccessView = ({
+    offrampForm, // available on all offramps
+    offrampType, // available on all offramps
 
-    usdValue,           // available on cashouts
-    
-    claimLinkData,      // available on claims
-    tokenPrice,         // available on claims
-    recipientType,      // available on claims
-    transactionHash,    // available on claims
+    usdValue, // available on cashouts
+
+    claimLinkData, // available on claims
+    tokenPrice, // available on claims
+    recipientType, // available on claims
+    transactionHash, // available on claims
 }: _consts.IOfframpSuccessScreenProps) => {
-
     // setup offrampType == CASHOUT props
     const { user } = useAuth()
     const accountType = user?.accounts?.find(
@@ -25,7 +24,7 @@ export const OfframpSuccessView = ({
     )?.account_type
 
     // setup offrampType == CLAIM props
-    let blockExplorerUrl: string | undefined 
+    let blockExplorerUrl: string | undefined
     if (offrampType == _consts.OfframpType.CLAIM && claimLinkData) {
         blockExplorerUrl = utils.getExplorerUrl(claimLinkData.chainId)
     }
@@ -73,13 +72,9 @@ export const OfframpSuccessView = ({
                         <label className="font-bold">Route</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        Offramp <Icon name={'arrow-next'} className="h-4 fill-gray-1" />
-                        {offrampType == _consts.OfframpType.CASHOUT && (
-                            accountType
-                        )}{' '}
-                        {offrampType == _consts.OfframpType.CLAIM && (
-                            recipientType?.toUpperCase()
-                        )}{' '}
+                        Cashout <Icon name={'arrow-next'} className="h-4 fill-gray-1" />
+                        {offrampType == _consts.OfframpType.CASHOUT && accountType?.toUpperCase()}{' '}
+                        {offrampType == _consts.OfframpType.CLAIM && recipientType?.toUpperCase()}{' '}
                         <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                     </span>
                 </div>
@@ -91,18 +86,19 @@ export const OfframpSuccessView = ({
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {offrampType == _consts.OfframpType.CASHOUT && (
                             <>
-                            {user?.accounts?.find((account) => account.account_identifier === offrampForm.recipient)
-                                ?.account_type === 'iban'
-                                ? '$1'
-                                : '$0.50'}
-                            <MoreInfo
-                                text={
-                                    user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                        ?.account_type === 'iban'
-                                        ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                        : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                }
-                            />
+                                {user?.accounts?.find((account) => account.account_identifier === offrampForm.recipient)
+                                    ?.account_type === 'iban'
+                                    ? '$1'
+                                    : '$0.50'}
+                                <MoreInfo
+                                    text={
+                                        user?.accounts.find(
+                                            (account) => account.account_identifier === offrampForm.recipient
+                                        )?.account_type === 'iban'
+                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
+                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
+                                    }
+                                />
                             </>
                         )}
                         {offrampType == _consts.OfframpType.CLAIM && (
@@ -128,8 +124,9 @@ export const OfframpSuccessView = ({
                                     : utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)}
                                 <MoreInfo
                                     text={
-                                        user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                            ?.account_type === 'iban'
+                                        user?.accounts.find(
+                                            (account) => account.account_identifier === offrampForm.recipient
+                                        )?.account_type === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
                                     }
@@ -138,11 +135,10 @@ export const OfframpSuccessView = ({
                         )}
                         {offrampType == _consts.OfframpType.CLAIM && tokenPrice && claimLinkData && (
                             <>
-                            ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
-                            <MoreInfo text={'Woop Woop free offramp!'} />
+                                ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
+                                <MoreInfo text={'Woop Woop free offramp!'} />
                             </>
                         )}
-
                     </span>
                 </div>
             </div>
@@ -178,8 +174,6 @@ export const OfframpSuccessView = ({
                     </Link>
                 </>
             )}
-
-
         </div>
     )
 }

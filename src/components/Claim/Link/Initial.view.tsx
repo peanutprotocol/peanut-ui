@@ -604,7 +604,7 @@ export const InitialClaimLinkView = ({
                                 handleConnectWallet()
                             }}
                         >
-                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Create or connect a wallet'}
+                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
                         </div>
                     )}
                     {errorState.showError ? (

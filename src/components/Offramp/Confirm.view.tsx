@@ -16,30 +16,36 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
-import { CrossChainDetails, IOfframpConfirmScreenProps, LiquidationAddress, OfframpType, optimismChainId, PeanutAccount, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+import {
+    CrossChainDetails,
+    IOfframpConfirmScreenProps,
+    LiquidationAddress,
+    OfframpType,
+    optimismChainId,
+    PeanutAccount,
+    usdcAddressOptimism,
+} from '@/components/Offramp/Offramp.consts'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
 
-
 export const OfframpConfirmView = ({
-    onNext,                         // available on all offramps
-    onPrev,                         // available on all offramps
-    initialKYCStep,                 // available on all offramps
-    offrampForm,                    // available on all offramps
-    setOfframpForm,                 // available on all offramps
-    offrampType,                    // available on all offramps
-    setTransactionHash,             // available on all offramps
+    onNext, // available on all offramps
+    onPrev, // available on all offramps
+    initialKYCStep, // available on all offramps
+    offrampForm, // available on all offramps
+    setOfframpForm, // available on all offramps
+    offrampType, // available on all offramps
+    setTransactionHash, // available on all offramps
 
-    usdValue,                           // available on cashouts
-    tokenValue,                         // available on cashouts
-    preparedCreateLinkWrapperResponse,  // available on cashouts
+    usdValue, // available on cashouts
+    tokenValue, // available on cashouts
+    preparedCreateLinkWrapperResponse, // available on cashouts
 
-    claimLinkData,                  // available on link claim offramps
-    recipientType,                  // available on link claim offramps
-    tokenPrice,                     // available on link claim offramps
-    attachment,                     // available on link claim offramps
-    estimatedPoints,                // available on link claim offramps
-    crossChainDetails,              // available on link claim offramps
-
+    claimLinkData, // available on link claim offramps
+    recipientType, // available on link claim offramps
+    tokenPrice, // available on link claim offramps
+    attachment, // available on link claim offramps
+    estimatedPoints, // available on link claim offramps
+    crossChainDetails, // available on link claim offramps
 }: IOfframpConfirmScreenProps) => {
     //////////////////////
     // state and context vars w/ shared functionality across all offramp types
@@ -264,7 +270,6 @@ export const OfframpConfirmView = ({
         // default to optimism and usdc (and then bridge to this)
         // imported from Offramp consts
 
-
         if (!crossChainDetails) {
             throw new Error('Offramp unavailable')
         }
@@ -401,7 +406,6 @@ export const OfframpConfirmView = ({
     // TODO: they need to be refactored to a separate file
 
     const handleSubmitTransfer = async () => {
-
         if (claimLinkData && tokenPrice && estimatedPoints && attachment && recipientType) {
             try {
                 setLoadingState('Submitting Offramp')
@@ -542,7 +546,8 @@ export const OfframpConfirmView = ({
                 {offrampType == OfframpType.CASHOUT && (
                     <>
                         <label className="text-start text-h8 font-light">
-                            Cash out your crypto to your bank account. From any token, any chain, directly to your bank account.
+                            Cash out your crypto to your bank account. From any token, any chain, directly to your bank
+                            account.
                         </label>
                         <FAQComponent />
                     </>
@@ -552,7 +557,6 @@ export const OfframpConfirmView = ({
                         Cash out this link's crypto directly to your bank account.
                     </label>
                 )}
-
             </div>
             {activeStep < 3 ? (
                 <GlobalKYCComponent
@@ -600,10 +604,9 @@ export const OfframpConfirmView = ({
                                 <label className="font-bold">Bank account</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {offrampType == OfframpType.CASHOUT ?
-                                    offrampForm.recipient.toUpperCase() :
-                                    offrampForm?.recipient
-                                }
+                                {offrampType == OfframpType.CASHOUT
+                                    ? offrampForm.recipient.toUpperCase()
+                                    : offrampForm?.recipient}
                             </span>
                         </div>
 
@@ -620,7 +623,8 @@ export const OfframpConfirmView = ({
                                         )?.name
                                     }{' '}
                                     <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> {recipientType?.toUpperCase()}{' '}
+                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                    {recipientType?.toUpperCase()}{' '}
                                     <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                                 </span>
                             </div>
@@ -656,14 +660,15 @@ export const OfframpConfirmView = ({
                                         <label className="font-bold">Total</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        ${ tokenPrice && claimLinkData && (
-                                                utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
-                                            )
-                                        }{' '}
+                                        $
+                                        {tokenPrice &&
+                                            claimLinkData &&
+                                            utils.formatTokenAmount(
+                                                tokenPrice * parseFloat(claimLinkData.tokenAmount)
+                                            )}{' '}
                                         <MoreInfo text={'Woop Woop free offramp!'} />
                                     </span>
                                 </>
-                                
                             )}
 
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
@@ -677,18 +682,20 @@ export const OfframpConfirmView = ({
                                 $
                                 {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
                                     ?.account_type === 'iban'
-                                    ? ( offrampType == OfframpType.CASHOUT ?
-                                        utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1) :
-                                        tokenPrice && claimLinkData && (
-                                            utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1)
-                                        )
-                                    ) : ( offrampType == OfframpType.CASHOUT ?
-                                        utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5) :
-                                        tokenPrice && claimLinkData && (
-                                            utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5)
-                                        )
-                                    )
-                                }
+                                    ? offrampType == OfframpType.CASHOUT
+                                        ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
+                                        : tokenPrice &&
+                                          claimLinkData &&
+                                          utils.formatTokenAmount(
+                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                          )
+                                    : offrampType == OfframpType.CASHOUT
+                                      ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                      : tokenPrice &&
+                                        claimLinkData &&
+                                        utils.formatTokenAmount(
+                                            tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
+                                        )}
                                 <MoreInfo
                                     text={
                                         user?.accounts.find(
@@ -706,18 +713,22 @@ export const OfframpConfirmView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {activeStep > 3 && (
-                    <button onClick={() => {
-                        switch(offrampType) {
-                            case OfframpType.CASHOUT: {
-                                handleConfirm()
-                                break
+                    <button
+                        onClick={() => {
+                            switch (offrampType) {
+                                case OfframpType.CASHOUT: {
+                                    handleConfirm()
+                                    break
+                                }
+                                case OfframpType.CLAIM: {
+                                    handleSubmitTransfer()
+                                    break
+                                }
                             }
-                            case OfframpType.CLAIM: {
-                                handleSubmitTransfer()
-                                break
-                            }
-                        }
-                    }} className="btn-purple btn-xl" disabled={isLoading}>
+                        }}
+                        className="btn-purple btn-xl"
+                        disabled={isLoading}
+                    >
                         {isLoading ? (
                             <div className="flex w-full flex-row items-center justify-center gap-2">
                                 <Loading /> {loadingState}
@@ -746,8 +757,7 @@ export const OfframpConfirmView = ({
                 {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">
-                            KYC is under review, we might need additional documents. Chat with support to finish the
-                            process.
+                            KYC is under review, it might take up to 24hrs. Chat with support to finish the process.
                         </label>
                         <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                     </div>

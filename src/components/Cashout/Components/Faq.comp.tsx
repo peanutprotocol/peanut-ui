@@ -23,11 +23,12 @@ export const FAQComponent = ({ className }: { className?: string }) => {
                         <Menu.Items className="shadow-primary-4 absolute bottom-full z-[10000] mb-1 mr-1 w-64 border border-n-1 bg-white px-6 py-3 md:left-0 md:right-auto">
                             <Menu.Item as={'div'} className={'text-h8 font-normal'}>
                                 <p>
-                                    Cashing out requires{' '}
+                                    Cashing out requires KYC.
+                                    {/* {' '}
                                     <Link href="/kyc" className="text-blue-600 underline">
                                         KYC
-                                    </Link>
-                                    . <br></br>Min cashout: $10, max $100k.
+                                    </Link>. */}
+                                    <br></br>Min cashout: $10, max $100k.
                                 </p>
                                 <br></br>
                                 <p>Fees:</p>

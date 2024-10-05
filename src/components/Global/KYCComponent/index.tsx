@@ -224,6 +224,17 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         } catch (error) {
             console.error('Error during the submission process:', error)
 
+            if (error instanceof Error) {
+                // TODO: this is duplicate with the error message we show when reloading the page
+                if (error.message === 'KYC_UNDER_REVIEW') {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'Your KYC is under manual review. Please contact support',
+                    })
+                    return
+                }
+            }
+
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
 
             setLoadingState('Idle')
@@ -257,7 +268,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             <Divider borderColor={'black'} />
                         </span>
                         <button
-                            className="btn btn-xl h-8"
+                            className="btn btn-xl h-8 text-h8"
                             onClick={() => {
                                 setUserState('register')
                             }}
@@ -285,7 +296,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             <Divider borderColor={'black'} />
                         </span>
                         <button
-                            className="btn btn-xl h-8"
+                            className="btn btn-xl h-8 text-h8"
                             onClick={() => {
                                 setUserState('login')
                             }}
@@ -340,11 +351,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     return (
         <div>
             <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
-                <p className="w-full text-h8 font-normal">
-                    Please login or register and finish the KYC process. After doing this, you can cashout straight to
-                    your bank account!
-                </p>
-                {/* TODO: remove this above copy */}
+                <p className="w-full text-h8 font-normal">After KYC, you can cashout straight to your bank account!</p>
                 <Steps
                     variant={'circles'}
                     orientation="vertical"
@@ -378,10 +385,10 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
                         <div className="text-center">
                             <label className=" text-h8 font-normal text-red ">
-                                KYC is under review, we might need additional documents. Chat with support to finish the
-                                process.
+                                KYC is under manual review, we might need additional documents.{' '}
+                                <CrispButton className="text-blue-600 underline">Chat with support</CrispButton> to
+                                finish the process.
                             </label>
-                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                         </div>
                     ) : errorState.errorMessage === 'KYC rejected' ? (
                         <div className="text-center">
