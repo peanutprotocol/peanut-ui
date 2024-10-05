@@ -4,13 +4,11 @@ import Modal from '../Modal'
 const IframeWrapper = ({
     src,
     style,
-    modalTitle,
     visible,
     onClose,
 }: {
     src: string
     style?: React.CSSProperties
-    modalTitle?: string
     visible: boolean
     onClose: () => void
 }) => {
@@ -39,12 +37,22 @@ const IframeWrapper = ({
             video={false}
             classButtonClose="hidden"
         >
-            <iframe
-                src={src}
-                allow="camera;"
-                style={style}
-                sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
-            />
+            <div className="flex flex-col gap-2 p-2 sm:p-5">
+                <div className="overflow-hidden rounded-sm border border-black">
+                    <iframe
+                        src={src}
+                        allow="camera;"
+                        style={style}
+                        className="rounded-md border border-black"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
+                    />
+                </div>
+                <div className="w-full">
+                    <button className="btn-purple w-full" onClick={onClose}>
+                        Close
+                    </button>
+                </div>
+            </div>
         </Modal>
     )
 }
