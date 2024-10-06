@@ -165,14 +165,7 @@ export const GlobalRegisterComponent = ({
             </button>
             {errorState.showError && errorState.errorMessage === 'User already exists' ? (
                 <div className="w-full text-center">
-                    <span className=" text-h8 font-normal ">
-                        User already exists, click{' '}
-                        <Link href={'/login'} className="underline">
-                            {' '}
-                            here{' '}
-                        </Link>{' '}
-                        to login
-                    </span>
+                    <span className=" text-h8 font-normal ">User already exists</span>
                 </div>
             ) : (
                 errorState.showError && (
