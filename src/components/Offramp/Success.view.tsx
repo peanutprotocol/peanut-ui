@@ -61,7 +61,7 @@ export const OfframpSuccessView = ({
                         <Icon name={'bank'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Bank account</label>
                     </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal uppercase leading-4">
                         {offrampForm.recipient}
                     </span>
                 </div>
