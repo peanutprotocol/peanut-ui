@@ -21,6 +21,7 @@ export const PayRequestLink = () => {
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
+    const [errorMessage, setErrorMessage] = useState<string>('')
 
     const fetchPointsEstimation = async (
         requestLinkDetails: { recipientAddress: any; chainId: any; tokenAmount: any },
@@ -76,7 +77,8 @@ export const PayRequestLink = () => {
 
             // Check if request link is not found
             if (requestLinkDetails.error === 'Request link not found') {
-                setLinkState('NOT_FOUND')
+                setErrorMessage('This request could not be found. Are you sure your link is correct?')
+                setLinkState('ERROR')
                 return
             }
 
@@ -90,6 +92,8 @@ export const PayRequestLink = () => {
             setLinkState('READY_TO_PAY')
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
+            setErrorMessage('This request could not be found. Are you sure your link is correct?')
+            setLinkState('ERROR')
         }
     }
 
@@ -163,7 +167,7 @@ export const PayRequestLink = () => {
                     estimatedGasCost,
                     unsignedTx,
                 } as _consts.IPayScreenProps)}
-            {linkState === 'NOT_FOUND' && <generalViews.NotFoundClaimLink />}
+            {linkState === 'ERROR' && <generalViews.Error errorMessage={errorMessage} />}
             {linkState === 'CANCELED' && <generalViews.CanceledClaimLink />}
             {linkState === 'ALREADY_PAID' && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
         </div>
