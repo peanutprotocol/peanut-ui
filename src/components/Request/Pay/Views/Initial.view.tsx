@@ -70,7 +70,7 @@ export const InitialView = ({
             address,
             provider,
         })
-        setTokenRequestedSymbol(tokenContract.symbol ?? '')
+        setTokenRequestedSymbol(tokenContract?.symbol ?? '')
     }
 
     const calculatedFee = useMemo(() => {
