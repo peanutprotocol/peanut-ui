@@ -224,7 +224,7 @@ export const useCreateLink = () => {
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
             const nativeTokenPrice = await utils.fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
-            if (!nativeTokenPrice) {
+            if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
                 throw new Error('Failed to fetch token price')
             }
             const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
