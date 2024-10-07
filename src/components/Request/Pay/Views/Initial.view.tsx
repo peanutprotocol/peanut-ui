@@ -389,7 +389,7 @@ export const InitialView = ({
                         linkState === RequestStatus.LOADING ||
                         linkState === RequestStatus.NOT_FOUND ||
                         isLoading ||
-                        !calculatedFee
+                        (linkState === RequestStatus.CLAIM && !calculatedFee)
                     }
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
