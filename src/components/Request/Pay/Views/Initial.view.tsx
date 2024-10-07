@@ -30,9 +30,15 @@ export const InitialView = ({
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedTokenData, setSelectedChainID, setSelectedTokenAddress, isXChain, setIsXChain } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedTokenData,
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        isXChain,
+        setIsXChain,
+    } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -83,6 +89,7 @@ export const InitialView = ({
                 setErrorState({ showError: false, errorMessage: '' })
                 setIsFeeEstimationError(false)
                 setLinkState(RequestStatus.CLAIM)
+                setLoadingState('Idle')
                 return
             }
             try {
@@ -106,21 +113,37 @@ export const InitialView = ({
                 setLinkState(RequestStatus.NOT_FOUND)
                 setIsFeeEstimationError(true)
                 setTxFee('0')
+            } finally {
+                setLoadingState('Idle')
             }
         }
-
-        const isXChain =
-            selectedTokenData?.chainId !== requestLinkData.chainId ||
-            !utils.areTokenAddressesEqual(selectedTokenData?.address, requestLinkData.tokenAddress)
-        setIsXChain(isXChain)
 
         // wait for token selector to fetch token price, both effects depend on
         // selectedTokenAddress and selectedChainID, but we depend on that
         // effect being completed first
-        if (!isConnected || (isXChain && !selectedTokenData)) return
+        if (!isConnected) return
+
+        if (isXChain && !selectedTokenData) {
+            setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
+            setLinkState(RequestStatus.NOT_FOUND)
+            setIsFeeEstimationError(true)
+            setTxFee('0')
+            return
+        }
 
         estimateTxFee()
-    }, [isConnected, address, selectedTokenData, requestLinkData])
+    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain])
+
+    useEffect(() => {
+        setLoadingState('Loading')
+        setErrorState({ showError: false, errorMessage: '' })
+        setIsFeeEstimationError(false)
+        setLinkState(RequestStatus.LOADING)
+        const isXChain =
+            selectedChainID !== requestLinkData.chainId ||
+            !utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+        setIsXChain(isXChain)
+    }, [selectedChainID, selectedTokenAddress])
 
     useEffect(() => {
         const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
