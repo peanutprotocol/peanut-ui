@@ -111,27 +111,40 @@ export const PayRequestLink = () => {
         utils
             .fetchTokenPrice(requestLinkData.tokenAddress.toLowerCase(), requestLinkData.chainId)
             .then((tokenPriceData) => {
-                setTokenPriceData(tokenPriceData)
+                if (tokenPriceData) {
+                    setTokenPriceData(tokenPriceData)
+                } else {
+                    setErrorMessage('Failed to fetch token price, please try again later')
+                    setLinkState('ERROR')
+                }
             })
 
-        fetchRecipientAddress(requestLinkData.recipientAddress).then((recipientAddress) => {
-            const tokenType = Number(requestLinkData.tokenType)
-            const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
-                recipientAddress: recipientAddress,
-                tokenAddress: requestLinkData.tokenAddress,
-                tokenAmount: requestLinkData.tokenAmount,
-                tokenDecimals: requestLinkData.tokenDecimals,
-                tokenType: tokenType,
+        fetchRecipientAddress(requestLinkData.recipientAddress)
+            .then((recipientAddress) => {
+                const tokenType = Number(requestLinkData.tokenType)
+                const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
+                    recipientAddress: recipientAddress,
+                    tokenAddress: requestLinkData.tokenAddress,
+                    tokenAmount: requestLinkData.tokenAmount,
+                    tokenDecimals: requestLinkData.tokenDecimals,
+                    tokenType: tokenType,
+                })
+                setUnsignedTx(unsignedTx)
             })
-            setUnsignedTx(unsignedTx)
-        })
+            .catch((error) => {
+                console.log('error fetching recipient address:', error)
+                setErrorMessage('Failed to fetch recipient address, please try again later')
+                setLinkState('ERROR')
+            })
 
         // Prepare request link fulfillment transaction
     }, [requestLinkData])
 
     useEffect(() => {
         if (!requestLinkData || !tokenPriceData) return
-        fetchPointsEstimation(requestLinkData, tokenPriceData)
+        fetchPointsEstimation(requestLinkData, tokenPriceData).catch((error) => {
+            console.log('error fetching points estimation:', error)
+        })
     }, [tokenPriceData, requestLinkData])
 
     useEffect(() => {
@@ -142,7 +155,11 @@ export const PayRequestLink = () => {
             .then(({ transactionCostUSD }) => {
                 if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
             })
-            .catch((error) => console.log('error calculating transaction cost:', error))
+            .catch((error) => {
+                console.log('error calculating transaction cost:', error)
+                setErrorMessage('Failed to estimate gas fee, please try again later')
+                setLinkState('ERROR')
+            })
     }, [unsignedTx, requestLinkData])
 
     return (
