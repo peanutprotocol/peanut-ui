@@ -224,7 +224,10 @@ export const useCreateLink = () => {
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
             const nativeTokenPrice = await utils.fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
-            const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice?.price
+            if (!nativeTokenPrice) {
+                throw new Error('Failed to fetch token price')
+            }
+            const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
 
             return {
                 feeOptions,
@@ -244,7 +247,10 @@ export const useCreateLink = () => {
                     '0x0000000000000000000000000000000000000000',
                     chainId
                 )
-                const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice?.price
+                if (!nativeTokenPrice) {
+                    throw new Error('Failed to fetch token price')
+                }
+                const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
 
                 return {
                     feeOptions,
