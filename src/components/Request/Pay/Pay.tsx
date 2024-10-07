@@ -184,7 +184,7 @@ export const PayRequestLink = () => {
                     estimatedGasCost,
                     unsignedTx,
                 } as _consts.IPayScreenProps)}
-            {linkState === 'ERROR' && <generalViews.Error errorMessage={errorMessage} />}
+            {linkState === 'ERROR' && <generalViews.ErrorView errorMessage={errorMessage} />}
             {linkState === 'CANCELED' && <generalViews.CanceledClaimLink />}
             {linkState === 'ALREADY_PAID' && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
         </div>

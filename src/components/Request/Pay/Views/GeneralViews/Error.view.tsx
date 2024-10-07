@@ -3,7 +3,7 @@ import Icon from '@/components/Global/Icon'
 
 import Link from 'next/link'
 
-export const Error = ({ errorMessage }: { errorMessage: string }) => {
+export const ErrorView = ({ errorMessage }: { errorMessage: string }) => {
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Sorryyy</label>
@@ -32,4 +32,4 @@ export const Error = ({ errorMessage }: { errorMessage: string }) => {
     )
 }
 
-export default Error
+export default ErrorView
