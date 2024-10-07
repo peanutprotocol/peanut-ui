@@ -228,7 +228,12 @@ const MenuLinks = () => {
             <NavLink href={'/send'} onClick={handleClick}>
                 <Text display="block">send</Text>
             </NavLink>
-            <NavLink href={'/request/create'}>
+            <NavLink
+                href={'/request/create'}
+                onClick={() => {
+                    if (window.location.pathname == '/request/create') window.location.reload()
+                }}
+            >
                 <Text display="block" className="flex items-center">
                     request
                 </Text>
