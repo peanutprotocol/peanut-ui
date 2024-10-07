@@ -1,78 +1,21 @@
 'use client'
 
-import { useEffect, useState, useContext } from 'react'
-import peanut from '@squirrel-labs/peanut-sdk'
-import { useAccount } from 'wagmi'
-import useClaimLink from './useClaimLink'
-
+import { useEffect, useState } from 'react'
 import * as genericViews from './Generic'
 import * as _consts from './Claim.consts'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
-import * as context from '@/context'
 import * as assets from '@/assets'
 import * as consts from '@/constants'
 import * as _utils from './Claim.utils'
 import FlowManager from './Link/FlowManager'
-import { ActionType, estimatePoints } from '../utils/utils'
-import { useQuery } from '@tanstack/react-query'
-import { CrossChainDetails, getCrossChainDetails } from './services/cross-chain'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { Attachement, CheckLinkReturnType } from './types'
+import { getClaimQuery } from './services/query'
 
 export const Claim = ({}) => {
-    const { address } = useAccount()
-    const { data, error, isLoading } = useQuery<CheckLinkReturnType>({
-        enabled: typeof window !== 'undefined',
-        queryKey: [address, '-claiming-', window.location.href],
-        refetchOnWindowFocus: false,
-        queryFn: async ({ queryKey }) => {
-            const address = queryKey[0] as string | undefined
-            const link = typeof window !== 'undefined' ? window.location.href : ''
-            let linkState: _consts.claimLinkState = 'ALREADY_CLAIMED'
-            let crossChainDetails: CrossChainDetails | undefined = undefined
-            let tokenPrice: number = 0
-            let estimatedPoints: number = 0
-            let recipient: { name: string | undefined; address: string } = { name: undefined, address: '' }
-
-            const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
-                link,
-            })
-            const attachmentInfo = await getAttachmentInfo(linkDetails.link)
-
-            if (linkDetails.claimed) {
-                linkState = 'ALREADY_CLAIMED'
-            } else {
-                crossChainDetails = await getCrossChainDetails(linkDetails)
-                tokenPrice =
-                    (await utils.fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId))?.price ??
-                    0
-                estimatedPoints = await estimatePoints({
-                    address: address ?? '',
-                    chainId: linkDetails.chainId,
-                    amountUSD: Number(linkDetails.tokenAmount) * tokenPrice,
-                    actionType: ActionType.CLAIM,
-                })
-
-                if (linkDetails.senderAddress === address) {
-                    linkState = 'CLAIM_SENDER'
-                } else {
-                    linkState = 'CLAIM'
-                }
-            }
-            return {
-                linkDetails,
-                attachmentInfo: {
-                    message: attachmentInfo?.message,
-                    attachmentUrl: attachmentInfo?.fileUrl,
-                },
-                crossChainDetails,
-                tokenPrice,
-                estimatedPoints,
-                recipient,
-                linkState,
-            }
-        },
-    })
+    const { data, error, isLoading } = useSuspenseQuery<CheckLinkReturnType>(
+        getClaimQuery(typeof window !== 'undefined' ? window.location.href : '')
+    )
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
     const [attachment, setAttachment] = useState<Attachement>({
@@ -98,13 +41,10 @@ export const Claim = ({}) => {
         recipient: '',
     })
 
-    const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
-
     const [initialKYCStep, setInitialKYCStep] = useState<number>(0)
 
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
-    const { getAttachmentInfo } = useClaimLink()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CLAIM_SCREEN_FLOW.length - 1) return
@@ -135,10 +75,11 @@ export const Claim = ({}) => {
             setRecipient(data.recipient)
             setTokenPrice(data.tokenPrice)
             setEstimatedPoints(data.estimatedPoints)
-            if (data.crossChainDetails) {
-                setSelectedChainID(data?.crossChainDetails?.[0]?.chainId)
-                setSelectedTokenAddress(data?.crossChainDetails?.[0]?.tokens[0]?.address)
-            }
+            // NOTE: If Claim page fetches xChain routes, why fetch & set crossChainDetails for link here ?
+            // if (data.crossChainDetails) {
+            //     setSelectedChainID(data?.crossChainDetails?.[0]?.chainId)
+            //     setSelectedTokenAddress(data?.crossChainDetails?.[0]?.tokens[0]?.address)
+            // }
         }
     }, [data])
 

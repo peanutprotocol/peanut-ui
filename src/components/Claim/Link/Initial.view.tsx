@@ -13,7 +13,6 @@ import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
@@ -27,24 +26,24 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { AppAPI } from '@/services/app-api'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { EstimatePointsArgs, PeanutAPI } from '@/services/peanut-api'
 
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
     setRecipient,
+    /**
+     * NOTE: Root recipient state is hanlding too many responsabilities.
+     * - Duplicates server data
+     * - User Input
+     * - Wallet & Bank Account
+     */
     recipient,
     tokenPrice,
-    setClaimType,
     attachment,
-    setTransactionHash,
     onCustom,
     crossChainDetails,
-    selectedRoute,
-    setSelectedRoute,
-    hasFetchedRoute,
-    setHasFetchedRoute,
     recipientType,
     setRecipientType,
     setOfframpForm,
@@ -52,7 +51,41 @@ export const InitialClaimLinkView = ({
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
     const { isConnected, address } = useAccount()
+    const { selectedChainID, selectedTokenAddress, setSelectedChainID, setSelectedTokenAddress } = useContext(
+        context.tokenSelectorContext
+    )
 
+    const tokenSelectedNeedsRouting =
+        selectedChainID !== claimLinkData.chainId ||
+        selectedTokenAddress.toLowerCase() !== claimLinkData.tokenAddress.toLowerCase()
+
+    const { data: route, isLoading: refetchingRoute } = useQuery<any>({
+        queryKey: ['route-to', { selectedChainID, selectedTokenAddress }, address, recipientType],
+        queryFn: async ({ queryKey }) => {
+            const { selectedChainID: toChain, selectedTokenAddress: toToken } = queryKey[1] as {
+                selectedChainID: string
+                selectedTokenAddress: string
+            }
+            return await new PeanutAPI().getSquidRouteRaw({
+                linkDetails: claimLinkData,
+                toChain,
+                toToken,
+                toAddress:
+                    recipientType === 'us' || recipientType === 'iban' || recipientType === undefined
+                        ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
+                        : recipient.address
+                          ? recipient.address
+                          : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
+            })
+        },
+        initialData: undefined,
+        refetchOnMount: false,
+        enabled: tokenSelectedNeedsRouting,
+    })
+
+    /**
+     * NOTE: Points isn't updated based on route/token change
+     */
     const { data: estimatedPoints } = useQuery({
         queryKey: [
             'estimate-points',
@@ -64,56 +97,21 @@ export const InitialClaimLinkView = ({
             },
         ],
         queryFn: async ({ queryKey }) => {
+            console.log('queryKey', queryKey)
             return new PeanutAPI().estimatePoints(queryKey[1] as EstimatePointsArgs)
         },
         initialData: 0,
+        enabled: true,
     })
 
-    const [fileType] = useState<string>('')
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [errorState, setErrorState] = useState<{
-        showError: boolean
-        errorMessage: string
-    }>({ showError: false, errorMessage: '' })
-    const [isXchainLoading, setIsXchainLoading] = useState<boolean>(false)
-    const [routes, setRoutes] = useState<any[]>([])
-    const [inputChanging, setInputChanging] = useState<boolean>(false)
+    const { claimLink: claimLinkGasless } = useClaimLink()
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
-        context.tokenSelectorContext
-    )
-    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
-    const { claimLink } = useClaimLink()
-    const { open } = useWeb3Modal()
-    const { user } = useAuth()
-
-    const handleConnectWallet = async () => {
-        if (isConnected && address) {
-            setRecipient({ name: undefined, address: '' })
-            await new Promise((resolve) => setTimeout(resolve, 100))
-            setRecipient({ name: undefined, address: address })
-        } else {
-            open()
-        }
-    }
-
-    const handleClaimLink = async () => {
-        setLoadingState('Loading')
-        setErrorState({
-            showError: false,
-            errorMessage: '',
-        })
-
-        if (recipient.address === '') return
-
-        try {
-            setLoadingState('Executing transaction')
-            const claimTxHash = await claimLink({
-                address: recipient.address ?? '',
-                link: claimLinkData.link,
-            })
-
+    const { mutateAsync: claim, isPending: claiming } = useMutation({
+        mutationKey: ['claiming-', claimLinkData],
+        mutationFn: ({ address, link }: { address: string; link: string }) => {
+            return claimLinkGasless({ address, link })
+        },
+        onSettled: (claimTxHash) => {
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
                     address: address ?? '',
@@ -127,20 +125,31 @@ export const InitialClaimLinkView = ({
                         attachmentUrl: attachment.attachmentUrl ? attachment.attachmentUrl : undefined,
                     },
                 })
-                setClaimType('claim')
-                setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
-            } else {
-                throw new Error('Error claiming link')
             }
-        } catch (error) {
-            const errorString = utils.ErrorHandler(error)
-            setErrorState({
-                showError: true,
-                errorMessage: errorString,
-            })
-        } finally {
-            setLoadingState('Idle')
+        },
+    })
+
+    const [fileType] = useState<string>('')
+    const [isValidRecipient, setIsValidRecipient] = useState(false)
+    const [errorState, setErrorState] = useState<{
+        showError: boolean
+        errorMessage: string
+    }>({ showError: false, errorMessage: '' })
+    const [inputChanging, setInputChanging] = useState<boolean>(false)
+
+    const { setLoadingState } = useContext(context.loadingStateContext)
+    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
+    const { open } = useWeb3Modal()
+    const { user } = useAuth()
+
+    const handleConnectWallet = async () => {
+        if (isConnected && address) {
+            setRecipient({ name: undefined, address: '' })
+            await new Promise((resolve) => setTimeout(resolve, 100))
+            setRecipient({ name: undefined, address: address })
+        } else {
+            open()
         }
     }
 
@@ -150,7 +159,6 @@ export const InitialClaimLinkView = ({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingState('Fetching route')
             let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
             let chainName = utils.getBridgeChainName(claimLinkData.chainId)
 
@@ -182,7 +190,8 @@ export const InitialClaimLinkView = ({
 
                 let route
                 try {
-                    route = await fetchRoute(usdcAddressOptimism, optimismChainId)
+                    setSelectedChainID(optimismChainId)
+                    setSelectedTokenAddress(usdcAddressOptimism)
                 } catch (error) {
                     console.log('error', error)
                 }
@@ -253,88 +262,25 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    useEffect(() => {
-        if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
-            setSelectedRoute(undefined)
-            setHasFetchedRoute(false)
-        }
-    }, [recipientType])
+    console.log({ address })
 
     useEffect(() => {
+        /**
+         * WIP: Solve Recipient side effect
+         */
+        console.log({ address })
         if (recipient.address) return
         if (isConnected && address) {
             setRecipient({ name: undefined, address })
         } else {
+            console.log('Recipient address is not set')
+
             setRecipient({ name: undefined, address: '' })
             setIsValidRecipient(false)
         }
     }, [address])
 
-    useEffect(() => {
-        if (refetchXchainRoute) {
-            setIsXchainLoading(true)
-            setLoadingState('Fetching route')
-            setHasFetchedRoute(true)
-            setErrorState({
-                showError: false,
-                errorMessage: '',
-            })
-
-            fetchRoute()
-            setRefetchXchainRoute(false)
-        }
-    }, [claimLinkData, refetchXchainRoute])
-
-    const fetchRoute = async (toToken?: string, toChain?: string) => {
-        try {
-            const existingRoute = routes.find(
-                (route) =>
-                    route.fromChain === claimLinkData.chainId &&
-                    route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
-                    route.toChain === selectedChainID &&
-                    utils.areTokenAddressesEqual(route.toToken, selectedTokenAddress)
-            )
-            if (existingRoute) {
-                setSelectedRoute(existingRoute)
-            } else {
-                const tokenAmount = Math.floor(
-                    Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
-                ).toString()
-
-                const route = await getSquidRouteRaw({
-                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                    fromChain: claimLinkData.chainId.toString(),
-                    fromToken: claimLinkData.tokenAddress.toLowerCase(),
-                    fromAmount: tokenAmount,
-                    toChain: toChain ? toChain : selectedChainID.toString(),
-                    toToken: toToken ? toToken : selectedTokenAddress,
-                    slippage: 1,
-                    fromAddress: claimLinkData.senderAddress,
-
-                    toAddress:
-                        recipientType === 'us' || recipientType === 'iban' || recipientType === undefined
-                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
-                            : recipient.address
-                              ? recipient.address
-                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
-                })
-                setRoutes([...routes, route])
-                !toToken && !toChain && setSelectedRoute(route)
-                return route
-            }
-        } catch (error) {
-            !toToken && !toChain && setSelectedRoute(undefined)
-            console.error('Error fetching route:', error)
-            setErrorState({
-                showError: true,
-                errorMessage: 'No route found for the given token pair.',
-            })
-            return undefined
-        } finally {
-            setIsXchainLoading(false)
-            setLoadingState('Idle')
-        }
-    }
+    const hasFetchedRoute = Boolean(route)
 
     return (
         <>
@@ -381,17 +327,16 @@ export const InitialClaimLinkView = ({
                         data={mappedData}
                         chainName={
                             hasFetchedRoute
-                                ? selectedRoute
-                                    ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
-                                          ?.name
+                                ? route
+                                    ? mappedData.find((chain) => chain.chainId === route.route.params.toChain)?.name
                                     : mappedData.find((data) => data.chainId === selectedChainID)?.name
                                 : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
                                       ?.name
                         }
                         tokenSymbol={
                             hasFetchedRoute
-                                ? selectedRoute
-                                    ? selectedRoute.route.estimate.toToken.symbol
+                                ? route
+                                    ? route.route.estimate.toToken.symbol
                                     : mappedData
                                           .find((data) => data.chainId === selectedChainID)
                                           ?.tokens?.find((token) =>
@@ -401,8 +346,8 @@ export const InitialClaimLinkView = ({
                         }
                         tokenLogoUrl={
                             hasFetchedRoute
-                                ? selectedRoute
-                                    ? selectedRoute.route.estimate.toToken.logoURI
+                                ? route
+                                    ? route.route.estimate.toToken.logoURI
                                     : mappedData
                                           .find((data) => data.chainId === selectedChainID)
                                           ?.tokens?.find((token) =>
@@ -416,33 +361,32 @@ export const InitialClaimLinkView = ({
                         }
                         chainLogoUrl={
                             hasFetchedRoute
-                                ? selectedRoute
-                                    ? crossChainDetails?.find(
-                                          (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                      )?.chainIconURI
+                                ? route
+                                    ? crossChainDetails?.find((chain) => chain.chainId === route.route.params.toChain)
+                                          ?.chainIconURI
                                     : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
                                 : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
                                       ?.icon.url
                         }
                         tokenAmount={
                             hasFetchedRoute
-                                ? selectedRoute
+                                ? route
                                     ? utils.formatTokenAmount(
                                           utils.formatAmountWithDecimals({
-                                              amount: selectedRoute.route.estimate.toAmountMin,
-                                              decimals: selectedRoute.route.estimate.toToken.decimals,
+                                              amount: route.route.estimate.toAmountMin,
+                                              decimals: route.route.estimate.toToken.decimals,
                                           }),
                                           4
                                       )
                                     : undefined
                                 : claimLinkData.tokenAmount
                         }
-                        isLoading={isXchainLoading}
+                        isLoading={refetchingRoute}
                         routeError={errorState.errorMessage === 'No route found for the given token pair.'}
-                        routeFound={selectedRoute ? true : false}
+                        routeFound={route ? true : false}
                         onReset={() => {
-                            setSelectedRoute(null)
-                            setHasFetchedRoute(false)
+                            setSelectedChainID(claimLinkData.chainId)
+                            setSelectedTokenAddress(claimLinkData.tokenAddress)
                             setErrorState({
                                 showError: false,
                                 errorMessage: '',
@@ -495,42 +439,38 @@ export const InitialClaimLinkView = ({
                     />
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
-                            {selectedRoute && (
+                            {route && (
                                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                     <div className="flex w-max flex-row items-center justify-center gap-1">
                                         <Icon name={'forward'} className="h-4 fill-gray-1" />
                                         <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        {isXchainLoading ? (
+                                        {refetchingRoute ? (
                                             <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                         ) : (
-                                            selectedRoute && (
+                                            route && (
                                                 <>
                                                     {
                                                         consts.supportedPeanutChains.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.fromChain
+                                                            (chain) => chain.chainId === route.route.params.fromChain
                                                         )?.name
                                                     }
                                                     <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                                     {
                                                         mappedData.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.toChain
+                                                            (chain) => chain.chainId === route.route.params.toChain
                                                         )?.name
                                                     }
                                                     <MoreInfo
                                                         text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
                                                             consts.supportedPeanutChains.find(
                                                                 (chain) =>
-                                                                    chain.chainId ===
-                                                                    selectedRoute.route.params.fromChain
+                                                                    chain.chainId === route.route.params.fromChain
                                                             )?.name
-                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                        } to ${route.route.estimate.toToken.symbol.toLowerCase()} on  ${
                                                             mappedData.find(
-                                                                (chain) =>
-                                                                    chain.chainId === selectedRoute.route.params.toChain
+                                                                (chain) => chain.chainId === route.route.params.toChain
                                                             )?.name
                                                         }.`}
                                                     />
@@ -547,7 +487,7 @@ export const InitialClaimLinkView = ({
                                     <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isXchainLoading ? (
+                                    {refetchingRoute ? (
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
                                         <>
@@ -582,30 +522,45 @@ export const InitialClaimLinkView = ({
                     <button
                         className="btn-purple btn-xl"
                         onClick={() => {
-                            if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
+                            if ((hasFetchedRoute && route) || recipient.address !== address) {
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {
                                     onNext()
                                 }
                             } else {
-                                handleClaimLink()
+                                claim({
+                                    address: recipient.address ?? '',
+                                    link: claimLinkData.link,
+                                })
                             }
                         }}
                         disabled={
-                            isLoading ||
+                            claiming ||
                             !isValidRecipient ||
-                            isXchainLoading ||
+                            refetchingRoute ||
                             inputChanging ||
-                            (hasFetchedRoute && !selectedRoute) ||
+                            (hasFetchedRoute && !route) ||
                             recipient.address.length === 0
                         }
                     >
-                        {isLoading || isXchainLoading ? (
+                        {(() => {
+                            console.log({
+                                claiming,
+                                isValidRecipient,
+                                refetchingRoute,
+                                inputChanging,
+                                hasFetchedRoute,
+                                route,
+                                recipient,
+                            })
+                            return null
+                        })()}
+                        {claiming || refetchingRoute ? (
                             <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
+                                <Loading /> {claiming}
                             </div>
-                        ) : (hasFetchedRoute && selectedRoute) || recipient.address !== address ? (
+                        ) : (hasFetchedRoute && route) || recipient.address !== address ? (
                             'Proceed'
                         ) : (
                             'Claim now'
@@ -638,8 +593,6 @@ export const InitialClaimLinkView = ({
                                             <span
                                                 className="cursor-pointer text-h8 font-normal text-red underline"
                                                 onClick={() => {
-                                                    setSelectedRoute(null)
-                                                    setHasFetchedRoute(false)
                                                     setErrorState({
                                                         showError: false,
                                                         errorMessage: '',

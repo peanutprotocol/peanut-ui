@@ -6,12 +6,10 @@ import { createWeb3Modal } from '@web3modal/wagmi/react'
 
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClientProvider } from '@tanstack/react-query'
 import { createClient } from 'viem'
 import { authConnector } from '@web3modal/wagmi'
-
-// 0. Setup queryClient
-const queryClient = new QueryClient()
+import { getQueryClient } from '@/query'
 
 // 1. Get projectId at https://cloud.walletconnect.com
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? ''
@@ -71,6 +69,8 @@ createWeb3Modal({
 console.log('Created Web3modal')
 
 export function ContextProvider({ children }: { children: React.ReactNode }) {
+    const queryClient = getQueryClient()
+
     return (
         <WagmiProvider config={config}>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>

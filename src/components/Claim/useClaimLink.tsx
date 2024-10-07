@@ -14,7 +14,7 @@ export const useClaimLink = () => {
 
     const { loadingState, setLoadingState } = useContext(context.loadingStateContext)
 
-    const claimLink = async ({ address, link }: { address: string; link: string }) => {
+    const claimLink = async ({ address, link }: { address: string; link: string }): Promise<string | undefined> => {
         setLoadingState('Executing transaction')
         try {
             const claimTx = await claimLinkGasless({

@@ -5,12 +5,10 @@ import Modal from '../Modal'
 import Search from '../Search'
 import ChainSelector from '../ChainSelector'
 import { useBalance } from '@/hooks/useBalance'
-import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
+import { peanutTokenDetails } from '@/constants'
 import * as context from '@/context'
-import * as utils from '@/utils'
 import * as components from './Components'
 import * as _consts from './TokenSelector.consts'
-import * as consts from '@/constants'
 import Icon from '../Icon'
 
 const TokenSelectorXChain = ({
