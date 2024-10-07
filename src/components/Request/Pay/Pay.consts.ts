@@ -9,7 +9,7 @@ export interface IPayScreenState {
     idx: number
 }
 
-export type IRequestLinkState = 'LOADING' | 'PAY' | 'ALREADY_PAID' | 'NOT_FOUND' | 'CANCELED'
+export type IRequestLinkState = 'LOADING' | 'READY_TO_PAY' | 'ALREADY_PAID' | 'NOT_FOUND' | 'CANCELED'
 
 export const INIT_VIEW_STATE: IPayScreenState = {
     screen: 'INITIAL',

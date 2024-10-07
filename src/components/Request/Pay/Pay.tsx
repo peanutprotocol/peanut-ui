@@ -87,7 +87,7 @@ export const PayRequestLink = () => {
                 setLinkState('ALREADY_PAID')
                 return
             }
-            setLinkState('PAY')
+            setLinkState('READY_TO_PAY')
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
         }
@@ -151,7 +151,7 @@ export const PayRequestLink = () => {
                     </div>
                 </div>
             )}
-            {linkState === 'PAY' &&
+            {linkState === 'READY_TO_PAY' &&
                 createElement(_consts.PAY_SCREEN_MAP[step.screen].comp, {
                     onNext: handleOnNext,
                     onPrev: handleOnPrev,
