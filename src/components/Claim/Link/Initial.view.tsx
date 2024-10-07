@@ -18,9 +18,17 @@ import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
-import { ActionType, estimatePoints } from '@/components/utils/utils'
+import { ActionType } from '@/components/utils/utils'
 import { CrispButton } from '@/components/CrispChat'
-import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT, optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+import {
+    MAX_CASHOUT_LIMIT,
+    MIN_CASHOUT_LIMIT,
+    optimismChainId,
+    usdcAddressOptimism,
+} from '@/components/Offramp/Offramp.consts'
+import { AppAPI } from '@/services/app-api'
+import { useQuery } from '@tanstack/react-query'
+import { EstimatePointsArgs, PeanutAPI } from '@/services/peanut-api'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -29,8 +37,6 @@ export const InitialClaimLinkView = ({
     recipient,
     tokenPrice,
     setClaimType,
-    setEstimatedPoints,
-    estimatedPoints,
     attachment,
     setTransactionHash,
     onCustom,
@@ -45,6 +51,24 @@ export const InitialClaimLinkView = ({
     setUserType,
     setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
+    const { isConnected, address } = useAccount()
+
+    const { data: estimatedPoints } = useQuery({
+        queryKey: [
+            'estimate-points',
+            {
+                address: recipient.address ?? address ?? '',
+                chainId: claimLinkData.chainId,
+                amountUSD: Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0),
+                actionType: ActionType.CLAIM,
+            },
+        ],
+        queryFn: async ({ queryKey }) => {
+            return new PeanutAPI().estimatePoints(queryKey[1] as EstimatePointsArgs)
+        },
+        initialData: 0,
+    })
+
     const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
@@ -62,7 +86,6 @@ export const InitialClaimLinkView = ({
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
-    const { isConnected, address } = useAccount()
     const { user } = useAuth()
 
     const handleConnectWallet = async () => {
@@ -121,17 +144,6 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    const _estimatePoints = async () => {
-        const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
-        const estimatedPoints = await estimatePoints({
-            address: recipient.address ?? address ?? '',
-            chainId: claimLinkData.chainId,
-            amountUSD: USDValue,
-            actionType: ActionType.CLAIM,
-        })
-        setEstimatedPoints(estimatedPoints)
-    }
-
     const handleIbanRecipient = async () => {
         try {
             setErrorState({
@@ -187,17 +199,9 @@ export const InitialClaimLinkView = ({
             setLoadingState('Getting KYC status')
 
             if (!user) {
-                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        accountIdentifier: recipient.name,
-                    }),
-                })
+                if (!recipient.name) throw new Error('Recipient name is required')
+                const response = await AppAPI.getUserById(recipient.name)
 
-                const response = await userIdResponse.json()
                 if (response.isNewUser) {
                     setUserType('NEW')
                 } else {
@@ -250,10 +254,11 @@ export const InitialClaimLinkView = ({
     }
 
     useEffect(() => {
-        if (recipient) {
-            _estimatePoints()
+        if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
+            setSelectedRoute(undefined)
+            setHasFetchedRoute(false)
         }
-    }, [recipient])
+    }, [recipientType])
 
     useEffect(() => {
         if (recipient.address) return
@@ -330,13 +335,6 @@ export const InitialClaimLinkView = ({
             setLoadingState('Idle')
         }
     }
-
-    useEffect(() => {
-        if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
-            setSelectedRoute(undefined)
-            setHasFetchedRoute(false)
-        }
-    }, [recipientType])
 
     return (
         <>
@@ -634,8 +632,9 @@ export const InitialClaimLinkView = ({
                                 <>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
-                                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                                            {' '}
+                                            <label className=" text-h8 font-normal text-red ">
+                                                {errorState.errorMessage}
+                                            </label>{' '}
                                             <span
                                                 className="cursor-pointer text-h8 font-normal text-red underline"
                                                 onClick={() => {
@@ -654,14 +653,16 @@ export const InitialClaimLinkView = ({
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (
                                         <>
                                             <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank account.{' '}
+                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
+                                                account.{' '}
                                             </label>
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_mt_maximum' && (
                                         <>
                                             <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank account.{' '}
+                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
+                                                account.{' '}
                                             </label>
                                         </>
                                     )}
