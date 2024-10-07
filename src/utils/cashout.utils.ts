@@ -172,7 +172,7 @@ export async function createExternalAccount(
     accountDetails: any,
     address: any,
     accountOwnerName: string
-): Promise<interfaces.IBridgeAccount> {
+): Promise<interfaces.IResponse> {
     try {
         const response = await fetch(`/api/bridge/external-account/create-external-account?customerId=${customerId}`, {
             method: 'POST',
@@ -187,13 +187,36 @@ export async function createExternalAccount(
             }),
         })
 
+        const data = await response.json()
+
         if (!response.ok) {
+            if (data.code && data.code == 'duplicate_external_account') {
+                // if bridge account already exists for this iban
+                // but somehow not stored in our DB (this should never happen in
+                // prod, but can happen if same email used in prod & staging)
+                // 
+                // returns:  not interfaces.IBridgeAccount type, but
+                // a currently undefined error type on the data field of interfaces.IResponse
+                // of format:
+                // {
+                //     id: '4c537540-80bf-41dd-a528-d79a4',
+                //     code: 'duplicate_external_account',
+                //     message: 'An external account with the same information has already been added for this customer'
+                // }
+                //
+                // TODO: HTTP responses need to be standardized client wide
+                return {
+                    success: false,
+                    data
+                } as interfaces.IResponse
+            }
             throw new Error('Failed to create external account')
         }
 
-        const data = await response.json()
-
-        return data as interfaces.IBridgeAccount
+        return {
+            success: true,
+            data: data as interfaces.IBridgeAccount
+        } as interfaces.IResponse
     } catch (error) {
         console.error('Error:', error)
         throw new Error(`Failed to create external account. Error: ${error}`)

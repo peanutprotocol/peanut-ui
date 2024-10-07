@@ -2,6 +2,11 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us'
 
+export interface IResponse {
+    success: boolean
+    data?: any
+}
+
 export interface IUserBalance {
     chainId: string
     address: string
