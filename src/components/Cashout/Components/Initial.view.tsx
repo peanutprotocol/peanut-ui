@@ -19,6 +19,7 @@ import { RecipientInfoComponent } from './RecipientInfo.comp'
 import { motion, AnimatePresence } from 'framer-motion'
 import Icon from '@/components/Global/Icon'
 import { twMerge } from 'tailwind-merge'
+import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 
 export const InitialCashoutView = ({
     onNext,
@@ -79,9 +80,6 @@ export const InitialCashoutView = ({
     const [selectedBankAccount, setSelectedBankAccount] = useState<string | undefined>(undefined)
     const [newBankAccount, setNewBankAccount] = useState<string>('')
     const [activeInput, setActiveInput] = useState<'newBankAccount' | 'selectedBankAccount'>()
-
-    const MIN_CASHOUT_LIMIT = 10 // $10 minimum
-    const MAX_CASHOUT_LIMIT = 101000 // $101,000 maximum
 
     const isBelowMinLimit = useMemo(() => {
         return !usdValue || parseFloat(usdValue) < MIN_CASHOUT_LIMIT
