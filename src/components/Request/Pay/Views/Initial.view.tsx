@@ -135,7 +135,7 @@ export const InitialView = ({
             consts.peanutTokenDetails
                 .find((chain) => chain.chainId === requestLinkData.chainId)
                 ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress))
-                ?.symbol.toUpperCase() ??
+                ?.symbol?.toUpperCase() ??
             tokenPriceData?.symbol
         if (tokenSymbol) {
             setTokenRequestedSymbol(tokenSymbol)
