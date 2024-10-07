@@ -10,6 +10,7 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import * as components from './Components'
+import { IToken } from '@/interfaces'
 
 import * as _consts from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
@@ -94,8 +95,23 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
             balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
         }
 
+        if (balancesToDisplay.length === 0) {
+            let tokens = selectedChainID
+                ? peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens
+                : peanutTokenDetails[0].tokens
+            tokens = tokens || peanutTokenDetails[0].tokens
+            balancesToDisplay = tokens.slice(0, 6).map((token: IToken) => ({
+                ...token,
+                chainId: selectedChainID,
+                price: 0,
+                amount: 0,
+                currency: '',
+                value: '',
+            }))
+        }
+
         return balancesToDisplay
-    }, [balances, safeInfo])
+    }, [balances, safeInfo, selectedChainID])
 
     function setToken(address: string): void {
         setSelectedTokenAddress(address)
@@ -190,7 +206,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                         <div className="h-full max-h-96 w-full overflow-auto">
                             <table className="w-full divide-y divide-black">
                                 <tbody className="divide-y divide-black bg-white">
-                                    {hasFetchedBalances && balances.length === 0 ? (
+                                    {hasFetchedBalances && _balancesToDisplay.length === 0 ? (
                                         <div className="flex w-full items-center justify-center text-center">
                                             No balances to display!
                                         </div>
@@ -289,7 +305,9 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                                     </div>
                                                 </td>
                                                 <td className="py-2 text-h8">
-                                                    ${utils.formatTokenAmount(parseFloat(balance.value), 2)}
+                                                    {balance.value
+                                                        ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}`
+                                                        : ''}
                                                 </td>
                                                 <td className="y-2">
                                                     <div className="flex flex-row items-center justify-end gap-2 pr-1">
