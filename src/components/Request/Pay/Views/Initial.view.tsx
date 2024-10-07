@@ -42,6 +42,7 @@ export const InitialView = ({
     const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const [tokenRequestedLogoURI, setTokenRequestedLogoURI] = useState<string | undefined>(undefined)
+    const [tokenRequestedSymbol, setTokenRequestedSymbol] = useState<string>('')
     const createXChainUnsignedTx = async () => {
         // This function is only makes sense if selectedTokenData is defined
         // Check that it is defined before calling this function
@@ -61,6 +62,15 @@ export const InitialView = ({
             fromTokenDecimals: selectedTokenData!.decimals as number,
         })
         return xchainUnsignedTxs
+    }
+
+    const fetchTokenSymbol = async (chainId: string, address: string) => {
+        const provider = await peanut.getDefaultProvider(chainId)
+        const tokenContract = await peanut.getTokenContractDetails({
+            address,
+            provider,
+        })
+        setTokenRequestedSymbol(tokenContract.symbol ?? '')
     }
 
     const calculatedFee = useMemo(() => {
@@ -119,8 +129,20 @@ export const InitialView = ({
             chainDetails?.tokens.find((token) =>
                 utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
             )?.logoURI ?? tokenPriceData?.logoURI
-
         setTokenRequestedLogoURI(logoURI)
+
+        let tokenSymbol =
+            requestLinkData.tokenSymbol ??
+            consts.peanutTokenDetails
+                .find((chain) => chain.chainId === requestLinkData.chainId)
+                ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress))
+                ?.symbol.toUpperCase() ??
+            tokenPriceData?.symbol
+        if (tokenSymbol) {
+            setTokenRequestedSymbol(tokenSymbol)
+        } else {
+            fetchTokenSymbol(requestLinkData.chainId, requestLinkData.tokenAddress)
+        }
     }, [requestLinkData, tokenPriceData])
 
     const handleConnectWallet = async () => {
@@ -278,7 +300,7 @@ export const InitialView = ({
                     </label>
                 ) : (
                     <label className="text-h2 ">
-                        {requestLinkData.tokenAmount} {requestLinkData.tokenSymbol}
+                        {requestLinkData.tokenAmount} {tokenRequestedSymbol}
                     </label>
                 )}
                 <div>
@@ -295,16 +317,7 @@ export const InitialView = ({
                                 alt="logo"
                             />
                         </div>
-                        {requestLinkData.tokenAmount}{' '}
-                        {requestLinkData.tokenSymbol ??
-                            consts.peanutTokenDetails
-                                .find((chain) => chain.chainId === requestLinkData.chainId)
-                                ?.tokens.find((token) =>
-                                    utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
-                                )
-                                ?.symbol.toUpperCase() ??
-                            tokenPriceData?.symbol}{' '}
-                        on{' '}
+                        {requestLinkData.tokenAmount} {tokenRequestedSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
