@@ -74,9 +74,8 @@ export const InitialView = ({
     }
 
     const calculatedFee = useMemo(() => {
-        return isXChain ? Number(txFee) : utils.formatTokenAmount(estimatedGasCost, 3)
+        return isXChain ? txFee : utils.formatTokenAmount(estimatedGasCost, 3)
     }, [isXChain, estimatedGasCost, txFee])
-
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
