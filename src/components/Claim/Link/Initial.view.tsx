@@ -20,7 +20,7 @@ import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { CrispButton } from '@/components/CrispChat'
-import { optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT, optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -141,6 +141,22 @@ export const InitialClaimLinkView = ({
             setLoadingState('Fetching route')
             let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
             let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+
+            if (tokenPrice) {
+                const cashoutUSDAmount = Number(claimLinkData.tokenAmount) * tokenPrice
+                if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp_lt_minimum',
+                    })
+                    return
+                } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp_mt_maximum',
+                    })
+                }
+            }
 
             if (tokenName && chainName) {
             } else {
@@ -616,9 +632,9 @@ export const InitialClaimLinkView = ({
                                 </label>
                             ) : (
                                 <>
-                                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
+                                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                             {' '}
                                             <span
                                                 className="cursor-pointer text-h8 font-normal text-red underline"
@@ -633,6 +649,20 @@ export const InitialClaimLinkView = ({
                                             >
                                                 reset
                                             </span>
+                                        </>
+                                    )}
+                                    {errorState.errorMessage === 'offramp_lt_minimum' && (
+                                        <>
+                                            <label className=" text-h8 font-normal text-red ">
+                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank account.{' '}
+                                            </label>
+                                        </>
+                                    )}
+                                    {errorState.errorMessage === 'offramp_mt_maximum' && (
+                                        <>
+                                            <label className=" text-h8 font-normal text-red ">
+                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank account.{' '}
+                                            </label>
                                         </>
                                     )}
                                 </>
