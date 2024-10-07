@@ -31,7 +31,7 @@ type IMobulaMarketData = {
     }[]
     total_supply: string
     circulating_supply: string
-    decimals: number
+    decimals?: number
     priceNative: number
     native: {
         name: string
@@ -71,13 +71,17 @@ export const fetchTokenPrice = async (
         const json: { data: IMobulaMarketData } = await mobulaResponse.json()
 
         if (mobulaResponse.ok) {
+            let decimals = json.data.decimals
+            if (decimals === undefined) {
+                decimals = json.data.contracts.find((contract) => contract.blockchainId === chainId)!.decimals
+            }
             let data = {
                 price: json.data.price,
                 chainId: chainId,
                 address: tokenAddress,
                 name: json.data.name,
                 symbol: json.data.symbol,
-                decimals: json.data.decimals,
+                decimals,
                 logoURI: json.data.logo,
             }
             if (utils.estimateStableCoin(json.data.price)) {
