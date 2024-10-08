@@ -69,6 +69,30 @@ export const OfframpConfirmView = ({
     // state and context vars for claim link offramp
 
     //////////////////////
+    // utility JSX vars
+
+    // type: 'iban' or other
+    // TODO: standardize this type
+    let accountType = user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)?.account_type
+
+    // TODO: remove hardcoding amount from here and refactor to consts file
+    const fee = accountType === 'iban' ? 1 : 0.5
+
+    let amount: number = 0
+
+    if (offrampType == OfframpType.CASHOUT) {
+        if (accountType == 'iban') {
+            amount = parseFloat(usdValue ?? tokenValue ?? '') - fee
+        } else {
+            amount = parseFloat(usdValue ?? '') - fee
+        }
+    } else if (offrampType == OfframpType.CLAIM && tokenPrice && claimLinkData) {
+        amount = tokenPrice * parseFloat(claimLinkData.tokenAmount) - fee
+    }
+
+    const amountReceived = utils.formatTokenAmount(amount)
+
+    //////////////////////
     // functions w/ shared functionality across all offramp types
     const { setStep: setActiveStep, activeStep } = useSteps({
         initialStep: initialKYCStep,
@@ -636,15 +660,12 @@ export const OfframpConfirmView = ({
                                 <label className="font-bold">Fee</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
+                                {accountType === 'iban'
                                     ? '$1'
                                     : '$0.50'}
                                 <MoreInfo
                                     text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
+                                        accountType === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
                                     }
@@ -679,28 +700,10 @@ export const OfframpConfirmView = ({
                             </div>
 
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                $
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
-                                    ? offrampType == OfframpType.CASHOUT
-                                        ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
-                                        : tokenPrice &&
-                                          claimLinkData &&
-                                          utils.formatTokenAmount(
-                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                          )
-                                    : offrampType == OfframpType.CASHOUT
-                                      ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                      : tokenPrice &&
-                                        claimLinkData &&
-                                        utils.formatTokenAmount(
-                                            tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                        )}
+                                $ {amountReceived}
                                 <MoreInfo
                                     text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
+                                        accountType === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
                                     }
