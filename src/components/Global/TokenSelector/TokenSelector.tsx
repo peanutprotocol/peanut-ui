@@ -102,7 +102,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
             tokens = tokens || peanutTokenDetails[0].tokens
             balancesToDisplay = tokens.slice(0, 6).map((token: IToken) => ({
                 ...token,
-                chainId: selectedChainID,
+                chainId: selectedChainID || token.chainId,
                 price: 0,
                 amount: 0,
                 currency: '',
