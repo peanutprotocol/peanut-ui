@@ -186,7 +186,7 @@ export const CreateLinkConfirmView = ({
                 {createType == 'link'
                     ? 'Text Tokens'
                     : createType == 'direct'
-                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
+                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>
             <label className="max-w-96 text-start text-h8 font-light">

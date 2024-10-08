@@ -108,7 +108,7 @@ export const TableComponent = ({
                                     <td className="td-custom font-bold">{data.dashboardItem.chain}</td>
                                     <td className="td-custom">{utils.formatDate(new Date(data.dashboardItem.date))}</td>
                                     <td className="td-custom">
-                                        {utils.shortenAddressLong(data.dashboardItem.address ?? '')}
+                                        {utils.printableAddress(data.dashboardItem.address ?? '')}
                                     </td>
                                     <td className="td-custom max-w-32">
                                         <span
