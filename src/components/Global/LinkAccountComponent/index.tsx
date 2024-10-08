@@ -11,6 +11,7 @@ import Icon from '../Icon'
 import { useAuth } from '@/context/authContext'
 import { Divider } from '@chakra-ui/react'
 import { isIBAN } from 'validator'
+import { IBridgeAccount, IResponse } from '@/interfaces'
 
 const steps = [{ label: 'Step 1: Enter bank account' }, { label: 'Step 2: Provide details' }]
 
@@ -172,13 +173,25 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 throw new Error('Customer ID is missing')
             }
 
-            const data = await utils.createExternalAccount(
+            const response: IResponse = await utils.createExternalAccount(
                 customerId,
                 accountType as 'iban' | 'us',
                 accountDetails,
                 address,
                 accountOwnerName
             )
+            
+            if (!response.success) {
+                if (response.data && response.data.code == 'duplicate_external_account' ) {
+                    // bridge account already exists for this IBAN
+                    const errorMessage = 'An external account with the same information has already been added for this customer'
+                    throw new Error(errorMessage)
+                    
+                }
+                throw new Error('Creating Bridge account failed')
+            }
+
+            const data: IBridgeAccount = response.data
 
             await utils.createAccount(
                 user?.user?.userId ?? '',
@@ -193,7 +206,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error during the submission process:', error)
-            setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
+            setErrorState({ showError: true, errorMessage:  String(error)})
         } finally {
             setLoadingState('Idle')
         }
