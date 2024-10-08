@@ -62,12 +62,6 @@ export const InitialCashoutView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
-    useEffect(() => {
-        if (!_tokenValue) {
-            _setTokenValue('0')
-        }
-    }, [])
-
     const { prepareCreateLinkWrapper } = useCreateLink()
 
     const { isConnected } = useAccount()
