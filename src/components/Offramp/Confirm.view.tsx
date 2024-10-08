@@ -75,8 +75,23 @@ export const OfframpConfirmView = ({
     // TODO: standardize this type
     let accountType = user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)?.account_type
 
-    // TODO: remove hardcoding amount from here and refactor to consts file
-    const fee = accountType === 'iban' ? 1 : 0.5
+    // TODO: remove hardcoding fee amounts from here and refactor to consts file
+    let fee  = 0;
+    const sepaFeeExplainer = 'For SEPA transactions a fee of $1 is charged.'
+    const achFeeExplainer = 'For ACH transactions a fee of $0.50 is charged.'
+    const claimLinkFeeExplainer = 'Woop Woop free offramp!'
+    let feeExplainer = ''
+    if (offrampType == OfframpType.CASHOUT) {
+        fee = accountType === 'iban' ? 1 : 0.5
+        feeExplainer = accountType === 'iban' ? sepaFeeExplainer + ' ' + achFeeExplainer: achFeeExplainer + ' ' + sepaFeeExplainer
+    } else {
+        // other types of offramp (eg. CLAIM link) do not have a fee
+        if (offrampType == OfframpType.CLAIM) {
+            feeExplainer = claimLinkFeeExplainer
+        }
+    } 
+
+    
 
     let amount: number = 0
 
@@ -660,38 +675,14 @@ export const OfframpConfirmView = ({
                                 <label className="font-bold">Fee</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {accountType === 'iban'
-                                    ? '$1'
-                                    : '$0.50'}
+                                ${fee}
                                 <MoreInfo
-                                    text={
-                                        accountType === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                    }
+                                    text={feeExplainer}
                                 />
                             </span>
                         </div>
 
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            {offrampType == OfframpType.CLAIM && (
-                                <>
-                                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                        <label className="font-bold">Total</label>
-                                    </div>
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        $
-                                        {tokenPrice &&
-                                            claimLinkData &&
-                                            utils.formatTokenAmount(
-                                                tokenPrice * parseFloat(claimLinkData.tokenAmount)
-                                            )}{' '}
-                                        <MoreInfo text={'Woop Woop free offramp!'} />
-                                    </span>
-                                </>
-                            )}
-
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
                                 {offrampType == OfframpType.CLAIM && (
                                     <Icon name={'transfer'} className="h-4 fill-gray-1" />
@@ -702,11 +693,7 @@ export const OfframpConfirmView = ({
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 $ {amountReceived}
                                 <MoreInfo
-                                    text={
-                                        accountType === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
-                                    }
+                                    text={feeExplainer + ' This will be deducted of the amount you will receive.'}
                                 />
                             </span>
                         </div>
