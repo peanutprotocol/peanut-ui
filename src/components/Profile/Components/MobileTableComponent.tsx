@@ -96,7 +96,7 @@ export const MobileTableComponent = ({
                 {type === 'history' ? (
                     <>
                         {dashboardItem?.type !== 'Link Received' &&
-                            dashboardItem?.type === 'Request Link' &&
+                            dashboardItem?.type !== 'Request Link' &&
                             dashboardItem?.status === 'pending' && (
                                 <div
                                     onClick={() => {
