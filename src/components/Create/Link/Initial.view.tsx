@@ -195,7 +195,7 @@ export const CreateLinkInitialView = ({
                     }}
                 />
             </div>
-            {inputValue.length > 0 ? (
+            {inputValue.length > 0 && (
                 <div className="flex w-full flex-col items-start  justify-center gap-2">
                     <label className="text-h7 font-bold text-gray-2">Search results</label>
                     <div
@@ -213,54 +213,6 @@ export const CreateLinkInitialView = ({
                         {isLoading && <Loading />}
                     </div>
                 </div>
-            ) : (
-                isConnected &&
-                (recentRecipients.length > 0 ? (
-                    <div className="flex w-full flex-col items-start  justify-center gap-2">
-                        <label className="text-h7 font-bold text-gray-2">Recents</label>
-                        {recentRecipients.map((recipient) => (
-                            <div
-                                key={recipient.address}
-                                className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
-                                onClick={() => {
-                                    handleOnNext(recipient.address)
-                                }}
-                            >
-                                <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">
-                                    <div className="flex flex-row items-center justify-start gap-2">
-                                        <div className="rounded-full border border-n-1">
-                                            <Icon name="profile" className="h-6 w-6" />
-                                        </div>
-                                        <div className="truncate">{utils.printableAddress(recipient.address)}</div>
-                                    </div>
-                                    <label className="font-normal">
-                                        {' '}
-                                        {recipient.count} {recipient.count > 1 ? 'transfers' : 'transfer'}
-                                    </label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex w-full flex-col items-start  justify-center gap-2">
-                        <label className="text-h7 font-bold text-gray-2">Recents</label>
-                        {[0, 1, 2].map((idx) => (
-                            <div
-                                key={idx}
-                                className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
-                            >
-                                <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">
-                                    <div className="flex flex-row items-center justify-start gap-2">
-                                        <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
-
-                                        <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                                    </div>
-                                    <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ))
             )}
             {errorState.showError && (
                 <>
