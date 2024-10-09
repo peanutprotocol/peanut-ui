@@ -39,13 +39,6 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
-    const IconPlaceholderChecker = (chainId: string) => {
-        if (chainId == '42161') {
-            return 'https://cdn.zerion.io/0xb50721bcf8d664c30412cfbc6cf7a15145234ad1.png'
-        }
-        return null
-    }
-
     const _tokensToDisplay = useMemo(() => {
         let _tokens
 
@@ -150,10 +143,10 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                     setVisible(!visible)
                 }}
                 isVisible={visible}
-                tokenLogoUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedToken?.logoURI}
+                tokenLogoUri={displayedToken?.logoURI ?? ''}
                 tokenSymbol={displayedToken?.symbol ?? ''}
                 tokenBalance={displayedTokenBalance?.amount ?? 0}
-                chainIconUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedChain?.icon.url}
+                chainIconUri={displayedChain?.icon.url ?? ''}
                 chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
                 type={isXChain ? 'xchain' : 'send'}
@@ -275,7 +268,6 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                                             ) : (
                                                                 <img
                                                                     src={
-                                                                        IconPlaceholderChecker(balance.chainId) ??
                                                                         consts.supportedPeanutChains.find(
                                                                             (chain) => chain.chainId === balance.chainId
                                                                         )?.icon.url
