@@ -62,12 +62,6 @@ export const InitialCashoutView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
-    useEffect(() => {
-        if (!_tokenValue) {
-            _setTokenValue('0')
-        }
-    }, [])
-
     const { prepareCreateLinkWrapper } = useCreateLink()
 
     const { isConnected } = useAccount()
@@ -402,7 +396,8 @@ export const InitialCashoutView = ({
                     if (!isConnected) handleConnectWallet()
                     else handleOnNext()
                 }}
-                disabled={isDisabled}
+                // Only allow the user to proceed if they are connected and the form is valid
+                disabled={isConnected && isDisabled}
             >
                 {!isConnected ? (
                     'Connect Wallet'
