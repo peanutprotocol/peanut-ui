@@ -95,7 +95,7 @@ const AddressInput = ({
                 userInput && !isLoading && isValidRecipient
                     ? ' border border-n-1 dark:border-white'
                     : userInput && !isLoading && !isValidRecipient
-                      ? ' border-n-1 border-red dark:border-red'
+                      ? ' border-red dark:border-red'
                       : ''
             }`}
         >

@@ -33,7 +33,7 @@ export const ProfileSkeleton = ({
     const [userState, setUserState] = useState<'login' | 'register'>('login')
 
     return (
-        <div className="relative flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
+        <div className="relative flex h-full w-full flex-col items-center justify-start gap-4 px-4">
             <div className="relative z-0 flex w-full flex-col items-center justify-center gap-2">
                 <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between">
                     <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
