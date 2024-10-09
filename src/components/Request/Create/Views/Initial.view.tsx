@@ -33,8 +33,8 @@ export const InitialView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
 
-    const [_tokenValue, _setTokenValue] = useState<string | undefined>(
-        inputDenomination === 'TOKEN' ? tokenValue : usdValue
+    const [_tokenValue, _setTokenValue] = useState<string>(
+        (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
 
     const handleOnNext = async () => {
@@ -157,7 +157,7 @@ export const InitialView = ({
                     onClick={() => {
                         handleOnNext()
                     }}
-                    disabled={!isValidRecipient || inputChanging || isLoading || !tokenValue}
+                    disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
                 >
                     {isLoading ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">

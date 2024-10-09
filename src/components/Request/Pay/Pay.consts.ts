@@ -1,5 +1,6 @@
 import * as views from './Views'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { type ITokenPriceData } from '@/interfaces'
 
 export type PayScreens = 'INITIAL' | 'SUCCESS'
 
@@ -8,7 +9,7 @@ export interface IPayScreenState {
     idx: number
 }
 
-export type IRequestLinkState = 'LOADING' | 'PAY' | 'ALREADY_PAID' | 'NOT_FOUND' | 'CANCELED'
+export type IRequestLinkState = 'LOADING' | 'READY_TO_PAY' | 'ALREADY_PAID' | 'ERROR' | 'CANCELED'
 
 export const INIT_VIEW_STATE: IPayScreenState = {
     screen: 'INITIAL',
@@ -30,7 +31,7 @@ export interface IPayScreenProps {
     estimatedPoints: number | undefined
     transactionHash: string
     setTransactionHash: (value: string) => void
-    tokenPrice: number
+    tokenPriceData?: ITokenPriceData
     estimatedGasCost: number | undefined
     unsignedTx: peanutInterfaces.IPeanutUnsignedTransaction | undefined
 }

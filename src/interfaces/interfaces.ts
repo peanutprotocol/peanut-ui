@@ -68,6 +68,11 @@ export interface IToken {
     logoURI: string
 }
 
+export type ITokenPriceData = {
+    chainId: string
+    price: number
+} & IToken
+
 export interface ILocalStorageItem {
     address: string
     hash: string

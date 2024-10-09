@@ -4,6 +4,7 @@ import React, { createContext, useEffect, useState } from 'react'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import { useAccount } from 'wagmi'
+import { type ITokenPriceData } from '@/interfaces'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
@@ -23,15 +24,8 @@ export const tokenSelectorContext = createContext({
     resetTokenContextProvider: () => {},
     isXChain: false as boolean,
     setIsXChain: (value: boolean) => {},
-    selectedTokenData: undefined as ITokenData | undefined,
+    selectedTokenData: undefined as ITokenPriceData | undefined,
 })
-
-type ITokenData = {
-    tokenAddress: string
-    chainId: string
-    decimals: number
-    price: number
-}
 
 /**
  * Context provider to manage the selected token and chain ID set in the tokenSelector. Token price is fetched here and input denomination can be set here too.
@@ -45,7 +39,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
     const [isXChain, setIsXChain] = useState<boolean>(false)
-    const [selectedTokenData, setSelectedTokenData] = useState<ITokenData | undefined>(undefined)
+    const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
 
     const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
@@ -85,12 +79,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                     if (tokenPriceResponse?.price) {
                         setSelectedTokenPrice(tokenPriceResponse.price)
                         setSelectedTokenDecimals(tokenPriceResponse.decimals)
-                        setSelectedTokenData({
-                            tokenAddress,
-                            chainId,
-                            decimals: tokenPriceResponse.decimals,
-                            price: tokenPriceResponse.price,
-                        })
+                        setSelectedTokenData(tokenPriceResponse)
                         if (tokenPriceResponse.price === 1) {
                             setInputDenomination('TOKEN')
                         } else {

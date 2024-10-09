@@ -1,7 +1,7 @@
 import * as _consts from '../Pay.consts'
 import { useAccount, useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as utils from '@/utils'
@@ -21,7 +21,7 @@ export const InitialView = ({
     requestLinkData,
     estimatedGasCost,
     setTransactionHash,
-    tokenPrice,
+    tokenPriceData,
     unsignedTx,
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
@@ -41,6 +41,8 @@ export const InitialView = ({
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
     const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
+    const [tokenRequestedLogoURI, setTokenRequestedLogoURI] = useState<string | undefined>(undefined)
+    const [tokenRequestedSymbol, setTokenRequestedSymbol] = useState<string>('')
     const createXChainUnsignedTx = async () => {
         // This function is only makes sense if selectedTokenData is defined
         // Check that it is defined before calling this function
@@ -49,20 +51,31 @@ export const InitialView = ({
         }
 
         const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-            fromToken: selectedTokenData!.tokenAddress,
+            fromToken: selectedTokenData!.address,
             fromChainId: selectedTokenData!.chainId,
             senderAddress: address ?? '',
             link: requestLinkData.link,
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
             apiUrl: '/api/proxy/get',
             provider: await peanut.getDefaultProvider(selectedTokenData!.chainId),
-            tokenType:
-                selectedTokenData!.tokenAddress === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            tokenType: selectedTokenData!.address === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
             fromTokenDecimals: selectedTokenData!.decimals as number,
         })
         return xchainUnsignedTxs
     }
 
+    const fetchTokenSymbol = async (chainId: string, address: string) => {
+        const provider = await peanut.getDefaultProvider(chainId)
+        const tokenContract = await peanut.getTokenContractDetails({
+            address,
+            provider,
+        })
+        setTokenRequestedSymbol(tokenContract?.symbol ?? '')
+    }
+
+    const calculatedFee = useMemo(() => {
+        return isXChain ? txFee : utils.formatTokenAmount(estimatedGasCost, 3)
+    }, [isXChain, estimatedGasCost, txFee])
     useEffect(() => {
         const estimateTxFee = async () => {
             setLinkState(RequestStatus.LOADING)
@@ -98,7 +111,7 @@ export const InitialView = ({
 
         const isXChain =
             selectedTokenData?.chainId !== requestLinkData.chainId ||
-            !utils.areTokenAddressesEqual(selectedTokenData?.tokenAddress, requestLinkData.tokenAddress)
+            !utils.areTokenAddressesEqual(selectedTokenData?.address, requestLinkData.tokenAddress)
         setIsXChain(isXChain)
 
         // wait for token selector to fetch token price, both effects depend on
@@ -108,6 +121,28 @@ export const InitialView = ({
 
         estimateTxFee()
     }, [isConnected, address, selectedTokenData, requestLinkData])
+
+    useEffect(() => {
+        const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
+        const logoURI =
+            chainDetails?.tokens.find((token) =>
+                utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
+            )?.logoURI ?? tokenPriceData?.logoURI
+        setTokenRequestedLogoURI(logoURI)
+
+        let tokenSymbol =
+            requestLinkData.tokenSymbol ??
+            consts.peanutTokenDetails
+                .find((chain) => chain.chainId === requestLinkData.chainId)
+                ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress))
+                ?.symbol?.toUpperCase() ??
+            tokenPriceData?.symbol
+        if (tokenSymbol) {
+            setTokenRequestedSymbol(tokenSymbol)
+        } else {
+            fetchTokenSymbol(requestLinkData.chainId, requestLinkData.tokenAddress)
+        }
+    }, [requestLinkData, tokenPriceData])
 
     const handleConnectWallet = async () => {
         open().finally(() => {
@@ -132,7 +167,7 @@ export const InitialView = ({
     }
 
     const handleOnNext = async () => {
-        const amountUsd = (Number(requestLinkData.tokenAmount) * tokenPrice).toFixed(2)
+        const amountUsd = (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2)
         try {
             setErrorState({ showError: false, errorMessage: '' })
             if (!unsignedTx) return
@@ -224,12 +259,6 @@ export const InitialView = ({
         setSelectedTokenAddress(requestLinkData.tokenAddress)
     }
 
-    const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
-
-    const tokenRequestedLogoURI = chainDetails?.tokens.find((token) =>
-        utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
-    )?.logoURI
-
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
@@ -264,13 +293,13 @@ export const InitialView = ({
                     is requesting
                 </label>
 
-                {tokenPrice ? (
+                {tokenPriceData ? (
                     <label className="text-h2">
-                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPrice)}
+                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPriceData.price)}
                     </label>
                 ) : (
                     <label className="text-h2 ">
-                        {requestLinkData.tokenAmount} {requestLinkData.tokenSymbol}
+                        {requestLinkData.tokenAmount} {tokenRequestedSymbol}
                     </label>
                 )}
                 <div>
@@ -287,15 +316,7 @@ export const InitialView = ({
                                 alt="logo"
                             />
                         </div>
-                        {requestLinkData.tokenAmount}{' '}
-                        {requestLinkData.tokenSymbol ??
-                            consts.peanutTokenDetails
-                                .find((chain) => chain.chainId === requestLinkData.chainId)
-                                ?.tokens.find((token) =>
-                                    utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
-                                )
-                                ?.symbol.toUpperCase()}{' '}
-                        on{' '}
+                        {requestLinkData.tokenAmount} {tokenRequestedSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
@@ -314,7 +335,11 @@ export const InitialView = ({
                                 <label className="font-bold">Network cost</label>
                             </div>
                             <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {!isXChain ? `$${utils.formatTokenAmount(estimatedGasCost, 3) ?? 0}` : `$${txFee}`}
+                                {calculatedFee ? (
+                                    `$${calculatedFee}`
+                                ) : (
+                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                )}
                                 {!isXChain ? (
                                     <MoreInfo
                                         text={
@@ -336,8 +361,11 @@ export const InitialView = ({
                                 <label className="font-bold">Points</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {estimatedPoints !== undefined &&
-                                    (estimatedPoints > 0 ? `+${estimatedPoints}` : estimatedPoints)}
+                                {estimatedPoints ? (
+                                    `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
+                                ) : (
+                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                )}
                                 <MoreInfo
                                     text={
                                         estimatedPoints !== undefined
@@ -356,7 +384,12 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
-                    disabled={linkState === RequestStatus.LOADING || linkState === RequestStatus.NOT_FOUND || isLoading}
+                    disabled={
+                        linkState === RequestStatus.LOADING ||
+                        linkState === RequestStatus.NOT_FOUND ||
+                        isLoading ||
+                        (linkState === RequestStatus.CLAIM && !calculatedFee)
+                    }
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
                         else if (RequestStatus.CLAIM === linkState) handleOnNext()

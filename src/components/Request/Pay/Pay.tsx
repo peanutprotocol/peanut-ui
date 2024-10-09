@@ -9,30 +9,43 @@ import * as generalViews from './Views/GeneralViews'
 import * as utils from '@/utils'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
+import { type ITokenPriceData } from '@/interfaces'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.IRequestLinkState>('LOADING')
-    const [tokenPrice, setTokenPrice] = useState<number>(0)
+    const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [requestLinkData, setRequestLinkData] = useState<_consts.IRequestLinkData | undefined>(undefined)
     const { estimateGasFee } = useCreateLink()
     const [estimatedPoints, setEstimatedPoints] = useState<number | undefined>(0)
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
+    const [errorMessage, setErrorMessage] = useState<string>('')
 
     const fetchPointsEstimation = async (
         requestLinkDetails: { recipientAddress: any; chainId: any; tokenAmount: any },
-        tokenPrice: { price: number; chainId: string; decimals: any } | undefined
+        tokenPriceData: ITokenPriceData | undefined
     ) => {
         const estimatedPoints = await estimatePoints({
             address: requestLinkDetails.recipientAddress,
             chainId: requestLinkDetails.chainId,
-            amountUSD: Number(requestLinkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+            amountUSD: Number(requestLinkDetails.tokenAmount) * (tokenPriceData?.price ?? 0),
             actionType: ActionType.CLAIM, // When API on prod will be ready lets change it to ActionType.FULFILL
         })
 
         setEstimatedPoints(estimatedPoints)
+    }
+
+    const fetchRecipientAddress = async (address: string): Promise<string> => {
+        if (!address.endsWith('eth')) {
+            return address
+        }
+        const resolvedAddress = await utils.resolveFromEnsName(address.toLowerCase())
+        if (!resolvedAddress) {
+            throw new Error('Failed to resolve ENS name')
+        }
+        return resolvedAddress
     }
 
     const handleOnNext = () => {
@@ -64,7 +77,8 @@ export const PayRequestLink = () => {
 
             // Check if request link is not found
             if (requestLinkDetails.error === 'Request link not found') {
-                setLinkState('NOT_FOUND')
+                setErrorMessage('This request could not be found. Are you sure your link is correct?')
+                setLinkState('ERROR')
                 return
             }
 
@@ -75,47 +89,11 @@ export const PayRequestLink = () => {
                 setLinkState('ALREADY_PAID')
                 return
             }
-
-            // Fetch token price
-            const tokenPrice = await utils.fetchTokenPrice(
-                requestLinkDetails.tokenAddress.toLowerCase(),
-                requestLinkDetails.chainId
-            )
-            tokenPrice && setTokenPrice(tokenPrice?.price)
-
-            await fetchPointsEstimation(requestLinkDetails, tokenPrice)
-
-            let recipientAddress = requestLinkDetails.recipientAddress
-            if (requestLinkDetails.recipientAddress.endsWith('eth')) {
-                recipientAddress = await utils.resolveFromEnsName(requestLinkDetails.recipientAddress.toLowerCase())
-            }
-
-            // Prepare request link fulfillment transaction
-            const tokenType = Number(requestLinkDetails.tokenType)
-            const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
-                recipientAddress: recipientAddress,
-                tokenAddress: requestLinkDetails.tokenAddress,
-                tokenAmount: requestLinkDetails.tokenAmount,
-                tokenDecimals: requestLinkDetails.tokenDecimals,
-                tokenType: tokenType,
-            })
-            setUnsignedTx(unsignedTx)
-
-            // Estimate gas fee
-            try {
-                const { transactionCostUSD: _transactionCostUSD } = await estimateGasFee({
-                    chainId: requestLinkDetails.chainId,
-                    preparedTx: unsignedTx,
-                })
-
-                if (_transactionCostUSD) setEstimatedGasCost(_transactionCostUSD)
-            } catch (error) {
-                console.log('error calculating transaction cost:', error)
-            }
-
-            setLinkState('PAY')
+            setLinkState('READY_TO_PAY')
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
+            setErrorMessage('This request could not be found. Are you sure your link is correct?')
+            setLinkState('ERROR')
         }
     }
 
@@ -125,6 +103,64 @@ export const PayRequestLink = () => {
             checkRequestLink(pageUrl)
         }
     }, [])
+
+    useEffect(() => {
+        if (!requestLinkData) return
+
+        // Fetch token price
+        utils
+            .fetchTokenPrice(requestLinkData.tokenAddress.toLowerCase(), requestLinkData.chainId)
+            .then((tokenPriceData) => {
+                if (tokenPriceData) {
+                    setTokenPriceData(tokenPriceData)
+                } else {
+                    setErrorMessage('Failed to fetch token price, please try again later')
+                    setLinkState('ERROR')
+                }
+            })
+
+        fetchRecipientAddress(requestLinkData.recipientAddress)
+            .then((recipientAddress) => {
+                const tokenType = Number(requestLinkData.tokenType)
+                const { unsignedTx } = peanut.prepareRequestLinkFulfillmentTransaction({
+                    recipientAddress: recipientAddress,
+                    tokenAddress: requestLinkData.tokenAddress,
+                    tokenAmount: requestLinkData.tokenAmount,
+                    tokenDecimals: requestLinkData.tokenDecimals,
+                    tokenType: tokenType,
+                })
+                setUnsignedTx(unsignedTx)
+            })
+            .catch((error) => {
+                console.log('error fetching recipient address:', error)
+                setErrorMessage('Failed to fetch recipient address, please try again later')
+                setLinkState('ERROR')
+            })
+
+        // Prepare request link fulfillment transaction
+    }, [requestLinkData])
+
+    useEffect(() => {
+        if (!requestLinkData || !tokenPriceData) return
+        fetchPointsEstimation(requestLinkData, tokenPriceData).catch((error) => {
+            console.log('error fetching points estimation:', error)
+        })
+    }, [tokenPriceData, requestLinkData])
+
+    useEffect(() => {
+        if (!requestLinkData || !unsignedTx) return
+
+        // Estimate gas fee
+        estimateGasFee({ chainId: requestLinkData.chainId, preparedTx: unsignedTx })
+            .then(({ transactionCostUSD }) => {
+                if (transactionCostUSD) setEstimatedGasCost(transactionCostUSD)
+            })
+            .catch((error) => {
+                console.log('error calculating transaction cost:', error)
+                setErrorMessage('Failed to estimate gas fee, please try again later')
+                setLinkState('ERROR')
+            })
+    }, [unsignedTx, requestLinkData])
 
     return (
         <div className="card">
@@ -136,7 +172,7 @@ export const PayRequestLink = () => {
                     </div>
                 </div>
             )}
-            {linkState === 'PAY' &&
+            {linkState === 'READY_TO_PAY' &&
                 createElement(_consts.PAY_SCREEN_MAP[step.screen].comp, {
                     onNext: handleOnNext,
                     onPrev: handleOnPrev,
@@ -144,11 +180,11 @@ export const PayRequestLink = () => {
                     estimatedPoints,
                     transactionHash,
                     setTransactionHash,
-                    tokenPrice,
+                    tokenPriceData,
                     estimatedGasCost,
                     unsignedTx,
                 } as _consts.IPayScreenProps)}
-            {linkState === 'NOT_FOUND' && <generalViews.NotFoundClaimLink />}
+            {linkState === 'ERROR' && <generalViews.ErrorView errorMessage={errorMessage} />}
             {linkState === 'CANCELED' && <generalViews.CanceledClaimLink />}
             {linkState === 'ALREADY_PAID' && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
         </div>
