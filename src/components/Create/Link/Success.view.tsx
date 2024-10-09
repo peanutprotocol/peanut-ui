@@ -86,7 +86,7 @@ export const CreateLinkSuccessView = ({
             {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">
                 {createType === 'direct'
-                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}.`
+                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}.`
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
             {link && (

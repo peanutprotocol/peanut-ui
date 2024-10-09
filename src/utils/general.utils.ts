@@ -1,7 +1,6 @@
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { exportTraceState } from 'next/dist/trace'
+import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
 
 export const shortenAddress = (address: string) => {
@@ -10,13 +9,17 @@ export const shortenAddress = (address: string) => {
     return firstBit + '..'
 }
 
-export const shortenAddressLong = (address: string, chars?: number) => {
-    if (!address) return
+export const shortenAddressLong = (address: string, chars?: number): string => {
     if (!chars) chars = 6
     const firstBit = address.substring(0, chars)
     const endingBit = address.substring(address.length - chars, address.length)
 
     return firstBit + '...' + endingBit
+}
+
+export const printableAddress = (address: string): string => {
+    if (address.endsWith('.eth')) return address
+    return shortenAddressLong(address)
 }
 
 export const shortenHash = (address: string) => {

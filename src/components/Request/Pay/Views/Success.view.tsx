@@ -17,7 +17,6 @@ export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPaySc
     >(undefined)
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
-
     useEffect(() => {
         if (transactionHash) {
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
@@ -27,11 +26,7 @@ export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPaySc
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
             <label className="text-h8 font-bold ">
-                You have successfully paid{' '}
-                {requestLinkData.recipientAddress.endsWith('.eth')
-                    ? requestLinkData.recipientAddress
-                    : utils.shortenAddressLong(requestLinkData.recipientAddress)}
-                !
+                You have successfully paid {utils.printableAddress(requestLinkData.recipientAddress)}!
             </label>
             <div className="flex w-full flex-col items-start justify-center gap-1.5 text-h9 font-normal">
                 <label className="text-h8 font-normal text-gray-1">Transaction details</label>

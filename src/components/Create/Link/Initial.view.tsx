@@ -231,7 +231,7 @@ export const CreateLinkInitialView = ({
                                         <div className="rounded-full border border-n-1">
                                             <Icon name="profile" className="h-6 w-6" />
                                         </div>
-                                        <div className="truncate">{utils.shortenAddressLong(recipient.address, 6)}</div>
+                                        <div className="truncate">{utils.printableAddress(recipient.address)}</div>
                                     </div>
                                     <label className="font-normal">
                                         {' '}

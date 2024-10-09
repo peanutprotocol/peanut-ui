@@ -77,7 +77,7 @@ export const Profile = () => {
     const [initialUserName, setInitialUserName] = useState(
         user?.user?.username ??
             user?.user?.email ??
-            (user?.accounts ? utils.shortenAddressLong(user?.accounts[0]?.account_identifier) : '')
+            (user?.accounts ? utils.printableAddress(user?.accounts[0]?.account_identifier) : '')
     )
     const toastIdRef = useRef<ToastId | undefined>(undefined)
     const toast = useToast({
@@ -271,7 +271,7 @@ export const Profile = () => {
                             primaryText: data.userName,
                             address: data.address,
                             secondaryText: '',
-                            tertiaryText: utils.shortenAddressLong(data.address) ?? '',
+                            tertiaryText: utils.printableAddress(data.address) ?? '',
                             quaternaryText: data.txs.toString(),
                             itemKey: data.userName + Math.random(),
                             type: 'contacts',
@@ -392,7 +392,7 @@ export const Profile = () => {
 
                                     <span className="flex justify-center gap-1 text-h8 font-normal">
                                         {user?.user?.email ??
-                                            utils.shortenAddressLong(user.accounts?.[0]?.account_identifier)}
+                                            utils.printableAddress(user.accounts?.[0]?.account_identifier)}
                                         <div className={`flex flex-row items-center justify-center `}>
                                             <div
                                                 className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
@@ -561,7 +561,7 @@ export const Profile = () => {
                                                         )
                                                     }}
                                                 />
-                                                {utils.shortenAddressLong(referral.address, 6)}
+                                                {utils.printableAddress(referral.address)}
                                             </label>
                                             <label className="w-[30%] text-center text-h8">
                                                 {referral?.totalReferrals ?? 0}

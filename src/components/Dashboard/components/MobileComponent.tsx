@@ -44,7 +44,7 @@ export const MobileItemComponent = ({
                         {linkDetail.chain}]
                     </label>
 
-                    <label>From: {utils.shortenAddressLong(linkDetail.address ?? address)}</label>
+                    <label>From: {utils.printableAddress(linkDetail.address ?? address)}</label>
                 </div>
                 <div className="flex flex-col items-end justify-end gap-2 text-end">
                     <div>
