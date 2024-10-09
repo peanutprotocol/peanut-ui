@@ -3,6 +3,7 @@
 import Icon from '@/components/Global/Icon'
 import * as _consts from '../Claim.consts'
 import * as consts from '@/constants'
+import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -49,6 +50,14 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                                 className="h-6 w-6"
                             />
                             {chainName}
+                        </span>
+                    </div>
+                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                        <div className="flex w-max  flex-row items-center justify-center gap-1">
+                            <label className="font-bold">Sender</label>
+                        </div>
+                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            {utils.shortenAddress(claimLinkData?.senderAddress)}
                         </span>
                     </div>
                 </div>
