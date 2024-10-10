@@ -1,6 +1,7 @@
 import { useAccount } from 'wagmi'
 import * as interfaces from '@/interfaces'
 import { useEffect, useState, useRef } from 'react'
+import * as utils from '@/utils'
 
 /**
  * Custom React hook to fetch and manage user's wallet balances across multiple chains,
@@ -122,9 +123,9 @@ export const useBalance = () => {
                                 const valueB = parseFloat(b.value)
 
                                 if (valueA === valueB) {
-                                    if (a.address.toLowerCase() === '0x0000000000000000000000000000000000000000')
+                                    if (utils.isAddressZero(a.address))
                                         return -1
-                                    if (b.address.toLowerCase() === '0x0000000000000000000000000000000000000000')
+                                    if (utils.isAddressZero(b.address))
                                         return 1
 
                                     return b.amount - a.amount
