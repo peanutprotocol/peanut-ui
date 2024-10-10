@@ -36,8 +36,8 @@ importers:
         specifier: ^8.30.0
         version: 8.30.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.26.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.53.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.26.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(webpack@5.94.0)
       '@squirrel-labs/peanut-sdk':
-        specifier: ^0.5.3
-        version: 0.5.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+        specifier: ^0.5.4
+        version: 0.5.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.56.2(react@18.3.1)
@@ -2790,8 +2790,8 @@ packages:
   '@spruceid/siwe-parser@2.1.2':
     resolution: {integrity: sha512-d/r3S1LwJyMaRAKQ0awmo9whfXeE88Qt00vRj91q5uv5ATtWIQEGJ67Yr5eSZw5zp1/fZCXZYuEckt8lSkereQ==}
 
-  '@squirrel-labs/peanut-sdk@0.5.3':
-    resolution: {integrity: sha512-4JIBIm7PWD3Rea4Uq9jbp8d2IgckLiQZLes8PCRmfdmNBTSVkfcie0J8LI1jtSKbTZjw0i9cp/9sBdlW85LyAQ==}
+  '@squirrel-labs/peanut-sdk@0.5.4':
+    resolution: {integrity: sha512-qJHNv4zFcaWOlX1JZVac9taP1cKiklNZU7sUNHawGRNa+F9+h0YsMYLm2ieZaXOctTyaZbHWleIdaE+aY3GZGQ==}
 
   '@stablelib/aead@1.0.1':
     resolution: {integrity: sha512-q39ik6sxGHewqtO0nP4BuSe3db5G1fEJE8ukvngS2gLkBXyy6E7pLubhbYgnkDFv6V8cWaxcE4Xn0t6LWcJkyg==}
@@ -5753,6 +5753,9 @@ packages:
   jest-mock@29.7.0:
     resolution: {integrity: sha512-ITOMZn+UkYS4ZFh83xYAOzWStloNzJFO2s8DWrE4lhtGD+AorgnbkiKERe4wQVBydIGPx059g6riW5Btp6Llnw==}
     engines: {node: ^14.15.0 || ^16.10.0 || >=18.0.0}
+
+  jest-summary-reporter@0.0.2:
+    resolution: {integrity: sha512-rZ3ThO57l+ZJCxF74cXIGQU3cV9I7bSBe1ElBp0taE3x2JghgD69bNCKt0LvpVQX5azTRHG7LmcjIpwriVnTng==}
 
   jest-util@29.7.0:
     resolution: {integrity: sha512-z6EbKajIpqGKU56y5KBUgy1dt1ihhQJgWzUlZHArA/+X2ad7Cb5iF+AK1EWVL/Bo7Rz9uurpqw6SiBCefUbCGA==}
@@ -12455,9 +12458,10 @@ snapshots:
       uri-js: 4.4.1
       valid-url: 1.0.9
 
-  '@squirrel-labs/peanut-sdk@0.5.3(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
+  '@squirrel-labs/peanut-sdk@0.5.4(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
     dependencies:
       ethersv5: ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+      jest-summary-reporter: 0.0.2
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -16556,6 +16560,10 @@ snapshots:
       '@jest/types': 29.6.3
       '@types/node': 20.4.2
       jest-util: 29.7.0
+
+  jest-summary-reporter@0.0.2:
+    dependencies:
+      chalk: 2.4.2
 
   jest-util@29.7.0:
     dependencies:
