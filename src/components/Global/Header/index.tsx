@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
 import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
 import Link from 'next/link'
@@ -115,6 +115,37 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
     )
 }
 
+const MenuLink = ({ route, title, isBeta = false }: { route: string; title: string; isBeta?: boolean }) => {
+    const router = useRouter()
+
+    const handleClick = useCallback(
+        (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+            e.preventDefault()
+            if (window?.location.pathname === route) {
+                // Force a hard reload of the current page
+                window.location.reload()
+            } else {
+                // For different routes, use router.push()
+                router.push(route)
+            }
+        },
+        [router, route]
+    )
+
+    return (
+        <NavLink href={route} onClick={handleClick}>
+            <Text display="block" className="flex items-center">
+                {title}
+            </Text>
+            {isBeta && (
+                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                    BETA
+                </span>
+            )}
+        </NavLink>
+    )
+}
+
 const ToolsDropdown = () => {
     const [showMenu, setShowMenu] = useState<boolean>(false)
 
@@ -144,24 +175,9 @@ const ToolsDropdown = () => {
                         }}
                         className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     >
-                        <Link
-                            href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> raffle</Text>
-                        </Link>
-                        <Link
-                            href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> batch</Text>
-                        </Link>
-                        <Link
-                            href={'/refund'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> refund</Text>
-                        </Link>
+                        <MenuLink route={'/raffle/create'} title={'raffle'} />
+                        <MenuLink route={'/batch/create'} title={'batch'} />
+                        <MenuLink route={'/refund'} title={'refund'} />
                     </div>
                 )}
             </div>
@@ -178,24 +194,9 @@ const ToolsDropdown = () => {
                 </NavItemBox>
                 {showMenu && (
                     <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <Link
-                            href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start py-2  pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> raffle</Text>
-                        </Link>
-                        <Link
-                            href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> batch</Text>
-                        </Link>
-                        <Link
-                            href={'/refund'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> refund</Text>
-                        </Link>
+                        <MenuLink route={'/raffle/create'} title={'raffle'} />
+                        <MenuLink route={'/batch/create'} title={'batch'} />
+                        <MenuLink route={'/refund'} title={'refund'} />
                     </div>
                 )}
             </div>
@@ -206,15 +207,6 @@ const ToolsDropdown = () => {
 const MenuLinks = () => {
     const { open: web3modalOpen } = useWeb3Modal()
     const { address, isConnected } = useAccount()
-    const router = useRouter()
-
-    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        // Prevent the default behavior of the link
-        e.preventDefault()
-        // Force a reload of the current route
-        if (window?.location.pathname == '/send') window?.location.reload()
-        else router.push('/send')
-    }
 
     return (
         <Stack
@@ -225,27 +217,11 @@ const MenuLinks = () => {
             height="100%"
             gap={0}
         >
-            <NavLink href={'/send'} onClick={handleClick}>
-                <Text display="block">send</Text>
-            </NavLink>
-            <NavLink href={'/request/create'}>
-                <Text display="block" className="flex items-center">
-                    request
-                </Text>
-                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                    BETA
-                </span>
-            </NavLink>
-            <NavLink href={'/cashout'}>
-                <Text display="block">cashout</Text>
-                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
-                    BETA
-                </span>
-            </NavLink>
+            <MenuLink route={'/send'} title={'send'} />
+            <MenuLink route={'/request/create'} title={'request'} isBeta />
+            <MenuLink route={'/cashout'} title={'cashout'} isBeta />
             <ToolsDropdown />
-            <NavLink href={'https://docs.peanut.to'}>
-                <Text display="block"> docs</Text>
-            </NavLink>
+            <MenuLink route={'https://docs.peanut.to'} title={'docs'} />
 
             <Box
                 display={{
