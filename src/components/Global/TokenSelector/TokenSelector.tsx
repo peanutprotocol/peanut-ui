@@ -19,8 +19,8 @@ import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
 
-const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: string) => void }) => {
-    const { selectedChainID, selectedTokenAddress, setSelectedChainID } = useContext(context.tokenSelectorContext)
+const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
+    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { hasFetchedBalances } = useBalance()
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
@@ -55,10 +55,9 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                     balances.map((balance, idx) => (
                         <tr
                             key={idx}
-                            className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
+                            className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID && `bg-n-3/10`}`}
                             onClick={() => {
-                                setSelectedChainID(balance.chainId)
-                                setToken(balance.address)
+                                setToken(balance)
                             }}
                         >
                             <td className="py-2 pr-2">
@@ -100,7 +99,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                                 }
                                                 className="absolute -top-1 left-3 h-4 w-4 rounded-full"
                                                 alt="logo"
-                                                onError={(e) => {
+                                                onError={(_e) => {
                                                     setChainPlaceholders((prev) => ({
                                                         ...prev,
                                                         [`${balance.address}_${balance.chainId}`]: true,
@@ -116,11 +115,15 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
                                         {balance.symbol}
                                     </div>
-                                    <div className="text-h9 font-normal">{utils.formatTokenAmount(balance.amount)}</div>
+                                    <div className="text-h9 font-normal">
+                                        {balance.amount ? utils.formatTokenAmount(balance.amount) : ''}
+                                    </div>
                                 </div>
                             </td>
                             <td className="py-2 text-h8">
-                                {balance.value ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}` : ''}
+                                {balance.value
+                                    ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}`
+                                    : balance.name}
                             </td>
                             <td className="y-2">
                                 <div className="flex flex-row items-center justify-end gap-2 pr-1">
@@ -141,12 +144,9 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
 const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
+    const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>(undefined)
+    const [hasUserChangedChain, setUserChangedChain] = useState(false)
     const focusButtonRef = useRef<HTMLButtonElement>(null)
-    /**
-     * If the user is not connected, we show a fallback screen to search for tokens directly,
-     * instead of showing the balances.
-     */
-    const [showFallback, setShowFallback] = useState(!shouldBeConnected)
 
     const { balances } = useBalance()
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID, isXChain } = useContext(
@@ -156,78 +156,66 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     const { open } = useWeb3Modal()
     const { safeInfo, walletType } = useWalletType()
 
-    const _tokensToDisplay = useMemo(() => {
-        let _tokens
-
-        _tokens = peanutTokenDetails.find((detail) => detail.chainId === selectedChainID)?.tokens || []
-
-        // Add all tokens the user has balances on (per chain)
-        if (balances.length > 0) {
-            balances.forEach((balance) => {
-                if (balance.chainId === selectedChainID) {
-                    _tokens.push({
-                        address: balance.address,
-                        logoURI: balance.logoURI,
-                        symbol: balance.symbol,
-                        name: balance.name,
-                        decimals: balance.decimals,
-                        chainId: balance.chainId,
-                    })
-                }
-            })
-
-            // remove duplicates
-            _tokens = _tokens.filter(
-                (token, index, self) => index === self.findIndex((t) => t.address === token.address)
-            )
-        }
-
-        //Filtering on name and symbol
-        if (filterValue && filterValue.length > 0) {
-            _tokens = _tokens.filter(
-                (token) =>
-                    token.name.toLowerCase().includes(filterValue.toLowerCase()) ||
-                    token.symbol.toLowerCase().includes(filterValue.toLowerCase())
-            )
-        }
-
-        if (safeInfo) {
-            _tokens = _tokens.filter((token) => token.chainId === safeInfo.chainId)
-        }
-
-        return _tokens
-    }, [filterValue, selectedChainID, balances])
+    const selectedChainTokens = useMemo(() => {
+        return (
+            peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens ||
+            peanutTokenDetails[0].tokens
+        ).map((token: IToken) => ({
+            ...token,
+            chainId: selectedChainID || token.chainId,
+            price: 0,
+            amount: 0,
+            currency: '',
+            value: '',
+        }))
+    }, [selectedChainID])
 
     const _balancesToDisplay = useMemo(() => {
-        let balancesToDisplay = balances
+        let balancesToDisplay: IUserBalance[]
 
         if (safeInfo && walletType === 'blockscout') {
             balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
+        } else {
+            balancesToDisplay = balances
         }
 
-        if (balancesToDisplay.length === 0) {
-            let tokens = selectedChainID
-                ? peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens
-                : peanutTokenDetails[0].tokens
-            tokens = tokens || peanutTokenDetails[0].tokens
-            balancesToDisplay = tokens.slice(0, 6).map((token: IToken) => ({
-                ...token,
-                chainId: selectedChainID || token.chainId,
-                price: 0,
-                amount: 0,
-                currency: '',
-                value: '',
-            }))
-        }
+        balancesToDisplay = [
+            ...balancesToDisplay,
+            ...selectedChainTokens.filter(
+                //remove tokens that are already in the balances
+                (token) =>
+                    !balancesToDisplay.find(
+                        (balance) =>
+                            balance.chainId === token.chainId &&
+                            utils.areTokenAddressesEqual(balance.address, token.address)
+                    )
+            ),
+        ]
 
         return balancesToDisplay
-    }, [balances, safeInfo, selectedChainID])
+    }, [balances, safeInfo, selectedChainTokens, walletType])
 
-    function setToken(address: string): void {
-        setSelectedTokenAddress(address)
+    const filteredBalances = useMemo(() => {
+        // initially show all balances and the tokens on the current chain
+        if (filterValue.length === 0 && !hasUserChangedChain) return _balancesToDisplay
+
+        const byChainAndText = ({ name, symbol, chainId }: IUserBalance): boolean =>
+            // if the user has changed chains, only show tokens on the current chain
+            // even if they have balances on other chains
+            (!hasUserChangedChain || selectedChainID === chainId) &&
+            // if the user has typed something, only show tokens that match
+            (filterValue.length === 0 ||
+                name.toLowerCase().includes(filterValue.toLowerCase()) ||
+                symbol.toLowerCase().includes(filterValue.toLowerCase()))
+
+        return _balancesToDisplay.filter(byChainAndText)
+    }, [_balancesToDisplay, filterValue, selectedChainID, hasUserChangedChain])
+
+    function setToken(balance: IUserBalance): void {
+        setSelectedChainID(balance.chainId)
+        setSelectedTokenAddress(balance.address)
         setTimeout(() => {
             setFilterValue('')
-            setShowFallback(false)
         }, 500)
         setVisible(false)
     }
@@ -238,20 +226,22 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
         }
     }, [visible])
 
-    const displayedToken = _tokensToDisplay.find((token) =>
-        utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-    )
-    const displayedChain = supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)
-    const displayedTokenBalance = balances.find(
-        (balance) =>
-            utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID
-    )
-
     useEffect(() => {
-        if (displayedToken === undefined && _tokensToDisplay[0]) {
-            setSelectedTokenAddress(_tokensToDisplay[0].address)
+        if (_balancesToDisplay.length > 0) {
+            setSelectedBalance(
+                _balancesToDisplay.find(
+                    (balance) =>
+                        utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
+                        balance.chainId === selectedChainID
+                )
+            )
         }
-    }, [displayedToken])
+    }, [_balancesToDisplay, selectedTokenAddress, selectedChainID])
+
+    const displayedChain = useMemo(
+        () => supportedPeanutChains.find((chain) => chain.chainId === selectedChainID),
+        [selectedChainID]
+    )
 
     return (
         <>
@@ -260,33 +250,27 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                     setVisible(!visible)
                 }}
                 isVisible={visible}
-                tokenLogoUri={displayedToken?.logoURI ?? ''}
-                tokenSymbol={displayedToken?.symbol ?? ''}
-                tokenBalance={displayedTokenBalance?.amount ?? 0}
+                tokenLogoUri={selectedBalance?.logoURI ?? ''}
+                tokenSymbol={selectedBalance?.symbol ?? ''}
+                tokenBalance={selectedBalance?.amount}
                 chainIconUri={displayedChain?.icon.url ?? ''}
                 chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
                 type={isXChain ? 'xchain' : 'send'}
-                onReset={onReset}
+                onReset={() => {
+                    onReset?.()
+                    setUserChangedChain(false)
+                }}
             />
 
             <Modal
                 visible={visible}
                 onClose={async () => {
                     setVisible(false)
-                    await new Promise(() =>
-                        setTimeout(() => {
-                            setShowFallback(false)
-                        }, 1000)
-                    )
                 }}
                 title={'Select Token'}
                 classNameWrapperDiv="px-2 pb-7 pt-8"
                 classWrap="max-w-[32rem]"
-                showPrev={shouldBeConnected ? showFallback : false}
-                onPrev={() => {
-                    setShowFallback(false)
-                }}
             >
                 {!isConnected && shouldBeConnected ? (
                     <div className="flex h-full w-full flex-col items-center justify-center gap-4 px-2 ">
@@ -310,22 +294,6 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                             </a>
                         </div>
                     </div>
-                ) : !showFallback ? (
-                    <div className="flex h-full w-full flex-col gap-4 px-2">
-                        <div className="h-full max-h-96 w-full overflow-auto">
-                            <TokenList balances={_balancesToDisplay} setToken={setToken} />
-                        </div>
-                        {!safeInfo && (
-                            <button
-                                className="text-h8 font-normal underline outline-none"
-                                onClick={() => {
-                                    setShowFallback(true)
-                                }}
-                            >
-                                Explore & buy more tokens
-                            </button>
-                        )}
-                    </div>
                 ) : (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
                         <div className="flex w-full flex-row gap-4">
@@ -339,11 +307,15 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                 medium
                                 border
                             />
-                            <ChainSelector />
+                            <ChainSelector
+                                onChange={(_chainId) => {
+                                    setUserChangedChain(true)
+                                }}
+                            />
                         </div>
-
-                        {filterValue.length > 0 &&
-                            components.tokenDisplay(_tokensToDisplay, setToken, balances, selectedChainID)}
+                        <div className="h-full max-h-96 w-full overflow-auto">
+                            <TokenList balances={filteredBalances} setToken={setToken} />
+                        </div>
                         <CrispButton className="cursor-pointer text-center text-h8 font-normal underline">
                             Chat with us if you want to add a custom token
                         </CrispButton>
