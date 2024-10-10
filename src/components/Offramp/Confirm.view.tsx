@@ -675,7 +675,7 @@ export const OfframpConfirmView = ({
                                 {offrampType == OfframpType.CLAIM && (
                                     <Icon name={'transfer'} className="h-4 fill-gray-1" />
                                 )}
-                                <label className="font-bold">Total</label>
+                                <label className="font-bold">You will receive</label>
                             </div>
 
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
