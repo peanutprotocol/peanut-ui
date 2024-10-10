@@ -144,6 +144,10 @@ export const InitialView = ({
         }
     }, [requestLinkData, tokenPriceData])
 
+    useEffect(() => {
+        resetTokenAndChain()
+    }, [])
+
     const handleConnectWallet = async () => {
         open().finally(() => {
             if (isConnected) setLinkState(RequestStatus.LOADING)
