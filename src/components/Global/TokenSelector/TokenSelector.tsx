@@ -10,6 +10,7 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import * as components from './Components'
+import { IToken, IUserBalance } from '@/interfaces'
 
 import * as _consts from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
@@ -17,6 +18,125 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
+
+const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: string) => void }) => {
+    const { selectedChainID, selectedTokenAddress, setSelectedChainID } = useContext(context.tokenSelectorContext)
+    const { hasFetchedBalances } = useBalance()
+    const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
+    const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
+
+    return (
+        <table className="w-full divide-y divide-black">
+            <tbody className="divide-y divide-black bg-white">
+                {hasFetchedBalances && balances.length === 0 ? (
+                    <tr>
+                        <td colSpan={4} className="py-2">
+                            No balances to display!
+                        </td>
+                    </tr>
+                ) : balances.length === 0 ? (
+                    [1, 2, 3, 4].map((_, idx) => (
+                        <tr key={idx}>
+                            <td className="py-2">
+                                <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
+                            </td>
+                            <td className="py-2">
+                                <div className="h-6 w-22 animate-colorPulse rounded-full bg-slate-700" />
+                            </td>
+                            <td className="py-2">
+                                <div className="h-6 w-18 animate-colorPulse rounded-full bg-slate-700" />
+                            </td>
+                            <td className=" py-2">
+                                <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
+                            </td>
+                        </tr>
+                    ))
+                ) : (
+                    balances.map((balance, idx) => (
+                        <tr
+                            key={idx}
+                            className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
+                            onClick={() => {
+                                setSelectedChainID(balance.chainId)
+                                setToken(balance.address)
+                            }}
+                        >
+                            <td className="py-2 pr-2">
+                                <div className="flex flex-row items-center justify-center gap-2 pl-1">
+                                    <div className="relative h-6 w-6">
+                                        {tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                            <Icon
+                                                name="token_placeholder"
+                                                className="absolute left-0 top-0 h-6 w-6"
+                                                fill="#999"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={balance.logoURI}
+                                                className="absolute left-0 top-0 h-6 w-6"
+                                                alt="logo"
+                                                onError={(e) => {
+                                                    console.log(e)
+                                                    e.currentTarget.style.display = 'none'
+                                                    setTokenPlaceholders((prev) => ({
+                                                        ...prev,
+                                                        [`${balance.address}_${balance.chainId}`]: true,
+                                                    }))
+                                                }}
+                                            />
+                                        )}
+                                        {chainPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                            <Icon
+                                                name="token_placeholder"
+                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                                fill="#999"
+                                            />
+                                        ) : (
+                                            <img
+                                                src={
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) => chain.chainId === balance.chainId
+                                                    )?.icon.url
+                                                }
+                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                                alt="logo"
+                                                onError={(e) => {
+                                                    setChainPlaceholders((prev) => ({
+                                                        ...prev,
+                                                        [`${balance.address}_${balance.chainId}`]: true,
+                                                    }))
+                                                }}
+                                            />
+                                        )}
+                                    </div>
+                                </div>
+                            </td>
+                            <td className="py-2">
+                                <div className="flex flex-col items-start justify-center gap-1">
+                                    <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
+                                        {balance.symbol}
+                                    </div>
+                                    <div className="text-h9 font-normal">{utils.formatTokenAmount(balance.amount)}</div>
+                                </div>
+                            </td>
+                            <td className="py-2 text-h8">
+                                {balance.value ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}` : ''}
+                            </td>
+                            <td className="y-2">
+                                <div className="flex flex-row items-center justify-end gap-2 pr-1">
+                                    <div className="text-h8 text-gray-1 ">
+                                        {consts.supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)
+                                            ?.name ?? ''}
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                    ))
+                )}
+            </tbody>
+        </table>
+    )
+}
 
 const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _consts.TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
@@ -28,22 +148,13 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
      */
     const [showFallback, setShowFallback] = useState(!shouldBeConnected)
 
-    const { balances, hasFetchedBalances } = useBalance()
+    const { balances } = useBalance()
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID, isXChain } = useContext(
         context.tokenSelectorContext
     )
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
     const { safeInfo, walletType } = useWalletType()
-    const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
-    const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
-
-    const IconPlaceholderChecker = (chainId: string) => {
-        if (chainId == '42161') {
-            return 'https://cdn.zerion.io/0xb50721bcf8d664c30412cfbc6cf7a15145234ad1.png'
-        }
-        return null
-    }
 
     const _tokensToDisplay = useMemo(() => {
         let _tokens
@@ -94,8 +205,23 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
             balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
         }
 
+        if (balancesToDisplay.length === 0) {
+            let tokens = selectedChainID
+                ? peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens
+                : peanutTokenDetails[0].tokens
+            tokens = tokens || peanutTokenDetails[0].tokens
+            balancesToDisplay = tokens.slice(0, 6).map((token: IToken) => ({
+                ...token,
+                chainId: selectedChainID || token.chainId,
+                price: 0,
+                amount: 0,
+                currency: '',
+                value: '',
+            }))
+        }
+
         return balancesToDisplay
-    }, [balances, safeInfo])
+    }, [balances, safeInfo, selectedChainID])
 
     function setToken(address: string): void {
         setSelectedTokenAddress(address)
@@ -134,10 +260,10 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                     setVisible(!visible)
                 }}
                 isVisible={visible}
-                tokenLogoUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedToken?.logoURI}
+                tokenLogoUri={displayedToken?.logoURI ?? ''}
                 tokenSymbol={displayedToken?.symbol ?? ''}
                 tokenBalance={displayedTokenBalance?.amount ?? 0}
-                chainIconUri={(IconPlaceholderChecker(selectedChainID) as string) ?? displayedChain?.icon.url}
+                chainIconUri={displayedChain?.icon.url ?? ''}
                 chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
                 type={isXChain ? 'xchain' : 'send'}
@@ -186,125 +312,8 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                     </div>
                 ) : !showFallback ? (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
-                        {/* <label className="text-center text-h5">Select a token to send</label> */}
                         <div className="h-full max-h-96 w-full overflow-auto">
-                            <table className="w-full divide-y divide-black">
-                                <tbody className="divide-y divide-black bg-white">
-                                    {hasFetchedBalances && balances.length === 0 ? (
-                                        <div className="flex w-full items-center justify-center text-center">
-                                            No balances to display!
-                                        </div>
-                                    ) : _balancesToDisplay.length === 0 ? (
-                                        [1, 2, 3, 4].map((_, idx) => (
-                                            <tr key={idx}>
-                                                <td className="py-2">
-                                                    <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
-                                                </td>
-                                                <td className="py-2">
-                                                    <div className="h-6 w-22 animate-colorPulse rounded-full bg-slate-700" />
-                                                </td>
-                                                <td className="py-2">
-                                                    <div className="h-6 w-18 animate-colorPulse rounded-full bg-slate-700" />
-                                                </td>
-                                                <td className=" py-2">
-                                                    <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                                                </td>
-                                            </tr>
-                                        ))
-                                    ) : (
-                                        _balancesToDisplay.map((balance, idx) => (
-                                            <tr
-                                                key={idx}
-                                                className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${selectedTokenAddress === balance.address && selectedChainID === balance.chainId && `bg-n-3/10`}`}
-                                                onClick={() => {
-                                                    setSelectedChainID(balance.chainId)
-                                                    setToken(balance.address)
-                                                }}
-                                            >
-                                                <td className="py-2 pr-2">
-                                                    <div className="flex flex-row items-center justify-center gap-2 pl-1">
-                                                        <div className="relative h-6 w-6">
-                                                            {tokenPlaceholders[
-                                                                `${balance.address}_${balance.chainId}`
-                                                            ] ? (
-                                                                <Icon
-                                                                    name="token_placeholder"
-                                                                    className="absolute left-0 top-0 h-6 w-6"
-                                                                    fill="#999"
-                                                                />
-                                                            ) : (
-                                                                <img
-                                                                    src={balance.logoURI}
-                                                                    className="absolute left-0 top-0 h-6 w-6"
-                                                                    alt="logo"
-                                                                    onError={(e) => {
-                                                                        console.log(e)
-                                                                        e.currentTarget.style.display = 'none'
-                                                                        setTokenPlaceholders((prev) => ({
-                                                                            ...prev,
-                                                                            [`${balance.address}_${balance.chainId}`]:
-                                                                                true,
-                                                                        }))
-                                                                    }}
-                                                                />
-                                                            )}
-                                                            {chainPlaceholders[
-                                                                `${balance.address}_${balance.chainId}`
-                                                            ] ? (
-                                                                <Icon
-                                                                    name="token_placeholder"
-                                                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full"
-                                                                    fill="#999"
-                                                                />
-                                                            ) : (
-                                                                <img
-                                                                    src={
-                                                                        IconPlaceholderChecker(balance.chainId) ??
-                                                                        consts.supportedPeanutChains.find(
-                                                                            (chain) => chain.chainId === balance.chainId
-                                                                        )?.icon.url
-                                                                    }
-                                                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full"
-                                                                    alt="logo"
-                                                                    onError={(e) => {
-                                                                        setChainPlaceholders((prev) => ({
-                                                                            ...prev,
-                                                                            [`${balance.address}_${balance.chainId}`]:
-                                                                                true,
-                                                                        }))
-                                                                    }}
-                                                                />
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="py-2">
-                                                    <div className="flex flex-col items-start justify-center gap-1">
-                                                        <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                                                            {balance.symbol}
-                                                        </div>
-                                                        <div className="text-h9 font-normal">
-                                                            {utils.formatTokenAmount(balance.amount)}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="py-2 text-h8">
-                                                    ${utils.formatTokenAmount(parseFloat(balance.value), 2)}
-                                                </td>
-                                                <td className="y-2">
-                                                    <div className="flex flex-row items-center justify-end gap-2 pr-1">
-                                                        <div className="text-h8 text-gray-1 ">
-                                                            {consts.supportedPeanutChains.find(
-                                                                (chain) => chain.chainId === balance.chainId
-                                                            )?.name ?? ''}
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
+                            <TokenList balances={_balancesToDisplay} setToken={setToken} />
                         </div>
                         {!safeInfo && (
                             <button
@@ -316,7 +325,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                 Explore & buy more tokens
                             </button>
                         )}
-                    </div> // TODO: create components out of this
+                    </div>
                 ) : (
                     <div className="flex h-full w-full flex-col gap-4 px-2">
                         <div className="flex w-full flex-row gap-4">
