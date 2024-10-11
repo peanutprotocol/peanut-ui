@@ -213,10 +213,10 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     function setToken(balance: IUserBalance): void {
         setSelectedChainID(balance.chainId)
         setSelectedTokenAddress(balance.address)
+        setVisible(false)
         setTimeout(() => {
             setFilterValue('')
-        }, 500)
-        setVisible(false)
+        }, 200) // the modal takes 200ms to close (duration-200 on leave)
     }
 
     useEffect(() => {
