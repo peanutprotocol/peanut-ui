@@ -252,10 +252,10 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                     setVisible(!visible)
                 }}
                 isVisible={visible}
-                tokenLogoUri={selectedBalance?.logoURI ?? ''}
+                tokenLogoUri={selectedBalance?.logoURI}
                 tokenSymbol={selectedBalance?.symbol ?? ''}
                 tokenBalance={selectedBalance?.amount}
-                chainIconUri={displayedChain?.icon.url ?? ''}
+                chainIconUri={displayedChain?.icon.url}
                 chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
                 type={isXChain ? 'xchain' : 'send'}

@@ -10,13 +10,13 @@ import Loading from '../../Loading'
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
     isVisible: boolean
-    tokenLogoUri: string
+    tokenLogoUri?: string
     tokenSymbol: string
     tokenBalance?: number
     tokenPrice?: number
     tokenAmount?: string
     chainName: string
-    chainIconUri: string
+    chainIconUri?: string
     classNameButton?: string
     isStatic?: boolean
     type?: 'xchain' | 'send'
@@ -82,12 +82,24 @@ export const AdvancedTokenSelectorButton = ({
         >
             <div className={'flex flex-row items-center justify-center gap-4'}>
                 <div className="relative h-8 w-8">
-                    <img src={tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
-                    <img
-                        src={chainIconUri}
-                        className="absolute -top-2 left-4 h-6 w-6 rounded-full" // Adjust `left-3` to control the overlap
-                        alt="logo"
-                    />
+                    {tokenLogoUri ? (
+                        <img src={tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
+                    ) : (
+                        <Icon name="token_placeholder" className="absolute left-0 top-0 h-8 w-8" fill="#999" />
+                    )}
+                    {chainIconUri ? (
+                        <img
+                            src={chainIconUri}
+                            className="absolute -top-2 left-4 h-6 w-6 rounded-full" // Adjust `left-3` to control the overlap
+                            alt="logo"
+                        />
+                    ) : (
+                        <Icon
+                            name="token_placeholder"
+                            className="absolute -top-2 left-4 h-6 w-6 rounded-full"
+                            fill="#999"
+                        />
+                    )}
                 </div>
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
