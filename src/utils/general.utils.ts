@@ -325,12 +325,16 @@ export const isTestnetChain = (chainId: string) => {
 
 export const areTokenAddressesEqual = (address1: string, address2: string): boolean => {
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address1 = '0x0000000000000000000000000000000000000000'
+        address1 = ethers.constants.AddressZero
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address2 = '0x0000000000000000000000000000000000000000'
+        address2 = ethers.constants.AddressZero
     // By using ethers.getAddress we are safe from different cases
     // and other address formatting
     return ethers.utils.getAddress(address1) === ethers.utils.getAddress(address2)
+}
+
+export const isAddressZero = (address: string): boolean => {
+    return areTokenAddressesEqual(address, ethers.constants.AddressZero)
 }
 
 export const isNativeCurrency = (address: string) => {

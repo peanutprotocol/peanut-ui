@@ -50,10 +50,6 @@ export const fetchTokenPrice = async (
     host?: string
 ): Promise<ITokenPriceData | undefined> => {
     try {
-        if (tokenAddress.toLowerCase() == '0x0000000000000000000000000000000000000000') {
-            tokenAddress = '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
-        }
-
         // Routing mobula api call through nextjs BFF
         const mobulaResponse = await fetch(
             host ? `${host}/api/mobula/fetch-token-price` : `/api/mobula/fetch-token-price`,
@@ -63,7 +59,9 @@ export const fetchTokenPrice = async (
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    tokenAddress,
+                    tokenAddress: utils.isAddressZero(tokenAddress)
+                        ? '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee'
+                        : tokenAddress,
                     chainId,
                 }),
             }

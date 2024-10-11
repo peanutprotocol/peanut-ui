@@ -9,12 +9,18 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { peanut } from '@squirrel-labs/peanut-sdk'
+import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { ADDRESS_ZERO, EPeanutLinkType, RequestStatus } from '../utils'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
+
+enum RequestStatus {
+    LOADING = 'LOADING',
+    CLAIM = 'CLAIM',
+    NOT_CONNECTED = 'NOT_CONNECTED',
+    NOT_FOUND = 'NOT_FOUND',
+}
 
 export const InitialView = ({
     onNext,
@@ -64,7 +70,9 @@ export const InitialView = ({
             squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
             apiUrl: '/api/proxy/get',
             provider: await peanut.getDefaultProvider(selectedTokenData!.chainId),
-            tokenType: selectedTokenData!.address === ADDRESS_ZERO ? EPeanutLinkType.native : EPeanutLinkType.erc20,
+            tokenType: utils.isAddressZero(selectedTokenData!.address)
+                ? interfaces.EPeanutLinkType.native
+                : interfaces.EPeanutLinkType.erc20,
             fromTokenDecimals: selectedTokenData!.decimals as number,
         })
         return xchainUnsignedTxs
@@ -118,9 +126,6 @@ export const InitialView = ({
             }
         }
 
-        // wait for token selector to fetch token price, both effects depend on
-        // selectedTokenAddress and selectedChainID, but we depend on that
-        // effect being completed first
         if (!isConnected) return
 
         if (isXChain && !selectedTokenData) {
@@ -168,6 +173,7 @@ export const InitialView = ({
     }, [requestLinkData, tokenPriceData])
 
     useEffect(() => {
+        // Load the token chain pair from the request link data
         resetTokenAndChain()
     }, [])
 
