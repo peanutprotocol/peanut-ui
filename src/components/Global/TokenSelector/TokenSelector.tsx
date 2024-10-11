@@ -234,6 +234,8 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                         balance.chainId === selectedChainID
                 )
             )
+        } else {
+            setSelectedBalance(undefined)
         }
     }, [_balancesToDisplay, selectedTokenAddress, selectedChainID])
 
