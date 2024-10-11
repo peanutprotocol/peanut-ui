@@ -216,6 +216,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
         setVisible(false)
         setTimeout(() => {
             setFilterValue('')
+            setUserChangedChain(false)
         }, 200) // the modal takes 200ms to close (duration-200 on leave)
     }
 
@@ -268,6 +269,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                 visible={visible}
                 onClose={async () => {
                     setVisible(false)
+                    setUserChangedChain(false)
                 }}
                 title={'Select Token'}
                 classNameWrapperDiv="px-2 pb-7 pt-8"
