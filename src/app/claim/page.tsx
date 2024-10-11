@@ -3,8 +3,12 @@ import Layout from '@/components/Global/Layout'
 import { Metadata, ResolvingMetadata } from 'next'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
+import { getQueryClient } from '@/query'
+import { getClaimQuery } from '@/components/Claim/services/query'
 
 export const dynamic = 'force-dynamic'
+
+const host = 'https://peanut.to'
 
 type Props = {
     params: { id: string }
@@ -28,11 +32,10 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
     return `${host}?${queryParams.toString()}`
 }
 
-export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
     let title = 'Claim your tokens!'
 
     // const host = headers().get('host') || ''
-    const host = 'https://peanut.to'
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)
@@ -72,7 +75,10 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
     }
 }
 
-export default function ClaimPage() {
+export default function ClaimPage({ searchParams }: Props) {
+    const queryClient = getQueryClient()
+    void queryClient.prefetchQuery(getClaimQuery(createURL(host, searchParams)))
+
     return (
         <Layout>
             <components.Claim />
