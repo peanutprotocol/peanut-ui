@@ -5,7 +5,7 @@ import { Menu, Transition } from '@headlessui/react'
 import Icon from '../Icon'
 import Search from '../Search'
 import { useBalance } from '@/hooks/useBalance'
-import { supportedWalletconnectChains, supportedPeanutChains } from '@/constants'
+import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { IPeanutChainDetails } from '@/interfaces'
 import * as utils from '@/utils'
@@ -20,13 +20,14 @@ type Chain = {
 
 interface IChainSelectorProps {
     chainsToDisplay?: IPeanutChainDetails[]
+    onChange?: (chainId: string) => void
 }
 
-const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
+const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
     const [, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
 
-    const { balances, valuePerChain } = useBalance()
+    const { valuePerChain } = useBalance()
     const { selectedChainID, setSelectedChainID } = useContext(context.tokenSelectorContext)
 
     const _chainsToDisplay = useMemo(() => {
@@ -57,6 +58,7 @@ const ChainSelector = ({ chainsToDisplay }: IChainSelectorProps) => {
     function setChain(chainId: string): void {
         setSelectedChainID(chainId)
         setVisible(false)
+        onChange?.(chainId)
     }
 
     return (
