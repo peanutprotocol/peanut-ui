@@ -75,7 +75,6 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                                 className="absolute left-0 top-0 h-6 w-6"
                                                 alt="logo"
                                                 onError={(e) => {
-                                                    console.log(e)
                                                     e.currentTarget.style.display = 'none'
                                                     setTokenPlaceholders((prev) => ({
                                                         ...prev,
