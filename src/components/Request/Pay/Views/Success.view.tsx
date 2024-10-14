@@ -5,9 +5,12 @@ import * as utils from '@/utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
+import { peanut } from '@squirrel-labs/peanut-sdk'
+import { useAccount } from 'wagmi'
 
-export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPayScreenProps) => {
-    const { selectedChainID } = useContext(context.tokenSelectorContext)
+export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
+    const { selectedChainID, isXChain } = useContext(context.tokenSelectorContext)
+    const { address } = useAccount()
     const sourceUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(selectedChainID)}/tx/${transactionHash}`,
         [transactionHash, selectedChainID]
@@ -18,10 +21,32 @@ export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPaySc
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
     useEffect(() => {
-        if (transactionHash) {
+        if (explorerUrlDestChainWithTxHash) {
+            peanut.submitRequestLinkFulfillment({
+                chainId: requestLinkData.chainId,
+                hash: explorerUrlDestChainWithTxHash.transactionId,
+                payerAddress: address ?? '',
+                link: requestLinkData.link,
+                apiUrl: '/api/proxy/patch/',
+                amountUsd: (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2),
+            })
+            utils.saveRequestLinkFulfillmentToLocalStorage({
+                details: {
+                    ...requestLinkData,
+                    destinationChainFulfillmentHash: explorerUrlDestChainWithTxHash.transactionId,
+                    createdAt: new Date().toISOString(),
+                },
+                link: requestLinkData.link,
+            })
+        }
+    }, [explorerUrlDestChainWithTxHash])
+
+    useEffect(() => {
+        if (isXChain && transactionHash) {
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
@@ -36,7 +61,7 @@ export const SuccessView = ({ transactionHash, requestLinkData }: _consts.IPaySc
                         {utils.shortenAddressLong(transactionHash ?? '')}
                     </Link>
                 </div>
-                {requestLinkData.chainId !== selectedChainID && (
+                {isXChain && (
                     <>
                         <div className="flex w-full flex-row items-center justify-start gap-1">
                             <label className="">Axelar:</label>
