@@ -36,36 +36,34 @@ const AddressInput = ({
                 if (resolvedAddress) {
                     setRecipient(recipient)
                     setIsValidRecipient(true)
-                    _setIsValidRecipient(true)
                     setType('ens')
                     onSubmit(recipient)
                 } else {
                     setIsValidRecipient(false)
-                    _setIsValidRecipient(false)
                 }
             } else if (ethers.utils.isAddress(recipient)) {
                 setRecipient(recipient)
                 setIsValidRecipient(true)
-                _setIsValidRecipient(true)
                 setType('address')
                 onSubmit(recipient)
             } else {
                 setIsValidRecipient(false)
-                _setIsValidRecipient(false)
             }
         } catch (error) {
             console.error('Error while validating recipient input field:', error)
             setIsValidRecipient(false)
-            _setIsValidRecipient(false)
         } finally {
             setIsLoading(false)
         }
     }
 
     useEffect(() => {
+        _setIsValidRecipient(isValidRecipient)
+    }, [isValidRecipient])
+
+    useEffect(() => {
         if (recipient && isValidRecipient) {
             onSubmit(recipient)
-            _setIsValidRecipient(true)
         }
     }, [recipient])
 
@@ -116,7 +114,7 @@ const AddressInput = ({
                     if (e.target.value) {
                         setUserInput(e.target.value)
                     } else {
-                        _setIsValidRecipient(false)
+                        setIsValidRecipient(false)
                         setUserInput('')
                     }
                 }}
@@ -137,6 +135,7 @@ const AddressInput = ({
                                 e.preventDefault()
                                 setUserInput('')
                                 onDeleteClick()
+                                setIsValidRecipient(false)
                             }}
                             className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white"
                         >
