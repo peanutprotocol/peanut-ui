@@ -3,7 +3,6 @@ import Layout from '@/components/Global/Layout'
 import { Metadata, ResolvingMetadata } from 'next'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
-import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 

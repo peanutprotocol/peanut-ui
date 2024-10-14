@@ -1,6 +1,5 @@
-import { NextResponse, NextRequest } from 'next/server'
+import { NextResponse } from 'next/server'
 import { cookies } from 'next/headers'
-import * as consts from '@/constants'
 
 export async function GET() {
     try {

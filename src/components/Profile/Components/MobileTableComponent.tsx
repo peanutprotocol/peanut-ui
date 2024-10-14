@@ -7,6 +7,11 @@ import * as consts from '@/constants'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+/**
+ * MobileTableComponent renders a mobile-friendly table for user profile data, such as accounts, contacts, or transaction history.
+ * It handles different types of items (e.g., history, contacts, accounts), provides UI for avatars, statuses, and actions.
+ * The component also includes a modal for additional actions like copying links, refunding, or viewing transactions in explorers.
+ */
 export const MobileTableComponent = ({
     itemKey,
     primaryText,
@@ -53,13 +58,23 @@ export const MobileTableComponent = ({
                     </div>
                     <div className="flex flex-col items-end justify-end gap-2 text-end">
                         <div>
-                            {type === 'history' ? (
-                                quaternaryText === 'claimed' ? (
-                                    <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                            {type === 'history' && dashboardItem ? (
+                                dashboardItem.status === 'claimed' ? (
+                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                         claimed
                                     </div>
+                                ) : dashboardItem.status === 'transfer' ? (
+                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">sent</div>
+                                ) : dashboardItem.status === 'paid' ? (
+                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">paid</div>
+                                ) : dashboardItem.status ? (
+                                    <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                        {dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
+                                    </div>
                                 ) : (
-                                    <div className="border border-gray-1 border-n-1 px-2 py-1 text-gray-1">pending</div>
+                                    <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
+                                        pending
+                                    </div>
                                 )
                             ) : type === 'contacts' ? (
                                 <label className="font-bold">txs: {quaternaryText}</label>
@@ -80,17 +95,21 @@ export const MobileTableComponent = ({
                 <div className="flex w-full flex-col items-center justify-center p-2 "></div>
                 {type === 'history' ? (
                     <>
-                        {dashboardItem?.type !== 'Link Received' && dashboardItem?.status === 'pending' && (
-                            <div
-                                onClick={() => {
-                                    dashboardItem.link && window.open(dashboardItem?.link ?? '', '_blank')
-                                }}
-                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
-                            >
-                                Refund
-                            </div>
-                        )}
-                        {(dashboardItem?.type === 'Link Received' || dashboardItem?.type === 'Link Sent') && (
+                        {dashboardItem?.type !== 'Link Received' &&
+                            dashboardItem?.type !== 'Request Link' &&
+                            dashboardItem?.status === 'pending' && (
+                                <div
+                                    onClick={() => {
+                                        dashboardItem.link && window.open(dashboardItem?.link ?? '', '_blank')
+                                    }}
+                                    className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20 "
+                                >
+                                    Refund
+                                </div>
+                            )}
+                        {(dashboardItem?.type === 'Link Received' ||
+                            dashboardItem?.type === 'Link Sent' ||
+                            dashboardItem?.type === 'Request Link') && (
                             <div
                                 onClick={() => {
                                     utils.copyTextToClipboardWithFallback(dashboardItem?.link ?? '')
@@ -124,6 +143,19 @@ export const MobileTableComponent = ({
                                 className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
                             >
                                 Download attachment
+                            </a>
+                        )}
+                        {dashboardItem?.type === 'Offramp Claim' && dashboardItem.status !== 'claimed' && (
+                            <a
+                                href={(() => {
+                                    const url = new URL(dashboardItem?.link ?? '')
+                                    url.pathname = '/cashout/status'
+                                    return url.toString()
+                                })()}
+                                target="_blank"
+                                className="flex h-12 w-full items-center gap-2 px-4 text-h8 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 disabled:cursor-not-allowed disabled:bg-n-4 disabled:hover:bg-n-4/90 dark:hover:bg-white/20"
+                            >
+                                Check Status
                             </a>
                         )}
                     </>

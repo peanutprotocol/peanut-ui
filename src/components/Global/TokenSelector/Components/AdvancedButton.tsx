@@ -10,16 +10,17 @@ import Loading from '../../Loading'
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
     isVisible: boolean
-    tokenLogoUri: string
+    tokenLogoUri?: string
     tokenSymbol: string
     tokenBalance?: number
     tokenPrice?: number
     tokenAmount?: string
     chainName: string
-    chainIconUri: string
+    chainIconUri?: string
     classNameButton?: string
     isStatic?: boolean
     type?: 'xchain' | 'send'
+    onReset?: () => void
 }
 
 export const AdvancedTokenSelectorButton = ({
@@ -35,6 +36,7 @@ export const AdvancedTokenSelectorButton = ({
     classNameButton,
     isStatic = false,
     type = 'send',
+    onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { address } = useAccount()
@@ -65,48 +67,43 @@ export const AdvancedTokenSelectorButton = ({
     }, [tokenBalance, selectedChainID, selectedTokenAddress, address])
 
     return (
-        // <div
-        //     className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-14 flex-row items-center justify-between border border-n-1 px-4 py-2 dark:border-white  ${classNameButton}`}
-        //     onClick={() => {
-        //         !isStatic && onClick()
-        //     }}
-        // >
-        //     <div className="flex w-full flex-row items-center justify-between py-2 text-h7 font-normal ">
-        //         <div className="flex flex-row items-center justify-center gap-1">
-        //             <div className="relative mr-2 h-6 w-6">
-        //                 <img src={tokenLogoUri} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
-        //                 <img
-        //                     src={chainIconUri}
-        //                     className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
-        //                     alt="logo"
-        //                 />
-        //             </div>
-        //             <div className="flex flex-col items-center justify-center">
-        //                 <div className="">{utils.formatTokenAmount(_tokenBalance ?? 0, 4)}</div>
-        //             </div>
-        //             <div className="">{tokenSymbol}</div>
-        //         </div>
-        //         <div className="">{chainName}</div>
-        //     </div>
-        // </div>
-        <div
+        <section
+            role="button"
+            tabIndex={0}
+            aria-label="Open token selector"
             className={`flex w-full max-w-96 ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 dark:border-white  ${classNameButton}`}
             onClick={() => {
+                !isStatic && onClick()
+            }}
+            onKeyDown={(e) => {
+                if (e.key !== 'Enter' && e.key !== ' ') return
                 !isStatic && onClick()
             }}
         >
             <div className={'flex flex-row items-center justify-center gap-4'}>
                 <div className="relative h-8 w-8">
-                    <img src={tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
-                    <img
-                        src={chainIconUri}
-                        className="absolute -top-2 left-4 h-6 w-6 rounded-full" // Adjust `left-3` to control the overlap
-                        alt="logo"
-                    />
+                    {tokenLogoUri ? (
+                        <img src={tokenLogoUri} className="absolute left-0 top-0 h-8 w-8" alt="logo" />
+                    ) : (
+                        <Icon name="token_placeholder" className="absolute left-0 top-0 h-8 w-8" fill="#999" />
+                    )}
+                    {chainIconUri ? (
+                        <img
+                            src={chainIconUri}
+                            className="absolute -top-2 left-4 h-6 w-6 rounded-full" // Adjust `left-3` to control the overlap
+                            alt="logo"
+                        />
+                    ) : (
+                        <Icon
+                            name="token_placeholder"
+                            className="absolute -top-2 left-4 h-6 w-6 rounded-full"
+                            fill="#999"
+                        />
+                    )}
                 </div>
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0)}{' '}
+                        {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
                         {tokenSymbol} on {chainName}
                     </div>
 
@@ -126,21 +123,40 @@ export const AdvancedTokenSelectorButton = ({
                         ))}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">
-                            ${utils.formatTokenAmount(Number(tokenAmount ?? 0) * tokenPrice ?? 0, 4)}
+                            ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
                         </p>
                     )}
                 </div>
             </div>
-            <div className="flex flex-row items-center justify-center gap-2">
-                <div className="block">
-                    {!isStatic && (
-                        <Icon
-                            name={'arrow-bottom'}
-                            className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
-                        />
+            {!isStatic && (
+                <div className="flex flex-row items-center justify-center gap-2">
+                    {'send' === type && (
+                        <button aria-label="Open token selector" className="block">
+                            <Icon
+                                name={'arrow-bottom'}
+                                className={`h-12 w-12 transition-transform dark:fill-white ${isVisible ? 'rotate-180 ' : ''}`}
+                            />
+                        </button>
+                    )}
+                    {'xchain' === type && (
+                        <button
+                            aria-label="Reset token selection"
+                            className="block"
+                            onClick={(e) => {
+                                e.stopPropagation() //don't open modal
+                                onReset?.()
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key !== 'Enter') return
+                                e.stopPropagation()
+                                onReset?.()
+                            }}
+                        >
+                            <Icon name={'close'} className={`h-10 w-10 transition-transform dark:fill-white`} />
+                        </button>
                     )}
                 </div>
-            </div>
-        </div>
+            )}
+        </section>
     )
 }

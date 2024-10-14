@@ -6,7 +6,7 @@ import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
 import useClaimLink from '../../useClaimLink'
 import * as context from '@/context'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useState } from 'react'
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as _interfaces from '../../Claim.interfaces'
@@ -21,24 +21,21 @@ export const ConfirmClaimLinkView = ({
     claimLinkData,
     recipient,
     tokenPrice,
-    type,
     setTransactionHash,
     estimatedPoints,
     attachment,
     selectedRoute,
     crossChainDetails,
-    recipientType,
 }: _consts.IClaimScreenProps) => {
-    const { isConnected, address } = useAccount()
+    const { address } = useAccount()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
-        useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [fileType, setFileType] = useState<string>('')
+    const [fileType] = useState<string>('')
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { refetchBalances } = useBalance()
 
@@ -185,9 +182,12 @@ export const ConfirmClaimLinkView = ({
 
             <div className="flex w-full flex-row items-center justify-start gap-1 px-2">
                 <label className="text-h7 font-normal">Claiming to:</label>
-                <label className="text-h7">
-                    {recipient.name ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}
-                </label>
+                <span className="flex items-center gap-1 ">
+                    <label className="text-h7">
+                        {recipient.name ? recipient.name : utils.printableAddress(recipient.address ?? '')}
+                    </label>
+                    {recipient.name && <MoreInfo text={`You will be claiming to ${recipient.address}`} />}
+                </span>
             </div>
 
             <div className="flex w-full flex-col items-center justify-center gap-2">

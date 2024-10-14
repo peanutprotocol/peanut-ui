@@ -21,7 +21,7 @@ const metadata = {
     name: 'Peanut Protocol',
     description: 'Peanut protocol - send crypto with links',
     url: 'https://peanut.to', // origin must match your domain & subdomain
-    icons: [''], // TODO: add icon
+    icons: [''],
 }
 
 const config = createConfig({
@@ -42,9 +42,11 @@ const config = createConfig({
         injected({ shimDisconnect: true }),
         authConnector({
             chains: consts.chains,
-            options: { projectId },
-            email: true,
-            socials: ['google', 'github', 'discord', 'x', 'apple', 'facebook'],
+            options: {
+                projectId,
+            },
+            email: false,
+            // socials: ['google', 'github', 'apple', 'email', 'discord', 'facebook']
         }),
     ],
     client({ chain }) {
@@ -53,7 +55,7 @@ const config = createConfig({
     ssr: true,
 })
 
-// 3. Create modal
+// 3. Create modal (you have to run pnpm build for changes to take effect)
 createWeb3Modal({
     wagmiConfig: config,
     projectId,
@@ -65,6 +67,8 @@ createWeb3Modal({
     },
     enableOnramp: true,
 })
+
+console.log('Created Web3modal')
 
 export function ContextProvider({ children }: { children: React.ReactNode }) {
     return (

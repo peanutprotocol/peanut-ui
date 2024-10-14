@@ -44,12 +44,12 @@ export const MobileItemComponent = ({
                         {linkDetail.chain}]
                     </label>
 
-                    <label>From: {utils.shortenAddressLong(linkDetail.address ?? address)}</label>
+                    <label>From: {utils.printableAddress(linkDetail.address ?? address)}</label>
                 </div>
                 <div className="flex flex-col items-end justify-end gap-2 text-end">
                     <div>
                         {linkDetail.status === 'claimed' ? (
-                            <div className="border border-green-3 px-2 py-1 text-center text-green-3">claimed</div>
+                            <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">claimed</div>
                         ) : (
                             <div className="border border-gray-1 border-n-1 px-2 py-1 text-gray-1">pending</div>
                         )}

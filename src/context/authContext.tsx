@@ -7,18 +7,33 @@ import { useAccount } from 'wagmi'
 interface AuthContextType {
     user: interfaces.IUserProfile | null
     setUser: (user: interfaces.IUserProfile | null) => void
-    fetchUser: () => void
+    fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
+    updateBridgeCustomerId: (bridgeCustomerId: string) => Promise<void>
+    addAccount: ({
+        accountIdentifier,
+        accountType,
+        userId,
+    }: {
+        accountIdentifier: string
+        accountType: string
+        userId: string
+    }) => Promise<void>
     isFetchingUser: boolean
+    logoutUser: () => Promise<void>
 }
-
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+/**
+ * Context provider to manage user authentication and profile interactions.
+ * It handles fetching the user profile, updating user details (e.g., username, profile photo),
+ * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
+ */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address } = useAccount()
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
-    const [isFetchingUser, setIsFetchingUser] = useState(false)
+    const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
         position: 'bottom-right',
         duration: 5000,
@@ -27,24 +42,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     })
     const toastIdRef = useRef<ToastId | undefined>(undefined)
 
-    const fetchUser = async () => {
+    const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
+        // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
         try {
             const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
             const { address: tokenAddress } = await tokenAddressResponse.json()
             if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
-                return setUser(null)
+                setIsFetchingUser(false)
+                setUser(null)
+                return null
             }
 
-            setIsFetchingUser(true)
-            const response = await fetch('/api/peanut/user/get-user-from-cookie')
-            if (response.ok) {
-                const userData: interfaces.IUserProfile | null = await response.json()
+            const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
+            if (userResponse.ok) {
+                const userData: interfaces.IUserProfile | null = await userResponse.json()
                 setUser(userData)
+                return userData
+            } else {
+                console.warn('Failed to fetch user. Probably not logged in.')
+                return null
             }
         } catch (error) {
-            console.error('Failed to fetch user', error)
+            console.error('ERROR WHEN FETCHING USER', error)
+            return null
         } finally {
-            setIsFetchingUser(false)
+            setTimeout(() => {
+                setIsFetchingUser(false)
+            }, 500)
         }
     }
 
@@ -101,6 +125,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchUser()
         }
     }
+    const updateBridgeCustomerId = async (bridgeCustomerId: string) => {
+        if (!user) return
+
+        try {
+            const response = await fetch('/api/peanut/user/update-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    bridge_customer_id: bridgeCustomerId,
+                    userId: user.user.userId,
+                }),
+            })
+
+            if (response.ok) {
+                const updatedUserData: any = await response.json()
+                if (updatedUserData.success) {
+                    fetchUser()
+                }
+            } else {
+                console.error('Failed to update user')
+            }
+        } catch (error) {
+            console.error('Error updating user', error)
+        }
+    }
 
     const submitProfilePhoto = async (file: File) => {
         if (!user) return
@@ -146,6 +197,65 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    const addAccount = async ({
+        accountIdentifier,
+        accountType,
+        userId,
+        bridgeAccountId,
+    }: {
+        accountIdentifier: string
+        accountType: string
+        userId: string
+        bridgeAccountId?: string
+    }) => {
+        if (!user) return
+
+        try {
+            const response = await fetch('/api/peanut/user/add-account', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userId,
+                    accountIdentifier,
+                    bridgeAccountId,
+                    accountType,
+                }),
+            })
+
+            if (response.ok) {
+                const updatedUserData: any = await response.json()
+                if (updatedUserData.success) {
+                    fetchUser()
+                }
+            } else {
+                console.error('Failed to update user')
+            }
+        } catch (error) {
+            console.error('Error updating user', error)
+        }
+    }
+
+    const logoutUser = async () => {
+        try {
+            const response = await fetch('/api/peanut/user/logout-user', {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+            })
+
+            if (response.ok) {
+                setUser(null)
+            } else {
+                console.error('Failed to log out user')
+            }
+        } catch (error) {
+            console.error('Error updating user', error)
+        }
+    }
+
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             fetchUser()
@@ -155,7 +265,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }, [address])
 
     return (
-        <AuthContext.Provider value={{ user, setUser, fetchUser, updateUserName, submitProfilePhoto, isFetchingUser }}>
+        <AuthContext.Provider
+            value={{
+                user,
+                setUser,
+                updateBridgeCustomerId,
+                fetchUser,
+                updateUserName,
+                submitProfilePhoto,
+                addAccount,
+                isFetchingUser,
+                logoutUser,
+            }}
+        >
             {children}
         </AuthContext.Provider>
     )

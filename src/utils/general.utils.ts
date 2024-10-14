@@ -1,7 +1,7 @@
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { exportTraceState } from 'next/dist/trace'
+import peanut from '@squirrel-labs/peanut-sdk'
+import { ethers } from 'ethers'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
@@ -9,13 +9,17 @@ export const shortenAddress = (address: string) => {
     return firstBit + '..'
 }
 
-export const shortenAddressLong = (address: string, chars?: number) => {
-    if (!address) return
+export const shortenAddressLong = (address: string, chars?: number): string => {
     if (!chars) chars = 6
     const firstBit = address.substring(0, chars)
     const endingBit = address.substring(address.length - chars, address.length)
 
     return firstBit + '...' + endingBit
+}
+
+export const printableAddress = (address: string): string => {
+    if (address.endsWith('.eth')) return address
+    return shortenAddressLong(address)
 }
 
 export const shortenHash = (address: string) => {
@@ -187,7 +191,6 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
                 }
             }
         }
-        console.log(localStorageData)
         return localStorageData
     } catch (error) {
         console.error('Error getting data from localStorage:', error)
@@ -286,7 +289,6 @@ export function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; c
     return `https://app.safe.global/share/safe-app?appUrl=${encodeURIComponent(currentUrl)}&chain=${chainId}`
 }
 
-// TODO: this is a hacky fix to copy in an iframe where the clipboard API is not supported/blocked
 export async function copyTextToClipboardWithFallback(text: string) {
     if (navigator.clipboard && window.isSecureContext) {
         try {
@@ -321,12 +323,18 @@ export const isTestnetChain = (chainId: string) => {
     return isTestnet
 }
 
-export const compareTokenAddresses = (address1: string, address2: string) => {
+export const areTokenAddressesEqual = (address1: string, address2: string): boolean => {
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address1 = '0x0000000000000000000000000000000000000000'
+        address1 = ethers.constants.AddressZero
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
-        address2 = '0x0000000000000000000000000000000000000000'
-    return address1.toLowerCase() === address2.toLowerCase()
+        address2 = ethers.constants.AddressZero
+    // By using ethers.getAddress we are safe from different cases
+    // and other address formatting
+    return ethers.utils.getAddress(address1) === ethers.utils.getAddress(address2)
+}
+
+export const isAddressZero = (address: string): boolean => {
+    return areTokenAddressesEqual(address, ethers.constants.AddressZero)
 }
 
 export const isNativeCurrency = (address: string) => {
@@ -386,6 +394,34 @@ export const saveOfframpLinkToLocalstorage = ({ data }: { data: interfaces.IExte
         console.error('Error adding data to localStorage:', error)
     }
 }
+
+// export const updateOfframpLinkInLocalstorage = (
+//     id: string,
+//     updateData: Partial<interfaces.IExtendedLinkDetailsOfframp>
+// ) => {
+//     try {
+//         if (typeof localStorage === 'undefined') return
+
+//         const key = `offramped links`
+
+//         const storedData = localStorage.getItem(key)
+
+//         if (storedData) {
+//             let dataArr: interfaces.IExtendedLinkDetailsOfframp[] = JSON.parse(storedData)
+//             const index = dataArr.findIndex((item) => item.id === id)
+
+//             if (index !== -1) {
+//                 dataArr[index] = { ...dataArr[index], ...updateData }
+//                 localStorage.setItem(key, JSON.stringify(dataArr))
+//                 console.log('Updated offramp link in localStorage:', dataArr[index])
+//             } else {
+//                 console.error('Offramp link not found in localStorage')
+//             }
+//         }
+//     } catch (error) {
+//         console.error('Error updating data in localStorage:', error)
+//     }
+// }
 
 export const getClaimedLinksFromLocalStorage = ({ address = undefined }: { address?: string }) => {
     try {
@@ -570,7 +606,111 @@ export const getOfframpClaimsFromLocalStorage = () => {
     }
 }
 
-export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: string; tokenAddress?: string }) => {
+export const saveRequestLinkToLocalStorage = ({ details }: { details: IRequestLinkData }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-links`
+
+        let storedData = localStorage.getItem(key)
+
+        let dataArr: IRequestLinkData[] = []
+
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        dataArr.push(details)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved request link to localStorage:', details)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getRequestLinksFromLocalStorage = () => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-links`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: IRequestLinkData[] = []
+
+        if (storedData) {
+            data = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const setRequestLinksToLocalStorage = (updatedRequestLinks: IRequestLinkData[]) => {
+    if (typeof localStorage === 'undefined') return
+
+    const key = `request-links`
+    localStorage.setItem(key, JSON.stringify(updatedRequestLinks))
+    console.log('Updated request links in localStorage:', updatedRequestLinks)
+}
+
+export const saveRequestLinkFulfillmentToLocalStorage = ({ details }: { details: IRequestLinkData; link: string }) => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-link-fulfillments`
+
+        let storedData = localStorage.getItem(key)
+
+        let dataArr: IRequestLinkData[] = []
+
+        if (storedData) {
+            dataArr = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        dataArr.push(details)
+
+        localStorage.setItem(key, JSON.stringify(dataArr))
+
+        console.log('Saved request link fulfillment to localStorage:', details)
+    } catch (error) {
+        console.error('Error adding data to localStorage:', error)
+    }
+}
+
+export const getRequestLinkFulfillmentsFromLocalStorage = () => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const key = `request-link-fulfillments`
+
+        const storedData = localStorage.getItem(key)
+
+        let data: IRequestLinkData[] = []
+
+        if (storedData) {
+            data = JSON.parse(storedData) as IRequestLinkData[]
+        }
+
+        return data
+    } catch (error) {
+        console.error('Error getting data from localStorage:', error)
+    }
+}
+
+export const updatePeanutPreferences = ({
+    chainId,
+    tokenAddress,
+    decimals,
+}: {
+    chainId?: string
+    tokenAddress?: string
+    decimals?: number
+}) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -579,6 +719,7 @@ export const updatePeanutPreferences = ({ chainId, tokenAddress }: { chainId?: s
         let data = {
             chainId: chainId,
             tokenAddress: tokenAddress,
+            decimals: decimals,
         }
 
         localStorage.setItem(key, JSON.stringify(data))
@@ -598,6 +739,7 @@ export const getPeanutPreferences = () => {
         let data = {
             chainId: '',
             tokenAddress: '',
+            decimals: undefined,
         }
 
         if (storedData) {
@@ -712,7 +854,7 @@ export function formatDate(date: Date): string {
     const minutes = date.getMinutes().toString().padStart(2, '0')
     const seconds = date.getSeconds().toString().padStart(2, '0')
 
-    return `${day} ${month} ${year} ${hours}:${minutes}:${seconds}`
+    return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`
 }
 
 export function getIconName(type: string) {
@@ -731,6 +873,7 @@ export function getIconName(type: string) {
 }
 
 import { SiweMessage } from 'siwe'
+import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
     const message = new SiweMessage({
@@ -743,4 +886,38 @@ export const createSiweMessage = ({ address, statement }: { address: string; sta
     })
 
     return message.prepareMessage()
+}
+
+// uppercase and add a space inbetween every four characters
+export const formatIban = (iban: string) => {
+    // if the first two chars of the iban are not letters, return the iban as is (it's not an iban, us account number probably)
+    if (!/[a-zA-Z]{2}/.test(iban.substring(0, 2))) return iban
+    return iban
+        .toUpperCase()
+        .replace(/(.{4})/g, '$1 ')
+        .trim()
+}
+
+export const switchNetwork = async ({
+    chainId,
+    currentChainId,
+    setLoadingState,
+    switchChainAsync,
+}: {
+    chainId: string
+    currentChainId: string | undefined
+    setLoadingState: (state: consts.LoadingStates) => void
+    switchChainAsync: ({ chainId }: { chainId: number }) => Promise<void>
+}) => {
+    if (currentChainId !== chainId) {
+        setLoadingState('Allow network switch')
+        try {
+            await switchChainAsync({ chainId: Number(chainId) })
+            setLoadingState('Switching network')
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+            setLoadingState('Loading')
+        } catch (error) {
+            throw new Error('Error switching network.')
+        }
+    }
 }

@@ -55,9 +55,6 @@ export const Refund = () => {
 
             const txReceipt = await peanut.getTxReceiptFromHash(refundFormData.transactionHash, refundFormData.chainId)
 
-            // TODO: get contract version from transaction hash
-            // TODO: get deposit info from transaction hash
-
             const latestContractVersion = peanut.getLatestContractVersion({
                 chainId: refundFormData.chainId,
                 type: 'normal',
@@ -181,7 +178,7 @@ export const Refund = () => {
                                     </span>
                                 </div>
                             ) : !isConnected ? (
-                                'Create or Connect Wallet'
+                                'Connect Wallet'
                             ) : claimedExploredUrlWithHash ? (
                                 'Success'
                             ) : (

@@ -21,6 +21,12 @@ const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextCh
     }
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
+        const key = event.key
+
+        // Allow alphanumeric characters and control keys
+        if (!/^[a-zA-Z0-9]$/.test(key) && !['Backspace', 'ArrowLeft', 'ArrowRight', 'Delete'].includes(key)) {
+            event.preventDefault()
+        }
         if (event.key === 'Enter') {
             setIsEditing(false)
             onTextChange(text)
@@ -42,7 +48,8 @@ const TextEdit = ({ initialText, onTextChange }: { initialText: string; onTextCh
                     onBlur={handleBlur}
                     onKeyDown={handleKeyDown}
                     className="w-full bg-transparent text-center text-h4 focus:outline-none sm:text-start"
-                    maxLength={30}
+                    maxLength={16}
+                    pattern="[a-zA-Z0-9\s]+"
                 />
             ) : (
                 <span

@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
         if (accountType === 'iban') {
             body = {
                 iban: {
-                    account_number: accountDetails.accountNumber.replaceAll(' ', ''),
+                    account_number: accountDetails.accountNumber.replace(/\s+/g, ''),
                     bic: accountDetails.bic,
                     country: accountDetails.country,
                 },
@@ -65,11 +65,31 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify(body),
         })
 
+        const data = await response.json()
+
         if (!response.ok) {
+            if (data.code && data.code == 'duplicate_external_account') {
+                // in case the bridge account already exists
+                //
+                // sending back error responses is not currently common across app 
+                // in how we deliver errors from backend -> frontend
+                // sends back an object like:
+                // {
+                //     id: '4c537540-80bf-41dd-a528-dbe39a4',
+                //     code: 'duplicate_external_account',
+                //     message: 'An external account with the same information has already been added for this customer'
+                //   }
+                //
+                // TODO: standardize error responses across backend
+                return new NextResponse(JSON.stringify(data), {
+                    status: response.status,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+            }
             throw new Error(`HTTP error! status: ${response.status}`)
         }
-
-        const data = await response.json()
 
         return new NextResponse(JSON.stringify(data), {
             status: 200,

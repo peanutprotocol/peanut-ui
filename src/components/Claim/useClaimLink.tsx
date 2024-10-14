@@ -1,14 +1,9 @@
 'useClient'
 
-import { useContext, useState } from 'react'
+import { useContext } from 'react'
 import { useAccount, useSwitchChain } from 'wagmi'
-import {
-    claimLinkGasless,
-    claimLinkXChainGasless,
-    generateKeysFromString,
-    getRawParamsFromLink,
-    interfaces,
-} from '@squirrel-labs/peanut-sdk'
+import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -31,7 +26,7 @@ export const useClaimLink = () => {
 
             return claimTx.transactionHash ?? claimTx.txHash ?? claimTx.hash ?? claimTx.tx_hash ?? ''
         } catch (error) {
-            console.log('Error claiming link:', error)
+            console.error('Error claiming link:', error)
 
             throw error
         } finally {
@@ -67,7 +62,7 @@ export const useClaimLink = () => {
 
             return claimTx.txHash
         } catch (error) {
-            console.log('Error claiming link:', error)
+            console.error('Error claiming link:', error)
             throw error
         } finally {
             setLoadingState('Idle')
@@ -85,64 +80,21 @@ export const useClaimLink = () => {
     }) => {}
 
     const switchNetwork = async (chainId: string) => {
-        if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('Allow network switch')
-
-            try {
-                await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('Switching network')
-                await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('Loading')
-            } catch (error) {
-                setLoadingState('Idle')
-                console.error('Error switching network:', error)
-                // TODO: handle error, either throw or return error
-            }
+        try {
+            await switchNetworkUtil({
+                chainId,
+                currentChainId: String(currentChain?.id),
+                setLoadingState,
+                switchChainAsync: async ({ chainId }) => {
+                    await switchChainAsync({ chainId: chainId as number })
+                },
+            })
+            console.log(`Switched to chain ${chainId}`)
+        } catch (error) {
+            console.error('Failed to switch network:', error)
         }
     }
     const checkTxStatus = async (txHash: string) => {}
-
-    const sendNotification = async () => {}
-
-    const estimatePoints = async ({
-        address,
-        chainId,
-        amountUSD,
-    }: {
-        address: string
-        chainId: string
-        amountUSD: number
-    }) => {
-        try {
-            const response = await fetch(`${consts.PEANUT_API_URL}/calculate-pts-for-action`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    actionType: 'CLAIM',
-                    userAddress: address,
-                    chainId: chainId,
-                    amountUsd: amountUSD,
-                    transaction: {
-                        from: address,
-                        to: address,
-                        data: '',
-                        value: '',
-                    },
-                }),
-            })
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`)
-            }
-
-            const data = await response.json()
-            return Math.round(data.points)
-        } catch (error) {
-            console.error('Failed to estimate points:', error)
-            return 0
-        }
-    }
 
     const getAttachmentInfo = async (link: string) => {
         try {
@@ -173,8 +125,6 @@ export const useClaimLink = () => {
         getSquidRoute,
         switchNetwork,
         checkTxStatus,
-        sendNotification,
-        estimatePoints,
         getAttachmentInfo,
     }
 }

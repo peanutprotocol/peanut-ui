@@ -14,6 +14,11 @@ const opts: Opts = {
     isServer: true,
 }
 
+/**
+ * Custom React hook to detect and manage the user's wallet type (e.g., Blockscout or safe app environment)
+ * using the SafeApps SDK, fetch environment and wallet information,
+ * and update the state based on the wallet address.
+ */
 export const useWalletType = () => {
     const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
     const [environmentInfo, setEnvironmentInfo] = useState<any | undefined>(undefined)

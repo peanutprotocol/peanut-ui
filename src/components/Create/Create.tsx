@@ -6,7 +6,6 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as _consts from './Create.consts'
 import * as context from '@/context'
 import * as utils from '@/utils'
-import { useWeb3InboxAccount, useWeb3InboxClient } from '@web3inbox/react'
 import { useAccount } from 'wagmi'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useBalance } from '@/hooks/useBalance'
@@ -56,8 +55,6 @@ export const Create = () => {
         }[]
     >([])
 
-    const { setAccount } = useWeb3InboxAccount()
-    const { data: w3iClient, isLoading: w3iClientIsLoading } = useWeb3InboxClient()
     const { address } = useAccount({})
 
     const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
@@ -109,18 +106,6 @@ export const Create = () => {
 
         setCrossChainDetails(data.chains)
     }
-
-    useEffect(() => {
-        if (!Boolean(address)) return
-        if (w3iClientIsLoading) return
-        setAccount(`eip155:1:${address}`)
-    }, [address, w3iClientIsLoading])
-
-    useEffect(() => {
-        if (!address && w3iClient) {
-            setAccount('')
-        }
-    }, [address, w3iClient])
 
     useEffect(() => {
         resetTokenContextProvider()

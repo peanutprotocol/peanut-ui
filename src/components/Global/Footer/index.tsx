@@ -1,14 +1,11 @@
 'use client'
 import Link from 'next/link'
-import { useColorMode } from '@chakra-ui/color-mode'
 
 import * as _consts from './consts'
 
 type FooterProps = {}
 
 const Footer = ({}: FooterProps) => {
-    const { colorMode } = useColorMode()
-
     return (
         <footer>
             <div className="flex w-full flex-col gap-2 border-t border-n-1 bg-black py-2 pt-4 text-white dark:border-white  dark:bg-n-2">
