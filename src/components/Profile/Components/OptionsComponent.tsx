@@ -3,6 +3,11 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Icon from '@/components/Global/Icon'
 import { Menu, Transition } from '@headlessui/react'
+
+/**
+ * OptionsComponent renders a menu with a list of action items.
+ * Each action item is a button that triggers a specified function when clicked.
+ */
 export const OptionsComponent = ({
     actionItems,
 }: {

@@ -2,7 +2,6 @@
 
 import { useContext, useEffect, useState } from 'react'
 import validator from 'validator'
-import { parsePhoneNumberFromString } from 'libphonenumber-js'
 import { useSearchParams } from 'next/navigation'
 
 import * as _consts from '../Create.consts'
@@ -11,11 +10,11 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import RecipientInput from '@/components/Global/RecipientInput'
 import Icon from '@/components/Global/Icon'
-import { errors, ethers } from 'ethers'
-import peanut from '@squirrel-labs/peanut-sdk'
+import { ethers } from 'ethers'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
 import { useAccount } from 'wagmi'
+import { CrispButton } from '@/components/CrispChat'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -41,7 +40,7 @@ export const CreateLinkInitialView = ({
         //phone number check
         else if (value.startsWith('+') || (utils.isNumeric(value) && value.length > 4)) {
             return 'sms_link'
-        } //TODO: Add more validation checks for normal numbers without country code
+        }
         //address check
         else if (ethers.utils.isAddress(value)) {
             return 'direct'
@@ -196,7 +195,7 @@ export const CreateLinkInitialView = ({
                     }}
                 />
             </div>
-            {inputValue.length > 0 ? (
+            {inputValue.length > 0 && (
                 <div className="flex w-full flex-col items-start  justify-center gap-2">
                     <label className="text-h7 font-bold text-gray-2">Search results</label>
                     <div
@@ -214,54 +213,6 @@ export const CreateLinkInitialView = ({
                         {isLoading && <Loading />}
                     </div>
                 </div>
-            ) : (
-                isConnected &&
-                (recentRecipients.length > 0 ? (
-                    <div className="flex w-full flex-col items-start  justify-center gap-2">
-                        <label className="text-h7 font-bold text-gray-2">Recents</label>
-                        {recentRecipients.map((recipient) => (
-                            <div
-                                key={recipient.address}
-                                className="flex h-10 w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
-                                onClick={() => {
-                                    handleOnNext(recipient.address)
-                                }}
-                            >
-                                <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">
-                                    <div className="flex flex-row items-center justify-start gap-2">
-                                        <div className="rounded-full border border-n-1">
-                                            <Icon name="profile" className="h-6 w-6" />
-                                        </div>
-                                        <div className="truncate">{utils.shortenAddressLong(recipient.address, 6)}</div>
-                                    </div>
-                                    <label className="font-normal">
-                                        {' '}
-                                        {recipient.count} {recipient.count > 1 ? 'transfers' : 'transfer'}
-                                    </label>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ) : (
-                    <div className="flex w-full flex-col items-start  justify-center gap-2">
-                        <label className="text-h7 font-bold text-gray-2">Recents</label>
-                        {[0, 1, 2].map((idx) => (
-                            <div
-                                key={idx}
-                                className="flex h-10 w-full flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
-                            >
-                                <div className="flex w-full flex-row items-center justify-between overflow-hidden text-h7">
-                                    <div className="flex flex-row items-center justify-start gap-2">
-                                        <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
-
-                                        <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                                    </div>
-                                    <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                ))
             )}
             {errorState.showError && (
                 <>
@@ -269,13 +220,7 @@ export const CreateLinkInitialView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                     {errorState.errorMessage.includes('We currently dont support ') && (
-                        <a
-                            href={'https://discord.gg/BX9Ak7AW28'}
-                            target={'_blank'}
-                            className="btn h-8 w-full cursor-pointer px-2"
-                        >
-                            Reach out!
-                        </a>
+                        <CrispButton className="btn h-8 w-full cursor-pointer px-2">Reach out!</CrispButton>
                     )}
                 </>
             )}

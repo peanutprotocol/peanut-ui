@@ -29,12 +29,12 @@ export const ConfirmDetails = ({
                                 ? data
                                       .find((chain: any) => chain.chainId === selectedChainID)
                                       ?.tokens.find((token: any) =>
-                                          utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                       )?.logoURI
                                 : consts.peanutTokenDetails
                                       .find((detail) => detail.chainId === selectedChainID)
                                       ?.tokens.find((token) =>
-                                          utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                       )?.logoURI
                         }
                         className="h-6 w-6"
@@ -45,12 +45,12 @@ export const ConfirmDetails = ({
                             ? data
                                   .find((chain: any) => chain.chainId === selectedChainID)
                                   ?.tokens.find((token: any) =>
-                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                      utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                   )?.symbol
                             : consts.peanutTokenDetails
                                   .find((detail) => detail.chainId === selectedChainID)
                                   ?.tokens.find((token) =>
-                                      utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                      utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                   )?.symbol}
                     </label>
                 </div>

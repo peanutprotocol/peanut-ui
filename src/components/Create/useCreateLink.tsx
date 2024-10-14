@@ -15,15 +15,16 @@ import {
     usePrepareTransactionRequest,
 } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { useBalance } from '@/hooks/useBalance'
 import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as _utils from './Create.utils'
 import { BigNumber, ethers } from 'ethers'
-
-interface IAssertValuesProps {
+import { assert } from 'console'
+import { useWalletType } from '@/hooks/useWalletType'
+interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
@@ -44,9 +45,11 @@ export const useCreateLink = () => {
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
+    const { walletType, environmentInfo } = useWalletType()
+    const { refetchBalances } = useBalance()
 
     // step 1
-    const assertValues = async ({ tokenValue }: IAssertValuesProps) => {
+    const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
         // if inputDenomination is USD, the tokenPrice has to be defineds
         if (inputDenomination == 'USD') {
             if (!selectedTokenPrice) {
@@ -71,7 +74,7 @@ export const useCreateLink = () => {
         if (balances.length > 0) {
             let balance = balances.find(
                 (balance) =>
-                    utils.compareTokenAddresses(balance.address, selectedTokenAddress) &&
+                    utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
                     balance.chainId === selectedChainID
             )?.amount
             if (!balance) {
@@ -83,15 +86,14 @@ export const useCreateLink = () => {
                     })
                 )
             }
-
             if (!balance || (balance && balance < Number(tokenValue))) {
                 throw new Error('Please ensure that you have sufficient balance of the token you are trying to send')
             }
         }
 
         // the selected tokenvalue has to be a number higher then .0001
-        if (!tokenValue || (tokenValue && Number(tokenValue) < 0.0001)) {
-            throw new Error('The minimum amount to send is 0.0001')
+        if (!tokenValue || (tokenValue && Number(tokenValue) < 0.000001)) {
+            throw new Error('The minimum amount to send is 0.000001')
         }
     }
     const generateLinkDetails = ({
@@ -128,7 +130,7 @@ export const useCreateLink = () => {
 
             return linkDetails
         } catch (error) {
-            console.log(error)
+            console.error('error generating linkdetails', error)
             throw new Error('Error getting the linkDetails.')
         }
     }
@@ -139,7 +141,7 @@ export const useCreateLink = () => {
 
             return password
         } catch (error) {
-            console.log(error)
+            console.error('error generating password', error)
             throw new Error('Error generating the password.')
         }
     }
@@ -198,16 +200,18 @@ export const useCreateLink = () => {
         [address, selectedChainID, selectedTokenAddress, balances]
     )
     const switchNetwork = async (chainId: string) => {
-        if (currentChain?.id.toString() !== chainId.toString()) {
-            setLoadingState('Allow network switch')
-            try {
-                await switchChainAsync({ chainId: Number(chainId) })
-                setLoadingState('Switching network')
-                await new Promise((resolve) => setTimeout(resolve, 2000))
-                setLoadingState('Loading')
-            } catch (error) {
-                throw new Error('Error switching network.')
-            }
+        try {
+            await switchNetworkUtil({
+                chainId,
+                currentChainId: String(currentChain?.id),
+                setLoadingState,
+                switchChainAsync: async ({ chainId }) => {
+                    await switchChainAsync({ chainId: chainId as number })
+                },
+            })
+            console.log(`Switched to chain ${chainId}`)
+        } catch (error) {
+            console.error('Failed to switch network:', error)
         }
     }
     const estimateGasFee = async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
@@ -220,14 +224,42 @@ export const useCreateLink = () => {
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
             let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
             const nativeTokenPrice = await utils.fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
-            const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice?.price
+            if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
+                throw new Error('Failed to fetch token price')
+            }
+            const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
 
             return {
                 feeOptions,
                 transactionCostUSD,
             }
         } catch (error) {
-            throw error
+            try {
+                const feeOptions = await peanut.setFeeOptions({
+                    chainId: chainId,
+                    unsignedTx: preparedTx,
+                    gasLimit: BigNumber.from(100000),
+                })
+
+                let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
+                let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
+                const nativeTokenPrice = await utils.fetchTokenPrice(
+                    '0x0000000000000000000000000000000000000000',
+                    chainId
+                )
+                if (!nativeTokenPrice) {
+                    throw new Error('Failed to fetch token price')
+                }
+                const transactionCostUSD = Number(transactionCostNative) * nativeTokenPrice.price
+
+                return {
+                    feeOptions,
+                    transactionCostUSD,
+                }
+            } catch (error) {
+                console.error('Failed to estimate gas fee:', error)
+                throw error
+            }
         }
     }
     const estimatePoints = async ({
@@ -442,7 +474,7 @@ export const useCreateLink = () => {
             const signature = await signTypedDataAsync({
                 domain: {
                     ...gaslessMessage.domain,
-                    chainId: Number(gaslessMessage.domain.chainId), //TODO: non-evm chains wont work
+                    chainId: Number(gaslessMessage.domain.chainId), //TODO: (mentioning) non-evm chains wont work
                     verifyingContract: gaslessMessage.domain.verifyingContract as `0x${string}`,
                 },
                 types: gaslessMessage.types,
@@ -472,7 +504,7 @@ export const useCreateLink = () => {
                 signature: signature,
                 baseUrl: `${consts.next_proxy_url}/deposit-3009`,
                 APIKey: 'doesnt-matter',
-            }) //TODO: for safe app, check if this tx hash is correct
+            })
             return response.txHash
         } catch (error) {
             throw error
@@ -504,7 +536,6 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
-                    console.log(tx.value)
 
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({
@@ -519,32 +550,10 @@ export const useCreateLink = () => {
                         maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
                             ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
                             : undefined,
-                        chainId: Number(selectedChainID), //TODO: chainId as number here
+                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
                     })
 
                     setLoadingState('Executing transaction')
-
-                    // if (walletType === 'safe') {
-                    //     const sdk = new SafeAppsSDK({
-                    //         allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
-                    //         debug: true,
-                    //     })
-                    //     while (true) {
-                    //         const queued = await sdk.txs.getBySafeTxHash(hash)
-
-                    //         if (
-                    //             queued.txStatus === TransactionStatus.AWAITING_CONFIRMATIONS ||
-                    //             queued.txStatus === TransactionStatus.AWAITING_EXECUTION
-                    //         ) {
-                    //             console.log('waiting for safe tx')
-
-                    //             await new Promise((resolve) => setTimeout(resolve, 1000))
-                    //         } else if (queued.txHash) {
-                    //             hash = queued.txHash as `0x${string}`
-                    //             break
-                    //         }
-                    //     }
-                    // } // TODO: fix this when we decide to continue work on the safe app. Also do this within the gaslessDeposit stuff
 
                     // Wait for the transaction to be mined using wagmi/actions
                     // Only doing this for the approval transaction (the first tx)
@@ -611,8 +620,120 @@ export const useCreateLink = () => {
         }
     }
 
+    const prepareCreateLinkWrapper = async ({ tokenValue }: { tokenValue: string }) => {
+        try {
+            await checkUserHasEnoughBalance({ tokenValue })
+            const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
+            const password = await generatePassword()
+            await switchNetwork(selectedChainID)
+
+            const isGaslessDepositPossible = _utils.isGaslessDepositPossible({
+                chainId: selectedChainID,
+                tokenAddress: selectedTokenAddress,
+            })
+            if (isGaslessDepositPossible) {
+                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+                    _linkDetails: linkDetails,
+                    _password: password,
+                })
+
+                if (
+                    !makeGaslessDepositResponse ||
+                    !makeGaslessDepositResponse.payload ||
+                    !makeGaslessDepositResponse.message
+                )
+                    return
+
+                return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
+            } else {
+                let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
+                    await prepareDepositTxs({
+                        _linkDetails: linkDetails,
+                        _password: password,
+                    })
+
+                const feeOptions = await estimateGasFee({
+                    chainId: selectedChainID,
+                    preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                })
+
+                return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
+            }
+        } catch (error) {
+            throw error
+        }
+    }
+
+    const createLinkWrapper = async ({
+        type,
+        response,
+        linkDetails,
+        password,
+        feeOptions,
+        usdValue,
+    }: {
+        type: string
+        response: any
+        linkDetails: peanutInterfaces.IPeanutLinkDetails
+        password: string
+        feeOptions?: any
+        usdValue?: string
+    }) => {
+        try {
+            let hash: string = ''
+
+            await submitClaimLinkInit({
+                password: password ?? '',
+                attachmentOptions: {
+                    attachmentFile: undefined,
+                    message: undefined,
+                },
+                senderAddress: address ?? '',
+            })
+
+            if (type === 'deposit') {
+                hash = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions })) ?? ''
+            } else if (type === 'gasless') {
+                const signature = await signTypedData({ gaslessMessage: response.message })
+                hash = await makeDepositGasless({ signature, payload: response.payload })
+            }
+
+            const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
+
+            utils.saveCreatedLinkToLocalStorage({
+                address: address ?? '',
+                data: {
+                    link: link[0],
+                    depositDate: new Date().toISOString(),
+                    USDTokenPrice: selectedTokenPrice ?? 0,
+                    points: 0,
+                    txHash: hash,
+                    message: '',
+                    attachmentUrl: undefined,
+                    ...linkDetails,
+                },
+            })
+
+            await submitClaimLinkConfirm({
+                chainId: selectedChainID,
+                link: link[0],
+                password: password ?? '',
+                txHash: hash,
+                senderAddress: address ?? '',
+                amountUsd: parseFloat(usdValue ?? '0'),
+                transaction: type === 'deposit' ? response && response.unsignedTxs[0] : undefined,
+            })
+
+            await refetchBalances()
+
+            return link[0]
+        } catch (error) {
+            throw error
+        }
+    }
+
     return {
-        assertValues,
+        checkUserHasEnoughBalance,
         generateLinkDetails,
         generatePassword,
         makeGaslessDepositPayload,
@@ -628,5 +749,7 @@ export const useCreateLink = () => {
         submitClaimLinkConfirm,
         prepareDirectSendTx,
         submitDirectTransfer,
+        prepareCreateLinkWrapper,
+        createLinkWrapper,
     }
 }

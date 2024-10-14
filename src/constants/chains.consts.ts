@@ -39,7 +39,6 @@ const milkomedaTestnet = {
     contracts: {},
 } as const satisfies Chain
 
-// TODO: replace with baseGoerli (wagmi export)
 const baseTestnet = {
     id: 84531,
     name: 'Base Goerli Testnet',

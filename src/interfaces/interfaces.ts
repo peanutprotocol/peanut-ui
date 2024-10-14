@@ -2,6 +2,11 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 export type RecipientType = 'address' | 'ens' | 'iban' | 'us'
 
+export interface IResponse {
+    success: boolean
+    data?: any
+}
+
 export interface IUserBalance {
     chainId: string
     address: string
@@ -63,6 +68,11 @@ export interface IToken {
     logoURI: string
 }
 
+export type ITokenPriceData = {
+    chainId: string
+    price: number
+} & IToken
+
 export interface ILocalStorageItem {
     address: string
     hash: string
@@ -116,13 +126,32 @@ export interface IExtendedPeanutLinkDetails extends peanutInterfaces.IPeanutLink
 
 export interface IDashboardItem {
     link: string | undefined
-    type: 'Link Sent' | 'Direct Sent' | 'Link Received' | 'Offramp Claim'
+    type: 'Link Sent' | 'Direct Sent' | 'Link Received' | 'Offramp Claim' | 'Request Link' | 'Request Link Fulfillment'
     amount: string
     tokenSymbol: string
     date: string
     chain: string
     address: string | undefined
-    status: 'claimed' | 'pending' | 'transfer' | undefined
+    status:
+        | 'claimed'
+        | 'pending'
+        | 'transfer'
+        | 'paid'
+        | 'REFUNDED'
+        | 'READY'
+        | 'AWAITING_TX'
+        | 'FUNDS_IN_BRIDGE'
+        | 'FUNDS_MOVED_AWAY'
+        | 'FUNDS_IN_BANK'
+        | 'AWAITING_FUNDS'
+        | 'IN_REVIEW'
+        | 'FUNDS_RECEIVED'
+        | 'PAYMENT_SUBMITTED'
+        | 'PAYMENT_PROCESSED'
+        | 'CANCELED'
+        | 'ERROR'
+        | 'RETURNED'
+        | undefined
     message: string | undefined
     attachmentUrl: string | undefined
     points: number
@@ -308,6 +337,7 @@ interface ReferralConnection {
 interface PointsPerReferral {
     address: string
     points: number
+    totalReferrals: number
 }
 
 interface User {
@@ -316,6 +346,8 @@ interface User {
     profile_picture: string | null
     username: string | null
     kycStatus: string
+    bridge_customer_id: string | null
+    full_name: string
 }
 
 interface Account {
@@ -337,8 +369,8 @@ export interface IUserProfile {
     points: number
     transactions: Transaction[]
     referralsPointsTxs: Transaction[]
-    totalReferralConnections: ReferralConnection[]
     totalReferralPoints: number
+    totalReferralConnections: number
     pointsPerReferral: PointsPerReferral[]
     referredUsers: number
     streak: number

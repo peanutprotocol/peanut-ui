@@ -1,9 +1,8 @@
 'use client'
-import AddressInput from '@/components/Global/AddressInput'
+import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
-import * as assets from '@/assets'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
@@ -18,7 +17,11 @@ import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
 import { Popover } from '@headlessui/react'
-import { PopupButton } from '@typeform/embed-react'
+import { useAuth } from '@/context/authContext'
+import { ActionType, estimatePoints } from '@/components/utils/utils'
+import { CrispButton } from '@/components/CrispChat'
+import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT, optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+
 export const InitialClaimLinkView = ({
     onNext,
     claimLinkData,
@@ -39,15 +42,10 @@ export const InitialClaimLinkView = ({
     recipientType,
     setRecipientType,
     setOfframpForm,
-    offrampForm,
-    setLiquidationAddress,
-    setPeanutAccount,
-    setPeanutUser,
-
-    setOfframpXchainNeeded,
-    setOfframpChainAndToken,
+    setUserType,
+    setInitialKYCStep,
 }: _consts.IClaimScreenProps) => {
-    const [fileType, setFileType] = useState<string>('')
+    const [fileType] = useState<string>('')
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -58,12 +56,14 @@ export const InitialClaimLinkView = ({
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, setSelectedChainID, refetchXchainRoute, setRefetchXchainRoute } =
-        useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
+        context.tokenSelectorContext
+    )
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
-    const { estimatePoints, claimLink } = useClaimLink()
+    const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
+    const { user } = useAuth()
 
     const handleConnectWallet = async () => {
         if (isConnected && address) {
@@ -127,6 +127,7 @@ export const InitialClaimLinkView = ({
             address: recipient.address ?? address ?? '',
             chainId: claimLinkData.chainId,
             amountUSD: USDValue,
+            actionType: ActionType.CLAIM,
         })
         setEstimatedPoints(estimatedPoints)
     }
@@ -138,12 +139,26 @@ export const InitialClaimLinkView = ({
                 errorMessage: '',
             })
             setLoadingState('Fetching route')
-            let tokenName = _utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = _utils.getBridgeChainName(claimLinkData.chainId)
+            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+
+            if (tokenPrice) {
+                const cashoutUSDAmount = Number(claimLinkData.tokenAmount) * tokenPrice
+                if (cashoutUSDAmount < MIN_CASHOUT_LIMIT) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp_lt_minimum',
+                    })
+                    return
+                } else if (cashoutUSDAmount > MAX_CASHOUT_LIMIT) {
+                    setErrorState({
+                        showError: true,
+                        errorMessage: 'offramp_mt_maximum',
+                    })
+                }
+            }
 
             if (tokenName && chainName) {
-                console.log('offramp without xchain possible')
-                setOfframpXchainNeeded(false)
             } else {
                 if (!crossChainDetails) {
                     setErrorState({
@@ -152,9 +167,6 @@ export const InitialClaimLinkView = ({
                     })
                     return
                 }
-                console.log('offramp without xchain not possible')
-                const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
-                const optimismChainId = '10'
 
                 let route
                 try {
@@ -163,7 +175,6 @@ export const InitialClaimLinkView = ({
                     console.log('error', error)
                 }
 
-                console.log('route', route)
                 if (route === undefined) {
                     setErrorState({
                         showError: true,
@@ -171,66 +182,64 @@ export const InitialClaimLinkView = ({
                     })
                     return
                 }
-                setOfframpXchainNeeded(true)
-
-                tokenName = _utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism)
-                chainName = _utils.getBridgeChainName(optimismChainId)
             }
 
-            setOfframpChainAndToken({
-                chain: chainName ?? '',
-                token: tokenName ?? '',
-            })
-
             setLoadingState('Getting KYC status')
-            const user = await _utils.fetchUser(recipient.name?.replaceAll(' ', '') ?? '')
-            setPeanutUser(user)
-            if (user) {
-                setOfframpForm({ name: user.full_name, email: user.email, recipient: recipient.name ?? '' })
 
-                console.log(user)
+            if (!user) {
+                const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        accountIdentifier: recipient.name,
+                    }),
+                })
 
-                const account = user.accounts.find(
-                    (account: any) =>
-                        account.account_identifier.toLowerCase() === recipient.name?.replaceAll(' ', '').toLowerCase()
-                )
-                setPeanutAccount(account)
-                const allLiquidationAddresses = await _utils.getLiquidationAddresses(user.bridge_customer_id)
-
-                console.log('allLiquidationAddresses', allLiquidationAddresses)
-
-                console.log(chainName, tokenName)
-
-                console.log(account.bridge_account_id)
-
-                let liquidationAddressDetails = allLiquidationAddresses.find(
-                    (address) =>
-                        address.chain === chainName &&
-                        address.currency === tokenName &&
-                        address.external_account_id === account.bridge_account_id
-                )
-
-                console.log(liquidationAddressDetails)
-
-                if (!liquidationAddressDetails) {
-                    liquidationAddressDetails = await _utils.createLiquidationAddress(
-                        user.bridge_customer_id ?? '',
-                        chainName ?? '',
-                        tokenName ?? '',
-                        account.bridge_account_id,
-                        recipientType === 'iban' ? 'sepa' : 'ach',
-                        recipientType === 'iban' ? 'eur' : 'usd'
-                    )
+                const response = await userIdResponse.json()
+                if (response.isNewUser) {
+                    setUserType('NEW')
+                } else {
+                    setUserType('EXISTING')
                 }
-
-                setLiquidationAddress(liquidationAddressDetails)
+                setOfframpForm({
+                    name: '',
+                    email: '',
+                    password: '',
+                    recipient: recipient.name ?? '',
+                })
+                setInitialKYCStep(0)
             } else {
-                setOfframpForm({ ...offrampForm, recipient: recipient.name ?? '' })
+                setOfframpForm({
+                    email: user?.user?.email ?? '',
+                    name: user?.user?.full_name ?? '',
+                    recipient: recipient.name ?? '',
+                    password: '',
+                })
+                if (user?.user.kycStatus === 'verified') {
+                    const account = user.accounts.find(
+                        (account: any) =>
+                            account.account_identifier.toLowerCase() ===
+                            recipient.name?.replaceAll(' ', '').toLowerCase()
+                    )
+
+                    if (account) {
+                        setInitialKYCStep(4)
+                    } else {
+                        setInitialKYCStep(3)
+                    }
+                } else {
+                    if (!user?.user.email || !user?.user.full_name) {
+                        setInitialKYCStep(0)
+                    } else {
+                        setInitialKYCStep(1)
+                    }
+                }
             }
 
             onNext()
         } catch (error) {
-            console.log('error', error)
             setErrorState({
                 showError: true,
                 errorMessage: 'You can not claim this link to your bank account.',
@@ -278,7 +287,7 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === selectedChainID &&
-                    utils.compareTokenAddresses(route.toToken, selectedTokenAddress)
+                    utils.areTokenAddressesEqual(route.toToken, selectedTokenAddress)
             )
             if (existingRoute) {
                 setSelectedRoute(existingRoute)
@@ -388,7 +397,7 @@ export const InitialClaimLinkView = ({
                                     : mappedData
                                           .find((data) => data.chainId === selectedChainID)
                                           ?.tokens?.find((token) =>
-                                              utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                           )?.symbol
                                 : claimLinkData.tokenSymbol
                         }
@@ -399,12 +408,12 @@ export const InitialClaimLinkView = ({
                                     : mappedData
                                           .find((data) => data.chainId === selectedChainID)
                                           ?.tokens?.find((token) =>
-                                              utils.compareTokenAddresses(token.address, selectedTokenAddress)
+                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                           )?.logoURI
                                 : consts.peanutTokenDetails
                                       .find((chain) => chain.chainId === claimLinkData.chainId)
                                       ?.tokens.find((token) =>
-                                          utils.compareTokenAddresses(token.address, claimLinkData.tokenAddress)
+                                          utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
                                       )?.logoURI
                         }
                         chainLogoUrl={
@@ -445,7 +454,7 @@ export const InitialClaimLinkView = ({
                             recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
                         }
                     />
-                    <AddressInput
+                    <GeneralRecipientInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
                         value={recipient.name ? recipient.name : (recipient.address ?? '')}
@@ -453,8 +462,19 @@ export const InitialClaimLinkView = ({
                             setRecipient({ name, address })
                             setInputChanging(false)
                         }}
-                        _setIsValidRecipient={(valid: boolean) => {
-                            setIsValidRecipient(valid)
+                        _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
+                            setIsValidRecipient(isValid)
+                            if (error) {
+                                setErrorState({
+                                    showError: true,
+                                    errorMessage: error,
+                                })
+                            } else {
+                                setErrorState({
+                                    showError: false,
+                                    errorMessage: '',
+                                })
+                            }
                             setInputChanging(false)
                         }}
                         setIsValueChanging={() => {
@@ -468,6 +488,10 @@ export const InitialClaimLinkView = ({
                             setRecipient({
                                 name: undefined,
                                 address: '',
+                            })
+                            setErrorState({
+                                showError: false,
+                                errorMessage: '',
                             })
                         }}
                     />
@@ -561,7 +585,6 @@ export const InitialClaimLinkView = ({
                         className="btn-purple btn-xl"
                         onClick={() => {
                             if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                                console.log('recipientType', recipientType)
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {
@@ -590,31 +613,28 @@ export const InitialClaimLinkView = ({
                             'Claim now'
                         )}
                     </button>
-                    {!isValidRecipient && (
+                    {address && recipient.address.length < 0 && recipientType === 'address' && (
                         <div
                             className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
                             onClick={() => {
                                 handleConnectWallet()
                             }}
                         >
-                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Create or connect a wallet'}
+                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
                         </div>
                     )}
-                    {errorState.showError && (
+                    {errorState.showError ? (
                         <div className="text-center">
                             {errorState.errorMessage === 'offramp unavailable' ? (
                                 <label className="text-h8 font-normal text-red">
-                                    You can not claim this token to your bank account, reach out on{' '}
-                                    <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                        discord
-                                    </a>{' '}
-                                    for support.
+                                    You can not claim this token to your bank account.{' '}
+                                    <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                                 </label>
                             ) : (
                                 <>
-                                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
+                                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                                             {' '}
                                             <span
                                                 className="cursor-pointer text-h8 font-normal text-red underline"
@@ -631,18 +651,31 @@ export const InitialClaimLinkView = ({
                                             </span>
                                         </>
                                     )}
+                                    {errorState.errorMessage === 'offramp_lt_minimum' && (
+                                        <>
+                                            <label className=" text-h8 font-normal text-red ">
+                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank account.{' '}
+                                            </label>
+                                        </>
+                                    )}
+                                    {errorState.errorMessage === 'offramp_mt_maximum' && (
+                                        <>
+                                            <label className=" text-h8 font-normal text-red ">
+                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank account.{' '}
+                                            </label>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </div>
-                    )}
-                    {(recipientType === 'iban' || recipientType === 'us') && (
-                        <label className="text-h8 font-normal ">
-                            Only US and EU accounts are supported currently. Reach out on{' '}
-                            <a href="https://discord.gg/uWFQdJHZ6j" target="_blank" className="underline">
-                                discord
-                            </a>{' '}
-                            if you would like more info.
-                        </label>
+                    ) : (
+                        (recipientType === 'iban' || recipientType === 'us') && (
+                            <label className="text-h8 font-normal ">
+                                Only US and EU accounts are supported currently.{' '}
+                                <CrispButton className="mr-1 underline">Reach out</CrispButton>
+                                if you would like more info.
+                            </label>
+                        )
                     )}
                 </div>{' '}
             </div>

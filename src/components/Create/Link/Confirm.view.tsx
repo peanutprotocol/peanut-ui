@@ -41,7 +41,9 @@ export const CreateLinkConfirmView = ({
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
 
-    const { selectedChainID, selectedTokenAddress, selectedTokenPrice } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, selectedTokenPrice, selectedTokenDecimals } = useContext(
+        context.tokenSelectorContext
+    )
 
     const { walletType } = useWalletType()
 
@@ -142,8 +144,6 @@ export const CreateLinkConfirmView = ({
                 })
 
                 setLink(link[0])
-                console.log(link)
-
                 await submitClaimLinkConfirm({
                     chainId: selectedChainID,
                     link: link[0],
@@ -164,6 +164,7 @@ export const CreateLinkConfirmView = ({
             utils.updatePeanutPreferences({
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
+                decimals: selectedTokenDecimals,
             })
 
             onNext()
@@ -185,7 +186,7 @@ export const CreateLinkConfirmView = ({
                 {createType == 'link'
                     ? 'Text Tokens'
                     : createType == 'direct'
-                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
+                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>
             <label className="max-w-96 text-start text-h8 font-light">
@@ -243,19 +244,21 @@ export const CreateLinkConfirmView = ({
                         )}
                     </div>
                 )}
-                {transactionCostUSD && (
+                {transactionCostUSD !== undefined && (
                     <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'gas'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Network cost</label>
                         </div>
                         <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {transactionCostUSD < 0.01
-                                ? '$<0.01'
-                                : `$${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
+                            {transactionCostUSD === 0
+                                ? '$0'
+                                : transactionCostUSD < 0.01
+                                  ? '$<0.01'
+                                  : `$${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
                             <MoreInfo
                                 text={
-                                    transactionCostUSD
+                                    transactionCostUSD > 0
                                         ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
                                         : 'This transaction is sponsored by peanut! Enjoy!'
                                 }

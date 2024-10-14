@@ -1,7 +1,6 @@
 import type { NextRequest } from 'next/server'
 import { NextResponse } from 'next/server'
 import { IBridgeLiquidationAddress } from '@/interfaces'
-import { v4 as uuidv4 } from 'uuid'
 export const dynamic = 'force-dynamic' // Explicitly mark the route as dynamic
 
 export async function GET(request: NextRequest) {

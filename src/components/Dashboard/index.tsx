@@ -91,6 +91,7 @@ export const Dashboard = () => {
         if (visibleData.length > 0) {
             _fetchLinkDetailsAsync(visibleData)
         }
+        // }, [currentPage, dashboardData])
     }, [currentPage, dashboardData])
 
     useEffect(() => {
@@ -111,7 +112,7 @@ export const Dashboard = () => {
                     <label className="text-h2">Dashboard</label>
                     <label className="text-h7 font-normal">
                         {dashboardData.length > 0
-                            ? `See all links created and claimed  ${address ? `with ${utils.shortenAddressLong(address)}` : 'on this device'}`
+                            ? `See all links created and claimed  ${address ? `with ${utils.printableAddress(address)}` : 'on this device'}`
                             : 'You have not created or claimed any links yet.'}
                     </label>
                 </div>
@@ -183,7 +184,7 @@ export const Dashboard = () => {
                                                 <td className="td-custom font-bold">{link.chain}</td>
                                                 <td className="td-custom">{utils.formatDate(new Date(link.date))}</td>
                                                 <td className="td-custom">
-                                                    {utils.shortenAddressLong(link.address ?? address ?? '')}
+                                                    {utils.printableAddress(link.address ?? address ?? '')}
                                                 </td>
                                                 <td className="td-custom max-w-32">
                                                     <span
@@ -200,11 +201,11 @@ export const Dashboard = () => {
                                                             <Loading />
                                                         </div>
                                                     ) : link.status === 'claimed' ? (
-                                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                                             claimed
                                                         </div>
                                                     ) : link.status === 'transfer' ? (
-                                                        <div className="border border-green-3 px-2 py-1 text-center text-green-3">
+                                                        <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
                                                             sent
                                                         </div>
                                                     ) : (

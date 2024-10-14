@@ -2,13 +2,13 @@
 
 import Header from '@/components/Global/Header'
 import Footer from '@/components/Global/Footer'
+import { Banner } from '@/components/Global/Banner'
 import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
 import { default as NextImage } from 'next/image'
 import * as assets from '@/assets'
-import { MarqueeWrapper } from '../MarqueeWrapper'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -41,6 +41,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                 <div className="relative">
                     <div className="flex min-h-screen flex-col ">
                         <Header />
+                        <Banner />
                         <div className="flex grow justify-center">
                             <div
                                 className={`4xl:max-w-full flex grow flex-col justify-center pb-2 pt-6 sm:mx-auto sm:px-16 md:px-5 lg:px-6 2xl:px-8 ${className}`}

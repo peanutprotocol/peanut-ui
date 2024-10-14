@@ -1,4 +1,4 @@
-import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import { getLinkDetails, peanut } from '@squirrel-labs/peanut-sdk'
 
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
@@ -7,10 +7,10 @@ import * as utils from '@/utils'
 export const useDashboard = () => {
     const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
         // only fetching details for send links that are visible on the current page
-        const _data = visibleData.filter((item) => item.type == 'Link Sent')
+        const _data1 = visibleData.filter((item) => item.type == 'Link Sent')
         try {
             await Promise.all(
-                _data.map(async (item) => {
+                _data1.map(async (item) => {
                     try {
                         const linkDetails = await getLinkDetails({ link: item.link ?? '' })
                         item.status = linkDetails.claimed ? 'claimed' : 'pending'
@@ -20,10 +20,56 @@ export const useDashboard = () => {
                 })
             )
         } catch (error) {
-            console.log('Error fetching link details:', error)
+            console.error('Error fetching link details:', error)
         }
 
+        const _data2 = visibleData.filter((item) => item.type == 'Request Link')
+
+        try {
+            await Promise.all(
+                _data2.map(async (item) => {
+                    try {
+                        const linkDetails = await peanut.getRequestLinkDetails({
+                            link: item.link ?? '',
+                            apiUrl: '/api/proxy/get',
+                        })
+                        item.status = linkDetails.status === 'PAID' ? 'paid' : 'pending'
+                    } catch (error) {
+                        console.error(error)
+                    }
+                })
+            )
+        } catch (error) {
+            console.error('Error fetching link details:', error)
+        }
+
+        const _data3 = visibleData.filter((item) => item.type == 'Offramp Claim')
+
+        try {
+            await Promise.all(
+                _data3.map(async (item) => {
+                    try {
+                        const offrampStatus = await utils.getCashoutStatus(item.link ?? '')
+                        item.status = offrampStatus.status
+                    } catch (error) {
+                        item.status = 'claimed'
+                        console.error(error)
+                    }
+                })
+            )
+        } catch (error) {
+            console.error('Error fetching offramp claim details:', error)
+        }
+
+        const _data = [..._data1, ..._data2, ..._data3]
+
         return _data
+    }
+
+    const removeRequestLinkFromLocalStorage = (link: string) => {
+        const requestLinks = utils.getRequestLinksFromLocalStorage()!
+        const updatedRequestLinks = requestLinks.filter((item) => item.link !== link)
+        utils.setRequestLinksToLocalStorage(updatedRequestLinks)
     }
 
     const composeLinkDataArray = (address: string) => {
@@ -31,6 +77,8 @@ export const useDashboard = () => {
         const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })!
         const directSends = utils.getDirectSendFromLocalStorage({ address: address })!
         const offrampClaims = utils.getOfframpClaimsFromLocalStorage()!
+        const requestLinks = utils.getRequestLinksFromLocalStorage()!
+        const requestLinkFulfillments = utils.getRequestLinkFulfillmentsFromLocalStorage()!
 
         let linkData: interfaces.IDashboardItem[] = []
 
@@ -60,7 +108,7 @@ export const useDashboard = () => {
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: link.senderAddress,
-                status: 'claimed',
+                status: undefined,
                 message: link.message,
                 attachmentUrl: link.attachmentUrl,
                 points: link.points,
@@ -76,7 +124,7 @@ export const useDashboard = () => {
                 tokenSymbol:
                     consts.peanutTokenDetails
                         .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress ?? ''))
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress ?? ''))
                         ?.symbol ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
@@ -97,7 +145,7 @@ export const useDashboard = () => {
                 tokenSymbol:
                     consts.peanutTokenDetails
                         .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.compareTokenAddresses(token.address, link.tokenAddress))
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
                         ?.symbol ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.date.toString(),
@@ -107,6 +155,48 @@ export const useDashboard = () => {
                 attachmentUrl: undefined,
                 points: link.points,
                 txHash: link.txHash,
+            })
+        })
+
+        requestLinks.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'Request Link',
+                amount: link.tokenAmount.toString(),
+                tokenSymbol:
+                    consts.peanutTokenDetails
+                        .find((token) => token.chainId === link.chainId)
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
+                        ?.symbol ?? '',
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.createdAt.toString(),
+                address: link.recipientAddress,
+                status: undefined,
+                message: link.reference ?? '',
+                attachmentUrl: link.attachmentUrl ?? '',
+                points: 0,
+                txHash: '',
+            })
+        })
+
+        requestLinkFulfillments.forEach((link) => {
+            linkData.push({
+                link: link.link,
+                type: 'Request Link Fulfillment',
+                amount: link.tokenAmount.toString(),
+                tokenSymbol:
+                    consts.peanutTokenDetails
+                        .find((token) => token.chainId === link.chainId)
+                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
+                        ?.symbol ?? '',
+                chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
+                date: link.createdAt.toString(),
+                address: link.recipientAddress,
+                status: 'paid',
+                message: link.reference ?? '',
+                attachmentUrl: link.attachmentUrl ?? '',
+                points: 0,
+                txHash: link.destinationChainFulfillmentHash ?? '',
             })
         })
 
@@ -192,6 +282,7 @@ export const useDashboard = () => {
         return filteredData
     }
     return {
+        removeRequestLinkFromLocalStorage,
         fetchLinkDetailsAsync,
         composeLinkDataArray,
         sortDashboardData,

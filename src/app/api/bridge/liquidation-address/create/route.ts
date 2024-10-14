@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
                 {
                     method: 'GET',
                     headers: {
-                        'Api-Key': 'sk-live-6ac1755eab8bdb95a455ab1e9515b525',
+                        'Api-Key': process.env.BRIDGE_API_KEY,
                         accept: 'application/json',
                     },
                 }

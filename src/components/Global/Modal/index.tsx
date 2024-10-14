@@ -40,7 +40,7 @@ const Modal = ({
         <Transition show={visible} as={Fragment}>
             <Dialog
                 initialFocus={initialFocus}
-                className={`fixed inset-0 z-20 flex overflow-auto scroll-smooth md:p-6 md:px-4 ${className}`}
+                className={`fixed inset-0 z-20 flex items-center overflow-auto scroll-smooth md:p-6 md:px-4 ${className}`}
                 onClose={onClose}
             >
                 <Transition.Child
@@ -68,7 +68,7 @@ const Modal = ({
                 >
                     <Dialog.Panel
                         className={twMerge(
-                            `relative bottom-0 z-10 mx-0 max-h-[] w-full max-w-[26rem] self-end border border-transparent bg-white dark:border-white dark:bg-n-1 sm:m-auto sm:self-auto ${
+                            `relative bottom-0 z-10 mx-0 mx-auto max-h-[] w-full max-w-[26rem] border border-transparent bg-white dark:border-white dark:bg-n-1 sm:m-auto sm:self-auto ${
                                 video
                                     ? 'static aspect-video max-w-[64rem] overflow-hidden bg-n-1 shadow-[0_2.5rem_8rem_rgba(0,0,0,0.5)] dark:border-transparent'
                                     : ''

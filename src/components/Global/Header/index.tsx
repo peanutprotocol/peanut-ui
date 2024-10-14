@@ -1,29 +1,16 @@
 'use client'
-import React, { useEffect, useState } from 'react'
-import {
-    Box,
-    Flex,
-    Text,
-    Stack,
-    Collapse,
-    useDisclosure,
-    Button,
-    Menu,
-    MenuButton,
-    MenuItem,
-    MenuList,
-} from '@chakra-ui/react'
+
+import React, { useEffect, useState, useCallback } from 'react'
+import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
-
 import Link from 'next/link'
-import Image from 'next/image'
-
-import * as assets_icons from '@/assets/icons'
 import * as assets from '@/assets'
 import * as utils from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
+import { breakpoints, emToPx } from '@/styles/theme'
+import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
     animationData: assets.HAMBURGER_LOTTIE,
@@ -40,17 +27,29 @@ const defaultLottieStyle = {
 }
 
 export const Header = () => {
-    const { isOpen, onToggle } = useDisclosure()
+    const { isOpen, onToggle, onClose } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
 
     useEffect(() => {
-        setIsOpenState(!isOpen)
-    }, [isOpen])
+        const handleMediaQueryChange = () => {
+            if (window.innerWidth >= emToPx(breakpoints.lg) && isOpen) {
+                onClose()
+                setIsOpenState(false)
+            }
+        }
+
+        window.addEventListener('resize', handleMediaQueryChange)
+
+        // Clean up the listener when the component unmounts
+        return () => {
+            window.removeEventListener('resize', handleMediaQueryChange)
+        }
+    }, [isOpen, onClose])
 
     return (
         <NavBarContainer>
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
-                <Box display={{ base: 'none', md: 'flex' }} flexDirection={'row'} height="100%">
+                <Box display={{ base: 'none', lg: 'flex' }} flexDirection={'row'} height="100%">
                     <div
                         className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
@@ -59,12 +58,12 @@ export const Header = () => {
                         }}
                     >
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                        <span className="inline px-2 text-h5 sm:px-6 sm:px-6 sm:text-h4">peanut protocol</span>
+                        <span className="inline px-2 text-h5 sm:px-6 sm:text-h4">peanut protocol</span>
                     </div>
                     <MenuLinks />
                 </Box>
                 <Box
-                    display={{ base: 'flex', md: 'none' }}
+                    display={{ base: 'flex', lg: 'none' }}
                     flexDirection={'row'}
                     justifyContent={'space-between'}
                     alignContent={'center'}
@@ -84,7 +83,7 @@ export const Header = () => {
 
                     <MenuToggle isOpen={isOpenState} toggle={onToggle} />
                 </Box>
-                <Box display={{ base: 'none', md: 'block' }}>
+                <Box display={{ base: 'none', lg: 'block' }}>
                     <SocialLinks />
                 </Box>
             </Flex>
@@ -104,7 +103,7 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
             justifyContent={'center'}
             alignContent={'center'}
             alignItems={'center'}
-            display={{ base: 'flex', md: 'none' }}
+            display={{ base: 'flex', lg: 'none' }}
             onClick={() => {
                 toggle()
                 goToAndStop(isOpen ? 37 : 0, true)
@@ -116,49 +115,56 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
     )
 }
 
-const MenuLinks = () => {
-    const [showMenu, setShowMenu] = useState<boolean>(false)
-    const { open: web3modalOpen } = useWeb3Modal()
-    const { address, isConnected } = useAccount()
+const MenuLink = ({ route, title, isBeta = false }: { route: string; title: string; isBeta?: boolean }) => {
     const router = useRouter()
 
-    const handleClick = (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
-        // Prevent the default behavior of the link
-        e.preventDefault()
-        // Force a reload of the current route
-        if (window?.location.pathname == '/send') window?.location.reload()
-        else router.push('/send')
-    }
+    const handleClick = useCallback(
+        (e: React.MouseEvent<HTMLAnchorElement, MouseEvent>) => {
+            e.preventDefault()
+            if (window?.location.pathname === route) {
+                // Force a hard reload of the current page
+                window.location.reload()
+            } else {
+                // For different routes, use router.push()
+                router.push(route)
+            }
+        },
+        [router, route]
+    )
 
     return (
-        <Stack
-            align={{ base: 'start', md: 'center' }}
-            justify={{ base: 'center', md: 'center' }}
-            direction={{ base: 'column', md: 'row' }}
-            // pt={ 4}
-            pb={{ base: 4, md: 0 }}
-            height="100%"
-            gap={0}
-        >
-            <Link
-                href={'/send'}
-                onClick={handleClick}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block"> app</Text>
-            </Link>
+        <NavLink href={route} onClick={handleClick}>
+            <Text display="block" className="flex items-center">
+                {title}
+            </Text>
+            {isBeta && (
+                <span className="relative top-[-1.5em] ml-1 text-[0.5rem] font-semibold uppercase text-purple-1">
+                    BETA
+                </span>
+            )}
+        </NavLink>
+    )
+}
+
+const ToolsDropdown = () => {
+    const [showMenu, setShowMenu] = useState<boolean>(false)
+
+    return (
+        <>
             <div className="relative hidden h-full sm:block">
-                <button
-                    onMouseEnter={() => {
-                        setShowMenu(true)
-                    }}
-                    onMouseLeave={() => {
-                        setShowMenu(false)
-                    }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-                >
-                    tools
-                </button>
+                <NavItemBox>
+                    <button
+                        onMouseEnter={() => {
+                            setShowMenu(true)
+                        }}
+                        onMouseLeave={() => {
+                            setShowMenu(false)
+                        }}
+                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
+                    >
+                        tools
+                    </button>
+                </NavItemBox>
                 {showMenu && (
                     <div
                         onMouseEnter={() => {
@@ -169,81 +175,84 @@ const MenuLinks = () => {
                         }}
                         className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
                     >
-                        <Link
-                            href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> raffle</Text>
-                        </Link>
-                        <Link
-                            href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> batch</Text>
-                        </Link>
-                        <Link
-                            href={'/refund'}
-                            className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> refund</Text>
-                        </Link>
+                        <MenuLink route={'/raffle/create'} title={'raffle'} />
+                        <MenuLink route={'/batch/create'} title={'batch'} />
+                        <MenuLink route={'/refund'} title={'refund'} />
                     </div>
                 )}
             </div>
             <div className="relative block h-full w-full sm:hidden">
-                <button
-                    onClick={() => {
-                        setShowMenu(!showMenu)
-                    }}
-                    className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-                >
-                    <Text display="block"> tools</Text>
-                </button>
+                <NavItemBox>
+                    <button
+                        onClick={() => {
+                            setShowMenu(!showMenu)
+                        }}
+                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
+                    >
+                        <Text display="block"> tools</Text>
+                    </button>
+                </NavItemBox>
                 {showMenu && (
                     <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <Link
-                            href={'/raffle/create'}
-                            className="flex h-full w-full items-center justify-start py-2  pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> raffle</Text>
-                        </Link>
-                        <Link
-                            href={'/batch/create'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> batch</Text>
-                        </Link>
-                        <Link
-                            href={'/refund'}
-                            className="flex h-full w-full items-center justify-start py-2 pl-6 text-h6 uppercase hover:bg-white hover:text-black sm:justify-start sm:px-8"
-                        >
-                            <Text display="block"> refund</Text>
-                        </Link>
+                        <MenuLink route={'/raffle/create'} title={'raffle'} />
+                        <MenuLink route={'/batch/create'} title={'batch'} />
+                        <MenuLink route={'/refund'} title={'refund'} />
                     </div>
                 )}
             </div>
+        </>
+    )
+}
 
-            <Link
-                href={'https://docs.peanut.to'}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block"> docs</Text>
-            </Link>
+const MenuLinks = () => {
+    const { open: web3modalOpen } = useWeb3Modal()
+    const { address, isConnected } = useAccount()
 
-            <Link
-                href={'/profile'}
-                className=" flex h-full w-full items-center justify-start px-3 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
-            >
-                <Text display="block"> Profile</Text>
-            </Link>
-            <button
-                onClick={() => {
-                    web3modalOpen()
+    return (
+        <Stack
+            align={{ base: 'start', md: 'center' }}
+            justify={{ base: 'center', md: 'center' }}
+            direction={{ base: 'column', md: 'row' }}
+            pb={{ base: 4, md: 0 }}
+            height="100%"
+            gap={0}
+        >
+            <MenuLink route={'/send'} title={'send'} />
+            <MenuLink route={'/request/create'} title={'request'} isBeta />
+            <MenuLink route={'/cashout'} title={'cashout'} isBeta />
+            <ToolsDropdown />
+            <MenuLink route={'https://docs.peanut.to'} title={'docs'} />
+
+            <Box
+                display={{
+                    base: 'flex',
+                    lg: 'none',
                 }}
-                className="flex h-full w-full items-center justify-start px-2 py-2 uppercase hover:bg-white hover:text-black sm:hidden sm:w-max sm:justify-center sm:px-8"
+                flexDirection="column"
+                width={'100%'}
             >
-                <Text display="block"> {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}</Text>
-            </button>
+                <NavItemBox>
+                    <Link
+                        href={'/profile'}
+                        className=" flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                    >
+                        <Text display="block"> Profile</Text>
+                    </Link>
+                </NavItemBox>
+                <NavItemBox>
+                    <button
+                        onClick={() => {
+                            web3modalOpen()
+                        }}
+                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                    >
+                        <Text display="block text-nowrap">
+                            {' '}
+                            {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                        </Text>
+                    </button>
+                </NavItemBox>
+            </Box>
         </Stack>
     )
 }
@@ -255,15 +264,15 @@ const SocialLinks = () => {
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
             <Link href={'/profile'} className="no-underline">
-                <button className="btn btn-large bg-white px-3">Profile</button>
+                <button className="btn btn-large bg-white px-2 ">Profile</button>
             </Link>
             <button
-                className="btn btn-large bg-white px-2"
+                className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
                     web3modalOpen()
                 }}
             >
-                {isConnected ? utils.shortenAddress(address ?? '') : 'Create or Connect'}
+                {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
             </button>
         </Stack>
     )
@@ -280,7 +289,8 @@ const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) 
             bg={{ base: 'black', md: 'black' }}
             color={{ base: 'white', md: 'white' }}
             {...props}
-            className="text-h6"
+            className="z-[9999] text-h6"
+            zIndex={9999} // always on top
         >
             {children}
         </Flex>
