@@ -252,26 +252,6 @@ export const InitialView = ({
                     feeOptions: undefined,
                 })
                 setLoadingState('Executing transaction')
-
-                await peanut.submitRequestLinkFulfillment({
-                    chainId: requestLinkData.chainId,
-                    hash: hash ?? '',
-                    payerAddress: address ?? '',
-                    link: requestLinkData.link,
-                    apiUrl: '/api/proxy/patch/',
-                    amountUsd,
-                })
-
-                const currentDate = new Date().toISOString()
-                utils.saveRequestLinkFulfillmentToLocalStorage({
-                    details: {
-                        ...requestLinkData,
-                        destinationChainFulfillmentHash: hash ?? '',
-                        createdAt: currentDate,
-                    },
-                    link: requestLinkData.link,
-                })
-
                 setTransactionHash(hash ?? '')
                 onNext()
             }
