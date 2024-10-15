@@ -106,7 +106,6 @@ export const InitialView = ({
 
     useEffect(() => {
         const estimateTxFee = async () => {
-            setLoadingState('Preparing transaction')
             if (!isXChain) {
                 clearError()
                 setViewState(ViewState.READY_TO_PAY)
@@ -114,6 +113,7 @@ export const InitialView = ({
             }
             try {
                 clearError()
+                setLoadingState('Preparing transaction')
                 const txData = await createXChainUnsignedTx({
                     tokenData: selectedTokenData!,
                     requestLink: requestLinkData,
