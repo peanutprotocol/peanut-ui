@@ -77,7 +77,6 @@ export const OfframpConfirmView = ({
     // TODO: standardize this type
     let accountType = user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)?.account_type
 
-    // TODO: remove hardcoding fee amounts from here and refactor to consts file
     let fee  = 0;
     const sepaFeeExplainer = `For SEPA transactions a fee of $${OFFRAMP_IBAN_FEE_USD} is charged.`
     const achFeeExplainer = `For ACH transactions a fee of $${OFFRAMP_NON_IBAN_FEE_USD} is charged.`
@@ -91,9 +90,7 @@ export const OfframpConfirmView = ({
         if (offrampType == OfframpType.CLAIM) {
             feeExplainer = claimLinkFeeExplainer
         }
-    } 
-
-    
+    }
 
     let amount: number = 0
 
