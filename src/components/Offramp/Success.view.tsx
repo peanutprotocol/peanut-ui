@@ -17,17 +17,29 @@ export const OfframpSuccessView = ({
     recipientType, // available on claims
     transactionHash, // available on claims
 }: _consts.IOfframpSuccessScreenProps) => {
-    // setup offrampType == CASHOUT props
-    const { user } = useAuth()
-    const accountType = user?.accounts?.find(
-        (account) => account?.account_identifier?.toLowerCase() === offrampForm.recipient?.toLowerCase()
-    )?.account_type
 
-    // setup offrampType == CLAIM props
+    //////////////////////
+    // state and context vars for cashout offramp
+    const { user } = useAuth()
+
+    //////////////////////
+    // state and context vars for claim link offramp
     let blockExplorerUrl: string | undefined
     if (offrampType == _consts.OfframpType.CLAIM && claimLinkData) {
         blockExplorerUrl = utils.getExplorerUrl(claimLinkData.chainId)
     }
+
+    //////////////////////
+    // utility JSX vars
+    let accountType = user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)?.account_type
+    const fee  = utils.returnOfframpFee(
+        offrampType,
+        accountType
+    );
+    const feeExplainer = utils.returnOfframpFeeExplainer(
+        offrampType,
+        accountType
+    )
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
@@ -84,29 +96,10 @@ export const OfframpSuccessView = ({
                         <label className="font-bold">Fee</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {offrampType == _consts.OfframpType.CASHOUT && (
-                            <>
-                                {user?.accounts?.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
-                                    ? '$1'
-                                    : '$0.50'}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                    }
-                                />
-                            </>
-                        )}
-                        {offrampType == _consts.OfframpType.CLAIM && (
-                            <>
-                                $0
-                                <MoreInfo text={'Fees are on us, enjoy!'} />
-                            </>
-                        )}
+                        ${fee}
+                        <MoreInfo
+                            text={feeExplainer}
+                        />
                     </span>
                 </div>
                 <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
