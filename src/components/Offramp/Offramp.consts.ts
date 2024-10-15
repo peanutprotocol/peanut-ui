@@ -27,6 +27,10 @@ export enum OfframpType {
 export const OFFRAMP_IBAN_FEE_USD = 1
 export const OFFRAMP_NON_IBAN_FEE_USD = 0.5
 
+export const sepaFeeExplainer = `For SEPA transactions a fee of $${OFFRAMP_IBAN_FEE_USD} is charged.`
+export const achFeeExplainer = `For ACH transactions a fee of $${OFFRAMP_NON_IBAN_FEE_USD} is charged.`
+export const claimLinkFeeExplainer = 'Woop Woop free offramp!'
+
 export const MIN_CASHOUT_LIMIT = 10 // $10 minimum
 export const MAX_CASHOUT_LIMIT = 101000 // $101,000 maximum
 

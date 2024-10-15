@@ -17,6 +17,8 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
 import {
+    achFeeExplainer,
+    claimLinkFeeExplainer,
     CrossChainDetails,
     IOfframpConfirmScreenProps,
     LiquidationAddress,
@@ -25,6 +27,7 @@ import {
     OfframpType,
     optimismChainId,
     PeanutAccount,
+    sepaFeeExplainer,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
@@ -78,9 +81,7 @@ export const OfframpConfirmView = ({
     let accountType = user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)?.account_type
 
     let fee  = 0;
-    const sepaFeeExplainer = `For SEPA transactions a fee of $${OFFRAMP_IBAN_FEE_USD} is charged.`
-    const achFeeExplainer = `For ACH transactions a fee of $${OFFRAMP_NON_IBAN_FEE_USD} is charged.`
-    const claimLinkFeeExplainer = 'Woop Woop free offramp!'
+
     let feeExplainer = ''
     if (offrampType == OfframpType.CASHOUT) {
         fee = accountType === 'iban' ? OFFRAMP_IBAN_FEE_USD : OFFRAMP_NON_IBAN_FEE_USD
