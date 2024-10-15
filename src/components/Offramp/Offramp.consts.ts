@@ -24,6 +24,9 @@ export enum OfframpType {
     CLAIM = 'CLAIM'
 }
 
+export const OFFRAMP_IBAN_FEE_USD = 1
+export const OFFRAMP_NON_IBAN_FEE_USD = 0.5
+
 export const MIN_CASHOUT_LIMIT = 10 // $10 minimum
 export const MAX_CASHOUT_LIMIT = 101000 // $101,000 maximum
 

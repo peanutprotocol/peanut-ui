@@ -20,6 +20,8 @@ import {
     CrossChainDetails,
     IOfframpConfirmScreenProps,
     LiquidationAddress,
+    OFFRAMP_IBAN_FEE_USD,
+    OFFRAMP_NON_IBAN_FEE_USD,
     OfframpType,
     optimismChainId,
     PeanutAccount,
@@ -77,12 +79,12 @@ export const OfframpConfirmView = ({
 
     // TODO: remove hardcoding fee amounts from here and refactor to consts file
     let fee  = 0;
-    const sepaFeeExplainer = 'For SEPA transactions a fee of $1 is charged.'
-    const achFeeExplainer = 'For ACH transactions a fee of $0.50 is charged.'
+    const sepaFeeExplainer = `For SEPA transactions a fee of $${OFFRAMP_IBAN_FEE_USD} is charged.`
+    const achFeeExplainer = `For ACH transactions a fee of $${OFFRAMP_NON_IBAN_FEE_USD} is charged.`
     const claimLinkFeeExplainer = 'Woop Woop free offramp!'
     let feeExplainer = ''
     if (offrampType == OfframpType.CASHOUT) {
-        fee = accountType === 'iban' ? 1 : 0.5
+        fee = accountType === 'iban' ? OFFRAMP_IBAN_FEE_USD : OFFRAMP_NON_IBAN_FEE_USD
         feeExplainer = accountType === 'iban' ? sepaFeeExplainer + ' ' + achFeeExplainer: achFeeExplainer + ' ' + sepaFeeExplainer
     } else {
         // other types of offramp (eg. CLAIM link) do not have a fee
