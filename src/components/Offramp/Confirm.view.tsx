@@ -87,18 +87,16 @@ export const OfframpConfirmView = ({
         offrampType,
         accountType
     )
-
-    let amount: number = 0
-
-    if (offrampType == OfframpType.CASHOUT) {
-        if (accountType == 'iban') {
-            amount = parseFloat(usdValue ?? tokenValue ?? '') - fee
-        } else {
-            amount = parseFloat(usdValue ?? '') - fee
-        }
-    } else if (offrampType == OfframpType.CLAIM && tokenPrice && claimLinkData) {
-        amount = tokenPrice * parseFloat(claimLinkData.tokenAmount) - fee
-    }
+    
+    const amount = utils.returnOfframpTotalAmountAfterFees(
+        offrampType,
+        accountType,
+        usdValue,
+        tokenValue,
+        fee,
+        tokenPrice,
+        claimLinkData?.tokenAmount
+    )
 
     const amountReceived = utils.formatTokenAmount(amount)
 
@@ -688,7 +686,7 @@ export const OfframpConfirmView = ({
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 $ {amountReceived}
                                 <MoreInfo
-                                    text={feeExplainer + ' This will be deducted of the amount you will receive.'}
+                                    text={fee > 0 ? feeExplainer + ' This will be deducted of the amount you will receive.': feeExplainer}
                                 />
                             </span>
                         </div>

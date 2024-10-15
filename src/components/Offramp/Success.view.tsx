@@ -41,6 +41,18 @@ export const OfframpSuccessView = ({
         accountType
     )
 
+    const amount = utils.returnOfframpTotalAmountAfterFees(
+        offrampType,
+        accountType,
+        usdValue,
+        undefined,  // no tokenValue provided in this component
+        fee,
+        tokenPrice,
+        claimLinkData?.tokenAmount
+    )
+
+    const amountReceived = utils.formatTokenAmount(amount)
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
@@ -108,30 +120,10 @@ export const OfframpSuccessView = ({
                         <label className="font-bold">Total</label>
                     </div>
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {offrampType == _consts.OfframpType.CASHOUT && (
-                            <>
-                                $
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
-                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
-                                    : utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
-                                    }
-                                />
-                            </>
-                        )}
-                        {offrampType == _consts.OfframpType.CLAIM && tokenPrice && claimLinkData && (
-                            <>
-                                ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
-                                <MoreInfo text={'Woop Woop free offramp!'} />
-                            </>
-                        )}
+                        $ {amountReceived}
+                        <MoreInfo
+                            text={fee > 0 ? feeExplainer + ' This will be deducted of the amount you will receive.': feeExplainer }
+                        />
                     </span>
                 </div>
             </div>

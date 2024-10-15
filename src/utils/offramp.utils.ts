@@ -549,3 +549,26 @@ export function returnOfframpFeeExplainer(offrampType: OfframpType, accountType:
     }
     return feeExplainer
 }
+
+export function returnOfframpTotalAmountAfterFees(
+    offrampType: OfframpType,
+    accountType: any,
+    usdValue: string | undefined,
+    tokenValue: string | undefined,
+    fee: number,
+    tokenPrice: number | undefined,
+    tokenAmount: string | undefined,
+): number {
+    let amount: number = 0
+
+    if (offrampType == OfframpType.CASHOUT) {
+        if (accountType == 'iban') {
+            amount = parseFloat(usdValue ?? tokenValue ?? '') - fee
+        } else {
+            amount = parseFloat(usdValue ?? '') - fee
+        }
+    } else if (offrampType == OfframpType.CLAIM && tokenPrice && tokenAmount) {
+        amount = tokenPrice * parseFloat(tokenAmount) - fee
+    }
+    return amount
+}
