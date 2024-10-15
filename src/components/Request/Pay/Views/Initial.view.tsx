@@ -70,6 +70,7 @@ export const InitialView = ({
         setSelectedTokenAddress,
         isXChain,
         setIsXChain,
+        isFetchingTokenData,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -139,14 +140,16 @@ export const InitialView = ({
         if (!isConnected || !address) return
 
         if (isXChain && !selectedTokenData) {
-            setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
-            setIsFeeEstimationError(true)
-            setTxFee('0')
+            if (!isFetchingTokenData) {
+                setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
+                setIsFeeEstimationError(true)
+                setTxFee('0')
+            }
             return
         }
 
         estimateTxFee()
-    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain])
+    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain, isFetchingTokenData])
 
     useEffect(() => {
         setLoadingState('Loading')
