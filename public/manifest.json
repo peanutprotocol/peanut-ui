@@ -1,14 +1,28 @@
 {
-    "short_name": "PEANUT",
     "name": "Peanut Protocol",
+    "short_name": "PEANUT",
     "description": "Send funds with a link",
     "icons": [
+        {
+            "src": "/pwa/icon-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png",
+            "purpose": "maskable"
+        },
+        {
+            "src": "/pwa/icon-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        },
         {
             "src": "logo-favicon.png",
             "sizes": "any",
             "type": "image/png"
         }
     ],
-    "start_url": ".",
-    "display": "standalone"
+    "theme_color": "#FFFFFF",
+    "background_color": "#FFFFFF",
+    "start_url": "/",
+    "display": "standalone",
+    "orientation": "portrait"
 }

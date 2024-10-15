@@ -7,124 +7,14 @@ import * as assets from '@/assets'
 import * as chain_logos from '@/assets/chains'
 import { MarqueeWrapper } from '../Global/MarqueeWrapper'
 
-const logoCloudLogos = [
-    { icon: assets.WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
-    { icon: assets.CLAVE_LOGO, link: 'https://www.getclave.io/', classNameImg: 'rounded-full' },
-    { icon: assets.ECO_LOGO, link: 'https://eco.org/?ref=com' },
-    { icon: assets.MANTLE_ICON, link: 'https://www.mantle.xyz/' },
-    {
-        icon: assets.BLOCKSCOUT_LOGO,
-        link: 'https://www.blockscout.com/',
-        className: 'bg-black',
-        classNameImg: 'rounded-full',
-    },
-    {
-        icon: assets.HYPERSPHERE_LOGO_SQUARE,
-        link: 'https://www.hypersphere.ventures/',
-        classNameImg: 'rounded-full',
-    },
-    {
-        icon: assets.ZEEPRIME_LOGO_SQUARE,
-        link: 'https://zeeprime.capital/',
-        className: ' bg-white rounded-full ',
-        classNameImg: 'h-6 w-6 sm:h-12 sm:w-12 -mt-[4px]',
-    },
-    {
-        icon: assets.LONGHASH_LOGO_SQUARE,
-        link: 'https://www.longhash.vc/',
-        className: 'p-0 bg-white',
-        classNameImg: 'h-6 w-6 sm:h-12 sm:w-12 rounded-lg',
-    },
-    {
-        icon: assets.NAZARE_LOGO_SQUARE,
-        link: 'https://www.nazare.io/',
-        classNameImg: 'rounded-full',
-    },
-]
-
-const faqs = [
-    { question: 'How can I try?', answer: 'Check out our dapp or any of the projects that already integrated Peanut.' },
-    {
-        question: 'What are the trust assumptions?',
-        answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
-        redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
-        redirectText: 'here.',
-    },
-    {
-        question: 'What happens if I want to cancel or if I lose the link?',
-        answer: 'The only thing you need is the transaction hash! To see how, click ',
-        redirectUrl: 'https://peanut.to/refund',
-        redirectText: 'here.',
-    },
-    {
-        question: 'What are the fees?',
-        answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol for same-chain transactions, see ',
-        redirectUrl: 'https://docs.peanut.to/overview/pricing',
-        redirectText: 'here.',
-    },
-    {
-        question: 'I need help!',
-        answer: 'Sure! Let us know at hello@peanut.to or on ',
-        redirectUrl: 'https://discord.gg/uWFQdJHZ6j',
-        redirectText: 'discord.',
-    },
-    {
-        question: 'Are you audited?',
-        answer: 'Yes! ',
-        redirectUrl: 'https://docs.peanut.to/other/security-audit',
-        redirectText: 'See our docs for more',
-    },
-    {
-        question: 'I want this for our app! How long does it take to integrate?',
-        answer: 'Our record integration took 2 hours, but it depends on your stack. ',
-        calModal: true,
-        redirectText: 'Lets talk!',
-    },
-]
-const testimonials = [
-    {
-        imageSrc: assets.DEREK_PERSON.src,
-        altText: 'picture of chad',
-        comment: 'How did this not exist before?! Great UX!',
-        name: 'Derek Rein',
-        detail: 'WalletConnect',
-        detailRedirectUrl: 'https://walletconnect.com/',
-        bgColorClass: 'bg-white',
-    },
-    {
-        imageSrc: assets.SHARUK_PERSON.src,
-        altText: 'eco man',
-        comment: 'Peanut allows us to elegantly solve the cold start problem!',
-        name: 'shahrukh Rao',
-        detail: 'Eco',
-        detailRedirectUrl: 'https://eco.org/?ref=com',
-        bgColorClass: 'bg-white',
-    },
-    {
-        imageSrc: assets.KOFIME_PERSON.src,
-        altText: 'kofi',
-        comment: 'Very buttery experience!',
-        name: 'Kofi.me',
-        detail: 'Kofi.me',
-        detailRedirectUrl: 'https://www.kofime.xyz/',
-        bgColorClass: 'bg-white',
-    },
-    {
-        imageSrc: assets.SBF_PERSON.src,
-        altText: 'picture of pixel art SBF',
-        comment: 'I have a peanut allergy. Help!',
-        name: 'CEx CEO',
-        detail: 'Probably FTX',
-        bgColorClass: 'bg-white',
-    },
-]
+import { useIsPWA } from '@/hooks/useIsPWA'
+import { classNames, faqs, logoCloudLogos, testimonials } from './constants'
+import { usePWAInstaller } from '../PWA'
 
 export function Welcome() {
+    const isPWA = useIsPWA()
+    const { install } = usePWAInstaller()
     const [openedFaq, setOpenedFaq] = useState<number | null>(null)
-
-    function classNames(...classes: any) {
-        return classes.filter(Boolean).join(' ')
-    }
 
     useEffect(() => {
         // Ensure this code only runs on the client
@@ -159,15 +49,23 @@ export function Welcome() {
                     <div className="mx-auto w-3/4 text-h5 font-normal">
                         Send money to your friends without having to worry about anything else!
                     </div>
-
-                    <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
+                    <div className="flex w-full flex-col items-center justify-center gap-2 p-2 sm:gap-4 md:flex-row">
                         <Link
                             href={'/send'}
-                            className="btn-purple btn-xl cursor-pointer bg-white px-4 text-h4 md:w-3/5 lg:w-1/3"
+                            className="btn-purple btn-xl cursor-pointer bg-white px-4 text-h4 md:w-1/3"
                         >
-                            App
+                            Send
                         </Link>
-
+                        {!isPWA && (
+                            <button
+                                className="btn-purple btn-xl cursor-pointer bg-white px-4 text-h4 md:w-1/3"
+                                onClick={() => {
+                                    install(true)
+                                }}
+                            >
+                                Install
+                            </button>
+                        )}
                         <Link
                             href="https://docs.peanut.to"
                             target="_blank"
@@ -176,8 +74,7 @@ export function Welcome() {
                         >
                             Integrate →
                         </Link>
-                    </div>
-
+                    </div>{' '}
                     <div className="mx-5 flex flex-row flex-wrap items-center justify-center gap-4 gap-y-8 sm:gap-8">
                         {logoCloudLogos.map((logo) => {
                             return (
