@@ -66,5 +66,3 @@ export enum claimLinkStateType {
     NOT_FOUND = 'NOT_FOUND',
     CLAIM_SENDER = 'CLAIM_SENDER'
 }
-
-// export type claimLinkState = 'LOADING' | 'CLAIM' | 'ALREADY_CLAIMED' | 'NOT_FOUND' | 'CLAIM_SENDER'
