@@ -9,12 +9,15 @@ import { peanut } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
-    const { selectedChainID, isXChain } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { address } = useAccount()
     const sourceUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(selectedChainID)}/tx/${transactionHash}`,
         [transactionHash, selectedChainID]
     )
+    const isXChain = useMemo(() => {
+        return requestLinkData.chainId !== selectedChainID
+    }, [requestLinkData, selectedChainID])
     const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
         { transactionId: string; transactionUrl: string } | undefined
     >(undefined)
@@ -39,10 +42,32 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                 link: requestLinkData.link,
             })
         }
-    }, [explorerUrlDestChainWithTxHash])
+    }, [explorerUrlDestChainWithTxHash, requestLinkData, address])
 
     useEffect(() => {
-        if (isXChain && transactionHash) {
+        // is swap on same chain
+        if (!isXChain && !utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)) {
+            peanut.submitRequestLinkFulfillment({
+                chainId: requestLinkData.chainId,
+                hash: transactionHash,
+                payerAddress: address ?? '',
+                link: requestLinkData.link,
+                apiUrl: '/api/proxy/patch/',
+                amountUsd: (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2),
+            })
+            utils.saveRequestLinkFulfillmentToLocalStorage({
+                details: {
+                    ...requestLinkData,
+                    destinationChainFulfillmentHash: transactionHash,
+                    createdAt: new Date().toISOString(),
+                },
+                link: requestLinkData.link,
+            })
+        }
+    }, [isXChain, requestLinkData, transactionHash, address, selectedTokenAddress])
+
+    useEffect(() => {
+        if (isXChain) {
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
