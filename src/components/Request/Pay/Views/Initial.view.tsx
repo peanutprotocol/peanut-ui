@@ -12,14 +12,40 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { type ITokenPriceData } from '@/interfaces'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
-enum RequestStatus {
+enum ViewState {
+    INITIAL = 'INITIAL',
     LOADING = 'LOADING',
-    CLAIM = 'CLAIM',
-    NOT_CONNECTED = 'NOT_CONNECTED',
-    NOT_FOUND = 'NOT_FOUND',
+    READY_TO_PAY = 'READY_TO_PAY',
+    ERROR = 'ERROR',
+}
+
+async function createXChainUnsignedTx({
+    tokenData,
+    requestLink,
+    senderAddress,
+}: {
+    tokenData: ITokenPriceData
+    requestLink: Awaited<ReturnType<typeof peanut.getRequestLinkDetails>>
+    senderAddress: string
+}) {
+    const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
+        fromToken: tokenData.address,
+        fromChainId: tokenData.chainId,
+        senderAddress,
+        link: requestLink.link,
+        squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+        apiUrl: '/api/proxy/get',
+        provider: await peanut.getDefaultProvider(tokenData.chainId),
+        tokenType: utils.isAddressZero(tokenData.address)
+            ? interfaces.EPeanutLinkType.native
+            : interfaces.EPeanutLinkType.erc20,
+        fromTokenDecimals: tokenData.decimals as number,
+    })
+    return xchainUnsignedTxs
 }
 
 export const InitialView = ({
@@ -51,32 +77,22 @@ export const InitialView = ({
     }>({ showError: false, errorMessage: '' })
     const [txFee, setTxFee] = useState<string>('0')
     const [isFeeEstimationError, setIsFeeEstimationError] = useState<boolean>(false)
-    const [linkState, setLinkState] = useState<RequestStatus>(RequestStatus.NOT_CONNECTED)
+    const [viewState, setViewState] = useState<ViewState>(ViewState.INITIAL)
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const [tokenRequestedLogoURI, setTokenRequestedLogoURI] = useState<string | undefined>(undefined)
     const [tokenRequestedSymbol, setTokenRequestedSymbol] = useState<string>('')
-    const createXChainUnsignedTx = async () => {
-        // This function is only makes sense if selectedTokenData is defined
-        // Check that it is defined before calling this function
-        if (!selectedTokenData) {
-            throw new Error('selectedTokenData must be defined before estimating tx fee')
-        }
 
-        const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
-            fromToken: selectedTokenData!.address,
-            fromChainId: selectedTokenData!.chainId,
-            senderAddress: address ?? '',
-            link: requestLinkData.link,
-            squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-            apiUrl: '/api/proxy/get',
-            provider: await peanut.getDefaultProvider(selectedTokenData!.chainId),
-            tokenType: utils.isAddressZero(selectedTokenData!.address)
-                ? interfaces.EPeanutLinkType.native
-                : interfaces.EPeanutLinkType.erc20,
-            fromTokenDecimals: selectedTokenData!.decimals as number,
-        })
-        return xchainUnsignedTxs
-    }
+    const calculatedFee = useMemo(() => {
+        return isXChain ? txFee : utils.formatTokenAmount(estimatedGasCost, 3)
+    }, [isXChain, estimatedGasCost, txFee])
+
+    const isButtonDisabled = useMemo(() => {
+        return (
+            viewState === ViewState.LOADING ||
+            viewState === ViewState.ERROR ||
+            (viewState === ViewState.READY_TO_PAY && !calculatedFee)
+        )
+    }, [viewState, isLoading, calculatedFee])
 
     const fetchTokenSymbol = async (chainId: string, address: string) => {
         const provider = await peanut.getDefaultProvider(chainId)
@@ -87,50 +103,43 @@ export const InitialView = ({
         setTokenRequestedSymbol(tokenContract?.symbol ?? '')
     }
 
-    const calculatedFee = useMemo(() => {
-        return isXChain ? txFee : utils.formatTokenAmount(estimatedGasCost, 3)
-    }, [isXChain, estimatedGasCost, txFee])
     useEffect(() => {
         const estimateTxFee = async () => {
-            setLinkState(RequestStatus.LOADING)
+            setLoadingState('Preparing transaction')
             if (!isXChain) {
-                setErrorState({ showError: false, errorMessage: '' })
-                setIsFeeEstimationError(false)
-                setLinkState(RequestStatus.CLAIM)
-                setLoadingState('Idle')
+                clearError()
+                setViewState(ViewState.READY_TO_PAY)
                 return
             }
             try {
-                setErrorState({ showError: false, errorMessage: '' })
-                const txData = await createXChainUnsignedTx()
+                clearError()
+                const txData = await createXChainUnsignedTx({
+                    tokenData: selectedTokenData!,
+                    requestLink: requestLinkData,
+                    senderAddress: address!,
+                })
                 const { feeEstimation, estimatedFromAmount } = txData
                 setEstimatedFromValue(estimatedFromAmount)
                 if (Number(feeEstimation) > 0) {
-                    setErrorState({ showError: false, errorMessage: '' })
-                    setIsFeeEstimationError(false)
+                    clearError()
                     setTxFee(Number(feeEstimation).toFixed(2))
-                    setLinkState(RequestStatus.CLAIM)
+                    setViewState(ViewState.READY_TO_PAY)
                 } else {
                     setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                     setIsFeeEstimationError(true)
                     setTxFee('0')
-                    setLinkState(RequestStatus.NOT_FOUND)
                 }
             } catch (error) {
                 setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
-                setLinkState(RequestStatus.NOT_FOUND)
                 setIsFeeEstimationError(true)
                 setTxFee('0')
-            } finally {
-                setLoadingState('Idle')
             }
         }
 
-        if (!isConnected) return
+        if (!isConnected || !address) return
 
         if (isXChain && !selectedTokenData) {
             setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
-            setLinkState(RequestStatus.NOT_FOUND)
             setIsFeeEstimationError(true)
             setTxFee('0')
             return
@@ -141,9 +150,7 @@ export const InitialView = ({
 
     useEffect(() => {
         setLoadingState('Loading')
-        setErrorState({ showError: false, errorMessage: '' })
-        setIsFeeEstimationError(false)
-        setLinkState(RequestStatus.LOADING)
+        clearError()
         const isXChain =
             selectedChainID !== requestLinkData.chainId ||
             !utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
@@ -173,13 +180,36 @@ export const InitialView = ({
     }, [requestLinkData, tokenPriceData])
 
     useEffect(() => {
+        if (isLoading) {
+            setViewState(ViewState.LOADING)
+        }
+    }, [isLoading])
+
+    useEffect(() => {
+        if (viewState !== ViewState.LOADING) {
+            setLoadingState('Idle')
+        }
+    }, [viewState])
+
+    useEffect(() => {
+        if (errorState.showError) {
+            setViewState(ViewState.ERROR)
+        }
+    }, [errorState])
+
+    useEffect(() => {
         // Load the token chain pair from the request link data
         resetTokenAndChain()
     }, [])
 
+    const clearError = () => {
+        setErrorState({ showError: false, errorMessage: '' })
+        setIsFeeEstimationError(false)
+    }
+
     const handleConnectWallet = async () => {
         open().finally(() => {
-            if (isConnected) setLinkState(RequestStatus.LOADING)
+            if (isConnected) setLoadingState('Loading')
         })
     }
 
@@ -202,7 +232,7 @@ export const InitialView = ({
     const handleOnNext = async () => {
         const amountUsd = (Number(requestLinkData.tokenAmount) * (tokenPriceData?.price ?? 0)).toFixed(2)
         try {
-            setErrorState({ showError: false, errorMessage: '' })
+            clearError()
             if (!unsignedTx) return
             if (!isXChain) {
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
@@ -244,7 +274,11 @@ export const InitialView = ({
                     await switchNetwork(selectedTokenData!.chainId)
                 }
                 setLoadingState('Sign in wallet')
-                const xchainUnsignedTxs = await createXChainUnsignedTx()
+                const xchainUnsignedTxs = await createXChainUnsignedTx({
+                    tokenData: selectedTokenData!,
+                    requestLink: requestLinkData,
+                    senderAddress: address ?? '',
+                })
 
                 const { unsignedTxs } = xchainUnsignedTxs
                 const hash = await sendTransactions({
@@ -262,8 +296,6 @@ export const InitialView = ({
                 errorMessage: errorString,
             })
             console.error('Error while submitting request link fulfillment:', error)
-        } finally {
-            setLoadingState('Idle')
         }
     }
 
@@ -397,30 +429,18 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-3">
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
-                    disabled={
-                        linkState === RequestStatus.LOADING ||
-                        linkState === RequestStatus.NOT_FOUND ||
-                        isLoading ||
-                        (linkState === RequestStatus.CLAIM && !calculatedFee)
-                    }
+                    disabled={isButtonDisabled}
                     onClick={() => {
                         if (!isConnected) handleConnectWallet()
-                        else if (RequestStatus.CLAIM === linkState) handleOnNext()
+                        else if (ViewState.READY_TO_PAY === viewState) handleOnNext()
                     }}
                 >
-                    {linkState === RequestStatus.LOADING ? (
-                        <div className="relative flex w-full items-center justify-center">
-                            <div className="mr-2 animate-spin">
-                                <Loading />
-                            </div>
-                            Preparing transaction
-                        </div>
-                    ) : !isConnected ? (
-                        'Connect Wallet'
-                    ) : isLoading ? (
+                    {viewState === ViewState.LOADING ? (
                         <div className="flex w-full flex-row items-center justify-center gap-2">
                             <Loading /> {loadingState}
                         </div>
+                    ) : !isConnected ? (
+                        'Connect Wallet'
                     ) : (
                         'Pay'
                     )}
