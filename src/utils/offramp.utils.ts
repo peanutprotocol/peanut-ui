@@ -4,6 +4,7 @@ import * as utils from '@/utils'
 import countries from 'i18n-iso-countries'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
+import { achFeeExplainer, claimLinkFeeExplainer, OFFRAMP_IBAN_FEE_USD, OFFRAMP_NON_IBAN_FEE_USD, OfframpType, sepaFeeExplainer } from '@/components/Offramp/Offramp.consts'
 
 export const convertPersonaUrl = (url: string) => {
     const parsedUrl = new URL(url)
