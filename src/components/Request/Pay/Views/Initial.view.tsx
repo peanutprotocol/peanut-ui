@@ -4,6 +4,7 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
+import AddressLink from '@/components/Global/AddressLink'
 import * as utils from '@/utils'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
@@ -94,6 +95,18 @@ export const InitialView = ({
             (viewState === ViewState.READY_TO_PAY && !calculatedFee)
         )
     }, [viewState, isLoading, calculatedFee])
+
+    const requestedAmount = useMemo(() => {
+        const amount = tokenPriceData
+            ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
+            : Number(requestLinkData.tokenAmount)
+
+        if (tokenPriceData) {
+            return `$ ${utils.formatAmountWithSignificantDigits(amount, 3)}`
+        } else {
+            return `${utils.formatAmountWithSignificantDigits(amount, 3)} ${tokenRequestedSymbol}`
+        }
+    }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
 
     const fetchTokenSymbol = async (chainId: string, address: string) => {
         const provider = await peanut.getDefaultProvider(chainId)
@@ -335,21 +348,10 @@ export const InitialView = ({
 
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <label className="text-h4">
-                    {requestLinkData.recipientAddress.endsWith('.eth')
-                        ? requestLinkData.recipientAddress
-                        : utils.shortenAddress(requestLinkData.recipientAddress)}{' '}
-                    is requesting
+                    <AddressLink address={requestLinkData.recipientAddress} /> is requesting
                 </label>
 
-                {tokenPriceData ? (
-                    <label className="text-h2">
-                        $ {utils.formatTokenAmount(Number(requestLinkData.tokenAmount) * tokenPriceData.price)}
-                    </label>
-                ) : (
-                    <label className="text-h2 ">
-                        {requestLinkData.tokenAmount} {tokenRequestedSymbol}
-                    </label>
-                )}
+                <label className="text-h2">{requestedAmount}</label>
                 <div>
                     <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
@@ -364,7 +366,8 @@ export const InitialView = ({
                                 alt="logo"
                             />
                         </div>
-                        {requestLinkData.tokenAmount} {tokenRequestedSymbol} on{' '}
+                        {utils.formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
+                        {tokenRequestedSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
