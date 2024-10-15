@@ -3,22 +3,23 @@ const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } = require('next/const
 
 /** @type {import('next').NextConfig} */
 
-const os = require('os')
+// const os = require('os')
 
-function getLocalIpAddress() {
-    const interfaces = os.networkInterfaces()
-    for (const name of Object.keys(interfaces)) {
-        for (const iface of interfaces[name]) {
-            if (iface.family === 'IPv4' && !iface.internal) {
-                return iface.address
-            }
-        }
-    }
-    return null
-}
-if (process.env.NODE_ENV !== 'production') {
-    console.log(`Connect to local app @ IP: https://${getLocalIpAddress()}`)
-}
+// function getLocalIpAddress() {
+//     const interfaces = os.networkInterfaces()
+//     for (const name of Object.keys(interfaces)) {
+//         for (const iface of interfaces[name]) {
+//             if (iface.family === 'IPv4' && !iface.internal) {
+//                 return iface.address
+//             }
+//         }
+//     }
+//     return null
+// }
+
+// if (process.env.NODE_ENV === 'development') {
+//     console.log(`Connect to local app @ IP: https://${getLocalIpAddress()}`)
+// }
 
 const nextConfig = {
     images: {
@@ -127,6 +128,23 @@ const nextConfig = {
                     },
                 ],
             },
+            {
+                source: '/sw.js',
+                headers: [
+                    {
+                        key: 'Content-Type',
+                        value: 'application/javascript; charset=utf-8',
+                    },
+                    {
+                        key: 'Cache-Control',
+                        value: 'no-cache, no-store, must-revalidate',
+                    },
+                    {
+                        key: 'Content-Security-Policy',
+                        value: "default-src 'self'; script-src 'self'; connect-src 'self' https:; worker-src 'self'",
+                    },
+                ],
+            },
         ]
     },
 }
@@ -134,7 +152,6 @@ const nextConfig = {
 module.exports = async (phase) => {
     let conf = nextConfig
     if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
-        console.log('withSerwist')
         const withSerwist = (await import('@serwist/next')).default({
             swSrc: 'src/app/sw.ts',
             swDest: 'public/sw.js',
@@ -144,8 +161,7 @@ module.exports = async (phase) => {
     }
 
     if (process.env.NODE_ENV !== 'development') {
-        console.log('withSentryConfig')
-        cong = withSentryConfig(conf, {
+        conf = withSentryConfig(conf, {
             // For all available options, see:
             // https://github.com/getsentry/sentry-webpack-plugin#options
 

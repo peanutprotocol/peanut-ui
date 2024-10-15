@@ -29,6 +29,9 @@ importers:
       '@headlessui/tailwindcss':
         specifier: ^0.2.1
         version: 0.2.1(tailwindcss@3.4.12)
+      '@khmyznikov/pwa-install':
+        specifier: ^0.4.6
+        version: 0.4.6(@lit/react@1.0.6(@types/react@18.3.8))(@types/dom-chromium-installation-events@101.0.4)(@types/web-app-manifest@1.0.8)(lit@3.1.0)
       '@safe-global/safe-apps-sdk':
         specifier: ^9.1.0
         version: 9.1.0(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)
@@ -183,6 +186,9 @@ importers:
       '@types/country-list':
         specifier: ^2.1.4
         version: 2.1.4
+      '@types/dom-chromium-installation-events':
+        specifier: ^101.0.4
+        version: 101.0.4
       '@types/fs-extra':
         specifier: ^11.0.4
         version: 11.0.4
@@ -216,6 +222,9 @@ importers:
       '@types/validator':
         specifier: ^13.12.2
         version: 13.12.2
+      '@types/web-app-manifest':
+        specifier: ^1.0.8
+        version: 1.0.8
       postcss:
         specifier: ^8.4.47
         version: 8.4.47
@@ -1922,8 +1931,21 @@ packages:
   '@jridgewell/trace-mapping@0.3.9':
     resolution: {integrity: sha512-3Belt6tdc8bPgAtbcmdtNJlirVoTmEb5e2gC94PnkwEW9jI6CAHUeoG85tjWP5WquqfavoMtMwiG4P926ZKKuQ==}
 
+  '@khmyznikov/pwa-install@0.4.6':
+    resolution: {integrity: sha512-xdq0i/44JjPq5Q5To93tUZ/msHFRP3lf0r1ipCIVQYyF0ju5LguOKj0ky00V85f20VuWP2zoY2a99C04yc+IYw==}
+    peerDependencies:
+      '@lit/react': ^1.0.6
+      '@types/dom-chromium-installation-events': ^101.0.4
+      '@types/web-app-manifest': ^1.0.8
+      lit: ^3.2.1
+
   '@lit-labs/ssr-dom-shim@1.2.1':
     resolution: {integrity: sha512-wx4aBmgeGvFmOKucFKY+8VFJSYZxs9poN3SDNQFF6lT6NrQUnHiPB2PWz2sc4ieEcAaYYzN+1uWahEeTq2aRIQ==}
+
+  '@lit/react@1.0.6':
+    resolution: {integrity: sha512-QIss8MPh6qUoFJmuaF4dSHts3qCsA36S3HcOLiNPShxhgYPr4XJRnCBKPipk85sR9xr6TQrOcDMfexwbNdJHYA==}
+    peerDependencies:
+      '@types/react': 17 || 18
 
   '@lit/reactive-element@1.6.3':
     resolution: {integrity: sha512-QuTgnG52Poic7uM1AN5yJ09QMe0O28e10XzSvWDz02TJiiKee4stsiownEIadWm8nYzyDAyT+gKzUoZmiWQtsQ==}
@@ -3101,6 +3123,9 @@ packages:
   '@types/debug@4.1.12':
     resolution: {integrity: sha512-vIChWdVG3LG1SMxEvI/AK+FWJthlrqlTu7fbrlywTkkaONwk/UAGaULXRlf8vkzFBLVm0zkMdCquhL5aOjhXPQ==}
 
+  '@types/dom-chromium-installation-events@101.0.4':
+    resolution: {integrity: sha512-jV4HXmW5D18bpndzAPF1REGE5xagQqrAexHgX9WoWIPpNaaHtsHQgu5uFbL2z0NIc9fOD0TIC1TRpJhYA1OPxw==}
+
   '@types/dom-screen-wake-lock@1.0.3':
     resolution: {integrity: sha512-3Iten7X3Zgwvk6kh6/NRdwN7WbZ760YgFCsF5AxDifltUQzW1RaW+WRmcVtgwFzLjaNu64H+0MPJ13yRa8g3Dw==}
 
@@ -3214,6 +3239,9 @@ packages:
 
   '@types/validator@13.12.2':
     resolution: {integrity: sha512-6SlHBzUW8Jhf3liqrGGXyTJSIFe4nqlJ5A5KaMZ2l/vbM3Wh3KSybots/wfWVzNLK4D1NZluDlSQIbIEPx6oyA==}
+
+  '@types/web-app-manifest@1.0.8':
+    resolution: {integrity: sha512-LDEPk7Eghf71xpDL8SafB3v3rNzdKEVOJmrnx6dh/8tR5eMvI9bMY8CJBl6dPn5f2ZVfeJjXzO7NNd1kINbGVg==}
 
   '@types/webxr@0.5.20':
     resolution: {integrity: sha512-JGpU6qiIJQKUuVSKx1GtQnHJGxRjtfGIhzO2ilq43VZZS//f1h1Sgexbdk+Lq+7569a6EYhOWrUpIruR/1Enmg==}
@@ -4797,6 +4825,7 @@ packages:
   eslint@8.57.0:
     resolution: {integrity: sha512-dZ6+mexnaTIbSBZWgou51U6OmzIhYM2VcNdtiTtI7qPNZm35Akpr0f6vtw3w1Kmn5PYo+tZVfh13WrhpS6oLqQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   esniff@2.0.1:
@@ -11223,7 +11252,18 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
+  '@khmyznikov/pwa-install@0.4.6(@lit/react@1.0.6(@types/react@18.3.8))(@types/dom-chromium-installation-events@101.0.4)(@types/web-app-manifest@1.0.8)(lit@3.1.0)':
+    dependencies:
+      '@lit/react': 1.0.6(@types/react@18.3.8)
+      '@types/dom-chromium-installation-events': 101.0.4
+      '@types/web-app-manifest': 1.0.8
+      lit: 3.1.0
+
   '@lit-labs/ssr-dom-shim@1.2.1': {}
+
+  '@lit/react@1.0.6(@types/react@18.3.8)':
+    dependencies:
+      '@types/react': 18.3.8
 
   '@lit/reactive-element@1.6.3':
     dependencies:
@@ -12993,6 +13033,8 @@ snapshots:
     dependencies:
       '@types/ms': 0.7.34
 
+  '@types/dom-chromium-installation-events@101.0.4': {}
+
   '@types/dom-screen-wake-lock@1.0.3': {}
 
   '@types/estree@1.0.6': {}
@@ -13113,6 +13155,8 @@ snapshots:
   '@types/uuid@9.0.8': {}
 
   '@types/validator@13.12.2': {}
+
+  '@types/web-app-manifest@1.0.8': {}
 
   '@types/webxr@0.5.20': {}
 
