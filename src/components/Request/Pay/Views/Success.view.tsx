@@ -2,12 +2,12 @@ import Link from 'next/link'
 import * as _consts from '../Pay.consts'
 import * as assets from '@/assets'
 import Icon from '@/components/Global/Icon'
+import AddressLink from '@/components/Global/AddressLink'
 import * as utils from '@/utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import { peanut } from '@squirrel-labs/peanut-sdk'
-import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
@@ -87,14 +87,14 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                         <span className="sr-only">{loadingState}</span>
                     </div>
                     <label className="text-h8 font-bold ">
-                        Funds are on their way to {utils.printableAddress(requestLinkData.recipientAddress)}!
+                        Funds are on their way to <AddressLink address={requestLinkData.recipientAddress} />!
                     </label>
                 </>
             ) : (
                 <>
                     <label className="text-h2">Yay!</label>
                     <label className="text-h8 font-bold ">
-                        You have successfully paid {utils.printableAddress(requestLinkData.recipientAddress)}!
+                        You have successfully paid <AddressLink address={requestLinkData.recipientAddress} />!
                     </label>
                 </>
             )}
