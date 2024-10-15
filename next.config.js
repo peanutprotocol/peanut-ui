@@ -3,24 +3,6 @@ const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } = require('next/const
 
 /** @type {import('next').NextConfig} */
 
-// const os = require('os')
-
-// function getLocalIpAddress() {
-//     const interfaces = os.networkInterfaces()
-//     for (const name of Object.keys(interfaces)) {
-//         for (const iface of interfaces[name]) {
-//             if (iface.family === 'IPv4' && !iface.internal) {
-//                 return iface.address
-//             }
-//         }
-//     }
-//     return null
-// }
-
-// if (process.env.NODE_ENV === 'development') {
-//     console.log(`Connect to local app @ IP: https://${getLocalIpAddress()}`)
-// }
-
 const nextConfig = {
     images: {
         remotePatterns: [
