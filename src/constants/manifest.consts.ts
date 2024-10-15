@@ -1,6 +1,8 @@
 import { MetadataRoute } from 'next'
 
 export const manifest: MetadataRoute.Manifest = {
+    id: 'com.peanut.wallet',
+    categories: ['crypto', 'payments'],
     name: 'Peanut Protocol',
     short_name: 'Peanut',
     description: 'Buttery smooth global money',
