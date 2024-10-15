@@ -1,16 +1,23 @@
 import Link from 'next/link'
 import * as _consts from '../Pay.consts'
+import * as assets from '@/assets'
 import Icon from '@/components/Global/Icon'
 import * as utils from '@/utils'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import { peanut } from '@squirrel-labs/peanut-sdk'
+import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { address } = useAccount()
+    const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
+        { transactionId: string; transactionUrl: string } | undefined
+    >(undefined)
+    const { isLoading, setLoadingState, loadingState } = useContext(context.loadingStateContext)
+
     const sourceUrlWithTx = useMemo(
         () => `${utils.getExplorerUrl(selectedChainID)}/tx/${transactionHash}`,
         [transactionHash, selectedChainID]
@@ -18,9 +25,6 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
     const isXChain = useMemo(() => {
         return requestLinkData.chainId !== selectedChainID
     }, [requestLinkData, selectedChainID])
-    const [explorerUrlDestChainWithTxHash, setExplorerUrlDestChainWithTxHash] = useState<
-        { transactionId: string; transactionUrl: string } | undefined
-    >(undefined)
     const explorerUrlAxelarWithTx = 'https://axelarscan.io/gmp/' + transactionHash
 
     useEffect(() => {
@@ -41,6 +45,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                 },
                 link: requestLinkData.link,
             })
+            setLoadingState('Idle')
         }
     }, [explorerUrlDestChainWithTxHash, requestLinkData, address])
 
@@ -68,16 +73,31 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
 
     useEffect(() => {
         if (isXChain) {
+            setLoadingState('Awaiting route fulfillment')
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
     }, [])
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Yay!</label>
-            <label className="text-h8 font-bold ">
-                You have successfully paid {utils.printableAddress(requestLinkData.recipientAddress)}!
-            </label>
+            {isLoading ? (
+                <>
+                    <div className="animate-spin">
+                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                        <span className="sr-only">{loadingState}</span>
+                    </div>
+                    <label className="text-h8 font-bold ">
+                        Funds are on their way to {utils.printableAddress(requestLinkData.recipientAddress)}!
+                    </label>
+                </>
+            ) : (
+                <>
+                    <label className="text-h2">Yay!</label>
+                    <label className="text-h8 font-bold ">
+                        You have successfully paid {utils.printableAddress(requestLinkData.recipientAddress)}!
+                    </label>
+                </>
+            )}
             <div className="flex w-full flex-col items-start justify-center gap-1.5 text-h9 font-normal">
                 <label className="text-h8 font-normal text-gray-1">Transaction details</label>
                 <div className="flex w-full flex-row items-center justify-start gap-1">
