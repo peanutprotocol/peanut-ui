@@ -13,7 +13,7 @@ import { type ITokenPriceData } from '@/interfaces'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
-    const [linkState, setLinkState] = useState<_consts.IRequestLinkState>('LOADING')
+    const [linkState, setLinkState] = useState<_consts.IRequestLinkState>(_consts.IRequestLinkState.LOADING)
     const [tokenPriceData, setTokenPriceData] = useState<ITokenPriceData | undefined>(undefined)
     const [requestLinkData, setRequestLinkData] = useState<_consts.IRequestLinkData | undefined>(undefined)
     const { estimateGasFee } = useCreateLink()
@@ -78,7 +78,7 @@ export const PayRequestLink = () => {
             // Check if request link is not found
             if (requestLinkDetails.error === 'Request link not found') {
                 setErrorMessage('This request could not be found. Are you sure your link is correct?')
-                setLinkState('ERROR')
+                setLinkState(_consts.IRequestLinkState.ERROR)
                 return
             }
 
@@ -86,14 +86,14 @@ export const PayRequestLink = () => {
 
             // Check if request link is already paid
             if (requestLinkDetails.status === 'PAID') {
-                setLinkState('ALREADY_PAID')
+                setLinkState(_consts.IRequestLinkState.ALREADY_PAID)
                 return
             }
-            setLinkState('READY_TO_PAY')
+            setLinkState(_consts.IRequestLinkState.READY_TO_PAY)
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
             setErrorMessage('This request could not be found. Are you sure your link is correct?')
-            setLinkState('ERROR')
+            setLinkState(_consts.IRequestLinkState.ERROR)
         }
     }
 
@@ -115,7 +115,7 @@ export const PayRequestLink = () => {
                     setTokenPriceData(tokenPriceData)
                 } else {
                     setErrorMessage('Failed to fetch token price, please try again later')
-                    setLinkState('ERROR')
+                    setLinkState(_consts.IRequestLinkState.ERROR)
                 }
             })
 
@@ -134,7 +134,7 @@ export const PayRequestLink = () => {
             .catch((error) => {
                 console.log('error fetching recipient address:', error)
                 setErrorMessage('Failed to fetch recipient address, please try again later')
-                setLinkState('ERROR')
+                setLinkState(_consts.IRequestLinkState.ERROR)
             })
 
         // Prepare request link fulfillment transaction
@@ -158,13 +158,13 @@ export const PayRequestLink = () => {
             .catch((error) => {
                 console.log('error calculating transaction cost:', error)
                 setErrorMessage('Failed to estimate gas fee, please try again later')
-                setLinkState('ERROR')
+                setLinkState(_consts.IRequestLinkState.ERROR)
             })
     }, [unsignedTx, requestLinkData])
 
     return (
         <div className="card">
-            {linkState === 'LOADING' && (
+            {linkState === _consts.IRequestLinkState.ERROR && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
@@ -172,7 +172,7 @@ export const PayRequestLink = () => {
                     </div>
                 </div>
             )}
-            {linkState === 'READY_TO_PAY' &&
+            {linkState === _consts.IRequestLinkState.READY_TO_PAY &&
                 createElement(_consts.PAY_SCREEN_MAP[step.screen].comp, {
                     onNext: handleOnNext,
                     onPrev: handleOnPrev,
@@ -184,9 +184,9 @@ export const PayRequestLink = () => {
                     estimatedGasCost,
                     unsignedTx,
                 } as _consts.IPayScreenProps)}
-            {linkState === 'ERROR' && <generalViews.ErrorView errorMessage={errorMessage} />}
-            {linkState === 'CANCELED' && <generalViews.CanceledClaimLink />}
-            {linkState === 'ALREADY_PAID' && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
+            {linkState === _consts.IRequestLinkState.ERROR && <generalViews.ErrorView errorMessage={errorMessage} />}
+            {linkState === _consts.IRequestLinkState.CANCELED && <generalViews.CanceledClaimLink />}
+            {linkState === _consts.IRequestLinkState.ALREADY_PAID && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
         </div>
     )
 }
