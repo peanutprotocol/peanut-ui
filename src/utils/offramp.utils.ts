@@ -528,3 +528,24 @@ export const fetchRouteRaw = async (
         return undefined
     }
 }
+
+export function returnOfframpFee(offrampType: OfframpType, accountType: any): number {
+    let fee  = 0;
+    if (offrampType == OfframpType.CASHOUT) {
+        fee = accountType === 'iban' ? OFFRAMP_IBAN_FEE_USD : OFFRAMP_NON_IBAN_FEE_USD
+    } 
+    // other types of offramp (eg. CLAIM link) do not have a fee
+    return fee;
+}
+
+export function returnOfframpFeeExplainer(offrampType: OfframpType, accountType: any): string {
+    let feeExplainer = ''
+    if (offrampType == OfframpType.CASHOUT) {
+        feeExplainer = accountType === 'iban' ? sepaFeeExplainer + ' ' + achFeeExplainer: achFeeExplainer + ' ' + sepaFeeExplainer
+    } else {
+        if (offrampType == OfframpType.CLAIM) {
+            feeExplainer = claimLinkFeeExplainer
+        }
+    }
+    return feeExplainer
+}

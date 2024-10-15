@@ -79,19 +79,14 @@ export const OfframpConfirmView = ({
     // type: 'iban' or other
     // TODO: standardize this type
     let accountType = user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)?.account_type
-
-    let fee  = 0;
-
-    let feeExplainer = ''
-    if (offrampType == OfframpType.CASHOUT) {
-        fee = accountType === 'iban' ? OFFRAMP_IBAN_FEE_USD : OFFRAMP_NON_IBAN_FEE_USD
-        feeExplainer = accountType === 'iban' ? sepaFeeExplainer + ' ' + achFeeExplainer: achFeeExplainer + ' ' + sepaFeeExplainer
-    } else {
-        // other types of offramp (eg. CLAIM link) do not have a fee
-        if (offrampType == OfframpType.CLAIM) {
-            feeExplainer = claimLinkFeeExplainer
-        }
-    }
+    const fee  = utils.returnOfframpFee(
+        offrampType,
+        accountType
+    );
+    const feeExplainer = utils.returnOfframpFeeExplainer(
+        offrampType,
+        accountType
+    )
 
     let amount: number = 0
 
