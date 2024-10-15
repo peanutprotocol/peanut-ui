@@ -1,3 +1,6 @@
+/**
+ * For more info, followed the guide at https://serwist.pages.dev/docs/next/getting-started
+ */
 import { defaultCache } from '@serwist/next/worker'
 import type { PrecacheEntry, SerwistGlobalConfig } from 'serwist'
 import { Serwist } from 'serwist'
@@ -23,13 +26,13 @@ const serwist = new Serwist({
 })
 
 self.addEventListener('push', (event) => {
-    let data = { title: '', message: '' };
+    let data = { title: '', message: '' }
     try {
-        data = JSON.parse(event.data?.text() ?? '{"title":"","message":""}');
+        data = JSON.parse(event.data?.text() ?? '{"title":"","message":""}')
     } catch (error) {
-        console.error('Failed to parse push notification data:', error);
+        console.error('Failed to parse push notification data:', error)
     }
-    
+
     event.waitUntil(
         self.registration.showNotification(data.title, {
             body: data.message,
