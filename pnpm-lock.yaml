@@ -59,6 +59,12 @@ importers:
       '@web3modal/wagmi':
         specifier: ^5.1.9
         version: 5.1.9(a3pkqmsedn73vd6masn3lp6y5e)
+      '@zerodev/passkey-validator':
+        specifier: ^5.4.2
+        version: 5.4.2(@zerodev/sdk@5.3.20(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(@zerodev/webauthn-key@5.3.3(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))
+      '@zerodev/sdk':
+        specifier: ^5.3.20
+        version: 5.3.20(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))
       autoprefixer:
         specifier: ^10.4.20
         version: 10.4.20(postcss@8.4.47)
@@ -240,6 +246,9 @@ importers:
       tailwindcss:
         specifier: ^3.4.12
         version: 3.4.12
+      tslib:
+        specifier: ^2.7.0
+        version: 2.7.0
       typescript:
         specifier: ^5.6.2
         version: 5.6.2
@@ -2838,6 +2847,13 @@ packages:
     resolution: {integrity: sha512-8iKx79/F73DKbGfRf7+t4dqrc0bRr0thdPrxAtCKWRm/F0tG71i6O1rvlnScncJLLBZHn3h8M3c1BSUAb9yu8g==}
     engines: {node: ^16.14.0 || >=18.0.0}
 
+  '@simplewebauthn/browser@8.3.7':
+    resolution: {integrity: sha512-ZtRf+pUEgOCvjrYsbMsJfiHOdKcrSZt2zrAnIIpfmA06r0FxBovFYq0rJ171soZbe13KmWzAoLKjSxVW7KxCdQ==}
+
+  '@simplewebauthn/typescript-types@8.3.4':
+    resolution: {integrity: sha512-38xtca0OqfRVNloKBrFB5LEM6PN5vzFbJG6rAutPVrtGHFYxPdiV3btYWq0eAZAZmP+dqFPYJxJWeJrGfmYHng==}
+    deprecated: This package has been renamed to @simplewebauthn/types. Please install @simplewebauthn/types instead to ensure you receive future updates.
+
   '@sinclair/typebox@0.27.8':
     resolution: {integrity: sha512-+Fj43pSMwJs4KRrH/938Uf+uAELIgVBmQzg/q1YG10djyfA3TnrU8N8XzqCh/okZdszqBQTZf96idMfE5lnwTA==}
 
@@ -3558,6 +3574,25 @@ packages:
 
   '@zag-js/focus-visible@0.16.0':
     resolution: {integrity: sha512-a7U/HSopvQbrDU4GLerpqiMcHKEkQkNPeDZJWz38cw/6Upunh41GjHetq5TB84hxyCaDzJ6q2nEdNoBQfC0FKA==}
+
+  '@zerodev/passkey-validator@5.4.2':
+    resolution: {integrity: sha512-bP9vkh0u1ls8UoJzbDOaqC9siiiCY/AB44K0hiof3j6EGH+wSuuD7UEZ0LQBnr8Pq0Jb2c99LFZ1yPP2TyDbVw==}
+    peerDependencies:
+      '@zerodev/sdk': ^5.2.1
+      '@zerodev/webauthn-key': ^5.3.0
+      permissionless: '>=0.1.44 <=0.1.45'
+      viem: '>=2.16.3 <2.18.0'
+
+  '@zerodev/sdk@5.3.20':
+    resolution: {integrity: sha512-pwd7/vqs702Z6IGWyX4bZRj2CctSIuQhphR48XJREgk0aRRcfBdzv+ryNYYxoO7G9f0LVkFVbC9+FUfWsqxo/g==}
+    peerDependencies:
+      permissionless: '>=0.1.44 <=0.1.45'
+      viem: '>=2.16.3 <2.18.0'
+
+  '@zerodev/webauthn-key@5.3.3':
+    resolution: {integrity: sha512-F8thmtg27tXK2G6Xm70/eYz/29ORjAk7fG4sqZD6oHJhKb5x10F8qISi/svv8gBlbErsKAYziSnTXMLn0nGARg==}
+    peerDependencies:
+      viem: '>=2.16.3 <2.18.0'
 
   abbrev@2.0.0:
     resolution: {integrity: sha512-6/mh1E2u2YgEsCHdY0Yx5oW+61gZU+1vXaoiHHrpKeuRNNgFvS+/jrwHiQhB5apAf5oB7UB7E19ol2R2LKH8hQ==}
@@ -6845,6 +6880,11 @@ packages:
 
   performance-now@2.1.0:
     resolution: {integrity: sha512-7EAHlyLHI56VEIdK57uwHdHKIaAGbnXPiw0yWbarQZOKaKpvUIgW0jWRVLiatnM+XXlSwsanIBH/hzGMJulMow==}
+
+  permissionless@0.1.45:
+    resolution: {integrity: sha512-YJJrNFeP3T7mmfXExZsGz0J8SfOPgYzT3fyRIJtImFcUI2UmnyBQLrFt+BaiIXNogzAQuBvOSi6KKtyBePJ2/Q==}
+    peerDependencies:
+      viem: '>=2.14.1 <2.18.0'
 
   pg-int8@1.0.1:
     resolution: {integrity: sha512-WCtabS6t3c8SkpDBUlb1kjOs7l66xsGdKpIPZsg4wR+B3+u9UAum2odSsF9tnvxg80h4ZxLWMy4pRjOsFIqQpw==}
@@ -12601,6 +12641,12 @@ snapshots:
       '@sigstore/core': 1.1.0
       '@sigstore/protobuf-specs': 0.3.2
 
+  '@simplewebauthn/browser@8.3.7':
+    dependencies:
+      '@simplewebauthn/typescript-types': 8.3.4
+
+  '@simplewebauthn/typescript-types@8.3.4': {}
+
   '@sinclair/typebox@0.27.8': {}
 
   '@sindresorhus/is@4.6.0': {}
@@ -14082,6 +14128,27 @@ snapshots:
   '@zag-js/focus-visible@0.16.0':
     dependencies:
       '@zag-js/dom-query': 0.16.0
+
+  '@zerodev/passkey-validator@5.4.2(@zerodev/sdk@5.3.20(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(@zerodev/webauthn-key@5.3.3(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))':
+    dependencies:
+      '@noble/curves': 1.4.2
+      '@simplewebauthn/browser': 8.3.7
+      '@zerodev/sdk': 5.3.20(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))
+      '@zerodev/webauthn-key': 5.3.3(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))
+      permissionless: 0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))
+      viem: 2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)
+
+  '@zerodev/sdk@5.3.20(permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)))(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))':
+    dependencies:
+      permissionless: 0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))
+      semver: 7.6.3
+      viem: 2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)
+
+  '@zerodev/webauthn-key@5.3.3(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8))':
+    dependencies:
+      '@noble/curves': 1.4.2
+      '@simplewebauthn/browser': 8.3.7
+      viem: 2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)
 
   abbrev@2.0.0: {}
 
@@ -17921,6 +17988,10 @@ snapshots:
       sha.js: 2.4.11
 
   performance-now@2.1.0: {}
+
+  permissionless@0.1.45(viem@2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)):
+    dependencies:
+      viem: 2.21.10(bufferutil@4.0.8)(typescript@5.6.2)(utf-8-validate@5.0.10)(zod@3.23.8)
 
   pg-int8@1.0.1: {}
 
