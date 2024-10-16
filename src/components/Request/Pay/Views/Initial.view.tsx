@@ -134,15 +134,9 @@ export const InitialView = ({
                 })
                 const { feeEstimation, estimatedFromAmount } = txData
                 setEstimatedFromValue(estimatedFromAmount)
-                if (Number(feeEstimation) > 0) {
-                    clearError()
-                    setTxFee(Number(feeEstimation).toFixed(2))
-                    setViewState(ViewState.READY_TO_PAY)
-                } else {
-                    setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
-                    setIsFeeEstimationError(true)
-                    setTxFee('0')
-                }
+                clearError()
+                setTxFee(Number(feeEstimation).toFixed(2))
+                setViewState(ViewState.READY_TO_PAY)
             } catch (error) {
                 setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                 setIsFeeEstimationError(true)
