@@ -45,6 +45,16 @@ export default function PeanutClub() {
     const features = {
         sections: [
             {
+                heading: 'Text money, the easy way.',
+                list: [
+                    'Multiple tokens, one link',
+                    'Cashout to your bank instantly',
+                    'No more searching for wallet addresses',
+                    'No more mistakes',
+                    'Safe & secure - only YOU have access to your tokens',
+                ],
+            },
+            {
                 heading: 'Send tokens, like a pro.',
                 testimonials: [
                     {
@@ -73,16 +83,6 @@ export default function PeanutClub() {
                         detail: 'Probably FTX',
                         bgColorClass: 'bg-white',
                     },
-                ],
-            },
-            {
-                heading: 'Text money, the easy way.',
-                list: [
-                    'Multiple tokens, one link',
-                    'Cashout to your bank instantly',
-                    'No more searching for wallet addresses',
-                    'No more mistakes',
-                    'Safe & secure - only YOU have access to your tokens',
                 ],
             },
         ],
@@ -167,9 +167,10 @@ export default function PeanutClub() {
     return (
         <Layout className="!mx-0 w-full !px-0 !pt-0">
             <Hero heading={hero.heading} marquee={hero.marquee} cta={hero.cta} buttonVisible={buttonVisible} />
+            <Features sections={[features.sections[0]]} marquee={features.marquee} />
             <Intro />
             <Story marquee={story.marquee} />
-            <Features sections={features.sections} marquee={features.marquee} />
+            <Features sections={[features.sections[1]]} marquee={features.marquee} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <Mike lines={mike.lines} />
         </Layout>
