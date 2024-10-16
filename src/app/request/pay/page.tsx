@@ -3,7 +3,9 @@ import Layout from '@/components/Global/Layout'
 import * as components from '@/components'
 
 export const metadata: Metadata = {
-    title: 'Peanut Protocol',
+    // TODO: make metadata dynamic and change title based on if payment completed or not
+    // see claim/page.tsx
+    title: 'Peanut Protocol - Payment Request',
     description: 'Text Tokens',
     metadataBase: new URL('https://peanut.to'),
     icons: {

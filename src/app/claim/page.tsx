@@ -37,13 +37,18 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
     try {
         const url = createURL(host, searchParams)
         linkDetails = await getLinkDetails({ link: url })
-        title =
+        if (!linkDetails.claimed) {
+            title =
             'You received ' +
             (Number(linkDetails.tokenAmount) < 0.01
                 ? 'some '
                 : utils.formatAmount(Number(linkDetails.tokenAmount)) + ' in ') +
             linkDetails.tokenSymbol +
             '!'
+        } else {
+            title = 'This link has been claimed'
+        }
+
     } catch (e) {
         console.log('error: ', e)
     }

@@ -3,7 +3,6 @@ import React, { createContext, useEffect, useState } from 'react'
 
 import * as utils from '@/utils'
 import * as consts from '@/constants'
-import { useAccount } from 'wagmi'
 import { type ITokenPriceData } from '@/interfaces'
 
 type inputDenominationType = 'USD' | 'TOKEN'
@@ -43,7 +42,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
 
-    const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
 
     const updateSelectedChainID = (chainID: string) => {
@@ -102,12 +100,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             }
         }
 
-        if (!isConnected) {
-            setSelectedTokenData(undefined)
-            setSelectedTokenPrice(undefined)
-            setSelectedTokenDecimals(undefined)
-            setInputDenomination('TOKEN')
-        } else if (selectedTokenAddress && selectedChainID) {
+        if (selectedTokenAddress && selectedChainID) {
             setIsFetchingTokenData(true)
             setSelectedTokenData(undefined)
             setSelectedTokenPrice(undefined)
@@ -118,7 +111,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 isCurrent = false
             }
         }
-    }, [selectedTokenAddress, selectedChainID, isConnected])
+    }, [selectedTokenAddress, selectedChainID])
 
     useEffect(() => {
         const prefs = utils.getPeanutPreferences()

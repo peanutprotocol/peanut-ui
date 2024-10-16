@@ -150,7 +150,10 @@ export const InitialView = ({
             }
         }
 
-        if (!isConnected || !address) return
+        if (!isConnected || !address) {
+            setViewState(ViewState.INITIAL)
+            return
+        }
 
         if (isXChain && !selectedTokenData) {
             if (!isFetchingTokenData) {
