@@ -3,6 +3,7 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Sorting from '@/components/Global/Sorting'
 import Loading from '@/components/Global/Loading'
+import AddressLink from '@/components/Global/AddressLink'
 import { OptionsComponent } from './OptionsComponent'
 import * as consts from '@/constants'
 import { useCallback } from 'react'
@@ -108,7 +109,7 @@ export const TableComponent = ({
                                     <td className="td-custom font-bold">{data.dashboardItem.chain}</td>
                                     <td className="td-custom">{utils.formatDate(new Date(data.dashboardItem.date))}</td>
                                     <td className="td-custom">
-                                        {utils.printableAddress(data.dashboardItem.address ?? '')}
+                                        <AddressLink address={data.dashboardItem.address ?? ''} />
                                     </td>
                                     <td className="td-custom max-w-32">
                                         <span

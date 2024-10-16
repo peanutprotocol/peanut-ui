@@ -1,5 +1,6 @@
 'use client'
 import Icon from '@/components/Global/Icon'
+import AddressLink from '@/components/Global/AddressLink'
 import { useAccount } from 'wagmi'
 
 import * as _consts from '../../Claim.consts'
@@ -184,7 +185,7 @@ export const ConfirmClaimLinkView = ({
                 <label className="text-h7 font-normal">Claiming to:</label>
                 <span className="flex items-center gap-1 ">
                     <label className="text-h7">
-                        {recipient.name ? recipient.name : utils.printableAddress(recipient.address ?? '')}
+                        <AddressLink address={recipient.name ?? recipient.address ?? ''} />
                     </label>
                     {recipient.name && <MoreInfo text={`You will be claiming to ${recipient.address}`} />}
                 </span>

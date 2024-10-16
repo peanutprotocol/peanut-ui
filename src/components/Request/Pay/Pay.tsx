@@ -1,12 +1,13 @@
 'use client'
 
-import { createElement, useEffect, useState } from 'react'
+import { createElement, useEffect, useState, useContext } from 'react'
 import * as _consts from './Pay.consts'
 import * as assets from '@/assets'
 import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as generalViews from './Views/GeneralViews'
 import * as utils from '@/utils'
+import * as context from '@/context'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { type ITokenPriceData } from '@/interfaces'
@@ -21,6 +22,7 @@ export const PayRequestLink = () => {
     const [estimatedGasCost, setEstimatedGasCost] = useState<number | undefined>(undefined)
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
+    const { setLoadingState } = useContext(context.loadingStateContext)
     const [errorMessage, setErrorMessage] = useState<string>('')
 
     const fetchPointsEstimation = async (
@@ -55,6 +57,7 @@ export const PayRequestLink = () => {
             screen: _consts.PAY_SCREEN_FLOW[newIdx],
             idx: newIdx,
         }))
+        setLoadingState('Idle')
     }
 
     const handleOnPrev = () => {
@@ -64,6 +67,7 @@ export const PayRequestLink = () => {
             screen: _consts.PAY_SCREEN_FLOW[newIdx],
             idx: newIdx,
         }))
+        setLoadingState('Idle')
     }
 
     const checkRequestLink = async (pageUrl: string) => {

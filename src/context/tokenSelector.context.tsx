@@ -25,6 +25,7 @@ export const tokenSelectorContext = createContext({
     isXChain: false as boolean,
     setIsXChain: (value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | undefined,
+    isFetchingTokenData: false as boolean,
 })
 
 /**
@@ -39,6 +40,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
     const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
     const [isXChain, setIsXChain] = useState<boolean>(false)
+    const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
 
     const { isConnected } = useAccount()
@@ -64,6 +66,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         let isCurrent = true
 
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
+            setIsFetchingTokenData(true)
             try {
                 if (!consts.supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
                     setSelectedTokenData(undefined)
@@ -94,6 +97,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 }
             } catch (error) {
                 console.log('error fetching tokenPrice, falling back to tokenDenomination')
+            } finally {
+                setIsFetchingTokenData(false)
             }
         }
 
@@ -103,6 +108,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
         } else if (selectedTokenAddress && selectedChainID) {
+            setIsFetchingTokenData(true)
             setSelectedTokenData(undefined)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
@@ -142,6 +148,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 isXChain,
                 setIsXChain,
                 selectedTokenData,
+                isFetchingTokenData,
             }}
         >
             {children}

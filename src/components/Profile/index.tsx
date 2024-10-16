@@ -1,6 +1,7 @@
 'use client'
 
 import Icon from '../Global/Icon'
+import AddressLink from '../Global/AddressLink'
 import * as consts from '@/constants'
 import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
@@ -561,7 +562,7 @@ export const Profile = () => {
                                                         )
                                                     }}
                                                 />
-                                                {utils.printableAddress(referral.address)}
+                                                <AddressLink address={referral.address} />
                                             </label>
                                             <label className="w-[30%] text-center text-h8">
                                                 {referral?.totalReferrals ?? 0}

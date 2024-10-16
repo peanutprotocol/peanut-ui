@@ -8,6 +8,7 @@ export type LoadingStates =
     | 'Creating link'
     | 'Switching network'
     | 'Fetching route'
+    | 'Awaiting route fulfillment'
     | 'Asserting values'
     | 'Generating details'
     | 'Estimating points'
