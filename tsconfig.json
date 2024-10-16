@@ -1,12 +1,7 @@
 {
     "compilerOptions": {
         "target": "es5",
-        "lib": [
-            "dom",
-            "dom.iterable",
-            "esnext",
-            "webworker"
-        ],
+        "lib": ["dom", "dom.iterable", "esnext"],
         "allowJs": true,
         "skipLibCheck": true,
         "strict": true,
@@ -25,15 +20,8 @@
             }
         ],
         "paths": {
-            "@/*": [
-                "./src/*"
-            ]
-        },
-        "types": [
-            "@serwist/next/typings",
-            "dom-chromium-installation-events",
-            "web-app-manifest"
-        ],
+            "@/*": ["./src/*"]
+        }
     },
     "include": [
         "next-env.d.ts",
@@ -43,8 +31,5 @@
         "src/app/api/assetLinks.js",
         "src/app/api/appleAppSiteAssociation.js"
     ],
-    "exclude": [
-        "node_modules",
-        "public/sw.js"
-    ]
+    "exclude": ["node_modules"]
 }
