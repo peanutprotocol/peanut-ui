@@ -1,6 +1,3 @@
-const { withSentryConfig } = require('@sentry/nextjs')
-const { PHASE_DEVELOPMENT_SERVER, PHASE_PRODUCTION_BUILD } = require('next/constants')
-
 /** @type {import('next').NextConfig} */
 
 const nextConfig = {
@@ -110,78 +107,49 @@ const nextConfig = {
                     },
                 ],
             },
-            {
-                source: '/sw.js',
-                headers: [
-                    {
-                        key: 'Content-Type',
-                        value: 'application/javascript; charset=utf-8',
-                    },
-                    {
-                        key: 'Cache-Control',
-                        value: 'no-cache, no-store, must-revalidate',
-                    },
-                    {
-                        key: 'Content-Security-Policy',
-                        value: "default-src 'self'; script-src 'self'; connect-src 'self' https:; worker-src 'self'",
-                    },
-                ],
-            },
         ]
     },
 }
 
-module.exports = async (phase) => {
-    let conf = nextConfig
-    if (phase === PHASE_DEVELOPMENT_SERVER || phase === PHASE_PRODUCTION_BUILD) {
-        const withSerwist = (await import('@serwist/next')).default({
-            swSrc: 'src/app/sw.ts',
-            swDest: 'public/sw.js',
-        })
+const { withSentryConfig } = require('@sentry/nextjs')
 
-        conf = withSerwist(conf)
-    }
+if (process.env.NODE_ENV !== 'development') {
+    module.exports = withSentryConfig(nextConfig, {
+        // For all available options, see:
+        // https://github.com/getsentry/sentry-webpack-plugin#options
 
-    if (process.env.NODE_ENV !== 'development') {
-        conf = withSentryConfig(conf, {
-            // For all available options, see:
-            // https://github.com/getsentry/sentry-webpack-plugin#options
+        org: 'peanut-c34d84c05',
+        project: 'peanut-ui',
 
-            org: 'peanut-c34d84c05',
-            project: 'peanut-ui',
+        // Only print logs for uploading source maps in CI
 
-            // Only print logs for uploading source maps in CI
+        // For all available options, see:
+        // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
 
-            // For all available options, see:
-            // https://docs.sentry.io/platforms/javascript/guides/nextjs/manual-setup/
+        // Upload a larger set of source maps for prettier stack traces (increases build time)
+        widenClientFileUpload: true,
 
-            // Upload a larger set of source maps for prettier stack traces (increases build time)
-            widenClientFileUpload: true,
+        // Automatically annotate React components to show their full name in breadcrumbs and session replay
+        reactComponentAnnotation: {
+            enabled: true,
+        },
 
-            // Automatically annotate React components to show their full name in breadcrumbs and session replay
-            reactComponentAnnotation: {
-                enabled: true,
-            },
+        // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
+        // This can increase your server load as well as your hosting bill.
+        // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
+        // side errors will fail.
+        tunnelRoute: '/monitoring',
 
-            // Uncomment to route browser requests to Sentry through a Next.js rewrite to circumvent ad-blockers.
-            // This can increase your server load as well as your hosting bill.
-            // Note: Check that the configured route will not match with your Next.js middleware, otherwise reporting of client-
-            // side errors will fail.
-            tunnelRoute: '/monitoring',
+        // Hides source maps from generated client bundles
+        hideSourceMaps: true,
 
-            // Hides source maps from generated client bundles
-            hideSourceMaps: true,
+        // Automatically tree-shake Sentry logger statements to reduce bundle size
+        disableLogger: true,
 
-            // Automatically tree-shake Sentry logger statements to reduce bundle size
-            disableLogger: true,
-
-            // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
-            // See the following for more information:
-            // https://docs.sentry.io/product/crons/
-            // https://vercel.com/docs/cron-jobs
-            automaticVercelMonitors: true,
-        })
-    }
-
-    return conf
+        // Enables automatic instrumentation of Vercel Cron Monitors. (Does not yet work with App Router route handlers.)
+        // See the following for more information:
+        // https://docs.sentry.io/product/crons/
+        // https://vercel.com/docs/cron-jobs
+        automaticVercelMonitors: true,
+    })
 }

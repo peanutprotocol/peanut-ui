@@ -7,7 +7,6 @@
     },
     "scripts": {
         "dev": "next dev",
-        "dev:https": "next dev --experimental-https",
         "build": "next build",
         "start": "next start",
         "lint": "next lint",
@@ -21,10 +20,8 @@
         "@dicebear/core": "^9.2.2",
         "@headlessui/react": "^1.7.19",
         "@headlessui/tailwindcss": "^0.2.1",
-        "@khmyznikov/pwa-install": "^0.4.6",
         "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.30.0",
-        "@serwist/next": "^9.0.9",
         "@squirrel-labs/peanut-sdk": "^0.5.4",
         "@tanstack/react-query": "^5.56.2",
         "@typeform/embed-react": "^3.20.0",
@@ -75,7 +72,6 @@
     },
     "devDependencies": {
         "@types/country-list": "^2.1.4",
-        "@types/dom-chromium-installation-events": "^101.0.4",
         "@types/fs-extra": "^11.0.4",
         "@types/multicoin-address-validator": "^0.5.3",
         "@types/node": "20.4.2",
@@ -87,11 +83,9 @@
         "@types/three": "^0.157.2",
         "@types/uuid": "^9.0.8",
         "@types/validator": "^13.12.2",
-        "@types/web-app-manifest": "^1.0.8",
         "postcss": "^8.4.47",
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.5.14",
-        "serwist": "^9.0.9",
         "tailwindcss": "^3.4.12",
         "typescript": "^5.6.2"
     }
