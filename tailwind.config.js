@@ -64,8 +64,8 @@ module.exports = {
                 'kyc-red': '#C80000',
                 black: '#000000',
                 'kyc-green': '#00C800',
-
                 primary: 'var(--primary-color)',
+                secondary: 'var(--secondary-color)',
                 background: 'var(--background-color)',
                 accent: 'var(--accent-color)',
             },
