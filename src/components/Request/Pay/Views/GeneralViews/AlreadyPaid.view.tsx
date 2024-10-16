@@ -9,10 +9,10 @@ import Link from 'next/link'
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
 
     const chainName = consts.supportedPeanutChains && consts.supportedPeanutChains.find((chain) => chain.chainId == requestLinkData?.chainId)?.name
-    const tokenSymbolAvailable: boolean = requestLinkData?.tokenSymbol != undefined
-    const tokenAmountAvailable: boolean = requestLinkData?.tokenAmount != undefined
-    const chainAvailable: boolean = requestLinkData?.chainId != undefined
-    const recipientAddressAvailable: boolean = requestLinkData?.recipientAddress != undefined
+    const tokenSymbolAvailable: boolean = !!requestLinkData?.tokenSymbol
+    const tokenAmountAvailable: boolean = !!requestLinkData?.tokenAmount
+    const chainAvailable: boolean = !!requestLinkData?.chainId
+    const recipientAddressAvailable: boolean = !!requestLinkData?.recipientAddress
     const dataAvailable: boolean = tokenSymbolAvailable || tokenAmountAvailable || chainAvailable || recipientAddressAvailable
     
     return (
@@ -65,7 +65,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                                 <label className="font-bold">Requester</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {utils.shortenAddress(requestLinkData?.recipientAddress)}
+                                {utils.shortenAddress(requestLinkData?.recipientAddress as string)}
                             </span>
                         </div>
                     )}
