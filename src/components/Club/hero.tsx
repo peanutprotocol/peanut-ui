@@ -65,7 +65,7 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
 
             {cta?.href && cta?.label && (
                 <motion.div
-                    className="fixed bottom-4 right-4 z-[99] sm:bottom-8 md:right-8"
+                    className="fixed bottom-4 right-[calc(50%-60px)] z-[99] sm:bottom-8"
                     initial={{
                         opacity: 0,
                         translateY: 4,
