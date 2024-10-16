@@ -283,7 +283,7 @@ Firefox input[type='number'] {
 
 /* Feature styling */
 .feature {
-    @apply border-secondary text-secondary mx-auto flex w-auto justify-center rounded-full border-2 bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase shadow-md ring-2 ring-white md:mr-auto;
+    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-secondary bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase text-secondary shadow-md ring-2 ring-white md:mr-auto;
 }
 
 .feature-primary {
