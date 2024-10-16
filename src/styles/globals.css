@@ -3,6 +3,7 @@
 @tailwind utilities;
 :root {
     --primary-color: #f681df;
+    --secondary-color: #b23386;
     --background-color: #fbfdd8;
     --accent-color: #6340df;
 }
@@ -287,6 +288,10 @@ Firefox input[type='number'] {
 
 .feature-primary {
     @apply bg-primary text-white;
+}
+
+.feature-secondary {
+    @apply border-secondary bg-secondary text-white;
 }
 
 /* Form styling */

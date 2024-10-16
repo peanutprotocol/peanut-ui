@@ -59,8 +59,8 @@ module.exports = {
                 // background: '#FAF4F0',
                 red: '#FF0000',
                 black: '#000000',
-
                 primary: 'var(--primary-color)',
+                secondary: 'var(--secondary-color)',
                 background: 'var(--background-color)',
                 accent: 'var(--accent-color)',
             },

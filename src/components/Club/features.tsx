@@ -250,7 +250,7 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                                                 }}
                                                 transition={{ type: 'spring', damping: 15 }}
                                                 key={index}
-                                                className={`feature ${index % 2 === 0 ? 'feature-primary' : ''}`}
+                                                className={`feature ${index % 2 === 0 ? 'feature-secondary' : ''}`}
                                             >
                                                 {item}
                                             </motion.div>
