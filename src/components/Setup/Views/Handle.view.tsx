@@ -18,17 +18,19 @@ import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 
 // Viem imports
 import { arbitrum } from 'viem/chains'
-import { createPublicClient, http, parseAbi, encodeFunctionData } from "viem"
+import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
 
 // Permissionless imports
 import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
 
 import React, { useEffect, useState } from "react"
+import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
 
 
 
 // let kernelAccount: any
 let kernelClient: any
+let validator: any
 
 // permissionless.js is a TS library built on top of viem to deploy, interact and manage
 // ERC-4337 smart accounts, bundlers, paymasters etc.
@@ -101,7 +103,7 @@ export const HandleSetupView = ({}) => {
                 passkeyName: username, 
                 passkeyServerUrl: PASSKEY_SERVER_URL as string, 
                 mode: WebAuthnMode.Register,
-                passkeyServerHeaders: {}
+                passkeyServerHeaders: {},
         }) 
     
         const passkeyValidator = await toPasskeyValidator(publicClient, {  
@@ -109,7 +111,7 @@ export const HandleSetupView = ({}) => {
         entryPoint,   
         kernelVersion: KERNEL_V3_1,   
         validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
-        })   
+        })
     
         await createAccountAndClient(passkeyValidator)  
     
@@ -134,7 +136,9 @@ export const HandleSetupView = ({}) => {
           validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
         })
 
-       
+        validator = passkeyValidator
+        console.log(validator)
+
         await createAccountAndClient(passkeyValidator)  
        
         setIsLoggingIn(false)
@@ -186,33 +190,131 @@ export const HandleSetupView = ({}) => {
         setIsSendingUserOp(true)
         setUserOpStatus('Sending UserOp...')
         console.log({kernelClient})
+
+        const userOperation = await kernelClient.prepareUserOperationRequest({
+            userOperation: {
+              callData: await kernelAccount.encodeCallData({
+                to: contractAddress,
+                value: BigInt(0),
+                data: encodeFunctionData({
+                  abi: contractABI,
+                  functionName: "mint",
+                  args: [kernelAccount.address],
+                }),
+              }),
+            },
+          });
+          
+          // Sign the user operation
+          const signature = await kernelAccount.signUserOperation(userOperation);
+          console.log({signature})
+          
+          // Add the signature to the user operation
+          const signedUserOperation = {
+            ...userOperation,
+            signature,
+          };
+
+          console.log({signedUserOperation})
+
+          const kernelAccountResult = await createKernelAccount(publicClient, {
+            plugins: {
+                sudo: validator
+            },
+            entryPoint, 
+            kernelVersion: KERNEL_V3_1
+        })
+    
+        const kernelClientResult = createKernelAccountClient({ 
+            account: kernelAccountResult, 
+            chain: CHAIN, 
+            bundlerTransport: http(BUNDLER_URL), 
+            entryPoint, 
+            middleware: { 
+              sponsorUserOperation: async ({ userOperation }) => { 
+                const zerodevPaymaster = createZeroDevPaymasterClient({ 
+                  chain: CHAIN, 
+                  transport: http(PAYMASTER_URL), 
+                  entryPoint, 
+                }) 
+                return zerodevPaymaster.sponsorUserOperation({ 
+                  userOperation, 
+                  entryPoint, 
+                }) 
+              } 
+            } 
+          })
+          
+          // Send the user operation
+          const userOpHash = await kernelClientResult.sendUserOperation({
+            userOperation: signedUserOperation,
+            entryPoint: entryPoint, // Make sure to define entryPoint
+          });
+
+          console.log({userOpHash})
+
+
+
+        // const request = await kernelAccount.encodeCallData({ 
+        //     to: contractAddress, 
+        //     value: BigInt(0), 
+        //     data: encodeFunctionData({ 
+        //       abi: contractABI, 
+        //       functionName: "mint", 
+        //       args: [kernelAccount.address], 
+        //     }), 
+        //   }),
+        
+        // const signature = await kernelAccount.signUserOperation({ 
+        //     userOperation: { 
+        //       callData: request
+        //     }, 
+        //   })
+        
+        // const rpcParameters = formatUserOperationRequest({
+        //     ...request,
+        //     signature,
+        //   } as UserOperation)
+        
+        // await publicClient.request(
+        //       {
+        //         method: 'eth_sendUserOperation',
+        //         params: [
+        //           rpcParameters,
+        //           entryPoint,
+        //         ],
+        //       },
+        //       { retryCount: 0 },
+        //     )
        
-        const userOpHash = await kernelClient.sendUserOperation({ 
-          userOperation: { 
-            callData: await kernelAccount.encodeCallData({ 
-              to: contractAddress, 
-              value: BigInt(0), 
-              data: encodeFunctionData({ 
-                abi: contractABI, 
-                functionName: "mint", 
-                args: [kernelAccount.address], 
-              }), 
-            }), 
-          }, 
-        }) 
+        // const userOpHash = await kernelClient.sendUserOperation({ 
+        //   userOperation: { 
+        //     callData: await kernelAccount.encodeCallData({ 
+        //       to: contractAddress, 
+        //       value: BigInt(0), 
+        //       data: encodeFunctionData({ 
+        //         abi: contractABI, 
+        //         functionName: "mint", 
+        //         args: [kernelAccount.address], 
+        //       }), 
+        //     }), 
+        //   }, 
+        // }) 
        
-        setUserOpHash(userOpHash)
+        // setUserOpHash(userOpHash)
        
-        const bundlerClient = kernelClient.extend( 
+        const bundlerClient = kernelClientResult.extend( 
           bundlerActions(entryPoint) 
         ) 
+
+        console.log({bundlerClient})
         await bundlerClient.waitForUserOperationReceipt({ 
           hash: userOpHash, 
-        }) 
+        })
        
         // Update the message based on the count of UserOps
         const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
-       
+       console.log({userOpMessage})
         setUserOpStatus(userOpMessage)
         setIsSendingUserOp(false)
     }
