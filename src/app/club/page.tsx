@@ -150,7 +150,7 @@ export default function PeanutClub() {
     }
 
     const mike = {
-        lines: ['Peanut', "Don't be Mike", ' Send a PEANUT link'],
+        lines: ['Peanut', 'Text money'],
     }
 
     const { isFooterVisible } = useFooterVisibility()
