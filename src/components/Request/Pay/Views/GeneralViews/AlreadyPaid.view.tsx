@@ -20,7 +20,6 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
             <label className="text-h2">Sorry, this link has already been paid.</label>
             {dataAvailable && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                <div className="flex w-full flex-col items-center justify-center gap-2">
                     <label className="text-h8 ">
                         This link previously contained:
                     </label>
@@ -71,7 +70,6 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                         </div>
                     )}
                 </div>
-            </div>
             )}
             <label className="text-h9 font-normal">
                 We would like to hear from your experience. Hit us up on{' '}
