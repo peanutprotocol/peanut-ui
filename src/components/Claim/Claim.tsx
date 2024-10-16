@@ -17,7 +17,7 @@ import { ActionType, estimatePoints } from '../utils/utils'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
-    const [linkState, setLinkState] = useState<_consts.claimLinkState>('LOADING')
+    const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
     const [claimLinkData, setClaimLinkData] = useState<interfaces.ILinkDetails | undefined>(undefined)
     const [crossChainDetails, setCrossChainDetails] = useState<
         Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
@@ -134,7 +134,7 @@ export const Claim = ({}) => {
 
             setClaimLinkData(linkDetails)
             if (linkDetails.claimed) {
-                setLinkState('ALREADY_CLAIMED')
+                setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
             } else {
                 const crossChainDetails = await getCrossChainDetails(linkDetails)
                 setCrossChainDetails(crossChainDetails)
@@ -157,13 +157,13 @@ export const Claim = ({}) => {
                 }
 
                 if (address && linkDetails.senderAddress === address) {
-                    setLinkState('CLAIM_SENDER')
+                    setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
                 } else {
-                    setLinkState('CLAIM')
+                    setLinkState(_consts.claimLinkStateType.CLAIM)
                 }
             }
         } catch (error) {
-            setLinkState('NOT_FOUND')
+            setLinkState(_consts.claimLinkStateType.NOT_FOUND)
         }
     }
 
@@ -176,7 +176,7 @@ export const Claim = ({}) => {
 
     return (
         <div className="card">
-            {linkState === 'LOADING' && (
+            {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
@@ -184,7 +184,7 @@ export const Claim = ({}) => {
                     </div>
                 </div>
             )}
-            {linkState === 'CLAIM' && (
+            {linkState === _consts.claimLinkStateType.CLAIM && (
                 <FlowManager
                     recipientType={recipientType}
                     step={step}
@@ -226,12 +226,12 @@ export const Claim = ({}) => {
                 />
             )}
 
-            {linkState === 'ALREADY_CLAIMED' && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
-            {linkState === 'NOT_FOUND' && <genericViews.NotFoundClaimLink />}
-            {linkState === 'CLAIM_SENDER' && (
+            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
+            {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
+            {linkState === _consts.claimLinkStateType.CLAIM_SENDER && (
                 <genericViews.SenderClaimLinkView
                     changeToRecipientView={() => {
-                        setLinkState('CLAIM')
+                        setLinkState(_consts.claimLinkStateType.CLAIM)
                     }}
                     claimLinkData={claimLinkData}
                     setTransactionHash={setTransactionHash}
