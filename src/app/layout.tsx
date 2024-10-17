@@ -28,7 +28,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                             <CrispChat />
                             
                             
-                        	 </context.ContextProvider>
+                        	  </context.ContextProvider>
                     </config.PeanutProvider>
                 </ColorModeProvider>
             </body>
