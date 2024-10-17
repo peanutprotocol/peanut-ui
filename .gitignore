@@ -6,6 +6,7 @@
 .pnp.js
 .vscode
 **.patch
+public/
 
 # testing
 /coverage
