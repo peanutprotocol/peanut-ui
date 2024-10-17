@@ -19,18 +19,9 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({ accountIdentifier }),
         })
 
-        if (response.status !== 200) {
-            return new NextResponse('Error in get-user-id', {
-                status: response.status,
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-            })
-        }
-
         const data = await response.json()
-        return new NextResponse(JSON.stringify(data), {
-            status: 200,
+        return new NextResponse(data ? JSON.stringify(data): 'Error in get-user-id', {
+            status: response.status,
             headers: {
                 'Content-Type': 'application/json',
             },
