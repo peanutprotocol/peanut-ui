@@ -37,14 +37,13 @@ async function createXChainUnsignedTx({
         fromToken: tokenData.address,
         fromChainId: tokenData.chainId,
         senderAddress,
-        link: requestLink.link,
         squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-        apiUrl: '/api/proxy/get',
         provider: await peanut.getDefaultProvider(tokenData.chainId),
         tokenType: utils.isAddressZero(tokenData.address)
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,
         fromTokenDecimals: tokenData.decimals as number,
+        linkDetails: requestLink,
     })
     return xchainUnsignedTxs
 }
