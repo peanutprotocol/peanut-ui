@@ -44,7 +44,7 @@ jobs:
               run: pnpm install --frozen-lockfile
 
             - name: Check Formatting
-              run: pnpm exec prettier --config prettier.config.js --check .
+              run: pnpm exec prettier --config prettier.config.js --check "src/**/*"
 
             - name: Suggest Formatting Changes
               if: failure()
@@ -58,7 +58,7 @@ jobs:
                       // Run Prettier and capture the diff
                       let diff;
                       try {
-                        execSync('pnpm exec prettier --config prettier.config.js --write .');
+                        execSync('pnpm exec prettier --config prettier.config.js --write "src/**/*"');
                         diff = execSync('git diff').toString();
                       } catch (error) {
                         console.error('Error running Prettier:', error);
