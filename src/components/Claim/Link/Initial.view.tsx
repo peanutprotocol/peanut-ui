@@ -198,7 +198,7 @@ export const InitialClaimLinkView = ({
                 })
 
                 const response = await userIdResponse.json()
-                if (response.isNewUser) {
+                if (response.isNewUser || (response.error && response.error == 'User not found for given IBAN')) {
                     setUserType('NEW')
                 } else {
                     setUserType('EXISTING')
