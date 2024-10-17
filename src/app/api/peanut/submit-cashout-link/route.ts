@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
             pubKey,
             bridgeCustomerId,
             liquidationAddressId,
-            cashoutTransactionHash,
+            cashoutTransactionHash, // has to be destination chain transaction hash!
             externalAccountId,
             chainId,
             tokenName,

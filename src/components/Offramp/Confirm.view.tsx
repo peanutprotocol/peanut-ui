@@ -16,6 +16,8 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
+import { checkTransactionStatus } from '@/components/utils/utils'
+
 import {
     CrossChainDetails,
     IOfframpConfirmScreenProps,
@@ -187,7 +189,7 @@ export const OfframpConfirmView = ({
             const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
             const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
 
-            const hash = await claimAndProcessLink(
+            const { sourceTxHash, destinationTxHash } = await claimAndProcessLink(
                 xchainNeeded,
                 liquidationAddress.address,
                 claimLinkData,
@@ -200,7 +202,7 @@ export const OfframpConfirmView = ({
 
             await saveAndSubmitCashoutLink(
                 claimLinkData,
-                hash,
+                destinationTxHash,
                 liquidationAddress,
                 bridgeCustomerId,
                 bridgeExternalAccountId,
@@ -209,8 +211,8 @@ export const OfframpConfirmView = ({
                 peanutAccount
             )
 
-            setTransactionHash(hash)
-            console.log('Transaction hash:', hash)
+            setTransactionHash(destinationTxHash)
+            console.log('Transaction hash:', destinationTxHash)
 
             onNext()
             setLoadingState('Idle')
@@ -302,17 +304,41 @@ export const OfframpConfirmView = ({
         tokenAddress: string
     ) => {
         if (xchainNeeded) {
-            return await claimLinkXchain({
+            const sourceTxHash = await claimLinkXchain({
                 address,
                 link: claimLinkData.link,
                 destinationChainId: chainId,
                 destinationToken: tokenAddress,
             })
+
+            // Wait for the destination transaction
+            const destinationTxHash = await new Promise<string>((resolve) => {
+                let retryCount = 0
+                let intervalId = setInterval(async () => {
+                    if (retryCount >= 10) {
+                        clearInterval(intervalId)
+                        resolve(sourceTxHash)
+                        return
+                    }
+                    const status = await checkTransactionStatus(sourceTxHash)
+                    if (status.squidTransactionStatus === 'success') {
+                        clearInterval(intervalId)
+                        resolve(status.toChain.transactionId)
+                    }
+                    retryCount++
+                }, 1000)
+            })
+
+            return {
+                sourceTxHash,
+                destinationTxHash: destinationTxHash,
+            }
         } else {
-            return await claimLink({
+            const txHash = await claimLink({
                 address,
                 link: claimLinkData.link,
             })
+            return { sourceTxHash: txHash, destinationTxHash: txHash }
         }
     }
 
@@ -349,7 +375,7 @@ export const OfframpConfirmView = ({
             link: claimLinkData.link,
             bridgeCustomerId: bridgeCustomerId,
             liquidationAddressId: liquidationAddress.id,
-            cashoutTransactionHash: hash,
+            cashoutTransactionHash: hash, // has to be destination chain transaction hash!
             externalAccountId: bridgeExternalAccountId,
             chainId: chainId,
             tokenName: tokenName,
