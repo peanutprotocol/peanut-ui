@@ -22,11 +22,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                         key="chakra-ui-no-flash"
                         storageKey="chakra-ui-color-mode"
                     />
-                    <config.PeanutProvider>
+                        <config.PeanutProvider>
                         <context.ContextProvider>
                             {children}
                             <CrispChat />
-                        </context.ContextProvider>
+                            
+                            
+                        	 </context.ContextProvider>
                     </config.PeanutProvider>
                 </ColorModeProvider>
             </body>
