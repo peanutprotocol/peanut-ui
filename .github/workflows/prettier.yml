@@ -41,7 +41,7 @@ jobs:
                   version: 8
 
             - name: Install Dependencies
-              run: pnpm install --frozen-lockfile
+              run: pnpm install
 
             - name: Check Formatting
               run: pnpm exec prettier --config prettier.config.js --check .
