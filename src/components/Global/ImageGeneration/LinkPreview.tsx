@@ -21,22 +21,23 @@ export function LinkPreviewImg({
         ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.logoURI
     const chainImage = consts.supportedPeanutChains.find((chain) => chain.chainId === chainId)?.icon.url
 
-    const bgImageUrl = `https://peanut.to/bg.svg`
+    const bgImageUrl = 'https://peanut.to/bg.svg'
     const peanutImageUrl = 'https://peanut.to/peanutman-logo.svg'
+    console.log('6', Date.now())
     return (
         <div
             style={{
                 position: 'relative',
-                height: '800px',
-                width: '1600px',
+                height: '200px',
+                width: '400px',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
                 overflow: 'hidden',
                 background: 'white',
-                padding: '32px',
-                border: '4px solid black',
+                padding: '8px',
+                border: '1px solid black',
             }}
         >
             <div
@@ -51,7 +52,7 @@ export function LinkPreviewImg({
                     overflow: 'hidden',
                     background: 'transparent',
                     border: '2px solid black',
-                    borderRadius: '16px',
+                    borderRadius: '4px',
                 }}
             >
                 <img
@@ -77,23 +78,24 @@ export function LinkPreviewImg({
                         height: '100%',
                     }}
                 >
-                    <label style={{ fontSize: '64px', fontWeight: 'bold', color: 'black', zIndex: 1 }}>
-                        {utils.shortenAddress(senderAddress)} sent you
+                    <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black', zIndex: 1 }}>
+                        {utils.printableAddress(senderAddress)} sent you
                     </label>
                     <div
                         style={{
                             display: 'flex',
-                            gap: '64px',
+                            gap: '16px',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            marginLeft: '-32px',
+                            marginLeft: '-8px',
+                            marginTop: '1px',
                         }}
                     >
                         <div
                             style={{
                                 display: 'flex',
-                                height: '210px',
-                                width: '210px',
+                                height: '52px',
+                                width: '52px',
                                 zIndex: 1,
                                 position: 'relative',
                             }}
@@ -103,8 +105,8 @@ export function LinkPreviewImg({
                                     src={tokenImage ?? ''}
                                     alt="Chain Image"
                                     style={{
-                                        height: '200px',
-                                        width: '200px',
+                                        height: '50px',
+                                        width: '50px',
                                         borderRadius: '50%',
                                         objectFit: 'cover',
                                         position: 'absolute',
@@ -118,9 +120,9 @@ export function LinkPreviewImg({
                                     alt="Token Image"
                                     style={{
                                         position: 'absolute',
-                                        right: '-50px',
-                                        top: '-50px',
-                                        width: '150px',
+                                        right: '-12px',
+                                        top: '-12px',
+                                        width: '37px',
                                         borderRadius: '50%',
                                         objectFit: 'cover',
                                     }}
@@ -129,9 +131,9 @@ export function LinkPreviewImg({
                         </div>
                         <label
                             style={{
-                                fontSize: '196px',
+                                fontSize: '49px',
                                 fontWeight: 'bold',
-                                textShadow: '4px 4px 4px rgba(0,0,0,0.3)',
+                                textShadow: '1px 1px 1px rgba(0,0,0,0.3)',
                                 color: 'black',
                                 zIndex: 1,
                             }}
@@ -141,7 +143,7 @@ export function LinkPreviewImg({
                     </div>
 
                     {tokenPrice && (
-                        <label style={{ fontSize: '64px', color: 'black', zIndex: 1 }}>
+                        <label style={{ fontSize: '16px', color: 'black', zIndex: 1 }}>
                             ${utils.formatTokenAmount(parseFloat(amount) * tokenPrice, 2)}
                         </label>
                     )}
@@ -152,10 +154,10 @@ export function LinkPreviewImg({
                     alt="ddee"
                     style={{
                         position: 'absolute',
-                        top: '60px',
-                        right: '60px',
-                        width: '160px',
-                        height: '160px',
+                        top: '15px',
+                        right: '15px',
+                        width: '40px',
+                        height: '40px',
                         objectFit: 'cover',
                         zIndex: 1,
                     }}
