@@ -136,7 +136,7 @@ export function Welcome() {
     }, [])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center  dark:bg-black">
+        <div className="flex w-full flex-col items-center justify-center">
             <div className="flex w-full border-b-2 border-black text-black dark:text-white">
                 <div className="flex w-full flex-col items-center justify-center gap-8 py-8 text-center sm:px-6 sm:py-16 lg:mx-0 lg:w-2/3 lg:px-0">
                     <div className="flex w-full flex-col items-center justify-center gap-2">
