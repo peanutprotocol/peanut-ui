@@ -23,7 +23,7 @@ const Home = () => {
                     <div className="label-stroke min-w-[5.125rem]">Designer</div>
                 </div>
             </div>
-            <div className="col-span-2 border-2 border-red sm:col-span-1">
+            <div className="col-span-2 sm:col-span-1">
                 <Card
                     className="mx-auto flex w-full flex-col gap-4 rounded-md bg-purple-1 p-6 text-white"
                     shadowSize="6"
