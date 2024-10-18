@@ -76,7 +76,7 @@ export async function checkTransactionStatus(txHash: string): Promise<ISquidStat
         })
         return response.data
     } catch (error) {
-        console.error('Error fetching transaction status:', error)
+        console.warn('Error fetching transaction status:', error)
         throw error
     }
 }

@@ -448,6 +448,7 @@ export type CashoutStatus =
     | 'REFUNDED'
     | 'READY'
     | 'AWAITING_TX'
+    | 'AWAITING_FIAT'
     | 'FUNDS_IN_BRIDGE'
     | 'FUNDS_MOVED_AWAY'
     | 'FUNDS_IN_BANK'
@@ -480,6 +481,7 @@ export const CashoutStatusDescriptions: { [key in CashoutStatus]: string } = {
     REFUNDED: 'The funds will be refunded to your address.',
     READY: 'The cashout is ready and can be processed.',
     AWAITING_TX: 'Awaiting the transaction to be broadcast on the blockchain.',
+    AWAITING_FIAT: 'Awaiting the funds to be moved to FIAT.',
     FUNDS_IN_BRIDGE: 'Funds are currently in the bridge, moving to the destination chain.',
     FUNDS_MOVED_AWAY: 'Funds have been moved from the bridge to another chain.',
     FUNDS_IN_BANK: 'Funds have been deposited into your bank account.',

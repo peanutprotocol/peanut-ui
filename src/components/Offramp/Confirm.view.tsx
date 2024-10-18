@@ -191,12 +191,20 @@ export const OfframpConfirmView = ({
 
             const claimLinkData = await getLinkDetails({ link: link })
 
+            const srcChainId = claimLinkData.chainId
+            const destChainId = chainId
+            const isSameChain = srcChainId === destChainId
             const { sourceTxHash, destinationTxHash } = await claimAndProcessLink(
                 xchainNeeded,
                 liquidationAddress.address,
                 claimLinkData,
                 chainId,
-                tokenAddress
+                tokenAddress,
+                isSameChain
+            )
+
+            console.log(
+                `finalized claimAndProcessLink, sourceTxHash: ${sourceTxHash}, destinationTxHash: ${destinationTxHash}`
             )
 
             localStorage.removeItem(tempKey)
@@ -217,7 +225,6 @@ export const OfframpConfirmView = ({
             console.log('Transaction hash:', destinationTxHash)
 
             onNext()
-            setLoadingState('Idle')
         } catch (error) {
             handleError(error)
         } finally {
@@ -303,8 +310,9 @@ export const OfframpConfirmView = ({
         address: string,
         claimLinkData: any, // TODO: fix type
         chainId: string,
-        tokenAddress: string
-    ) => {
+        tokenAddress: string,
+        isSameChain?: boolean // e.g. for opt ETH -> opt USDC
+    ): Promise<{ sourceTxHash: string; destinationTxHash: string }> => {
         if (xchainNeeded) {
             const sourceTxHash = await claimLinkXchain({
                 address,
@@ -312,34 +320,48 @@ export const OfframpConfirmView = ({
                 destinationChainId: chainId,
                 destinationToken: tokenAddress,
             })
+            setLoadingState('Executing transaction') // claimLinkXchain sets loading state to idle after it finishes. pls no.
 
-            // Wait for the destination transaction
-            const destinationTxHash = await new Promise<string>((resolve) => {
-                let retryCount = 0
-                let intervalId = setInterval(async () => {
-                    if (retryCount >= 10) {
-                        clearInterval(intervalId)
-                        resolve(sourceTxHash)
-                        return
-                    }
+            if (isSameChain) {
+                return {
+                    sourceTxHash,
+                    destinationTxHash: sourceTxHash,
+                }
+            }
+
+            const maxAttempts = 15
+            let attempts = 0
+
+            while (attempts < maxAttempts) {
+                try {
                     const status = await checkTransactionStatus(sourceTxHash)
                     if (status.squidTransactionStatus === 'success') {
-                        clearInterval(intervalId)
-                        resolve(status.toChain.transactionId)
+                        return {
+                            sourceTxHash,
+                            destinationTxHash: status.toChain.transactionId,
+                        }
                     }
-                    retryCount++
-                }, 1000)
-            })
+                } catch (error) {
+                    console.warn('Error checking transaction status:', error)
+                }
 
+                attempts++
+                if (attempts < maxAttempts) {
+                    await new Promise((resolve) => setTimeout(resolve, 2000))
+                }
+            }
+
+            console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
             return {
                 sourceTxHash,
-                destinationTxHash: destinationTxHash,
+                destinationTxHash: sourceTxHash,
             }
         } else {
             const txHash = await claimLink({
                 address,
                 link: claimLinkData.link,
             })
+            setLoadingState('Executing transaction') // claimLink
             return { sourceTxHash: txHash, destinationTxHash: txHash }
         }
     }
