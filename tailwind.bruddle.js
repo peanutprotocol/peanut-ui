@@ -7,20 +7,20 @@ module.exports = {
     content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
     theme: {
         screens: {
-            '4xl': { max: '1719px' },
-            // => @media (max-width: 1719px) { ... }
-            '2xl': { max: '1419px' },
-            // => @media (max-width: 1419px) { ... }
-            xl: { max: '1259px' },
-            // => @media (max-width: 1259px) { ... }
-            xls: { max: '1179px' },
-            // => @media (max-width: 1179px) { ... }
-            lg: { max: '1023px' },
-            // => @media (max-width: 1023px) { ... }
-            md: { max: '767px' },
-            // => @media (max-width: 767px) { ... }
-            sm: { max: '480px' },
-            // => @media (max-width: 480px) { ... }
+            '4xl': { min: '1719px' },
+            // => @media (min-width: 1719px) { ... }
+            '2xl': { min: '1419px' },
+            // => @media (min-width: 1419px) { ... }
+            xl: { min: '1259px' },
+            // => @media (min-width: 1259px) { ... }
+            xls: { min: '1179px' },
+            // => @media (min-width: 1179px) { ... }
+            lg: { min: '1023px' },
+            // => @media (min-width: 1023px) { ... }
+            md: { min: '767px' },
+            // => @media (min-width: 767px) { ... }
+            sm: { min: '480px' },
+            // => @media (min-width: 480px) { ... }
         },
         extend: {
             colors: {
