@@ -43,7 +43,7 @@ async function createXChainUnsignedTx({
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,
         fromTokenDecimals: tokenData.decimals as number,
-        linkDetails: requestLink,
+        linkDetails: requestLink, // @jjramirezn TODO: fixxx
     })
     return xchainUnsignedTxs
 }

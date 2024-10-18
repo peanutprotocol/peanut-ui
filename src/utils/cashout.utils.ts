@@ -539,6 +539,7 @@ export const fetchRouteRaw = async (
             fromChain: fromChain,
             fromToken: fromToken.toLowerCase(),
             fromAmount: _tokenAmount,
+            // TODO: move placeholder address to consts file
             fromAddress: fromAddress ?? '0x9647BB6a598c2675310c512e0566B60a5aEE6261', // placeholder address just to get a route sample
             toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C', // placeholder address just to get a route sample
             toChain: toChain,
