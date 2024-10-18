@@ -93,7 +93,7 @@ export const OfframpConfirmView = ({
     //////////////////////
     // functions for cashout offramps
     // TODO: they need to be refactored to a separate file
-
+    // TODO: this function is a clusterfuck
     const fetchNecessaryDetails = useCallback(async () => {
         if (!user || !selectedChainID || !selectedTokenAddress) {
             throw new Error('Missing user or token information')
@@ -137,7 +137,8 @@ export const OfframpConfirmView = ({
         }
     }, [user, selectedChainID, selectedTokenAddress, offrampForm])
 
-    const handleConfirm = async () => {
+    // For cashout offramps
+    const handleCashoutConfirm = async () => {
         setLoadingState('Loading')
         setErrorState({ showError: false, errorMessage: '' })
 
@@ -145,7 +146,6 @@ export const OfframpConfirmView = ({
             if (!preparedCreateLinkWrapperResponse) return
 
             // Fetch all necessary details before creating the link
-            // (and make sure we have all the data we need)
             const {
                 crossChainDetails,
                 peanutAccount,
@@ -154,6 +154,26 @@ export const OfframpConfirmView = ({
                 allLiquidationAddresses,
             } = await fetchNecessaryDetails()
 
+            // Process link details and determine if cross-chain transfer is needed
+            // TODO: type safety
+            const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
+                preparedCreateLinkWrapperResponse.linkDetails,
+                crossChainDetails as CrossChainDetails[],
+                allLiquidationAddresses,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                peanutAccount.account_type
+            )
+
+            if (!tokenName || !chainName) {
+                throw new Error('Unable to determine token or chain information')
+            }
+
+            // get chainId and tokenAddress (default to optimism)
+            const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
+            const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
+
+            // Now that we have all the necessary information, create the link
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
             setCreatedLink(link)
             console.log(`created claimlink: ${link}`)
@@ -170,24 +190,6 @@ export const OfframpConfirmView = ({
             console.log(`Temporarily saved link in localStorage with key: ${tempKey}`)
 
             const claimLinkData = await getLinkDetails({ link: link })
-
-            // Process link details and determine if cross-chain transfer is needed
-            const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
-                claimLinkData,
-                crossChainDetails as CrossChainDetails[],
-                allLiquidationAddresses,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-                peanutAccount.account_type
-            )
-
-            if (!tokenName || !chainName) {
-                throw new Error('Unable to determine token or chain information')
-            }
-
-            // get chainId and tokenAddress (default to optimism)
-            const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
-            const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
 
             const { sourceTxHash, destinationTxHash } = await claimAndProcessLink(
                 xchainNeeded,
@@ -383,7 +385,7 @@ export const OfframpConfirmView = ({
     }
 
     const handleError = (error: unknown) => {
-        console.error('Error in handleConfirm:', error)
+        console.error('Error in handleCashoutConfirm:', error)
         setErrorState({
             showError: true,
             errorMessage:
@@ -428,9 +430,8 @@ export const OfframpConfirmView = ({
     }
 
     //////////////////////
-    // functions for claim link offramps
+    // functions for claim link offramps (not self-cashout)
     // TODO: they need to be refactored to a separate file
-
     const handleSubmitTransfer = async () => {
         if (claimLinkData && tokenPrice && estimatedPoints && attachment && recipientType) {
             try {
@@ -743,7 +744,7 @@ export const OfframpConfirmView = ({
                         onClick={() => {
                             switch (offrampType) {
                                 case OfframpType.CASHOUT: {
-                                    handleConfirm()
+                                    handleCashoutConfirm()
                                     break
                                 }
                                 case OfframpType.CLAIM: {
