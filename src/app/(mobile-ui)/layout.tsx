@@ -1,29 +1,48 @@
 import '../../styles/globals.bruddle.css'
+import { NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
 
+type NavTabProps = {
+    name: string
+    href: string
+    icon: NavIconsName
+}
+
+const tabs: NavTabProps[] = [
+    {
+        name: 'Home',
+        href: '/home',
+        icon: 'home',
+    },
+    {
+        name: 'Wallet',
+        href: '/home',
+        icon: 'wallet',
+    },
+    {
+        name: 'History',
+        href: '/history',
+        icon: 'history',
+    },
+    {
+        name: 'History',
+        href: '/history',
+        icon: 'settings',
+    },
+]
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
-    const tabs = [
-        {
-            name: 'Home',
-            href: '/home',
-        },
-        {
-            name: 'History',
-            href: '/history',
-        },
-    ]
     return (
         <div className="flex h-screen flex-col">
-            <div className="border-b-2 p-2">HEADER</div>
             <div className="flex w-full flex-1 overflow-y-scroll border bg-white">{children}</div>
-            <div className="grid grid-cols-2 border-t-2 p-2">
+            <div className="grid grid-cols-4 border-t-2 p-2">
                 {tabs.map((tab) => (
                     <Link
                         href={tab.href}
                         key={tab.name}
-                        className="border-2 text-center hover:cursor-pointer hover:bg-gray-200"
+                        className="flex flex-row justify-center py-2 hover:cursor-pointer hover:bg-gray-200 hover:text-purple-1"
                     >
-                        {tab.name}
+                        <NavIcons name={tab.icon} size={30} />
                     </Link>
                 ))}
             </div>
