@@ -21,15 +21,50 @@ const shadowClasses: Record<ShadowColor, Record<ShadowSize, string>> = {
     },
 }
 
-export const Card = ({ children, className, shadowSize = '4', color = 'primary', ...props }: CardProps) => {
-    const shadowClass = shadowClasses[color][shadowSize]
+const Card = ({ children, className, shadowSize, color = 'primary', ...props }: CardProps) => {
+    const shadowClass = shadowSize ? shadowClasses[color][shadowSize] : ''
 
     return (
         <div
-            className={classNames(`flex border border-n-1 p-4 dark:border-white dark:bg-n-1`, shadowClass, className)}
+            className={classNames(
+                `flex flex-col border border-n-1 dark:border-white dark:bg-n-1`,
+                shadowClass,
+                className
+            )}
             {...props}
         >
             {children}
         </div>
     )
 }
+
+const Header = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+    <div className={classNames('card-head', className)} {...props}>
+        {children}
+    </div>
+)
+
+const Title = ({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
+    <h3 className={classNames('text-h4 font-semibold sm:text-h3', className)} {...props}>
+        {children}
+    </h3>
+)
+
+const Description = ({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
+    <p className={classNames('text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
+        {children}
+    </p>
+)
+
+const Content = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
+    <div className={classNames('card-content', className)} {...props}>
+        {children}
+    </div>
+)
+
+Card.Header = Header
+Card.Title = Title
+Card.Description = Description
+Card.Content = Content
+
+export { Card }

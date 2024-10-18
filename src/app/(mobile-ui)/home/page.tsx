@@ -28,18 +28,23 @@ const Home = () => {
                     className="mx-auto flex w-full flex-col gap-4 rounded-md bg-purple-1 p-6 text-white"
                     shadowSize="6"
                 >
-                    <Image src={PeanutWalletIcon} alt="" />
-                    <p className="text-4xl font-black sm:text-6xl">$40.00</p>
-                    <div className="flex flex-col">
-                        <p>peanut.me/</p>
-                        <p className="font-bold">kkonrad</p>
-                    </div>
+                    <Card.Content>
+                        <Image src={PeanutWalletIcon} alt="" />
+                        <p className="text-4xl font-black sm:text-6xl">$40.00</p>
+                        <div className="flex flex-col">
+                            <p>peanut.me/</p>
+                            <p className="font-bold">kkonrad</p>
+                        </div>
+                    </Card.Content>
                 </Card>
             </div>
             <div className="col-span-2 grid w-full grid-cols-2">
                 <div className="flex flex-col items-center gap-2">
                     <Link href={'/send'}>
-                        <Card className="flex h-30 w-30 flex-row items-center justify-center rounded-full text-center">
+                        <Card
+                            shadowSize="4"
+                            className="flex h-30 w-30 flex-row items-center justify-center rounded-full text-center"
+                        >
                             <ArrowIcon />
                         </Card>
                     </Link>
@@ -47,7 +52,10 @@ const Home = () => {
                 </div>
                 <div className="flex flex-col items-center gap-2">
                     <Link href={'/request/create'}>
-                        <Card className="flex h-30 w-30 flex-row items-center justify-center rounded-full text-center">
+                        <Card
+                            shadowSize="4"
+                            className="flex h-30 w-30 flex-row items-center justify-center rounded-full text-center"
+                        >
                             <ArrowIcon className="rotate-180" />
                         </Card>
                     </Link>

@@ -1,3 +1,5 @@
+'use client'
+
 import '../../styles/globals.bruddle.css'
 import { NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
