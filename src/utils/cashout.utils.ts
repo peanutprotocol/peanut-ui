@@ -298,6 +298,11 @@ export const createLiquidationAddress = async (
     })
 
     if (!response.ok) {
+        // log the response body
+        console.error(response)
+        // log either response body or response json, whatever is not undefined
+        const responseBody = await response.text()
+        console.error(responseBody)
         throw new Error('Failed to create liquidation address')
     }
 
