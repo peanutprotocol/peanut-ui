@@ -23,6 +23,9 @@ export const PayRequestLink = () => {
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
     const { setLoadingState } = useContext(context.loadingStateContext)
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(
+        context.tokenSelectorContext
+    )
     const [errorMessage, setErrorMessage] = useState<string>('')
 
     const fetchPointsEstimation = async (
@@ -93,6 +96,9 @@ export const PayRequestLink = () => {
                 setLinkState(_consts.IRequestLinkState.ALREADY_PAID)
                 return
             }
+            // Load the token chain pair from the request link data
+            setSelectedChainID(requestLinkDetails.chainId)
+            setSelectedTokenAddress(requestLinkDetails.tokenAddress)
             setLinkState(_consts.IRequestLinkState.READY_TO_PAY)
         } catch (error) {
             console.error('Failed to fetch request link details:', error)
