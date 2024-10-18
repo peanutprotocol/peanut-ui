@@ -1,6 +1,7 @@
 import '../../styles/globals.bruddle.css'
 import { NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
 
 type NavTabProps = {
     name: string
@@ -32,6 +33,14 @@ const tabs: NavTabProps[] = [
 ]
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+    const [isReady, setIsReady] = useState(false)
+
+    useEffect(() => {
+        setIsReady(true)
+    }, [])
+
+    if (!isReady) return null
+
     return (
         <div className="flex h-screen flex-col">
             <div className="flex w-full flex-1 overflow-y-scroll border bg-white">{children}</div>
