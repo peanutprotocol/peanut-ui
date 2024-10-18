@@ -1,6 +1,6 @@
+import { ArrowUpButtonIcon } from '@/components/0_Bruddle/arrow-icon'
 import Link from 'next/link'
 import React from 'react'
-import { ArrowUpButtonIcon } from '../_bruddle/arrow-icon'
 
 const Home = () => {
     return (

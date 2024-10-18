@@ -1,3 +1,4 @@
+import '../../styles/globals.bruddle.css'
 import Link from 'next/link'
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
@@ -14,7 +15,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
         <div className="flex h-screen flex-col">
             <div className="border-b-2 p-2">HEADER</div>
-            <div className="flex w-full flex-1 overflow-y-scroll border">{children}</div>
+            <div className="flex w-full flex-1 overflow-y-scroll border bg-white">{children}</div>
             <div className="grid grid-cols-2 border-t-2 p-2">
                 {tabs.map((tab) => (
                     <Link
