@@ -1,7 +1,6 @@
 import { Metadata } from 'next'
 
 import * as components from '@/components'
-import Layout from '@/components/Global/Layout'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -21,9 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function SendPage() {
-    return (
-        <Layout>
-            <components.Create />
-        </Layout>
-    )
+    return <components.Create />
 }
