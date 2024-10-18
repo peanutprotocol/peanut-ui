@@ -1,24 +1,25 @@
-// import { TWITTER_ICON, DISCORD_ICON, GITBOOK_ICON, GITHUB_INVERTED_ICON } from "@/assets"
+import * as icons from '@/assets/icons'
+
 export const SOCIALS = [
     {
         name: 'twitter',
         url: 'https://twitter.com/peanutprotocol',
-        // logoSrc: TWITTER_ICON.src,
+        logoSrc: icons.TWITTER_ICON.src,
     },
     {
         name: 'discord',
         url: 'https://discord.gg/BX9Ak7AW28',
-        // logoSrc: DISCORD_ICON.src,
+        logoSrc: icons.DISCORD_ICON.src,
     },
     {
         name: 'gitbook',
         url: 'https://docs.peanut.to/overview/what-is-peanut',
-        // logoSrc: GITBOOK_ICON.src,
+        logoSrc: icons.GITBOOK_ICON.src,
     },
     {
         name: 'github',
         url: 'https://github.com/peanutprotocol/',
-        // logoSrc: GITHUB_INVERTED_ICON.src,
+        logoSrc: icons.GITHUB_ICON.src,
     },
 ]
 
