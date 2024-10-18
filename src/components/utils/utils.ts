@@ -3,82 +3,80 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 
 type ISquidChainData = {
-  id: string,
-  chainId: string,
-  networkIdentifier: string,
-  chainName: string,
-  axelarChainName: string,
-  type: string,
-  networkName: string,
-  nativeCurrency: {
-    name: string,
-    symbol: string,
-    decimals: number,
-    icon: string,
-  },
-  chainIconURI: string,
-  blockExplorerUrls: string[],
-  swapAmountForGas: string,
-  sameChainSwapsSupported: boolean,
-  compliance: {
-    trmIdentifier: string,
-  },
-  boostSupported: boolean,
-  enableBoostByDefault: boolean,
-  rpcList: string[],
-  chainNativeContracts: {
-    wrappedNativeToken: string,
-    ensRegistry: string,
-    multicall: string,
-    usdcToken: string,
-  },
-  feeCurrencies: any[],
-  currencies: any[],
-  features: any[],
+    id: string
+    chainId: string
+    networkIdentifier: string
+    chainName: string
+    axelarChainName: string
+    type: string
+    networkName: string
+    nativeCurrency: {
+        name: string
+        symbol: string
+        decimals: number
+        icon: string
+    }
+    chainIconURI: string
+    blockExplorerUrls: string[]
+    swapAmountForGas: string
+    sameChainSwapsSupported: boolean
+    compliance: {
+        trmIdentifier: string
+    }
+    boostSupported: boolean
+    enableBoostByDefault: boolean
+    rpcList: string[]
+    chainNativeContracts: {
+        wrappedNativeToken: string
+        ensRegistry: string
+        multicall: string
+        usdcToken: string
+    }
+    feeCurrencies: any[]
+    currencies: any[]
+    features: any[]
 }
 
 type ISquidStatusResponse = {
-  id: string,
-  status: string,
-  gasStatus: string,
-  isGMPTransaction: boolean,
-  axelarTransactionUrl: string,
-  fromChain: {
-    transactionId: string,
-    blockNumber: number,
-    callEventStatus: string,
-    callEventLog: any[],
-    chainData: ISquidChainData,
-    transactionUrl: string,
-  },
-  toChain: {
-    transactionId: string,
-    blockNumber: number,
-    callEventStatus: string,
-    callEventLog: any[],
-    chainData: ISquidChainData,
-    transactionUrl: string,
-  },
-  timeSpent: {
-    call_express_executed: number,
-    total: number,
-  },
-  routeStatus: any[],
-  error: any,
-  squidTransactionStatus: string,
+    id: string
+    status: string
+    gasStatus: string
+    isGMPTransaction: boolean
+    axelarTransactionUrl: string
+    fromChain: {
+        transactionId: string
+        blockNumber: number
+        callEventStatus: string
+        callEventLog: any[]
+        chainData: ISquidChainData
+        transactionUrl: string
+    }
+    toChain: {
+        transactionId: string
+        blockNumber: number
+        callEventStatus: string
+        callEventLog: any[]
+        chainData: ISquidChainData
+        transactionUrl: string
+    }
+    timeSpent: {
+        call_express_executed: number
+        total: number
+    }
+    routeStatus: any[]
+    error: any
+    squidTransactionStatus: string
 }
 
-export async function checkTransactionStatus(
-  txHash: string
-): Promise<ISquidStatusResponse> {
+export async function checkTransactionStatus(txHash: string): Promise<ISquidStatusResponse> {
     try {
         const response = await axios.get('https://apiplus.squidrouter.com/v2/status', {
             params: { transactionId: txHash },
-            headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' },
+            headers: { 'x-integrator-id': '11CBA45B-5EE9-4331-B146-48CCD7ED4C7C' }, // TODO: move to env lmao
         })
         return response.data
     } catch (error) {
-        console.error('Error fetching transaction status:', error)
+        console.warn('Error fetching transaction status:', error)
         throw error
     }
 }
