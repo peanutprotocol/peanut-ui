@@ -279,13 +279,13 @@ export const OfframpConfirmView = ({
         }
 
         const route = await utils.fetchRouteRaw(
-            claimLinkData.tokenAddress,
-            claimLinkData.chainId.toString(),
+            claimLinkData.tokenAddress!,
+            claimLinkData.chainId!.toString(),
             usdcAddressOptimism,
             optimismChainId,
-            claimLinkData.tokenDecimals,
-            claimLinkData.tokenAmount,
-            claimLinkData.senderAddress
+            claimLinkData.tokenDecimals!,
+            claimLinkData.tokenAmount!,
+            claimLinkData.senderAddress ?? '0x9647BB6a598c2675310c512e0566B60a5aEE6261'
         )
 
         if (route === undefined) {
