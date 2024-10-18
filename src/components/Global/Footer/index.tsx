@@ -25,7 +25,6 @@ const Footer = ({}: FooterProps) => {
                             <Link
                                 key={link.name}
                                 href={link.url}
-                                target="_blank"
                                 className="font-semibold uppercase transition-colors last:mr-0 hover:text-violet-3 dark:text-white dark:hover:text-purple-1 md:mr-4"
                             >
                                 {link.name}
