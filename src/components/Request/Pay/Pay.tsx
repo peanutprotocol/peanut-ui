@@ -174,7 +174,7 @@ export const PayRequestLink = () => {
 
     return (
         <div className="card">
-            {linkState === _consts.IRequestLinkState.ERROR && (
+            {linkState === _consts.IRequestLinkState.LOADING && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
