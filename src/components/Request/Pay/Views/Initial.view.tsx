@@ -43,7 +43,7 @@ async function createXChainUnsignedTx({
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,
         fromTokenDecimals: tokenData.decimals as number,
-        linkDetails: requestLink, // @jjramirezn TODO: fixxx
+        linkDetails: requestLink,
     })
     return xchainUnsignedTxs
 }
@@ -116,6 +116,7 @@ export const InitialView = ({
         setTokenRequestedSymbol(tokenContract?.symbol ?? '')
     }
 
+    // Get route
     useEffect(() => {
         const estimateTxFee = async () => {
             if (!isXChain) {
@@ -160,6 +161,7 @@ export const InitialView = ({
         estimateTxFee()
     }, [isConnected, address, selectedTokenData, requestLinkData, isXChain, isFetchingTokenData])
 
+    // Change in pair
     useEffect(() => {
         setLoadingState('Loading')
         clearError()
@@ -169,6 +171,7 @@ export const InitialView = ({
         setIsXChain(isXChain)
     }, [selectedChainID, selectedTokenAddress])
 
+    // Fetch token symbol and logo
     useEffect(() => {
         const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
         const logoURI =
@@ -191,28 +194,26 @@ export const InitialView = ({
         }
     }, [requestLinkData, tokenPriceData])
 
+    // Transition into loading state
     useEffect(() => {
         if (isLoading) {
             setViewState(ViewState.LOADING)
         }
     }, [isLoading])
 
+    // Transition into idle state
     useEffect(() => {
         if (viewState !== ViewState.LOADING) {
             setLoadingState('Idle')
         }
     }, [viewState])
 
+    // Transition into error state
     useEffect(() => {
         if (errorState.showError) {
             setViewState(ViewState.ERROR)
         }
     }, [errorState])
-
-    useEffect(() => {
-        // Load the token chain pair from the request link data
-        resetTokenAndChain()
-    }, [])
 
     const clearError = () => {
         setErrorState({ showError: false, errorMessage: '' })

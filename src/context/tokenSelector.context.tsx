@@ -32,12 +32,23 @@ export const tokenSelectorContext = createContext({
  * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState('0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85')
-    const [selectedChainID, setSelectedChainID] = useState('10')
+    const initialTokenData = {
+        tokenAddress: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
+        chainId: '10', // Optimism
+        decimals: 6,
+    }
+    const prefs = utils.getPeanutPreferences()
+    if (prefs && prefs.tokenAddress && prefs.chainId && prefs.decimals) {
+        initialTokenData.tokenAddress = prefs.tokenAddress
+        initialTokenData.chainId = prefs.chainId
+        initialTokenData.decimals = prefs.decimals
+    }
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.tokenAddress)
+    const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
-    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
+    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(initialTokenData.decimals)
     const [isXChain, setIsXChain] = useState<boolean>(false)
     const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
@@ -112,15 +123,6 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             }
         }
     }, [selectedTokenAddress, selectedChainID])
-
-    useEffect(() => {
-        const prefs = utils.getPeanutPreferences()
-        if (prefs && prefs.tokenAddress && prefs.chainId && prefs.decimals) {
-            setSelectedTokenAddress(prefs.tokenAddress)
-            setSelectedChainID(prefs.chainId)
-            setSelectedTokenDecimals(prefs.decimals)
-        }
-    }, [])
 
     return (
         <tokenSelectorContext.Provider
