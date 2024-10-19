@@ -6,22 +6,6 @@ module.exports = {
     darkMode: ['class', '[data-theme="dark"]'],
     content: ['./src/app/**/*.{js,ts,jsx,tsx}', './src/components/**/*.{js,ts,jsx,tsx}'],
     theme: {
-        screens: {
-            '4xl': { min: '1719px' },
-            // => @media (min-width: 1719px) { ... }
-            '2xl': { min: '1419px' },
-            // => @media (min-width: 1419px) { ... }
-            xl: { min: '1259px' },
-            // => @media (min-width: 1259px) { ... }
-            xls: { min: '1179px' },
-            // => @media (min-width: 1179px) { ... }
-            lg: { min: '1023px' },
-            // => @media (min-width: 1023px) { ... }
-            md: { min: '767px' },
-            // => @media (min-width: 767px) { ... }
-            sm: { min: '480px' },
-            // => @media (min-width: 480px) { ... }
-        },
         extend: {
             colors: {
                 purple: {
@@ -258,7 +242,8 @@ module.exports = {
                         {},
                 },
                 '.card': {
-                    '@apply bg-white border border-n-1 dark:bg-n-1 dark:border-white': {},
+                    '@apply flex flex-col bg-white border border-n-1 dark:bg-n-1 relative mx-auto items-center justify-center dark:border-white':
+                        {},
                 },
                 '.card-head': {
                     '@apply flex justify-between flex-col items-start min-h-[4rem] px-5 py-3 border-b border-n-1 dark:border-white':
@@ -308,6 +293,28 @@ module.exports = {
                         {},
                 },
                 '.shadow-secondary-8': {
+                    '@apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)]': {},
+                },
+                '.btn-shadow-primary-4': {
+                    '@apply shadow-[0.25rem_0.25rem_0_#000000] dark:shadow-[0.25rem_0.25rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-primary-6': {
+                    '@apply shadow-[0.375rem_0.375rem_0_#000000] dark:shadow-[0.375rem_0.375rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-primary-8': {
+                    '@apply shadow-[0.5rem_0.5rem_0_#000000] dark:shadow-[0.5rem_0.5rem_0_rgba(255,255,255,.25)]': {},
+                },
+                '.btn-shadow-secondary-4': {
+                    '@apply shadow-[0.25rem_-0.25rem_0_#000000] dark:shadow-[0.25rem_-0.25rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-secondary-6': {
+                    '@apply shadow-[0.375rem_-0.375rem_0_#000000] dark:shadow-[0.375rem_-0.375rem_0_rgba(255,255,255,.25)]':
+                        {},
+                },
+                '.btn-shadow-secondary-8': {
                     '@apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)]': {},
                 },
             })
