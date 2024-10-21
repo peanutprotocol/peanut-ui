@@ -1,12 +1,10 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
 import * as interfaces from '@/interfaces'
-import { useAccount,  UseAccountReturnType } from 'wagmi'
+import { useAccount } from 'wagmi'
 
 // ZeroDev imports
-import * as consts from '@/constants/zerodev.consts'
-import { http } from "viem"
-import { UseKernelClientReturnType, ZeroDevProvider, createConfig, useKernelClient } from "@zerodev/waas"
+import { useKernelClient } from "@zerodev/waas"
 
 // TOOD: go through TODOs
 
@@ -77,15 +75,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// ZeroDev props
     //
-    const zeroDevConfig = createConfig({
-        chains: [consts.PEANUT_WALLET_CHAIN],
-        transports: {
-          [consts.PEANUT_WALLET_CHAIN.id]: http()
-        },
-        projectIds: {
-          [consts.PEANUT_WALLET_CHAIN.id]: consts.ZERO_DEV_PROJECT_ID!
-        }
-    })
     const { address: kernelClientAddress, isConnected: isKernelClientConnected } = useKernelClient()
 
     ////// Lifecycle hooks
@@ -128,19 +117,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     return (
         <WalletContext.Provider
-            value={{
-                activeWalletType,
-                setActiveWalletType,
-                isWalletConnected, 
-                setIsWalletConnected,
-                activeWallet,
-                setActiveWallet
-            }}
-        >
-            <ZeroDevProvider config={zeroDevConfig}>
-                {children}
-            </ZeroDevProvider>
-
+        value={{
+            activeWalletType,
+            setActiveWalletType,
+            isWalletConnected, 
+            setIsWalletConnected,
+            activeWallet,
+            setActiveWallet
+        }}>
+            {children}
         </WalletContext.Provider>
     )
 }
