@@ -62,8 +62,8 @@ export const CreateLinkSuccessView = ({
     }, [])
 
     return (
-        <div className={`flex w-full flex-col items-center justify-center p-2`}>
-            <Card>
+        <div className={`flex w-full flex-col items-center justify-center p-4`}>
+            <Card shadowSize="6">
                 <Card.Header>
                     <Card.Title>Yay !</Card.Title>
                 </Card.Header>

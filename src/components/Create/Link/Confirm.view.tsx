@@ -181,7 +181,7 @@ export const CreateLinkConfirmView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center p-4">
-            <Card>
+            <Card shadowSize="6">
                 <Card.Header>
                     <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                         {createType == 'link'

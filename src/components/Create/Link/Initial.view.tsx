@@ -156,7 +156,7 @@ export const CreateLinkInitialView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center p-4">
-            <Card>
+            <Card shadowSize="6">
                 <Card.Header>
                     <Card.Title>Send crypto</Card.Title>
                     <Card.Description>

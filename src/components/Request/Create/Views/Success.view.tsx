@@ -7,8 +7,8 @@ import { Button, Card } from '@/components/0_Bruddle'
 
 export const SuccessView = ({ link }: _consts.ICreateScreenProps) => {
     return (
-        <div className={`relative flex w-full flex-col items-center justify-center overflow-hidden p-2 text-center`}>
-            <Card>
+        <div className={`relative flex w-full flex-col items-center justify-center overflow-hidden p-4 text-center`}>
+            <Card shadowSize="6">
                 <Card.Header className="relative">
                     <Card.Title>Yay !</Card.Title>
                 </Card.Header>
