@@ -1,6 +1,6 @@
 'use client'
 
-import { createElement, useContext, useEffect, useState } from 'react'
+import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
@@ -121,7 +121,7 @@ export const Create = () => {
     }, [address])
 
     return (
-        <div className="card">
+        <Suspense>
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onPrev: handleOnPrev,
                 onNext: handleOnNext,
@@ -161,6 +161,6 @@ export const Create = () => {
                 usdValue,
                 setUsdValue,
             } as _consts.ICreateScreenProps)}
-        </div>
+        </Suspense>
     )
 }

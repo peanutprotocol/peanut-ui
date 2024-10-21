@@ -1,10 +1,9 @@
-import { useContext, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import Loading from '../Loading'
-
-import * as context from '@/context'
+import { useMemo, useState } from 'react'
+import { FormProvider, useForm } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import crypto from 'crypto'
+import { Button, Field } from '@/components/0_Bruddle'
+
 interface ILoginComponentProps {
     email?: string
     password?: string
@@ -25,18 +24,20 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const {
-        register,
-        handleSubmit,
-        setError,
-        formState: { errors },
-    } = useForm<ILoginForm>({
+    const methods = useForm<ILoginForm>({
         mode: 'onChange',
         defaultValues: {
             email: email,
             password: password,
         },
     })
+
+    const {
+        register,
+        handleSubmit,
+        setError,
+        formState: { errors },
+    } = methods
 
     const handleOnSubmit = async (data: ILoginForm) => {
         try {
@@ -121,48 +122,44 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
     }
 
     return (
-        <form className="flex w-full flex-col items-start justify-center gap-2" onSubmit={handleSubmit(handleOnSubmit)}>
-            <input
-                {...register('email', {
-                    required: 'This field is required',
-                    pattern: {
-                        value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
-                        message: 'Invalid email address',
-                    },
-                })}
-                className={`custom-input custom-input-xs ${errors.email ? 'border border-red' : ''}`}
-                placeholder="Email"
-                type="email"
-                autoComplete="username"
-                name="email"
-            />
+        <FormProvider {...methods}>
+            <form
+                className="flex w-full flex-col items-start justify-center gap-2"
+                onSubmit={handleSubmit(handleOnSubmit)}
+            >
+                <Field
+                    label="Email"
+                    {...register('email', {
+                        required: 'This field is required',
+                        pattern: {
+                            value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                            message: 'Invalid email address',
+                        },
+                    })}
+                    placeholder="Email"
+                    type="email"
+                    autoComplete="username"
+                />
 
-            {errors.email && <span className="text-h9 font-normal text-red">{errors.email.message}</span>}
+                {errors.email && <span className="text-red-500 text-h9 font-normal">{errors.email.message}</span>}
 
-            <input
-                {...register('password', { required: 'This field is required' })}
-                className={`custom-input custom-input-xs ${errors.password ? 'border border-red' : ''}`}
-                placeholder="Password"
-                type="password"
-                autoComplete="current-password"
-                name="password"
-            />
-            {errors.password && <span className="text-h9 font-normal text-red">{errors.password.message}</span>}
-
-            <button type="submit" className="btn btn-purple h-8 w-full text-h8" disabled={isLoading}>
-                {isLoading ? (
-                    <div className="flex w-full flex-row items-center justify-center gap-2">
-                        <Loading /> {loadingState}
+                <Field
+                    label="Password"
+                    {...register('password', { required: 'This field is required' })}
+                    placeholder="Password"
+                    type="password"
+                    autoComplete="current-password"
+                />
+                {errors.password && <span className="text-red-500 text-h9 font-normal">{errors.password.message}</span>}
+                <Button type="submit" disabled={isLoading} className="mt-2" loading={isLoading}>
+                    Login
+                </Button>
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-red-500 text-h8 font-normal ">{errorState.errorMessage}</label>
                     </div>
-                ) : (
-                    'Login'
                 )}
-            </button>
-            {errorState.showError && (
-                <div className="text-center">
-                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                </div>
-            )}
-        </form>
+            </form>
+        </FormProvider>
     )
 }

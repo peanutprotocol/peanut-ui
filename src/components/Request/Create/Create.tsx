@@ -45,22 +45,18 @@ export const CreateRequestLink = () => {
         if (address && !recipientAddress) setRecipientAddress(address)
     }, [address])
 
-    return (
-        <div className="card">
-            {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
-                onNext: handleOnNext,
-                onPrev: handleOnPrev,
-                link,
-                setLink,
-                attachmentOptions,
-                setAttachmentOptions,
-                tokenValue,
-                setTokenValue,
-                usdValue,
-                setUsdValue,
-                recipientAddress,
-                setRecipientAddress,
-            } as _consts.ICreateScreenProps)}
-        </div>
-    )
+    return createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+        onNext: handleOnNext,
+        onPrev: handleOnPrev,
+        link,
+        setLink,
+        attachmentOptions,
+        setAttachmentOptions,
+        tokenValue,
+        setTokenValue,
+        usdValue,
+        setUsdValue,
+        recipientAddress,
+        setRecipientAddress,
+    } as _consts.ICreateScreenProps)
 }
