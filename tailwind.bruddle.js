@@ -317,6 +317,10 @@ module.exports = {
                 '.btn-shadow-secondary-8': {
                     '@apply shadow-[0.5rem_-0.5rem_0_#000000] dark:shadow-[0.5rem_-0.5rem_0_rgba(255,255,255,.25)]': {},
                 },
+                '.input': {
+                    '@apply h-16 w-full rounded-sm border border-n-1 bg-white px-5 text-sm font-bold text-n-1 outline-none transition-colors placeholder:text-n-3 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1':
+                        {},
+                },
             })
             addUtilities({
                 '.tap-highlight-color': {
