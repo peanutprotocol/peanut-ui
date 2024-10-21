@@ -1,7 +1,7 @@
 'use client'
 
 import { twMerge } from 'tailwind-merge'
-import Icon from '../Global/Icon'
+import Icon, { IconNameType } from '../Global/Icon'
 import { useFormContext } from 'react-hook-form'
 import classNames from 'classnames'
 import React from 'react'
@@ -10,7 +10,7 @@ import { DetailedHTMLProps, InputHTMLAttributes, useState } from 'react'
 type FieldProps = DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
     containerClassname?: HTMLDivElement['className']
     label?: string
-    icon?: string
+    icon?: IconNameType
 }
 
 export const Field = React.forwardRef(

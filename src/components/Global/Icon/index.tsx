@@ -200,9 +200,11 @@ const icons = {
     token_placeholder: 'M8 0c-4.4 0-8 3.6-8 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8z',
 }
 
+export type IconNameType = keyof typeof icons
+
 type IconProps = {
     className?: string
-    name: keyof typeof icons
+    name: IconNameType
     fill?: string
     onClick?: () => void
 }

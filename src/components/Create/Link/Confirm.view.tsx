@@ -298,20 +298,20 @@ export const CreateLinkConfirmView = ({
                         <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
                             Return
                         </Button>
-                        {errorState.showError && (
-                            <div className="text-center">
-                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                            </div>
-                        )}
-                        {!crossChainDetails.find(
-                            (chain: any) => chain.chainId.toString() === selectedChainID.toString()
-                        ) && (
-                            <span className=" text-h8 font-normal ">
-                                <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain
-                                claiming.
-                            </span>
-                        )}
                     </div>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                    {!crossChainDetails.find(
+                        (chain: any) => chain.chainId.toString() === selectedChainID.toString()
+                    ) && (
+                        <span className=" text-h8 font-normal ">
+                            <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain
+                            claiming.
+                        </span>
+                    )}
                 </Card.Content>
             </Card>
         </div>

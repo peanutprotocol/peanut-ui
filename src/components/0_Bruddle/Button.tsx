@@ -2,7 +2,7 @@ import React from 'react'
 import classNames from 'classnames'
 import Loading from '../Global/Loading'
 
-type ButtonVariant = 'purple' | 'purple-2' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark'
+type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
@@ -19,7 +19,6 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 
 const buttonVariants: Record<ButtonVariant, string> = {
     purple: 'btn-purple',
-    'purple-2': 'btn-purple-2',
     dark: 'btn-dark',
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',

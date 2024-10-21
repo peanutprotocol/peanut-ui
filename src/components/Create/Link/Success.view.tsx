@@ -72,62 +72,62 @@ export const CreateLinkSuccessView = ({
                     {createType === 'direct'
                         ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}.`
                         : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
+                    {link && (
+                        <div className="flex w-full flex-col items-center justify-center gap-2 ">
+                            {createType === 'email_link' && (
+                                <>
+                                    <Button
+                                        onClick={() => {
+                                            utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
+                                        }}
+                                    >
+                                        Share via email
+                                    </Button>
+                                    or
+                                </>
+                            )}
+                            {createType === 'sms_link' && (
+                                <>
+                                    <Button
+                                        onClick={() => {
+                                            utils.shareToSms(recipient.name ?? '', link, txUsdValue)
+                                        }}
+                                    >
+                                        Share via SMS
+                                    </Button>
+                                    or
+                                </>
+                            )}
+                            <div className="hidden w-full md:block">
+                                <CopyField text={link} />
+                            </div>
+                            <div className="flex w-full flex-col gap-2 md:flex-row">
+                                <Button
+                                    onClick={() => {
+                                        share(link)
+                                    }}
+                                >
+                                    Share link
+                                </Button>
+                                <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
+                                    <Button variant="dark">
+                                        Transaction hash
+                                        <Icon name="external" className="h-4 fill-gray-1" />
+                                    </Button>
+                                </Link>
+                                <Link className="" href={'/profile'}>
+                                    <Button variant="stroke" className="text-nowrap">
+                                        <div className="border border-n-1 p-0 px-1">
+                                            <Icon name="profile" className="-mt-0.5" />
+                                        </div>
+                                        See your payments.
+                                    </Button>
+                                </Link>
+                            </div>
+                        </div>
+                    )}
                 </Card.Content>
             </Card>
-            {link && (
-                <div className="flex w-full flex-col items-center justify-center gap-2 ">
-                    {createType === 'email_link' && (
-                        <>
-                            <Button
-                                onClick={() => {
-                                    utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
-                                }}
-                            >
-                                Share via email
-                            </Button>
-                            or
-                        </>
-                    )}
-                    {createType === 'sms_link' && (
-                        <>
-                            <Button
-                                onClick={() => {
-                                    utils.shareToSms(recipient.name ?? '', link, txUsdValue)
-                                }}
-                            >
-                                Share via SMS
-                            </Button>
-                            or
-                        </>
-                    )}
-                    <div className="hidden w-full md:block">
-                        <CopyField text={link} />
-                    </div>
-                    <Button
-                        onClick={() => {
-                            share(link)
-                        }}
-                    >
-                        Share link
-                    </Button>
-                    <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
-                        <Button variant="stroke">
-                            Transaction hash
-                            <Icon name="external" className="h-4 fill-gray-1" />
-                        </Button>
-                    </Link>
-                </div>
-            )}
-
-            <Link
-                className="flex h-20 w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/profile'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="profile" className="-mt-0.5" />
-                </div>
-                See your payments.
-            </Link>
         </div>
     )
 }
