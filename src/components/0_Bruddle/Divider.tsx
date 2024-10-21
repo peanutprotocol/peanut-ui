@@ -8,9 +8,9 @@ type DividerProps = {
 const Divider = ({ text, className, ...props }: DividerProps) => {
     return (
         <div className={twMerge('flex w-full items-center justify-center py-2', className)} {...props}>
-            <span className="h-0.25 w-full max-w-[8.25rem] bg-n-1 dark:bg-white"></span>
+            <span className="h-0.25 w-full bg-n-1 dark:bg-white"></span>
             {text && <span className="mx-4 text-sm font-medium">{text}</span>}
-            <span className="h-0.25 w-full max-w-[8.25rem] bg-n-1 dark:bg-white"></span>
+            <span className="h-0.25 w-full bg-n-1 dark:bg-white"></span>
         </div>
     )
 }

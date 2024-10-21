@@ -294,15 +294,7 @@ export const CreateLinkInputView = ({
                             loading={isLoading}
                             disabled={isLoading || (isConnected && !tokenValue)}
                         >
-                            {!isConnected ? (
-                                'Connect Wallet'
-                            ) : isLoading ? (
-                                <div className="flex w-full flex-row items-center justify-center gap-2">
-                                    <Loading /> {loadingState}
-                                </div>
-                            ) : (
-                                'Confirm'
-                            )}
+                            {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
                         </Button>
                         <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
                             Return
