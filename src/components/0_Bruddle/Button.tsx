@@ -1,6 +1,6 @@
 import React from 'react'
-import classNames from 'classnames'
 import Loading from '../Global/Loading'
+import { twMerge } from 'tailwind-merge'
 
 type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
@@ -57,7 +57,7 @@ export const Button: React.FC<ButtonProps> = ({
     loading,
     ...props
 }) => {
-    const buttonClasses = classNames(
+    const buttonClasses = twMerge(
         'btn w-full',
         buttonVariants[variant],
         size && buttonSizes[size],

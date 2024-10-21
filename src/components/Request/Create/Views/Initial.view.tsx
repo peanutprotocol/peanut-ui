@@ -104,7 +104,7 @@ export const InitialView = ({
     const [inputChanging, setInputChanging] = useState(false)
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6">
+        <div className="flex w-full flex-col items-center justify-center gap-6 p-2">
             <Card>
                 <Card.Header>
                     <Card.Title>Request a payment</Card.Title>
