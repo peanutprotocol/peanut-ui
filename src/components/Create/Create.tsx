@@ -121,48 +121,46 @@ export const Create = () => {
     }, [address])
 
     return (
-        <div className="card">
-            <Suspense>
-                {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
-                    onPrev: handleOnPrev,
-                    onNext: handleOnNext,
-                    tokenValue: tokenValue,
-                    setTokenValue: setTokenValue,
-                    linkDetails: linkDetails,
-                    setLinkDetails: setLinkDetails,
-                    password: password,
-                    setPassword: setPassword,
-                    transactionType: transactionType,
-                    setTransactionType: setTransactionType,
-                    gaslessPayload: gaslessPayload,
-                    setGaslessPayload: setGaslessPayload,
-                    gaslessPayloadMessage: gaslessPayloadMessage,
-                    setGaslessPayloadMessage: setGaslessPayloadMessage,
-                    preparedDepositTxs: preparedDepositTxs,
-                    setPreparedDepositTxs: setPreparedDepositTxs,
-                    txHash: txHash,
-                    setTxHash: setTxHash,
-                    link: link,
-                    setLink: setLink,
-                    feeOptions,
-                    setFeeOptions,
-                    transactionCostUSD,
-                    setTransactionCostUSD,
-                    estimatedPoints,
-                    setEstimatedPoints,
-                    attachmentOptions,
-                    setAttachmentOptions,
-                    createType,
-                    setCreateType,
-                    recipient,
-                    setRecipient,
-                    recentRecipients,
+        <Suspense>
+            {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+                onPrev: handleOnPrev,
+                onNext: handleOnNext,
+                tokenValue: tokenValue,
+                setTokenValue: setTokenValue,
+                linkDetails: linkDetails,
+                setLinkDetails: setLinkDetails,
+                password: password,
+                setPassword: setPassword,
+                transactionType: transactionType,
+                setTransactionType: setTransactionType,
+                gaslessPayload: gaslessPayload,
+                setGaslessPayload: setGaslessPayload,
+                gaslessPayloadMessage: gaslessPayloadMessage,
+                setGaslessPayloadMessage: setGaslessPayloadMessage,
+                preparedDepositTxs: preparedDepositTxs,
+                setPreparedDepositTxs: setPreparedDepositTxs,
+                txHash: txHash,
+                setTxHash: setTxHash,
+                link: link,
+                setLink: setLink,
+                feeOptions,
+                setFeeOptions,
+                transactionCostUSD,
+                setTransactionCostUSD,
+                estimatedPoints,
+                setEstimatedPoints,
+                attachmentOptions,
+                setAttachmentOptions,
+                createType,
+                setCreateType,
+                recipient,
+                setRecipient,
+                recentRecipients,
 
-                    crossChainDetails,
-                    usdValue,
-                    setUsdValue,
-                } as _consts.ICreateScreenProps)}
-            </Suspense>
-        </div>
+                crossChainDetails,
+                usdValue,
+                setUsdValue,
+            } as _consts.ICreateScreenProps)}
+        </Suspense>
     )
 }
