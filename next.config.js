@@ -119,10 +119,7 @@ let nextConfig = {
 if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD)) {
     const { withSentryConfig } = require('@sentry/nextjs')
 
-    const telemetry = process.env.LOCAL_BUILD ? false : true
-
     nextConfig = withSentryConfig(nextConfig, {
-        telemetry,
         // For all available options, see:
         // https://github.com/getsentry/sentry-webpack-plugin#options
 
