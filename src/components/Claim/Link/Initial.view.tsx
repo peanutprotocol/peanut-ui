@@ -125,17 +125,6 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    const _estimatePoints = async (address: string) => {
-        const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
-        const estimatedPoints = await estimatePoints({
-            address,
-            chainId: claimLinkData.chainId,
-            amountUSD: USDValue,
-            actionType: ActionType.CLAIM,
-        })
-        setEstimatedPoints(estimatedPoints)
-    }
-
     const handleIbanRecipient = async () => {
         try {
             setErrorState({
@@ -254,10 +243,24 @@ export const InitialClaimLinkView = ({
     }
 
     useEffect(() => {
+        let isMounted = true
         if (recipient?.address && isValidRecipient) {
-            _estimatePoints(recipient.address)
+            const amountUSD = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
+            estimatePoints({
+                address: recipient.address,
+                chainId: claimLinkData.chainId,
+                amountUSD,
+                actionType: ActionType.CLAIM,
+            }).then((points) => {
+                if (isMounted) {
+                    setEstimatedPoints(points)
+                }
+            })
         }
-    }, [recipient.address, isValidRecipient])
+        return () => {
+            isMounted = false
+        }
+    }, [recipient.address, isValidRecipient, claimLinkData.tokenAmount, claimLinkData.chainId, tokenPrice])
 
     useEffect(() => {
         if (recipient.address) return
