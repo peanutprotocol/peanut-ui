@@ -34,6 +34,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // TODO: address here should be fetched from the walletContext
     // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
+    // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
