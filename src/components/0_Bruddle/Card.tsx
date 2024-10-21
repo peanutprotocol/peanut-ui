@@ -1,4 +1,5 @@
 import classNames from 'classnames'
+import { twMerge } from 'tailwind-merge'
 
 type ShadowSize = '4' | '6' | '8'
 type ShadowColor = 'primary' | 'secondary'
@@ -26,8 +27,9 @@ const Card = ({ children, className, shadowSize, color = 'primary', ...props }: 
 
     return (
         <div
-            className={classNames(
-                `flex flex-col border border-n-1 dark:border-white dark:bg-n-1`,
+            // Tailwind merge makes sure classes added through className by component caller are merged and overrides the default classes
+            className={twMerge(
+                `flex flex-col border border-n-1 bg-white dark:border-white dark:bg-n-1`,
                 shadowClass,
                 className
             )}
