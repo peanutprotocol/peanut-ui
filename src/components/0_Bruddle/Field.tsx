@@ -1,11 +1,11 @@
 'use client'
 
-import { twMerge } from 'tailwind-merge'
 import Icon, { IconNameType } from '../Global/Icon'
 import { useFormContext } from 'react-hook-form'
 import classNames from 'classnames'
 import React from 'react'
 import { DetailedHTMLProps, InputHTMLAttributes, useState } from 'react'
+import BaseInput from './BaseInput'
 
 type FieldProps = DetailedHTMLProps<InputHTMLAttributes<HTMLInputElement>, HTMLInputElement> & {
     containerClassname?: HTMLDivElement['className']
@@ -28,12 +28,15 @@ export const Field = React.forwardRef(
                 <div className="">
                     {label && <div className="mb-3 text-xs font-bold">{label}</div>}
                     <div className="relative">
-                        <input
+                        <BaseInput
                             ref={ref}
-                            className={twMerge(
-                                `h-16 w-full rounded-sm border border-n-1 bg-white px-5 text-sm font-bold text-n-1 outline-none transition-colors placeholder:text-n-3 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1 ${
-                                    icon || type === 'password' ? 'pr-15' : ''
-                                } ${success ? '!border-green-1 pr-15' : ''} ${error ? '!border-pink-1 pr-15' : ''} ${className}`
+                            className={classNames(
+                                {
+                                    'pr-15': icon || type === 'password',
+                                    '!border-green-1 pr-15': success,
+                                    '!border-pink-1 pr-15': error,
+                                },
+                                className
                             )}
                             type={(type === 'password' && (visiblePassword ? 'text' : 'password')) || type || 'text'}
                             {...props}
