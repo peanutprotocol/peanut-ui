@@ -71,8 +71,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <div className="flex h-screen flex-col">
-            <div className="flex w-full flex-1 overflow-y-scroll border bg-white">{children}</div>
-            <div className="grid grid-cols-4 border-t-2 p-2">
+            <div className="flex w-full flex-1 overflow-y-scroll border">{children}</div>
+            <div className="grid grid-cols-4 border-t border-black p-2">
                 {tabs.map((tab) => (
                     <Link
                         href={tab.href}

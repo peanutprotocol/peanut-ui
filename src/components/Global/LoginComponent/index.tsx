@@ -151,8 +151,7 @@ export const GlobalLoginComponent = ({ email, password, onSubmit, redirectUrl }:
                     autoComplete="current-password"
                 />
                 {errors.password && <span className="text-red-500 text-h9 font-normal">{errors.password.message}</span>}
-
-                <Button type="submit" disabled={isLoading} className="mt-2">
+                <Button type="submit" disabled={isLoading} className="mt-2" loading={isLoading}>
                     Login
                 </Button>
                 {errorState.showError && (
