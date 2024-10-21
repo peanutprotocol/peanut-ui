@@ -10,10 +10,10 @@ type GeneralRecipientInputProps = {
     className?: string
     placeholder: string
     recipient: { name: string | undefined; address: string }
-    onUpdate: (update: GenerealRecipientUpdate) => void
+    onUpdate: (update: GeneralRecipientUpdate) => void
 }
 
-export type GenerealRecipientUpdate = {
+export type GeneralRecipientUpdate = {
     recipient: { name: string | undefined; address: string }
     type: interfaces.RecipientType
     isValid: boolean
@@ -71,7 +71,7 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
     }, [])
 
     const onInputUpdate = useCallback((update: InputUpdate) => {
-        let _update: GenerealRecipientUpdate
+        let _update: GeneralRecipientUpdate
         if (update.isValid) {
             errorMessage.current = ''
             _update = {
