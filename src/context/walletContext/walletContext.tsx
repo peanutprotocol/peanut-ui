@@ -126,25 +126,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     }
 
-    const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
-        return null
-    }
-
-  
-    const addAccount = async ({
-        accountIdentifier,
-        accountType,
-        userId,
-        bridgeAccountId,
-    }: {
-        accountIdentifier: string
-        accountType: string
-        userId: string
-        bridgeAccountId?: string
-    }) => {
-        return 
-    }
-
     return (
         <WalletContext.Provider
             value={{
