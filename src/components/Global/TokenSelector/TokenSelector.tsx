@@ -21,36 +21,18 @@ import { CrispButton } from '@/components/CrispChat'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
-    const { hasFetchedBalances } = useBalance()
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
     return (
         <table className="w-full divide-y divide-black">
             <tbody className="divide-y divide-black bg-white">
-                {hasFetchedBalances && balances.length === 0 ? (
+                {balances.length === 0 ? (
                     <tr>
-                        <td colSpan={4} className="py-2">
+                        <td colSpan={4} className="py-2 text-center">
                             No balances to display!
                         </td>
                     </tr>
-                ) : balances.length === 0 ? (
-                    [1, 2, 3, 4].map((_, idx) => (
-                        <tr key={idx}>
-                            <td className="py-2">
-                                <div className="h-6 w-6 animate-colorPulse rounded-full bg-slate-700" />
-                            </td>
-                            <td className="py-2">
-                                <div className="h-6 w-22 animate-colorPulse rounded-full bg-slate-700" />
-                            </td>
-                            <td className="py-2">
-                                <div className="h-6 w-18 animate-colorPulse rounded-full bg-slate-700" />
-                            </td>
-                            <td className=" py-2">
-                                <div className="h-6 w-24 animate-colorPulse rounded-full bg-slate-700" />
-                            </td>
-                        </tr>
-                    ))
                 ) : (
                     balances.map((balance, idx) => (
                         <tr
