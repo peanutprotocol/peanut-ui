@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
-
-const nextConfig = {
+let nextConfig = {
     images: {
         remotePatterns: [
             {
@@ -12,6 +11,12 @@ const nextConfig = {
                 protocol: 'https',
             },
         ],
+    },
+    webpack: (config, { isServer }) => {
+        if (isServer) {
+            config.ignoreWarnings = [{ module: /@opentelemetry\/instrumentation/, message: /Critical dependency/ }]
+        }
+        return config
     },
     reactStrictMode: false,
     async rewrites() {
@@ -111,10 +116,13 @@ const nextConfig = {
     },
 }
 
-const { withSentryConfig } = require('@sentry/nextjs')
+if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD)) {
+    const { withSentryConfig } = require('@sentry/nextjs')
 
-if (process.env.NODE_ENV !== 'development') {
-    module.exports = withSentryConfig(nextConfig, {
+    const telemetry = process.env.LOCAL_BUILD ? false : true
+
+    nextConfig = withSentryConfig(nextConfig, {
+        telemetry,
         // For all available options, see:
         // https://github.com/getsentry/sentry-webpack-plugin#options
 
@@ -153,3 +161,5 @@ if (process.env.NODE_ENV !== 'development') {
         automaticVercelMonitors: true,
     })
 }
+
+module.exports = nextConfig
