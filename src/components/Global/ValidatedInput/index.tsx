@@ -44,7 +44,7 @@ const ValidatedInput = ({
         return () => {
             isStale = true
         }
-    }, [debouncedValue, validate, previousValueRef])
+    }, [debouncedValue])
 
     useEffect(() => {
         const handler = setTimeout(() => {
