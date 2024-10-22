@@ -26,6 +26,9 @@ import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
 import React, { useEffect, useState } from "react"
 import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
 import { useZeroDev } from "@/context/walletContext/zeroDevContext.context"
+import { useWallet } from "@/context/walletContext"
+import { WalletType } from "@/interfaces"
+import { useAccount } from "wagmi"
 
 
 
@@ -53,8 +56,10 @@ export const HandleSetupView = ({}) => {
     const [userOpHash, setUserOpHash] = useState("")
     const [userOpStatus, setUserOpStatus] = useState("")
 
+    const { address: wagmiAddress } = useAccount()
+
     const {
-        address,
+        address: kernelClientAddress,
         isRegistering,
         isLoggingIn,
         isKernelClientReady,
@@ -63,6 +68,13 @@ export const HandleSetupView = ({}) => {
         handleRegister,
         handleSendUserOpNotEncoded,
     } = useZeroDev()
+
+    
+    useEffect(() => {
+        console.log({isKernelClientReady})
+      }, [isKernelClientReady]);
+
+    const { activateWallet, activeWallet } = useWallet()
 
 
     const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
@@ -77,7 +89,7 @@ export const HandleSetupView = ({}) => {
             value: 0,
             abi: contractABI,
             functionName: 'mint',
-            args: [address],
+            args: [kernelClientAddress],
         })
 
         console.log(userOpHash)
@@ -107,8 +119,6 @@ export const HandleSetupView = ({}) => {
         </svg>
     )
       
-
-
     return (
         <main className="flex items-center justify-center min-h-screen px-4 py-24">
             <div className="w-full max-w-lg mx-auto">
@@ -118,17 +128,17 @@ export const HandleSetupView = ({}) => {
 
                 <div className="space-y-4">
                     {/* Account Address Label */}
-                    {address && (
+                    {kernelClientAddress && (
                         <div className="text-center mb-4">
                             Account address:{" "}
                             <a
-                                href={`https://jiffyscan.xyz/account/${address}`}
+                                href={`https://jiffyscan.xyz/account/${kernelClientAddress}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-500 hover:text-blue-700"
                             >
                                 {" "}
-                                {address}{" "}
+                                {kernelClientAddress}{" "}
                             </a>
                         </div>
                     )}
@@ -141,6 +151,46 @@ export const HandleSetupView = ({}) => {
                         onChange={(e) => setUsername(e.target.value)}
                         className="p-2 text-black border border-gray-300 w-full"
                     />
+                    {/* Test buttons to switch between PW and BYOW */}
+                    <div className="flex flex-col sm:flex-row sm:space-x-4">
+                        {/* PW Button */}
+                        {/* Note: These buttons don't have CSS when disabled, they are just not clicked */}
+                        <button
+                            onClick={() => {
+                                activateWallet(
+                                    WalletType.PEANUT,
+                                    kernelClientAddress!
+                                );
+                            }}
+                            disabled={!isKernelClientReady}
+                            className="flex justify-center items-center px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full"
+                        >
+                            {isRegistering ? <Spinner /> : "Select PW"}
+                        </button>
+
+                        {/* BYOW Button */}
+                        {/* Note: These buttons don't have CSS when disabled, they are just not clicked */}
+                        <button
+                            onClick={() => {
+                                activateWallet(
+                                    WalletType.BYOW,
+                                    wagmiAddress!
+                                )
+                            }}
+                            disabled={!wagmiAddress}
+                            className="mt-2 sm:mt-0 flex justify-center items-center px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 w-full"
+                        >
+                            {"Select BYOW"}
+                        </button>
+                    </div>
+                    {activeWallet && (
+                        <>
+                            {activeWallet.activeWalletType}
+                            {activeWallet.address}
+                            {activeWallet.connected}
+                        </>
+                    )}
+
 
                     {/* Register and Login Buttons */}
                     <div className="flex flex-col sm:flex-row sm:space-x-4">
