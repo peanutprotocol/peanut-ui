@@ -115,8 +115,8 @@ export function LinkPreviewImg({
                             <img
                                 src={chainImage ?? ''}
                                 alt="Chain Image"
-                                height="32px"
-                                width="32px"
+                                height="37px"
+                                width="37px"
                                 style={{
                                     position: 'absolute',
                                     right: '-12px',
