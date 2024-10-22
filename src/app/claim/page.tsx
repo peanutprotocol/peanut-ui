@@ -55,7 +55,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
     let previewUrl = '/claim-metadata-img.jpg'
     if (linkDetails) {
-        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&senderAddress=${linkDetails.senderAddress}`
+        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&address=${linkDetails.senderAddress}`
     }
     return {
         title: title,

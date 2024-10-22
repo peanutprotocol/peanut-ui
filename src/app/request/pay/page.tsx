@@ -21,7 +21,7 @@ function getPreviewUrl(host: string, data: IRequestLinkData): string {
         chainId: data.chainId,
         tokenAddress: data.tokenAddress,
         tokenSymbol: data.tokenSymbol ?? '',
-        senderAddress: data.recipientAddress,
+        address: data.recipientAddress,
         previewType: PreviewType.REQUEST,
     })
 

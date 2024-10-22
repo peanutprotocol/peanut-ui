@@ -21,14 +21,14 @@ export function LinkPreviewImg({
     chainId,
     tokenAddress,
     tokenSymbol,
-    senderAddress,
+    address,
     previewType,
 }: {
     amount: string
     chainId: string
     tokenAddress: string
     tokenSymbol: string
-    senderAddress: string
+    address: string
     previewType: PreviewType
 }) {
     const tokenImage = consts.peanutTokenDetails
@@ -75,7 +75,7 @@ export function LinkPreviewImg({
                 }}
             >
                 <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>
-                    {utils.printableAddress(senderAddress)} {PREVIEW_TYPES[previewType].message}
+                    {utils.printableAddress(address)} {PREVIEW_TYPES[previewType].message}
                 </label>
                 <div
                     style={{
