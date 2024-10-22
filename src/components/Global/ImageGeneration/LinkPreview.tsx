@@ -2,18 +2,34 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 import { headers } from 'next/headers'
 
+export enum PreviewType {
+    CLAIM = 'claim',
+    REQUEST = 'request',
+}
+
+type PreviewTypeData = {
+    message: string
+}
+
+const PREVIEW_TYPES: Record<PreviewType, PreviewTypeData> = {
+    [PreviewType.CLAIM]: { message: 'sent you' },
+    [PreviewType.REQUEST]: { message: 'is requesting' },
+}
+
 export function LinkPreviewImg({
     amount,
     chainId,
     tokenAddress,
     tokenSymbol,
     senderAddress,
+    previewType,
 }: {
     amount: string
     chainId: string
     tokenAddress: string
     tokenSymbol: string
     senderAddress: string
+    previewType: PreviewType
 }) {
     const tokenImage = consts.peanutTokenDetails
         .find((detail) => detail.chainId === chainId)
@@ -59,7 +75,7 @@ export function LinkPreviewImg({
                 }}
             >
                 <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>
-                    {utils.printableAddress(senderAddress)} sent you
+                    {utils.printableAddress(senderAddress)} {PREVIEW_TYPES[previewType].message}
                 </label>
                 <div
                     style={{
