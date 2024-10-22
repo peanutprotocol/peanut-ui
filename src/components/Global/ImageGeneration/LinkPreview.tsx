@@ -98,7 +98,9 @@ export function LinkPreviewImg({
                         {tokenImage && (
                             <img
                                 src={tokenImage ?? ''}
-                                alt="Chain Image"
+                                alt="Token Image"
+                                height="50px"
+                                width="50px"
                                 style={{
                                     height: '50px',
                                     width: '50px',
@@ -112,7 +114,9 @@ export function LinkPreviewImg({
                         {chainImage && (
                             <img
                                 src={chainImage ?? ''}
-                                alt="Token Image"
+                                alt="Chain Image"
+                                height="32px"
+                                width="32px"
                                 style={{
                                     position: 'absolute',
                                     right: '-12px',
