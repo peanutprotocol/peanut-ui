@@ -246,11 +246,11 @@ module.exports = {
                         {},
                 },
                 '.card-head': {
-                    '@apply flex justify-between flex-col items-start min-h-[4rem] px-5 py-3 border-b border-n-1 dark:border-white':
+                    '@apply flex justify-between flex-col items-start min-h-[4rem] px-3 sm:px-5 py-3 border-b border-n-1 dark:border-white':
                         {},
                 },
                 '.card-content': {
-                    '@apply px-5 py-3 border-n-1 dark:border-white': {},
+                    '@apply px-3 sm:px-5 py-3 border-n-1 dark:border-white': {},
                 },
                 '.card-title': {
                     '@apply p-5 border-b border-n-1 text-h6 dark:border-white': {},

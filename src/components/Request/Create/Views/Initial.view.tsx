@@ -104,76 +104,74 @@ export const InitialView = ({
     const [inputChanging, setInputChanging] = useState(false)
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 p-4">
-            <Card shadowSize="6">
-                <Card.Header>
-                    <Card.Title>Request a payment</Card.Title>
-                    <Card.Description>
-                        Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if
-                        you want to.
-                    </Card.Description>
-                </Card.Header>
-                <Card.Content>
-                    <div className="flex w-full flex-col items-center justify-center gap-3">
-                        <TokenAmountInput
-                            className="w-full"
-                            setTokenValue={(value) => {
-                                _setTokenValue(value ?? '')
-                            }}
-                            tokenValue={_tokenValue}
-                            onSubmit={() => {
-                                handleOnNext()
-                            }}
-                        />
-                        <TokenSelector classNameButton="w-full" shouldBeConnected={false} />
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>Request a payment</Card.Title>
+                <Card.Description>
+                    Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if you
+                    want to.
+                </Card.Description>
+            </Card.Header>
+            <Card.Content>
+                <div className="flex w-full flex-col items-center justify-center gap-3">
+                    <TokenAmountInput
+                        className="w-full"
+                        setTokenValue={(value) => {
+                            _setTokenValue(value ?? '')
+                        }}
+                        tokenValue={_tokenValue}
+                        onSubmit={() => {
+                            handleOnNext()
+                        }}
+                    />
+                    <TokenSelector classNameButton="w-full" shouldBeConnected={false} />
 
-                        <FileUploadInput
-                            attachmentOptions={attachmentOptions}
-                            setAttachmentOptions={setAttachmentOptions}
-                        />
-                        <AddressInput
-                            value={recipientAddress ?? ''}
-                            _setIsValidRecipient={(valid: boolean) => {
-                                setIsValidRecipient(valid)
-                                setInputChanging(false)
-                            }}
-                            onDeleteClick={() => {
-                                setRecipientAddress('')
-                                setInputChanging(false)
-                            }}
-                            onSubmit={(recipient: string) => {
-                                setRecipientAddress(recipient)
-                                setInputChanging(false)
-                            }}
-                            setIsValueChanging={(value: boolean) => {
-                                setInputChanging(value)
-                            }}
-                            placeholder="Enter recipient address"
-                            className="w-full"
-                        />
-                        <Button
-                            onClick={() => {
-                                handleOnNext()
-                            }}
-                            disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
-                        >
-                            {isLoading ? (
-                                <div className="flex w-full flex-row items-center justify-center gap-2">
-                                    <Loading /> {loadingState}
-                                </div>
-                            ) : (
-                                'Confirm'
-                            )}
-                        </Button>
+                    <FileUploadInput
+                        attachmentOptions={attachmentOptions}
+                        setAttachmentOptions={setAttachmentOptions}
+                    />
+                    <AddressInput
+                        value={recipientAddress ?? ''}
+                        _setIsValidRecipient={(valid: boolean) => {
+                            setIsValidRecipient(valid)
+                            setInputChanging(false)
+                        }}
+                        onDeleteClick={() => {
+                            setRecipientAddress('')
+                            setInputChanging(false)
+                        }}
+                        onSubmit={(recipient: string) => {
+                            setRecipientAddress(recipient)
+                            setInputChanging(false)
+                        }}
+                        setIsValueChanging={(value: boolean) => {
+                            setInputChanging(value)
+                        }}
+                        placeholder="Enter recipient address"
+                        className="w-full"
+                    />
+                    <Button
+                        onClick={() => {
+                            handleOnNext()
+                        }}
+                        disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
+                    >
+                        {isLoading ? (
+                            <div className="flex w-full flex-row items-center justify-center gap-2">
+                                <Loading /> {loadingState}
+                            </div>
+                        ) : (
+                            'Confirm'
+                        )}
+                    </Button>
+                </div>
+
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
-
-                    {errorState.showError && (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
-                </Card.Content>
-            </Card>
-        </div>
+                )}
+            </Card.Content>
+        </Card>
     )
 }

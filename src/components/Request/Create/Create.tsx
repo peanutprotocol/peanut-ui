@@ -5,6 +5,7 @@ import * as _consts from './Create.consts'
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 export const CreateRequestLink = () => {
     const router = useRouter()
@@ -45,18 +46,22 @@ export const CreateRequestLink = () => {
         if (address && !recipientAddress) setRecipientAddress(address)
     }, [address])
 
-    return createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
-        onNext: handleOnNext,
-        onPrev: handleOnPrev,
-        link,
-        setLink,
-        attachmentOptions,
-        setAttachmentOptions,
-        tokenValue,
-        setTokenValue,
-        usdValue,
-        setUsdValue,
-        recipientAddress,
-        setRecipientAddress,
-    } as _consts.ICreateScreenProps)
+    return (
+        <PageContainer className="h-full">
+            {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+                onNext: handleOnNext,
+                onPrev: handleOnPrev,
+                link,
+                setLink,
+                attachmentOptions,
+                setAttachmentOptions,
+                tokenValue,
+                setTokenValue,
+                usdValue,
+                setUsdValue,
+                recipientAddress,
+                setRecipientAddress,
+            } as _consts.ICreateScreenProps)}
+        </PageContainer>
+    )
 }
