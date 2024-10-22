@@ -3,7 +3,7 @@ import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
 import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 import * as utils from '@/utils'
-import { ethers } from 'ethers'
+import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 
 type GeneralRecipientInputProps = {
@@ -28,42 +28,33 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
+            let isValid = false
+            let type: interfaces.RecipientType = 'address'
             if (isIBAN(recipient)) {
-                const validAccount = await utils.validateBankAccount(recipient)
-                recipientType.current = 'iban'
-                if (validAccount) {
-                    return true
-                } else {
-                    errorMessage.current = 'Invalid IBAN, country not supported'
-                    return false
-                }
+                type = 'iban'
+                isValid = await utils.validateBankAccount(recipient)
+                if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
             } else if (/^[0-9]{6,17}$/.test(recipient)) {
-                const validateBankAccount = await utils.validateBankAccount(recipient)
-                recipientType.current = 'us'
-                if (validateBankAccount) {
-                    return true
-                } else {
-                    errorMessage.current = 'Invalid US account number'
-                    return false
-                }
+                type = 'us'
+                isValid = await utils.validateBankAccount(recipient)
+                if (!isValid) errorMessage.current = 'Invalid US account number'
             } else if (recipient.toLowerCase().endsWith('.eth')) {
+                type = 'ens'
                 const address = await utils.resolveFromEnsName(recipient.toLowerCase())
-                recipientType.current = 'ens'
                 if (address) {
                     resolvedAddress.current = address
-                    return true
+                    isValid = true
                 } else {
                     errorMessage.current = 'ENS not found'
-                    return false
+                    isValid = false
                 }
-            } else if (ethers.utils.isAddress(recipient)) {
-                recipientType.current = 'address'
-                return true
             } else {
-                recipientType.current = 'address'
-                errorMessage.current = 'Invalid address'
-                return false
+                type = 'address'
+                isValid = isAddress(recipient, { strict: false })
+                if (!isValid) errorMessage.current = 'Invalid address'
             }
+            recipientType.current = type
+            return isValid
         } catch (error) {
             console.error('Error while validating recipient input field:', error)
             return false
