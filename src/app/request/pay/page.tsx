@@ -46,7 +46,9 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
             title = `${linkDetails.recipientAddress} is requesting ${formatAmount(Number(linkDetails.tokenAmount))} ${linkDetails.tokenSymbol}`
             previewUrl = getPreviewUrl(host, linkDetails)
         }
-    } catch (e) {}
+    } catch (e) {
+        console.error('Error fetching request link details:', e)
+    }
     return {
         title,
         icons: {
