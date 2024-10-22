@@ -1,1 +1,1 @@
-export * from './Handle.waas.view'
+export * from './Handle.provider.view'

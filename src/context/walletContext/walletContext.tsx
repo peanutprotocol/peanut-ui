@@ -8,6 +8,7 @@ import { useKernelClient } from "@zerodev/waas"
 
 // TOOD: go through TODOs
 
+// TODO: remove any unused imports
 // TODO: move to context consts
 interface WalletContextType {
     activeWalletType: interfaces.WalletType | undefined
@@ -75,7 +76,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// ZeroDev props
     //
-    const { address: kernelClientAddress, isConnected: isKernelClientConnected } = useKernelClient()
+    // const { address: kernelClientAddress, isConnected: isKernelClientConnected } = useKernelClient()
 
     ////// Lifecycle hooks
     //
