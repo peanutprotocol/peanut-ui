@@ -15,14 +15,9 @@ export async function GET(request: Request) {
     const tokenAddress = searchParams.get('tokenAddress') ?? ''
     const tokenSymbol = searchParams.get('tokenSymbol') ?? ''
     const senderAddress = searchParams.get('senderAddress') ?? ''
-    // const tokenPrice = parseFloat(searchParams.get('tokenPrice') ?? '')
-    const tokenPrice = undefined
 
-    return new ImageResponse(
-        <LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, senderAddress, tokenPrice }} />,
-        {
-            width: 400,
-            height: 200,
-        }
-    )
+    return new ImageResponse(<LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, senderAddress }} />, {
+        width: 400,
+        height: 200,
+    })
 }

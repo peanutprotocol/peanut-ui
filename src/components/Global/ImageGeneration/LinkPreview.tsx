@@ -8,14 +8,12 @@ export function LinkPreviewImg({
     tokenAddress,
     tokenSymbol,
     senderAddress,
-    tokenPrice,
 }: {
     amount: string
     chainId: string
     tokenAddress: string
     tokenSymbol: string
     senderAddress: string
-    tokenPrice?: number
 }) {
     const tokenImage = consts.peanutTokenDetails
         .find((detail) => detail.chainId === chainId)
@@ -121,12 +119,6 @@ export function LinkPreviewImg({
                         {utils.formatTokenAmount(parseFloat(amount), 2)} {tokenSymbol}
                     </label>
                 </div>
-
-                {tokenPrice && (
-                    <label style={{ fontSize: '16px', color: 'black' }}>
-                        ${utils.formatTokenAmount(parseFloat(amount) * tokenPrice, 2)}
-                    </label>
-                )}
             </div>
         </div>
     )
