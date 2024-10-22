@@ -32,7 +32,7 @@ const tabs: NavTabProps[] = [
     },
     {
         name: 'Settings',
-        href: '/settings',
+        href: '/profile',
         icon: 'settings',
     },
 ]
