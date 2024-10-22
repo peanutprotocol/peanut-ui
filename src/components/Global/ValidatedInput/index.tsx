@@ -25,7 +25,7 @@ const ValidatedInput = ({
 }: ValidatedInputProps) => {
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
-    const [debouncedValue, setDebouncedValue] = useState<string>('')
+    const [debouncedValue, setDebouncedValue] = useState<string>(value)
     const previousValueRef = useRef(value)
 
     useEffect(() => {
@@ -35,12 +35,22 @@ const ValidatedInput = ({
         let isStale = false
         previousValueRef.current = debouncedValue
         setIsValidating(true)
-        validate(debouncedValue).then((isValid) => {
-            if (isStale) return
-            setIsValid(isValid)
-            setIsValidating(false)
-            onUpdate({ value: debouncedValue, isValid, isChanging: false })
-        })
+        validate(debouncedValue)
+            .then((isValid) => {
+                if (isStale) return
+                setIsValid(isValid)
+                onUpdate({ value: debouncedValue, isValid, isChanging: false })
+            })
+            .catch((error) => {
+                if (isStale) return
+                console.error('Unexpected error while validating recipient input field:', error)
+                setIsValid(false)
+                onUpdate({ value: debouncedValue, isValid: false, isChanging: false })
+            })
+            .finally(() => {
+                if (isStale) return
+                setIsValidating(false)
+            })
         return () => {
             isStale = true
         }
@@ -61,16 +71,12 @@ const ValidatedInput = ({
     return (
         <div
             className={`relative w-full max-w-96 border border-n-1 dark:border-white${
-                value && !isValidating && isValid
-                    ? ' border border-n-1 dark:border-white'
-                    : value && !isValidating && !isValid
-                      ? ' border-n-1 border-red dark:border-red'
-                      : ''
+                value && !isValidating && !isValid ? ' border-red dark:border-red' : ''
             } ${className}`}
         >
-            <div className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
+            <label className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
                 {label}:
-            </div>
+            </label>
             <input
                 type="text"
                 value={value}
