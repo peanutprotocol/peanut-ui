@@ -82,20 +82,6 @@ export const HandleSetupView = ({}) => {
 
         console.log(userOpHash)
     }
-    
-    // useEffect(() => {
-    //     if (kernelAccount) {
-    //         createZeroDevKernelAccountClient()
-    //     }
-    //   }, [kernelAccount]);
-
-
-    // useEffect(() => {
-    //     if (kernelClient) {
-    //         setIsKernelClientReady(true) 
-    //         setAccountAddress(kernelAccount.address) 
-    //     }
-    //   }, [kernelClient]);
 
     // Spinner component for visual feedback during loading states
     const Spinner = () => (
