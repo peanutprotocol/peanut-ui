@@ -14,6 +14,7 @@ import * as consts from '@/constants'
 import * as _utils from './Claim.utils'
 import FlowManager from './Link/FlowManager'
 import { ActionType, estimatePoints } from '../utils/utils'
+import PageContainer from '../0_Bruddle/PageContainer'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -175,7 +176,7 @@ export const Claim = ({}) => {
     }, [])
 
     return (
-        <div className="card">
+        <PageContainer>
             {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
@@ -226,7 +227,9 @@ export const Claim = ({}) => {
                 />
             )}
 
-            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
+            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && (
+                <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />
+            )}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
             {linkState === _consts.claimLinkStateType.CLAIM_SENDER && (
                 <genericViews.SenderClaimLinkView
@@ -238,6 +241,6 @@ export const Claim = ({}) => {
                     onCustom={handleOnCustom}
                 />
             )}
-        </div>
+        </PageContainer>
     )
 }

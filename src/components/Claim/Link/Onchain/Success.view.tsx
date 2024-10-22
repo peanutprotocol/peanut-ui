@@ -3,10 +3,10 @@ import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
 import * as context from '@/context'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useAccount, useConnections, useSwitchChain } from 'wagmi'
 import { fetchDestinationChain } from '@/components/utils/utils'
+import { Button, Card } from '@/components/0_Bruddle'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
@@ -58,12 +58,14 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     }, [isw3mEmailWallet])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Yay!</label>
-            <label className="text-h8 font-bold ">You have successfully claimed your funds!</label>
-            <div className="flex w-full flex-col items-start justify-center gap-1.5">
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>Yay!</Card.Title>
+                <Card.Description>You have successfully claimed your funds!</Card.Description>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-2">
                 <label className="text-h8 font-normal text-gray-1">Transaction details</label>
-                {type === 'claimxchain' ? (
+                {type === 'claimxchain' && (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
                         <div className="flex w-full flex-row items-center justify-start gap-1">
                             <label className="">Source chain:</label>
@@ -92,35 +94,33 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                             )}
                         </div>
                     </div>
-                ) : (
-                    <div className="flex w-full flex-row items-center justify-start gap-1">
-                        <label className="text-h9">Transaction hash:</label>
-                        <Link className="cursor-pointer text-h9 font-normal underline" href={explorerUrlWithTx}>
-                            {utils.shortenAddressLong(transactionHash ?? '')}
-                        </Link>
-                    </div>
                 )}
-            </div>
-            <label className="text-h9 font-normal">
-                We would like to hear from your experience. Hit us up on{' '}
-                <a
-                    className="cursor-pointer text-black underline dark:text-white"
-                    target="_blank"
-                    href="https://discord.gg/BX9Ak7AW28"
-                >
-                    Discord!
-                </a>
-            </label>
-            <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/profile'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="profile" className="-mt-0.5" />
-                </div>
-                See your payments.
-            </Link>
-        </div>
+                <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
+                    <Button variant="dark">
+                        Transaction hash
+                        <Icon name="external" className="h-4 fill-gray-1" />
+                    </Button>
+                </Link>
+                <Link className="" href={'/profile'}>
+                    <Button variant="stroke" className="text-nowrap">
+                        <div className="border border-n-1 p-0 px-1">
+                            <Icon name="profile" className="-mt-0.5" />
+                        </div>
+                        See your payments.
+                    </Button>
+                </Link>
+                <label className="text-h9 font-normal">
+                    We would like to hear from your experience. Hit us up on{' '}
+                    <a
+                        className="cursor-pointer text-black underline dark:text-white"
+                        target="_blank"
+                        href="https://discord.gg/BX9Ak7AW28"
+                    >
+                        Discord!
+                    </a>
+                </label>
+            </Card.Content>
+        </Card>
     )
 }
 
