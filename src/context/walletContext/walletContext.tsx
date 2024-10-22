@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 
 // ZeroDev imports
 import { useKernelClient } from "@zerodev/waas"
+import { useZeroDev } from './zeroDevContext.context'
 
 // TOOD: go through TODOs
 
@@ -12,20 +13,9 @@ import { useKernelClient } from "@zerodev/waas"
 // TODO: move to context consts
 interface WalletContextType {
     activeWalletType: interfaces.WalletType | undefined
-    setActiveWalletType: (walletType: interfaces.WalletType | null) => void
     isWalletConnected: boolean
-    setIsWalletConnected: (isConnected: boolean) => void
     activeWallet: ActiveWallet|undefined
-    setActiveWallet: (activeWallet: ActiveWallet|undefined) => void
-    // addAccount: ({
-    //     accountIdentifier,
-    //     accountType,
-    //     userId,
-    // }: {
-    //     accountIdentifier: string
-    //     accountType: string
-    //     userId: string
-    // }) => Promise<void>
+    activateWallet: (activeWalletType: interfaces.WalletType, address: string) => void
 }
 // TODO: move to context consts
 interface ActiveWallet {
@@ -76,7 +66,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// ZeroDev props
     //
-    // const { address: kernelClientAddress, isConnected: isKernelClientConnected } = useKernelClient()
+    const {address: kernelClientAddress, isKernelClientReady} = useZeroDev()
 
     ////// Lifecycle hooks
     //
@@ -92,7 +82,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // TODO: add failure return type (what if checks fail, what do we return?)
     const activateWallet = (activeWalletType: interfaces.WalletType, address: string) => {
         if (activeWalletType == interfaces.WalletType.PEANUT) {
-            if (isKernelClientConnected && kernelClientAddress == address) {
+            if (isKernelClientReady && kernelClientAddress == address) {
                 setActiveWallet({
                     activeWalletType,
                     connected: true,
@@ -120,11 +110,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         <WalletContext.Provider
         value={{
             activeWalletType,
-            setActiveWalletType,
             isWalletConnected, 
-            setIsWalletConnected,
             activeWallet,
-            setActiveWallet
+            activateWallet
         }}>
             {children}
         </WalletContext.Provider>
