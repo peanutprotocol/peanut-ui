@@ -250,7 +250,7 @@ const MenuLinks = () => {
                     >
                         <Text display="block text-nowrap">
                             {' '}
-                            {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                            {isConnected ? shortenAddress(address ?? '') : 'Connect'}
                         </Text>
                     </button>
                 </NavItemBox>
@@ -274,7 +274,7 @@ const SocialLinks = () => {
                     web3modalOpen()
                 }}
             >
-                {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                {isConnected ? shortenAddress(address ?? '') : 'Connect'}
             </button>
         </Stack>
     )
