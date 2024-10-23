@@ -16,6 +16,7 @@ import { estimateContractGas } from 'viem/actions'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
+import { useWallet } from '@/context/walletContext'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -62,7 +63,8 @@ export const CreateLinkConfirmView = ({
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
-    const { address } = useAccount()
+    // const { address } = useAccount()
+    const { address } = useWallet()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -74,7 +76,6 @@ export const CreateLinkConfirmView = ({
 
         try {
             let hash: string = ''
-
             let fileUrl = ''
             if (createType != 'direct') {
                 const data = await submitClaimLinkInit({
@@ -90,7 +91,6 @@ export const CreateLinkConfirmView = ({
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
-
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {

@@ -66,7 +66,9 @@ export const useCreateLink = () => {
     } = useContext(context.tokenSelectorContext)
     const { balances } = useBalance()
 
-    const { chain: currentChain, address } = useAccount()
+    const { chain: currentChain, address: wagmiAddress } = useAccount()
+    const { address } = useWallet()
+
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
@@ -75,7 +77,7 @@ export const useCreateLink = () => {
     const { refetchBalances } = useBalance()
 
     const { activeWallet, isActiveWalletBYOW, isActiveWalletPW } = useWallet()
-    const { handleSendUserOpNotEncoded } = useZeroDev()
+    const { handleSendUserOpNotEncoded, handleSendUserOpEncoded } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
@@ -666,7 +668,16 @@ export const useCreateLink = () => {
                     //   return
 
                     if (isActiveWalletPW) {
-
+                        // TODO: add retry logic in handleSendUserOpEncoded() as below flow
+                        let hash = await handleSendUserOpEncoded({
+                            to: tx.to!,
+                            value: tx.value!,
+                            data: tx.data!
+                        })
+                        
+                        // TODO: same call as below - group w/ flow below as much as possible
+                        signedTxsResponse.push(hash.toString())
+                        idx++
                     } else if (isActiveWalletBYOW) {
                         // Send the transaction using wagmi
                         // current stage is encoded but NOT signed
@@ -826,6 +837,7 @@ export const useCreateLink = () => {
                 senderAddress: address ?? '',
             })
 
+            // TODO: this needs its own type
             if (type === 'deposit') {
                 hash = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions })) ?? ''
             } else if (type === 'gasless') {
