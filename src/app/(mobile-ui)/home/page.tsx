@@ -2,7 +2,6 @@
 
 import { Card } from '@/components/0_Bruddle'
 import { ArrowIcon } from '@/components/0_Bruddle'
-import Link from 'next/link'
 import Image from 'next/image'
 import React from 'react'
 import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
@@ -11,6 +10,7 @@ import { motion, useAnimation } from 'framer-motion'
 import { useRef, useEffect, useState } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
+import { HomeLink } from '@/components/Home/HomeLink'
 
 const Home = () => {
     const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
@@ -107,36 +107,21 @@ const Home = () => {
                 </div>
                 <div className="flex w-full flex-row items-center justify-center gap-4 sm:justify-between sm:gap-8">
                     <div className="flex flex-col items-center gap-2">
-                        <Link href={'/send'}>
-                            <Card
-                                shadowSize="4"
-                                className="flex h-24 w-24 flex-row items-center justify-center rounded-full text-center sm:h-30 sm:w-30"
-                            >
-                                <ArrowIcon />
-                            </Card>
-                        </Link>
+                        <HomeLink href={'/send'}>
+                            <ArrowIcon />
+                        </HomeLink>
                         <p className="text-base">Send</p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                        <Link href={'/request/create'}>
-                            <Card
-                                shadowSize="4"
-                                className="flex h-24 w-24 flex-row items-center justify-center rounded-full text-center sm:h-30 sm:w-30"
-                            >
-                                <ArrowIcon className="rotate-180" />
-                            </Card>
-                        </Link>
+                        <HomeLink href={'/request/create'}>
+                            <ArrowIcon className="rotate-180" />
+                        </HomeLink>
                         <p>Recieve</p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                        <Link href={'/cashout'}>
-                            <Card
-                                shadowSize="4"
-                                className="flex h-24 w-24 flex-row items-center justify-center rounded-full text-center sm:h-30 sm:w-30"
-                            >
-                                <Icon name="bank" className="h-10 w-10" />
-                            </Card>
-                        </Link>
+                        <HomeLink href={'/cashout'} disabled>
+                            <Icon name="bank" className="h-10 w-10" />
+                        </HomeLink>
                         <p>Cashout</p>
                     </div>
                 </div>
