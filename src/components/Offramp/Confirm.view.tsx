@@ -292,7 +292,7 @@ export const OfframpConfirmView = ({
             optimismChainId,
             claimLinkData.tokenDecimals!,
             claimLinkData.tokenAmount!,
-            claimLinkData.senderAddress ?? '0x9647BB6a598c2675310c512e0566B60a5aEE6261'
+            claimLinkData.senderAddress
         )
 
         if (route === undefined) {
@@ -314,6 +314,9 @@ export const OfframpConfirmView = ({
         isSameChain?: boolean // e.g. for opt ETH -> opt USDC
     ): Promise<{ sourceTxHash: string; destinationTxHash: string }> => {
         if (xchainNeeded) {
+            // In a cross-chain scenario, the src tx hash is different than the dest tx hash. It takes a while for us
+            // to fetch it, since the destination chain tx is not available immediately. We query squid in intervals until we get it or we bail.
+            // exception is a same chain swap, where the tx is atomic and available immediately
             const sourceTxHash = await claimLinkXchain({
                 address,
                 link: claimLinkData.link,
@@ -357,6 +360,7 @@ export const OfframpConfirmView = ({
                 destinationTxHash: sourceTxHash,
             }
         } else {
+            // same chain and same token scenario
             const txHash = await claimLink({
                 address,
                 link: claimLinkData.link,
@@ -594,9 +598,10 @@ export const OfframpConfirmView = ({
             <div className="flex flex-col justify-center gap-3">
                 {offrampType == OfframpType.CASHOUT && (
                     <>
+                        {/* TODO: reuse across cashout views */}
                         <label className="text-start text-h8 font-light">
-                            Cash out your crypto to your bank account. From any token, any chain, directly to your bank
-                            account.
+                            Cash out your crypto to your bank account. Works best with popular stablecoins and other
+                            commonly traded tokens.
                         </label>
                         <FAQComponent />
                     </>
