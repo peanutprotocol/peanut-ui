@@ -2,7 +2,7 @@ import '@/styles/globals.css'
 import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
 import CrispChat from '../components/CrispChat'
 import { PeanutProvider } from '@/config'
-import { ContextProvider } from '@/config'
+import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 
 const roboto = Roboto_Flex({
@@ -31,13 +31,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <html lang="en">
             <body className={`${roboto.variable} ${londrina.variable} ${sniglet.variable} chakra-ui-light font-sans`}>
                     <PeanutProvider>
-                        <ContextProvider>
-                            <CrispChat />
+                        <context.ContextProvider>
                                 <FooterVisibilityProvider>
                                     {children}
+                                    <CrispChat />
                                 </FooterVisibilityProvider>
-                            <CrispChat />
-                        </ContextProvider>
+                        </context.ContextProvider>
                     </PeanutProvider>
             </body>
         </html>
