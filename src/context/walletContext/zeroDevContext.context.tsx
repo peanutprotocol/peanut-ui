@@ -34,6 +34,17 @@ interface ZeroDevContextType {
     setIsSendingUserOp: (sendingUserOp: boolean) => void
     handleRegister: (username: string) => Promise<void>
     handleLogin: (username: string) => Promise<void>
+    handleSendUserOpEncoded: (
+        {
+            to,
+            value,
+            data
+        }: {
+            to: string,
+            value: BigInt,
+            data: string
+        }
+    ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)
     handleSendUserOpNotEncoded: (
         {
             to,
@@ -48,7 +59,7 @@ interface ZeroDevContextType {
             functionName: string,
             args: any[]
         }
-    ) => Promise<void>
+    ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)  
     address: string | undefined
 }
 
@@ -78,7 +89,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false)
     const [isSendingUserOp, setIsSendingUserOp] = useState<boolean>(false)
 
-    const [kernelClient, setKernelClient] = useState<any>(undefined)
+    const [kernelClient, setKernelClient] = useState<KernelAccountClient<any> | undefined>(undefined)
     const [isKernelClientReady, setIsKernelClientReady] = useState<boolean>(false)
     const [address, setAddress] = useState<string | undefined>(undefined)
 
@@ -103,7 +114,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
           console.log({kernelAccount})
 
-          const kernelClient = createKernelAccountClient({ 
+          const kernelClient: KernelAccountClient<any> = createKernelAccountClient({ 
             account: kernelAccount, 
             chain: consts.PEANUT_WALLET_CHAIN, 
             bundlerTransport: http(consts.BUNDLER_URL), 
@@ -190,10 +201,47 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     // used when data is already encoded from Peanut
     // but remains unsigned
     const handleSendUserOpEncoded = async (
-        to: string,
-        value: number,
-        data: string
-    ) => {}
+        {
+            to,
+            value,
+            data
+        }: {
+            to: string,
+            value: BigInt,
+            data: string
+        }
+    ) => {
+        setIsSendingUserOp(true)
+          const userOpHash = await kernelClient!.sendUserOperation({
+            userOperation: {
+              callData: await kernelClient!.account.encodeCallData({
+                to: (to ? to : '') as `0x${string}`,
+                value: value ? BigInt(value.toString()) : value,
+                data: data ? (data as `0x${string}`) : ''
+              }),
+            },
+          });
+
+          // type: Permisionless.js BundlerClient
+          const bundlerClient = kernelClient!.extend( 
+            bundlerActions(consts.USER_OP_ENTRY_POINT) 
+          ) 
+  
+          const receipt = await bundlerClient.waitForUserOperationReceipt({ 
+            hash: userOpHash, 
+          })
+
+          console.log({receipt})
+         
+          // Update the message based on the count of UserOps
+          const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
+         console.log({userOpMessage})
+          setIsSendingUserOp(false)
+
+          console.log()
+
+          return receipt.receipt.transactionHash
+    }
 
     // used when data is NOT already encoded from Peanut
     // but remains unsigned
@@ -216,7 +264,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
         console.log('userop')
         console.log({kernelClient})
-        console.log({account:kernelClient.account})
+        console.log({account:kernelClient!.account})
         console.log(        {
             to,
             value,
@@ -225,9 +273,9 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             args
         })
 
-        const userOpHash = await kernelClient.sendUserOperation({
+        const userOpHash = await kernelClient!.sendUserOperation({
             userOperation: {
-              callData: await kernelClient.account.encodeCallData({
+              callData: await kernelClient!.account.encodeCallData({
                 to,
                 value: BigInt(value),
                 data: encodeFunctionData({
@@ -239,11 +287,11 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             },
           });
        
-        const bundlerClient = kernelClient.extend( 
+        const bundlerClient = kernelClient!.extend( 
           bundlerActions(consts.USER_OP_ENTRY_POINT) 
         ) 
 
-        await bundlerClient.waitForUserOperationReceipt({ 
+        await bundlerClient!.waitForUserOperationReceipt({ 
           hash: userOpHash, 
         })
        
@@ -251,6 +299,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
        console.log({userOpMessage})
         setIsSendingUserOp(false)
+
+        return userOpHash
     }
 
     return (
@@ -262,6 +312,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             isSendingUserOp, setIsSendingUserOp,
             handleRegister,
             handleLogin,
+            handleSendUserOpEncoded,
             handleSendUserOpNotEncoded,
             address
         }}>
