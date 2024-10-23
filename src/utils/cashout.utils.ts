@@ -210,7 +210,7 @@ export async function createExternalAccount(
                     data,
                 } as interfaces.IResponse
             }
-            throw new Error('Failed to create external account')
+            throw new Error('Failed to create external account (duplicate account)')
         }
 
         return {
@@ -298,12 +298,12 @@ export const createLiquidationAddress = async (
     })
 
     if (!response.ok) {
-        // log the response body
         console.error(response)
-        // log either response body or response json, whatever is not undefined
-        const responseBody = await response.text()
-        console.error(responseBody)
-        throw new Error('Failed to create liquidation address')
+        console.error('Failed to create liquidation address. Most likely a duplicate address or incomplete KYC.')
+        console.info(
+            `Customer ID: ${customerId}, external account ID: ${externalAccountId}, destination payment rail: ${destinationPaymentRail}, destination currency: ${destinationCurrency}`
+        )
+        throw new Error('Failed to create liquidation address. Contact support.')
     }
 
     const data: interfaces.IBridgeLiquidationAddress = await response.json()
