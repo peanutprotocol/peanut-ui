@@ -136,7 +136,7 @@ export const InitialCashoutView = ({
                     }),
                 })
 
-                if (userIdResponse.status === 404) {
+                if (userIdResponse.status === 404 || userIdResponse.status === 400) {
                     setUserType('NEW')
                 } else {
                     const response = await userIdResponse.json()
@@ -330,7 +330,9 @@ export const InitialCashoutView = ({
                                             className="flex w-full flex-col items-start justify-center gap-2 overflow-hidden"
                                         >
                                             <label className="text-left text-h8 font-light">
-                                                Cashout to a new bank account:
+                                                {user && user.accounts.length > 0
+                                                    ? 'Cash out to a new bank account:'
+                                                    : 'Cash out to a bank account:'}
                                             </label>
                                             <div
                                                 className={twMerge(
@@ -361,7 +363,7 @@ export const InitialCashoutView = ({
                             </>
                         ) : (
                             <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
+                                <label className="text-left text-h8 font-light">Cash out to a bank account:</label>
                                 <div
                                     className={twMerge(
                                         'flex w-full border border-black p-2',
