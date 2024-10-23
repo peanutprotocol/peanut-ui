@@ -41,19 +41,19 @@ const Card = ({ children, className, shadowSize, color = 'primary', ...props }: 
 }
 
 const Header = ({ children, className, ...props }: React.HTMLAttributes<HTMLDivElement>) => (
-    <div className={classNames('card-head', className)} {...props}>
+    <div className={twMerge('card-head', className)} {...props}>
         {children}
     </div>
 )
 
 const Title = ({ children, className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) => (
-    <h3 className={classNames('text-h4 font-semibold sm:text-h3', className)} {...props}>
+    <h3 className={twMerge('text-h4 font-semibold sm:text-h3', className)} {...props}>
         {children}
     </h3>
 )
 
 const Description = ({ children, className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) => (
-    <p className={classNames('text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
+    <p className={twMerge('text-sm text-gray-600 dark:text-gray-400', className)} {...props}>
         {children}
     </p>
 )
