@@ -28,6 +28,30 @@ interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
+
+// FOR ZERODEV TESTS
+import {
+    createKernelAccount,
+    createKernelAccountClient,
+    createZeroDevPaymasterClient,
+    KernelAccountClient
+} from "@zerodev/sdk"
+import {
+    toPasskeyValidator,
+    toWebAuthnKey,
+    WebAuthnMode,
+    PasskeyValidatorContractVersion
+} from "@zerodev/passkey-validator"
+import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
+
+// Viem imports
+import { arbitrum } from 'viem/chains'
+import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
+
+// Permissionless imports
+import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
+import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
+
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(context.loadingStateContext)
     const {
@@ -536,6 +560,226 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
+
+                    // //
+                    // //
+                    // // ADDED TO TEST ZERODEV WORKS
+                    // //
+                    // //
+                    // let username = ''
+                    // const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL
+                    // const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL
+                    // const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
+
+                    // const publicClient = createPublicClient({
+                    //     transport: http(BUNDLER_URL)
+                    // })
+                
+                    // const CHAIN = arbitrum
+                    // const entryPoint = ENTRYPOINT_ADDRESS_V07
+
+                    // const webAuthnKey = await toWebAuthnKey({ 
+                    //     passkeyName: username, 
+                    //     passkeyServerUrl: PASSKEY_SERVER_URL as string, 
+                    //     mode: WebAuthnMode.Login ,
+                    //     passkeyServerHeaders: {}
+                    // })
+             
+                    // const passkeyValidator = await toPasskeyValidator(publicClient, { 
+                    //     webAuthnKey,  
+                    //     entryPoint, 
+                    //     kernelVersion: KERNEL_V3_1,   
+                    //     validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
+                    // })
+
+                    // const clientKernelAccount = await createKernelAccount(publicClient, { 
+                    //     plugins: { 
+                    //       sudo: passkeyValidator, 
+                    //     }, 
+                    //     entryPoint, 
+                    //     kernelVersion: KERNEL_V3_1
+                    //   })
+                    
+                    //   const clientKernelAccountClient = createKernelAccountClient({ 
+                    //     account: clientKernelAccount, 
+                    //     chain: CHAIN, 
+                    //     bundlerTransport: http(BUNDLER_URL), 
+                    //     entryPoint, 
+                    //     middleware: { 
+                    //       sponsorUserOperation: async ({ userOperation }) => { 
+                    //         const zerodevPaymaster = createZeroDevPaymasterClient({ 
+                    //           chain: CHAIN, 
+                    //           transport: http(PAYMASTER_URL), 
+                    //           entryPoint, 
+                    //         }) 
+                    //         return zerodevPaymaster.sponsorUserOperation({ 
+                    //           userOperation, 
+                    //           entryPoint, 
+                    //         }) 
+                    //       } 
+                    //     } 
+                    //   })
+
+                    // console.log(tx)
+
+                    // //   console.log({tx})
+                    // //   const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
+                    // //   const contractABI = parseAbi([
+                    // //       "function mint(address _to) public",
+                    // //       "function balanceOf(address owner) external view returns (uint256 balance)"
+                    // //   ])
+                    // //   console.log(encodeFunctionData({
+                    // //           abi: contractABI,
+                    // //           functionName: "mint",
+                    // //           args: [clientKernelAccount.address],
+                    // //         }),)
+                            
+                            
+                    // // console.log({
+                    // //     to: (tx.to ? tx.to : '') as `0x${string}`,
+                    // // })
+                    // // console.log({
+                    // //     value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                    // // })
+                    // // console.log({
+                    // //     data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                    // // })
+
+                    // // console.log(1)
+                    // // console.log({
+                    // //     to: (tx.to ? tx.to : '') as `0x${string}`,
+                    // //     value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                    // //     data: tx.data,
+                    // // })
+                    // // console.log(2)
+                    // // console.log({
+                    // //     callData: await clientKernelAccount.encodeCallData({
+                    // //       to: (tx.to ? tx.to : '') as `0x${string}`,
+                    // //       value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                    // //       data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                    // //       // data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                    // //       // data: encodeFunctionData({
+                    // //       //   abi: contractABI,
+                    // //       //   functionName: "mint",
+                    // //       //   args: [kernelAccount.address],
+                    // //       // }),
+                    // //     }),
+                    // //   },)
+                    // // console.log(3)
+                    // // console.log(await clientKernelAccountClient.prepareUserOperationRequest({
+                    // //     userOperation: {
+                    // //       callData: await clientKernelAccount.encodeCallData({
+                    // //         to: (tx.to ? tx.to : '') as `0x${string}`,
+                    // //         value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                    // //         data: tx.data,
+                    // //         // data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                    // //         // data: encodeFunctionData({
+                    // //         //   abi: contractABI,
+                    // //         //   functionName: "mint",
+                    // //         //   args: [kernelAccount.address],
+                    // //         // }),
+                    // //       }),
+                    // //     },
+                    // //   }))
+                    
+                    
+
+                    //   const userOperation = await clientKernelAccountClient.prepareUserOperationRequest({
+                    //     userOperation: {
+                    //       callData: await clientKernelAccount.encodeCallData({
+                    //         to: (tx.to ? tx.to : '') as `0x${string}`,
+                    //         value: tx.value ? BigInt(tx.value.toString()) : tx.value,
+                    //         data: tx.data ? (tx.data as `0x${string}`) : '',
+                    //         // data: encodeFunctionData({
+                    //         //   abi: contractABI,
+                    //         //   functionName: "mint",
+                    //         //   args: [kernelAccount.address],
+                    //         // }),
+                    //       }),
+                    //     },
+                    //   });
+
+                    // //   const userOperation = await clientKernelAccountClient.prepareUserOperationRequest({
+                    // //     userOperation: {
+                    // //       callData: await clientKernelAccount.encodeCallData({
+                    // //         to: contractAddress,
+                    // //         value: BigInt(0),
+                    // //         data: encodeFunctionData({
+                    // //           abi: contractABI,
+                    // //           functionName: "mint",
+                    // //           args: [clientKernelAccount.address],
+                    // //         }),
+                    // //       }),
+                    // //     },
+                    // //   });
+                    
+                    // console.log({userOperation})
+                      
+                    // // Sign the user operation
+                    // const signature = await clientKernelAccount.signUserOperation(userOperation);
+                    // console.log({signature})
+
+                    // // Add the signature to the user operation
+                    // const signedUserOperation = {
+                    //     ...userOperation,
+                    //     signature,
+                    // };
+
+                    // console.log({signedUserOperation})
+
+                    //   // send the operation
+                    //   const webAuthnKeyProxy = await toWebAuthnKey({ 
+                    //     passkeyName: 'proxy', 
+                    //     passkeyServerUrl: PASSKEY_SERVER_URL as string, 
+                    //     mode: WebAuthnMode.Login ,
+                    //     passkeyServerHeaders: {}
+                    // })
+             
+                    // const passkeyValidatorProxy = await toPasskeyValidator(publicClient, { 
+                    //     webAuthnKey: webAuthnKeyProxy,  
+                    //     entryPoint, 
+                    //     kernelVersion: KERNEL_V3_1,   
+                    //     validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
+                    // })
+
+                    //   const proxyKernelAccount = await createKernelAccount(publicClient, {
+                    //     plugins: {
+                    //         sudo: passkeyValidatorProxy
+                    //     },
+                    //     entryPoint, 
+                    //     kernelVersion: KERNEL_V3_1
+                    // })
+                
+                    // const proxyKernelClient = createKernelAccountClient({ 
+                    //     account: proxyKernelAccount, 
+                    //     chain: CHAIN, 
+                    //     bundlerTransport: http(BUNDLER_URL), 
+                    //     entryPoint, 
+                    //     middleware: { 
+                    //       sponsorUserOperation: async ({ userOperation }) => { 
+                    //         const zerodevPaymaster = createZeroDevPaymasterClient({ 
+                    //           chain: CHAIN, 
+                    //           transport: http(PAYMASTER_URL), 
+                    //           entryPoint, 
+                    //         }) 
+                    //         return zerodevPaymaster.sponsorUserOperation({ 
+                    //           userOperation, 
+                    //           entryPoint, 
+                    //         }) 
+                    //       } 
+                    //     } 
+                    //   })
+                      
+                    //   // Send the user operation
+                    //   const userOpHash = await proxyKernelClient.sendUserOperation({
+                    //     userOperation: signedUserOperation,
+                    //     entryPoint: entryPoint, // Make sure to define entryPoint
+                    //   });
+            
+                    //   console.log({userOpHash})
+                      
+
+                    //   return
 
                     // Send the transaction using wagmi
                     let hash = await sendTransactionAsync({

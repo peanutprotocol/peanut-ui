@@ -31,7 +31,10 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    // TODO: address here should be fetched from the walletContext
+    // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
+    // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
@@ -256,6 +259,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    // this doesn't make sense
+    // when we connect another wallet, we don't change the user at all
     useEffect(() => {
         const timeoutId = setTimeout(() => {
             fetchUser()
