@@ -29,7 +29,7 @@ const ValidatedInput = ({
     const previousValueRef = useRef(value)
 
     useEffect(() => {
-        if ('' === debouncedValue || debouncedValue === previousValueRef.current) {
+        if ('' === debouncedValue) {
             return
         }
         let isStale = false
