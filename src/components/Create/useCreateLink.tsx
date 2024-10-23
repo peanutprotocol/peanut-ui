@@ -51,6 +51,8 @@ import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
 // Permissionless imports
 import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
 import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
+import { useWallet } from '@/context/walletContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(context.loadingStateContext)
@@ -71,6 +73,9 @@ export const useCreateLink = () => {
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
     const { refetchBalances } = useBalance()
+
+    const { activeWallet, isActiveWalletBYOW, isActiveWalletPW } = useWallet()
+    const { handleSendUserOpNotEncoded } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
@@ -561,129 +566,8 @@ export const useCreateLink = () => {
                         }
                     }
 
-                    // //
-                    // //
-                    // // ADDED TO TEST ZERODEV WORKS
-                    // //
-                    // //
-                    // let username = ''
-                    // const BUNDLER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_BUNDLER_URL
-                    // const PAYMASTER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PAYMASTER_URL
-                    // const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
-
-                    // const publicClient = createPublicClient({
-                    //     transport: http(BUNDLER_URL)
-                    // })
-                
-                    // const CHAIN = arbitrum
-                    // const entryPoint = ENTRYPOINT_ADDRESS_V07
-
-                    // const webAuthnKey = await toWebAuthnKey({ 
-                    //     passkeyName: username, 
-                    //     passkeyServerUrl: PASSKEY_SERVER_URL as string, 
-                    //     mode: WebAuthnMode.Login ,
-                    //     passkeyServerHeaders: {}
-                    // })
-             
-                    // const passkeyValidator = await toPasskeyValidator(publicClient, { 
-                    //     webAuthnKey,  
-                    //     entryPoint, 
-                    //     kernelVersion: KERNEL_V3_1,   
-                    //     validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
-                    // })
-
-                    // const clientKernelAccount = await createKernelAccount(publicClient, { 
-                    //     plugins: { 
-                    //       sudo: passkeyValidator, 
-                    //     }, 
-                    //     entryPoint, 
-                    //     kernelVersion: KERNEL_V3_1
-                    //   })
-                    
-                    //   const clientKernelAccountClient = createKernelAccountClient({ 
-                    //     account: clientKernelAccount, 
-                    //     chain: CHAIN, 
-                    //     bundlerTransport: http(BUNDLER_URL), 
-                    //     entryPoint, 
-                    //     middleware: { 
-                    //       sponsorUserOperation: async ({ userOperation }) => { 
-                    //         const zerodevPaymaster = createZeroDevPaymasterClient({ 
-                    //           chain: CHAIN, 
-                    //           transport: http(PAYMASTER_URL), 
-                    //           entryPoint, 
-                    //         }) 
-                    //         return zerodevPaymaster.sponsorUserOperation({ 
-                    //           userOperation, 
-                    //           entryPoint, 
-                    //         }) 
-                    //       } 
-                    //     } 
-                    //   })
-
-                    // console.log(tx)
-
-                    // //   console.log({tx})
-                    // //   const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
-                    // //   const contractABI = parseAbi([
-                    // //       "function mint(address _to) public",
-                    // //       "function balanceOf(address owner) external view returns (uint256 balance)"
-                    // //   ])
-                    // //   console.log(encodeFunctionData({
-                    // //           abi: contractABI,
-                    // //           functionName: "mint",
-                    // //           args: [clientKernelAccount.address],
-                    // //         }),)
-                            
-                            
-                    // // console.log({
-                    // //     to: (tx.to ? tx.to : '') as `0x${string}`,
-                    // // })
-                    // // console.log({
-                    // //     value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                    // // })
-                    // // console.log({
-                    // //     data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                    // // })
-
-                    // // console.log(1)
-                    // // console.log({
-                    // //     to: (tx.to ? tx.to : '') as `0x${string}`,
-                    // //     value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                    // //     data: tx.data,
-                    // // })
-                    // // console.log(2)
-                    // // console.log({
-                    // //     callData: await clientKernelAccount.encodeCallData({
-                    // //       to: (tx.to ? tx.to : '') as `0x${string}`,
-                    // //       value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                    // //       data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                    // //       // data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                    // //       // data: encodeFunctionData({
-                    // //       //   abi: contractABI,
-                    // //       //   functionName: "mint",
-                    // //       //   args: [kernelAccount.address],
-                    // //       // }),
-                    // //     }),
-                    // //   },)
-                    // // console.log(3)
-                    // // console.log(await clientKernelAccountClient.prepareUserOperationRequest({
-                    // //     userOperation: {
-                    // //       callData: await clientKernelAccount.encodeCallData({
-                    // //         to: (tx.to ? tx.to : '') as `0x${string}`,
-                    // //         value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                    // //         data: tx.data,
-                    // //         // data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                    // //         // data: encodeFunctionData({
-                    // //         //   abi: contractABI,
-                    // //         //   functionName: "mint",
-                    // //         //   args: [kernelAccount.address],
-                    // //         // }),
-                    // //       }),
-                    // //     },
-                    // //   }))
                     
                     
-
                     //   const userOperation = await clientKernelAccountClient.prepareUserOperationRequest({
                     //     userOperation: {
                     //       callData: await clientKernelAccount.encodeCallData({
@@ -781,51 +665,58 @@ export const useCreateLink = () => {
 
                     //   return
 
-                    // Send the transaction using wagmi
-                    let hash = await sendTransactionAsync({
-                        to: (tx.to ? tx.to : '') as `0x${string}`,
-                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                        gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
-                        gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
-                        maxFeePerGas: feeOptions?.maxFeePerGas
-                            ? BigInt(feeOptions?.maxFeePerGas.toString())
-                            : undefined,
-                        maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
-                            ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
-                            : undefined,
-                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
-                    })
+                    if (isActiveWalletPW) {
 
-                    setLoadingState('Executing transaction')
+                    } else if (isActiveWalletBYOW) {
+                        // Send the transaction using wagmi
+                        // current stage is encoded but NOT signed
+                        let hash = await sendTransactionAsync({
+                            to: (tx.to ? tx.to : '') as `0x${string}`,
+                            value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                            data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                            gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
+                            gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
+                            maxFeePerGas: feeOptions?.maxFeePerGas
+                                ? BigInt(feeOptions?.maxFeePerGas.toString())
+                                : undefined,
+                            maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
+                                ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
+                                : undefined,
+                            chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
+                        })
 
-                    // Wait for the transaction to be mined using wagmi/actions
-                    // Only doing this for the approval transaction (the first tx)
-                    // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
-                    if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
-                        for (let attempt = 0; attempt < 3; attempt++) {
-                            try {
-                                await waitForTransactionReceipt(config, {
-                                    confirmations: 4,
-                                    hash: hash,
-                                    chainId: Number(selectedChainID),
-                                })
-                                break
-                            } catch (error) {
-                                if (attempt < 2) {
-                                    await new Promise((resolve) => setTimeout(resolve, 500))
-                                } else {
-                                    console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                        setLoadingState('Executing transaction')
+
+                        // Wait for the transaction to be mined using wagmi/actions
+                        // Only doing this for the approval transaction (the first tx)
+                        // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
+                        if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
+                            for (let attempt = 0; attempt < 3; attempt++) {
+                                try {
+                                    await waitForTransactionReceipt(config, {
+                                        confirmations: 4,
+                                        hash: hash,
+                                        chainId: Number(selectedChainID),
+                                    })
+                                    break
+                                } catch (error) {
+                                    if (attempt < 2) {
+                                        await new Promise((resolve) => setTimeout(resolve, 500))
+                                    } else {
+                                        console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                                    }
                                 }
                             }
                         }
+
+                        signedTxsResponse.push(hash.toString())
+                        idx++
                     }
 
-                    signedTxsResponse.push(hash.toString())
-                    idx++
+                    return signedTxsResponse[signedTxsResponse.length - 1]
                 }
 
-                return signedTxsResponse[signedTxsResponse.length - 1]
+
             } catch (error) {
                 throw error
             }
