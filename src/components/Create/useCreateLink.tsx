@@ -66,8 +66,7 @@ export const useCreateLink = () => {
     } = useContext(context.tokenSelectorContext)
     const { balances } = useBalance()
 
-    const { chain: currentChain, address: wagmiAddress } = useAccount()
-    const { address } = useWallet()
+    const { chain: currentChain, address } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
@@ -76,7 +75,7 @@ export const useCreateLink = () => {
     const { refetchBalances } = useBalance()
 
     const { activeWallet, isActiveWalletBYOW, isActiveWalletPW } = useWallet()
-    const { handleSendUserOpNotEncoded, handleSendUserOpEncoded } = useZeroDev()
+    const { handleSendUserOpNotEncoded } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
@@ -559,7 +558,6 @@ export const useCreateLink = () => {
                     // Set fee options using our SDK
                     if (!feeOptions) {
                         try {
-                            console.log(4)
                             feeOptions = await peanut.setFeeOptions({
                                 chainId: selectedChainID,
                             })
@@ -668,16 +666,6 @@ export const useCreateLink = () => {
                     //   return
 
                     if (isActiveWalletPW) {
-                        console.log(5)
-                        // TODO: add retry logic in 
-                        let hash = await handleSendUserOpEncoded({
-                            to: tx.to!,
-                            value: tx.value!,
-                            data: tx.data!
-                        })
-                        
-                        signedTxsResponse.push(hash.toString())
-                        idx++
 
                     } else if (isActiveWalletBYOW) {
                         // Send the transaction using wagmi
@@ -829,8 +817,6 @@ export const useCreateLink = () => {
         try {
             let hash: string = ''
 
-            console.log('1')
-
             await submitClaimLinkInit({
                 password: password ?? '',
                 attachmentOptions: {
@@ -840,11 +826,7 @@ export const useCreateLink = () => {
                 senderAddress: address ?? '',
             })
 
-            console.log('2')
-
-            // TODO: this needs its own type
             if (type === 'deposit') {
-                console.log('3')
                 hash = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions })) ?? ''
             } else if (type === 'gasless') {
                 const signature = await signTypedData({ gaslessMessage: response.message })

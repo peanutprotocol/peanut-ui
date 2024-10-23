@@ -16,7 +16,6 @@ import { estimateContractGas } from 'viem/actions'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
-import { useWallet } from '@/context/walletContext'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -63,8 +62,7 @@ export const CreateLinkConfirmView = ({
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
-    // const { address } = useAccount()
-    const { address } = useWallet()
+    const { address } = useAccount()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -77,11 +75,8 @@ export const CreateLinkConfirmView = ({
         try {
             let hash: string = ''
 
-            console.log('c1')
-
             let fileUrl = ''
             if (createType != 'direct') {
-                console.log('c2')
                 const data = await submitClaimLinkInit({
                     password: password ?? '',
                     attachmentOptions: {
@@ -90,19 +85,17 @@ export const CreateLinkConfirmView = ({
                     },
                     senderAddress: address ?? '',
                 })
-                console.log('c2')
                 fileUrl = data?.fileUrl
             }
 
             if (transactionType === 'not-gasless') {
                 if (!preparedDepositTxs) return
-                console.log('c3')
+
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {
                 if (!gaslessPayload || !gaslessPayloadMessage) return
                 setLoadingState('Sign in wallet')
-                console.log('c4')
                 const signature = await signTypedData({ gaslessMessage: gaslessPayloadMessage })
                 if (!signature) return
                 setLoadingState('Executing transaction')
