@@ -3,10 +3,9 @@ import TextEdit from '../../Global/TextEdit'
 import { Badge } from '../../0_Bruddle/Badge'
 import Link from 'next/link'
 import { printableAddress } from '@/utils'
-import { createAvatar } from '@dicebear/core'
-import { identicon } from '@dicebear/collection'
 import { useAuth } from '@/context/authContext'
 import { useEffect, useState } from 'react'
+import useAvatar from '@/hooks/useAvatar'
 
 const ProfileHeader = () => {
     const { updateUserName, submitProfilePhoto, user } = useAuth()
@@ -16,11 +15,7 @@ const ProfileHeader = () => {
             (user?.accounts ? printableAddress(user?.accounts[0]?.account_identifier) : '')
     )
 
-    const avatar = createAvatar(identicon, {
-        seed: user?.user?.username ?? user?.user?.email ?? '',
-    })
-    const svg = avatar.toDataUri()
-
+    const { uri: avatarURI } = useAvatar(user?.user?.username ?? user?.user?.email ?? '')
     const hasKYCed = user?.user?.kycStatus === 'verified'
 
     useEffect(() => {
@@ -30,7 +25,7 @@ const ProfileHeader = () => {
     return (
         <div className="col w-full items-center sm:items-start">
             <ImageEdit
-                initialProfilePicture={user?.user?.profile_picture ? user?.user?.profile_picture : svg}
+                initialProfilePicture={user?.user?.profile_picture ? user?.user?.profile_picture : avatarURI}
                 onImageChange={(file) => {
                     if (!file) return
                     submitProfilePhoto(file)
