@@ -96,10 +96,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             const sanitizedAccountNumber = accountNumber.replaceAll(/\s/g, '').toLowerCase()
 
             if (isIBAN(sanitizedAccountNumber)) {
-                console.log(`Set bank account type to iban for ${sanitizedAccountNumber}`)
                 setAccountDetailsValue('type', 'iban')
             } else if (/^[0-9]{6,17}$/.test(sanitizedAccountNumber)) {
-                console.log(`Set bank account type to us for ${sanitizedAccountNumber}`)
                 setAccountDetailsValue('type', 'us')
             } else {
                 setIbanFormError('accountNumber', { message: 'Invalid account number' })
@@ -204,7 +202,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 customerId,
                 data.id,
                 accountType,
-                getIbanFormValue('accountNumber')?.replaceAll(' ', '') ?? '',
+                getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '') ?? '',
                 address
             )
             await fetchUser()
