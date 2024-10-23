@@ -7,6 +7,7 @@ import Loading from '@/components/Global/Loading'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import AddressInput from '@/components/Global/AddressInput'
+import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import { useBalance } from '@/hooks/useBalance'
 import * as utils from '@/utils'
@@ -130,23 +131,13 @@ export const InitialView = ({
 
                 <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
                 <AddressInput
-                    value={recipientAddress ?? ''}
-                    _setIsValidRecipient={(valid: boolean) => {
-                        setIsValidRecipient(valid)
-                        setInputChanging(false)
-                    }}
-                    onDeleteClick={() => {
-                        setRecipientAddress('')
-                        setInputChanging(false)
-                    }}
-                    onSubmit={(recipient: string) => {
-                        setRecipientAddress(recipient)
-                        setInputChanging(false)
-                    }}
-                    setIsValueChanging={(value: boolean) => {
-                        setInputChanging(value)
-                    }}
                     placeholder="Enter recipient address"
+                    value={recipientAddress ?? ''}
+                    onUpdate={(update: InputUpdate) => {
+                        setRecipientAddress(update.value)
+                        setInputChanging(update.isChanging)
+                        setIsValidRecipient(update.isValid)
+                    }}
                     className="w-full"
                 />
             </div>

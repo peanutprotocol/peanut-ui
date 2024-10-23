@@ -1,5 +1,5 @@
 'use client'
-import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
+import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
@@ -9,7 +9,6 @@ import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
@@ -124,17 +123,6 @@ export const InitialClaimLinkView = ({
         } finally {
             setLoadingState('Idle')
         }
-    }
-
-    const _estimatePoints = async () => {
-        const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
-        const estimatedPoints = await estimatePoints({
-            address: recipient.address ?? address ?? '',
-            chainId: claimLinkData.chainId,
-            amountUSD: USDValue,
-            actionType: ActionType.CLAIM,
-        })
-        setEstimatedPoints(estimatedPoints)
     }
 
     const handleIbanRecipient = async () => {
@@ -255,10 +243,24 @@ export const InitialClaimLinkView = ({
     }
 
     useEffect(() => {
-        if (recipient) {
-            _estimatePoints()
+        let isMounted = true
+        if (recipient?.address && isValidRecipient) {
+            const amountUSD = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
+            estimatePoints({
+                address: recipient.address,
+                chainId: claimLinkData.chainId,
+                amountUSD,
+                actionType: ActionType.CLAIM,
+            }).then((points) => {
+                if (isMounted) {
+                    setEstimatedPoints(points)
+                }
+            })
         }
-    }, [recipient])
+        return () => {
+            isMounted = false
+        }
+    }, [recipient.address, isValidRecipient, claimLinkData.tokenAmount, claimLinkData.chainId, tokenPrice])
 
     useEffect(() => {
         if (recipient.address) return
@@ -463,42 +465,16 @@ export const InitialClaimLinkView = ({
                     <GeneralRecipientInput
                         className="px-1"
                         placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
-                        onSubmit={(name: string, address: string) => {
-                            setRecipient({ name, address })
-                            setInputChanging(false)
-                        }}
-                        _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
-                            setIsValidRecipient(isValid)
-                            if (error) {
-                                setErrorState({
-                                    showError: true,
-                                    errorMessage: error,
-                                })
-                            } else {
-                                setErrorState({
-                                    showError: false,
-                                    errorMessage: '',
-                                })
-                            }
-                            setInputChanging(false)
-                        }}
-                        setIsValueChanging={() => {
-                            setInputChanging(true)
-                        }}
-                        setRecipientType={(type: interfaces.RecipientType) => {
-                            setRecipientType(type)
-                        }}
-                        onDeleteClick={() => {
-                            setRecipientType('address')
-                            setRecipient({
-                                name: undefined,
-                                address: '',
-                            })
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setRecipientType(update.type)
+                            setIsValidRecipient(update.isValid)
                             setErrorState({
-                                showError: false,
-                                errorMessage: '',
+                                showError: !update.isValid,
+                                errorMessage: update.errorMessage,
                             })
+                            setInputChanging(update.isChanging)
                         }}
                     />
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
