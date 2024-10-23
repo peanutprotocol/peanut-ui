@@ -202,7 +202,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 customerId,
                 data.id,
                 accountType,
-                getIbanFormValue('accountNumber')?.replaceAll(' ', '') ?? '',
+                getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '') ?? '',
                 address
             )
             await fetchUser()

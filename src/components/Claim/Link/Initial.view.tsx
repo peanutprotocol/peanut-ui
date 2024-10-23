@@ -180,21 +180,25 @@ export const InitialClaimLinkView = ({
             setLoadingState('Getting KYC status')
 
             if (!user) {
+                console.log(`user not logged in, getting account status for ${recipient.address}`)
                 const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        accountIdentifier: recipient.name,
+                        accountIdentifier: recipient.address,
                     }),
                 })
-
                 const response = await userIdResponse.json()
-                if (response.isNewUser || (response.error && response.error == 'User not found for given IBAN')) {
+                console.log('response', response)
+                if (response.isNewUser || (response.error && response.error === 'User not found for given IBAN')) {
                     setUserType('NEW')
+                    console.log('New user!')
                 } else {
+                    // TODO: if not logged in but existing user, should show this somewhere in the UI.
                     setUserType('EXISTING')
+                    console.log('Existing user!')
                 }
                 setOfframpForm({
                     name: '',
@@ -202,7 +206,7 @@ export const InitialClaimLinkView = ({
                     password: '',
                     recipient: recipient.name ?? '',
                 })
-                setInitialKYCStep(0)
+                setInitialKYCStep(0) // even if user exists, need to login
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
@@ -213,8 +217,8 @@ export const InitialClaimLinkView = ({
                 if (user?.user.kycStatus === 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
-                            account.account_identifier.toLowerCase() ===
-                            recipient.name?.replaceAll(' ', '').toLowerCase()
+                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                            recipient.name?.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {

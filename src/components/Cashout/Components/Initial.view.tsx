@@ -164,8 +164,8 @@ export const InitialCashoutView = ({
                 if (user?.user.kycStatus == 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
-                            account.account_identifier.toLowerCase() ===
-                            recipientBankAccount.replaceAll(' ', '').toLowerCase()
+                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                            recipientBankAccount.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {
