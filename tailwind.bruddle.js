@@ -147,6 +147,12 @@ module.exports = {
                 },
             })
             addComponents({
+                '.row': {
+                    '@apply flex flex-row items-center gap-2': {},
+                },
+                '.col': {
+                    '@apply flex flex-col gap-2': {},
+                },
                 '.btn': {
                     '@apply inline-flex items-center gap-2 justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
                         {},

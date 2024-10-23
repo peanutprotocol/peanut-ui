@@ -1,6 +1,6 @@
-import ImageEdit from '../Global/ImageEdit'
-import TextEdit from '../Global/TextEdit'
-import { Badge } from '../0_Bruddle/Badge'
+import ImageEdit from '../../Global/ImageEdit'
+import TextEdit from '../../Global/TextEdit'
+import { Badge } from '../../0_Bruddle/Badge'
 import Link from 'next/link'
 import { printableAddress } from '@/utils'
 import { createAvatar } from '@dicebear/core'
@@ -28,7 +28,7 @@ const ProfileHeader = () => {
     }, [user])
 
     return (
-        <div className="col w-full items-center border border-green-500 sm:items-start">
+        <div className="col w-full items-center sm:items-start">
             <ImageEdit
                 initialProfilePicture={user?.user?.profile_picture ? user?.user?.profile_picture : svg}
                 onImageChange={(file) => {

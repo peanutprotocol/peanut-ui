@@ -1,6 +1,3 @@
-import { useRouter } from 'next/navigation'
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
 import Icon from '@/components/Global/Icon'
 import { Menu, Transition } from '@headlessui/react'
 
@@ -18,7 +15,7 @@ export const OptionsComponent = ({
 }) => {
     return (
         <Menu className="relative" as="div">
-            <Menu.Button className={''}>
+            <Menu.Button className={'btn-stroke btn-square btn-small'}>
                 <Icon name={'dots'} className="cursor-pointer dark:fill-white" />
             </Menu.Button>
             <Transition
