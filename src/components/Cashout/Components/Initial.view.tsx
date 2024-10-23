@@ -228,7 +228,8 @@ export const InitialCashoutView = ({
             <label className="text-h2">Cash Out</label>
             <div className="flex flex-col justify-center gap-3">
                 <label className="text-start text-h8 font-light">
-                    Convert your crypto to FIAT. From any token, any chain, directly to your bank account.
+                    Cash out your crypto to your bank account. Works best with popular stablecoins and other commonly
+                    traded tokens.
                 </label>
                 <FAQComponent />
             </div>

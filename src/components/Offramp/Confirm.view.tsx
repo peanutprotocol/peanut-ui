@@ -598,9 +598,10 @@ export const OfframpConfirmView = ({
             <div className="flex flex-col justify-center gap-3">
                 {offrampType == OfframpType.CASHOUT && (
                     <>
+                        {/* TODO: reuse across cashout views */}
                         <label className="text-start text-h8 font-light">
-                            Cash out your crypto to your bank account. From any token, any chain, directly to your bank
-                            account.
+                            Cash out your crypto to your bank account. Works best with popular stablecoins and other
+                            commonly traded tokens.
                         </label>
                         <FAQComponent />
                     </>
