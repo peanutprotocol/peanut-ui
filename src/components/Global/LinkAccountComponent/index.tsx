@@ -29,7 +29,7 @@ interface IRegisterAccountDetails {
     accountNumber: string
     routingNumber: string
     BIC: string
-    type: string
+    type: string // account type: iban or us
 }
 
 export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGlobaLinkAccountComponentProps) => {
@@ -92,16 +92,22 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             if (!accountNumber) return
 
-            if (isIBAN(accountNumber)) {
+            // strip all whitespaces (tabs, spaces, etc.)
+            const sanitizedAccountNumber = accountNumber.replaceAll(/\s/g, '').toLowerCase()
+
+            if (isIBAN(sanitizedAccountNumber)) {
+                console.log(`Set bank account type to iban for ${sanitizedAccountNumber}`)
                 setAccountDetailsValue('type', 'iban')
-            } else if (/^[0-9]{6,17}$/.test(accountNumber)) {
+            } else if (/^[0-9]{6,17}$/.test(sanitizedAccountNumber)) {
+                console.log(`Set bank account type to us for ${sanitizedAccountNumber}`)
                 setAccountDetailsValue('type', 'us')
             } else {
                 setIbanFormError('accountNumber', { message: 'Invalid account number' })
                 return
             }
+            console.log(`Set bank account type to ${getAccountDetailsValue('type')} for ${sanitizedAccountNumber}`)
 
-            const isValidIban = await utils.validateBankAccount(accountNumber.replaceAll(' ', '').toLowerCase())
+            const isValidIban = await utils.validateBankAccount(sanitizedAccountNumber)
             if (!isValidIban) {
                 setIbanFormError('accountNumber', { message: 'Invalid account number' })
                 return
@@ -135,8 +141,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             // Check if user?.accounts already has an account wit this identifier
             const accountExists = user?.accounts.find(
                 (account) =>
-                    account.account_identifier.toLowerCase() ===
-                    getIbanFormValue('accountNumber')?.replaceAll(' ', '').toLowerCase()
+                    account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                    getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '').toLowerCase()
             )
 
             if (accountExists) {
@@ -158,7 +164,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             const address = {
                 street: formData.street,
                 city: formData.city,
-                country: formData.country ?? 'BEL',
+                country: formData.country,
                 state: formData.state,
                 postalCode: formData.postalCode,
             }
@@ -180,13 +186,13 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 address,
                 accountOwnerName
             )
-            
+
             if (!response.success) {
-                if (response.data && response.data.code == 'duplicate_external_account' ) {
+                if (response.data && response.data.code == 'duplicate_external_account') {
                     // bridge account already exists for this IBAN
-                    const errorMessage = 'An external account with the same information has already been added for this customer'
+                    const errorMessage =
+                        'An external account with the same information has already been added for this customer'
                     throw new Error(errorMessage)
-                    
                 }
                 throw new Error('Creating Bridge account failed')
             }
@@ -206,7 +212,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error during the submission process:', error)
-            setErrorState({ showError: true, errorMessage:  String(error)})
+            setErrorState({ showError: true, errorMessage: String(error) })
         } finally {
             setLoadingState('Idle')
         }

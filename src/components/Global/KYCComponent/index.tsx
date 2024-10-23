@@ -85,8 +85,8 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 if (
                     _user?.accounts.find(
                         (account) =>
-                            account.account_identifier.toLowerCase().replaceAll(' ', '') ===
-                            inputFormData.recipient.toLowerCase().replaceAll(' ', '')
+                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                            inputFormData.recipient.replaceAll(/\s/g, '').toLowerCase()
                     )
                 ) {
                     setActiveStep(4)

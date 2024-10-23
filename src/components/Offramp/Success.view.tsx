@@ -20,7 +20,9 @@ export const OfframpSuccessView = ({
     // setup offrampType == CASHOUT props
     const { user } = useAuth()
     const accountType = user?.accounts?.find(
-        (account) => account?.account_identifier?.toLowerCase() === offrampForm.recipient?.toLowerCase()
+        (account) =>
+            account?.account_identifier?.replaceAll(/\s/g, '').toLowerCase() ===
+            offrampForm.recipient?.replaceAll(/\s/g, '').toLowerCase()
     )?.account_type
 
     // setup offrampType == CLAIM props
@@ -86,14 +88,19 @@ export const OfframpSuccessView = ({
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {offrampType == _consts.OfframpType.CASHOUT && (
                             <>
-                                {user?.accounts?.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
+                                {user?.accounts?.find(
+                                    (account) =>
+                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                )?.account_type === 'iban'
                                     ? '$1'
                                     : '$0.50'}
                                 <MoreInfo
                                     text={
                                         user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
+                                            (account) =>
+                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                         )?.account_type === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
@@ -118,14 +125,19 @@ export const OfframpSuccessView = ({
                         {offrampType == _consts.OfframpType.CASHOUT && (
                             <>
                                 $
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
+                                {user?.accounts.find(
+                                    (account) =>
+                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                )?.account_type === 'iban'
                                     ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
                                     : utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)}
                                 <MoreInfo
                                     text={
                                         user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
+                                            (account) =>
+                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                         )?.account_type === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'

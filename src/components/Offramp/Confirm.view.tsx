@@ -115,8 +115,8 @@ export const OfframpConfirmView = ({
         // Find the user's Peanut account that matches the offramp form recipient
         const peanutAccount = user.accounts.find(
             (account) =>
-                account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
-                offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+                account.account_identifier?.replaceAll(/\s/g, '').toLowerCase() ===
+                offrampForm?.recipient?.replaceAll(/\s/g, '').toLowerCase()
         )
         const bridgeCustomerId = user?.user?.bridge_customer_id
         const bridgeExternalAccountId = peanutAccount?.bridge_account_id
@@ -509,8 +509,8 @@ export const OfframpConfirmView = ({
 
                 const peanutAccount = user.accounts.find(
                     (account) =>
-                        account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
-                        offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+                        account.account_identifier?.replaceAll(/\s/g, '').toLowerCase() ===
+                        offrampForm?.recipient?.replaceAll(/\s/g, '').toLowerCase()
                 )
                 const bridgeCustomerId = user?.user?.bridge_customer_id
                 const bridgeExternalAccountId = peanutAccount?.bridge_account_id
@@ -690,14 +690,19 @@ export const OfframpConfirmView = ({
                                 <label className="font-bold">Fee</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
+                                {user?.accounts.find(
+                                    (account) =>
+                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                )?.account_type === 'iban'
                                     ? '$1'
                                     : '$0.50'}
                                 <MoreInfo
                                     text={
                                         user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
+                                            (account) =>
+                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                         )?.account_type === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
@@ -734,8 +739,11 @@ export const OfframpConfirmView = ({
 
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 $
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
+                                {user?.accounts.find(
+                                    (account) =>
+                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                )?.account_type === 'iban'
                                     ? offrampType == OfframpType.CASHOUT
                                         ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
                                         : tokenPrice &&
@@ -753,7 +761,9 @@ export const OfframpConfirmView = ({
                                 <MoreInfo
                                     text={
                                         user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
+                                            (account) =>
+                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                         )?.account_type === 'iban'
                                             ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
                                             : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
