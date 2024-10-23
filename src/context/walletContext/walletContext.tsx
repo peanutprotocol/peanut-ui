@@ -14,7 +14,9 @@ import { useZeroDev } from './zeroDevContext.context'
 interface WalletContextType {
     activeWalletType: interfaces.WalletType | undefined
     isWalletConnected: boolean
-    activeWallet: ActiveWallet|undefined
+    activeWallet: ActiveWallet|undefined,
+    isActiveWalletPW: boolean,
+    isActiveWalletBYOW: boolean,
     activateWallet: (activeWalletType: interfaces.WalletType, address: string) => void
 }
 // TODO: move to context consts
@@ -50,6 +52,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     //
     const [isWalletConnected, setIsWalletConnected] = useState<boolean>(false)
     const [activeWalletType, setActiveWalletType] = useState<interfaces.WalletType | undefined>(undefined)
+    const [isActiveWalletPW, setIsActiveWalletPW] = useState<boolean>(false)
+    const [isActiveWalletBYOW, setIsActiveWalletBYOW] = useState<boolean>(false)
     const [activeWallet, setActiveWallet] = useState<ActiveWallet|undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
     // username keeps the current state of the passkey username
     //
@@ -88,6 +92,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     connected: true,
                     address: address
                 })
+                setIsActiveWalletPW(true)
+                setIsActiveWalletBYOW(false)
             }
         } else if (activeWalletType == interfaces.WalletType.BYOW) {
             if (isWagmiConnected && wagmiAddress == address) {
@@ -96,6 +102,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     connected: true,
                     address: address
                 })
+                setIsActiveWalletBYOW(true)
+                setIsActiveWalletPW(false)
             } else {
                 // TODO: return failure
             }
@@ -112,6 +120,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             activeWalletType,
             isWalletConnected, 
             activeWallet,
+            isActiveWalletPW,
+            isActiveWalletBYOW,
             activateWallet
         }}>
             {children}
