@@ -7,8 +7,6 @@ import { useState, useEffect } from 'react'
 import { Roboto_Flex } from 'next/font/google'
 import Modal from '../Modal'
 import { Widget } from '@typeform/embed-react'
-import { default as NextImage } from 'next/image'
-import * as assets from '@/assets'
 type LayoutProps = {
     children: React.ReactNode
     className?: string
@@ -39,7 +37,7 @@ const Layout = ({ children, className }: LayoutProps) => {
                     }
                 `}</style>
                 <div className="relative">
-                    <div className="flex min-h-screen flex-col ">
+                    <div className="flex min-h-screen flex-col bg-teal-2">
                         <Header />
                         <Banner />
                         <div className="flex grow justify-center">
@@ -51,33 +49,6 @@ const Layout = ({ children, className }: LayoutProps) => {
                             </div>
                         </div>
                         <Footer />
-                        <div className="pointer-events-none absolute inset-0 -z-1 overflow-hidden dark:opacity-70">
-                            <div className="absolute -right-96 top-2/3 w-[93.75rem] -translate-y-1/2 2xl:w-[118.75rem]">
-                                <NextImage
-                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
-                                        loaded ? 'opacity-100' : ''
-                                    } ${className}`}
-                                    onLoadingComplete={() => setLoaded(true)}
-                                    src={assets.BG_SVG.src}
-                                    width={1686}
-                                    height={1520} // also adjust the height to maintain aspect ratio
-                                    alt=""
-                                />
-                            </div>
-                            <div className="absolute -left-96 top-1/4 w-[68.75rem] -translate-y-1/2 2xl:w-[93.75rem]">
-                                <NextImage
-                                    className={`inline-block w-full align-top opacity-0 transition-opacity ${
-                                        loaded ? 'opacity-100' : ''
-                                    } ${className}`}
-                                    onLoadingComplete={() => setLoaded(true)}
-                                    src={assets.BG_SVG.src}
-                                    width={1686}
-                                    height={1520} // also adjust the height to maintain aspect ratio
-                                    alt=""
-                                    style={{ transform: 'scale(-1, -1)' }}
-                                />
-                            </div>
-                        </div>
                         <Modal
                             visible={showModal}
                             onClose={() => {
