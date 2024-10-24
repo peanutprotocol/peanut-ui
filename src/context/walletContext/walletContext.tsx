@@ -12,6 +12,7 @@ import { useZeroDev } from './zeroDevContext.context'
 // TODO: remove any unused imports
 // TODO: move to context consts
 interface WalletContextType {
+    address: string | undefined
     activeWalletType: interfaces.WalletType | undefined
     isWalletConnected: boolean
     activeWallet: ActiveWallet|undefined,
@@ -50,6 +51,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// context props
     //
+    const [address, setAddress] = useState<string | undefined>(undefined)       // mapped to the activeWallet's address at all times
     const [isWalletConnected, setIsWalletConnected] = useState<boolean>(false)
     const [activeWalletType, setActiveWalletType] = useState<interfaces.WalletType | undefined>(undefined)
     const [isActiveWalletPW, setIsActiveWalletPW] = useState<boolean>(false)
@@ -81,7 +83,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         if (isWagmiConnected) {
             console.log({wagmiAddress, addresses})
         }
-    }, [wagmiAddress])
+    }, [wagmiAddress]) // TODO: remove this hook
 
     // TODO: add failure return type (what if checks fail, what do we return?)
     const activateWallet = (activeWalletType: interfaces.WalletType, address: string) => {
@@ -92,8 +94,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     connected: true,
                     address: address
                 })
+                setAddress(address)
                 setIsActiveWalletPW(true)
                 setIsActiveWalletBYOW(false)
+                // TODO: return success
             }
         } else if (activeWalletType == interfaces.WalletType.BYOW) {
             if (isWagmiConnected && wagmiAddress == address) {
@@ -102,12 +106,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     connected: true,
                     address: address
                 })
+                setAddress(address)
                 setIsActiveWalletBYOW(true)
                 setIsActiveWalletPW(false)
-            } else {
-                // TODO: return failure
+                // TODO: return success
             }
         }
+        // TODO: return failure
     }
 
     const deactiveWalletOnLogout = () => {
@@ -117,6 +122,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     return (
         <WalletContext.Provider
         value={{
+            address,
             activeWalletType,
             isWalletConnected, 
             activeWallet,
