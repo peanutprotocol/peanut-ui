@@ -1,4 +1,5 @@
 import * as components from '@/components'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 import { Metadata } from 'next'
 
@@ -20,5 +21,9 @@ export const metadata: Metadata = {
 }
 
 export default function KycPage() {
-    return <components.KYCComponent />
+    return (
+        <PageContainer>
+            <components.KYCComponent />
+        </PageContainer>
+    )
 }
