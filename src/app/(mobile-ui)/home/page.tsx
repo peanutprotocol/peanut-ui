@@ -119,7 +119,7 @@ const Home = () => {
                         <p>Recieve</p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
-                        <HomeLink href={'/cashout'} disabled>
+                        <HomeLink href={'/cashout'}>
                             <Icon name="bank" className="h-10 w-10" />
                         </HomeLink>
                         <p>Cashout</p>
