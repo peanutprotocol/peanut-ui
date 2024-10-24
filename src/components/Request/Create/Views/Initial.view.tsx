@@ -1,16 +1,17 @@
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import * as _consts from '../Create.consts'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useCallback } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { peanut } from '@squirrel-labs/peanut-sdk'
+import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import AddressInput from '@/components/Global/AddressInput'
 import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import { useBalance } from '@/hooks/useBalance'
-import * as utils from '@/utils'
+import { getTokenSymbol, saveRequestLinkToLocalStorage, isNativeCurrency } from '@/utils'
+import { IUserBalance, IToken } from '@/interfaces'
 
 export const InitialView = ({
     onNext,
@@ -26,8 +27,14 @@ export const InitialView = ({
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
     const { balances } = useBalance()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress, selectedTokenDecimals } =
-        useContext(context.tokenSelectorContext)
+    const {
+        selectedTokenPrice,
+        inputDenomination,
+        selectedChainID,
+        selectedTokenAddress,
+        selectedTokenDecimals,
+        selectedTokenData,
+    } = useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -38,52 +45,87 @@ export const InitialView = ({
         (inputDenomination === 'TOKEN' ? tokenValue : usdValue) ?? ''
     )
 
-    const handleOnNext = async () => {
-        if (!recipientAddress) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Please enter a recipient address',
-            })
-            return
-        }
-
-        setLoadingState('Creating link')
-
-        const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
-        try {
-            let inputValue = tokenValue ?? ''
-            if (inputDenomination === 'USD') {
-                inputValue = parseFloat(tokenValue as string).toFixed(selectedTokenDecimals)
+    const handleOnNext = useCallback(
+        async ({
+            recipientAddress,
+            tokenAddress,
+            chainId,
+            userBalances,
+            tokenValue,
+            tokenData,
+        }: {
+            recipientAddress: string | undefined
+            tokenAddress: string
+            chainId: string
+            userBalances: IUserBalance[]
+            tokenValue: string | undefined
+            tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'> | undefined
+        }) => {
+            if (!recipientAddress) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a recipient address',
+                })
+                return
             }
-            const { link } = await peanut.createRequestLink({
-                chainId: selectedChainID,
-                recipientAddress: recipientAddress,
-                tokenAddress: selectedTokenAddress,
-                tokenAmount: inputValue,
-                tokenDecimals: tokenDetails.tokenDecimals.toString(),
-                tokenType: tokenDetails.tokenType,
-                apiUrl: '/api/proxy/withFormData',
-                baseUrl: `${window.location.origin}/request/pay`,
-                APIKey: 'doesnt-matter',
-                attachment: attachmentOptions?.rawFile || undefined,
-                reference: attachmentOptions?.message || undefined,
-            })
+            if (!tokenValue) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter a token amount',
+                })
+                return
+            }
 
-            const requestLinkDetails: any = await peanut.getRequestLinkDetails({ link: link, apiUrl: '/api/proxy/get' })
-            utils.saveRequestLinkToLocalStorage({ details: requestLinkDetails })
+            setLoadingState('Creating link')
 
-            setLink(link)
-            onNext()
-        } catch (error) {
-            setErrorState({
-                showError: true,
-                errorMessage: 'Failed to create link',
-            })
-            console.error('Failed to create link:', error)
-        } finally {
-            setLoadingState('Idle')
-        }
-    }
+            if (!tokenData) {
+                const tokenDetails = getTokenDetails(tokenAddress, chainId, userBalances)
+                tokenData = {
+                    address: tokenAddress,
+                    chainId,
+                    symbol: (await getTokenSymbol(tokenAddress, chainId)) ?? '',
+                    decimals: tokenDetails.tokenDecimals,
+                }
+            }
+            try {
+                let inputValue = tokenValue
+                if (inputDenomination === 'USD') {
+                    inputValue = parseFloat(tokenValue as string).toFixed(tokenData.decimals)
+                }
+                const tokenType = isNativeCurrency(tokenData.address)
+                    ? peanutInterfaces.EPeanutLinkType.native
+                    : peanutInterfaces.EPeanutLinkType.erc20
+                const { link } = await peanut.createRequestLink({
+                    chainId: tokenData.chainId,
+                    recipientAddress,
+                    tokenAddress: tokenData.address,
+                    tokenAmount: inputValue,
+                    tokenDecimals: tokenData.decimals.toString(),
+                    tokenType,
+                    tokenSymbol: tokenData.symbol,
+                    apiUrl: '/api/proxy/withFormData',
+                    baseUrl: `${window.location.origin}/request/pay`,
+                    attachment: attachmentOptions?.rawFile || undefined,
+                    reference: attachmentOptions?.message || undefined,
+                })
+
+                const requestLinkDetails: any = await peanut.getRequestLinkDetails({ link, apiUrl: '/api/proxy/get' })
+                saveRequestLinkToLocalStorage({ details: requestLinkDetails })
+
+                setLink(link)
+                onNext()
+            } catch (error) {
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Failed to create link',
+                })
+                console.error('Failed to create link:', error)
+            } finally {
+                setLoadingState('Idle')
+            }
+        },
+        []
+    )
 
     useEffect(() => {
         if (!_tokenValue) return
@@ -124,7 +166,14 @@ export const InitialView = ({
                     }}
                     tokenValue={_tokenValue}
                     onSubmit={() => {
-                        handleOnNext()
+                        handleOnNext({
+                            recipientAddress,
+                            tokenAddress: selectedTokenAddress,
+                            chainId: selectedChainID,
+                            userBalances: balances,
+                            tokenValue: _tokenValue,
+                            tokenData: selectedTokenData,
+                        })
                     }}
                 />
                 <TokenSelector classNameButton="w-full" shouldBeConnected={false} />
@@ -146,7 +195,14 @@ export const InitialView = ({
                 <button
                     className="wc-disable-mf btn-purple btn-xl "
                     onClick={() => {
-                        handleOnNext()
+                        handleOnNext({
+                            recipientAddress,
+                            tokenAddress: selectedTokenAddress,
+                            chainId: selectedChainID,
+                            userBalances: balances,
+                            tokenValue: _tokenValue,
+                            tokenData: selectedTokenData,
+                        })
                     }}
                     disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
                 >

@@ -927,3 +927,21 @@ export const switchNetwork = async ({
         }
     }
 }
+
+export async function getTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
+    let tokenSymbol = consts.peanutTokenDetails
+        .find((chain) => chain.chainId === chainId)
+        ?.tokens.find((token) => areTokenAddressesEqual(token.address, tokenAddress))
+        ?.symbol?.toUpperCase()
+    if (!tokenSymbol) {
+        const contract = await peanut.getTokenContractDetails({
+            address: tokenAddress,
+            provider: await peanut.getDefaultProvider(chainId),
+        })
+        tokenSymbol = contract?.symbol?.toUpperCase()
+    }
+    if (!tokenSymbol) {
+        console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
+    }
+    return tokenSymbol
+}
