@@ -31,16 +31,6 @@ const nextConfig = {
     async redirects() {
         return [
             {
-                source: '/cashout/:path*',
-                destination: '/maintenance',
-                permanent: false,
-            },
-            {
-                source: '/cashout',
-                destination: '/maintenance',
-                permanent: false,
-            },
-            {
                 source: '/docs',
                 destination: 'https://docs.peanut.to',
                 permanent: false,
