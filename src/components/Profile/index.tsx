@@ -6,8 +6,8 @@ import * as consts from '@/constants'
 import { createAvatar } from '@dicebear/core'
 import { identicon } from '@dicebear/collection'
 import * as components from './Components'
-import { useContext, useEffect, useRef, useState } from 'react'
-import { Divider, ToastId, useToast } from '@chakra-ui/react'
+import { useContext, useEffect, useState } from 'react'
+import { Divider } from '@chakra-ui/react'
 import { useDashboard } from '../Dashboard/useDashboard'
 import * as interfaces from '@/interfaces'
 import { useAccount, useSignMessage } from 'wagmi'
@@ -15,11 +15,9 @@ import TablePagination from '../Global/TablePagination'
 import * as utils from '@/utils'
 import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
-import ImageEdit from '../Global/ImageEdit'
-import TextEdit from '../Global/TextEdit'
-import Link from 'next/link'
 import * as context from '@/context'
-import Loading from '../Global/Loading'
+import { Button, Card } from '../0_Bruddle'
+import ProfileHeader from './Components/ProfileHeader'
 
 const tabs = [
     {
@@ -38,18 +36,13 @@ const tabs = [
 
 export const Profile = () => {
     const [selectedTab, setSelectedTab] = useState<'contacts' | 'history' | 'accounts' | undefined>(undefined)
-    const { user, fetchUser, isFetchingUser, updateUserName, submitProfilePhoto, logoutUser } = useAuth()
-    const avatar = createAvatar(identicon, {
-        seed: user?.user?.username ?? user?.user?.email ?? '',
-    })
+    const { user, fetchUser, isFetchingUser, logoutUser } = useAuth()
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const svg = avatar.toDataUri()
-    const { address, isConnected } = useAccount()
+    const { address } = useAccount()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-
     const { signMessageAsync } = useSignMessage()
     const [tableData, setTableData] = useState<interfaces.IProfileTableData[]>([])
     const [currentPage, setCurrentPage] = useState(1)
@@ -74,19 +67,6 @@ export const Profile = () => {
 
     const [modalVisible, setModalVisible] = useState(false)
     const [modalType, setModalType] = useState<'Boost' | 'Invites' | undefined>(undefined)
-
-    const [initialUserName, setInitialUserName] = useState(
-        user?.user?.username ??
-            user?.user?.email ??
-            (user?.accounts ? utils.printableAddress(user?.accounts[0]?.account_identifier) : '')
-    )
-    const toastIdRef = useRef<ToastId | undefined>(undefined)
-    const toast = useToast({
-        position: 'bottom-right',
-        duration: 5000,
-        isClosable: true,
-        icon: '🥜',
-    })
 
     // Calculate the number of items that can be displayed on the page
     // Calculate the number of items that can be displayed on the page
@@ -349,9 +329,6 @@ export const Profile = () => {
     }, [currentPage, selectedTab])
 
     // UseEffect hook to set the initial user name
-    useEffect(() => {
-        setInitialUserName(user?.user?.username ?? '')
-    }, [user])
 
     if (!user) {
         return (
@@ -366,92 +343,37 @@ export const Profile = () => {
         )
     } else
         return (
-            <div className="flex h-full w-full flex-row flex-col items-center justify-start gap-4 px-4">
-                <div className={`flex w-full flex-col items-center justify-center gap-2 `}>
-                    <div className="flex w-full flex-col items-center justify-center gap-2 sm:flex-row sm:justify-between ">
-                        <div className="flex flex-col gap-2">
-                            <div className="flex w-full flex-col items-center justify-center gap-2 sm:w-max sm:flex-row">
-                                <span className="flex flex-col items-center  justify-center gap-1 ">
-                                    <ImageEdit
-                                        initialProfilePicture={
-                                            user?.user?.profile_picture ? user?.user?.profile_picture : svg
-                                        }
-                                        onImageChange={(file) => {
-                                            if (!file) return
-                                            submitProfilePhoto(file)
-                                        }}
-                                    />
-                                </span>
-                                <div className="flex flex-col items-start justify-center gap-1">
-                                    <TextEdit
-                                        initialText={initialUserName ?? ''}
-                                        onTextChange={(text) => {
-                                            setInitialUserName(text)
-                                            updateUserName(text)
-                                        }}
-                                    />
-
-                                    <span className="flex justify-center gap-1 text-h8 font-normal">
-                                        {user?.user?.email ??
-                                            utils.printableAddress(user.accounts?.[0]?.account_identifier)}
-                                        <div className={`flex flex-row items-center justify-center `}>
-                                            <div
-                                                className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
-                                            >
-                                                {user?.user?.kycStatus === 'verified' ? (
-                                                    'KYC'
-                                                ) : (
-                                                    <Link className="px-2 py-1" href={'/kyc'}>
-                                                        NO KYC
-                                                    </Link>
-                                                )}
-                                            </div>
-                                        </div>
-                                    </span>
-                                </div>
-                            </div>
-                            <button className="btn btn-xl h-8 w-full" onClick={handleLogout}>
-                                {isLoading ? (
-                                    <div className="flex w-full flex-row items-center justify-center gap-2">
-                                        <Loading /> {loadingState}
-                                    </div>
-                                ) : (
-                                    'Log out'
-                                )}
-                            </button>
+            <div className="col h-full w-full  items-center justify-start gap-4">
+                <div className={`col w-full items-center justify-center gap-2`}>
+                    <div className="col w-full items-center justify-center gap-2 sm:flex-row sm:justify-between">
+                        <div className="col w-full gap-2">
+                            <ProfileHeader />
                         </div>
-                        <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-background px-4 py-2 text-h7 sm:w-96 ">
-                            <span className="text-h5">{user?.totalPoints} points</span>
-                            {/* <span className="flex items-center justify-center gap-1">
-                                <Icon name={'arrow-up-right'} />
-                                Boost 1.4X
-                                <Icon
-                                    name={'info'}
-                                    className={`cursor-pointer transition-transform dark:fill-white`}
-                                    onClick={() => {
-                                        setModalVisible(true)
-                                        setModalType('Boost')
-                                    }}
-                                />
-                            </span> */}
-                            <span className="flex items-center justify-center gap-1">
-                                <Icon name={'heart'} />
-                                Invites {user?.referredUsers}
-                                {user?.referredUsers > 0 && (
-                                    <Icon
-                                        name={'info'}
-                                        className={`cursor-pointer transition-transform dark:fill-white`}
-                                        onClick={() => {
-                                            setModalVisible(true)
-                                            setModalType('Invites')
-                                        }}
-                                    />
-                                )}
-                            </span>
-                            {/* <span className="flex items-center justify-center gap-1">
-                        <Icon name={'peanut'} />7 day streak
-                        <MoreInfo text="More info streak" />
-                    </span> */}
+                        <div className="col w-full min-w-[250px] gap-4 sm:w-auto">
+                            <Card shadowSize="4">
+                                <Card.Header className="border-b-0 sm:items-start">
+                                    <Card.Title>{user?.totalPoints} points</Card.Title>
+                                    <Card.Description className="">
+                                        <span className="flex items-center justify-center gap-1">
+                                            <Icon name={'heart'} />
+                                            Invites {user?.referredUsers}
+                                            {user?.referredUsers > 0 && (
+                                                <Icon
+                                                    name={'info'}
+                                                    className={`cursor-pointer transition-transform dark:fill-white`}
+                                                    onClick={() => {
+                                                        setModalVisible(true)
+                                                        setModalType('Invites')
+                                                    }}
+                                                />
+                                            )}
+                                        </span>
+                                    </Card.Description>
+                                </Card.Header>
+                            </Card>
+                            <Button variant="stroke" size="small" loading={isLoading} onClick={handleLogout}>
+                                {isLoading ? loadingState : 'Logout'}
+                            </Button>
                         </div>
                     </div>
                     <div className="flex w-full flex-col items-center justify-center gap-2 pb-2">
@@ -534,7 +456,7 @@ export const Profile = () => {
                             </div>
                         ) : modalType === 'Invites' ? (
                             <div className="flex w-full flex-col items-center justify-center gap-2 text-h7">
-                                <div className="flex w-full items-center justify-between">
+                                <div>
                                     <label className="w-[42%] text-h9">Address</label>
                                     <label className="w-[28%] text-h9">Referred Users</label>
                                     <label className="w-[30%] text-right text-h9">Points</label>

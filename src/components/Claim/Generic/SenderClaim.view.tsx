@@ -9,8 +9,8 @@ import { useContext, useState } from 'react'
 import useClaimLink from '../useClaimLink'
 import { useAccount } from 'wagmi'
 import * as interfaces from '@/interfaces'
-import Loading from '@/components/Global/Loading'
 import Link from 'next/link'
+import { Button, Card } from '@/components/0_Bruddle'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -26,7 +26,7 @@ export const SenderClaimLinkView = ({
     onCustom,
 }: ISenderClaimLinkViewProps) => {
     const { claimLink } = useClaimLink()
-    const { isConnected, address } = useAccount()
+    const { address } = useAccount()
 
     const router = useRouter()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -70,55 +70,45 @@ export const SenderClaimLinkView = ({
     }
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Hello, {utils.shortenAddress(address ?? '')}</label>
-            <label className="text-h8 font-bold ">
-                This is a link that you have created. You can refund it or go to the recipient view.
-            </label>
-
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                <button className="btn-purple btn-xl" onClick={handleOnCancel} disabled={isLoading}>
-                    {isLoading ? (
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {loadingState}
-                        </div>
-                    ) : (
-                        'Refund'
-                    )}
-                </button>
-                <button
-                    className="btn btn-xl dark:border-white dark:text-white"
-                    onClick={changeToRecipientView}
-                    disabled={isLoading}
-                >
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>Hello, {utils.shortenAddress(address ?? '')}</Card.Title>
+                <Card.Description>
+                    This is a link that you have created. You can refund it or go to the recipient view.
+                </Card.Description>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-2">
+                <Button onClick={handleOnCancel} disabled={isLoading} loading={isLoading}>
+                    Refund
+                </Button>
+                <Button variant="dark" onClick={changeToRecipientView} disabled={isLoading}>
                     Go to recipient view
-                </button>
+                </Button>
                 {errorState.showError && (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
-            </div>
-            <label className="text-h9 font-normal">
-                We would like to hear from your experience. Hit us up on{' '}
-                <a
-                    className="cursor-pointer text-black underline dark:text-white"
-                    target="_blank"
-                    href="https://discord.gg/BX9Ak7AW28"
-                >
-                    Discord!
-                </a>
-            </label>
-            <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/profile'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="profile" className="-mt-0.5" />
-                </div>
-                See your payments.
-            </Link>
-        </div>
+                <Link className="" href={'/profile'}>
+                    <Button variant="stroke" className="text-nowrap">
+                        <div className="border border-n-1 p-0 px-1">
+                            <Icon name="profile" className="-mt-0.5" />
+                        </div>
+                        See your payments.
+                    </Button>
+                </Link>
+                <label className="mt-2 text-h9 font-normal">
+                    We would like to hear from your experience. Hit us up on{' '}
+                    <a
+                        className="cursor-pointer text-black underline dark:text-white"
+                        target="_blank"
+                        href="https://discord.gg/BX9Ak7AW28"
+                    >
+                        Discord!
+                    </a>
+                </label>
+            </Card.Content>
+        </Card>
     )
 }
 

@@ -27,14 +27,14 @@ export const MobileTableComponent = ({
 
     return (
         <div
-            className="flex w-full flex-row items-center justify-between gap-2 border border-n-1 bg-background px-2 py-4 text-h8 font-normal dark:bg-black"
+            className="flex w-full flex-row items-center justify-between gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
             key={itemKey}
             onClick={() => {
                 if (type !== 'accounts') setModalVisible(true)
             }}
         >
             {avatar.avatarUrl ? (
-                <div className="border border-black border-n-1 p-2">
+                <div className="border border-n-1 p-2">
                     <img alt="" loading="eager" src={avatar.avatarUrl} className="h-8 w-8" />
                 </div>
             ) : (

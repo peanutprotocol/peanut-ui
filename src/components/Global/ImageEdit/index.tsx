@@ -37,13 +37,13 @@ const ImageEdit: React.FC<ImageEditProps> = ({ initialProfilePicture, onImageCha
     }
 
     return (
-        <div className="relative h-16 w-auto min-w-16 overflow-hidden">
+        <div className="relative h-28 w-28 overflow-hidden rounded-full sm:h-22 sm:w-22">
             <div className="relative h-full w-full">
-                {loading && <div className="h-16 w-16 animate-pulse bg-gray-300 bg-slate-700" />}
+                {loading && <div className="h-full w-full animate-pulse bg-slate-700" />}
                 <img
                     src={profilePicture}
                     alt="Profile"
-                    className={`h-full w-full max-w-16 transform object-cover transition duration-300 hover:scale-105 ${loading ? 'hidden' : 'block'}`}
+                    className={`h-full w-full transform object-cover transition duration-300 hover:scale-105 ${loading ? 'hidden' : 'block'}`}
                     onLoad={() => setLoading(false)}
                 />
                 <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 opacity-0 transition duration-300 hover:opacity-100">

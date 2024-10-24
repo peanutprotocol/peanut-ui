@@ -7,13 +7,16 @@ import * as consts from '@/constants'
 import * as context from '@/context'
 import * as utils from '@/utils'
 import Select from '../Global/Select'
-import { useState, useMemo, useContext } from 'react'
+import { useState, useContext } from 'react'
 import { useCreateLink } from '../Create/useCreateLink'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { Button, Card } from '../0_Bruddle'
+import BaseInput from '../0_Bruddle/BaseInput'
+import PageContainer from '../0_Bruddle/PageContainer'
 
 export const Refund = () => {
-    const { isConnected, chain: currentChain } = useAccount()
+    const { isConnected } = useAccount()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { open } = useWeb3Modal()
@@ -114,98 +117,102 @@ export const Refund = () => {
     }
 
     return (
-        <div className="card">
-            <div className="flex w-full flex-col items-center justify-center gap-6 py-2 text-center">
-                <label className="text-h2">Refund</label>
-                <div className="max-w-96 text-start text-h8 font-light">
-                    This is a page specific for refunding links that failed while creating, but the funds did leave your
-                    wallet. Please provide the transaction hash and chainId, and you will be able to claim. Please note
-                    that you will have to be connected with the same wallet that you tried creating the link with.
-                </div>
-
-                <form
-                    className="flex w-full flex-col items-center gap-2 px-4 sm:gap-7"
-                    onSubmit={refundForm.handleSubmit(refundDeposit)}
-                >
-                    <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
-                        <label className="font-h7 font-bold">Chain</label>
-                        <Select
-                            className="h-8 border border-n-1 p-1 outline-none"
-                            classButton="h-auto px-0 border-none bg-trasparent text-sm !font-normal"
-                            classOptions="-left-4 -right-3 w-auto py-1 overflow-auto max-h-36"
-                            classArrow="ml-1"
-                            items={consts.supportedPeanutChains}
-                            value={
-                                consts.supportedPeanutChains.find((chain) => chain.chainId === refundFormWatch.chainId)
-                                    ?.name
-                            }
-                            onChange={(chainId: any) => {
-                                refundForm.setValue('chainId', chainId.chainId)
-                            }}
-                        />
-
-                        <label className="font-h7 font-bold">Transaction hash</label>
-                        <input
-                            placeholder="0x123..."
-                            className="h-8 border border-n-1 p-1 outline-none"
-                            {...refundForm.register('transactionHash')}
-                        />
-                    </div>
-                    <div
-                        className={
-                            errorState.showError
-                                ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
-                                : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
-                        }
+        <PageContainer>
+            <Card shadowSize="6">
+                <Card.Header>
+                    <Card.Title>Refund</Card.Title>
+                    <Card.Description>
+                        This is a page specific for refunding links that failed while creating, but the funds did leave
+                        your wallet. Please provide the transaction hash and chainId, and you will be able to claim.
+                        Please note that you will have to be connected with the same wallet that you tried creating the
+                        link with.
+                    </Card.Description>
+                </Card.Header>
+                <Card.Content>
+                    <form
+                        className="flex w-full flex-col items-center gap-2 px-4 sm:gap-7"
+                        onSubmit={refundForm.handleSubmit(refundDeposit)}
                     >
-                        <button
-                            type={isConnected ? 'submit' : 'button'}
-                            className="btn-purple btn-xl"
-                            onClick={() => {
-                                if (!isConnected) {
-                                    open()
+                        <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
+                            <label className="font-h7 font-bold">Chain</label>
+                            <Select
+                                className="h-8 border border-n-1 p-1 outline-none"
+                                classButton="h-auto px-0 border-none bg-trasparent text-sm !font-normal"
+                                classOptions="-left-4 -right-3 w-auto py-1 overflow-auto max-h-36"
+                                classArrow="ml-1"
+                                items={consts.supportedPeanutChains}
+                                value={
+                                    consts.supportedPeanutChains.find(
+                                        (chain) => chain.chainId === refundFormWatch.chainId
+                                    )?.name
                                 }
-                            }}
-                            disabled={isLoading || claimedExploredUrlWithHash ? true : false}
+                                onChange={(chainId: any) => {
+                                    refundForm.setValue('chainId', chainId.chainId)
+                                }}
+                            />
+
+                            <label className="font-h7 font-bold">Transaction hash</label>
+                            <BaseInput
+                                variant="sm"
+                                placeholder="0x123..."
+                                {...refundForm.register('transactionHash')}
+                            />
+                        </div>
+                        <div
+                            className={
+                                errorState.showError
+                                    ? 'mx-auto mb-0 mt-4 flex w-full flex-col items-center gap-10 sm:mt-0'
+                                    : 'mx-auto mb-8 mt-4 flex w-full flex-col items-center sm:mt-0'
+                            }
                         >
-                            {isLoading ? (
-                                <div className="flex justify-center gap-1">
-                                    <label>{loadingState} </label>
-                                    <span className="bouncing-dots flex">
-                                        <span className="dot">.</span>
-                                        <span className="dot">.</span>
-                                        <span className="dot">.</span>
-                                    </span>
-                                </div>
-                            ) : !isConnected ? (
-                                'Connect Wallet'
-                            ) : claimedExploredUrlWithHash ? (
-                                'Success'
+                            <Button
+                                type={isConnected ? 'submit' : 'button'}
+                                onClick={() => {
+                                    if (!isConnected) {
+                                        open()
+                                    }
+                                }}
+                                disabled={isLoading || claimedExploredUrlWithHash ? true : false}
+                            >
+                                {isLoading ? (
+                                    <div className="flex justify-center gap-1">
+                                        <label>{loadingState} </label>
+                                        <span className="bouncing-dots flex">
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                            <span className="dot">.</span>
+                                        </span>
+                                    </div>
+                                ) : !isConnected ? (
+                                    'Connect Wallet'
+                                ) : claimedExploredUrlWithHash ? (
+                                    'Success'
+                                ) : (
+                                    'Refund'
+                                )}
+                            </Button>
+                            {claimedExploredUrlWithHash ? (
+                                <p className="tx-sm mt-4">
+                                    <a
+                                        href={claimedExploredUrlWithHash ?? ''}
+                                        target="_blank"
+                                        className="cursor-pointer text-center text-sm text-black underline "
+                                    >
+                                        Your transaction hash
+                                    </a>
+                                </p>
                             ) : (
-                                'Refund'
+                                errorState.showError && (
+                                    <div className="text-center">
+                                        <label className="font-bold text-red ">{errorState.errorMessage}</label>
+                                    </div>
+                                )
                             )}
-                        </button>
-                        {claimedExploredUrlWithHash ? (
-                            <p className="tx-sm mt-4">
-                                <a
-                                    href={claimedExploredUrlWithHash ?? ''}
-                                    target="_blank"
-                                    className="cursor-pointer text-center text-sm text-black underline "
-                                >
-                                    Your transaction hash
-                                </a>
-                            </p>
-                        ) : (
-                            errorState.showError && (
-                                <div className="text-center">
-                                    <label className="font-bold text-red ">{errorState.errorMessage}</label>
-                                </div>
-                            )
-                        )}
-                    </div>
-                </form>
-            </div>
-        </div>
+                        </div>
+                    </form>
+                </Card.Content>
+            </Card>
+        </PageContainer>
     )
 }
 

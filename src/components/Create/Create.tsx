@@ -1,6 +1,6 @@
 'use client'
 
-import { createElement, useContext, useEffect, useState } from 'react'
+import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
 import * as _consts from './Create.consts'
@@ -9,6 +9,7 @@ import * as utils from '@/utils'
 import { useAccount } from 'wagmi'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useBalance } from '@/hooks/useBalance'
+import PageContainer from '../0_Bruddle/PageContainer'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -121,46 +122,48 @@ export const Create = () => {
     }, [address])
 
     return (
-        <div className="card">
-            {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
-                onPrev: handleOnPrev,
-                onNext: handleOnNext,
-                tokenValue: tokenValue,
-                setTokenValue: setTokenValue,
-                linkDetails: linkDetails,
-                setLinkDetails: setLinkDetails,
-                password: password,
-                setPassword: setPassword,
-                transactionType: transactionType,
-                setTransactionType: setTransactionType,
-                gaslessPayload: gaslessPayload,
-                setGaslessPayload: setGaslessPayload,
-                gaslessPayloadMessage: gaslessPayloadMessage,
-                setGaslessPayloadMessage: setGaslessPayloadMessage,
-                preparedDepositTxs: preparedDepositTxs,
-                setPreparedDepositTxs: setPreparedDepositTxs,
-                txHash: txHash,
-                setTxHash: setTxHash,
-                link: link,
-                setLink: setLink,
-                feeOptions,
-                setFeeOptions,
-                transactionCostUSD,
-                setTransactionCostUSD,
-                estimatedPoints,
-                setEstimatedPoints,
-                attachmentOptions,
-                setAttachmentOptions,
-                createType,
-                setCreateType,
-                recipient,
-                setRecipient,
-                recentRecipients,
+        <Suspense>
+            <PageContainer>
+                {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+                    onPrev: handleOnPrev,
+                    onNext: handleOnNext,
+                    tokenValue: tokenValue,
+                    setTokenValue: setTokenValue,
+                    linkDetails: linkDetails,
+                    setLinkDetails: setLinkDetails,
+                    password: password,
+                    setPassword: setPassword,
+                    transactionType: transactionType,
+                    setTransactionType: setTransactionType,
+                    gaslessPayload: gaslessPayload,
+                    setGaslessPayload: setGaslessPayload,
+                    gaslessPayloadMessage: gaslessPayloadMessage,
+                    setGaslessPayloadMessage: setGaslessPayloadMessage,
+                    preparedDepositTxs: preparedDepositTxs,
+                    setPreparedDepositTxs: setPreparedDepositTxs,
+                    txHash: txHash,
+                    setTxHash: setTxHash,
+                    link: link,
+                    setLink: setLink,
+                    feeOptions,
+                    setFeeOptions,
+                    transactionCostUSD,
+                    setTransactionCostUSD,
+                    estimatedPoints,
+                    setEstimatedPoints,
+                    attachmentOptions,
+                    setAttachmentOptions,
+                    createType,
+                    setCreateType,
+                    recipient,
+                    setRecipient,
+                    recentRecipients,
 
-                crossChainDetails,
-                usdValue,
-                setUsdValue,
-            } as _consts.ICreateScreenProps)}
-        </div>
+                    crossChainDetails,
+                    usdValue,
+                    setUsdValue,
+                } as _consts.ICreateScreenProps)}
+            </PageContainer>
+        </Suspense>
     )
 }

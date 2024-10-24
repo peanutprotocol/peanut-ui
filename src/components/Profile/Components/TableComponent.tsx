@@ -36,7 +36,7 @@ export const TableComponent = ({
     )
 
     return (
-        <table className="table-custom hidden bg-background sm:table">
+        <table className="table-custom hidden sm:table">
             <thead>
                 {selectedTab === 'history' ? (
                     <tr>
@@ -97,10 +97,7 @@ export const TableComponent = ({
                     .map((data) =>
                         selectedTab === 'history' ? (
                             data.dashboardItem && (
-                                <tr
-                                    className="h-16 text-h8 font-normal"
-                                    key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}
-                                >
+                                <tr key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}>
                                     <td className="td-custom font-bold">{data.dashboardItem.type}</td>
                                     <td className="td-custom font-bold">
                                         {utils.formatTokenAmount(Number(data.dashboardItem.amount), 4)}{' '}

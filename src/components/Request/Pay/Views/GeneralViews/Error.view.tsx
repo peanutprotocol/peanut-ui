@@ -1,34 +1,38 @@
 'use client'
+import { Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 
 import Link from 'next/link'
 
 export const ErrorView = ({ errorMessage }: { errorMessage: string }) => {
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Sorryyy</label>
-            <label className="text-h8 font-bold ">{errorMessage}</label>
-            <label className="text-h9 font-normal">
-                We would like to hear from your experience. Hit us up on{' '}
-                <a
-                    className="cursor-pointer text-black underline dark:text-white"
-                    target="_blank"
-                    href="https://discord.gg/BX9Ak7AW28"
-                >
-                    Discord!
-                </a>
-            </label>
+        <Card>
+            <Card.Header>
+                <Card.Title>Sorryyyy</Card.Title>
+                <Card.Description>{errorMessage}</Card.Description>
+            </Card.Header>
+            <Card.Content className="col gap-4">
+                <label className="text-h9 font-normal">
+                    We would like to hear from your experience. Hit us up on{' '}
+                    <a
+                        className="cursor-pointer text-black underline dark:text-white"
+                        target="_blank"
+                        href="https://discord.gg/BX9Ak7AW28"
+                    >
+                        Discord!
+                    </a>
+                </label>
 
-            <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/request/create'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="send" className="-mt-0.5" />
-                </div>
-                Make a request yourself!
-            </Link>
-        </div>
+                <Link href={'/request/create'}>
+                    <Button variant="stroke">
+                        <div className=" border border-n-1 p-0 px-1">
+                            <Icon name="send" className="-mt-0.5" />
+                        </div>
+                        Make a request yourself!
+                    </Button>
+                </Link>
+            </Card.Content>
+        </Card>
     )
 }
 

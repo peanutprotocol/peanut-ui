@@ -1,6 +1,4 @@
-import '@/styles/globals.css'
 import { Roboto_Flex } from 'next/font/google'
-import { ColorModeScript, ColorModeProvider } from '@chakra-ui/color-mode'
 import * as config from '@/config'
 import * as context from '@/context'
 import CrispChat from '../components/CrispChat'
@@ -16,19 +14,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     return (
         <html lang="en">
             <body className={`${roboto.variable} font-sans`}>
-                <ColorModeProvider>
-                    <ColorModeScript
-                        initialColorMode="light"
-                        key="chakra-ui-no-flash"
-                        storageKey="chakra-ui-color-mode"
-                    />
-                    <config.PeanutProvider>
-                        <context.ContextProvider>
-                            {children}
-                            <CrispChat />
-                        </context.ContextProvider>
-                    </config.PeanutProvider>
-                </ColorModeProvider>
+                <config.PeanutProvider>
+                    <context.ContextProvider>
+                        {children}
+                        <CrispChat />
+                    </context.ContextProvider>
+                </config.PeanutProvider>
             </body>
         </html>
     )
