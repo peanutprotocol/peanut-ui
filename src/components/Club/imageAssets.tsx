@@ -15,9 +15,12 @@ import {
     Eyes,
     HandBag,
     HandRad,
+    CloudLeft,
+    CloudRight,
 } from '@/assets'
 
 const CloudAnimation = ({
+    side,
     top,
     imageSrc,
     styleMod,
@@ -25,6 +28,7 @@ const CloudAnimation = ({
     speed = 45,
     startXOffset = 0,
 }: {
+    side: 'left' | 'right'
     top: string
     duration: number
     imageSrc: string
@@ -42,14 +46,14 @@ const CloudAnimation = ({
     return (
         <motion.img
             src={imageSrc}
-            alt="Floating Cloud"
-            className={`absolute left-0 ${styleMod || ''}`}
+            alt={`Floating Cloud ${side}`}
+            className={`absolute ${side}-0 ${styleMod || ''}`}
             style={{ top, width: imageWidth }}
             initial={{
-                x: startXOffset, // Use numeric values for pixels
+                x: side === 'left' ? -imageWidth : vpWidth + startXOffset,
             }}
             animate={{
-                x: [vpWidth, -imageWidth],
+                x: side === 'left' ? [vpWidth, -imageWidth] : [-imageWidth, vpWidth],
             }}
             transition={{
                 ease: 'linear',
@@ -63,32 +67,66 @@ const CloudAnimation = ({
 export const CloudImages = ({ screenWidth }: { screenWidth: number }) => {
     return (
         <div className="absolute left-0 top-0 h-full w-full overflow-hidden">
+            {/* Right side clouds */}
             <CloudAnimation
-                top="12%"
+                side="right"
+                top="5%"
                 duration={10}
                 imageSrc={Cloud.src}
                 screenWidth={screenWidth}
-                startXOffset={300}
+                startXOffset={-200}
                 speed={55}
             />
             <CloudAnimation
-                top="40%"
+                side="right"
+                top="35%"
                 duration={12}
                 imageSrc={Cloud.src}
-                styleMod="z-[99]"
+                styleMod="scale-50"
                 screenWidth={screenWidth}
-                startXOffset={220}
-                speed={40}
+                startXOffset={100}
+                speed={35}
+            />
+            {/* <CloudAnimation
+                side="right"
+                top="65%"
+                duration={14}
+                imageSrc={Cloud.src}
+                screenWidth={screenWidth}
+                startXOffset={300}
+                speed={60}
+            /> */}
+
+            {/* Left side clouds */}
+            <CloudAnimation
+                side="left"
+                top="15%"
+                duration={15}
+                imageSrc={Cloud.src}
+                styleMod="scale-50"
+                screenWidth={screenWidth}
+                startXOffset={-100}
+                speed={30}
             />
             <CloudAnimation
-                top="72%"
-                duration={8}
+                side="left"
+                top="45%"
+                duration={18}
+                imageSrc={Cloud.src}
+                screenWidth={screenWidth}
+                startXOffset={200}
+                speed={40}
+            />
+            {/* <CloudAnimation
+                side="left"
+                top="75%"
+                duration={20}
                 imageSrc={Cloud.src}
                 styleMod="z-[99]"
                 screenWidth={screenWidth}
-                startXOffset={500}
-                speed={60}
-            />
+                startXOffset={50}
+                speed={45}
+            /> */}
         </div>
     )
 }

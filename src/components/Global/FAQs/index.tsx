@@ -31,18 +31,11 @@ export function FAQsPanel({ heading, questions }: FAQsProps) {
     }, [])
 
     return (
-        <Box
-            className="w-full overflow-x-hidden bg-primary"
-            style={{
-                backgroundImage: `url(${PeanutsBG.src})`,
-                backgroundSize: '10rem auto',
-                backgroundRepeat: 'repeat',
-            }}
-        >
+        <Box className="w-full overflow-x-hidden bg-background">
             <Box className="relative px-6 py-20 md:px-8 md:py-36">
                 <motion.div
-                    initial={{ opacity: 1, translateY: 0, translateX: 0 }}
-                    whileInView={{ opacity: 1 }}
+                    initial={{ opacity: 0, translateY: 20 }} // Added entry animation
+                    animate={{ opacity: 1, translateY: 0 }}
                     transition={{ type: 'spring', damping: 10 }}
                     className="relative mx-auto max-w-3xl rounded-md border-2 border-n-1 bg-white px-2 py-6 shadow ring-2 ring-white transition-transform duration-300 hover:rotate-0 md:-rotate-2 md:p-14"
                 >

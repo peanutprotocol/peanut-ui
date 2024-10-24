@@ -175,7 +175,7 @@ export const Claim = ({}) => {
     }, [])
 
     return (
-        <div className="panel panel-sm panel-center">
+        <div className="card">
             {linkState === _consts.claimLinkStateType.LOADING && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
@@ -226,7 +226,9 @@ export const Claim = ({}) => {
                 />
             )}
 
-            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
+            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && (
+                <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />
+            )}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
             {linkState === _consts.claimLinkStateType.CLAIM_SENDER && (
                 <genericViews.SenderClaimLinkView

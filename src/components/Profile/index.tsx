@@ -420,7 +420,7 @@ export const Profile = () => {
                                 )}
                             </button>
                         </div>
-                        <div className="border-rounded ring-sm flex w-full flex-col items-start justify-center gap-2 bg-white px-4 py-2 text-h7 sm:w-96">
+                        <div className="flex w-full flex-col items-start justify-center gap-2 border border-n-1 bg-white px-4 py-2 text-h7 sm:w-96">
                             <span className="text-h5">{user?.totalPoints} points</span>
                             {/* <span className="flex items-center justify-center gap-1">
                                 <Icon name={'arrow-up-right'} />

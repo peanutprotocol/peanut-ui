@@ -32,18 +32,21 @@ export function MarqueeWrapper({
     )
 }
 
+// MarqueeComp: A pre-configured marquee component with message and image
 export function MarqueeComp({
     message,
     imageSrc,
     imageAnimationClass = 'animation-thumbsUp',
+    backgroundColor = 'bg-primary', // Add default value
 }: {
     message?: string
     imageSrc: string
     imageAnimationClass?: string
+    backgroundColor?: string // Add new prop
 }) {
     return (
         <Box className="border-y-1 border-white shadow">
-            <MarqueeWrapper backgroundColor="bg-primary" direction="left" className="border-y-2 border-n-1">
+            <MarqueeWrapper backgroundColor={backgroundColor} direction="left" className="border-y-2 border-n-1">
                 {message && <div className="mx-3 text-lg font-bold uppercase md:text-xl">{message}</div>}
 
                 <div className="mx-3 inline-flex min-h-12 items-center py-2">

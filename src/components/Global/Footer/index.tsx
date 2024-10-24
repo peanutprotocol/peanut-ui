@@ -7,7 +7,7 @@ import * as _consts from './consts'
 const Footer = () => {
     return (
         <footer>
-            <div className="flex w-full flex-col gap-2 border-t border-n-1 bg-white py-4 text-black dark:border-white dark:bg-n-2 sm:gap-4  sm:py-8">
+            <div className="flex w-full flex-col gap-2 border-t border-n-1 bg-black py-4 text-white dark:border-white dark:bg-n-2 sm:gap-4 sm:py-8">
                 <div className="flex justify-center gap-4">
                     {_consts.SOCIALS.map((social) => {
                         return (

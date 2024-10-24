@@ -65,7 +65,7 @@ const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
         <Menu className="relative " as="div">
             {({ open }) => (
                 <>
-                    <Menu.Button className="border-rounded btn-xl-fixed flex flex-row items-center justify-center gap-2">
+                    <Menu.Button className=" btn-xl-fixed flex flex-row items-center justify-center gap-2">
                         <img
                             src={_chainsToDisplay.find((chain) => chain.chainId === selectedChainID)?.icon.url}
                             alt={''}
@@ -84,7 +84,7 @@ const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
                         leaveFrom="transform scale-100 opacity-100"
                         leaveTo="transform scale-95 opacity-0"
                     >
-                        <Menu.Items className=" border-rounded shadow-primary-4 absolute right-0 top-full z-30 -mt-80 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto bg-white dark:divide-white dark:bg-n-1 sm:mt-2.5">
+                        <Menu.Items className=" shadow-primary-4 absolute right-0 top-full z-30 -mt-80 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto bg-white dark:divide-white dark:bg-n-1 sm:mt-2.5">
                             <div className={'flex w-full items-center justify-center'}>
                                 <Search
                                     className="px-1"

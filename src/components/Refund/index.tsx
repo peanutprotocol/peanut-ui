@@ -114,7 +114,7 @@ export const Refund = () => {
     }
 
     return (
-        <div className="panel panel-sm panel-center">
+        <div className="card">
             <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
                 <div className="space-y-2">
                     <label className="text-h2">Refund</label>
@@ -133,7 +133,7 @@ export const Refund = () => {
                     <div className="grid w-full grid-cols-1 items-center justify-center gap-2 sm:grid-cols-2">
                         <label className="font-h7 font-bold">Chain</label>
                         <Select
-                            className="border-rounded h-10 px-3 py-2 outline-none"
+                            className="h-10 border border-n-1 px-3 py-2 outline-none"
                             classButton="h-auto px-0 border-none bg-trasparent text-sm !font-normal"
                             classOptions="-left-4 -right-3 w-auto py-1 overflow-auto max-h-36"
                             classArrow="ml-1"

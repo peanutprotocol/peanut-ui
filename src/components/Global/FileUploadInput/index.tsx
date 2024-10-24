@@ -41,7 +41,7 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
     }, [attachmentOptions.fileUrl])
 
     return (
-        <div className="border-rounded ring-sm flex h-12 w-full max-w-96 flex-row items-center justify-center gap-2 px-4 py-2">
+        <div className="flex h-12 w-full max-w-96 flex-row items-center justify-center gap-2 border border-n-1 px-4 py-2">
             <div>
                 <input
                     type="file"

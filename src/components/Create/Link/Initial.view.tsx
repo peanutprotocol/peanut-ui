@@ -202,7 +202,7 @@ export const CreateLinkInitialView = ({
                 <div className="flex w-full flex-col items-start  justify-center gap-2">
                     <label className="text-h7 font-bold text-n-2">Search results</label>
                     <div
-                        className="border-rounded flex w-full cursor-pointer flex-row items-center justify-between p-2 transition-colors hover:bg-n-3/10"
+                        className="flex w-full cursor-pointer flex-row items-center justify-between border border-n-1 p-2 transition-colors hover:bg-n-3/10"
                         onClick={() => {
                             handleOnNext()
                         }}

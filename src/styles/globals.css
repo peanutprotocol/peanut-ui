@@ -1,11 +1,12 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
 :root {
-    --primary-color: #f681df;
-    --secondary-color: #704fe6;
-    --background-color: #fbfdd8;
-    --accent-color: #6340df;
+    --primary-color: theme('colors.purple.1');
+    --secondary-color: theme('colors.violet.3');
+    --background-color: theme('colors.teal.2');
+    --accent-color: theme('colors.violet.3');
 }
 
 @layer components {
@@ -265,7 +266,7 @@ Firefox input[type='number'] {
 }
 
 .text-h2 {
-    @apply font-display text-2xl md:text-3xl lg:text-4xl;
+    @apply text-2xl md:text-3xl lg:text-4xl;
 }
 
 /* Panel styling */

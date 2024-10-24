@@ -61,7 +61,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     return {
         title: title,
         icons: {
-            icon: '/logo-favicon.png',
+            icon: '/favicon.ico',
         },
         openGraph: {
             images: [

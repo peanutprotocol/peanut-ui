@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     metadataBase: new URL('https://peanut.to'),
 
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [

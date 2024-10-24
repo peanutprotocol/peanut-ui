@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { Stack } from '@chakra-ui/react'
 import { MarqueeComp } from '../Global/MarqueeWrapper'
-import { HandThumbsUp, Sparkle } from '@/assets'
+import { HandThumbsUp, Sparkle, PeanutGuy, PeanutGuyGIF, ButterySmoothGlobalMoney } from '@/assets'
 import { HeroImages, CloudImages } from './imageAssets'
 import { motion } from 'framer-motion'
 
@@ -36,31 +36,32 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
     }, [])
 
     return (
-        <div className="relative flex min-h-[96vh] flex-col justify-between overflow-x-hidden md:min-h-[97vh]">
+        <div className="relative flex min-h-[96vh] flex-col justify-between overflow-x-hidden bg-pink-1 md:min-h-[97vh]">
             <CloudImages screenWidth={screenWidth} />
 
             <div className="lg:mb-16- lg:mt-24- relative mb-8 mt-12 flex grow flex-col justify-between space-y-6 md:mb-10 md:mt-12">
                 <img
-                    src="/peanut_guy.gif" // Updated to use animated gif
-                    className="mg:bottom-0 absolute bottom-4 left-1/2 mx-auto h-3/5 w-auto max-w-[none] -translate-x-1/2 transform md:w-auto"
-                    alt=""
+                    src={PeanutGuyGIF.src}
+                    className="mg:bottom-0 absolute bottom-4 left-1/2 z-10 mx-auto h-auto max-h-[60vh] w-auto max-w-[600px] max-w-[90%] -translate-x-1/2 transform object-contain md:w-auto"
+                    alt="Peanut Guy"
                 />
 
+                {/* Title! */}
                 <Stack spacing={2} className="relative h-1/3 justify-center px-4 text-center lg:h-auto">
+                    <img
+                        src={ButterySmoothGlobalMoney.src}
+                        className="z-0 mx-auto w-full max-w-[1000px] object-contain lg:w-3/4"
+                        alt="Buttery Smooth Global Money"
+                    />
+
                     <HeroImages />
-
-                    <h1 className="relative text-center font-display text-[21vw] font-black leading-[1] sm:text-7xl lg:text-9xl">
-                        {heading}
-                    </h1>
-
-                    <h2 className="relative font-condensed text-4xl uppercase leading-[1.15] lg:text-[3rem]">
-                        buttery smooth global money
-                    </h2>
                 </Stack>
             </div>
 
             <div className="relative z-1">
-                {marquee && <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} />}
+                {marquee && (
+                    <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} backgroundColor="bg-yellow-1" />
+                )}
             </div>
 
             {cta?.href && cta?.label && (

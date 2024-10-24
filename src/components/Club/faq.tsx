@@ -22,7 +22,7 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
 
     return (
         <Box
-            className="overflow-x-hidden bg-primary"
+            className="overflow-x-hidden bg-secondary"
             style={{
                 backgroundImage: `url(${PeanutsBG.src})`,
                 backgroundSize: '10rem auto',
@@ -32,7 +32,12 @@ export function FAQs({ heading, questions, marquee = { visible: false } }: Local
             <FAQsPanel heading={heading} questions={questions} />
 
             {marquee.visible && (
-                <MarqueeComp message={marquee.message} imageSrc={Eyes.src} imageAnimationClass="animation-rock" />
+                <MarqueeComp
+                    message={marquee.message}
+                    imageSrc={Eyes.src}
+                    imageAnimationClass="animation-rock"
+                    backgroundColor="bg-yellow-1"
+                />
             )}
         </Box>
     )

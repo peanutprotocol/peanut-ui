@@ -1,4 +1,3 @@
-const { connected } = require('process')
 const { fontFamily } = require('tailwindcss/defaultTheme')
 const plugin = require('tailwindcss/plugin')
 
@@ -10,25 +9,20 @@ module.exports = {
         extend: {
             colors: {
                 purple: {
-                    // rename to fuchsia
                     1: '#FF90E8',
                     2: '#dc78b5',
                     3: '#fffae8',
                 },
                 yellow: {
-                    // changed values but keep name the same
-                    1: '#F1F333',
+                    1: '#ffc900',
                     2: '#f5ff7c',
+                    3: '#fbfdd8',
                 },
                 pink: {
-                    // rename to lightblue
-                    1: '#90A8ED',
-                    2: '#a2faff',
-                    6: '#FDC5F6',
-                    9: '#FCD8DB',
+                    1: '#FF90E8',
+                    2: '#FCD8DB',
                 },
                 teal: {
-                    // rename to teal
                     1: '#23A094',
                     2: '#75b2d7',
                     3: '#00577d',
@@ -55,15 +49,11 @@ module.exports = {
                 gold: {
                     3: '#FFD25C',
                 },
-                pink: {
-                    6: '#FDC5F6',
-                },
                 white: '#FFFFFF',
-                // background: '#FAF4F0',
                 red: '#FF0000',
-                'kyc-red': '#C80000',
+                'kyc-red': '#C80000', // TODO: this is bad and needs to be changed
                 black: '#000000',
-                'kyc-green': '#00C800',
+                'kyc-green': '#00C800', // TODO: this is bad and needs to be changed
                 primary: 'var(--primary-color)',
                 secondary: 'var(--secondary-color)',
                 background: 'var(--background-color)',
@@ -236,7 +226,8 @@ module.exports = {
             })
             addComponents({
                 '.btn': {
-                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
+                        // '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
                         {},
                 },
                 '.btn svg': {

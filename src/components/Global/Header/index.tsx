@@ -51,7 +51,7 @@ export const Header = () => {
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
                 <Box display={{ base: 'none', lg: 'flex' }} flexDirection={'row'} height="100%">
                     <div
-                        className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
+                        className="flex h-full w-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
                             if (window?.location.pathname == '/') window?.location.reload()
                             else window.location.href = '/'
@@ -73,7 +73,7 @@ export const Header = () => {
                     height={'100%'}
                 >
                     <div
-                        className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
+                        className="flex h-full w-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
                             if (window?.location.pathname == '/') window?.location.reload()
                             else window.location.href = '/'
@@ -164,7 +164,7 @@ const ToolsDropdown = () => {
                         }}
                         className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
                     >
-                        tools
+                        <div className="flex h-full w-full items-center justify-center">tools</div>
                     </button>
                 </NavItemBox>
                 {showMenu && (
@@ -175,7 +175,7 @@ const ToolsDropdown = () => {
                         onMouseLeave={() => {
                             setShowMenu(false)
                         }}
-                        className="border-rounded ring-sm absolute left-0 z-10 w-48 origin-top-right bg-white p-0 p-1 font-medium uppercase text-black no-underline shadow-lg transition-colors"
+                        className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg transition-colors"
                     >
                         <MenuLink route={'/raffle/create'} title={'raffle'} />
                         <MenuLink route={'/batch/create'} title={'batch'} />
@@ -191,11 +191,13 @@ const ToolsDropdown = () => {
                         }}
                         className="text-bold flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:w-max sm:justify-center sm:px-6"
                     >
-                        <Text display="block"> tools</Text>
+                        <div className="flex h-full w-full items-center justify-center">
+                            <Text display="block"> tools</Text>
+                        </div>
                     </button>
                 </NavItemBox>
                 {showMenu && (
-                    <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                    <div className="bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
                         <MenuLink route={'/raffle/create'} title={'raffle'} />
                         <MenuLink route={'/batch/create'} title={'batch'} />
                         <MenuLink route={'/refund'} title={'refund'} />
@@ -281,8 +283,8 @@ const SocialLinks = () => {
 }
 
 const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) => {
-    const themeBG = 'white'
-    const themeColor ='black'
+    const themeBG = 'black'
+    const themeColor = 'white'
     return (
         <Flex
             as="nav"
@@ -294,7 +296,7 @@ const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) 
             color={{ base: themeColor, md: themeColor }}
             {...props}
             zIndex={9999} // always on top
-            className="border-b-2 z-[9999] border-n-1 font-black shadow ring-2 ring-white"
+            className="z-[9999] !m-0 border-b-2 border-n-1 !p-0 font-black"
         >
             {children}
         </Flex>
