@@ -5,7 +5,15 @@ import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import AddressLink from '@/components/Global/AddressLink'
-import * as utils from '@/utils'
+import {
+    fetchTokenSymbol,
+    isAddressZero,
+    formatTokenAmount,
+    formatAmountWithSignificantDigits,
+    areTokenAddressesEqual,
+    saveRequestLinkFulfillmentToLocalStorage,
+    ErrorHandler,
+} from '@/utils'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import * as consts from '@/constants'
@@ -39,7 +47,7 @@ async function createXChainUnsignedTx({
         senderAddress,
         squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
         provider: await peanut.getDefaultProvider(tokenData.chainId),
-        tokenType: utils.isAddressZero(tokenData.address)
+        tokenType: isAddressZero(tokenData.address)
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,
         fromTokenDecimals: tokenData.decimals as number,
@@ -85,7 +93,7 @@ export const InitialView = ({
     const [tokenRequestedSymbol, setTokenRequestedSymbol] = useState<string>('')
 
     const calculatedFee = useMemo(() => {
-        return isXChain ? txFee : utils.formatTokenAmount(estimatedGasCost, 3)
+        return isXChain ? txFee : formatTokenAmount(estimatedGasCost, 3)
     }, [isXChain, estimatedGasCost, txFee])
 
     const isButtonDisabled = useMemo(() => {
@@ -102,20 +110,11 @@ export const InitialView = ({
             : Number(requestLinkData.tokenAmount)
 
         if (tokenPriceData) {
-            return `$ ${utils.formatAmountWithSignificantDigits(amount, 3)}`
+            return `$ ${formatAmountWithSignificantDigits(amount, 3)}`
         } else {
-            return `${utils.formatAmountWithSignificantDigits(amount, 3)} ${tokenRequestedSymbol}`
+            return `${formatAmountWithSignificantDigits(amount, 3)} ${tokenRequestedSymbol}`
         }
     }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
-
-    const fetchTokenSymbol = async (chainId: string, address: string) => {
-        const provider = await peanut.getDefaultProvider(chainId)
-        const tokenContract = await peanut.getTokenContractDetails({
-            address,
-            provider,
-        })
-        setTokenRequestedSymbol(tokenContract?.symbol ?? '')
-    }
 
     // Get route
     useEffect(() => {
@@ -168,30 +167,32 @@ export const InitialView = ({
         clearError()
         const isXChain =
             selectedChainID !== requestLinkData.chainId ||
-            !utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            !areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
         setIsXChain(isXChain)
     }, [selectedChainID, selectedTokenAddress])
 
     // Fetch token symbol and logo
     useEffect(() => {
+        let isMounted = true
         const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
         const logoURI =
-            chainDetails?.tokens.find((token) =>
-                utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
-            )?.logoURI ?? tokenPriceData?.logoURI
+            chainDetails?.tokens.find((token) => areTokenAddressesEqual(token.address, requestLinkData.tokenAddress))
+                ?.logoURI ?? tokenPriceData?.logoURI
         setTokenRequestedLogoURI(logoURI)
 
-        let tokenSymbol =
-            requestLinkData.tokenSymbol ??
-            consts.peanutTokenDetails
-                .find((chain) => chain.chainId === requestLinkData.chainId)
-                ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, requestLinkData.tokenAddress))
-                ?.symbol?.toUpperCase() ??
-            tokenPriceData?.symbol
+        const tokenSymbol = requestLinkData.tokenSymbol ?? tokenPriceData?.symbol
         if (tokenSymbol) {
             setTokenRequestedSymbol(tokenSymbol)
         } else {
-            fetchTokenSymbol(requestLinkData.chainId, requestLinkData.tokenAddress)
+            fetchTokenSymbol(requestLinkData.tokenAddress, requestLinkData.chainId).then((tokenSymbol) => {
+                if (isMounted) {
+                    setTokenRequestedSymbol(tokenSymbol ?? '')
+                }
+            })
+        }
+
+        return () => {
+            isMounted = false
         }
     }, [requestLinkData, tokenPriceData])
 
@@ -271,7 +272,7 @@ export const InitialView = ({
                 })
 
                 const currentDate = new Date().toISOString()
-                utils.saveRequestLinkFulfillmentToLocalStorage({
+                saveRequestLinkFulfillmentToLocalStorage({
                     details: {
                         ...requestLinkData,
                         destinationChainFulfillmentHash: hash ?? '',
@@ -304,7 +305,7 @@ export const InitialView = ({
                 onNext()
             }
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -364,7 +365,7 @@ export const InitialView = ({
                                 alt="logo"
                             />
                         </div>
-                        {utils.formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
+                        {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
                         {tokenRequestedSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
@@ -393,13 +394,13 @@ export const InitialView = ({
                                     <MoreInfo
                                         text={
                                             estimatedGasCost && estimatedGasCost > 0
-                                                ? `This transaction will cost you $${utils.formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                                ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
                                                 : 'This transaction is sponsored by peanut! Enjoy!'
                                         }
                                     />
                                 ) : (
                                     <MoreInfo
-                                        text={`This transaction will cost you $${utils.formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                        text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
                                     />
                                 )}
                             </label>
