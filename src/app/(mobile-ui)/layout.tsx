@@ -7,6 +7,7 @@ import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import Loading from '@/components/Global/Loading'
+import HomeNav from '@/components/Home/HomeNav'
 
 type NavTabProps = {
     name: string
@@ -71,7 +72,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <div className="flex h-screen flex-col">
-            <div className="bg-peanut-repeat-normal h-10 border-b-2 border-black bg-purple-1"></div>
+            <HomeNav />
             <div className="flex w-full flex-1 overflow-y-scroll p-4">{children}</div>
             <div className="grid grid-cols-4 border-t-2 border-black p-2">
                 {tabs.map((tab) => (
