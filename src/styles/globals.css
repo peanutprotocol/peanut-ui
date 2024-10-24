@@ -2,6 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --primary-color: theme('colors.purple.1');
+    --secondary-color: theme('colors.violet.3');
+    --background-color: theme('colors.teal.2');
+    --accent-color: theme('colors.violet.3');
+}
+
 @layer components {
     .splide__pagination.splide__pagination-cards {
         @apply static mt-2;
@@ -29,12 +36,22 @@ Firefox input[type='number'] {
 }
 
 .scroller {
-    height: 3rem;
-    line-height: 3rem;
+    height: 3.5rem;
+    line-height: 3.5rem;
     position: relative;
     overflow: hidden;
     font-size: 3rem;
     text-align: left;
+
+    @media (min-width: 768px) {
+        height: 4rem;
+        line-height: 4rem;
+    }
+
+    @media (min-width: 1024px) {
+        height: 4.5rem;
+        line-height: 4.5rem;
+    }
 }
 
 .scroller > span {
@@ -49,13 +66,16 @@ Firefox input[type='number'] {
         top: 0;
     }
     25% {
-        top: -3rem;
+        /* top: -3rem; */
+        top: -100%;
     }
     50% {
-        top: -6rem;
+        /* top: -6rem; */
+        top: -200%;
     }
     75% {
-        top: -9rem;
+        /* top: -9rem; */
+        top: -300%;
     }
 }
 
@@ -92,4 +112,209 @@ Firefox input[type='number'] {
     background-clip: text;
     color: transparent; /* Make the text color transparent */
     animation: slide 3s linear infinite; /* Animation named 'slide', adjust timing as needed */
+}
+
+/* .testimonial { */
+/* position: relative; */
+/* z-index: 9; */
+/* @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white; */
+/* } */
+
+/* .testimonial:after {
+    content: '';
+    z-index: -1;
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    @apply bg-white rounded-3xl shadow-lg border-2 border-n-1 ring-2 ring-white;
+} */
+
+.testimonial-0-bg {
+    top: 0.8rem;
+    left: -0.7rem;
+    transform: rotate(-4deg);
+}
+
+.testimonial-1-bg {
+    top: 1rem;
+    left: 0.6rem;
+    transform: rotate(3deg);
+}
+
+.testimonial-2-bg {
+    top: 0.75rem;
+    left: 0.65rem;
+    transform: rotate(3deg);
+}
+
+.testimonial-3-bg {
+    top: -0.5rem;
+    left: 0.5rem;
+    transform: rotate(4deg);
+}
+
+@media (min-width: 768px) {
+    .testimonial-0-bg {
+        top: 1.5rem;
+        left: -1rem;
+        transform: rotate(-6deg);
+    }
+
+    .testimonial-1-bg {
+        top: 1.3rem;
+        left: 0.6rem;
+        transform: rotate(4deg);
+    }
+
+    .testimonial-2-bg {
+        top: 0.75rem;
+        left: 0.65rem;
+        transform: rotate(3deg);
+    }
+
+    .testimonial-3-bg {
+        top: -0.5rem;
+        left: 0.5rem;
+        transform: rotate(-4deg);
+    }
+}
+
+@keyframes thumbsUp {
+    0% {
+        transform: translateY(0);
+        transform-origin: bottom left;
+    }
+
+    35% {
+        transform: translateY(0) rotate(-15deg);
+        transform-origin: bottom left;
+    }
+
+    50% {
+        transform: translateY(0) rotate(9deg);
+        transform-origin: bottom left;
+    }
+
+    60% {
+        transform: translateY(0) rotate(-5deg);
+        transform-origin: bottom left;
+    }
+
+    100% {
+        transform: translateY(0);
+        transform-origin: bottom left;
+    }
+}
+
+@keyframes rock {
+    0% {
+        transform: translateY(0);
+        /* transform-origin: bottom left; */
+    }
+
+    25% {
+        transform: translateY(0) rotate(-10deg);
+        /* transform-origin: bottom left; */
+    }
+
+    50% {
+        transform: translateY(0) rotate(0);
+        /* transform-origin: bottom left; */
+    }
+
+    75% {
+        transform: translateY(0) rotate(10deg);
+        /* transform-origin: bottom left; */
+    }
+
+    100% {
+        transform: translateY(0);
+        /* transform-origin: bottom left; */
+    }
+}
+
+.animation-thumbsUp {
+    animation: thumbsUp 1.2s infinite;
+}
+
+@keyframes faceSpin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(-360deg);
+    }
+}
+
+.animation-faceSpin {
+    animation: faceSpin 2s infinite ease-in-out;
+}
+
+.animation-rock {
+    animation: rock 2s infinite ease-in-out;
+}
+
+.text-link-decoration {
+    @apply underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-purple-1;
+}
+
+.text-link {
+    @apply font-black text-black underline decoration-neutral-400 decoration-2 underline-offset-4 transition-colors duration-200 hover:decoration-purple-1;
+}
+
+.text-h2 {
+    @apply text-2xl md:text-3xl lg:text-4xl;
+}
+
+/* Panel styling */
+.panel {
+    @apply rounded-md border-2 border-n-1 bg-white shadow-lg shadow-md ring-2 ring-white dark:border-white dark:bg-n-1 dark:ring-n-1;
+}
+
+.panel-sm {
+    @apply px-4 py-6 md:p-8;
+}
+
+.panel-center {
+    @apply relative mx-auto w-11/12 max-w-[27rem] items-center justify-center lg:w-2/3 xl:w-1/2;
+}
+
+/* Feature styling */
+.feature {
+    @apply mx-auto flex w-auto justify-center rounded-full border-2 border-secondary bg-white px-5 py-3 text-center text-[1.375rem] font-black uppercase text-secondary shadow-md ring-2 ring-white md:mr-auto;
+}
+
+.feature-primary {
+    @apply bg-primary text-white;
+}
+
+.feature-secondary {
+    @apply border-secondary bg-secondary text-white;
+}
+
+/* Form styling */
+.input-text {
+    @apply h-12 w-full rounded-md border-2 border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-purple-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1;
+}
+
+.input-text-inset {
+    @apply px-6 pl-9;
+}
+
+/* Decoration */
+.border-rounded {
+    @apply rounded-md border-2 border-n-1 dark:border-white;
+}
+
+.ring-sm {
+    @apply shadow-md ring-2 ring-white dark:ring-n-1;
+}
+
+.font-roboto-400-50 {
+    @apply font-sans;
+    font-stretch: 50;
+    font-weight: 400;
 }

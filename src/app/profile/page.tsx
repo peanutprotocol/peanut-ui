@@ -1,4 +1,5 @@
-import * as components from '@/components'
+// import * as components from '@/components'
+import { Profile } from '@/components'
 import Layout from '@/components/Global/Layout'
 
 import { Metadata } from 'next'
@@ -9,7 +10,7 @@ export const metadata: Metadata = {
     metadataBase: new URL('https://peanut.to'),
 
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
 export default function ProfilePage() {
     return (
         <Layout>
-            <components.Profile />
+            <Profile />
         </Layout>
     )
 }

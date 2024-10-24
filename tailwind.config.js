@@ -9,23 +9,20 @@ module.exports = {
         extend: {
             colors: {
                 purple: {
-                    // rename to fuchsia
                     1: '#FF90E8',
                     2: '#dc78b5',
                     3: '#fffae8',
                 },
                 yellow: {
-                    // changed values but keep name the same
-                    1: '#F1F333',
+                    1: '#ffc900',
                     2: '#f5ff7c',
+                    3: '#fbfdd8',
                 },
                 pink: {
-                    // rename to lightblue
-                    1: '#90A8ED',
-                    2: '#a2faff',
+                    1: '#FF90E8',
+                    2: '#FCD8DB',
                 },
                 teal: {
-                    // rename to teal
                     1: '#23A094',
                     2: '#75b2d7',
                     3: '#00577d',
@@ -42,12 +39,25 @@ module.exports = {
                     3: '#5F646D',
                     4: '#E7E8E9',
                 },
+                violet: {
+                    3: '#6340DF',
+                    9: '#F1EBF8',
+                },
+                cyan: {
+                    8: '#A0E6E0',
+                },
+                gold: {
+                    3: '#FFD25C',
+                },
                 white: '#FFFFFF',
-                background: '#FAF4F0',
                 red: '#FF0000',
-                'kyc-red': '#C80000',
+                'kyc-red': '#C80000', // TODO: this is bad and needs to be changed
                 black: '#000000',
-                'kyc-green': '#00C800',
+                'kyc-green': '#00C800', // TODO: this is bad and needs to be changed
+                primary: 'var(--primary-color)',
+                secondary: 'var(--secondary-color)',
+                background: 'var(--background-color)',
+                accent: 'var(--accent-color)',
             },
             zIndex: {
                 1: '1',
@@ -114,10 +124,21 @@ module.exports = {
             },
             fontFamily: {
                 sans: ['var(--font-roboto)', ...fontFamily.sans],
+                display: ['var(--font-sniglet)', ...fontFamily.sans],
+                condensed: [
+                    'var(--font-roboto)',
+                    {
+                        fontVariationSettings: '"wdth" 50',
+                    },
+                ],
             },
             fontSize: {
                 0: ['0px', '0px'],
                 sm: ['0.875rem', '1.3125rem'],
+                '6xl': ['3rem', '3.25rem'],
+                '7xl': ['7rem', '7rem'],
+                '8xl': ['10rem', '10rem'],
+                '9xl': ['12rem', '0.9'],
                 h1: [
                     '3rem',
                     {
@@ -206,6 +227,7 @@ module.exports = {
             addComponents({
                 '.btn': {
                     '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border border-n-1 rounded-sm text-base text-n-1 fill-n-1 font-bold transition-colors':
+                        // '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-12 px-3 border-2 ring-2 ring-white shadow-md border-n-1 rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors hover:bg-n-4/40 hover:text-n-1':
                         {},
                 },
                 '.btn svg': {
@@ -228,6 +250,10 @@ module.exports = {
                     '@apply btn bg-n-1 text-white fill-white hover:bg-n-1/80 dark:bg-white/10 dark:hover:bg-white/20':
                         {},
                 },
+                '.btn-ghost': {
+                    '@apply disabled:bg-n-4 disabled:hover:bg-n-4/90 disabled:text-n-3 disabled:cursor-not-allowed inline-flex items-center justify-center h-13 px-5 border-2 border-transparent rounded-md text-base text-n-1 fill-n-1 font-bold transition-colors duration-200 hover:border-n-1 hover:bg-n-4/25':
+                        {},
+                },
                 '.btn-stroke': {
                     '@apply btn hover:bg-n-1 hover:text-white hover:fill-white dark:border-white dark:text-white dark:fill-white dark:hover:bg-white dark:hover:text-n-1 dark:hover:fill-n-1':
                         {},
@@ -248,13 +274,16 @@ module.exports = {
                     '@apply h-8 w-8 px-0 text-xs': {},
                 },
                 '.btn-medium': {
-                    '@apply h-9 px-2 text-xs': {},
+                    '@apply h-9 px-3 text-xs': {},
                 },
                 '.btn-large': {
-                    '@apply h-10 px-2 text-lg': {},
+                    '@apply h-10 px-3 text-lg': {},
                 },
                 '.btn-xl': {
                     '@apply w-full max-w-96 h-12 px-2 text-lg': {},
+                },
+                '.btn-2xl': {
+                    '@apply w-full max-w-96 h-14 px-4 text-lg md:text-xl': {},
                 },
                 '.btn-xl-fixed': {
                     '@apply w-18 h-12 px-2 text-lg': {},
@@ -269,7 +298,7 @@ module.exports = {
                     '@apply w-9': {},
                 },
                 '.label': {
-                    '@apply inline-flex justify-center items-center h-6 px-3 border rounded-sm text-center text-xs font-bold text-n-1':
+                    '@apply inline-flex justify-center items-center h-6 px-3 border rounded-md text-center text-xs font-bold text-n-1':
                         {},
                 },
                 '.label-stroke': {
@@ -300,7 +329,8 @@ module.exports = {
                     '@apply label border-n-1 bg-n-1 text-white dark:bg-white/10': {},
                 },
                 '.table-custom': {
-                    '@apply table w-full border border-n-1 bg-white dark:bg-n-1 dark:border-white': {},
+                    '@apply table w-full border-2 border-n-1 bg-white dark:bg-n-1 dark:border-white ring-2 ring-white dark:ring-n-1 shadow-md':
+                        {},
                 },
                 '.table-select': {
                     '@apply table-custom [&>thead>tr>*:nth-child(2)]:pl-0 [&>thead>tr>*:nth-child(1)]:w-13 [&>thead>tr>*:nth-child(1)]:px-0 [&>thead>tr>*:nth-child(1)]:text-0 [&>thead>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(2)]:pl-0 [&>tbody>tr>*:nth-child(1)]:w-13 [&>tbody>tr>*:nth-child(1)]:px-0 [&>tbody>tr>*:nth-child(1)]:text-center [&>tbody>tr>*:nth-child(1)]:text-0':

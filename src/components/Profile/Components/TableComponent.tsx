@@ -36,7 +36,7 @@ export const TableComponent = ({
     )
 
     return (
-        <table className="table-custom hidden bg-background sm:table">
+        <table className="table-custom hidden sm:table">
             <thead>
                 {selectedTab === 'history' ? (
                     <tr>

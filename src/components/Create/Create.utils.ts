@@ -1,8 +1,8 @@
 import peanut from '@squirrel-labs/peanut-sdk'
 
-import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
+import { peanutTokenDetails } from '@/constants'
+import { IUserBalance } from '@/interfaces'
+import { areTokenAddressesEqual, isNativeCurrency } from '@/utils'
 
 export const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
     return tokenValue / tokenPrice
@@ -48,24 +48,24 @@ export function toLowerCaseKeys(obj: any): any {
     return newObj
 }
 
-export const getTokenDetails = (tokenAddress: string, chainId: string, userBalances: interfaces.IUserBalance[]) => {
+export const getTokenDetails = (tokenAddress: string, chainId: string, userBalances: IUserBalance[]) => {
     let tokenDecimals: number = 18
     if (
         userBalances.some(
-            (balance) => utils.areTokenAddressesEqual(balance.address, tokenAddress) && balance.chainId == chainId
+            (balance) => areTokenAddressesEqual(balance.address, tokenAddress) && balance.chainId == chainId
         )
     ) {
         tokenDecimals =
             userBalances.find(
-                (balance) => balance.chainId == chainId && utils.areTokenAddressesEqual(balance.address, tokenAddress)
+                (balance) => balance.chainId == chainId && areTokenAddressesEqual(balance.address, tokenAddress)
             )?.decimals ?? 18
     } else {
         tokenDecimals =
-            consts.peanutTokenDetails
+            peanutTokenDetails
                 .find((detail) => detail.chainId.toString() == chainId)
-                ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.decimals ?? 18
+                ?.tokens.find((token) => areTokenAddressesEqual(token.address, tokenAddress))?.decimals ?? 18
     }
-    const tokenType = utils.isNativeCurrency(tokenAddress) ? 0 : 1
+    const tokenType = isNativeCurrency(tokenAddress) ? 0 : 1
 
     return { tokenDecimals, tokenType }
 }

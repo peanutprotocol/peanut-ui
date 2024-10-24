@@ -7,7 +7,7 @@ const config = {
 }
 /**
  * Breakpoints for responsive design.
- * 
+ *
  * The breakpoints are defined in em units and their equivalent in pixels are:
  * - xs: 22em (352px)
  * - sm: 30em (480px)
