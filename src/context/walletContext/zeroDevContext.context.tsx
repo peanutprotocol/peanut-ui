@@ -41,7 +41,7 @@ interface ZeroDevContextType {
             data
         }: {
             to: string,
-            value: BigInt,
+            value: BigInt | undefined,
             data: string
         }
     ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)
@@ -207,16 +207,16 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             data
         }: {
             to: string,
-            value: BigInt,
+            value: BigInt | null,
             data: string
         }
     ) => {
         setIsSendingUserOp(true)
           const userOpHash = await kernelClient!.sendUserOperation({
             userOperation: {
-              callData: await kernelClient!.account.encodeCallData({
+              callData: await kernelClient!.account!.encodeCallData({
                 to: (to ? to : '') as `0x${string}`,
-                value: value ? BigInt(value.toString()) : value,
+                value: value ? BigInt(value.toString()) : BigInt(0),
                 data: data ? (data as `0x${string}`) : ''
               }),
             },
@@ -237,8 +237,6 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
           const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
          console.log({userOpMessage})
           setIsSendingUserOp(false)
-
-          console.log()
 
           return receipt.receipt.transactionHash
     }

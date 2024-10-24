@@ -67,7 +67,6 @@ export const useCreateLink = () => {
     const { balances } = useBalance()
 
     const { chain: currentChain, address: wagmiAddress } = useAccount()
-    const { address } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
@@ -76,8 +75,17 @@ export const useCreateLink = () => {
     const { walletType, environmentInfo } = useWalletType()
     const { refetchBalances } = useBalance()
 
-    const { activeWallet, isActiveWalletBYOW, isActiveWalletPW } = useWallet()
-    const { handleSendUserOpNotEncoded, handleSendUserOpEncoded } = useZeroDev()
+    const { 
+        address,
+        activeWallet,
+        isActiveWalletBYOW,
+        isActiveWalletPW
+    } = useWallet()
+
+    const {
+        handleSendUserOpNotEncoded,
+        handleSendUserOpEncoded
+    } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
@@ -541,6 +549,9 @@ export const useCreateLink = () => {
             throw error
         }
     }
+
+
+
     const sendTransactions = useCallback(
         async ({
             preparedDepositTxs,
@@ -551,7 +562,6 @@ export const useCreateLink = () => {
         }) => {
             try {
                 if (!preparedDepositTxs) return
-
                 let idx = 0
                 const signedTxsResponse: string[] = []
                 for (const tx of preparedDepositTxs.unsignedTxs) {
@@ -567,105 +577,6 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
-
-                    
-                    
-                    //   const userOperation = await clientKernelAccountClient.prepareUserOperationRequest({
-                    //     userOperation: {
-                    //       callData: await clientKernelAccount.encodeCallData({
-                    //         to: (tx.to ? tx.to : '') as `0x${string}`,
-                    //         value: tx.value ? BigInt(tx.value.toString()) : tx.value,
-                    //         data: tx.data ? (tx.data as `0x${string}`) : '',
-                    //         // data: encodeFunctionData({
-                    //         //   abi: contractABI,
-                    //         //   functionName: "mint",
-                    //         //   args: [kernelAccount.address],
-                    //         // }),
-                    //       }),
-                    //     },
-                    //   });
-
-                    // //   const userOperation = await clientKernelAccountClient.prepareUserOperationRequest({
-                    // //     userOperation: {
-                    // //       callData: await clientKernelAccount.encodeCallData({
-                    // //         to: contractAddress,
-                    // //         value: BigInt(0),
-                    // //         data: encodeFunctionData({
-                    // //           abi: contractABI,
-                    // //           functionName: "mint",
-                    // //           args: [clientKernelAccount.address],
-                    // //         }),
-                    // //       }),
-                    // //     },
-                    // //   });
-                    
-                    // console.log({userOperation})
-                      
-                    // // Sign the user operation
-                    // const signature = await clientKernelAccount.signUserOperation(userOperation);
-                    // console.log({signature})
-
-                    // // Add the signature to the user operation
-                    // const signedUserOperation = {
-                    //     ...userOperation,
-                    //     signature,
-                    // };
-
-                    // console.log({signedUserOperation})
-
-                    //   // send the operation
-                    //   const webAuthnKeyProxy = await toWebAuthnKey({ 
-                    //     passkeyName: 'proxy', 
-                    //     passkeyServerUrl: PASSKEY_SERVER_URL as string, 
-                    //     mode: WebAuthnMode.Login ,
-                    //     passkeyServerHeaders: {}
-                    // })
-             
-                    // const passkeyValidatorProxy = await toPasskeyValidator(publicClient, { 
-                    //     webAuthnKey: webAuthnKeyProxy,  
-                    //     entryPoint, 
-                    //     kernelVersion: KERNEL_V3_1,   
-                    //     validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
-                    // })
-
-                    //   const proxyKernelAccount = await createKernelAccount(publicClient, {
-                    //     plugins: {
-                    //         sudo: passkeyValidatorProxy
-                    //     },
-                    //     entryPoint, 
-                    //     kernelVersion: KERNEL_V3_1
-                    // })
-                
-                    // const proxyKernelClient = createKernelAccountClient({ 
-                    //     account: proxyKernelAccount, 
-                    //     chain: CHAIN, 
-                    //     bundlerTransport: http(BUNDLER_URL), 
-                    //     entryPoint, 
-                    //     middleware: { 
-                    //       sponsorUserOperation: async ({ userOperation }) => { 
-                    //         const zerodevPaymaster = createZeroDevPaymasterClient({ 
-                    //           chain: CHAIN, 
-                    //           transport: http(PAYMASTER_URL), 
-                    //           entryPoint, 
-                    //         }) 
-                    //         return zerodevPaymaster.sponsorUserOperation({ 
-                    //           userOperation, 
-                    //           entryPoint, 
-                    //         }) 
-                    //       } 
-                    //     } 
-                    //   })
-                      
-                    //   // Send the user operation
-                    //   const userOpHash = await proxyKernelClient.sendUserOperation({
-                    //     userOperation: signedUserOperation,
-                    //     entryPoint: entryPoint, // Make sure to define entryPoint
-                    //   });
-            
-                    //   console.log({userOpHash})
-                      
-
-                    //   return
 
                     if (isActiveWalletPW) {
                         // TODO: add retry logic in handleSendUserOpEncoded() as below flow
@@ -723,11 +634,8 @@ export const useCreateLink = () => {
                         signedTxsResponse.push(hash.toString())
                         idx++
                     }
-
-                    return signedTxsResponse[signedTxsResponse.length - 1]
                 }
-
-
+                return signedTxsResponse[signedTxsResponse.length - 1]
             } catch (error) {
                 throw error
             }

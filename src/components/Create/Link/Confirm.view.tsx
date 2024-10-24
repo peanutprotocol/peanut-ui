@@ -64,7 +64,7 @@ export const CreateLinkConfirmView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     // const { address } = useAccount()
-    const { address } = useWallet()
+    const { address, isActiveWalletPW } = useWallet()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -88,8 +88,14 @@ export const CreateLinkConfirmView = ({
                 })
                 fileUrl = data?.fileUrl
             }
-
+            
+            //  TODO: create typing enum for transactionType
             if (transactionType === 'not-gasless') {
+                // this flow is followed for paying-gas txs, paying-gas userops AND
+                // gasless userops (what would be gasless as a tax) via Input.view.tsx which
+                // makes userops 'not-gasless' in the sense that we don't want
+                // Peanut's BE to make it gasless. The paymaster will make it by default
+                // once submitted, but as far as this flow is concerned, the userop is 'not-gasless'
                 if (!preparedDepositTxs) return
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''

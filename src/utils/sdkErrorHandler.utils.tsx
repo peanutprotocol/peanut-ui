@@ -44,6 +44,7 @@ export const ErrorHandler = (error: any) => {
                 return 'Something went wrong. Please try again later.'
         }
     } else {
+        throw error
         console.log(error.toString())
         if (error.toString().includes('insufficient funds')) {
             return "You don't have enough funds."

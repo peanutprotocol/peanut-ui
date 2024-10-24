@@ -13,12 +13,14 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
+import peanut, { ERC20_ABI, ethersV5ToPeanutTx, getDefaultProvider, getLatestContractVersion, interfaces, PEANUT_CONTRACTS, prepareApproveERC20Tx } from '@squirrel-labs/peanut-sdk'
+import * as ethers from 'ethers'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useBalance } from '@/hooks/useBalance'
+import { useWallet } from '@/context/walletContext'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -69,6 +71,8 @@ export const CreateLinkInputView = ({
     )
 
     const { isConnected, address } = useAccount()
+    const {isActiveWalletPW} = useWallet()
+
     const { open } = useWeb3Modal()
 
     const handleConnectWallet = async () => {
@@ -108,7 +112,9 @@ export const CreateLinkInputView = ({
                     chainId: selectedChainID,
                     tokenAddress: selectedTokenAddress,
                 })
-                if (isGaslessDepositPossible) {
+                if (isGaslessDepositPossible && !isActiveWalletPW) {
+                    // PW userops are marked as 'not-gasless' in this flow, since
+                    // they will become gasless via the paymaster
                     setTransactionType('gasless')
 
                     const makeGaslessDepositResponse = await makeGaslessDepositPayload({
@@ -130,6 +136,29 @@ export const CreateLinkInputView = ({
                 } else {
                     setTransactionType('not-gasless')
 
+                    // Dev block
+                    // Overwrite approval to 0 amount to re-test approvals
+
+                    // let chainId = linkDetails.chainId
+                    // let tokenAddress = linkDetails.tokenAddress!
+                    // let provider = undefined
+                    // let spenderAddress = undefined
+
+                    // let contractVersion = getLatestContractVersion({ chainId: linkDetails.chainId, type: 'normal' })
+
+                    // const defaultProvider = provider || (await getDefaultProvider(chainId))
+                    // const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, defaultProvider)
+                
+                    // const _PEANUT_CONTRACTS = PEANUT_CONTRACTS as { [chainId: string]: { [contractVersion: string]: string } }
+                    // const spender = spenderAddress || (_PEANUT_CONTRACTS[chainId] && _PEANUT_CONTRACTS[chainId][contractVersion])
+                
+                
+                    // const tx = await tokenContract.populateTransaction.approve(spender, BigInt(0))
+                    // const peanutTxs: any = {unsignedTxs: [ethersV5ToPeanutTx(tx)]}
+
+                    // prepareDepositTxsResponse = peanutTxs
+
+
                     prepareDepositTxsResponse = await prepareDepositTxs({
                         _linkDetails: linkDetails,
                         _password: password,
@@ -150,6 +179,7 @@ export const CreateLinkInputView = ({
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
                     }
+                    console.log({prepareDepositTxsResponse})
                 }
 
                 const estimatedPoints = await estimatePoints({
