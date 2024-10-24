@@ -12,6 +12,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { useWallet } from '@/context/walletContext'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -32,7 +33,11 @@ export const InitialView = ({
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    const { isConnected, address, chain: currentChain } = useAccount()
+    // TODO: currentChain needs to be moved to useWallet
+    const { isConnected, chain: currentChain } = useAccount()
+
+    const { address } = useWallet()
+
     const { switchChainAsync } = useSwitchChain()
     const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)

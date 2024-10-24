@@ -64,6 +64,9 @@ export const useCreateLink = () => {
         setSelectedTokenPrice,
         setInputDenomination,
     } = useContext(context.tokenSelectorContext)
+
+    // TODO: balances needs to reflect PW too
+    // needs changes in checkUserHasEnoughBalance
     const { balances } = useBalance()
 
     const { chain: currentChain, address: wagmiAddress } = useAccount()
@@ -577,7 +580,6 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
-
                     if (isActiveWalletPW) {
                         // TODO: add retry logic in handleSendUserOpEncoded() as below flow
                         let hash = await handleSendUserOpEncoded({
@@ -640,7 +642,7 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [selectedChainID, sendTransactionAsync, config]
+        [selectedChainID, sendTransactionAsync, config, isActiveWalletPW, isActiveWalletBYOW]
     )
     const getLinkFromHash = async ({
         hash,
