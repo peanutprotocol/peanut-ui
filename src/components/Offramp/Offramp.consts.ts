@@ -24,7 +24,7 @@ export enum OfframpType {
     CLAIM = 'CLAIM'
 }
 
-export const MIN_CASHOUT_LIMIT = 10 // $10 minimum
+export const MIN_CASHOUT_LIMIT = 0.1 // $10 minimum
 export const MAX_CASHOUT_LIMIT = 101000 // $101,000 maximum
 
 export const usdcAddressOptimism = '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
