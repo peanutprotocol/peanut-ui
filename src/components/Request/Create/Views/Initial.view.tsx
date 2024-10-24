@@ -10,7 +10,7 @@ import AddressInput from '@/components/Global/AddressInput'
 import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import { useBalance } from '@/hooks/useBalance'
-import { getTokenSymbol, saveRequestLinkToLocalStorage, isNativeCurrency } from '@/utils'
+import { fetchTokenSymbol, saveRequestLinkToLocalStorage, isNativeCurrency } from '@/utils'
 import { IUserBalance, IToken } from '@/interfaces'
 
 export const InitialView = ({
@@ -83,7 +83,7 @@ export const InitialView = ({
                 tokenData = {
                     address: tokenAddress,
                     chainId,
-                    symbol: (await getTokenSymbol(tokenAddress, chainId)) ?? '',
+                    symbol: (await fetchTokenSymbol(tokenAddress, chainId)) ?? '',
                     decimals: tokenDetails.tokenDecimals,
                 }
             }

@@ -2,7 +2,17 @@ import { getLinkDetails, peanut } from '@squirrel-labs/peanut-sdk'
 
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
-import * as utils from '@/utils'
+import {
+    getTokenSymbol,
+    getClaimedLinksFromLocalStorage,
+    getCreatedLinksFromLocalStorage,
+    getDirectSendFromLocalStorage,
+    getOfframpClaimsFromLocalStorage,
+    getRequestLinkFulfillmentsFromLocalStorage,
+    getRequestLinksFromLocalStorage,
+    getCashoutStatus,
+    setRequestLinksToLocalStorage,
+} from '@/utils'
 
 export const useDashboard = () => {
     const fetchLinkDetailsAsync = async (visibleData: interfaces.IDashboardItem[]) => {
@@ -49,7 +59,7 @@ export const useDashboard = () => {
             await Promise.all(
                 _data3.map(async (item) => {
                     try {
-                        const offrampStatus = await utils.getCashoutStatus(item.link ?? '')
+                        const offrampStatus = await getCashoutStatus(item.link ?? '')
                         item.status = offrampStatus.status
                     } catch (error) {
                         item.status = 'claimed'
@@ -67,18 +77,18 @@ export const useDashboard = () => {
     }
 
     const removeRequestLinkFromLocalStorage = (link: string) => {
-        const requestLinks = utils.getRequestLinksFromLocalStorage()!
+        const requestLinks = getRequestLinksFromLocalStorage()!
         const updatedRequestLinks = requestLinks.filter((item) => item.link !== link)
-        utils.setRequestLinksToLocalStorage(updatedRequestLinks)
+        setRequestLinksToLocalStorage(updatedRequestLinks)
     }
 
     const composeLinkDataArray = (address: string) => {
-        const claimedLinks = utils.getClaimedLinksFromLocalStorage({ address: address })!
-        const createdLinks = utils.getCreatedLinksFromLocalStorage({ address: address })!
-        const directSends = utils.getDirectSendFromLocalStorage({ address: address })!
-        const offrampClaims = utils.getOfframpClaimsFromLocalStorage()!
-        const requestLinks = utils.getRequestLinksFromLocalStorage()!
-        const requestLinkFulfillments = utils.getRequestLinkFulfillmentsFromLocalStorage()!
+        const claimedLinks = getClaimedLinksFromLocalStorage({ address: address })!
+        const createdLinks = getCreatedLinksFromLocalStorage({ address: address })!
+        const directSends = getDirectSendFromLocalStorage({ address: address })!
+        const offrampClaims = getOfframpClaimsFromLocalStorage()!
+        const requestLinks = getRequestLinksFromLocalStorage()!
+        const requestLinkFulfillments = getRequestLinkFulfillmentsFromLocalStorage()!
 
         let linkData: interfaces.IDashboardItem[] = []
 
@@ -121,11 +131,7 @@ export const useDashboard = () => {
                 link: link.link,
                 type: 'Link Sent',
                 amount: link.tokenAmount.toString(),
-                tokenSymbol:
-                    consts.peanutTokenDetails
-                        .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress ?? ''))
-                        ?.symbol ?? '',
+                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.depositDate.toString(),
                 address: undefined,
@@ -142,11 +148,7 @@ export const useDashboard = () => {
                 link: undefined,
                 type: 'Direct Sent',
                 amount: link.tokenAmount.toString(),
-                tokenSymbol:
-                    consts.peanutTokenDetails
-                        .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
-                        ?.symbol ?? '',
+                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.date.toString(),
                 address: undefined,
@@ -163,11 +165,7 @@ export const useDashboard = () => {
                 link: link.link,
                 type: 'Request Link',
                 amount: link.tokenAmount.toString(),
-                tokenSymbol:
-                    consts.peanutTokenDetails
-                        .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
-                        ?.symbol ?? '',
+                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.createdAt.toString(),
                 address: link.recipientAddress,
@@ -184,11 +182,7 @@ export const useDashboard = () => {
                 link: link.link,
                 type: 'Request Link Fulfillment',
                 amount: link.tokenAmount.toString(),
-                tokenSymbol:
-                    consts.peanutTokenDetails
-                        .find((token) => token.chainId === link.chainId)
-                        ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, link.tokenAddress))
-                        ?.symbol ?? '',
+                tokenSymbol: getTokenSymbol(link.tokenAddress ?? '', link.chainId) ?? '',
                 chain: consts.supportedPeanutChains.find((chain) => chain.chainId === link.chainId)?.name ?? '',
                 date: link.createdAt.toString(),
                 address: link.recipientAddress,

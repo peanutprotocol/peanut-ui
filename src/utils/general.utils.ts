@@ -928,11 +928,15 @@ export const switchNetwork = async ({
     }
 }
 
-export async function getTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
-    let tokenSymbol = consts.peanutTokenDetails
+export function getTokenSymbol(tokenAddress: string, chainId: string): string | undefined {
+    return consts.peanutTokenDetails
         .find((chain) => chain.chainId === chainId)
         ?.tokens.find((token) => areTokenAddressesEqual(token.address, tokenAddress))
         ?.symbol?.toUpperCase()
+}
+
+export async function fetchTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
+    let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
         const contract = await peanut.getTokenContractDetails({
             address: tokenAddress,
