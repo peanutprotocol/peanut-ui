@@ -14,6 +14,7 @@ import { GlobalLoginComponent } from '../LoginComponent'
 import { GlobalRegisterComponent } from '../RegisterComponent'
 import { Divider } from '@chakra-ui/react'
 import { CrispButton } from '@/components/CrispChat'
+import { Card } from '@/components/0_Bruddle'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -349,9 +350,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     }
 
     return (
-        <div>
-            <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
-                <p className="w-full text-h8 font-normal">After KYC, you can cashout straight to your bank account!</p>
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>KYC Process</Card.Title>
+                <Card.Description>After KYC, you can cashout straight to your bank account!</Card.Description>
+            </Card.Header>
+            <Card.Content>
                 <Steps
                     variant={'circles'}
                     orientation="vertical"
@@ -407,7 +411,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     onClose={iframeOptions.onClose}
                     style={{ width: '100%', height: '500px', border: 'none' }}
                 />
-            </div>
-        </div>
+            </Card.Content>
+        </Card>
     )
 }
