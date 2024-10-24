@@ -21,6 +21,7 @@ import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { CrispButton } from '@/components/CrispChat'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT, optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+import { useWallet } from '@/context/walletContext'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -62,9 +63,13 @@ export const InitialClaimLinkView = ({
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
-    const { isConnected, address } = useAccount()
+
+    // TODO: isConnected needs to be moved in useWallet()
+    const { address } = useWallet()
+    const { isConnected } = useAccount()
     const { user } = useAuth()
 
+    // TODO: all handleConnectWallet will need to pass through useWallet()
     const handleConnectWallet = async () => {
         if (isConnected && address) {
             setRecipient({ name: undefined, address: '' })
@@ -90,6 +95,10 @@ export const InitialClaimLinkView = ({
                 address: recipient.address ?? '',
                 link: claimLinkData.link,
             })
+
+            // TODO: there is a mixup here between recipient.address and address - from
+            // the previous component (Claim.tsx) recipient.address is set to {address} = useWallet
+            // thought: anyway, we need to set address to useWallet here too
 
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
@@ -584,6 +593,8 @@ export const InitialClaimLinkView = ({
                     <button
                         className="btn-purple btn-xl"
                         onClick={() => {
+                            // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
+                            // imperative to ensure address here is fetched by useWallet
                             if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
