@@ -54,6 +54,11 @@ const nextConfig = {
                 destination: '/raffle/create',
                 permanent: true,
             },
+            {
+                source: '/claim',
+                destination: 'https://peanut.to/claim',
+                permanent: true,
+            },
         ]
     },
     async headers() {
