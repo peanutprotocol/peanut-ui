@@ -31,9 +31,13 @@ const nextConfig = {
     async redirects() {
         return [
             {
-                // Redirect root to cashout temporarily for cashout launch
-                source: '/',
-                destination: '/cashout',
+                source: '/cashout/:path*',
+                destination: '/maintenance',
+                permanent: false,
+            },
+            {
+                source: '/cashout',
+                destination: '/maintenance',
                 permanent: false,
             },
             {
