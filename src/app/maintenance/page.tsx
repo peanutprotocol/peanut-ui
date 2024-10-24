@@ -6,7 +6,7 @@ export default function MaintenancePage() {
             <div className="flex min-h-screen flex-col items-center justify-center">
                 <h1 className="mb-4 text-4xl font-bold">Under Maintenance</h1>
                 <p className="text-xl">
-                    Our cashout feature is currently undergoing maintenance. We apologize for the inconvenience.
+                    This feature is currently undergoing maintenance. We apologize for the inconvenience.
                 </p>
             </div>
         </Layout>
