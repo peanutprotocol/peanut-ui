@@ -928,6 +928,14 @@ export const switchNetwork = async ({
     }
 }
 
+/**
+ * Gets the token symbol for a given token address and chain ID.
+ *
+ * From the sdk token list, if you need to be sure to get a token symbol you
+ * should use the {@link fetchTokenSymbol} function.
+ *
+ * @returns The token symbol, or undefined if not found.
+ */
 export function getTokenSymbol(tokenAddress: string, chainId: string): string | undefined {
     return consts.peanutTokenDetails
         .find((chain) => chain.chainId === chainId)
@@ -935,6 +943,16 @@ export function getTokenSymbol(tokenAddress: string, chainId: string): string | 
         ?.symbol?.toUpperCase()
 }
 
+/**
+ * Fetches the token symbol for a given token address and chain ID.
+ *
+ * This function first checks the sdk token list, and if the token is not found
+ * it fetches the token contract details and tries to get the symbol from the
+ * contract. If you are ok with only checking the sdk token list, and don't want
+ * to await you can use the {@link getTokenSymbol} function.
+ *
+ * @returns The token symbol, or undefined if not found.
+ */
 export async function fetchTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
