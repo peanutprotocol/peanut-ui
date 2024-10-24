@@ -2,20 +2,34 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 import { headers } from 'next/headers'
 
+export enum PreviewType {
+    CLAIM = 'claim',
+    REQUEST = 'request',
+}
+
+type PreviewTypeData = {
+    message: string
+}
+
+const PREVIEW_TYPES: Record<PreviewType, PreviewTypeData> = {
+    [PreviewType.CLAIM]: { message: 'sent you' },
+    [PreviewType.REQUEST]: { message: 'is requesting' },
+}
+
 export function LinkPreviewImg({
     amount,
     chainId,
     tokenAddress,
     tokenSymbol,
-    senderAddress,
-    tokenPrice,
+    address,
+    previewType,
 }: {
     amount: string
     chainId: string
     tokenAddress: string
     tokenSymbol: string
-    senderAddress: string
-    tokenPrice?: number
+    address: string
+    previewType: PreviewType
 }) {
     const tokenImage = consts.peanutTokenDetails
         .find((detail) => detail.chainId === chainId)
@@ -61,7 +75,7 @@ export function LinkPreviewImg({
                 }}
             >
                 <label style={{ fontSize: '16px', fontWeight: 'bold', color: 'black' }}>
-                    {utils.printableAddress(senderAddress)} sent you
+                    {utils.printableAddress(address)} {PREVIEW_TYPES[previewType].message}
                 </label>
                 <div
                     style={{
@@ -84,7 +98,9 @@ export function LinkPreviewImg({
                         {tokenImage && (
                             <img
                                 src={tokenImage ?? ''}
-                                alt="Chain Image"
+                                alt="Token Image"
+                                height="50px"
+                                width="50px"
                                 style={{
                                     height: '50px',
                                     width: '50px',
@@ -98,7 +114,9 @@ export function LinkPreviewImg({
                         {chainImage && (
                             <img
                                 src={chainImage ?? ''}
-                                alt="Token Image"
+                                alt="Chain Image"
+                                height="37px"
+                                width="37px"
                                 style={{
                                     position: 'absolute',
                                     right: '-12px',
@@ -121,12 +139,6 @@ export function LinkPreviewImg({
                         {utils.formatTokenAmount(parseFloat(amount), 2)} {tokenSymbol}
                     </label>
                 </div>
-
-                {tokenPrice && (
-                    <label style={{ fontSize: '16px', color: 'black' }}>
-                        ${utils.formatTokenAmount(parseFloat(amount) * tokenPrice, 2)}
-                    </label>
-                )}
             </div>
         </div>
     )
