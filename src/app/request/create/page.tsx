@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     description: 'Text Tokens',
     metadataBase: new URL('https://peanut.to'),
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [

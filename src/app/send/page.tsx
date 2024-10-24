@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import * as components from '@/components'
+import { Create } from '@/components'
 import Layout from '@/components/Global/Layout'
 
 export const metadata: Metadata = {
@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     metadataBase: new URL('https://peanut.to'),
 
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function SendPage() {
     return (
         <Layout>
-            <components.Create />
+            <Create />
         </Layout>
     )
 }

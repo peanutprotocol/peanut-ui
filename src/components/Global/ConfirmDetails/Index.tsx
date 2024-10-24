@@ -1,5 +1,5 @@
 import * as consts from '@/constants'
-import * as utils from '@/utils'
+import { getTokenSymbol, formatTokenAmount, areTokenAddressesEqual } from '@/utils'
 
 interface IConfirmDetailsProps {
     selectedChainID: string
@@ -29,34 +29,30 @@ export const ConfirmDetails = ({
                                 ? data
                                       .find((chain: any) => chain.chainId === selectedChainID)
                                       ?.tokens.find((token: any) =>
-                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
+                                          areTokenAddressesEqual(token.address, selectedTokenAddress)
                                       )?.logoURI
                                 : consts.peanutTokenDetails
                                       .find((detail) => detail.chainId === selectedChainID)
                                       ?.tokens.find((token) =>
-                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
+                                          areTokenAddressesEqual(token.address, selectedTokenAddress)
                                       )?.logoURI
                         }
                         className="h-6 w-6"
                     />
                     <label className="text-h5 sm:text-h3">
-                        {utils.formatTokenAmount(Number(tokenAmount))}{' '}
+                        {formatTokenAmount(Number(tokenAmount))}{' '}
                         {data
                             ? data
                                   .find((chain: any) => chain.chainId === selectedChainID)
                                   ?.tokens.find((token: any) =>
-                                      utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
+                                      areTokenAddressesEqual(token.address, selectedTokenAddress)
                                   )?.symbol
-                            : consts.peanutTokenDetails
-                                  .find((detail) => detail.chainId === selectedChainID)
-                                  ?.tokens.find((token) =>
-                                      utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                  )?.symbol}
+                            : getTokenSymbol(selectedTokenAddress, selectedChainID)}
                     </label>
                 </div>
                 {tokenPrice && (
                     <label className="text-h7 font-bold text-gray-1">
-                        $ {utils.formatTokenAmount(Number(tokenAmount) * tokenPrice)}
+                        $ {formatTokenAmount(Number(tokenAmount) * tokenPrice)}
                     </label>
                 )}
             </div>

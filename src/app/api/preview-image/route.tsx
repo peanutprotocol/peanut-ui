@@ -1,7 +1,7 @@
 /* eslint-disable @next/next/no-img-element */
 import { ImageResponse } from 'next/og'
 
-import { LinkPreviewImg } from '@/components/Global/ImageGeneration/LinkPreview'
+import { LinkPreviewImg, PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
 
 export const runtime = 'edge'
 
@@ -14,12 +14,13 @@ export async function GET(request: Request) {
     const chainId = searchParams.get('chainId') ?? ''
     const tokenAddress = searchParams.get('tokenAddress') ?? ''
     const tokenSymbol = searchParams.get('tokenSymbol') ?? ''
-    const senderAddress = searchParams.get('senderAddress') ?? ''
-    // const tokenPrice = parseFloat(searchParams.get('tokenPrice') ?? '')
-    const tokenPrice = undefined
+    const address = searchParams.get('address') ?? ''
+    const previewType =
+        PreviewType[(searchParams.get('previewType')?.toUpperCase() ?? 'claim') as keyof typeof PreviewType] ??
+        PreviewType.CLAIM
 
     return new ImageResponse(
-        <LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, senderAddress, tokenPrice }} />,
+        <LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, address, previewType }} />,
         {
             width: 400,
             height: 200,

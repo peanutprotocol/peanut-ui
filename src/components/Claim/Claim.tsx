@@ -226,7 +226,9 @@ export const Claim = ({}) => {
                 />
             )}
 
-            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />}
+            {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && (
+                <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />
+            )}
             {linkState === _consts.claimLinkStateType.NOT_FOUND && <genericViews.NotFoundClaimLink />}
             {linkState === _consts.claimLinkStateType.CLAIM_SENDER && (
                 <genericViews.SenderClaimLinkView
