@@ -956,11 +956,15 @@ export function getTokenSymbol(tokenAddress: string, chainId: string): string | 
 export async function fetchTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
     let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
     if (!tokenSymbol) {
-        const contract = await peanut.getTokenContractDetails({
-            address: tokenAddress,
-            provider: await peanut.getDefaultProvider(chainId),
-        })
-        tokenSymbol = contract?.symbol?.toUpperCase()
+        try {
+            const contract = await peanut.getTokenContractDetails({
+                address: tokenAddress,
+                provider: await peanut.getDefaultProvider(chainId),
+            })
+            tokenSymbol = contract?.symbol?.toUpperCase()
+        } catch (error) {
+            console.error('Error fetching token symbol:', error)
+        }
     }
     if (!tokenSymbol) {
         console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
