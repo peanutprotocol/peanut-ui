@@ -162,7 +162,7 @@ export function Welcome() {
 
                     <div className="flex w-full items-center justify-center space-x-4 p-2 sm:gap-4">
                         <Link
-                            href={'/send'}
+                            href={'/home'}
                             className="btn-purple btn-xl cursor-pointer bg-white px-4 text-h4 md:w-3/5 lg:w-1/3"
                         >
                             App
