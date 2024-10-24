@@ -85,6 +85,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [wagmiAddress]) // TODO: remove this hook
 
+
+    ////// Logic hooks
+    //
+
     // TODO: add failure return type (what if checks fail, what do we return?)
     const activateWallet = (activeWalletType: interfaces.WalletType, address: string) => {
         if (activeWalletType == interfaces.WalletType.PEANUT) {
