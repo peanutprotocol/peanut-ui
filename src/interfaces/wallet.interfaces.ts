@@ -8,9 +8,14 @@ export enum WalletProtocolType {
     EVM = 'EVM'
 }
 
-export interface IWallet {
+// the data model as it is fetched from the backend
+export interface IDBWallet {
     walletProviderType: WalletProviderType
     protocolType: WalletProtocolType
+    address: string
+}
+
+export interface IWallet extends IDBWallet{
     // connected refers to the provider state
     //
     // The user may select a wallet but the provider may be connected
@@ -19,7 +24,6 @@ export interface IWallet {
     // and the user is logged in. That is because there is only one PW per user,
     // and the provider will always be connected to that.
     connected: boolean
-    address: string
 }
 
 export enum WalletErrorType {
@@ -29,7 +33,7 @@ export enum WalletErrorType {
     PROVIDER_TYPE_ERROR = 'Wallet Error! Wallet is not of known provider type!',
 
     PW_KERNEL_NOT_READY = 'Peanut Wallet Error! Kernel not ready',
-    
+
     BYOB_NOT_CONNECTED = 'Wallet Error! No external wallet connected in the provider!',
     BYOB_CONNECTED_TO_WRONG_WALLET = 'Wallet Error! Your external wallet is connected to the wrong wallet!',
 }

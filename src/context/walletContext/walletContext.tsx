@@ -186,7 +186,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         if (isAuthed) {
             const walletsResponse = await fetch('/api/peanut/user/get-wallets')
             if (walletsResponse.ok) {
-                const { wallets } : {wallets: interfaces.IWallet[]} = await walletsResponse.json()
+                // receive in backend format
+                const { dbWallets } : {dbWallets: interfaces.IDBWallet[]} = await walletsResponse.json()
+                // manipulate to frontend format (add connected attribute)
+                const wallets: interfaces.IWallet[] = dbWallets.map((dbWallet: interfaces.IDBWallet) => ({
+                    ...dbWallet,
+                    connected: false
+                }))
                 setWallets(wallets)
                 setIsFetchingWallets(false)
                 return wallets
