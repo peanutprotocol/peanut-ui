@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
 
-    const {deactiveWalletsOnLogout} = useWallet()
+    const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -65,10 +65,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // set isAuthed
         setIsAuthed(true)
 
-        // TODO: set PW as active wallet
-
         // fetch user wallets
-
+        // set PW as active wallet
+        setupWalletsAfterLogin()
     }
 
     const afterLogoutUserSetup = async (): Promise<undefined> => {

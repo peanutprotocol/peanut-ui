@@ -19,8 +19,9 @@ interface WalletContextType {
     activeWallet: interfaces.IWallet | undefined,
     isActiveWalletPW: boolean,
     isActiveWalletBYOW: boolean,
-    activateWallet: (activeWalletType: interfaces.WalletProviderType, address: string) => void
-    deactiveWalletsOnLogout: () => void
+    checkActivateWallet: (wallet: interfaces.IWallet) => Promise<interfaces.IWallet | undefined>
+    deactiveWalletsOnLogout: () => void,
+    setupWalletsAfterLogin: () => void
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -86,71 +87,128 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [wagmiAddress]) // TODO: remove this hook
 
+    ////// Utility functions
+    //
+
+    const throwWalletError = (walletErrorType: interfaces.WalletErrorType) => {
+        throw new interfaces.WalletError(
+            walletErrorType
+        )
+    }
+
+
 
     ////// Logic hooks
     //
 
-    // TODO: add failure return type (what if checks fail, what do we return?)
-    const activateWallet = (walletProviderType: interfaces.WalletProviderType, address: string) => {
-        if (walletProviderType == interfaces.WalletProviderType.PEANUT) {
+    // handles checks:
+    // PW:
+    //      - kernel not ready
+    // BYOW:
+    //      - wagmi not connected
+    //      - wagmi connected to wrong wallet
+    // throws WalletError in case of error which is an 'undefined' return
+    const checkActivateWallet = async (wallet: interfaces.IWallet): Promise<interfaces.IWallet | undefined> => {
+        if (wallet.walletProviderType == interfaces.WalletProviderType.PEANUT) {
             if (isKernelClientReady && kernelClientAddress == address) {
-                setActiveWallet({
-                    walletProviderType,
-                    connected: true,
-                    address: address
-                })
-                setAddress(address)
-                setIsActiveWalletPW(true)
-                setIsActiveWalletBYOW(false)
-                // TODO: return success
+                return activateWallet(wallet)
+            } else {
+                throwWalletError(interfaces.WalletErrorType.PW_KERNEL_NOT_READY)
             }
-        } else if (walletProviderType == interfaces.WalletProviderType.BYOW) {
-            if (isWagmiConnected && wagmiAddress == address) {
-                setActiveWallet({
-                    walletProviderType,
-                    connected: true,
-                    address: address
-                })
-                setAddress(address)
-                setIsActiveWalletBYOW(true)
-                setIsActiveWalletPW(false)
-                // TODO: return success
+        } else if (wallet.walletProviderType == interfaces.WalletProviderType.BYOW) {
+            if (isWagmiConnected) {
+                if (wagmiAddress == address) {
+                    return activateWallet(wallet)
+                } else {
+                    throwWalletError(interfaces.WalletErrorType.BYOB_CONNECTED_TO_WRONG_WALLET)
+                }
+            } else {
+                throwWalletError(interfaces.WalletErrorType.BYOB_NOT_CONNECTED)
             }
+        } else {
+            throwWalletError(interfaces.WalletErrorType.PROVIDER_TYPE_ERROR)
         }
-        // TODO: return failure
+    }
+
+    // TODO: add failure return type (what if checks fail, what do we return?)
+    const activateWallet = async (wallet: interfaces.IWallet): Promise<interfaces.IWallet | undefined> => {
+        if (wallet.walletProviderType == interfaces.WalletProviderType.PEANUT) {
+            setIsActiveWalletPW(true)
+            setIsActiveWalletBYOW(false)
+        } else if (wallet.walletProviderType == interfaces.WalletProviderType.BYOW) {
+            // deactivate current active wallet
+            if (activeWallet) {
+                activeWallet.connected = false
+            }
+            setIsActiveWalletBYOW(true)
+            setIsActiveWalletPW(false)
+        } else {
+            throwWalletError(interfaces.WalletErrorType.PROVIDER_TYPE_ERROR)
+        }
+        setActiveWallet(wallet)
+        setAddress(wallet.address)
+        return wallet
     }
 
     const deactiveWalletsOnLogout = () => {
+        // TODO: makes PW disconnected
+    }
 
+    // 1. fetches wallets .then()
+        // sets PW as connected in wallet list (does it by address of passkey connected, bc in the
+        // future we may have many PWs)
+        // sets any wallet that has the same address as a wagmiConnected wallet (already connected wagmi provider)
+    // 2. set PW as active wallet
+    //
+    // note: calls inside may throw WalletError
+    // we expect to do catching in UI to handle accordingly
+    const setupWalletsAfterLogin = async () => {
+        // fetch wallets
+        await fetchWallets()
+        // sets PW as connected in wallet list
+        const pWallet = wallets.find((wallet: interfaces.IWallet) => wallet.address == kernelClientAddress)
+        pWallet!.connected = true
+        // sets any wallet that has the same address as a wagmiConnected wallet
+        if (isWagmiConnected) {
+            wallets.find((wallet: interfaces.IWallet) => wallet.address == wagmiAddress)!.connected = true
+        }
+        
+        // sets PW as active wallet
+        checkActivateWallet(pWallet!)
+        
     }
 
     // sets and returns wallets if successful call
     // doesn't set wallets and returns null if failure call
-    const fetchWallets = async (): Promise<interfaces.IWallet[] | null> => {
+    // returns undefined (doesn't actually) when throwing, otherwise returns IWallet
+    const fetchWallets = async (): Promise<interfaces.IWallet[] | undefined> => {
         setIsFetchingWallets(true)
-        try {
-            if (isAuthed) {
-                const walletsResponse = await fetch('/api/peanut/user/get-wallets')
-                if (walletsResponse.ok) {
-                    const { wallets } : {wallets: interfaces.IWallet[]} = await walletsResponse.json()
-                    setWallets(wallets)
-                    setIsFetchingWallets(false)
-                    return wallets
-                } else {
-                    console.warn('Failed to fetch user wallets.')
-                }
+        if (isAuthed) {
+            const walletsResponse = await fetch('/api/peanut/user/get-wallets')
+            if (walletsResponse.ok) {
+                const { wallets } : {wallets: interfaces.IWallet[]} = await walletsResponse.json()
+                setWallets(wallets)
+                setIsFetchingWallets(false)
+                return wallets
+            } else {
+                setIsFetchingWallets(false)
+                throwWalletError(interfaces.WalletErrorType.WALLET_FETCH_ERROR)
             }
-        } catch (error) {
-            console.error('ERROR WHEN FETCHING USER', error)
-        } finally {
+        } else {
             setIsFetchingWallets(false)
-            return null
+            throwWalletError(interfaces.WalletErrorType.WALLET_FETCH_ERROR_USER_NOT_AUTHED)
         }
     }
 
     const removeBYOW = async () => {
         // TODO: when successful API call, do NOT refetch all wallets (bad UX), but
         // go on the wallet list and remove wallet
+
+        // TODO: if wallet connected to provider, disconnect wallet from provider 
+            // then
+            // TODO: if active, default active -> PW if logged in, otherwise
+            // if another wallet is connected to the provider, make that active, otherwise 
+            // no wallet active (have to review all props to ensure they are null)
     }
 
 
@@ -163,8 +221,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             activeWallet,
             isActiveWalletPW,
             isActiveWalletBYOW,
-            activateWallet,
-            deactiveWalletsOnLogout
+            checkActivateWallet,
+            deactiveWalletsOnLogout,
+            setupWalletsAfterLogin
         }}>
             {children}
         </WalletContext.Provider>
