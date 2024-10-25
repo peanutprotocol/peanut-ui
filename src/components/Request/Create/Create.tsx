@@ -5,6 +5,7 @@ import * as _consts from './Create.consts'
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 export const CreateRequestLink = () => {
     const router = useRouter()
@@ -46,7 +47,7 @@ export const CreateRequestLink = () => {
     }, [address])
 
     return (
-        <div className="card">
+        <PageContainer className="h-full">
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onNext: handleOnNext,
                 onPrev: handleOnPrev,
@@ -61,6 +62,6 @@ export const CreateRequestLink = () => {
                 recipientAddress,
                 setRecipientAddress,
             } as _consts.ICreateScreenProps)}
-        </div>
+        </PageContainer>
     )
 }
