@@ -163,7 +163,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             activeWallet,
             isActiveWalletPW,
             isActiveWalletBYOW,
-            activateWallet,setIsFetchingWallets
+            activateWallet,
             deactiveWalletsOnLogout
         }}>
             {children}
