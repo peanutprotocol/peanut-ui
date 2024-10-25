@@ -14,6 +14,7 @@ import * as consts from '@/constants'
 import * as _utils from './Claim.utils'
 import FlowManager from './Link/FlowManager'
 import { ActionType, estimatePoints } from '../utils/utils'
+import { useWallet } from '@/context/walletContext'
 
 export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
@@ -51,7 +52,7 @@ export const Claim = ({}) => {
 
     const [userType, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
     const [userId, setUserId] = useState<string | undefined>(undefined)
-    const { address } = useAccount()
+    const { address } = useWallet()
     const { getAttachmentInfo } = useClaimLink()
 
     const handleOnNext = () => {

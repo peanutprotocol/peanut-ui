@@ -687,7 +687,8 @@ export const useCreateLink = () => {
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-            if (isGaslessDepositPossible) {
+            if (isGaslessDepositPossible && !isActiveWalletPW) {
+                // routing only gasless BYOW txs through here
                 const makeGaslessDepositResponse = await makeGaslessDepositPayload({
                     _linkDetails: linkDetails,
                     _password: password,

@@ -20,12 +20,8 @@ import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { CrispButton } from '@/components/CrispChat'
-import {
-    MAX_CASHOUT_LIMIT,
-    MIN_CASHOUT_LIMIT,
-    optimismChainId,
-    usdcAddressOptimism,
-} from '@/components/Offramp/Offramp.consts'
+import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT, optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+import { useWallet } from '@/context/walletContext'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -67,9 +63,13 @@ export const InitialClaimLinkView = ({
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
-    const { isConnected, address } = useAccount()
+
+    // TODO: isConnected needs to be moved in useWallet()
+    const { address } = useWallet()
+    const { isConnected } = useAccount()
     const { user } = useAuth()
 
+    // TODO: all handleConnectWallet will need to pass through useWallet()
     const handleConnectWallet = async () => {
         if (isConnected && address) {
             setRecipient({ name: undefined, address: '' })
@@ -95,6 +95,10 @@ export const InitialClaimLinkView = ({
                 address: recipient.address ?? '',
                 link: claimLinkData.link,
             })
+
+            // TODO: there is a mixup here between recipient.address and address - from
+            // the previous component (Claim.tsx) recipient.address is set to {address} = useWallet
+            // thought: anyway, we need to set address to useWallet here too
 
             if (claimTxHash) {
                 utils.saveClaimedLinkToLocalStorage({
@@ -203,7 +207,7 @@ export const InitialClaimLinkView = ({
                 })
 
                 const response = await userIdResponse.json()
-                if (response.isNewUser || (response.error && response.error == 'User not found for given IBAN')) {
+                if (response.isNewUser) {
                     setUserType('NEW')
                 } else {
                     setUserType('EXISTING')
@@ -301,7 +305,6 @@ export const InitialClaimLinkView = ({
                     Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
                 ).toString()
 
-                // TODO: this is duplicate with src/utils/fetchRouteRaw
                 const route = await getSquidRouteRaw({
                     squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
                     fromChain: claimLinkData.chainId.toString(),
@@ -590,6 +593,8 @@ export const InitialClaimLinkView = ({
                     <button
                         className="btn-purple btn-xl"
                         onClick={() => {
+                            // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
+                            // imperative to ensure address here is fetched by useWallet
                             if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
@@ -640,9 +645,8 @@ export const InitialClaimLinkView = ({
                                 <>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
-                                            <label className=" text-h8 font-normal text-red ">
-                                                {errorState.errorMessage}
-                                            </label>{' '}
+                                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                                            {' '}
                                             <span
                                                 className="cursor-pointer text-h8 font-normal text-red underline"
                                                 onClick={() => {
@@ -661,16 +665,14 @@ export const InitialClaimLinkView = ({
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (
                                         <>
                                             <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
-                                                account.{' '}
+                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank account.{' '}
                                             </label>
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_mt_maximum' && (
                                         <>
                                             <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
-                                                account.{' '}
+                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank account.{' '}
                                             </label>
                                         </>
                                     )}
