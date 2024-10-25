@@ -7,6 +7,7 @@ import { useAccount } from 'wagmi'
 interface AuthContextType {
     user: interfaces.IUserProfile | null
     setUser: (user: interfaces.IUserProfile | null) => void
+    isAuthed: boolean
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
@@ -36,6 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address } = useAccount()
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
+    const [isAuthed, setIsAuthed] = useState<boolean>(false)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
         position: 'bottom-right',
@@ -44,6 +46,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         icon: '🥜',
     })
     const toastIdRef = useRef<ToastId | undefined>(undefined)
+
+    useEffect(() => {
+        setIsAuthed(user != null)
+    }, [user])
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
         // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
@@ -259,7 +265,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    // this doesn't make sense
+    // TODO: this doesn't make sense
     // when we connect another wallet, we don't change the user at all
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -274,6 +280,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             value={{
                 user,
                 setUser,
+                isAuthed,
                 updateBridgeCustomerId,
                 fetchUser,
                 updateUserName,
