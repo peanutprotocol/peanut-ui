@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { forwardRef } from 'react'
 import Loading from '../Global/Loading'
 import { twMerge } from 'tailwind-merge'
 
@@ -46,7 +46,7 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     },
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
     children,
     className,
     variant = 'purple',
@@ -56,7 +56,7 @@ export const Button: React.FC<ButtonProps> = ({
     shadowType = 'primary',
     loading,
     ...props
-}) => {
+}, ref) => {
     const buttonClasses = twMerge(
         'btn w-full',
         buttonVariants[variant],
@@ -67,9 +67,11 @@ export const Button: React.FC<ButtonProps> = ({
     )
 
     return (
-        <button className={buttonClasses} {...props}>
+        <button className={buttonClasses} ref={ref} {...props}>
             {loading && <Loading />}
             {children}
         </button>
     )
-}
+})
+
+Button.displayName = 'Button'

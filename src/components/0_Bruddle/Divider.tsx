@@ -1,4 +1,3 @@
-import classNames from 'classnames'
 import { twMerge } from 'tailwind-merge'
 
 type DividerProps = {
