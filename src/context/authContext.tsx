@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useAccount } from 'wagmi'
+import { useWallet } from './walletContext'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -35,6 +36,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // TODO: address here should be fetched from the walletContext
     // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
+
+    const {deactiveWalletsOnLogout} = useWallet()
+
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
     const [isAuthed, setIsAuthed] = useState<boolean>(false)
@@ -48,8 +52,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const toastIdRef = useRef<ToastId | undefined>(undefined)
 
     useEffect(() => {
-        setIsAuthed(user != null)
+        if (user != null) {
+            afterLoginUserSetup()
+        } else {
+            setIsAuthed(false)
+        }
     }, [user])
+
+    // TODO: document better
+    // used after register too (there is a login event then too)
+    const afterLoginUserSetup = async (): Promise<undefined> => {
+        // set isAuthed
+        setIsAuthed(true)
+
+        // TODO: set PW as active wallet
+
+        // fetch user wallets
+
+    }
+
+    const afterLogoutUserSetup = async (): Promise<undefined> => {
+        // set isAuthed
+        setIsAuthed(false)
+
+        // fetch user wallets
+        deactiveWalletsOnLogout()
+    }
+
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
         // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.

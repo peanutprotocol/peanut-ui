@@ -6,15 +6,14 @@ import { ZeroDevProvider } from './walletContext/zeroDevContext.context'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
-        <AuthProvider>
-            <ZeroDevProvider>
-                <WalletProvider>
+        <ZeroDevProvider>
+            <WalletProvider>
+                <AuthProvider>
                     <TokenContextProvider>
                         <LoadingStateContextProvider>{children}</LoadingStateContextProvider>
                     </TokenContextProvider>
-                </WalletProvider>
-            </ZeroDevProvider>
-
-        </AuthProvider>
+                </AuthProvider>
+            </WalletProvider>
+        </ZeroDevProvider>
     )
 }

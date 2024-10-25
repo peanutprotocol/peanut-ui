@@ -27,7 +27,7 @@ import React, { useEffect, useState } from "react"
 import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
 import { useZeroDev } from "@/context/walletContext/zeroDevContext.context"
 import { useWallet } from "@/context/walletContext"
-import { WalletType } from "@/interfaces"
+import { WalletProviderType } from "@/interfaces"
 import { useAccount } from "wagmi"
 
 
@@ -158,7 +158,7 @@ export const HandleSetupView = ({}) => {
                         <button
                             onClick={() => {
                                 activateWallet(
-                                    WalletType.PEANUT,
+                                    WalletProviderType.PEANUT,
                                     kernelClientAddress!
                                 );
                             }}
@@ -173,7 +173,7 @@ export const HandleSetupView = ({}) => {
                         <button
                             onClick={() => {
                                 activateWallet(
-                                    WalletType.BYOW,
+                                    WalletProviderType.BYOW,
                                     wagmiAddress!
                                 )
                             }}

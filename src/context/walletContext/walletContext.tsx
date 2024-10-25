@@ -6,6 +6,7 @@ import { useAccount } from 'wagmi'
 // ZeroDev imports
 import { useKernelClient } from "@zerodev/waas"
 import { useZeroDev } from './zeroDevContext.context'
+import { useAuth } from '../authContext'
 
 // TOOD: go through TODOs
 
@@ -13,27 +14,14 @@ import { useZeroDev } from './zeroDevContext.context'
 // TODO: move to context consts
 interface WalletContextType {
     address: string | undefined
-    activeWalletType: interfaces.WalletType | undefined
+    activeWalletType: interfaces.WalletProviderType | undefined
     isWalletConnected: boolean
-    activeWallet: ActiveWallet|undefined,
+    activeWallet: interfaces.IWallet | undefined,
     isActiveWalletPW: boolean,
     isActiveWalletBYOW: boolean,
-    activateWallet: (activeWalletType: interfaces.WalletType, address: string) => void
+    activateWallet: (activeWalletType: interfaces.WalletProviderType, address: string) => void
+    deactiveWalletsOnLogout: () => void
 }
-// TODO: move to context consts
-interface ActiveWallet {
-    activeWalletType: interfaces.WalletType | undefined
-    // connected refers to the provider state
-    //
-    // The user may select a wallet but the provider may be connected
-    // with another wallet. That would mean that: connected == False, in
-    // this case. It will always be true if the active wallet is Peanut Wallet
-    // and the user is logged in. That is because there is only one PW per user,
-    // and the provider will always be connected to that.
-    connected: boolean
-    address: string | undefined
-}
-
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
@@ -45,18 +33,31 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
+    ////// Auth props
+    //
+    const { isAuthed } = useAuth()
+
     ////// BYOW props
     //
     const { address: wagmiAddress, isConnected: isWagmiConnected, addresses} = useAccount()
 
     ////// context props
     //
+    // Active wallet
+    //
     const [address, setAddress] = useState<string | undefined>(undefined)       // mapped to the activeWallet's address at all times
     const [isWalletConnected, setIsWalletConnected] = useState<boolean>(false)
-    const [activeWalletType, setActiveWalletType] = useState<interfaces.WalletType | undefined>(undefined)
+    const [activeWalletType, setActiveWalletType] = useState<interfaces.WalletProviderType | undefined>(undefined)
     const [isActiveWalletPW, setIsActiveWalletPW] = useState<boolean>(false)
     const [isActiveWalletBYOW, setIsActiveWalletBYOW] = useState<boolean>(false)
-    const [activeWallet, setActiveWallet] = useState<ActiveWallet|undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
+    const [activeWallet, setActiveWallet] = useState<interfaces.IWallet | undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
+    const [isFetchingWallets, setIsFetchingWallets] = useState<boolean>(false)
+    // 
+    // Wallets
+    //
+    const [wallets, setWallets] = useState<interfaces.IWallet[]>([])
+
+    // TODO: integrate username w/ Handle view
     // username keeps the current state of the passkey username
     //
     // it changes via the handle input during the Setup flow - at that time,
@@ -90,11 +91,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     //
 
     // TODO: add failure return type (what if checks fail, what do we return?)
-    const activateWallet = (activeWalletType: interfaces.WalletType, address: string) => {
-        if (activeWalletType == interfaces.WalletType.PEANUT) {
+    const activateWallet = (walletProviderType: interfaces.WalletProviderType, address: string) => {
+        if (walletProviderType == interfaces.WalletProviderType.PEANUT) {
             if (isKernelClientReady && kernelClientAddress == address) {
                 setActiveWallet({
-                    activeWalletType,
+                    walletProviderType,
                     connected: true,
                     address: address
                 })
@@ -103,10 +104,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 setIsActiveWalletBYOW(false)
                 // TODO: return success
             }
-        } else if (activeWalletType == interfaces.WalletType.BYOW) {
+        } else if (walletProviderType == interfaces.WalletProviderType.BYOW) {
             if (isWagmiConnected && wagmiAddress == address) {
                 setActiveWallet({
-                    activeWalletType,
+                    walletProviderType,
                     connected: true,
                     address: address
                 })
@@ -119,9 +120,39 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // TODO: return failure
     }
 
-    const deactiveWalletOnLogout = () => {
+    const deactiveWalletsOnLogout = () => {
 
     }
+
+    // sets and returns wallets if successful call
+    // doesn't set wallets and returns null if failure call
+    const fetchWallets = async (): Promise<interfaces.IWallet[] | null> => {
+        setIsFetchingWallets(true)
+        try {
+            if (isAuthed) {
+                const walletsResponse = await fetch('/api/peanut/user/get-wallets')
+                if (walletsResponse.ok) {
+                    const { wallets } : {wallets: interfaces.IWallet[]} = await walletsResponse.json()
+                    setWallets(wallets)
+                    setIsFetchingWallets(false)
+                    return wallets
+                } else {
+                    console.warn('Failed to fetch user wallets.')
+                }
+            }
+        } catch (error) {
+            console.error('ERROR WHEN FETCHING USER', error)
+        } finally {
+            setIsFetchingWallets(false)
+            return null
+        }
+    }
+
+    const removeBYOW = async () => {
+        // TODO: when successful API call, do NOT refetch all wallets (bad UX), but
+        // go on the wallet list and remove wallet
+    }
+
 
     return (
         <WalletContext.Provider
@@ -132,7 +163,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             activeWallet,
             isActiveWalletPW,
             isActiveWalletBYOW,
-            activateWallet
+            activateWallet,setIsFetchingWallets
+            deactiveWalletsOnLogout
         }}>
             {children}
         </WalletContext.Provider>
