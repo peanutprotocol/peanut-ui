@@ -117,7 +117,17 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
     )
 }
 
-const MenuLink = ({ route, title, isBeta = false }: { route: string; title: string; isBeta?: boolean }) => {
+const MenuLink = ({
+    route,
+    title,
+    isBeta = false,
+    className = '',
+}: {
+    route: string
+    title: string
+    isBeta?: boolean
+    className?: string
+}) => {
     const router = useRouter()
 
     const handleClick = useCallback(
@@ -135,7 +145,7 @@ const MenuLink = ({ route, title, isBeta = false }: { route: string; title: stri
     )
 
     return (
-        <NavLink href={route} onClick={handleClick}>
+        <NavLink href={route} onClick={handleClick} className={className}>
             <Text display="block" className="flex items-center">
                 {title}
             </Text>
@@ -189,18 +199,20 @@ const ToolsDropdown = () => {
                         onClick={() => {
                             setShowMenu(!showMenu)
                         }}
-                        className="text-bold flex h-full w-full items-center justify-start rounded-md px-2 py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1 sm:w-max sm:justify-center sm:px-6"
+                        className="text-bold flex h-full w-full items-center justify-start rounded-md py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1"
                     >
-                        <div className="flex h-full w-full items-center justify-center">
-                            <Text display="block"> tools</Text>
+                        <div className="flex h-full w-full items-center justify-start">
+                            <Text display="block">tools</Text>
                         </div>
                     </button>
                 </NavItemBox>
                 {showMenu && (
                     <div className="bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <MenuLink route={'/raffle/create'} title={'raffle'} />
-                        <MenuLink route={'/batch/create'} title={'batch'} />
-                        <MenuLink route={'/refund'} title={'refund'} />
+                        <div className="pl-4">
+                            <MenuLink route={'/raffle/create'} title={'raffle'} />
+                            <MenuLink route={'/batch/create'} title={'batch'} />
+                            <MenuLink route={'/refund'} title={'refund'} />
+                        </div>
                     </div>
                 )}
             </div>
