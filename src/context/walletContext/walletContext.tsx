@@ -36,7 +36,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// Auth props
     //
-    const { isAuthed } = useAuth()
 
     ////// BYOW props
     //
@@ -154,6 +153,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // TODO: makes PW disconnected
     }
 
+    // TODO: this is called by auth - ensure it's always authed before calling
     // 1. fetches wallets .then()
         // sets PW as connected in wallet list (does it by address of passkey connected, bc in the
         // future we may have many PWs)
@@ -182,27 +182,42 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // doesn't set wallets and returns null if failure call
     // returns undefined (doesn't actually) when throwing, otherwise returns IWallet
     const fetchWallets = async (): Promise<interfaces.IWallet[] | undefined> => {
-        setIsFetchingWallets(true)
-        if (isAuthed) {
-            const walletsResponse = await fetch('/api/peanut/user/get-wallets')
-            if (walletsResponse.ok) {
-                // receive in backend format
-                const { dbWallets } : {dbWallets: interfaces.IDBWallet[]} = await walletsResponse.json()
-                // manipulate to frontend format (add connected attribute)
-                const wallets: interfaces.IWallet[] = dbWallets.map((dbWallet: interfaces.IDBWallet) => ({
-                    ...dbWallet,
-                    connected: false
-                }))
-                setWallets(wallets)
-                setIsFetchingWallets(false)
-                return wallets
-            } else {
-                setIsFetchingWallets(false)
-                throwWalletError(interfaces.WalletErrorType.WALLET_FETCH_ERROR)
+        return [
+            {
+                walletProviderType: interfaces.WalletProviderType.PEANUT,
+                protocolType: interfaces.WalletProtocolType.EVM,
+                connected: false,
+                address: '0xE6e8fB6461DA2f05379e9EC9FA4C886010ebf9ab'
+            },
+            {   // 
+                walletProviderType: interfaces.WalletProviderType.BYOW,
+                protocolType: interfaces.WalletProtocolType.EVM,
+                connected: false,
+                address: '0x7D4c7063E003CeB8B9413f63569e7AB968AF3714'
+            },
+            {
+                walletProviderType: interfaces.WalletProviderType.BYOW,
+                protocolType: interfaces.WalletProtocolType.EVM,
+                connected: false,
+                address: '0x92D2d247b5ba2de168DbCFBf339Df4fAC49a9f70'
             }
+        ]
+        setIsFetchingWallets(true)
+        const walletsResponse = await fetch('/api/peanut/user/get-wallets')
+        if (walletsResponse.ok) {
+            // receive in backend format
+            const { dbWallets } : {dbWallets: interfaces.IDBWallet[]} = await walletsResponse.json()
+            // manipulate to frontend format (add connected attribute)
+            const wallets: interfaces.IWallet[] = dbWallets.map((dbWallet: interfaces.IDBWallet) => ({
+                ...dbWallet,
+                connected: false    // this property will be processed into accurate values later in the flow
+            }))
+            setWallets(wallets)
+            setIsFetchingWallets(false)
+            return wallets
         } else {
             setIsFetchingWallets(false)
-            throwWalletError(interfaces.WalletErrorType.WALLET_FETCH_ERROR_USER_NOT_AUTHED)
+            throwWalletError(interfaces.WalletErrorType.WALLET_FETCH_ERROR)
         }
     }
 
