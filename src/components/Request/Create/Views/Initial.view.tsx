@@ -171,7 +171,7 @@ export const InitialView = ({
                             tokenAddress: selectedTokenAddress,
                             chainId: selectedChainID,
                             userBalances: balances,
-                            tokenValue: _tokenValue,
+                            tokenValue,
                             tokenData: selectedTokenData,
                         })
                     }}
@@ -200,7 +200,7 @@ export const InitialView = ({
                             tokenAddress: selectedTokenAddress,
                             chainId: selectedChainID,
                             userBalances: balances,
-                            tokenValue: _tokenValue,
+                            tokenValue,
                             tokenData: selectedTokenData,
                         })
                     }}
