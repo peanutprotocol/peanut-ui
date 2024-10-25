@@ -61,9 +61,9 @@ export const InitialCashoutView = ({
     const [_tokenValue, _setTokenValue] = useState<string | undefined>(
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
-    const [accountNumber, setAccountNumber] = useState<string>('')
-    const [isValidAccountNumber, setIsValidAccountNumber] = useState<boolean>(false)
-    const [isValidatingAccountNumber, setIsValidatingAccountNumber] = useState<boolean>(false)
+    const [bankAccountNumber, setBankAccountNumber] = useState<string>('')
+    const [isValidBankAccountNumber, setIsValidBankAccountNumber] = useState<boolean>(false)
+    const [isValidatingBankAccountNumber, setIsValidatingBankAccountNumber] = useState<boolean>(false)
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
@@ -85,16 +85,16 @@ export const InitialCashoutView = ({
     const isDisabled = useMemo(() => {
         return (
             !_tokenValue ||
-            !isValidAccountNumber ||
-            isValidatingAccountNumber ||
+            !isValidBankAccountNumber ||
+            isValidatingBankAccountNumber ||
             !xchainAllowed ||
             !!isBelowMinLimit ||
             !!isExceedingMaxLimit
         )
     }, [
         _tokenValue,
-        isValidAccountNumber,
-        isValidatingAccountNumber,
+        isValidBankAccountNumber,
+        isValidatingBankAccountNumber,
         xchainAllowed,
         isBelowMinLimit,
         isExceedingMaxLimit,
@@ -104,7 +104,7 @@ export const InitialCashoutView = ({
         setLoadingState('Loading')
         setErrorState({ showError: false, errorMessage: '' })
         try {
-            if (!accountNumber) {
+            if (!bankAccountNumber) {
                 setErrorState({ showError: true, errorMessage: 'Please select a bank account.' })
                 setLoadingState('Idle')
                 return
@@ -127,7 +127,7 @@ export const InitialCashoutView = ({
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        accountIdentifier: accountNumber,
+                        accountIdentifier: bankAccountNumber,
                     }),
                 })
 
@@ -146,21 +146,21 @@ export const InitialCashoutView = ({
                     name: '',
                     email: '',
                     password: '',
-                    recipient: accountNumber,
+                    recipient: bankAccountNumber,
                 })
                 setInitialKYCStep(0)
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: accountNumber,
+                    recipient: bankAccountNumber,
                     password: '',
                 })
                 if (user?.user.kycStatus == 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
                             account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                            accountNumber.replaceAll(/\s/g, '').toLowerCase()
+                            bankAccountNumber.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {
@@ -262,7 +262,7 @@ export const InitialCashoutView = ({
                                                     key={index}
                                                     className={twMerge(
                                                         'flex w-full  items-center justify-between border border-black p-2',
-                                                        accountNumber === account.account_identifier
+                                                        bankAccountNumber === account.account_identifier
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
                                                         xchainAllowed && 'cursor-pointer',
@@ -270,7 +270,7 @@ export const InitialCashoutView = ({
                                                     )}
                                                     onClick={() => {
                                                         if (!xchainAllowed) return
-                                                        setAccountNumber(account.account_identifier)
+                                                        setBankAccountNumber(account.account_identifier)
                                                     }}
                                                 >
                                                     <div className="flex flex-grow items-center">
@@ -280,12 +280,12 @@ export const InitialCashoutView = ({
                                                         </label>
                                                     </div>
                                                     <div className="flex w-6 justify-center">
-                                                        {accountNumber === account.account_identifier && (
+                                                        {bankAccountNumber === account.account_identifier && (
                                                             <button
                                                                 className="text-lg text-black"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation()
-                                                                    setAccountNumber('')
+                                                                    setBankAccountNumber('')
                                                                 }}
                                                             >
                                                                 ✕
@@ -303,13 +303,13 @@ export const InitialCashoutView = ({
                             <ValidatedInput
                                 placeholder="IBAN / US account number"
                                 label="To"
-                                value={accountNumber}
+                                value={bankAccountNumber}
                                 debounceTime={750}
                                 validate={validateBankAccount}
                                 onUpdate={({ value, isValid, isChanging }) => {
-                                    setAccountNumber(value)
-                                    setIsValidAccountNumber(isValid)
-                                    setIsValidatingAccountNumber(isChanging)
+                                    setBankAccountNumber(value)
+                                    setIsValidBankAccountNumber(isValid)
+                                    setIsValidatingBankAccountNumber(isChanging)
                                     if (!isChanging && value && !isValid) {
                                         setErrorState({
                                             showError: true,
