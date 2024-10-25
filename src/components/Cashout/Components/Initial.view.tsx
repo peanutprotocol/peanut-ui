@@ -7,7 +7,6 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
 import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
 import { useCreateLink } from '@/components/Create/useCreateLink'
@@ -20,6 +19,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Icon from '@/components/Global/Icon'
 import { twMerge } from 'tailwind-merge'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
+import { Button, Card } from '@/components/0_Bruddle'
 
 export const InitialCashoutView = ({
     onNext,
@@ -224,15 +224,15 @@ export const InitialCashoutView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 text-center">
-            <label className="text-h2">Cash Out</label>
-            <div className="flex flex-col justify-center gap-3">
-                <label className="text-start text-h8 font-light">
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>Cash Out</Card.Title>
+                <Card.Description>
                     Convert your crypto to FIAT. From any token, any chain, directly to your bank account.
-                </label>
-                <FAQComponent />
-            </div>
-            <div className="flex w-full flex-col items-center justify-center gap-3">
+                    <FAQComponent />
+                </Card.Description>
+            </Card.Header>
+            <Card.Content className="col gap-2">
                 <TokenAmountInput
                     className="w-full max-w-[100%]"
                     tokenValue={_tokenValue}
@@ -279,7 +279,7 @@ export const InitialCashoutView = ({
                                                 <div
                                                     key={index}
                                                     className={twMerge(
-                                                        'flex w-full  items-center justify-between border border-black p-2',
+                                                        'flex w-full items-center  justify-between text-nowrap border border-black p-2',
                                                         selectedBankAccount === account.account_identifier
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
@@ -388,48 +388,40 @@ export const InitialCashoutView = ({
                         )}
                     </div>
                 </div>
-            </div>
-
-            <button
-                className="wc-disable-mf btn-purple btn-xl w-full max-w-[100%]"
-                onClick={() => {
-                    if (!isConnected) handleConnectWallet()
-                    else handleOnNext()
-                }}
-                // Only allow the user to proceed if they are connected and the form is valid
-                disabled={isConnected && isDisabled}
-            >
-                {!isConnected ? (
-                    'Connect Wallet'
-                ) : isLoading ? (
-                    <div className="flex w-full flex-row items-center justify-center gap-2">
-                        <Loading /> {loadingState}
+                <Button
+                    onClick={() => {
+                        if (!isConnected) handleConnectWallet()
+                        else handleOnNext()
+                    }}
+                    loading={isLoading}
+                    // Only allow the user to proceed if they are connected and the form is valid
+                    disabled={isConnected && isDisabled}
+                >
+                    {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
+                </Button>
+                {errorState.showError && (
+                    <div className="text-center">
+                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
-                ) : (
-                    'Proceed'
                 )}
-            </button>
-            {errorState.showError && (
-                <div className="text-center">
-                    <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                </div>
-            )}
-            {isBelowMinLimit && (
-                <span className="text-h8 font-normal">
-                    <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
-                </span>
-            )}
-            {isExceedingMaxLimit && (
-                <span className=" text-h8 font-normal ">
-                    <ChakraIcon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
-                    {MAX_CASHOUT_LIMIT.toLocaleString()}.
-                </span>
-            )}
-            {!xchainAllowed && (
-                <span className=" text-h8 font-normal ">
-                    <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
-                </span>
-            )}
-        </div>
+                {isBelowMinLimit && (
+                    <span className="text-h8 font-normal">
+                        <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}
+                        .
+                    </span>
+                )}
+                {isExceedingMaxLimit && (
+                    <span className=" text-h8 font-normal ">
+                        <ChakraIcon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
+                        {MAX_CASHOUT_LIMIT.toLocaleString()}.
+                    </span>
+                )}
+                {!xchainAllowed && (
+                    <span className=" text-h8 font-normal ">
+                        <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                    </span>
+                )}
+            </Card.Content>
+        </Card>
     )
 }

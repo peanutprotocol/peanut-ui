@@ -132,6 +132,7 @@ export interface IDashboardItem {
     date: string
     chain: string
     address: string | undefined
+    // TODO: this is duplicaet with src/utils/CashoutStatus
     status:
         | 'claimed'
         | 'pending'
@@ -140,6 +141,7 @@ export interface IDashboardItem {
         | 'REFUNDED'
         | 'READY'
         | 'AWAITING_TX'
+        | 'AWAITING_FIAT'
         | 'FUNDS_IN_BRIDGE'
         | 'FUNDS_MOVED_AWAY'
         | 'FUNDS_IN_BANK'

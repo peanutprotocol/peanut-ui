@@ -3,6 +3,7 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Sorting from '@/components/Global/Sorting'
 import Loading from '@/components/Global/Loading'
+import AddressLink from '@/components/Global/AddressLink'
 import { OptionsComponent } from './OptionsComponent'
 import * as consts from '@/constants'
 import { useCallback } from 'react'
@@ -35,7 +36,7 @@ export const TableComponent = ({
     )
 
     return (
-        <table className="table-custom hidden bg-background sm:table">
+        <table className="table-custom hidden sm:table">
             <thead>
                 {selectedTab === 'history' ? (
                     <tr>
@@ -96,10 +97,7 @@ export const TableComponent = ({
                     .map((data) =>
                         selectedTab === 'history' ? (
                             data.dashboardItem && (
-                                <tr
-                                    className="h-16 text-h8 font-normal"
-                                    key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}
-                                >
+                                <tr key={(data.dashboardItem.link ?? data.dashboardItem.txHash ?? '') + Math.random()}>
                                     <td className="td-custom font-bold">{data.dashboardItem.type}</td>
                                     <td className="td-custom font-bold">
                                         {utils.formatTokenAmount(Number(data.dashboardItem.amount), 4)}{' '}
@@ -108,7 +106,7 @@ export const TableComponent = ({
                                     <td className="td-custom font-bold">{data.dashboardItem.chain}</td>
                                     <td className="td-custom">{utils.formatDate(new Date(data.dashboardItem.date))}</td>
                                     <td className="td-custom">
-                                        {utils.printableAddress(data.dashboardItem.address ?? '')}
+                                        <AddressLink address={data.dashboardItem.address ?? ''} />
                                     </td>
                                     <td className="td-custom max-w-32">
                                         <span

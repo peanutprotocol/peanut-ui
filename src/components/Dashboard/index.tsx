@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import Icon from '../Global/Icon'
 import Sorting from '../Global/Sorting'
 import TablePagination from '../Global/TablePagination'
+import AddressLink from '../Global/AddressLink'
 import { useAccount } from 'wagmi'
 import Loading from '../Global/Loading'
 import { useRouter } from 'next/navigation'
@@ -184,7 +185,7 @@ export const Dashboard = () => {
                                                 <td className="td-custom font-bold">{link.chain}</td>
                                                 <td className="td-custom">{utils.formatDate(new Date(link.date))}</td>
                                                 <td className="td-custom">
-                                                    {utils.printableAddress(link.address ?? address ?? '')}
+                                                    <AddressLink address={link.address ?? address ?? ''} />
                                                 </td>
                                                 <td className="td-custom max-w-32">
                                                     <span

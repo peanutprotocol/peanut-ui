@@ -3,6 +3,8 @@ import { useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
 import * as utils from '@/utils'
 import { ethers } from 'ethers'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import classNames from 'classnames'
 
 type AddressInputProps = {
     className?: string
@@ -88,23 +90,16 @@ const AddressInput = ({
     }, [value])
 
     return (
-        <div
-            className={`relative w-full max-w-96 border border-n-1 dark:border-white${
-                userInput && !isLoading && isValidRecipient
-                    ? ' border border-n-1 dark:border-white'
-                    : userInput && !isLoading && !isValidRecipient
-                      ? ' border-n-1 border-red dark:border-red'
-                      : ''
-            }`}
-        >
-            <div className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
-                To:
+        <div className={classNames('relative w-full', {})}>
+            <div className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
+                <Icon name="send" className="h-4 w-4 dark:fill-white" />
             </div>
-            <input
-                className={`transition-color h-12 w-full rounded-none bg-transparent
-                bg-white px-4 pl-8 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
+            <BaseInput
                 type="text"
                 placeholder={placeholder}
+                className={classNames('pl-12', {
+                    'border-red-1': userInput && !isLoading && !isValidRecipient,
+                })}
                 value={userInput}
                 onSubmit={(e) => {
                     e.preventDefault()

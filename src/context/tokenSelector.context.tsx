@@ -3,7 +3,6 @@ import React, { createContext, useEffect, useState } from 'react'
 
 import * as utils from '@/utils'
 import * as consts from '@/constants'
-import { useAccount } from 'wagmi'
 import { type ITokenPriceData } from '@/interfaces'
 
 type inputDenominationType = 'USD' | 'TOKEN'
@@ -25,6 +24,7 @@ export const tokenSelectorContext = createContext({
     isXChain: false as boolean,
     setIsXChain: (value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | undefined,
+    isFetchingTokenData: false as boolean,
 })
 
 /**
@@ -32,16 +32,27 @@ export const tokenSelectorContext = createContext({
  * It handles fetching token prices, updating context values, and resetting the provider based on user preferences and wallet connection status.
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState('0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85')
-    const [selectedChainID, setSelectedChainID] = useState('10')
+    const initialTokenData = {
+        tokenAddress: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
+        chainId: '10', // Optimism
+        decimals: 6,
+    }
+    const prefs = utils.getPeanutPreferences()
+    if (prefs && prefs.tokenAddress && prefs.chainId && prefs.decimals) {
+        initialTokenData.tokenAddress = prefs.tokenAddress
+        initialTokenData.chainId = prefs.chainId
+        initialTokenData.decimals = prefs.decimals
+    }
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.tokenAddress)
+    const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
     const [refetchXchainRoute, setRefetchXchainRoute] = useState<boolean>(false)
-    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(18)
+    const [selectedTokenDecimals, setSelectedTokenDecimals] = useState<number | undefined>(initialTokenData.decimals)
     const [isXChain, setIsXChain] = useState<boolean>(false)
+    const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
 
-    const { isConnected } = useAccount()
     const preferences = utils.getPeanutPreferences()
 
     const updateSelectedChainID = (chainID: string) => {
@@ -64,6 +75,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         let isCurrent = true
 
         async function fetchAndSetTokenPrice(tokenAddress: string, chainId: string) {
+            setIsFetchingTokenData(true)
             try {
                 if (!consts.supportedMobulaChains.some((chain) => chain.chainId == chainId)) {
                     setSelectedTokenData(undefined)
@@ -94,15 +106,13 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 }
             } catch (error) {
                 console.log('error fetching tokenPrice, falling back to tokenDenomination')
+            } finally {
+                setIsFetchingTokenData(false)
             }
         }
 
-        if (!isConnected) {
-            setSelectedTokenData(undefined)
-            setSelectedTokenPrice(undefined)
-            setSelectedTokenDecimals(undefined)
-            setInputDenomination('TOKEN')
-        } else if (selectedTokenAddress && selectedChainID) {
+        if (selectedTokenAddress && selectedChainID) {
+            setIsFetchingTokenData(true)
             setSelectedTokenData(undefined)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
@@ -112,16 +122,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 isCurrent = false
             }
         }
-    }, [selectedTokenAddress, selectedChainID, isConnected])
-
-    useEffect(() => {
-        const prefs = utils.getPeanutPreferences()
-        if (prefs && prefs.tokenAddress && prefs.chainId && prefs.decimals) {
-            setSelectedTokenAddress(prefs.tokenAddress)
-            setSelectedChainID(prefs.chainId)
-            setSelectedTokenDecimals(prefs.decimals)
-        }
-    }, [])
+    }, [selectedTokenAddress, selectedChainID])
 
     return (
         <tokenSelectorContext.Provider
@@ -142,6 +143,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 isXChain,
                 setIsXChain,
                 selectedTokenData,
+                isFetchingTokenData,
             }}
         >
             {children}

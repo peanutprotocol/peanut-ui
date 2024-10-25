@@ -16,6 +16,8 @@
 
 # production
 /build
+/public/
+/public/**/*
 
 # misc
 .DS_Store
@@ -55,7 +57,3 @@ yarn.lock
 
 # Sentry Config File
 .env.sentry-build-plugin
-
-certificates
-public/sw*
-public/swe-worker*

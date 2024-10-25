@@ -13,13 +13,22 @@ import * as context from '@/context'
 import * as utils from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import peanut, { ERC20_ABI, ethersV5ToPeanutTx, getDefaultProvider, getLatestContractVersion, interfaces, PEANUT_CONTRACTS, prepareApproveERC20Tx } from '@squirrel-labs/peanut-sdk'
+import peanut, {
+    ERC20_ABI,
+    ethersV5ToPeanutTx,
+    getDefaultProvider,
+    getLatestContractVersion,
+    interfaces,
+    PEANUT_CONTRACTS,
+    prepareApproveERC20Tx,
+} from '@squirrel-labs/peanut-sdk'
 import * as ethers from 'ethers'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useBalance } from '@/hooks/useBalance'
+import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 
 export const CreateLinkInputView = ({
@@ -71,7 +80,7 @@ export const CreateLinkInputView = ({
     )
 
     const { isConnected, address } = useAccount()
-    const {isActiveWalletPW} = useWallet()
+    const { isActiveWalletPW } = useWallet()
 
     const { open } = useWeb3Modal()
 
@@ -148,16 +157,14 @@ export const CreateLinkInputView = ({
 
                     // const defaultProvider = provider || (await getDefaultProvider(chainId))
                     // const tokenContract = new ethers.Contract(tokenAddress, ERC20_ABI, defaultProvider)
-                
+
                     // const _PEANUT_CONTRACTS = PEANUT_CONTRACTS as { [chainId: string]: { [contractVersion: string]: string } }
                     // const spender = spenderAddress || (_PEANUT_CONTRACTS[chainId] && _PEANUT_CONTRACTS[chainId][contractVersion])
-                
-                
+
                     // const tx = await tokenContract.populateTransaction.approve(spender, BigInt(0))
                     // const peanutTxs: any = {unsignedTxs: [ethersV5ToPeanutTx(tx)]}
 
                     // prepareDepositTxsResponse = peanutTxs
-
 
                     prepareDepositTxsResponse = await prepareDepositTxs({
                         _linkDetails: linkDetails,
@@ -179,7 +186,7 @@ export const CreateLinkInputView = ({
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
                     }
-                    console.log({prepareDepositTxsResponse})
+                    console.log({ prepareDepositTxsResponse })
                 }
 
                 const estimatedPoints = await estimatePoints({
@@ -263,77 +270,71 @@ export const CreateLinkInputView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            <label
-                className="max-h-[92px] w-full overflow-hidden text-h2"
-                style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
-            >
-                {createType === 'link'
-                    ? 'Text Tokens'
-                    : createType === 'direct'
-                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
-                      : `Send to ${recipient.name}`}
-            </label>
-            <label className="max-w-96 text-start text-h8 font-light">
-                {createType === 'link' &&
-                    'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
-                {createType === 'email_link' &&
-                    `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
-                {createType === 'sms_link' &&
-                    `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
-                {createType === 'direct' &&
-                    `You will do a direct blockchain transaction to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
-            </label>
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-                <TokenAmountInput
-                    className="w-full"
-                    tokenValue={_tokenValue}
-                    setTokenValue={_setTokenValue}
-                    onSubmit={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
-                    }}
-                />
-                <TokenSelector classNameButton="w-full" />
-                {hasFetchedBalances && balances.length === 0 && (
-                    <div
-                        onClick={() => {
-                            open()
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
+                    {' '}
+                    {createType === 'link'
+                        ? 'Text Tokens'
+                        : createType === 'direct'
+                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
+                          : `Send to ${recipient.name}`}
+                </Card.Title>
+                <Card.Description>
+                    {createType === 'link' &&
+                        'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
+                    {createType === 'email_link' &&
+                        `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                    {createType === 'sms_link' &&
+                        `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                    {createType === 'direct' &&
+                        `You will do a direct blockchain transaction to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
+                </Card.Description>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-4">
+                <div className="flex flex-col gap-4">
+                    <TokenAmountInput
+                        className="w-full"
+                        tokenValue={_tokenValue}
+                        setTokenValue={_setTokenValue}
+                        onSubmit={() => {
+                            if (!isConnected) handleConnectWallet()
+                            else handleOnNext()
                         }}
-                        className="cursor-pointer text-h9 underline"
-                    >
-                        ( Buy Tokens )
-                    </div>
-                )}
-                {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
-                    <FileUploadInput
-                        attachmentOptions={attachmentOptions}
-                        setAttachmentOptions={setAttachmentOptions}
                     />
-                )}
-            </div>
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-                <button
-                    className="wc-disable-mf btn-purple btn-xl "
-                    onClick={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else handleOnNext()
-                    }}
-                    disabled={isLoading || (isConnected && !tokenValue)}
-                >
-                    {!isConnected ? (
-                        'Connect Wallet'
-                    ) : isLoading ? (
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {loadingState}
+                    <TokenSelector classNameButton="w-full" />
+                    {hasFetchedBalances && balances.length === 0 && (
+                        <div
+                            onClick={() => {
+                                open()
+                            }}
+                            className="cursor-pointer text-h9 underline"
+                        >
+                            ( Buy Tokens )
                         </div>
-                    ) : (
-                        'Confirm'
                     )}
-                </button>
-                <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
-                    Return
-                </button>
+                    {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
+                        <FileUploadInput
+                            attachmentOptions={attachmentOptions}
+                            setAttachmentOptions={setAttachmentOptions}
+                        />
+                    )}
+                </div>
+                <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
+                    <Button
+                        onClick={() => {
+                            if (!isConnected) handleConnectWallet()
+                            else handleOnNext()
+                        }}
+                        loading={isLoading}
+                        disabled={isLoading || (isConnected && !tokenValue)}
+                    >
+                        {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
+                    </Button>
+                    <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
+                        Return
+                    </Button>
+                </div>
                 {errorState.showError && (
                     <div className="text-center">
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
@@ -353,7 +354,7 @@ export const CreateLinkInputView = ({
                         }
                     />
                 </span>
-            </div>
-        </div>
+            </Card.Content>
+        </Card>
     )
 }

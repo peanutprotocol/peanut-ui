@@ -194,7 +194,7 @@ export async function createExternalAccount(
                 // if bridge account already exists for this iban
                 // but somehow not stored in our DB (this should never happen in
                 // prod, but can happen if same email used in prod & staging)
-                // 
+                //
                 // returns:  not interfaces.IBridgeAccount type, but
                 // a currently undefined error type on the data field of interfaces.IResponse
                 // of format:
@@ -207,7 +207,7 @@ export async function createExternalAccount(
                 // TODO: HTTP responses need to be standardized client wide
                 return {
                     success: false,
-                    data
+                    data,
                 } as interfaces.IResponse
             }
             throw new Error('Failed to create external account')
@@ -215,7 +215,7 @@ export async function createExternalAccount(
 
         return {
             success: true,
-            data: data as interfaces.IBridgeAccount
+            data: data as interfaces.IBridgeAccount,
         } as interfaces.IResponse
     } catch (error) {
         console.error('Error:', error)
@@ -298,6 +298,11 @@ export const createLiquidationAddress = async (
     })
 
     if (!response.ok) {
+        // log the response body
+        console.error(response)
+        // log either response body or response json, whatever is not undefined
+        const responseBody = await response.text()
+        console.error(responseBody)
         throw new Error('Failed to create liquidation address')
     }
 
@@ -449,6 +454,7 @@ export type CashoutStatus =
     | 'REFUNDED'
     | 'READY'
     | 'AWAITING_TX'
+    | 'AWAITING_FIAT'
     | 'FUNDS_IN_BRIDGE'
     | 'FUNDS_MOVED_AWAY'
     | 'FUNDS_IN_BANK'
@@ -481,6 +487,7 @@ export const CashoutStatusDescriptions: { [key in CashoutStatus]: string } = {
     REFUNDED: 'The funds will be refunded to your address.',
     READY: 'The cashout is ready and can be processed.',
     AWAITING_TX: 'Awaiting the transaction to be broadcast on the blockchain.',
+    AWAITING_FIAT: 'Awaiting the funds to be moved to FIAT.',
     FUNDS_IN_BRIDGE: 'Funds are currently in the bridge, moving to the destination chain.',
     FUNDS_MOVED_AWAY: 'Funds have been moved from the bridge to another chain.',
     FUNDS_IN_BANK: 'Funds have been deposited into your bank account.',
@@ -528,7 +535,7 @@ export const fetchRouteRaw = async (
     toChain: string,
     tokenDecimals: number,
     tokenAmount: string,
-    senderAddress: string
+    fromAddress?: string
 ) => {
     try {
         const _tokenAmount = BigInt(Math.floor(Number(tokenAmount) * Math.pow(10, tokenDecimals))).toString()
@@ -538,12 +545,12 @@ export const fetchRouteRaw = async (
             fromChain: fromChain,
             fromToken: fromToken.toLowerCase(),
             fromAmount: _tokenAmount,
+            // TODO: move placeholder address to consts file
+            fromAddress: fromAddress ?? '0x9647BB6a598c2675310c512e0566B60a5aEE6261', // placeholder address just to get a route sample
+            toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C', // placeholder address just to get a route sample
             toChain: toChain,
             toToken: toToken,
             slippage: 1,
-            fromAddress: senderAddress,
-
-            toAddress: '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
         })
         return route
     } catch (error) {

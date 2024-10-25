@@ -16,6 +16,8 @@ import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountCompon
 import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
+import { checkTransactionStatus } from '@/components/utils/utils'
+
 import {
     CrossChainDetails,
     IOfframpConfirmScreenProps,
@@ -26,6 +28,7 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
+import { Button, Card } from '../0_Bruddle'
 
 export const OfframpConfirmView = ({
     onNext, // available on all offramps
@@ -91,7 +94,7 @@ export const OfframpConfirmView = ({
     //////////////////////
     // functions for cashout offramps
     // TODO: they need to be refactored to a separate file
-
+    // TODO: this function is a clusterfuck
     const fetchNecessaryDetails = useCallback(async () => {
         if (!user || !selectedChainID || !selectedTokenAddress) {
             throw new Error('Missing user or token information')
@@ -135,7 +138,8 @@ export const OfframpConfirmView = ({
         }
     }, [user, selectedChainID, selectedTokenAddress, offrampForm])
 
-    const handleConfirm = async () => {
+    // For cashout offramps
+    const handleCashoutConfirm = async () => {
         setLoadingState('Loading')
         setErrorState({ showError: false, errorMessage: '' })
 
@@ -143,7 +147,6 @@ export const OfframpConfirmView = ({
             if (!preparedCreateLinkWrapperResponse) return
 
             // Fetch all necessary details before creating the link
-            // (and make sure we have all the data we need)
             const {
                 crossChainDetails,
                 peanutAccount,
@@ -152,6 +155,26 @@ export const OfframpConfirmView = ({
                 allLiquidationAddresses,
             } = await fetchNecessaryDetails()
 
+            // Process link details and determine if cross-chain transfer is needed
+            // TODO: type safety
+            const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
+                preparedCreateLinkWrapperResponse.linkDetails,
+                crossChainDetails as CrossChainDetails[],
+                allLiquidationAddresses,
+                bridgeCustomerId,
+                bridgeExternalAccountId,
+                peanutAccount.account_type
+            )
+
+            if (!tokenName || !chainName) {
+                throw new Error('Unable to determine token or chain information')
+            }
+
+            // get chainId and tokenAddress (default to optimism)
+            const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
+            const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
+
+            // Now that we have all the necessary information, create the link
             const link = await createLinkWrapper(preparedCreateLinkWrapperResponse)
             setCreatedLink(link)
             console.log(`created claimlink: ${link}`)
@@ -169,30 +192,20 @@ export const OfframpConfirmView = ({
 
             const claimLinkData = await getLinkDetails({ link: link })
 
-            // Process link details and determine if cross-chain transfer is needed
-            const { tokenName, chainName, xchainNeeded, liquidationAddress } = await processLinkDetails(
-                claimLinkData,
-                crossChainDetails as CrossChainDetails[],
-                allLiquidationAddresses,
-                bridgeCustomerId,
-                bridgeExternalAccountId,
-                peanutAccount.account_type
-            )
-
-            if (!tokenName || !chainName) {
-                throw new Error('Unable to determine token or chain information')
-            }
-
-            // get chainId and tokenAddress (default to optimism)
-            const chainId = utils.getChainIdFromBridgeChainName(chainName) ?? ''
-            const tokenAddress = utils.getTokenAddressFromBridgeTokenName(chainId ?? '10', tokenName) ?? ''
-
-            const hash = await claimAndProcessLink(
+            const srcChainId = claimLinkData.chainId
+            const destChainId = chainId
+            const isSameChain = srcChainId === destChainId
+            const { sourceTxHash, destinationTxHash } = await claimAndProcessLink(
                 xchainNeeded,
                 liquidationAddress.address,
                 claimLinkData,
                 chainId,
-                tokenAddress
+                tokenAddress,
+                isSameChain
+            )
+
+            console.log(
+                `finalized claimAndProcessLink, sourceTxHash: ${sourceTxHash}, destinationTxHash: ${destinationTxHash}`
             )
 
             localStorage.removeItem(tempKey)
@@ -200,7 +213,7 @@ export const OfframpConfirmView = ({
 
             await saveAndSubmitCashoutLink(
                 claimLinkData,
-                hash,
+                destinationTxHash,
                 liquidationAddress,
                 bridgeCustomerId,
                 bridgeExternalAccountId,
@@ -209,11 +222,10 @@ export const OfframpConfirmView = ({
                 peanutAccount
             )
 
-            setTransactionHash(hash)
-            console.log('Transaction hash:', hash)
+            setTransactionHash(destinationTxHash)
+            console.log('Transaction hash:', destinationTxHash)
 
             onNext()
-            setLoadingState('Idle')
         } catch (error) {
             handleError(error)
         } finally {
@@ -275,12 +287,12 @@ export const OfframpConfirmView = ({
         }
 
         const route = await utils.fetchRouteRaw(
-            claimLinkData.tokenAddress,
-            claimLinkData.chainId.toString(),
+            claimLinkData.tokenAddress!,
+            claimLinkData.chainId!.toString(),
             usdcAddressOptimism,
             optimismChainId,
-            claimLinkData.tokenDecimals,
-            claimLinkData.tokenAmount,
+            claimLinkData.tokenDecimals!,
+            claimLinkData.tokenAmount!,
             claimLinkData.senderAddress
         )
 
@@ -299,20 +311,63 @@ export const OfframpConfirmView = ({
         address: string,
         claimLinkData: any, // TODO: fix type
         chainId: string,
-        tokenAddress: string
-    ) => {
+        tokenAddress: string,
+        isSameChain?: boolean // e.g. for opt ETH -> opt USDC
+    ): Promise<{ sourceTxHash: string; destinationTxHash: string }> => {
         if (xchainNeeded) {
-            return await claimLinkXchain({
+            // In a cross-chain scenario, the src tx hash is different than the dest tx hash. It takes a while for us
+            // to fetch it, since the destination chain tx is not available immediately. We query squid in intervals until we get it or we bail.
+            // exception is a same chain swap, where the tx is atomic and available immediately
+            const sourceTxHash = await claimLinkXchain({
                 address,
                 link: claimLinkData.link,
                 destinationChainId: chainId,
                 destinationToken: tokenAddress,
             })
+            setLoadingState('Executing transaction') // claimLinkXchain sets loading state to idle after it finishes. pls no.
+
+            if (isSameChain) {
+                return {
+                    sourceTxHash,
+                    destinationTxHash: sourceTxHash,
+                }
+            }
+
+            const maxAttempts = 15
+            let attempts = 0
+
+            while (attempts < maxAttempts) {
+                try {
+                    const status = await checkTransactionStatus(sourceTxHash)
+                    if (status.squidTransactionStatus === 'success') {
+                        return {
+                            sourceTxHash,
+                            destinationTxHash: status.toChain.transactionId,
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Error checking transaction status:', error)
+                }
+
+                attempts++
+                if (attempts < maxAttempts) {
+                    await new Promise((resolve) => setTimeout(resolve, 2000))
+                }
+            }
+
+            console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
+            return {
+                sourceTxHash,
+                destinationTxHash: sourceTxHash,
+            }
         } else {
-            return await claimLink({
+            // same chain and same token scenario
+            const txHash = await claimLink({
                 address,
                 link: claimLinkData.link,
             })
+            setLoadingState('Executing transaction') // claimLink
+            return { sourceTxHash: txHash, destinationTxHash: txHash }
         }
     }
 
@@ -349,7 +404,7 @@ export const OfframpConfirmView = ({
             link: claimLinkData.link,
             bridgeCustomerId: bridgeCustomerId,
             liquidationAddressId: liquidationAddress.id,
-            cashoutTransactionHash: hash,
+            cashoutTransactionHash: hash, // has to be destination chain transaction hash!
             externalAccountId: bridgeExternalAccountId,
             chainId: chainId,
             tokenName: tokenName,
@@ -357,7 +412,7 @@ export const OfframpConfirmView = ({
     }
 
     const handleError = (error: unknown) => {
-        console.error('Error in handleConfirm:', error)
+        console.error('Error in handleCashoutConfirm:', error)
         setErrorState({
             showError: true,
             errorMessage:
@@ -402,9 +457,8 @@ export const OfframpConfirmView = ({
     }
 
     //////////////////////
-    // functions for claim link offramps
+    // functions for claim link offramps (not self-cashout)
     // TODO: they need to be refactored to a separate file
-
     const handleSubmitTransfer = async () => {
         if (claimLinkData && tokenPrice && estimatedPoints && attachment && recipientType) {
             try {
@@ -541,244 +595,243 @@ export const OfframpConfirmView = ({
     }
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-4 px-2  text-center">
-            <label className="text-h4">Confirm your details</label>
-            <div className="flex flex-col justify-center gap-3">
-                {offrampType == OfframpType.CASHOUT && (
-                    <>
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>Confirm your details</Card.Title>
+                <Card.Description>
+                    {offrampType == OfframpType.CASHOUT && (
+                        <>
+                            <label className="text-start text-h8 font-light">
+                                Cash out your crypto to your bank account. From any token, any chain, directly to your
+                                bank account.
+                            </label>
+                            <FAQComponent />
+                        </>
+                    )}
+                    {offrampType == OfframpType.CLAIM && (
                         <label className="text-start text-h8 font-light">
-                            Cash out your crypto to your bank account. From any token, any chain, directly to your bank
-                            account.
+                            Cash out this link's crypto directly to your bank account.
                         </label>
-                        <FAQComponent />
-                    </>
-                )}
-                {offrampType == OfframpType.CLAIM && (
-                    <label className="text-start text-h8 font-light">
-                        Cash out this link's crypto directly to your bank account.
-                    </label>
-                )}
-            </div>
-            {activeStep < 3 ? (
-                <GlobalKYCComponent
-                    intialStep={initialKYCStep}
-                    offrampForm={offrampForm}
-                    setOfframpForm={setOfframpForm}
-                    onCompleted={(message) => {
-                        handleCompleteKYC(message)
-                    }}
-                />
-            ) : activeStep === 3 ? (
-                <GlobaLinkAccountComponent
-                    accountNumber={offrampForm?.recipient}
-                    onCompleted={() => {
-                        handleCompleteLinkAccount('success')
-                    }}
-                />
-            ) : (
-                <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="self-start text-h8 font-light">Please confirm all details:</label>
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'profile'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Name</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {user?.user?.full_name}
-                            </span>
-                        </div>
+                    )}
+                </Card.Description>
+            </Card.Header>
 
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'email'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Email</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {user?.user?.email}
-                            </span>
-                        </div>
-
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'bank'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Bank account</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {offrampType == OfframpType.CASHOUT
-                                    ? offrampForm.recipient.toUpperCase()
-                                    : offrampForm?.recipient}
-                            </span>
-                        </div>
-
-                        {offrampType == OfframpType.CLAIM && (
+            <Card.Content className="col gap-4">
+                {activeStep < 3 ? (
+                    <GlobalKYCComponent
+                        intialStep={initialKYCStep}
+                        offrampForm={offrampForm}
+                        setOfframpForm={setOfframpForm}
+                        onCompleted={(message) => {
+                            handleCompleteKYC(message)
+                        }}
+                    />
+                ) : activeStep === 3 ? (
+                    <GlobaLinkAccountComponent
+                        accountNumber={offrampForm?.recipient}
+                        onCompleted={() => {
+                            handleCompleteLinkAccount('success')
+                        }}
+                    />
+                ) : (
+                    <div className="my-2 flex w-full flex-col items-center justify-center gap-2">
+                        <label className="self-start text-h8 font-light">Please confirm all details:</label>
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Route</label>
+                                    <Icon name={'profile'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Name</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {
-                                        consts.supportedPeanutChains.find(
-                                            (chain) => chain.chainId === claimLinkData?.chainId
-                                        )?.name
-                                    }{' '}
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                    {recipientType?.toUpperCase()}{' '}
-                                    <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                                    {user?.user?.full_name}
                                 </span>
                             </div>
-                        )}
 
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Fee</label>
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                    <Icon name={'email'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Email</label>
+                                </div>
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {user?.user?.email}
+                                </span>
                             </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
-                                    ? '$1'
-                                    : '$0.50'}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                    }
-                                />
-                            </span>
-                        </div>
 
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                    <Icon name={'bank'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Bank account</label>
+                                </div>
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {offrampType == OfframpType.CASHOUT
+                                        ? offrampForm.recipient.toUpperCase()
+                                        : offrampForm?.recipient}
+                                </span>
+                            </div>
+
                             {offrampType == OfframpType.CLAIM && (
-                                <>
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                     <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                        <label className="font-bold">Total</label>
+                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <label className="font-bold">Route</label>
                                     </div>
                                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        $
-                                        {tokenPrice &&
-                                            claimLinkData &&
-                                            utils.formatTokenAmount(
-                                                tokenPrice * parseFloat(claimLinkData.tokenAmount)
-                                            )}{' '}
-                                        <MoreInfo text={'Woop Woop free offramp!'} />
+                                        {
+                                            consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === claimLinkData?.chainId
+                                            )?.name
+                                        }{' '}
+                                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
+                                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                        {recipientType?.toUpperCase()}{' '}
+                                        <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
                                     </span>
-                                </>
+                                </div>
                             )}
 
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                {offrampType == OfframpType.CLAIM && (
-                                    <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                )}
-                                <label className="font-bold">Total</label>
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Fee</label>
+                                </div>
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {user?.accounts.find(
+                                        (account) => account.account_identifier === offrampForm.recipient
+                                    )?.account_type === 'iban'
+                                        ? '$1'
+                                        : '$0.50'}
+                                    <MoreInfo
+                                        text={
+                                            user?.accounts.find(
+                                                (account) => account.account_identifier === offrampForm.recipient
+                                            )?.account_type === 'iban'
+                                                ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
+                                                : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
+                                        }
+                                    />
+                                </span>
                             </div>
 
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                $
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
-                                    ? offrampType == OfframpType.CASHOUT
-                                        ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
-                                        : tokenPrice &&
-                                          claimLinkData &&
-                                          utils.formatTokenAmount(
-                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                          )
-                                    : offrampType == OfframpType.CASHOUT
-                                      ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                      : tokenPrice &&
-                                        claimLinkData &&
-                                        utils.formatTokenAmount(
-                                            tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                        )}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
-                                    }
-                                />
-                            </span>
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                {offrampType == OfframpType.CLAIM && (
+                                    <>
+                                        <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                            <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                            <label className="font-bold">Total</label>
+                                        </div>
+                                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                            $
+                                            {tokenPrice &&
+                                                claimLinkData &&
+                                                utils.formatTokenAmount(
+                                                    tokenPrice * parseFloat(claimLinkData.tokenAmount)
+                                                )}{' '}
+                                            <MoreInfo text={'Woop Woop free offramp!'} />
+                                        </span>
+                                    </>
+                                )}
+
+                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                                    {offrampType == OfframpType.CLAIM && (
+                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                    )}
+                                    <label className="font-bold">You will receive</label>
+                                </div>
+
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    $
+                                    {user?.accounts.find(
+                                        (account) => account.account_identifier === offrampForm.recipient
+                                    )?.account_type === 'iban'
+                                        ? offrampType == OfframpType.CASHOUT
+                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
+                                            : tokenPrice &&
+                                              claimLinkData &&
+                                              utils.formatTokenAmount(
+                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                              )
+                                        : offrampType == OfframpType.CASHOUT
+                                          ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                          : tokenPrice &&
+                                            claimLinkData &&
+                                            utils.formatTokenAmount(
+                                                tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
+                                            )}
+                                    <MoreInfo
+                                        text={
+                                            user?.accounts.find(
+                                                (account) => account.account_identifier === offrampForm.recipient
+                                            )?.account_type === 'iban'
+                                                ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                                : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                        }
+                                    />
+                                </span>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
+                )}
+                <div className="flex w-full flex-col items-center justify-center gap-2">
+                    {activeStep > 3 && (
+                        <Button
+                            onClick={() => {
+                                switch (offrampType) {
+                                    case OfframpType.CASHOUT: {
+                                        handleCashoutConfirm()
+                                        break
+                                    }
+                                    case OfframpType.CLAIM: {
+                                        handleSubmitTransfer()
+                                        break
+                                    }
+                                }
+                            }}
+                            disabled={isLoading}
+                            loading={isLoading}
+                        >
+                            {isLoading ? loadingState : 'Confirm'}
+                        </Button>
+                    )}
 
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                {activeStep > 3 && (
-                    <button
+                    <Button
+                        variant="stroke"
                         onClick={() => {
-                            switch (offrampType) {
-                                case OfframpType.CASHOUT: {
-                                    handleConfirm()
-                                    break
-                                }
-                                case OfframpType.CLAIM: {
-                                    handleSubmitTransfer()
-                                    break
-                                }
-                            }
+                            onPrev()
+                            setActiveStep(0)
+                            setErrorState({ showError: false, errorMessage: '' })
+                            setOfframpForm({ email: '', name: '', recipient: '', password: '' })
                         }}
-                        className="btn-purple btn-xl"
                         disabled={isLoading}
+                        type="button"
                     >
-                        {isLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : (
-                            'Cashout'
-                        )}
-                    </button>
-                )}
+                        Return
+                    </Button>
 
-                <button
-                    className="btn btn-xl dark:border-white dark:text-white"
-                    onClick={() => {
-                        onPrev()
-                        setActiveStep(0)
-                        setErrorState({ showError: false, errorMessage: '' })
-                        setOfframpForm({ email: '', name: '', recipient: '', password: '' })
-                    }}
-                    disabled={isLoading}
-                    type="button"
-                >
-                    Return
-                    {/* Cancel if activeStep <=3 and offramp type cashout*/}
-                </button>
-
-                {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">
-                            KYC is under review, it might take up to 24hrs. Chat with support to finish the process.
-                        </label>
-                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                    </div>
-                ) : errorState.errorMessage === 'KYC rejected' ? (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>{' '}
-                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                    </div>
-                ) : (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                    </div>
-                )}
-                {showRefund && (
-                    <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click
-                        here to reclaim the link to your wallet.
-                    </Link>
-                )}
-            </div>
-        </div>
+                    {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">
+                                KYC is under review, it might take up to 24hrs. Chat with support to finish the process.
+                            </label>
+                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
+                        </div>
+                    ) : errorState.errorMessage === 'KYC rejected' ? (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>{' '}
+                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
+                        </div>
+                    ) : (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                    {showRefund && (
+                        <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
+                            <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout.
+                            Click here to reclaim the link to your wallet.
+                        </Link>
+                    )}
+                </div>
+            </Card.Content>
+        </Card>
     )
 }

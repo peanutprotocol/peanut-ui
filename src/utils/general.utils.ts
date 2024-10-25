@@ -235,6 +235,12 @@ export function formatAmount(amount: number) {
     return amount.toFixed(2)
 }
 
+export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
+    let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
+    fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
+    return amount.toFixed(fractionDigits)
+}
+
 export function formatTokenAmount(amount?: number, maxFractionDigits?: number) {
     if (amount === undefined) return undefined
     maxFractionDigits = maxFractionDigits ?? 6

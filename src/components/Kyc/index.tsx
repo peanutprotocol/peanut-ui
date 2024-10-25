@@ -1,12 +1,13 @@
 'use client'
 import { useAuth } from '@/context/authContext'
-import { Divider } from '@chakra-ui/react'
 import { useContext, useState } from 'react'
 import * as context from '@/context'
 import Loading from '../Global/Loading'
 import Link from 'next/link'
 import * as assets from '@/assets'
 import { GlobalKYCComponent } from '../Global/KYCComponent'
+import { Button, Card } from '../0_Bruddle'
+import Divider from '../0_Bruddle/Divider'
 
 export const KYCComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
@@ -30,55 +31,53 @@ export const KYCComponent = () => {
         }
     }
 
-    return (
-        <div className="card ">
-            {!user && isFetchingUser ? (
-                <div className="relative flex w-full items-center justify-center">
-                    <div className="animate-spin">
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                        <span className="sr-only">Loading...</span>
-                    </div>
+    if (!user && isFetchingUser) {
+        return (
+            <div className="relative flex w-full items-center justify-center">
+                <div className="animate-spin">
+                    <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                    <span className="sr-only">Loading...</span>
                 </div>
-            ) : user && user?.user?.kycStatus === 'verified' ? (
-                <div className="flex flex-col items-center justify-center gap-4">
-                    <p className="text-h4">Welcome back, {user?.user?.username ?? user?.user?.email}</p>
-                    <p className="text-h8 font-light">You have already completed the KYC process!</p>
-                    <Link href={'/profile'} className="btn-purple btn-xl">
-                        Go to profile
+            </div>
+        )
+    }
+
+    if (user && user?.user?.kycStatus === 'verified') {
+        return (
+            <Card shadowSize="6">
+                <Card.Header className="text-center">
+                    <Card.Title>Welcome back, {user?.user?.username ?? user?.user?.email}</Card.Title>
+                    <Card.Description>You have already completed the KYC process!</Card.Description>
+                </Card.Header>
+                <Card.Content className="col gap-4 py-4">
+                    <Link href={'/profile'} className="w-full">
+                        <Button>Go to profile</Button>
                     </Link>
-                    <span className="flex w-full flex-row items-center justify-center gap-2">
-                        <Divider borderColor={'black'} />
-                        <p>Or</p>
-                        <Divider borderColor={'black'} />
-                    </span>
-                    <button className="btn btn-xl " onClick={handleLogout}>
-                        {isLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : (
-                            'Logout'
-                        )}
-                    </button>
+                    <Divider text="OR" />
+                    <Button variant="stroke" loading={isLoading} onClick={handleLogout}>
+                        {isLoading ? loadingState : 'Logout'}
+                    </Button>
                     {errorState.showError && (
                         <div className="text-center">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                         </div>
                     )}
-                </div>
-            ) : (
-                <GlobalKYCComponent
-                    intialStep={user?.user?.email ? 1 : 0}
-                    offrampForm={{
-                        email: user?.user?.email ?? '',
-                        name: user?.user?.full_name ?? '',
-                        password: '',
-                        recipient: '',
-                    }}
-                    setOfframpForm={() => {}}
-                    onCompleted={() => {}}
-                />
-            )}
-        </div>
+                </Card.Content>
+            </Card>
+        )
+    }
+
+    return (
+        <GlobalKYCComponent
+            intialStep={user?.user?.email ? 1 : 0}
+            offrampForm={{
+                email: user?.user?.email ?? '',
+                name: user?.user?.full_name ?? '',
+                password: '',
+                recipient: '',
+            }}
+            setOfframpForm={() => {}}
+            onCompleted={() => {}}
+        />
     )
 }

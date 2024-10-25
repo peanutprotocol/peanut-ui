@@ -5,6 +5,8 @@ import Icon from '@/components/Global/Icon'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { ethers } from 'ethers'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import classNames from 'classnames'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -122,21 +124,14 @@ const GeneralRecipientInput = ({
     }, [value])
 
     return (
-        <div
-            className={`border-n-1 relative w-full max-w-96 border dark:border-white${
-                userInput && !isLoading && isValidRecipient
-                    ? ' border-n-1 border dark:border-white'
-                    : userInput && !isLoading && !isValidRecipient
-                      ? ' border-n-1 border-red dark:border-red'
-                      : ''
-            }`}
-        >
-            <div className="text-h8 absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white font-medium">
+        <div className={classNames('relative w-full', {})}>
+            <div className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
                 To:
             </div>
-            <input
-                className={`transition-color text-h8 focus:border-purple-1 dark:bg-n-1 dark:focus:border-purple-1
-                h-12 w-full rounded-none bg-transparent bg-white px-4 pl-8 font-medium outline-none placeholder:text-sm dark:border-white dark:text-white dark:placeholder:text-white/75`}
+            <BaseInput
+                className={classNames('pl-8', {
+                    'border-red-1': userInput && !isLoading && !isValidRecipient,
+                })}
                 type="text"
                 placeholder={placeholder}
                 value={userInput}
