@@ -7,7 +7,6 @@ import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
@@ -20,7 +19,13 @@ import { Popover } from '@headlessui/react'
 import { useAuth } from '@/context/authContext'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { CrispButton } from '@/components/CrispChat'
-import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT, optimismChainId, usdcAddressOptimism } from '@/components/Offramp/Offramp.consts'
+import {
+    MAX_CASHOUT_LIMIT,
+    MIN_CASHOUT_LIMIT,
+    optimismChainId,
+    usdcAddressOptimism,
+} from '@/components/Offramp/Offramp.consts'
+import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 
 export const InitialClaimLinkView = ({
@@ -56,7 +61,7 @@ export const InitialClaimLinkView = ({
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
         context.tokenSelectorContext
     )
@@ -348,250 +353,248 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     return (
-        <>
-            <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-                {(attachment.message || attachment.attachmentUrl) && (
-                    <>
-                        <div
-                            className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
-                        >
-                            {attachment.message && (
-                                <label className="max-w-full text-h8">
-                                    Ref: <span className="font-normal"> {attachment.message} </span>
-                                </label>
-                            )}
-                            {attachment.attachmentUrl && (
-                                <a
-                                    href={attachment.attachmentUrl}
-                                    download
-                                    target="_blank"
-                                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                                >
-                                    <Icon name={'download'} />
-                                    Download attachment
-                                </a>
-                            )}
-                        </div>
-                        <div className="flex w-full border-t border-dotted border-black" />
-                    </>
-                )}
-                <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
-                    {tokenPrice ? (
-                        <label className="text-h2">
-                            $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
-                        </label>
-                    ) : (
-                        <label className="text-h2 ">
-                            {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
-                        </label>
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
+                        {tokenPrice ? (
+                            <label className="text-h2">
+                                $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                            </label>
+                        ) : (
+                            <label className="text-h2 ">
+                                {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
+                            </label>
+                        )}
+                    </div>
+                </Card.Title>
+                <Card.Description>
+                    {(attachment.message || attachment.attachmentUrl) && (
+                        <>
+                            <div
+                                className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                            >
+                                {attachment.message && (
+                                    <label className="max-w-full text-h8">
+                                        Ref: <span className="font-normal"> {attachment.message} </span>
+                                    </label>
+                                )}
+                                {attachment.attachmentUrl && (
+                                    <a
+                                        href={attachment.attachmentUrl}
+                                        download
+                                        target="_blank"
+                                        className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                    >
+                                        <Icon name={'download'} />
+                                        Download attachment
+                                    </a>
+                                )}
+                            </div>
+                            <div className="flex w-full border-t border-dotted border-black" />
+                        </>
                     )}
-                </div>
-                <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
-                    <TokenSelectorXChain
-                        data={mappedData}
-                        chainName={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
-                                          ?.name
-                                    : mappedData.find((data) => data.chainId === selectedChainID)?.name
-                                : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                      ?.name
-                        }
-                        tokenSymbol={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? selectedRoute.route.estimate.toToken.symbol
-                                    : mappedData
-                                          .find((data) => data.chainId === selectedChainID)
-                                          ?.tokens?.find((token) =>
-                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                          )?.symbol
-                                : claimLinkData.tokenSymbol
-                        }
-                        tokenLogoUrl={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? selectedRoute.route.estimate.toToken.logoURI
-                                    : mappedData
-                                          .find((data) => data.chainId === selectedChainID)
-                                          ?.tokens?.find((token) =>
-                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                          )?.logoURI
-                                : consts.peanutTokenDetails
-                                      .find((chain) => chain.chainId === claimLinkData.chainId)
-                                      ?.tokens.find((token) =>
-                                          utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
+                </Card.Description>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-2">
+                <TokenSelectorXChain
+                    data={mappedData}
+                    chainName={
+                        hasFetchedRoute
+                            ? selectedRoute
+                                ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name
+                                : mappedData.find((data) => data.chainId === selectedChainID)?.name
+                            : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                  ?.name
+                    }
+                    tokenSymbol={
+                        hasFetchedRoute
+                            ? selectedRoute
+                                ? selectedRoute.route.estimate.toToken.symbol
+                                : mappedData
+                                      .find((data) => data.chainId === selectedChainID)
+                                      ?.tokens?.find((token) =>
+                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
+                                      )?.symbol
+                            : claimLinkData.tokenSymbol
+                    }
+                    tokenLogoUrl={
+                        hasFetchedRoute
+                            ? selectedRoute
+                                ? selectedRoute.route.estimate.toToken.logoURI
+                                : mappedData
+                                      .find((data) => data.chainId === selectedChainID)
+                                      ?.tokens?.find((token) =>
+                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
                                       )?.logoURI
-                        }
-                        chainLogoUrl={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? crossChainDetails?.find(
-                                          (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                      )?.chainIconURI
-                                    : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
-                                : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                      ?.icon.url
-                        }
-                        tokenAmount={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? utils.formatTokenAmount(
-                                          utils.formatAmountWithDecimals({
-                                              amount: selectedRoute.route.estimate.toAmountMin,
-                                              decimals: selectedRoute.route.estimate.toToken.decimals,
-                                          }),
-                                          4
-                                      )
-                                    : undefined
-                                : claimLinkData.tokenAmount
-                        }
-                        isLoading={isXchainLoading}
-                        routeError={errorState.errorMessage === 'No route found for the given token pair.'}
-                        routeFound={selectedRoute ? true : false}
-                        onReset={() => {
-                            setSelectedRoute(null)
-                            setHasFetchedRoute(false)
+                            : consts.peanutTokenDetails
+                                  .find((chain) => chain.chainId === claimLinkData.chainId)
+                                  ?.tokens.find((token) =>
+                                      utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
+                                  )?.logoURI
+                    }
+                    chainLogoUrl={
+                        hasFetchedRoute
+                            ? selectedRoute
+                                ? crossChainDetails?.find(
+                                      (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                  )?.chainIconURI
+                                : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
+                            : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                  ?.icon.url
+                    }
+                    tokenAmount={
+                        hasFetchedRoute
+                            ? selectedRoute
+                                ? utils.formatTokenAmount(
+                                      utils.formatAmountWithDecimals({
+                                          amount: selectedRoute.route.estimate.toAmountMin,
+                                          decimals: selectedRoute.route.estimate.toToken.decimals,
+                                      }),
+                                      4
+                                  )
+                                : undefined
+                            : claimLinkData.tokenAmount
+                    }
+                    isLoading={isXchainLoading}
+                    routeError={errorState.errorMessage === 'No route found for the given token pair.'}
+                    routeFound={selectedRoute ? true : false}
+                    onReset={() => {
+                        setSelectedRoute(null)
+                        setHasFetchedRoute(false)
+                        setErrorState({
+                            showError: false,
+                            errorMessage: '',
+                        })
+                    }}
+                    isStatic={recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false}
+                />
+                <GeneralRecipientInput
+                    className="px-1"
+                    placeholder="wallet address / ENS / IBAN / US account number"
+                    value={recipient.name ? recipient.name : (recipient.address ?? '')}
+                    onSubmit={(name: string, address: string) => {
+                        setRecipient({ name, address })
+                        setInputChanging(false)
+                    }}
+                    _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
+                        setIsValidRecipient(isValid)
+                        if (error) {
+                            setErrorState({
+                                showError: true,
+                                errorMessage: error,
+                            })
+                        } else {
                             setErrorState({
                                 showError: false,
                                 errorMessage: '',
                             })
-                        }}
-                        isStatic={
-                            recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
                         }
-                    />
-                    <GeneralRecipientInput
-                        className="px-1"
-                        placeholder="wallet address / ENS / IBAN / US account number"
-                        value={recipient.name ? recipient.name : (recipient.address ?? '')}
-                        onSubmit={(name: string, address: string) => {
-                            setRecipient({ name, address })
-                            setInputChanging(false)
-                        }}
-                        _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
-                            setIsValidRecipient(isValid)
-                            if (error) {
-                                setErrorState({
-                                    showError: true,
-                                    errorMessage: error,
-                                })
-                            } else {
-                                setErrorState({
-                                    showError: false,
-                                    errorMessage: '',
-                                })
-                            }
-                            setInputChanging(false)
-                        }}
-                        setIsValueChanging={() => {
-                            setInputChanging(true)
-                        }}
-                        setRecipientType={(type: interfaces.RecipientType) => {
-                            setRecipientType(type)
-                        }}
-                        onDeleteClick={() => {
-                            setRecipientType('address')
-                            setRecipient({
-                                name: undefined,
-                                address: '',
-                            })
-                            setErrorState({
-                                showError: false,
-                                errorMessage: '',
-                            })
-                        }}
-                    />
-                    {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
-                            {selectedRoute && (
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                        <label className="font-bold">Route</label>
-                                    </div>
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        {isXchainLoading ? (
-                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                        ) : (
-                                            selectedRoute && (
-                                                <>
-                                                    {
-                                                        consts.supportedPeanutChains.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.fromChain
-                                                        )?.name
-                                                    }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                                    {
-                                                        mappedData.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.toChain
-                                                        )?.name
-                                                    }
-                                                    <MoreInfo
-                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                            consts.supportedPeanutChains.find(
-                                                                (chain) =>
-                                                                    chain.chainId ===
-                                                                    selectedRoute.route.params.fromChain
-                                                            )?.name
-                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                            mappedData.find(
-                                                                (chain) =>
-                                                                    chain.chainId === selectedRoute.route.params.toChain
-                                                            )?.name
-                                                        }.`}
-                                                    />
-                                                </>
-                                            )
-                                        )}
-                                    </span>
-                                </div>
-                            )}
-
+                        setInputChanging(false)
+                    }}
+                    setIsValueChanging={() => {
+                        setInputChanging(true)
+                    }}
+                    setRecipientType={(type: interfaces.RecipientType) => {
+                        setRecipientType(type)
+                    }}
+                    onDeleteClick={() => {
+                        setRecipientType('address')
+                        setRecipient({
+                            name: undefined,
+                            address: '',
+                        })
+                        setErrorState({
+                            showError: false,
+                            errorMessage: '',
+                        })
+                    }}
+                />
+                {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        {selectedRoute && (
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Fees</label>
+                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Route</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
-                                        <>
-                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
-                                        </>
+                                        selectedRoute && (
+                                            <>
+                                                {
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) =>
+                                                            chain.chainId === selectedRoute.route.params.fromChain
+                                                    )?.name
+                                                }
+                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                {
+                                                    mappedData.find(
+                                                        (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                                    )?.name
+                                                }
+                                                <MoreInfo
+                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                        consts.supportedPeanutChains.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.fromChain
+                                                        )?.name
+                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                        mappedData.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.toChain
+                                                        )?.name
+                                                    }.`}
+                                                />
+                                            </>
+                                        )
                                     )}
                                 </span>
                             </div>
+                        )}
 
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Points</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
-                                    <MoreInfo
-                                        text={
-                                            estimatedPoints
-                                                ? estimatedPoints > 0
-                                                    ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                                    : 'This transaction will not add any points to your total points balance'
-                                                : 'This transaction will not add any points to your total points balance'
-                                        }
-                                    />
-                                </span>
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Fees</label>
                             </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {isXchainLoading ? (
+                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                ) : (
+                                    <>
+                                        $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                    </>
+                                )}
+                            </span>
                         </div>
-                    )}
-                </div>{' '}
+
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Points</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
+                                <MoreInfo
+                                    text={
+                                        estimatedPoints
+                                            ? estimatedPoints > 0
+                                                ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                                : 'This transaction will not add any points to your total points balance'
+                                            : 'This transaction will not add any points to your total points balance'
+                                    }
+                                />
+                            </span>
+                        </div>
+                    </div>
+                )}
                 <div className="flex w-full flex-col items-center justify-center gap-4">
-                    <button
-                        className="btn-purple btn-xl"
+                    <Button
                         onClick={() => {
                             // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
                             // imperative to ensure address here is fetched by useWallet
@@ -605,6 +608,7 @@ export const InitialClaimLinkView = ({
                                 handleClaimLink()
                             }
                         }}
+                        loading={isLoading || isXchainLoading}
                         disabled={
                             isLoading ||
                             !isValidRecipient ||
@@ -614,16 +618,8 @@ export const InitialClaimLinkView = ({
                             recipient.address.length === 0
                         }
                     >
-                        {isLoading || isXchainLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : (hasFetchedRoute && selectedRoute) || recipient.address !== address ? (
-                            'Proceed'
-                        ) : (
-                            'Claim now'
-                        )}
-                    </button>
+                        {(hasFetchedRoute && selectedRoute) || recipient.address !== address ? 'Proceed' : 'Claim now'}
+                    </Button>
                     {address && recipient.address.length < 0 && recipientType === 'address' && (
                         <div
                             className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
@@ -645,8 +641,9 @@ export const InitialClaimLinkView = ({
                                 <>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
-                                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                                            {' '}
+                                            <label className=" text-h8 font-normal text-red ">
+                                                {errorState.errorMessage}
+                                            </label>{' '}
                                             <span
                                                 className="cursor-pointer text-h8 font-normal text-red underline"
                                                 onClick={() => {
@@ -665,14 +662,16 @@ export const InitialClaimLinkView = ({
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (
                                         <>
                                             <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank account.{' '}
+                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
+                                                account.{' '}
                                             </label>
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_mt_maximum' && (
                                         <>
                                             <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank account.{' '}
+                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
+                                                account.{' '}
                                             </label>
                                         </>
                                     )}
@@ -689,9 +688,9 @@ export const InitialClaimLinkView = ({
                         )
                     )}
                 </div>{' '}
-            </div>
-            <Popover id="HEpPuXFz" />
-        </>
+                <Popover id="HEpPuXFz" />
+            </Card.Content>
+        </Card>
     )
 }
 

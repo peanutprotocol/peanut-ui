@@ -11,6 +11,7 @@ import * as context from '@/context'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { type ITokenPriceData } from '@/interfaces'
+import PageContainer from '@/components/0_Bruddle/PageContainer'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
@@ -23,9 +24,7 @@ export const PayRequestLink = () => {
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
     const { setLoadingState } = useContext(context.loadingStateContext)
-    const { setSelectedChainID, setSelectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
     const [errorMessage, setErrorMessage] = useState<string>('')
 
     const fetchPointsEstimation = async (
@@ -173,8 +172,8 @@ export const PayRequestLink = () => {
     }, [unsignedTx, requestLinkData])
 
     return (
-        <div className="card">
-            {linkState === _consts.IRequestLinkState.LOADING && (
+        <PageContainer className="h-full">
+            {linkState === _consts.IRequestLinkState.ERROR && (
                 <div className="relative flex w-full items-center justify-center">
                     <div className="animate-spin">
                         <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
@@ -196,7 +195,9 @@ export const PayRequestLink = () => {
                 } as _consts.IPayScreenProps)}
             {linkState === _consts.IRequestLinkState.ERROR && <generalViews.ErrorView errorMessage={errorMessage} />}
             {linkState === _consts.IRequestLinkState.CANCELED && <generalViews.CanceledClaimLink />}
-            {linkState === _consts.IRequestLinkState.ALREADY_PAID && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
-        </div>
+            {linkState === _consts.IRequestLinkState.ALREADY_PAID && (
+                <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />
+            )}
+        </PageContainer>
     )
 }

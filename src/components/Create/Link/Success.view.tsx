@@ -1,16 +1,15 @@
 'use client'
+
 import CopyField from '@/components/Global/CopyField'
 import Icon from '@/components/Global/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import * as _consts from '../Create.consts'
-import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as context from '@/context'
 import { useToast } from '@chakra-ui/react'
-
-import { useAccount, useSignMessage } from 'wagmi'
+import { Button, Card } from '@/components/0_Bruddle'
 
 export const CreateLinkSuccessView = ({
     link,
@@ -19,15 +18,8 @@ export const CreateLinkSuccessView = ({
     recipient,
     tokenValue,
 }: _consts.ICreateScreenProps) => {
-    const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } = useContext(
-        context.tokenSelectorContext
-    )
+    const { selectedChainID, inputDenomination, selectedTokenPrice } = useContext(context.tokenSelectorContext)
     const toast = useToast()
-
-    const { address } = useAccount({})
-    const { signMessageAsync } = useSignMessage()
-
-    const [isLoading, setIsLoading] = useState(false)
 
     const [txUsdValue, setTxUsdValue] = useState<string | undefined>(undefined)
 
@@ -56,17 +48,6 @@ export const CreateLinkSuccessView = ({
         }
     }
 
-    const signMessage = useCallback(
-        async (message: string) => {
-            const res = await signMessageAsync({
-                message,
-            })
-
-            return res as string
-        },
-        [signMessageAsync]
-    )
-
     useEffect(() => {
         let value
         if (inputDenomination == 'TOKEN') {
@@ -81,73 +62,70 @@ export const CreateLinkSuccessView = ({
     }, [])
 
     return (
-        <div className={`flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center`}>
-            <label className="text-h2">Yay!</label>
-            {link && <QRCodeWrapper url={link} />}
-            <label className="text-h8 ">
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title>Yay !</Card.Title>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-4">
+                {link && <QRCodeWrapper url={link} />}
                 {createType === 'direct'
                     ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}.`
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
-            </label>
-            {link && (
-                <div className="flex w-full flex-col items-center justify-center gap-2 ">
-                    {createType === 'email_link' && (
-                        <>
-                            <button
-                                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
+                {link && (
+                    <div className="flex w-full flex-col items-center justify-center gap-2 ">
+                        {createType === 'email_link' && (
+                            <>
+                                <Button
+                                    onClick={() => {
+                                        utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
+                                    }}
+                                >
+                                    Share via email
+                                </Button>
+                                or
+                            </>
+                        )}
+                        {createType === 'sms_link' && (
+                            <>
+                                <Button
+                                    onClick={() => {
+                                        utils.shareToSms(recipient.name ?? '', link, txUsdValue)
+                                    }}
+                                >
+                                    Share via SMS
+                                </Button>
+                                or
+                            </>
+                        )}
+                        <div className="hidden w-full md:block">
+                            <CopyField text={link} />
+                        </div>
+                        <div className="flex w-full flex-col gap-2 md:flex-row">
+                            <Button
                                 onClick={() => {
-                                    utils.shareToEmail(recipient.name ?? '', link, txUsdValue)
+                                    share(link)
                                 }}
                             >
-                                Share via email
-                            </button>
-                            or
-                        </>
-                    )}
-                    {createType === 'sms_link' && (
-                        <>
-                            <button
-                                className="w-full border border-n-1 bg-purple-1 px-2 py-1 text-h8 font-normal"
-                                onClick={() => {
-                                    utils.shareToSms(recipient.name ?? '', link, txUsdValue)
-                                }}
-                            >
-                                Share via SMS
-                            </button>
-                            or
-                        </>
-                    )}
-                    <div className="hidden w-full md:block">
-                        <CopyField text={link} />
+                                Share link
+                            </Button>
+                            <Link className="w-full" target="_blank" href={`${explorerUrlWithTx}`}>
+                                <Button variant="dark">
+                                    Transaction hash
+                                    <Icon name="external" className="h-4 fill-gray-1" />
+                                </Button>
+                            </Link>
+                            <Link className="" href={'/profile'}>
+                                <Button variant="stroke" className="text-nowrap">
+                                    <div className="border border-n-1 p-0 px-1">
+                                        <Icon name="profile" className="-mt-0.5" />
+                                    </div>
+                                    See your payments.
+                                </Button>
+                            </Link>
+                        </div>
                     </div>
-                    <div
-                        className={`w-full border border-n-1  px-2 py-1 text-h8 font-normal sm:hidden ${createType === 'email_link' || createType === 'sms_link' ? '' : 'bg-purple-1'}`}
-                        onClick={() => {
-                            share(link)
-                        }}
-                    >
-                        Share link
-                    </div>
-                </div>
-            )}
-
-            <Link
-                className="cursor-pointer text-h8 font-bold text-gray-1 underline"
-                target="_blank"
-                href={`${explorerUrlWithTx}`}
-            >
-                Transaction hash
-            </Link>
-
-            <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/profile'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="profile" className="-mt-0.5" />
-                </div>
-                See your payments.
-            </Link>
-        </div>
+                )}
+            </Card.Content>
+        </Card>
     )
 }

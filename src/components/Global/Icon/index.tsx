@@ -1,9 +1,5 @@
 import { twMerge } from 'tailwind-merge'
 
-type IconsType = {
-    [key: string]: string
-}
-
 const customViewbox = [
     { name: 'gas', viewBox: '0 0 24 24 ' },
     { name: 'question-circle', viewBox: '0 0 29.536 29.536' },
@@ -31,7 +27,7 @@ const customStyle = [
     },
 ]
 
-const icons: IconsType = {
+const icons = {
     'add-circle':
         'M11.35 8.663V7.35H8.663V4.663H7.35V7.35H4.663v1.313H7.35v2.688h1.313V8.663h2.688zM3.288 3.319C4.6 2.006 6.173 1.35 8.006 1.35a6.33 6.33 0 0 1 4.688 1.969 6.33 6.33 0 0 1 1.969 4.688c0 1.833-.656 3.406-1.969 4.719-1.292 1.292-2.854 1.937-4.687 1.937s-3.406-.646-4.719-1.937C1.996 11.412 1.35 9.84 1.35 8.006s.646-3.396 1.938-4.687z',
     'add-folder':
@@ -204,9 +200,11 @@ const icons: IconsType = {
     token_placeholder: 'M8 0c-4.4 0-8 3.6-8 8s3.6 8 8 8 8-3.6 8-8-3.6-8-8-8z',
 }
 
+export type IconNameType = keyof typeof icons
+
 type IconProps = {
     className?: string
-    name: any
+    name: IconNameType
     fill?: string
     onClick?: () => void
 }

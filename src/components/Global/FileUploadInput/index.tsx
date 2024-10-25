@@ -1,6 +1,7 @@
 import Icon from '../Icon'
 import { useEffect, useState } from 'react'
 import * as utils from '@/utils'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
 interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
@@ -41,9 +42,9 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
     }, [attachmentOptions.fileUrl])
 
     return (
-        <div className="flex h-12 w-full max-w-96 flex-row items-center justify-center gap-2 border border-n-1 px-4 py-2">
-            <div>
-                <input
+        <div className="relative w-full">
+            <div className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
+                <BaseInput
                     type="file"
                     accept="image/*,application/pdf"
                     onChange={handleFileChange}
@@ -62,9 +63,9 @@ export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFi
                     )}
                 </label>
             </div>
-            <input
+            <BaseInput
                 placeholder="Add reference or upload file (optional)"
-                className="h-full w-full placeholder:text-h9 placeholder:font-normal focus:border-none focus:outline-none sm:placeholder:text-h7 sm:placeholder:font-normal"
+                className="pl-12"
                 value={attachmentOptions.message}
                 maxLength={140}
                 onChange={(e) =>
