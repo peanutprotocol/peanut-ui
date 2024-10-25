@@ -28,6 +28,32 @@ interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
+
+// FOR ZERODEV TESTS
+import {
+    createKernelAccount,
+    createKernelAccountClient,
+    createZeroDevPaymasterClient,
+    KernelAccountClient
+} from "@zerodev/sdk"
+import {
+    toPasskeyValidator,
+    toWebAuthnKey,
+    WebAuthnMode,
+    PasskeyValidatorContractVersion
+} from "@zerodev/passkey-validator"
+import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
+
+// Viem imports
+import { arbitrum } from 'viem/chains'
+import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
+
+// Permissionless imports
+import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
+import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
+import { useWallet } from '@/context/walletContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(context.loadingStateContext)
     const {
@@ -38,15 +64,31 @@ export const useCreateLink = () => {
         setSelectedTokenPrice,
         setInputDenomination,
     } = useContext(context.tokenSelectorContext)
+
+    // TODO: balances needs to reflect PW too
+    // needs changes in checkUserHasEnoughBalance
     const { balances } = useBalance()
 
-    const { chain: currentChain, address } = useAccount()
+    const { chain: currentChain, address: wagmiAddress } = useAccount()
+
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
     const { refetchBalances } = useBalance()
+
+    const { 
+        address,
+        activeWallet,
+        isActiveWalletBYOW,
+        isActiveWalletPW
+    } = useWallet()
+
+    const {
+        handleSendUserOpNotEncoded,
+        handleSendUserOpEncoded
+    } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
@@ -510,6 +552,9 @@ export const useCreateLink = () => {
             throw error
         }
     }
+
+
+
     const sendTransactions = useCallback(
         async ({
             preparedDepositTxs,
@@ -520,7 +565,6 @@ export const useCreateLink = () => {
         }) => {
             try {
                 if (!preparedDepositTxs) return
-
                 let idx = 0
                 const signedTxsResponse: string[] = []
                 for (const tx of preparedDepositTxs.unsignedTxs) {
@@ -536,57 +580,69 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
+                    if (isActiveWalletPW) {
+                        // TODO: add retry logic in handleSendUserOpEncoded() as below flow
+                        let hash = await handleSendUserOpEncoded({
+                            to: tx.to!,
+                            value: tx.value!,
+                            data: tx.data!
+                        })
+                        
+                        // TODO: same call as below - group w/ flow below as much as possible
+                        signedTxsResponse.push(hash.toString())
+                        idx++
+                    } else if (isActiveWalletBYOW) {
+                        // Send the transaction using wagmi
+                        // current stage is encoded but NOT signed
+                        let hash = await sendTransactionAsync({
+                            to: (tx.to ? tx.to : '') as `0x${string}`,
+                            value: tx.value ? BigInt(tx.value.toString()) : undefined,
+                            data: tx.data ? (tx.data as `0x${string}`) : undefined,
+                            gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
+                            gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
+                            maxFeePerGas: feeOptions?.maxFeePerGas
+                                ? BigInt(feeOptions?.maxFeePerGas.toString())
+                                : undefined,
+                            maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
+                                ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
+                                : undefined,
+                            chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
+                        })
 
-                    // Send the transaction using wagmi
-                    let hash = await sendTransactionAsync({
-                        to: (tx.to ? tx.to : '') as `0x${string}`,
-                        value: tx.value ? BigInt(tx.value.toString()) : undefined,
-                        data: tx.data ? (tx.data as `0x${string}`) : undefined,
-                        gas: feeOptions?.gas ? BigInt(feeOptions.gas.toString()) : undefined,
-                        gasPrice: feeOptions?.gasPrice ? BigInt(feeOptions.gasPrice.toString()) : undefined,
-                        maxFeePerGas: feeOptions?.maxFeePerGas
-                            ? BigInt(feeOptions?.maxFeePerGas.toString())
-                            : undefined,
-                        maxPriorityFeePerGas: feeOptions?.maxPriorityFeePerGas
-                            ? BigInt(feeOptions?.maxPriorityFeePerGas.toString())
-                            : undefined,
-                        chainId: Number(selectedChainID), //TODO: (mentioning) chainId as number here
-                    })
+                        setLoadingState('Executing transaction')
 
-                    setLoadingState('Executing transaction')
-
-                    // Wait for the transaction to be mined using wagmi/actions
-                    // Only doing this for the approval transaction (the first tx)
-                    // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
-                    if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
-                        for (let attempt = 0; attempt < 3; attempt++) {
-                            try {
-                                await waitForTransactionReceipt(config, {
-                                    confirmations: 4,
-                                    hash: hash,
-                                    chainId: Number(selectedChainID),
-                                })
-                                break
-                            } catch (error) {
-                                if (attempt < 2) {
-                                    await new Promise((resolve) => setTimeout(resolve, 500))
-                                } else {
-                                    console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                        // Wait for the transaction to be mined using wagmi/actions
+                        // Only doing this for the approval transaction (the first tx)
+                        // Includes retry logic. If the hash isnt available yet, it retries after .5 seconds for 3 times
+                        if (preparedDepositTxs.unsignedTxs.length === 2 && idx === 0) {
+                            for (let attempt = 0; attempt < 3; attempt++) {
+                                try {
+                                    await waitForTransactionReceipt(config, {
+                                        confirmations: 4,
+                                        hash: hash,
+                                        chainId: Number(selectedChainID),
+                                    })
+                                    break
+                                } catch (error) {
+                                    if (attempt < 2) {
+                                        await new Promise((resolve) => setTimeout(resolve, 500))
+                                    } else {
+                                        console.error('Failed to wait for transaction receipt after 3 attempts', error)
+                                    }
                                 }
                             }
                         }
+
+                        signedTxsResponse.push(hash.toString())
+                        idx++
                     }
-
-                    signedTxsResponse.push(hash.toString())
-                    idx++
                 }
-
                 return signedTxsResponse[signedTxsResponse.length - 1]
             } catch (error) {
                 throw error
             }
         },
-        [selectedChainID, sendTransactionAsync, config]
+        [selectedChainID, sendTransactionAsync, config, isActiveWalletPW, isActiveWalletBYOW]
     )
     const getLinkFromHash = async ({
         hash,
@@ -631,7 +687,8 @@ export const useCreateLink = () => {
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
             })
-            if (isGaslessDepositPossible) {
+            if (isGaslessDepositPossible && !isActiveWalletPW) {
+                // routing only gasless BYOW txs through here
                 const makeGaslessDepositResponse = await makeGaslessDepositPayload({
                     _linkDetails: linkDetails,
                     _password: password,
@@ -691,6 +748,7 @@ export const useCreateLink = () => {
                 senderAddress: address ?? '',
             })
 
+            // TODO: this needs its own type
             if (type === 'deposit') {
                 hash = (await sendTransactions({ preparedDepositTxs: response, feeOptions: feeOptions })) ?? ''
             } else if (type === 'gasless') {

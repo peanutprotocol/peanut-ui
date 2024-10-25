@@ -8,13 +8,12 @@ import * as utils from '@/utils'
 import Icon from '@/components/Global/Icon'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import { useCreateLink } from '../useCreateLink'
-import Loading from '@/components/Global/Loading'
-import { useAccount } from 'wagmi'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
 import { Button, Card } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
+import { useWallet } from '@/context/walletContext'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -61,7 +60,8 @@ export const CreateLinkConfirmView = ({
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
-    const { address } = useAccount()
+    // const { address } = useAccount()
+    const { address, isActiveWalletPW } = useWallet()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -73,7 +73,6 @@ export const CreateLinkConfirmView = ({
 
         try {
             let hash: string = ''
-
             let fileUrl = ''
             if (createType != 'direct') {
                 const data = await submitClaimLinkInit({
@@ -87,9 +86,14 @@ export const CreateLinkConfirmView = ({
                 fileUrl = data?.fileUrl
             }
 
+            //  TODO: create typing enum for transactionType
             if (transactionType === 'not-gasless') {
+                // this flow is followed for paying-gas txs, paying-gas userops AND
+                // gasless userops (what would be gasless as a tax) via Input.view.tsx which
+                // makes userops 'not-gasless' in the sense that we don't want
+                // Peanut's BE to make it gasless. The paymaster will make it by default
+                // once submitted, but as far as this flow is concerned, the userop is 'not-gasless'
                 if (!preparedDepositTxs) return
-
                 hash =
                     (await sendTransactions({ preparedDepositTxs: preparedDepositTxs, feeOptions: feeOptions })) ?? ''
             } else {

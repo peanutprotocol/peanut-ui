@@ -3,9 +3,9 @@
 import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Create.consts'
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
-import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { useWallet } from '@/context/walletContext'
 
 export const CreateRequestLink = () => {
     const router = useRouter()
@@ -20,7 +20,7 @@ export const CreateRequestLink = () => {
     })
     const [recipientAddress, setRecipientAddress] = useState<string | undefined>(undefined)
 
-    const { address } = useAccount()
+    const { address } = useWallet()
 
     const handleOnNext = () => {
         if (step.idx === _consts.CREATE_SCREEN_FLOW.length - 1) return
@@ -43,7 +43,7 @@ export const CreateRequestLink = () => {
     }
 
     useEffect(() => {
-        if (address && !recipientAddress) setRecipientAddress(address)
+        if (address) setRecipientAddress(address)
     }, [address])
 
     return (

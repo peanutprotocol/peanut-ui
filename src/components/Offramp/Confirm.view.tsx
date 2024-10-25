@@ -293,7 +293,7 @@ export const OfframpConfirmView = ({
             optimismChainId,
             claimLinkData.tokenDecimals!,
             claimLinkData.tokenAmount!,
-            claimLinkData.senderAddress ?? '0x9647BB6a598c2675310c512e0566B60a5aEE6261'
+            claimLinkData.senderAddress
         )
 
         if (route === undefined) {
@@ -315,6 +315,9 @@ export const OfframpConfirmView = ({
         isSameChain?: boolean // e.g. for opt ETH -> opt USDC
     ): Promise<{ sourceTxHash: string; destinationTxHash: string }> => {
         if (xchainNeeded) {
+            // In a cross-chain scenario, the src tx hash is different than the dest tx hash. It takes a while for us
+            // to fetch it, since the destination chain tx is not available immediately. We query squid in intervals until we get it or we bail.
+            // exception is a same chain swap, where the tx is atomic and available immediately
             const sourceTxHash = await claimLinkXchain({
                 address,
                 link: claimLinkData.link,
@@ -358,6 +361,7 @@ export const OfframpConfirmView = ({
                 destinationTxHash: sourceTxHash,
             }
         } else {
+            // same chain and same token scenario
             const txHash = await claimLink({
                 address,
                 link: claimLinkData.link,

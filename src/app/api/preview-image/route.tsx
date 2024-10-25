@@ -1,5 +1,5 @@
 /* eslint-disable @next/next/no-img-element */
-import { ImageResponse } from '@vercel/og'
+import { ImageResponse } from 'next/og'
 
 import { LinkPreviewImg } from '@/components/Global/ImageGeneration/LinkPreview'
 
@@ -21,8 +21,8 @@ export async function GET(request: Request) {
     return new ImageResponse(
         <LinkPreviewImg {...{ amount, chainId, tokenAddress, tokenSymbol, senderAddress, tokenPrice }} />,
         {
-            width: 1600,
-            height: 800,
+            width: 400,
+            height: 200,
         }
     )
 }

@@ -1,5 +1,7 @@
 import * as components from '@/components'
-import { Metadata, ResolvingMetadata } from 'next'
+import Layout from '@/components/Global/Layout'
+import { Metadata } from 'next'
+import { headers } from 'next/headers'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
 
@@ -27,11 +29,11 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
     return `${host}?${queryParams.toString()}`
 }
 
-export async function generateMetadata({ params, searchParams }: Props, parent: ResolvingMetadata): Promise<Metadata> {
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
     let title = 'Claim your tokens!'
 
-    // const host = headers().get('host') || ''
-    const host = 'https://peanut.to'
+    let host = headers().get('host') || 'peanut.to'
+    host = `${process.env.NODE_ENV === 'development' ? 'http://' : 'https://'}${host}`
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)
@@ -53,11 +55,6 @@ export async function generateMetadata({ params, searchParams }: Props, parent: 
 
     let previewUrl = '/claim-metadata-img.jpg'
     if (linkDetails) {
-        // const tokenPrice = await utils.fetchTokenPrice(
-        //     linkDetails.tokenAddress.toLowerCase(),
-        //     linkDetails.chainId,
-        //     host
-        // )
         previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&senderAddress=${linkDetails.senderAddress}&tokenPrice=${undefined}`
     }
     return {
