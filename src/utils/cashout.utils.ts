@@ -187,31 +187,35 @@ export async function createExternalAccount(
             }),
         })
 
-        const data = await response.json()
-
         if (!response.ok) {
-            if (data.code && data.code == 'duplicate_external_account') {
-                // if bridge account already exists for this iban
-                // but somehow not stored in our DB (this should never happen in
-                // prod, but can happen if same email used in prod & staging)
-                //
-                // returns:  not interfaces.IBridgeAccount type, but
-                // a currently undefined error type on the data field of interfaces.IResponse
-                // of format:
-                // {
-                //     id: '4c537540-80bf-41dd-a528-d79a4',
-                //     code: 'duplicate_external_account',
-                //     message: 'An external account with the same information has already been added for this customer'
-                // }
-                //
-                // TODO: HTTP responses need to be standardized client wide
-                return {
-                    success: false,
-                    data,
-                } as interfaces.IResponse
+            try {
+                const data = await response.json()
+                if (data.code && data.code == 'duplicate_external_account') {
+                    // if bridge account already exists for this iban
+                    // but somehow not stored in our DB (this should never happen in
+                    // prod, but can happen if same email used in prod & staging)
+                    //
+                    // returns:  not interfaces.IBridgeAccount type, but
+                    // a currently undefined error type on the data field of interfaces.IResponse
+                    // of format:
+                    // {
+                    //     id: '4c537540-80bf-41dd-a528-d79a4',
+                    //     code: 'duplicate_external_account',
+                    //     message: 'An external account with the same information has already been added for this customer'
+                    // }
+                    //
+                    // TODO: HTTP responses need to be standardized client wide
+                    return {
+                        success: false,
+                        data,
+                    } as interfaces.IResponse
+                }
+            } catch (error) {
+                console.error('Error creating external account', response)
+                throw new Error('Unexpected error')
             }
-            throw new Error('Failed to create external account (duplicate account)')
         }
+        const data = await response.json()
 
         return {
             success: true,
