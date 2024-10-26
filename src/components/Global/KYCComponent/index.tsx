@@ -351,7 +351,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     return (
         <div>
             <div className="flex w-full flex-col items-center justify-center gap-6 px-2  text-center">
-                <p className="w-full text-h8 font-normal">After KYC, you can cashout straight to your bank account!</p>
+                <p className="w-full text-h8 font-normal">Regulations require us to verify your identity.</p>
                 <Steps
                     variant={'circles'}
                     orientation="vertical"
