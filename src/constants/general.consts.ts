@@ -12,7 +12,7 @@ export const ipfsProviderArray = [
     'https://gw3.io/ipfs/',
 ]
 
-export const PEANUT_API_URL = process.env.PEANUT_API_URL || 'https://api.peanut.to'
+export const PEANUT_API_URL = (process.env.PEANUT_API_URL || 'https://api.peanut.to').replace(/\/$/, '') // remove any accidental trailing slash
 export const next_proxy_url = '/api/proxy'
 
 export const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[

@@ -111,6 +111,18 @@ export const InitialCashoutView = ({
             }
             if (!_tokenValue) return
 
+            const recipientBankAccount = selectedBankAccount || newBankAccount
+
+            const validAccount = await utils.validateBankAccount(recipientBankAccount)
+            if (!validAccount) {
+                console.error('Invalid bank account')
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Invalid bank account. Reach out to support if you need help.',
+                })
+                return
+            }
+        
             if (!user) {
                 await fetchUser()
             }
