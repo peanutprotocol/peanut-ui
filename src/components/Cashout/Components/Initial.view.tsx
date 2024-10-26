@@ -111,7 +111,7 @@ export const InitialCashoutView = ({
                 console.error('Invalid bank account')
                 setErrorState({
                     showError: true,
-                    errorMessage: 'Invalid bank account. Please make sure your account is supported',
+                    errorMessage: 'Invalid bank account. Reach out to support if you need help.',
                 })
                 return
             }

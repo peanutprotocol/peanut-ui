@@ -4,21 +4,21 @@ import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
     try {
-        const { bankAccount } = await request.json()
+        const { bankAccountNumber } = await request.json()
         const apiKey = process.env.PEANUT_API_KEY
 
-        if (!bankAccount || !apiKey) {
+        if (!bankAccountNumber || !apiKey) {
             return new NextResponse('Bad Request: missing required parameters', { status: 400 })
         }
 
-        const response = await fetch(`${consts.PEANUT_API_URL}/validate-bank-number`, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/validate-bank-account-number`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'api-key': apiKey,
             },
             body: JSON.stringify({
-                bankNumber: bankAccount,
+                bankAccountNumber,
             }),
         })
 
