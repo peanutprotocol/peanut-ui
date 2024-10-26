@@ -297,7 +297,7 @@ Firefox input[type='number'] {
 
 /* Form styling */
 .input-text {
-    @apply h-12 w-full rounded-md border-2 border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-purple-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1;
+    @apply h-12 w-full border border-n-1 bg-white px-3 font-medium outline-none ring-2 ring-white transition-colors focus:border-purple-1 dark:border-white dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1;
 }
 
 .input-text-inset {

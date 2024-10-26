@@ -54,6 +54,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         setValue: setAccountDetailsValue,
         getValues: getAccountDetailsValue,
         setError: setAccountDetailsError,
+        clearErrors: clearAccountDetailsErrors,
         handleSubmit: handleAccountDetailsSubmit,
     } = useForm<IRegisterAccountDetails>({
         mode: 'onChange',
@@ -368,7 +369,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             value={accountDetailsWatch('country')}
                                             onChange={(value: any) => {
                                                 setAccountDetailsValue('country', value, { shouldValidate: true })
-                                                setAccountDetailsError('country', { message: undefined })
+                                                clearAccountDetailsErrors('country')
                                             }}
                                             error={accountDetailsErrors.country?.message}
                                         />
