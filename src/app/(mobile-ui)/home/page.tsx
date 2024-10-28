@@ -171,7 +171,7 @@ const Home = () => {
                                                         <div className="flex flex-col">
                                                             <p className="font-bold">{wallet.address}</p>
                                                         </div>
-                                                        {/* TODO: make errors look nicer */}
+                                                        {/* TODO: make errors look nicer and have proper if-cases */}
                                                         {walletErrorStrings[index] && (
                                                             <div>
                                                                 {walletErrorStrings[index]}
@@ -182,7 +182,7 @@ const Home = () => {
                                                                             handleConnectCorrectBYOWToProvider(index, wallet)
                                                                         }}
                                                                     >
-                                                                        this is the provider button
+                                                                        this is the provider button - click to get provider
                                                                     </div>
                                                                 )}
 
