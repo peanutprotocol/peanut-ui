@@ -78,6 +78,9 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                             e.preventDefault()
                             if (onSubmit) onSubmit()
                         }
+                        if (['e', '+', '-'].includes(e.key.toLowerCase())) {
+                            e.preventDefault()
+                        }
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}
                 />
