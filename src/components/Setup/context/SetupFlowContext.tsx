@@ -1,7 +1,17 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
+export type ScreenId = 'welcome' | 'passkey' | 'add-wallets' | 'success'
+export type ScreenProps = {
+    welcome: undefined
+    passkey: {
+        handle: string
+    }
+    'add-wallets': undefined
+    success: undefined
+}
+
 export type Step = {
-    id: number
+    screenId: ScreenId
     title: string
     description?: string
     containerClassname: HTMLDivElement['className']
@@ -14,9 +24,10 @@ interface SetupFlowContextType {
     isFirstStep: boolean
     isLastStep: boolean
     isLoading: boolean
-    handleNext: (businessLogic?: Promise<void>) => Promise<void>
+    handleNext: <T extends ScreenId>(businessLogic?: Promise<void>, props?: ScreenProps[T]) => Promise<void>
     handleBack: () => void
     step: Step
+    screenProps: ScreenProps[ScreenId] | undefined
 }
 
 interface SetupFlowProviderProps {
@@ -31,12 +42,13 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
     const [currentStep, setCurrentStep] = useState(1)
     const [direction, setDirection] = useState(0)
     const [isLoading, setIsLoading] = useState(false)
+    const [screenProps, setScreenProps] = useState<ScreenProps[ScreenId]>()
 
     const isFirstStep = currentStep === 1
     const isLastStep = currentStep === steps.length
     const step = steps[currentStep - 1]
 
-    const handleNext = async (businessLogic?: Promise<void>) => {
+    const handleNext = async <T extends ScreenId>(businessLogic?: Promise<void>, props?: ScreenProps[T]) => {
         try {
             setIsLoading(true)
 
@@ -49,6 +61,7 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
                 return
             }
 
+            setScreenProps(props)
             setDirection(1)
             setCurrentStep((prev) => Math.min(steps.length, prev + 1))
         } catch (error) {
@@ -74,6 +87,7 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
                 handleNext,
                 handleBack,
                 step,
+                screenProps,
             }}
         >
             {children}
