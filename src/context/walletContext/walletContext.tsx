@@ -176,9 +176,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         try {
             // fetch wallets
             const fetchedWallets = await fetchWallets()
-            // TODO: handle that it throws error, also
-            // needs to set setAreWalletsFetchedAndSetup(false)
-
             if (fetchedWallets) {
                 // sets PW as connected in wallet list
                 const pWallet = fetchedWallets.find((wallet: interfaces.IWallet) => wallet.address == kernelClientAddress)
@@ -200,7 +197,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
 
         } catch (error) {
+            setAreWalletsFetchedAndSetup(false)
             if (error instanceof interfaces.WalletError) {
+            // TODO: handle that it throws error
 
             } else {
                 throw error

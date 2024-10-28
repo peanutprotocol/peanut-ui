@@ -14,15 +14,23 @@ import { HomeLink } from '@/components/Home/HomeLink'
 import { useWallet } from '@/context/walletContext'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { useAuth } from '@/context/authContext'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
+
+import * as interfaces from '@/interfaces'
 
 const Home = () => {
     const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
+    // TODO: should error strings be moved to the walletContext?
+    const [walletErrorStrings, setWalletErrorStrings] = useState<(string | null)[]>([])
+    const [connectProviderButtonShown, setConnectProviderButtonShown] = useState<boolean>(false)
 
     const carouselRef = useRef<HTMLDivElement>(null)
     const controls = useAnimation()
 
     const { wallets, areWalletsFetchedAndSetup, checkActivateWallet } = useWallet()
     const { user } = useAuth()
+
+    const { open } = useWeb3Modal()
 
     // const wallets = [
     //     { amount: '$40.00', username: 'kkonrad', email: 'kkonrad@peanut.to' },
@@ -45,9 +53,41 @@ const Home = () => {
         })
     }, [selectedWalletIndex, controls])
 
-    const handleCardClick = (index: number, wallet: IWallet) => {
-        setSelectedWalletIndex(index)
-        checkActivateWallet(wallet)
+    // sets errorString size
+    useEffect(() => {
+        if (wallets) {
+            cleanErrors()
+        } else{
+            setWalletErrorStrings([])
+        }
+    }, [wallets])
+
+    const handleCardClick = async (index: number, wallet: IWallet) => {
+        try {
+            await checkActivateWallet(wallet)
+            setSelectedWalletIndex(index)
+            cleanErrors()
+        } catch (error) {
+            if (error instanceof interfaces.WalletError) {
+                // TODO: handle that it throws error
+                walletErrorStrings[index] = error.message
+                setWalletErrorStrings([...walletErrorStrings])
+
+                // TODO: differentiate between kinds of errors
+                setConnectProviderButtonShown(true)
+            } else {
+                throw error
+            }
+        }
+    }
+
+    const cleanErrors = async () => {
+        setWalletErrorStrings(new Array(wallets.length).fill(null))
+    }
+
+    const handleConnectCorrectBYOWToProvider = async (index: number, wallet: IWallet) => {
+        await open()
+        handleCardClick(index, wallet)
     }
 
     const handleAddBYOW = () => {}
@@ -131,6 +171,24 @@ const Home = () => {
                                                         <div className="flex flex-col">
                                                             <p className="font-bold">{wallet.address}</p>
                                                         </div>
+                                                        {/* TODO: make errors look nicer */}
+                                                        {walletErrorStrings[index] && (
+                                                            <div>
+                                                                {walletErrorStrings[index]}
+                                                                {connectProviderButtonShown && (
+                                                                    <div
+                                                                        onClick={(event) => {
+                                                                            event.stopPropagation()
+                                                                            handleConnectCorrectBYOWToProvider(index, wallet)
+                                                                        }}
+                                                                    >
+                                                                        this is the provider button
+                                                                    </div>
+                                                                )}
+
+                                                            </div>
+                                                        )}
+                                                        
                                                     </Card.Content>
                                                 )}
 
