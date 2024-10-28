@@ -8,17 +8,17 @@ import { useState, useContext, useEffect } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
 import * as _consts from '../Create.consts'
-import * as _utils from '../Create.utils'
+import { isGaslessDepositPossible } from '../Create.utils'
 import * as context from '@/context'
-import * as utils from '@/utils'
+import { isNativeCurrency, ErrorHandler, shortenAddressLong } from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
-import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useBalance } from '@/hooks/useBalance'
+import { formatEther } from 'viem'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -104,11 +104,11 @@ export const CreateLinkInputView = ({
                 setLoadingState('Preparing transaction')
 
                 let prepareDepositTxsResponse: interfaces.IPrepareDepositTxsResponse | undefined
-                const isGaslessDepositPossible = _utils.isGaslessDepositPossible({
+                const _isGaslessDepositPossible = isGaslessDepositPossible({
                     chainId: selectedChainID,
                     tokenAddress: selectedTokenAddress,
                 })
-                if (isGaslessDepositPossible) {
+                if (_isGaslessDepositPossible) {
                     setTransactionType('gasless')
 
                     const makeGaslessDepositResponse = await makeGaslessDepositPayload({
@@ -137,12 +137,15 @@ export const CreateLinkInputView = ({
 
                     setPreparedDepositTxs(prepareDepositTxsResponse)
 
+                    let _feeOptions = undefined
+
                     try {
                         const { feeOptions, transactionCostUSD } = await estimateGasFee({
                             chainId: selectedChainID,
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
+                        _feeOptions = feeOptions
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
                     } catch (error) {
@@ -150,13 +153,24 @@ export const CreateLinkInputView = ({
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
                     }
+                    // If the selected token is native currency, we need to check
+                    // the user's balance to ensure they have enough to cover the
+                    // gas fees.
+                    if (undefined !== _feeOptions && isNativeCurrency(selectedTokenAddress)) {
+                        const maxGasAmount = Number(
+                            formatEther(_feeOptions.gasLimit.mul(_feeOptions.maxFeePerGas || _feeOptions.gasPrice))
+                        )
+                        await checkUserHasEnoughBalance({
+                            tokenValue: String(Number(tokenValue) + maxGasAmount),
+                        })
+                    }
                 }
 
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
                     amountUSD: parseFloat(usdValue ?? '0'),
-                    preparedTx: isGaslessDepositPossible
+                    preparedTx: _isGaslessDepositPossible
                         ? undefined
                         : prepareDepositTxsResponse &&
                           prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
@@ -207,7 +221,7 @@ export const CreateLinkInputView = ({
             await switchNetwork(selectedChainID)
             onNext()
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -242,7 +256,7 @@ export const CreateLinkInputView = ({
                     {createType === 'link'
                         ? 'Text Tokens'
                         : createType === 'direct'
-                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.shortenAddressLong(recipient.address ?? '')}`
+                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : shortenAddressLong(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </h2>
                 <div className="max-w-96 text-center">

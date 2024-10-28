@@ -10,6 +10,7 @@ import { PEANUT_API_URL, next_proxy_url } from '@/constants'
 import { fetchTokenPrice, areTokenAddressesEqual, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 import { BigNumber, ethers } from 'ethers'
+import { formatEther, parseUnits, parseEther } from 'viem'
 import { useWalletType } from '@/hooks/useWalletType'
 
 interface ICheckUserHasEnoughBalanceProps {
@@ -18,14 +19,7 @@ interface ICheckUserHasEnoughBalanceProps {
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
-    const {
-        inputDenomination,
-        selectedChainID,
-        selectedTokenPrice,
-        selectedTokenAddress,
-        setSelectedTokenPrice,
-        setInputDenomination,
-    } = useContext(tokenSelectorContext)
+    const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
     const { balances } = useBalance()
 
     const { chain: currentChain, address } = useAccount()
@@ -37,91 +31,85 @@ export const useCreateLink = () => {
     const { refetchBalances } = useBalance()
 
     // step 1
-    const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
-        // if inputDenomination is USD, the tokenPrice has to be defineds
-        if (inputDenomination == 'USD') {
-            if (!selectedTokenPrice) {
-                try {
-                    const _selectedTokenPrice = await fetchTokenPrice(selectedTokenAddress, selectedChainID)
-                    setSelectedTokenPrice(_selectedTokenPrice?.price)
-                } catch (error) {
-                    setInputDenomination('TOKEN')
+    const checkUserHasEnoughBalance = useCallback(
+        async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
+            // the selectedChainID and selectedTokenAddress have to be defined
+            if (!selectedChainID && !selectedTokenAddress) {
+                throw new Error('Please ensure that the correct token and chain are defined')
+            }
+            // if the userbalances are know, the user must have a balance of the selected token
+            if (balances.length > 0) {
+                let balance = balances.find(
+                    (balance) =>
+                        areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
+                        balance.chainId === selectedChainID
+                )?.amount
+                if (!balance) {
+                    balance = Number(
+                        await peanut.getTokenBalance({
+                            tokenAddress: selectedTokenAddress,
+                            chainId: selectedChainID,
+                            walletAddress: address ?? '',
+                        })
+                    )
+                }
+                if (!balance || (balance && balance < Number(tokenValue))) {
                     throw new Error(
-                        'Something went wrong while fetching the token price. Please change the input denomination and try again'
+                        'Please ensure that you have sufficient balance of the token you are trying to send'
                     )
                 }
             }
-        }
 
-        // the selectedChainID and selectedTokenAddress have to be defined
-        if (!selectedChainID && !selectedTokenAddress) {
-            throw new Error('Please ensure that the correct token and chain are defined')
-        }
-
-        // if the userbalances are know, the user must have a balance of the selected token
-        if (balances.length > 0) {
-            let balance = balances.find(
-                (balance) =>
-                    areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
-                    balance.chainId === selectedChainID
-            )?.amount
-            if (!balance) {
-                balance = Number(
-                    await peanut.getTokenBalance({
-                        tokenAddress: selectedTokenAddress,
-                        chainId: selectedChainID,
-                        walletAddress: address ?? '',
-                    })
-                )
+            // the selected tokenvalue has to be a number higher then .0001
+            if (!tokenValue || (tokenValue && Number(tokenValue) < 0.000001)) {
+                throw new Error('The minimum amount to send is 0.000001')
             }
-            if (!balance || (balance && balance < Number(tokenValue))) {
-                throw new Error('Please ensure that you have sufficient balance of the token you are trying to send')
+        },
+        [selectedChainID, selectedTokenAddress, balances, address]
+    )
+
+    const generateLinkDetails = useCallback(
+        ({
+            tokenValue,
+            walletType,
+            envInfo,
+        }: {
+            tokenValue: string | undefined
+            walletType: 'blockscout' | undefined
+            envInfo: any
+        }) => {
+            try {
+                // get tokenDetails (type and decimals)
+                const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
+
+                // baseUrl
+                let baseUrl = ''
+                if (walletType === 'blockscout') {
+                    baseUrl = `${envInfo.origin}/apps/peanut-protocol`
+                } else if (typeof window !== 'undefined') {
+                    baseUrl = `${window.location.origin}/claim`
+                }
+
+                // create linkDetails and save to state
+                const linkDetails = {
+                    chainId: selectedChainID,
+                    tokenAmount: parseFloat(Number(tokenValue).toFixed(6)),
+                    tokenType: tokenDetails.tokenType,
+                    tokenAddress: selectedTokenAddress,
+                    tokenDecimals: tokenDetails.tokenDecimals,
+                    baseUrl: baseUrl,
+                    trackId: 'ui',
+                }
+
+                return linkDetails
+            } catch (error) {
+                console.error('error generating linkdetails', error)
+                throw new Error('Error getting the linkDetails.')
             }
-        }
+        },
+        [selectedTokenAddress, selectedChainID, balances]
+    )
 
-        // the selected tokenvalue has to be a number higher then .0001
-        if (!tokenValue || (tokenValue && Number(tokenValue) < 0.000001)) {
-            throw new Error('The minimum amount to send is 0.000001')
-        }
-    }
-    const generateLinkDetails = ({
-        tokenValue,
-        walletType,
-        envInfo,
-    }: {
-        tokenValue: string | undefined
-        walletType: 'blockscout' | undefined
-        envInfo: any
-    }) => {
-        try {
-            // get tokenDetails (type and decimals)
-            const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
-
-            // baseUrl
-            let baseUrl = ''
-            if (walletType === 'blockscout') {
-                baseUrl = `${envInfo.origin}/apps/peanut-protocol`
-            } else if (typeof window !== 'undefined') {
-                baseUrl = `${window.location.origin}/claim`
-            }
-
-            // create linkDetails and save to state
-            const linkDetails = {
-                chainId: selectedChainID,
-                tokenAmount: parseFloat(Number(tokenValue).toFixed(6)),
-                tokenType: tokenDetails.tokenType,
-                tokenAddress: selectedTokenAddress,
-                tokenDecimals: tokenDetails.tokenDecimals,
-                baseUrl: baseUrl,
-                trackId: 'ui',
-            }
-
-            return linkDetails
-        } catch (error) {
-            console.error('error generating linkdetails', error)
-            throw new Error('Error getting the linkDetails.')
-        }
-    }
     const generatePassword = async () => {
         try {
             //generate password and save to state
@@ -161,7 +149,7 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [address, selectedChainID, selectedTokenAddress, balances]
+        [address, selectedChainID]
     )
     const prepareDepositTxs = useCallback(
         async ({
@@ -174,7 +162,7 @@ export const useCreateLink = () => {
             try {
                 if (!_linkDetails || !_password) return
 
-                const prepareTxsResponse = await peanut.prepareTxs({
+                const prepareTxsResponse = await peanut.prepareDepositTxs({
                     address: address ?? '',
                     linkDetails: _linkDetails,
                     passwords: [_password],
@@ -185,7 +173,7 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [address, selectedChainID, selectedTokenAddress, balances]
+        [address]
     )
     const switchNetwork = async (chainId: string) => {
         try {
@@ -202,7 +190,7 @@ export const useCreateLink = () => {
             console.error('Failed to switch network:', error)
         }
     }
-    const estimateGasFee = async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
+    const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
         try {
             const feeOptions = await peanut.setFeeOptions({
                 chainId: chainId,
@@ -210,7 +198,7 @@ export const useCreateLink = () => {
             })
 
             let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
-            let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
+            let transactionCostNative = formatEther(transactionCostWei)
             const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
             if (!nativeTokenPrice || typeof nativeTokenPrice.price !== 'number' || isNaN(nativeTokenPrice.price)) {
                 throw new Error('Failed to fetch token price')
@@ -230,11 +218,8 @@ export const useCreateLink = () => {
                 })
 
                 let transactionCostWei = feeOptions.gasLimit.mul(feeOptions.maxFeePerGas || feeOptions.gasPrice)
-                let transactionCostNative = ethers.utils.formatEther(transactionCostWei)
-                const nativeTokenPrice = await fetchTokenPrice(
-                    '0x0000000000000000000000000000000000000000',
-                    chainId
-                )
+                let transactionCostNative = formatEther(transactionCostWei)
+                const nativeTokenPrice = await fetchTokenPrice('0x0000000000000000000000000000000000000000', chainId)
                 if (!nativeTokenPrice) {
                     throw new Error('Failed to fetch token price')
                 }
@@ -249,7 +234,8 @@ export const useCreateLink = () => {
                 throw error
             }
         }
-    }
+    }, [])
+
     const estimatePoints = async ({
         chainId,
         preparedTx,
@@ -435,7 +421,7 @@ export const useCreateLink = () => {
         if (!isNativeCurrency(tokenAddress)) {
             // ERC20 Token transfer
             const erc20Contract = new ethers.Contract(tokenAddress, peanut.ERC20_ABI)
-            const amount = ethers.utils.parseUnits(tokenValue, tokenDecimals)
+            const amount = parseUnits(tokenValue, tokenDecimals)
             const data = erc20Contract.interface.encodeFunctionData('transfer', [recipient, amount])
 
             transactionRequest = {
@@ -446,7 +432,7 @@ export const useCreateLink = () => {
         } else {
             // Native token transfer
             tokenValue = Number(tokenValue).toFixed(7)
-            const amount = ethers.utils.parseEther(tokenValue).toBigInt() // Convert to BigInt
+            const amount = parseEther(tokenValue)
             transactionRequest = {
                 to: recipient,
                 value: amount,
@@ -608,49 +594,77 @@ export const useCreateLink = () => {
         }
     }
 
-    const prepareCreateLinkWrapper = async ({ tokenValue }: { tokenValue: string }) => {
-        try {
-            await checkUserHasEnoughBalance({ tokenValue })
-            const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
-            const password = await generatePassword()
-            await switchNetwork(selectedChainID)
+    const prepareCreateLinkWrapper = useCallback(
+        async ({ tokenValue }: { tokenValue: string }) => {
+            try {
+                await checkUserHasEnoughBalance({ tokenValue })
+                const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
+                const password = await generatePassword()
+                await switchNetwork(selectedChainID)
 
-            const _isGaslessDepositPossible = isGaslessDepositPossible({
-                chainId: selectedChainID,
-                tokenAddress: selectedTokenAddress,
-            })
-            if (_isGaslessDepositPossible) {
-                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
-                    _linkDetails: linkDetails,
-                    _password: password,
+                const _isGaslessDepositPossible = isGaslessDepositPossible({
+                    chainId: selectedChainID,
+                    tokenAddress: selectedTokenAddress,
                 })
-
-                if (
-                    !makeGaslessDepositResponse ||
-                    !makeGaslessDepositResponse.payload ||
-                    !makeGaslessDepositResponse.message
-                )
-                    return
-
-                return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
-            } else {
-                let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
-                    await prepareDepositTxs({
+                if (_isGaslessDepositPossible) {
+                    const makeGaslessDepositResponse = await makeGaslessDepositPayload({
                         _linkDetails: linkDetails,
                         _password: password,
                     })
 
-                const feeOptions = await estimateGasFee({
-                    chainId: selectedChainID,
-                    preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
-                })
+                    if (
+                        !makeGaslessDepositResponse ||
+                        !makeGaslessDepositResponse.payload ||
+                        !makeGaslessDepositResponse.message
+                    )
+                        return
 
-                return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
+                    return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
+                } else {
+                    let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
+                        await prepareDepositTxs({
+                            _linkDetails: linkDetails,
+                            _password: password,
+                        })
+
+                    const feeOptions = await estimateGasFee({
+                        chainId: selectedChainID,
+                        preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                    })
+                    // If the selected token is native currency, we need to check
+                    // the user's balance to ensure they have enough to cover the
+                    // gas fees.
+                    if (isNativeCurrency(selectedTokenAddress)) {
+                        const maxGasAmount = Number(
+                            formatEther(
+                                feeOptions.feeOptions.gasLimit.mul(
+                                    feeOptions.feeOptions.maxFeePerGas || feeOptions.feeOptions.gasPrice
+                                )
+                            )
+                        )
+                        await checkUserHasEnoughBalance({
+                            tokenValue: String(Number(tokenValue) + maxGasAmount),
+                        })
+                    }
+
+                    return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
+                }
+            } catch (error) {
+                throw error
             }
-        } catch (error) {
-            throw error
-        }
-    }
+        },
+        [
+            checkUserHasEnoughBalance,
+            generateLinkDetails,
+            walletType,
+            environmentInfo,
+            makeGaslessDepositPayload,
+            prepareDepositTxs,
+            estimateGasFee,
+            selectedChainID,
+            selectedTokenAddress,
+        ]
+    )
 
     const createLinkWrapper = async ({
         type,
@@ -693,7 +707,7 @@ export const useCreateLink = () => {
                 data: {
                     link: link[0],
                     depositDate: new Date().toISOString(),
-                    USDTokenPrice: selectedTokenPrice ?? 0,
+                    USDTokenPrice: selectedTokenData?.price ?? 0,
                     points: 0,
                     txHash: hash,
                     message: '',
