@@ -4,6 +4,7 @@ import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useAccount } from 'wagmi'
 import { useWallet } from './walletContext'
+import { useZeroDev } from './walletContext/zeroDevContext.context'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -39,6 +40,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
 
+    const {address: kernelClientAddress, isKernelClientReady, handleLogin} = useZeroDev()
+
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
     const [isAuthed, setIsAuthed] = useState<boolean>(false)
@@ -59,15 +62,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user])
 
+    useEffect(() => {
+        if (kernelClientAddress != null && isKernelClientReady) {
+        // set PW as active wallet
+        setupWalletsAfterLogin()
+        }
+    }, [kernelClientAddress, isKernelClientReady])
+
+
+
     // TODO: document better
     // used after register too (there is a login event then too)
     const afterLoginUserSetup = async (): Promise<undefined> => {
         // set isAuthed
         setIsAuthed(true)
 
-        // fetch user wallets
-        // set PW as active wallet
-        setupWalletsAfterLogin()
+        //TODO: REMOVE THIS - ONLY FOR TESTING
+        await handleLogin('hey2')
+
+        // // fetch user wallets
+        // // set PW as active wallet
+        // setupWalletsAfterLogin()
+
+
     }
 
     const afterLogoutUserSetup = async (): Promise<undefined> => {

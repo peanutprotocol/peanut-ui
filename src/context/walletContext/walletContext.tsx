@@ -6,19 +6,27 @@ import { useAccount } from 'wagmi'
 // ZeroDev imports
 import { useKernelClient } from "@zerodev/waas"
 import { useZeroDev } from './zeroDevContext.context'
-import { useAuth } from '../authContext'
 
 // TOOD: go through TODOs
 
 // TODO: remove any unused imports
 // TODO: move to context consts
 interface WalletContextType {
+    // active wallet
     address: string | undefined
     activeWalletType: interfaces.WalletProviderType | undefined
     isWalletConnected: boolean
     activeWallet: interfaces.IWallet | undefined,
     isActiveWalletPW: boolean,
     isActiveWalletBYOW: boolean,
+
+    // wallets
+    wallets: interfaces.IWallet[],
+    areWalletsFetched: boolean,
+    areWalletsFetchedAndSetup: boolean,
+    isFetchingWallets: boolean,
+
+    // functions
     checkActivateWallet: (wallet: interfaces.IWallet) => Promise<interfaces.IWallet | undefined>
     deactiveWalletsOnLogout: () => void,
     setupWalletsAfterLogin: () => void
@@ -51,11 +59,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const [isActiveWalletPW, setIsActiveWalletPW] = useState<boolean>(false)
     const [isActiveWalletBYOW, setIsActiveWalletBYOW] = useState<boolean>(false)
     const [activeWallet, setActiveWallet] = useState<interfaces.IWallet | undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
-    const [isFetchingWallets, setIsFetchingWallets] = useState<boolean>(false)
     // 
     // Wallets
     //
     const [wallets, setWallets] = useState<interfaces.IWallet[]>([])
+    const [areWalletsFetched, setAreWalletsFetched] = useState<boolean>(false)
+    const [areWalletsFetchedAndSetup, setAreWalletsFetchedAndSetup] = useState<boolean>(false)
+    const [isFetchingWallets, setIsFetchingWallets] = useState<boolean>(false)
 
     // TODO: integrate username w/ Handle view
     // username keeps the current state of the passkey username
@@ -73,14 +83,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// ZeroDev props
     //
-    const {address: kernelClientAddress, isKernelClientReady} = useZeroDev()
+    const {address: kernelClientAddress, isKernelClientReady, handleLogin} = useZeroDev()
 
     ////// Lifecycle hooks
     //
     // TODO: we need to be performing a check if the connected address is the right address
     useEffect(() => {
         // called when BYOW changes
-        console.log({isWagmiConnected})
         if (isWagmiConnected) {
             console.log({wagmiAddress, addresses})
         }
@@ -109,14 +118,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // throws WalletError in case of error which is an 'undefined' return
     const checkActivateWallet = async (wallet: interfaces.IWallet): Promise<interfaces.IWallet | undefined> => {
         if (wallet.walletProviderType == interfaces.WalletProviderType.PEANUT) {
-            if (isKernelClientReady && kernelClientAddress == address) {
+            if (isKernelClientReady && kernelClientAddress == wallet.address) {
                 return activateWallet(wallet)
             } else {
                 throwWalletError(interfaces.WalletErrorType.PW_KERNEL_NOT_READY)
             }
         } else if (wallet.walletProviderType == interfaces.WalletProviderType.BYOW) {
             if (isWagmiConnected) {
-                if (wagmiAddress == address) {
+                if (wagmiAddress == wallet.address) {
                     return activateWallet(wallet)
                 } else {
                     throwWalletError(interfaces.WalletErrorType.BYOB_CONNECTED_TO_WRONG_WALLET)
@@ -151,6 +160,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     const deactiveWalletsOnLogout = () => {
         // TODO: makes PW disconnected
+        // TODO: makes areWalletsFetched and areWalletsFetchedAndSetup false
     }
 
     // TODO: this is called by auth - ensure it's always authed before calling
@@ -163,18 +173,39 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // note: calls inside may throw WalletError
     // we expect to do catching in UI to handle accordingly
     const setupWalletsAfterLogin = async () => {
-        // fetch wallets
-        await fetchWallets()
-        // sets PW as connected in wallet list
-        const pWallet = wallets.find((wallet: interfaces.IWallet) => wallet.address == kernelClientAddress)
-        pWallet!.connected = true
-        // sets any wallet that has the same address as a wagmiConnected wallet
-        if (isWagmiConnected) {
-            wallets.find((wallet: interfaces.IWallet) => wallet.address == wagmiAddress)!.connected = true
-        }
+        try {
+            // fetch wallets
+            const fetchedWallets = await fetchWallets()
+            // TODO: handle that it throws error, also
+            // needs to set setAreWalletsFetchedAndSetup(false)
+
+            if (fetchedWallets) {
+                // sets PW as connected in wallet list
+                const pWallet = fetchedWallets.find((wallet: interfaces.IWallet) => wallet.address == kernelClientAddress)
+                pWallet!.connected = true
+
+                // sets any wallet that has the same address as a wagmiConnected wallet
+                if (isWagmiConnected) {
+                    fetchedWallets.find((wallet: interfaces.IWallet) => wallet.address == wagmiAddress)!.connected = true
+                }
+
+                setAreWalletsFetchedAndSetup(true)
+                setWallets(fetchedWallets)
         
-        // sets PW as active wallet
-        checkActivateWallet(pWallet!)
+                // sets PW as active wallet
+                checkActivateWallet(pWallet!)
+            } else {
+                // it always throws, so handled on try-catch
+            }
+
+
+        } catch (error) {
+            if (error instanceof interfaces.WalletError) {
+
+            } else {
+                throw error
+            }
+        }
         
     }
 
@@ -182,7 +213,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // doesn't set wallets and returns null if failure call
     // returns undefined (doesn't actually) when throwing, otherwise returns IWallet
     const fetchWallets = async (): Promise<interfaces.IWallet[] | undefined> => {
-        return [
+        const wallies = [
             {
                 walletProviderType: interfaces.WalletProviderType.PEANUT,
                 protocolType: interfaces.WalletProtocolType.EVM,
@@ -202,6 +233,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 address: '0x92D2d247b5ba2de168DbCFBf339Df4fAC49a9f70'
             }
         ]
+        return wallies
         setIsFetchingWallets(true)
         const walletsResponse = await fetch('/api/peanut/user/get-wallets')
         if (walletsResponse.ok) {
@@ -214,9 +246,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             }))
             setWallets(wallets)
             setIsFetchingWallets(false)
+            setAreWalletsFetched(true)
             return wallets
         } else {
             setIsFetchingWallets(false)
+            setAreWalletsFetched(false)
             throwWalletError(interfaces.WalletErrorType.WALLET_FETCH_ERROR)
         }
     }
@@ -236,12 +270,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     return (
         <WalletContext.Provider
         value={{
+            // active wallet
             address,
             activeWalletType,
             isWalletConnected, 
             activeWallet,
             isActiveWalletPW,
             isActiveWalletBYOW,
+
+            // wallets
+            wallets,
+            areWalletsFetched,
+            areWalletsFetchedAndSetup,
+            isFetchingWallets,
+
+            // functions
             checkActivateWallet,
             deactiveWalletsOnLogout,
             setupWalletsAfterLogin

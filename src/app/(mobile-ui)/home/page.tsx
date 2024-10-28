@@ -11,6 +11,9 @@ import { useRef, useEffect, useState } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
+import { useWallet } from '@/context/walletContext'
+import { IWallet, WalletProviderType } from '@/interfaces'
+import { useAuth } from '@/context/authContext'
 
 const Home = () => {
     const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
@@ -18,17 +21,22 @@ const Home = () => {
     const carouselRef = useRef<HTMLDivElement>(null)
     const controls = useAnimation()
 
-    const wallets = [
-        { amount: '$40.00', username: 'kkonrad', email: 'kkonrad@peanut.to' },
-        { amount: '$55.00', username: 'alice123', email: 'alice123@peanut.to' },
-        { amount: '$30.00', username: 'bob456', email: 'bob456@peanut.to' },
-        { amount: '$70.00', username: 'charlie789', email: 'charlie789@peanut.to' },
-        { amount: '$25.00', username: 'david101', email: 'david101@peanut.to' },
-    ]
+    const { wallets, areWalletsFetchedAndSetup, checkActivateWallet } = useWallet()
+    const { user } = useAuth()
+
+    // const wallets = [
+    //     { amount: '$40.00', username: 'kkonrad', email: 'kkonrad@peanut.to' },
+    //     { amount: '$55.00', username: 'alice123', email: 'alice123@peanut.to' },
+    //     { amount: '$30.00', username: 'bob456', email: 'bob456@peanut.to' },
+    //     { amount: '$70.00', username: 'charlie789', email: 'charlie789@peanut.to' },
+    //     { amount: '$25.00', username: 'david101', email: 'david101@peanut.to' },
+    // ]
 
     const cardWidth = 300
     const cardMargin = 16
-    const { uri: avatarURI } = useAvatar(wallets[selectedWalletIndex].username)
+    const { uri: avatarURI } = useAvatar(wallets[selectedWalletIndex] ? wallets[selectedWalletIndex].address : 'i am sad bc i dont have peanut')
+
+    const { uri: sadAvatarURI} = useAvatar('i am sad bc i dont have peanut')
 
     useEffect(() => {
         controls.start({
@@ -37,20 +45,28 @@ const Home = () => {
         })
     }, [selectedWalletIndex, controls])
 
-    const handleCardClick = (index: number) => {
+    const handleCardClick = (index: number, wallet: IWallet) => {
         setSelectedWalletIndex(index)
+        checkActivateWallet(wallet)
     }
+
+    const handleAddBYOW = () => {}
+
 
     return (
         <div className="flex h-full w-full flex-row justify-center overflow-hidden">
             <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
-                <div className="w-full">
-                    <div className="relative mb-2.5 h-21 w-21 self-center">
-                        <img className="rounded-full object-cover" src={avatarURI} alt="Avatar" />
+                {/* Logged in (always an available wallet) */}
+                {areWalletsFetchedAndSetup && (
+                    <div className="w-full">
+                        <div className="relative mb-2.5 h-21 w-21 self-center">
+                            <img className="rounded-full object-cover" src={avatarURI} alt="Avatar" />
+                        </div>
+                        <div className="text-h4">{wallets[selectedWalletIndex].address}</div>
+                        <div className="text-sm">{wallets[selectedWalletIndex].protocolType}</div>
                     </div>
-                    <div className="text-h4">{wallets[selectedWalletIndex].username}</div>
-                    <div className="text-sm">{wallets[selectedWalletIndex].email}</div>
-                </div>
+                )}
+
                 <div className="relative" style={{ height: '250px' }}>
                     <motion.div
                         ref={carouselRef}
@@ -75,34 +91,76 @@ const Home = () => {
                             }
                         }}
                     >
-                        {wallets.map((wallet, index) => {
-                            const selected = selectedWalletIndex === index
-                            return (
-                                <motion.div
-                                    key={index}
-                                    className={classNames('mr-4', {
-                                        'opacity-40': !selected,
-                                    })}
-                                    onClick={() => handleCardClick(index)}
-                                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                >
-                                    <Card
-                                        className="flex flex-col gap-4 rounded-md bg-purple-1 text-white hover:cursor-pointer"
-                                        style={{ width: `${cardWidth}px` }}
-                                        shadowSize="6"
-                                    >
-                                        <Card.Content className="flex flex-col gap-2">
-                                            <Image src={PeanutWalletIcon} alt="" />
-                                            <p className="text-4xl font-black sm:text-5xl">{wallet.amount}</p>
-                                            <div className="flex flex-col">
-                                                <p>peanut.me/</p>
-                                                <p className="font-bold">{wallet.username}</p>
-                                            </div>
-                                        </Card.Content>
-                                    </Card>
-                                </motion.div>
-                            )
-                        })}
+                        {areWalletsFetchedAndSetup && (
+                            <>
+                                {wallets.map((wallet: IWallet, index) => {
+                                    const selected = selectedWalletIndex === index
+                                    return (
+                                        <motion.div
+                                            key={index}
+                                            className={classNames('mr-4', {
+                                                'opacity-40': !selected,
+                                            })}
+                                            onClick={() => {
+                                                handleCardClick(
+                                                    index,
+                                                    wallet
+                                                )
+                                            }}
+                                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                        >
+                                            <Card
+                                                className="flex flex-col gap-4 rounded-md bg-purple-1 text-white hover:cursor-pointer"
+                                                style={{ width: `${cardWidth}px` }}
+                                                shadowSize="6"
+                                            >
+                                                {wallet.walletProviderType == WalletProviderType.PEANUT && (
+                                                    <Card.Content className="flex flex-col gap-2">
+                                                        <Image src={PeanutWalletIcon} alt="" />
+                                                        {/* <p className="text-4xl font-black sm:text-5xl">{wallet.amount}</p> */}
+                                                        <div className="flex flex-col">
+                                                            <p>peanut.me/</p>
+                                                            <p className="font-bold">{user?.user.username}</p>
+                                                        </div>
+                                                    </Card.Content>
+                                                )}
+                                                {wallet.walletProviderType == WalletProviderType.BYOW && (
+                                                    <Card.Content className="flex flex-col gap-2">
+                                                        <img className="rounded-full object-cover" src={useAvatar(wallet.address).uri} alt="Avatar" />
+                                                        {/* <p className="text-4xl font-black sm:text-5xl">{wallet.amount}</p> */}
+                                                        <div className="flex flex-col">
+                                                            <p className="font-bold">{wallet.address}</p>
+                                                        </div>
+                                                    </Card.Content>
+                                                )}
+
+                                            </Card>
+                                        </motion.div>
+                                    )
+                                })}
+                            </>
+
+                        )}
+
+                    <motion.div
+                            onClick={() => handleAddBYOW()}
+                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                        >
+                            <Card
+                                className="flex flex-col gap-4 rounded-md bg-purple-1 text-white hover:cursor-pointer"
+                                style={{ width: `${cardWidth}px` }}
+                                shadowSize="6"
+                            >
+                                <Card.Content className="flex flex-col gap-2">
+                                    <Image src={PeanutWalletIcon} alt="" />
+                                    <p className="text-4xl font-black sm:text-5xl">Add your own wallet</p>
+                                    <div className="flex flex-col">
+                                        <p className="font-bold">Connect your wallets to your Peanut account</p>
+                                    </div>
+                                </Card.Content>
+                            </Card>
+                        </motion.div>
+
                     </motion.div>
                 </div>
                 <div className="flex w-full flex-row items-center justify-center gap-4 sm:justify-between sm:gap-8">
@@ -116,7 +174,7 @@ const Home = () => {
                         <HomeLink href={'/request/create'}>
                             <ArrowIcon className="rotate-180" />
                         </HomeLink>
-                        <p>Recieve</p>
+                        <p>Receive</p>
                     </div>
                     <div className="flex flex-col items-center gap-2">
                         <HomeLink href={'/cashout'}>
