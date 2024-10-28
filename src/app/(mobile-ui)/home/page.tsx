@@ -11,6 +11,7 @@ import { useRef, useEffect, useState } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
+import Link from 'next/link'
 
 const Home = () => {
     const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
@@ -75,6 +76,18 @@ const Home = () => {
                             }
                         }}
                     >
+                        <Card
+                            className="mr-4 flex flex-col gap-4 rounded-md hover:cursor-pointer"
+                            style={{ width: `${cardWidth}px` }}
+                            shadowSize="6"
+                        >
+                            <Link href="/setup">
+                                <Card.Content className="flex h-full flex-row items-center justify-start gap-2">
+                                    <Icon name="plus-circle" className="h-10 w-10" />
+                                    <p className="text-lg font-bold">Create a peanut wallet</p>
+                                </Card.Content>
+                            </Link>
+                        </Card>
                         {wallets.map((wallet, index) => {
                             const selected = selectedWalletIndex === index
                             return (
