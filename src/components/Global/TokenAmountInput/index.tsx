@@ -78,6 +78,9 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                             e.preventDefault()
                             if (onSubmit) onSubmit()
                         }
+                        if (e.key.toLowerCase() === 'e') {
+                            e.preventDefault()
+                        }
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}
                 />
@@ -86,7 +89,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                 <div className="flex w-full flex-row items-center justify-center gap-1">
                     <label className="text-base text-gray-1">
                         {!tokenValue
-                            ? '0'
+                            ? '0' 
                             : inputDenomination === 'USD'
                               ? utils.formatTokenAmount(Number(tokenValue) / (selectedTokenData?.price ?? 0))
                               : '$' + utils.formatTokenAmount(Number(tokenValue) * (selectedTokenData?.price ?? 0))}
