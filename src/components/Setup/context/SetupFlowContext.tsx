@@ -24,7 +24,7 @@ interface SetupFlowContextType {
     isFirstStep: boolean
     isLastStep: boolean
     isLoading: boolean
-    handleNext: <T extends ScreenId>(businessLogic?: Promise<void>, props?: ScreenProps[T]) => Promise<void>
+    handleNext: <T extends ScreenId>(businessLogic?: () => Promise<void>, props?: ScreenProps[T]) => Promise<void>
     handleBack: () => void
     step: Step
     screenProps: ScreenProps[ScreenId] | undefined
@@ -48,12 +48,12 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
     const isLastStep = currentStep === steps.length
     const step = steps[currentStep - 1]
 
-    const handleNext = async <T extends ScreenId>(businessLogic?: Promise<void>, props?: ScreenProps[T]) => {
+    const handleNext = async <T extends ScreenId>(businessLogic?: () => Promise<void>, props?: ScreenProps[T]) => {
         try {
             setIsLoading(true)
 
             if (businessLogic) {
-                await businessLogic
+                await businessLogic()
             }
 
             if (isLastStep) {

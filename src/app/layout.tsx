@@ -17,7 +17,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <config.PeanutProvider>
                     <context.ContextProvider>
                         {children}
-                        <CrispChat />
+                        {/* TODO: move to single page */}
+                        {/* <CrispChat /> */}
                     </context.ContextProvider>
                 </config.PeanutProvider>
             </body>
