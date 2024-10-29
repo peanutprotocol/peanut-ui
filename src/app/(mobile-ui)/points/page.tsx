@@ -2,6 +2,7 @@
 
 import Icon from '@/components/Global/Icon'
 import { useAuth } from '@/context/authContext'
+import peanutClub from "@/assets/peanut/peanut-club.png"
 
 const PointsPage = () => {
     const { user } = useAuth()
@@ -24,7 +25,7 @@ const PointsPage = () => {
                     </div>
                 </div>
             </div>
-            <img src="/peanut-club.png" className="h-[240px] w-[240px]" alt="logo" />
+            <img src={peanutClub.src} className="h-[240px] w-[240px]" alt="logo" />
         </div>
     )
 }

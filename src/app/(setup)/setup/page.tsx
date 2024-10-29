@@ -4,6 +4,9 @@ import { StepTransition } from '@/components/Setup/components/StepTransition'
 import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
 import { twMerge } from 'tailwind-merge'
 
+import peanutClub from "@/assets/peanut/peanut-club.png"
+import starImage from "@/assets/icons/star.png"
+
 const SetupPage = () => {
     const { currentStep, direction, step } = useSetupFlow()
 
@@ -26,9 +29,9 @@ const SetupPage = () => {
             </div>
             <div className="relative flex-grow flex flex-row items-center h-[50vh] justify-center">
                 {starPositions.map((positions, index) => (
-                    <img key={index} src="/star.png" alt="Star" className={twMerge(positions, "absolute z-[11]")} />
+                    <img key={index} src={starImage.src} alt="Star" className={twMerge(positions, "absolute z-[11]")} />
                 ))}
-                <img src="/peanut-club.png" className="z-10 object-contain h-full aspect-square" />
+                <img src={peanutClub.src} className="z-10 object-contain h-full aspect-square" />
             </div>
             <div className="relative overflow-hidden">
                 <StepTransition step={currentStep} direction={direction}>
