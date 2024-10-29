@@ -7,7 +7,7 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { useBalance } from '@/hooks/useBalance'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
-import { fetchTokenPrice, areTokenAddressesEqual, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import { fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 import { BigNumber, ethers } from 'ethers'
 import { formatEther, parseUnits, parseEther } from 'viem'
@@ -20,7 +20,7 @@ interface ICheckUserHasEnoughBalanceProps {
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
-    const { balances } = useBalance()
+    const { balances, refetchBalances, balanceByToken } = useBalance()
 
     const { chain: currentChain, address } = useAccount()
     const { switchChainAsync } = useSwitchChain()
@@ -28,7 +28,6 @@ export const useCreateLink = () => {
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
-    const { refetchBalances } = useBalance()
 
     // step 1
     const checkUserHasEnoughBalance = useCallback(
@@ -39,13 +38,9 @@ export const useCreateLink = () => {
             }
             // if the userbalances are know, the user must have a balance of the selected token
             if (balances.length > 0) {
-                let balance = balances.find(
-                    (balance) =>
-                        areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
-                        balance.chainId === selectedChainID
-                )?.amount
-                if (!balance) {
-                    balance = Number(
+                let balanceAmount = balanceByToken(selectedChainID, selectedTokenAddress)?.amount
+                if (!balanceAmount) {
+                    balanceAmount = Number(
                         await peanut.getTokenBalance({
                             tokenAddress: selectedTokenAddress,
                             chainId: selectedChainID,
@@ -53,7 +48,7 @@ export const useCreateLink = () => {
                         })
                     )
                 }
-                if (!balance || (balance && balance < Number(tokenValue))) {
+                if (!balanceAmount || (balanceAmount && balanceAmount < Number(tokenValue))) {
                     throw new Error(
                         'Please ensure that you have sufficient balance of the token you are trying to send'
                     )
@@ -65,7 +60,7 @@ export const useCreateLink = () => {
                 throw new Error('The minimum amount to send is 0.000001')
             }
         },
-        [selectedChainID, selectedTokenAddress, balances, address]
+        [selectedChainID, selectedTokenAddress, balances, address, balanceByToken]
     )
 
     const generateLinkDetails = useCallback(
