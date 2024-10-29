@@ -122,24 +122,33 @@ const Home = () => {
                     </motion.div>
                 </div>
                 <div className="flex w-full flex-row items-center justify-center gap-4 sm:justify-between sm:gap-8">
-                    <div className="flex flex-col items-center gap-2">
+                    <motion.div
+                        className="flex flex-col items-center gap-2"
+                        whileTap={{ scale: 0.95 }}
+                    >
                         <HomeLink href={'/send'}>
                             <ArrowIcon />
                         </HomeLink>
                         <p className="text-base">Send</p>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
+                    </motion.div>
+                    <motion.div
+                        className="flex flex-col items-center gap-2"
+                        whileTap={{ scale: 0.95 }}
+                    >
                         <HomeLink href={'/request/create'}>
                             <ArrowIcon className="rotate-180" />
                         </HomeLink>
                         <p>Recieve</p>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
+                    </motion.div>
+                    <motion.div
+                        className="flex flex-col items-center gap-2"
+                        whileTap={{ scale: 0.95 }}
+                    >
                         <HomeLink href={'/cashout'}>
                             <Icon name="bank" className="h-10 w-10" />
                         </HomeLink>
                         <p>Cashout</p>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>
