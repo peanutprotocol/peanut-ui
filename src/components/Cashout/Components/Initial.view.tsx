@@ -194,6 +194,7 @@ export const InitialCashoutView = ({
     const maxValue = useMemo(() => {
         const balance = balanceByToken(selectedChainID, selectedTokenAddress)
         if (!balance) return ''
+        // 6 decimal places, prettier
         return floorFixed(balance.amount, 6)
     }, [selectedChainID, selectedTokenAddress, balanceByToken])
 
