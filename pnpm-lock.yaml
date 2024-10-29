@@ -36,8 +36,8 @@ importers:
         specifier: ^8.30.0
         version: 8.30.0(@opentelemetry/api@1.9.0)(@opentelemetry/core@1.26.0(@opentelemetry/api@1.9.0))(@opentelemetry/instrumentation@0.53.0(@opentelemetry/api@1.9.0))(@opentelemetry/sdk-trace-base@1.26.0(@opentelemetry/api@1.9.0))(encoding@0.1.13)(next@14.2.13(@babel/core@7.25.2)(@opentelemetry/api@1.9.0)(react-dom@18.3.1(react@18.3.1))(react@18.3.1))(react@18.3.1)(webpack@5.94.0)
       '@squirrel-labs/peanut-sdk':
-        specifier: ^0.5.6
-        version: 0.5.6(bufferutil@4.0.8)(utf-8-validate@5.0.10)
+        specifier: ^0.5.7
+        version: 0.5.7(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       '@tanstack/react-query':
         specifier: ^5.56.2
         version: 5.56.2(react@18.3.1)
@@ -2836,8 +2836,8 @@ packages:
   '@spruceid/siwe-parser@2.1.2':
     resolution: {integrity: sha512-d/r3S1LwJyMaRAKQ0awmo9whfXeE88Qt00vRj91q5uv5ATtWIQEGJ67Yr5eSZw5zp1/fZCXZYuEckt8lSkereQ==}
 
-  '@squirrel-labs/peanut-sdk@0.5.6':
-    resolution: {integrity: sha512-et2/GxIi67hSugQ3wNFkzAvGphelVs1Yw56k8wAlSpSzNQNEwbEbjidAimKeRvZ3zx0zsd9j/OomuqQ/AA90og==}
+  '@squirrel-labs/peanut-sdk@0.5.7':
+    resolution: {integrity: sha512-17WP+r5YAdy7BIlux7zI2kWW3m5xRjV66uOFWCg6dHe1t7R98RCnwK8cT1J8TuIIeRMoavdRLeZmAvz4G5NAIg==}
 
   '@stablelib/aead@1.0.1':
     resolution: {integrity: sha512-q39ik6sxGHewqtO0nP4BuSe3db5G1fEJE8ukvngS2gLkBXyy6E7pLubhbYgnkDFv6V8cWaxcE4Xn0t6LWcJkyg==}
@@ -4882,7 +4882,6 @@ packages:
   eslint@8.57.0:
     resolution: {integrity: sha512-dZ6+mexnaTIbSBZWgou51U6OmzIhYM2VcNdtiTtI7qPNZm35Akpr0f6vtw3w1Kmn5PYo+tZVfh13WrhpS6oLqQ==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
-    deprecated: This version is no longer supported. Please see https://eslint.org/version-support for other options.
     hasBin: true
 
   esniff@2.0.1:
@@ -12701,7 +12700,7 @@ snapshots:
       uri-js: 4.4.1
       valid-url: 1.0.9
 
-  '@squirrel-labs/peanut-sdk@0.5.6(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
+  '@squirrel-labs/peanut-sdk@0.5.7(bufferutil@4.0.8)(utf-8-validate@5.0.10)':
     dependencies:
       ethersv5: ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       jest-summary-reporter: 0.0.2
