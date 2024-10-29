@@ -4,13 +4,13 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect, useMemo } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
 import * as context from '@/context'
-import { isNativeCurrency, ErrorHandler, shortenAddressLong } from '@/utils'
+import { isNativeCurrency, ErrorHandler, shortenAddressLong, floorFixed } from '@/utils'
 import Loading from '@/components/Global/Loading'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
@@ -57,7 +57,7 @@ export const CreateLinkInputView = ({
         context.tokenSelectorContext
     )
     const { walletType, environmentInfo } = useWalletType()
-    const { balances, hasFetchedBalances } = useBalance()
+    const { balances, hasFetchedBalances, balanceByToken } = useBalance()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -160,9 +160,19 @@ export const CreateLinkInputView = ({
                         const maxGasAmount = Number(
                             formatEther(_feeOptions.gasLimit.mul(_feeOptions.maxFeePerGas || _feeOptions.gasPrice))
                         )
-                        await checkUserHasEnoughBalance({
-                            tokenValue: String(Number(tokenValue) + maxGasAmount),
-                        })
+                        try {
+                            await checkUserHasEnoughBalance({
+                                tokenValue: String(Number(tokenValue) + maxGasAmount),
+                            })
+                        } catch (error) {
+                            _setTokenValue((Number(tokenValue) - maxGasAmount * 1.3).toFixed(6))
+                            setErrorState({
+                                showError: true,
+                                errorMessage:
+                                    'You do not have enough balance to cover the transaction fees, try again with suggested amount',
+                            })
+                            return
+                        }
                     }
                 }
 
@@ -231,6 +241,12 @@ export const CreateLinkInputView = ({
         }
     }
 
+    const maxValue = useMemo(() => {
+        const balance = balanceByToken(selectedChainID, selectedTokenAddress)
+        if (!balance) return ''
+        return floorFixed(balance.amount, 6)
+    }, [selectedChainID, selectedTokenAddress, balanceByToken])
+
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
@@ -274,6 +290,7 @@ export const CreateLinkInputView = ({
                 <TokenAmountInput
                     className="w-full"
                     tokenValue={_tokenValue}
+                    maxValue={maxValue}
                     setTokenValue={_setTokenValue}
                     onSubmit={() => {
                         if (!isConnected) handleConnectWallet()
