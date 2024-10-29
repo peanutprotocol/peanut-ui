@@ -53,8 +53,8 @@ const Home = () => {
                     <div className="text-sm">{wallets[selectedWalletIndex].email}</div>
                 </div>
                 <div
-                    className="relative"
-                    style={{ height: '250px', marginRight: -16, marginLeft: -16, padding: 16, overflow: 'hidden' }}
+                    className="relative overflow-hidden sm:overflow-visible"
+                    style={{ height: '250px', marginRight: -16, marginLeft: -16, padding: 16 }}
                 >
                     <motion.div
                         ref={carouselRef}
