@@ -43,7 +43,7 @@ const Home = () => {
     }
 
     return (
-        <div className="flex h-full w-full flex-row justify-center overflow-hidden">
+        <div className="flex h-full w-full flex-row justify-center">
             <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                 <div className="w-full">
                     <div className="relative mb-2.5 h-21 w-21 self-center">
@@ -52,10 +52,13 @@ const Home = () => {
                     <div className="text-h4">{wallets[selectedWalletIndex].username}</div>
                     <div className="text-sm">{wallets[selectedWalletIndex].email}</div>
                 </div>
-                <div className="relative" style={{ height: '250px' }}>
+                <div
+                    className="relative"
+                    style={{ height: '250px', marginRight: -16, marginLeft: -16, padding: 16, overflow: 'hidden' }}
+                >
                     <motion.div
                         ref={carouselRef}
-                        className="absolute left-0 flex"
+                        className="absolute flex"
                         animate={controls}
                         drag="x"
                         dragConstraints={{ left: -((wallets.length - 1) * (cardWidth + cardMargin)), right: 0 }}

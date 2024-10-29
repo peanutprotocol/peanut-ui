@@ -73,7 +73,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     return (
         <div className="flex h-screen flex-col">
             <HomeNav />
-            <div className="flex w-full flex-1 overflow-y-scroll p-4">{children}</div>
+            <div className="flex w-full flex-1 overflow-x-visible overflow-y-scroll p-4">{children}</div>
             <div className="grid grid-cols-4 border-t-2 border-black p-2">
                 {tabs.map((tab) => (
                     <Link
