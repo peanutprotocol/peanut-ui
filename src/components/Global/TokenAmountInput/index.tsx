@@ -96,7 +96,7 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxV
                 {maxValue && maxValue !== tokenValue && (
                     <button
                         onClick={handleMaxClick}
-                        className="absolute right-1 ml-1 bg-gray-200 px-2 py-1 text-h7 uppercase transition-colors hover:bg-black hover:text-white"
+                        className="absolute right-1 ml-1 px-2 py-1 text-h7 uppercase text-gray-1 transition-colors hover:text-black"
                     >
                         Max
                     </button>
