@@ -33,7 +33,7 @@ export const useCreateLink = () => {
     const checkUserHasEnoughBalance = useCallback(
         async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
             // the selectedChainID and selectedTokenAddress have to be defined
-            if (!selectedChainID && !selectedTokenAddress) {
+            if (!selectedChainID || !selectedTokenAddress) {
                 throw new Error('Please ensure that the correct token and chain are defined')
             }
             // if the userbalances are know, the user must have a balance of the selected token
