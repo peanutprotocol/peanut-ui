@@ -591,61 +591,57 @@ export const useCreateLink = () => {
 
     const prepareCreateLinkWrapper = useCallback(
         async ({ tokenValue }: { tokenValue: string }) => {
-            try {
-                await checkUserHasEnoughBalance({ tokenValue })
-                const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
-                const password = await generatePassword()
-                await switchNetwork(selectedChainID)
+            await checkUserHasEnoughBalance({ tokenValue })
+            const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
+            const password = await generatePassword()
+            await switchNetwork(selectedChainID)
 
-                const _isGaslessDepositPossible = isGaslessDepositPossible({
-                    chainId: selectedChainID,
-                    tokenAddress: selectedTokenAddress,
+            const _isGaslessDepositPossible = isGaslessDepositPossible({
+                chainId: selectedChainID,
+                tokenAddress: selectedTokenAddress,
+            })
+            if (_isGaslessDepositPossible) {
+                const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+                    _linkDetails: linkDetails,
+                    _password: password,
                 })
-                if (_isGaslessDepositPossible) {
-                    const makeGaslessDepositResponse = await makeGaslessDepositPayload({
+
+                if (
+                    !makeGaslessDepositResponse ||
+                    !makeGaslessDepositResponse.payload ||
+                    !makeGaslessDepositResponse.message
+                )
+                    return
+
+                return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
+            } else {
+                let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
+                    await prepareDepositTxs({
                         _linkDetails: linkDetails,
                         _password: password,
                     })
 
-                    if (
-                        !makeGaslessDepositResponse ||
-                        !makeGaslessDepositResponse.payload ||
-                        !makeGaslessDepositResponse.message
-                    )
-                        return
-
-                    return { type: 'gasless', response: makeGaslessDepositResponse, linkDetails, password }
-                } else {
-                    let prepareDepositTxsResponse: peanutInterfaces.IPrepareDepositTxsResponse | undefined =
-                        await prepareDepositTxs({
-                            _linkDetails: linkDetails,
-                            _password: password,
-                        })
-
-                    const feeOptions = await estimateGasFee({
-                        chainId: selectedChainID,
-                        preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
-                    })
-                    // If the selected token is native currency, we need to check
-                    // the user's balance to ensure they have enough to cover the
-                    // gas fees.
-                    if (isNativeCurrency(selectedTokenAddress)) {
-                        const maxGasAmount = Number(
-                            formatEther(
-                                feeOptions.feeOptions.gasLimit.mul(
-                                    feeOptions.feeOptions.maxFeePerGas || feeOptions.feeOptions.gasPrice
-                                )
+                const feeOptions = await estimateGasFee({
+                    chainId: selectedChainID,
+                    preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
+                })
+                // If the selected token is native currency, we need to check
+                // the user's balance to ensure they have enough to cover the
+                // gas fees.
+                if (isNativeCurrency(selectedTokenAddress)) {
+                    const maxGasAmount = Number(
+                        formatEther(
+                            feeOptions.feeOptions.gasLimit.mul(
+                                feeOptions.feeOptions.maxFeePerGas || feeOptions.feeOptions.gasPrice
                             )
                         )
-                        await checkUserHasEnoughBalance({
-                            tokenValue: String(Number(tokenValue) + maxGasAmount),
-                        })
-                    }
-
-                    return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
+                    )
+                    await checkUserHasEnoughBalance({
+                        tokenValue: String(Number(tokenValue) + maxGasAmount),
+                    })
                 }
-            } catch (error) {
-                throw error
+
+                return { type: 'deposit', response: prepareDepositTxsResponse, linkDetails, password, feeOptions }
             }
         },
         [
