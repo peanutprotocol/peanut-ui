@@ -84,7 +84,7 @@ const Home = () => {
                             style={{ width: `${cardWidth}px` }}
                             shadowSize="6"
                         >
-                            <Link href="/setup">
+                            <Link href="/setup" className="h-full">
                                 <Card.Content className="flex h-full flex-row items-center justify-start gap-2">
                                     <Icon name="plus-circle" className="h-10 w-10" />
                                     <p className="text-lg font-bold">Create a peanut wallet</p>
