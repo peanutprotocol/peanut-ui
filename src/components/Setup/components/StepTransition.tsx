@@ -35,7 +35,7 @@ export const StepTransition = ({ children, step, direction }: StepTransitionProp
                     x: { type: 'spring', stiffness: 400, damping: 35 },
                     opacity: { duration: 0.15 },
                 }}
-                className="absolute h-full w-full"
+                className="h-full w-full"
             >
                 {children}
             </motion.div>

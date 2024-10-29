@@ -16,7 +16,7 @@ const SetupPage = () => {
     return (
         <div
             className={twMerge(
-                'flex min-h-screen flex-col gap-4 bg-opacity-100 p-6 transition-all',
+                'flex h-screen flex-col gap-8 lg:gap-12 bg-opacity-100 p-6 transition-all',
                 step.containerClassname
             )}
         >
@@ -24,20 +24,18 @@ const SetupPage = () => {
                 <h1 className="text-center text-5xl font-bold">{step.title}</h1>
                 <p className="text-center">{step.description}</p>
             </div>
-            <div className="relative flex flex-row items-center justify-center">
+            <div className="relative flex-grow flex flex-row items-center h-[50vh] justify-center">
                 {starPositions.map((positions, index) => (
-                    <img key={index} src="/star.png" alt="Star" className={twMerge('absolute z-[11]', positions)} />
+                    <img key={index} src="/star.png" alt="Star" className={twMerge(positions, "absolute z-[11]")} />
                 ))}
-                <img src="/peanut-club.png" className="z-10 h-[50%]" />
+                <img src="/peanut-club.png" className="z-10 object-contain h-full aspect-square" />
             </div>
-            <div className="relative flex-grow overflow-hidden">
+            <div className="relative overflow-hidden">
                 <StepTransition step={currentStep} direction={direction}>
-                    <div className="h-full w-full">
-                        <step.component />
-                    </div>
+                    <step.component />
                 </StepTransition>
             </div>
-        </div>
+        </div >
     )
 }
 
