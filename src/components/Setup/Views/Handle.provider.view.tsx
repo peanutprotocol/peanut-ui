@@ -21,10 +21,9 @@ import { arbitrum } from 'viem/chains'
 import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
 
 // Permissionless imports
-import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
+import { bundlerActions, ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
 
 import React, { useEffect, useState } from "react"
-import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
 import { useZeroDev } from "@/context/walletContext/zeroDevContext.context"
 import { useWallet } from "@/context/walletContext"
 import { WalletType } from "@/interfaces"
@@ -48,7 +47,7 @@ let validator: any
 
 // TODO: break logic in its appropriate files
 
-export const HandleSetupView = ({}) => {
+export const HandleSetupView = ({ }) => {
     // data related state
     const [mounted, setMounted] = useState(false)
     const [username, setUsername] = useState("")
@@ -69,10 +68,10 @@ export const HandleSetupView = ({}) => {
         handleSendUserOpNotEncoded,
     } = useZeroDev()
 
-    
+
     useEffect(() => {
-        console.log({isKernelClientReady})
-      }, [isKernelClientReady]);
+        console.log({ isKernelClientReady })
+    }, [isKernelClientReady]);
 
     const { activateWallet, activeWallet } = useWallet()
 
@@ -118,7 +117,7 @@ export const HandleSetupView = ({}) => {
             ></path>
         </svg>
     )
-      
+
     return (
         <main className="flex items-center justify-center min-h-screen px-4 py-24">
             <div className="w-full max-w-lg mx-auto">
@@ -222,11 +221,10 @@ export const HandleSetupView = ({}) => {
                         <button
                             onClick={handleSendUserOp}
                             disabled={!isKernelClientReady || isSendingUserOp}
-                            className={`px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-opacity-50 flex justify-center items-center w-full ${
-                                isKernelClientReady && !isSendingUserOp
-                                    ? "bg-green-500 hover:bg-green-700 focus:ring-green-500"
-                                    : "bg-gray-500"
-                            }`}
+                            className={`px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-opacity-50 flex justify-center items-center w-full ${isKernelClientReady && !isSendingUserOp
+                                ? "bg-green-500 hover:bg-green-700 focus:ring-green-500"
+                                : "bg-gray-500"
+                                }`}
                         >
                             {isSendingUserOp ? <Spinner /> : "Send UserOp"}
                         </button>
