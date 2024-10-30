@@ -73,7 +73,7 @@ export const HandleSetupView = ({ }) => {
         console.log({ isKernelClientReady })
     }, [isKernelClientReady]);
 
-    const { activateWallet, activeWallet } = useWallet()
+    const { wallets, checkActivateWallet, activeWallet } = useWallet()
 
 
     const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
@@ -156,10 +156,8 @@ export const HandleSetupView = ({ }) => {
                         {/* Note: These buttons don't have CSS when disabled, they are just not clicked */}
                         <button
                             onClick={() => {
-                                activateWallet(
-                                    WalletProviderType.PEANUT,
-                                    kernelClientAddress!
-                                );
+                                const pWallet = wallets.find((wallet) => wallet.address == kernelClientAddress)
+                                checkActivateWallet(pWallet!)
                             }}
                             disabled={!isKernelClientReady}
                             className="flex justify-center items-center px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full"
@@ -171,10 +169,8 @@ export const HandleSetupView = ({ }) => {
                         {/* Note: These buttons don't have CSS when disabled, they are just not clicked */}
                         <button
                             onClick={() => {
-                                activateWallet(
-                                    WalletProviderType.BYOW,
-                                    wagmiAddress!
-                                )
+                                const wallet = wallets.find((wallet) => wallet.address == wagmiAddress)
+                                checkActivateWallet(wallet!)
                             }}
                             disabled={!wagmiAddress}
                             className="mt-2 sm:mt-0 flex justify-center items-center px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 w-full"
@@ -184,7 +180,7 @@ export const HandleSetupView = ({ }) => {
                     </div>
                     {activeWallet && (
                         <>
-                            {activeWallet.activeWalletType}
+                            {activeWallet.walletProviderType}
                             {activeWallet.address}
                             {activeWallet.connected}
                         </>

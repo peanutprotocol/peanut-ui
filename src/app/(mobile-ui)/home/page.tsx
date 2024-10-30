@@ -11,7 +11,6 @@ import { useRef, useEffect, useState } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
-import Link from 'next/link'
 import { useWallet } from '@/context/walletContext'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { useAuth } from '@/context/authContext'
@@ -88,7 +87,7 @@ const Home = () => {
 
     const handleConnectCorrectBYOWToProvider = async (index: number, wallet: IWallet) => {
         await open()
-        handleCardClick(index, wallet)
+        handleCardClick(wallet, index)
     }
 
     const handleAddBYOW = () => {}
@@ -116,7 +115,7 @@ const Home = () => {
                         drag="x"
                         dragConstraints={{ left: -((wallets.length - 1) * (cardWidth + cardMargin)), right: 0 }}
                         dragElastic={0.2}
-                        onDragEnd={(e, { offset, velocity }) => {
+                        onDragEnd={(_e, { offset, velocity }) => {
                             const swipe = Math.abs(offset.x) * velocity.x
                             if (swipe < -10000) {
                                 const nextIndex = Math.min(selectedWalletIndex + 1, wallets.length - 1)
@@ -144,8 +143,8 @@ const Home = () => {
                                             })}
                                             onClick={() => {
                                                 handleCardClick(
-                                                    index,
-                                                    wallet
+                                                    wallet,
+                                                    index
                                                 )
                                             }}
                                             transition={{ type: 'spring', stiffness: 300, damping: 20 }}
