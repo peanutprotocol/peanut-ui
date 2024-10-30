@@ -52,7 +52,7 @@ const IframeWrapper = ({
             onClose={() => {
                 setShowCloseConfirmMessage(true)
             }}
-            classWrap="h-full w-full sm:min-w-[600px] border-none"
+            classWrap="h-[75%] sm:h-full w-full sm:min-w-[600px] border-none"
             classOverlay="bg-black bg-opacity-50"
             video={false}
             /**
