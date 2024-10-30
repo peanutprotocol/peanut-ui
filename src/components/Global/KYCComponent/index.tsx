@@ -405,7 +405,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     src={iframeOptions.src}
                     visible={iframeOptions.visible}
                     onClose={iframeOptions.onClose}
-                    style={{ width: '100%', height: '500px', border: 'none' }}
                 />
             </div>
         </div>
