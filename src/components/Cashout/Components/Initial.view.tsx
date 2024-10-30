@@ -11,7 +11,6 @@ import * as context from '@/context'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { Icon as ChakraIcon } from '@chakra-ui/react'
 import * as assets from '@/assets'
 import { formatIban, validateBankAccount, floorFixed } from '@/utils'
 import { FAQComponent } from './Faq.comp'
@@ -220,8 +219,8 @@ export const InitialCashoutView = ({
                 <Card.Description>
                     Cash out your crypto to your bank account. Works best with popular stablecoins and other commonly
                     traded tokens.
-                    <FAQComponent />
                 </Card.Description>
+                <FAQComponent />
             </Card.Header>
             <Card.Content className="col gap-2">
                 <TokenAmountInput
@@ -355,19 +354,18 @@ export const InitialCashoutView = ({
                 )}
                 {isBelowMinLimit && (
                     <span className="text-h8 font-normal">
-                        <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}
-                        .
+                        <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
                     </span>
                 )}
                 {isExceedingMaxLimit && (
                     <span className=" text-h8 font-normal ">
-                        <ChakraIcon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
+                        <Icon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
                         {MAX_CASHOUT_LIMIT.toLocaleString()}.
                     </span>
                 )}
                 {!xchainAllowed && (
                     <span className=" text-h8 font-normal ">
-                        <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                        <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                     </span>
                 )}
             </Card.Content>

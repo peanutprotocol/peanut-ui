@@ -325,142 +325,148 @@ export const InitialView = ({
     }
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
-                <>
-                    <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
-                        {requestLinkData.reference && (
-                            <label className="max-w-full text-h8">
-                                Ref: <span className="font-normal"> {requestLinkData.reference} </span>
-                            </label>
-                        )}
-                        {requestLinkData.attachmentUrl && (
-                            <a
-                                href={requestLinkData.attachmentUrl}
-                                download
-                                target="_blank"
-                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                            >
-                                <Icon name={'download'} />
-                                Download attachment
-                            </a>
-                        )}
-                    </div>
-                    <div className="flex w-full border-t border-dotted border-black" />
-                </>
-            )}
-
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                <label className="text-h4">
+        <Card shadowSize="6">
+            <Card.Header>
+                <Card.Title className="text-center text-h3">
                     <AddressLink address={requestLinkData.recipientAddress} /> is requesting
-                </label>
-
-                <label className="text-h2">{requestedAmount}</label>
-                <div>
-                    <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
-                        <div className="relative h-6 w-6">
-                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
-                            <img
-                                src={
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.chainId === requestLinkData.chainId
-                                    )?.icon.url
-                                }
-                                className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
-                                alt="logo"
-                            />
-                        </div>
-                        {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
-                        {tokenRequestedSymbol} on{' '}
-                        {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
-                    </div>
-                </div>
-                <label className="text-h9 font-light">
-                    You can fulfill this payment request with any token on any chain. Pick the token and chain that you
-                    want to fulfill this request with.
-                </label>
-            </div>
-            <TokenSelector classNameButton="w-full" onReset={resetTokenAndChain} shouldBeConnected={true} />
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                {!isFeeEstimationError && (
+                </Card.Title>
+            </Card.Header>
+            <Card.Content className="col gap-4">
+                {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
                     <>
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Network cost</label>
-                            </div>
-                            <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {calculatedFee ? (
-                                    `$${calculatedFee}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                {!isXChain ? (
-                                    <MoreInfo
-                                        text={
-                                            estimatedGasCost && estimatedGasCost > 0
-                                                ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                                : 'This transaction is sponsored by peanut! Enjoy!'
-                                        }
-                                    />
-                                ) : (
-                                    <MoreInfo
-                                        text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
-                                    />
-                                )}
-                            </label>
+                        <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
+                            {requestLinkData.reference && (
+                                <label className="max-w-full text-h8">
+                                    Ref: <span className="font-normal"> {requestLinkData.reference} </span>
+                                </label>
+                            )}
+                            {requestLinkData.attachmentUrl && (
+                                <a
+                                    href={requestLinkData.attachmentUrl}
+                                    download
+                                    target="_blank"
+                                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                >
+                                    <Icon name={'download'} />
+                                    Download attachment
+                                </a>
+                            )}
                         </div>
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {estimatedPoints ? (
-                                    `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                <MoreInfo
-                                    text={
-                                        estimatedPoints !== undefined
-                                            ? estimatedPoints > 0
-                                                ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                                : 'This transaction will not add any points to your total points balance'
-                                            : 'This transaction will not add any points to your total points balance'
-                                    }
-                                />
-                            </span>
-                        </div>
+                        <div className="flex w-full border-t border-dotted border-black" />
                     </>
                 )}
-            </div>
 
-            <div className="flex w-full flex-col items-center justify-center gap-3">
-                <button
-                    className="wc-disable-mf btn-purple btn-xl "
-                    disabled={isButtonDisabled}
-                    onClick={() => {
-                        if (!isConnected) handleConnectWallet()
-                        else if (ViewState.READY_TO_PAY === viewState) handleOnNext()
-                    }}
-                >
-                    {viewState === ViewState.LOADING ? (
-                        <div className="flex w-full flex-row items-center justify-center gap-2">
-                            <Loading /> {loadingState}
+                <div className="flex w-full flex-col items-center justify-center gap-2">
+                    <label className="text-h2">{requestedAmount}</label>
+                    <div>
+                        <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
+                            <div className="relative h-6 w-6">
+                                <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
+                                <img
+                                    src={
+                                        consts.supportedPeanutChains.find(
+                                            (chain) => chain.chainId === requestLinkData.chainId
+                                        )?.icon.url
+                                    }
+                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
+                                    alt="logo"
+                                />
+                            </div>
+                            {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
+                            {tokenRequestedSymbol} on{' '}
+                            {
+                                consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)
+                                    ?.name
+                            }
                         </div>
-                    ) : !isConnected ? (
-                        'Connect Wallet'
-                    ) : (
-                        'Pay'
-                    )}
-                </button>
-                {errorState.showError && (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
-                )}
-            </div>
-        </div>
+                    <label className="text-h9 font-light">
+                        You can fulfill this payment request with any token on any chain. Pick the token and chain that
+                        you want to fulfill this request with.
+                    </label>
+                </div>
+                <TokenSelector classNameButton="w-full" onReset={resetTokenAndChain} shouldBeConnected={true} />
+                <div className="flex w-full flex-col items-center justify-center gap-2">
+                    {!isFeeEstimationError && (
+                        <>
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Network cost</label>
+                                </div>
+                                <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {calculatedFee ? (
+                                        `$${calculatedFee}`
+                                    ) : (
+                                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                    )}
+                                    {!isXChain ? (
+                                        <MoreInfo
+                                            text={
+                                                estimatedGasCost && estimatedGasCost > 0
+                                                    ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                                    : 'This transaction is sponsored by peanut! Enjoy!'
+                                            }
+                                        />
+                                    ) : (
+                                        <MoreInfo
+                                            text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                        />
+                                    )}
+                                </label>
+                            </div>
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Points</label>
+                                </div>
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {estimatedPoints ? (
+                                        `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
+                                    ) : (
+                                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                    )}
+                                    <MoreInfo
+                                        text={
+                                            estimatedPoints !== undefined
+                                                ? estimatedPoints > 0
+                                                    ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                                    : 'This transaction will not add any points to your total points balance'
+                                                : 'This transaction will not add any points to your total points balance'
+                                        }
+                                    />
+                                </span>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <div className="flex w-full flex-col items-center justify-center gap-3">
+                    <button
+                        className="wc-disable-mf btn-purple btn-xl "
+                        disabled={isButtonDisabled}
+                        onClick={() => {
+                            if (!isConnected) handleConnectWallet()
+                            else if (ViewState.READY_TO_PAY === viewState) handleOnNext()
+                        }}
+                    >
+                        {viewState === ViewState.LOADING ? (
+                            <div className="flex w-full flex-row items-center justify-center gap-2">
+                                <Loading /> {loadingState}
+                            </div>
+                        ) : !isConnected ? (
+                            'Connect Wallet'
+                        ) : (
+                            'Pay'
+                        )}
+                    </button>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                </div>
+            </Card.Content>
+        </Card>
     )
 }
