@@ -1,6 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
 import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useAccount } from 'wagmi'
 import { useWallet } from './walletContext'
@@ -62,14 +63,61 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [user])
 
+    // TODO: this needs to be moved elsewhere (i.e. possible walletContext), was
+    // here for testing - POSSIBLY be removed bc the order is reversed:
+    // you first login w/ passkeys, so flow below would never happen
     useEffect(() => {
         if (kernelClientAddress != null && isKernelClientReady) {
-        // set PW as active wallet
-        setupWalletsAfterLogin()
+            // set PW as active wallet
+            setupWalletsAfterLogin()
         }
     }, [kernelClientAddress, isKernelClientReady])
 
+    const registerUserWithPasskey = async (username: string) => {
+        //  validatiion of @handle has happened before this function
+        await handleLogin(username) //  TODO: replace this with handleRegister
+        // TODO: case of failure on register
 
+
+        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                accountIdentifier: address,
+            }),
+        })
+
+        const response = await userIdResponse.json()
+
+        const siwemsg = utils.createSiweMessage({
+            address: address ?? '',
+            statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
+        })
+
+        const signature = await signMessageAsync({
+            message: siwemsg,
+        })
+
+        await fetch('/api/peanut/user/get-jwt-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                signature: signature,
+                message: siwemsg,
+            }),
+        })
+
+
+        // TODO: handle case where they try to register w/ pre-registered passkey 
+    }
+
+    const loginUserWithPasskey = async (username: string) => {
+
+    }
 
     // TODO: document better
     // used after register too (there is a login event then too)
