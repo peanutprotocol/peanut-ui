@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { useToast, ToastId } from '@chakra-ui/react'
-import { useAccount } from 'wagmi'
+import { useAccount, useSignMessage } from 'wagmi'
 import { useWallet } from './walletContext'
 import { useZeroDev } from './walletContext/zeroDevContext.context'
 
@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // TODO: address here should be fetched from the walletContext
     // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
+    const { signMessageAsync } = useSignMessage()
 
     const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
 
