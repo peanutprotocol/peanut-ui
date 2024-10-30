@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 
 // ZeroDev imports
 import { useZeroDev } from './zeroDevContext.context'
+import { useLocalPasskeys } from '@/components/Setup/Setup.helpers'
 
 // TOOD: go through TODOs
 
@@ -40,7 +41,7 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
-
+    const localPasskeys = useLocalPasskeys()
     ////// Auth props
     //
 
@@ -81,7 +82,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// ZeroDev props
     //
-    const {address: kernelClientAddress, isKernelClientReady, handleLogin} = useZeroDev()
+    const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
 
     ////// Lifecycle hooks
     //
@@ -163,9 +164,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     // TODO: this is called by auth - ensure it's always authed before calling
     // 1. fetches wallets .then()
-        // sets PW as connected in wallet list (does it by address of passkey connected, bc in the
-        // future we may have many PWs)
-        // sets any wallet that has the same address as a wagmiConnected wallet (already connected wagmi provider)
+    // sets PW as connected in wallet list (does it by address of passkey connected, bc in the
+    // future we may have many PWs)
+    // sets any wallet that has the same address as a wagmiConnected wallet (already connected wagmi provider)
     // 2. set PW as active wallet
     //
     // note: calls inside may throw WalletError
@@ -186,7 +187,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
                 setAreWalletsFetchedAndSetup(true)
                 setWallets(fetchedWallets)
-        
+
                 // sets PW as active wallet
                 checkActivateWallet(pWallet!)
             } else {
@@ -197,13 +198,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         } catch (error) {
             setAreWalletsFetchedAndSetup(false)
             if (error instanceof interfaces.WalletError) {
-            // TODO: handle that it throws error
+                // TODO: handle that it throws error
 
             } else {
                 throw error
             }
         }
-        
+
     }
 
     // sets and returns wallets if successful call
@@ -211,12 +212,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // returns undefined (doesn't actually) when throwing, otherwise returns IWallet
     const fetchWallets = async (): Promise<interfaces.IWallet[] | undefined> => {
         const wallies = [
-            {
-                walletProviderType: interfaces.WalletProviderType.PEANUT,
-                protocolType: interfaces.WalletProtocolType.EVM,
-                connected: false,
-                address: '0xE6e8fB6461DA2f05379e9EC9FA4C886010ebf9ab'
-            },
+            // {
+            //     walletProviderType: interfaces.WalletProviderType.PEANUT,
+            //     protocolType: interfaces.WalletProtocolType.EVM,
+            //     connected: false,
+            //     address: '0xE6e8fB6461DA2f05379e9EC9FA4C886010ebf9ab'
+            // },
             {   // 
                 walletProviderType: interfaces.WalletProviderType.BYOW,
                 protocolType: interfaces.WalletProtocolType.EVM,
@@ -228,14 +229,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 protocolType: interfaces.WalletProtocolType.EVM,
                 connected: false,
                 address: '0x92D2d247b5ba2de168DbCFBf339Df4fAC49a9f70'
-            }
+            },
+            ...localPasskeys.map(({ handle, account }) => ({
+                walletProviderType: interfaces.WalletProviderType.PEANUT,
+                protocolType: interfaces.WalletProtocolType.EVM,
+                connected: false,
+                address: account,
+                handle
+            }))
         ]
         return wallies
         setIsFetchingWallets(true)
         const walletsResponse = await fetch('/api/peanut/user/get-wallets')
         if (walletsResponse.ok) {
             // receive in backend format
-            const { dbWallets } : {dbWallets: interfaces.IDBWallet[]} = await walletsResponse.json()
+            const { dbWallets }: { dbWallets: interfaces.IDBWallet[] } = await walletsResponse.json()
             // manipulate to frontend format (add connected attribute)
             const wallets: interfaces.IWallet[] = dbWallets.map((dbWallet: interfaces.IDBWallet) => ({
                 ...dbWallet,
@@ -257,35 +265,35 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // go on the wallet list and remove wallet
 
         // TODO: if wallet connected to provider, disconnect wallet from provider 
-            // then
-            // TODO: if active, default active -> PW if logged in, otherwise
-            // if another wallet is connected to the provider, make that active, otherwise 
-            // no wallet active (have to review all props to ensure they are null)
+        // then
+        // TODO: if active, default active -> PW if logged in, otherwise
+        // if another wallet is connected to the provider, make that active, otherwise 
+        // no wallet active (have to review all props to ensure they are null)
     }
 
 
     return (
         <WalletContext.Provider
-        value={{
-            // active wallet
-            address,
-            activeWalletType,
-            isWalletConnected, 
-            activeWallet,
-            isActiveWalletPW,
-            isActiveWalletBYOW,
+            value={{
+                // active wallet
+                address,
+                activeWalletType,
+                isWalletConnected,
+                activeWallet,
+                isActiveWalletPW,
+                isActiveWalletBYOW,
 
-            // wallets
-            wallets,
-            areWalletsFetched,
-            areWalletsFetchedAndSetup,
-            isFetchingWallets,
+                // wallets
+                wallets,
+                areWalletsFetched,
+                areWalletsFetchedAndSetup,
+                isFetchingWallets,
 
-            // functions
-            checkActivateWallet,
-            deactiveWalletsOnLogout,
-            setupWalletsAfterLogin
-        }}>
+                // functions
+                checkActivateWallet,
+                deactiveWalletsOnLogout,
+                setupWalletsAfterLogin
+            }}>
             {children}
         </WalletContext.Provider>
     )

@@ -13,8 +13,8 @@ const WelcomeStep = () => {
     const checkHandleValidity = async (handle: string) => {
         await new Promise<void>((resolve, reject) => {
             setTimeout(() => {
-                if (handle.length < 3) {
-                    return reject('Handle must be at least 3 characters long')
+                if (handle.length <= 3) {
+                    reject(new Error('Handle must be at least 3 characters long'))
                 }
                 resolve()
             }, 1000)
@@ -26,7 +26,7 @@ const WelcomeStep = () => {
             await checkHandleValidity(handle)
             return true
         } catch (error) {
-            toast.error("Couldn't create handle")
+            toast.error(error instanceof Error ? error.message : "Couldn't create handle")
             return false
         }
     }

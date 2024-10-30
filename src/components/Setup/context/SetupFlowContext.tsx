@@ -57,22 +57,23 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
     const handleNext = async <T extends ScreenId>(businessLogic?: () => Promise<boolean>, props?: ScreenProps[T]) => {
         setIsLoading(true)
 
-        if (businessLogic) {
-            const isValid = await businessLogic()
-
-            if (isValid) {
-                setScreenProps(props)
-                setDirection(1)
-                setCurrentStep((prev) => Math.min(steps.length, prev + 1))
+        try {
+            if (businessLogic) {
+                const isValid = await businessLogic()
+                if (!isValid) return
             }
-        }
 
-        if (isLastStep) {
-            onComplete?.()
-            return
-        }
+            setScreenProps(props)
+            setDirection(1)
+            setCurrentStep((prev) => Math.min(steps.length, prev + 1))
 
-        setIsLoading(false)
+            if (isLastStep) {
+                onComplete?.()
+                return
+            }
+        } finally {
+            setIsLoading(false)
+        }
     }
 
     const handleBack = () => {
