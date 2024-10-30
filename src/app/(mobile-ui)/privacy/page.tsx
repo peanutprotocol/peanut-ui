@@ -1,4 +1,4 @@
-import * as components from '@/components'
+import { Privacy } from '@/components'
 
 import { Metadata } from 'next'
 
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     metadataBase: new URL('https://peanut.to'),
 
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [
@@ -20,5 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function PrivacyPage() {
-    return <components.Privacy />
+    return <Privacy />
 }

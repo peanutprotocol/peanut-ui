@@ -8,15 +8,25 @@ interface TokenAmountInputProps {
     tokenValue: string | undefined
     setTokenValue: (tokenvalue: string | undefined) => void
     onSubmit?: () => void
+    maxValue?: string
 }
 
-const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: TokenAmountInputProps) => {
+const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit, maxValue }: TokenAmountInputProps) => {
     const { inputDenomination, setInputDenomination, selectedTokenData } = useContext(context.tokenSelectorContext)
     const inputRef = useRef<HTMLInputElement>(null)
     const inputType = useMemo(() => (window.innerWidth < 640 ? 'text' : 'number'), [])
 
     const onChange = (tokenvalue: string) => {
         setTokenValue(tokenvalue)
+    }
+
+    const handleMaxClick = (e: React.MouseEvent) => {
+        e.preventDefault()
+        e.stopPropagation() // Prevent container click handler from firing
+        if (maxValue) {
+            setInputDenomination('TOKEN')
+            setTokenValue(maxValue)
+        }
     }
 
     useEffect(() => {
@@ -52,15 +62,14 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
             onClick={handleContainerClick}
         >
             <div className="flex h-14 w-full flex-row items-center justify-center gap-1">
-                {}
                 {selectedTokenData?.price &&
                     (inputDenomination === 'USD' || utils.estimateStableCoin(selectedTokenData.price) ? (
-                        <label className={` text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>$</label>
+                        <label className={`text-h1 ${tokenValue ? 'text-black' : 'text-gray-2'}`}>$</label>
                     ) : (
-                        <label className={`sr-only text-h1 `}>$</label>
+                        <label className="sr-only text-h1">$</label>
                     ))}
                 <input
-                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white  dark:placeholder:text-white/75 dark:focus:border-purple-1`}
+                    className={`h-12 w-[4ch] max-w-80 bg-transparent text-center text-h1 outline-none transition-colors placeholder:text-h1 focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                     placeholder={'0.00'}
                     onChange={(e) => {
                         const value = utils.formatAmountWithoutComma(e.target.value)
@@ -78,9 +87,20 @@ const TokenAmountInput = ({ className, tokenValue, setTokenValue, onSubmit }: To
                             e.preventDefault()
                             if (onSubmit) onSubmit()
                         }
+                        if (['e', '+', '-'].includes(e.key.toLowerCase())) {
+                            e.preventDefault()
+                        }
                     }}
                     style={{ maxWidth: `${parentWidth}px` }}
                 />
+                {maxValue && maxValue !== tokenValue && (
+                    <button
+                        onClick={handleMaxClick}
+                        className="absolute right-1 ml-1 px-2 py-1 text-h7 uppercase text-gray-1 transition-colors hover:text-black"
+                    >
+                        Max
+                    </button>
+                )}
             </div>
             {selectedTokenData?.price && !utils.estimateStableCoin(selectedTokenData.price) && (
                 <div className="flex w-full flex-row items-center justify-center gap-1">

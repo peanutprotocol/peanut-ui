@@ -1,12 +1,12 @@
 import { Metadata } from 'next'
-import * as components from '@/components'
+import { WelcomeSDK } from '@/components'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
     description: 'Text Tokens',
     metadataBase: new URL('https://peanut.to'),
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [
@@ -17,5 +17,5 @@ export const metadata: Metadata = {
     },
 }
 export default function Home() {
-    return <components.WelcomeSDK />
+    return <WelcomeSDK />
 }

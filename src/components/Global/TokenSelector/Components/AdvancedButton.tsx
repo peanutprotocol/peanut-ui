@@ -71,7 +71,7 @@ export const AdvancedTokenSelectorButton = ({
             role="button"
             tabIndex={0}
             aria-label="Open token selector"
-            className={`flex w-full ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 dark:border-white  ${classNameButton}`}
+            className={`flex w-full ${!isStatic && ' cursor-pointer '} h-18 flex-row items-center justify-between border border-n-1 px-4 py-2 hover:bg-n-3/10 dark:border-white ${classNameButton}`}
             onClick={() => {
                 !isStatic && onClick()
             }}

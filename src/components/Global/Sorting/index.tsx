@@ -9,7 +9,7 @@ const Sorting = ({ title }: SortingProps) => {
     const [active, setActive] = useState<boolean>(false)
     return (
         <button
-            className={`group inline-flex cursor-default items-center text-xs font-bold transition-colors ${
+            className={`group inline-flex items-center text-xs font-bold transition-colors hover:text-purple-2 sm:text-sm ${
                 active ? 'text-purple-2' : ''
             }`}
             onClick={() => console.warn('Table sorting disabled')}

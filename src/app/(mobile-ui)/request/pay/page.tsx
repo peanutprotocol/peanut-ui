@@ -1,23 +1,67 @@
 import { Metadata } from 'next'
-import * as components from '@/components'
+import { peanut } from '@squirrel-labs/peanut-sdk'
+import { PayRequestLink } from '@/components'
+import { headers } from 'next/headers'
+import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
+import { formatAmount, printableAddress } from '@/utils'
 
-export const metadata: Metadata = {
-    // TODO: make metadata dynamic and change title based on if payment completed or not
-    // see claim/page.tsx
-    title: 'Peanut Protocol - Payment Request',
-    description: 'Text Tokens',
-    metadataBase: new URL('https://peanut.to'),
-    icons: {
-        icon: '/logo-favicon.png',
-    },
-    openGraph: {
-        images: [
-            {
-                url: '/metadata-img.png',
-            },
-        ],
-    },
+export const dynamic = 'force-dynamic'
+
+type Props = {
+    params: { id: string }
+    searchParams: { [key: string]: string | string[] | undefined }
 }
+
+function getPreviewUrl(host: string, data: Awaited<ReturnType<typeof peanut.getRequestLinkDetails>>) {
+    const url = new URL('/api/preview-image', host)
+
+    const params = new URLSearchParams({
+        amount: data.tokenAmount,
+        chainId: data.chainId,
+        tokenAddress: data.tokenAddress,
+        tokenSymbol: data.tokenSymbol ?? '',
+        address: data.recipientAddress ?? '',
+        previewType: PreviewType.REQUEST,
+    })
+
+    url.search = params.toString()
+    return url.toString()
+}
+
+export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
+    let title = 'Request Payment'
+    let previewUrl = '/metadata-img.jpg'
+    const uuid = searchParams.id ? (Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id) : undefined
+    if (uuid) {
+        let host = headers().get('host') || 'peanut.to'
+        host = `${process.env.NODE_ENV === 'development' ? 'http://' : 'https://'}${host}`
+        try {
+            const linkDetails = await peanut.getRequestLinkDetails({
+                uuid,
+                apiUrl: `${host}/api/proxy/get`,
+            })
+            const name = linkDetails.recipientAddress ? printableAddress(linkDetails.recipientAddress) : 'Someone'
+            title = `${name} is requesting ${formatAmount(Number(linkDetails.tokenAmount))} ${linkDetails.tokenSymbol}`
+            previewUrl = getPreviewUrl(host, linkDetails)
+        } catch (e) {
+            console.error('Error fetching request link details:', e)
+        }
+    }
+    return {
+        title,
+        icons: {
+            icon: '/logo-favicon.png',
+        },
+        openGraph: {
+            images: [
+                {
+                    url: previewUrl,
+                },
+            ],
+        },
+    }
+}
+
 export default function RequestPay() {
-    return <components.PayRequestLink />
+    return <PayRequestLink />
 }

@@ -116,8 +116,8 @@ export const OfframpConfirmView = ({
         // Find the user's Peanut account that matches the offramp form recipient
         const peanutAccount = user.accounts.find(
             (account) =>
-                account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
-                offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+                account.account_identifier?.replaceAll(/\s/g, '').toLowerCase() ===
+                offrampForm?.recipient?.replaceAll(/\s/g, '').toLowerCase()
         )
         const bridgeCustomerId = user?.user?.bridge_customer_id
         const bridgeExternalAccountId = peanutAccount?.bridge_account_id
@@ -510,8 +510,8 @@ export const OfframpConfirmView = ({
 
                 const peanutAccount = user.accounts.find(
                     (account) =>
-                        account.account_identifier?.toLowerCase().replaceAll(' ', '') ===
-                        offrampForm?.recipient?.toLowerCase().replaceAll(' ', '')
+                        account.account_identifier?.replaceAll(/\s/g, '').toLowerCase() ===
+                        offrampForm?.recipient?.replaceAll(/\s/g, '').toLowerCase()
                 )
                 const bridgeCustomerId = user?.user?.bridge_customer_id
                 const bridgeExternalAccountId = peanutAccount?.bridge_account_id
@@ -610,7 +610,8 @@ export const OfframpConfirmView = ({
                     )}
                     {offrampType == OfframpType.CLAIM && (
                         <label className="text-start text-h8 font-light">
-                            Cash out this link's crypto directly to your bank account.
+                            Cash out this link's crypto to your bank account. Works best with popular stablecoins and other
+                            commonly traded tokens.
                         </label>
                     )}
                 </Card.Description>

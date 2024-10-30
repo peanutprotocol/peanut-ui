@@ -235,6 +235,10 @@ export function formatAmount(amount: number) {
     return amount.toFixed(2)
 }
 
+export function floorFixed(value: number, decimals: number) {
+    return (Math.floor(value * 10 ** decimals) / 10 ** decimals).toFixed(decimals)
+}
+
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
     let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits
@@ -926,4 +930,48 @@ export const switchNetwork = async ({
             throw new Error('Error switching network.')
         }
     }
+}
+
+/**
+ * Gets the token symbol for a given token address and chain ID.
+ *
+ * From the sdk token list, if you need to be sure to get a token symbol you
+ * should use the {@link fetchTokenSymbol} function.
+ *
+ * @returns The token symbol, or undefined if not found.
+ */
+export function getTokenSymbol(tokenAddress: string, chainId: string): string | undefined {
+    return consts.peanutTokenDetails
+        .find((chain) => chain.chainId === chainId)
+        ?.tokens.find((token) => areTokenAddressesEqual(token.address, tokenAddress))
+        ?.symbol?.toUpperCase()
+}
+
+/**
+ * Fetches the token symbol for a given token address and chain ID.
+ *
+ * This function first checks the sdk token list, and if the token is not found
+ * it fetches the token contract details and tries to get the symbol from the
+ * contract. If you are ok with only checking the sdk token list, and don't want
+ * to await you can use the {@link getTokenSymbol} function.
+ *
+ * @returns The token symbol, or undefined if not found.
+ */
+export async function fetchTokenSymbol(tokenAddress: string, chainId: string): Promise<string | undefined> {
+    let tokenSymbol = getTokenSymbol(tokenAddress, chainId)
+    if (!tokenSymbol) {
+        try {
+            const contract = await peanut.getTokenContractDetails({
+                address: tokenAddress,
+                provider: await peanut.getDefaultProvider(chainId),
+            })
+            tokenSymbol = contract?.symbol?.toUpperCase()
+        } catch (error) {
+            console.error('Error fetching token symbol:', error)
+        }
+    }
+    if (!tokenSymbol) {
+        console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
+    }
+    return tokenSymbol
 }

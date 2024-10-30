@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 
-import * as components from '@/components'
+import { Blog } from '@/components'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     metadataBase: new URL('https://peanut.to'),
 
     icons: {
-        icon: '/logo-favicon.png',
+        icon: '/favicon.ico',
     },
     openGraph: {
         images: [
@@ -20,5 +20,5 @@ export const metadata: Metadata = {
 }
 
 export default function BlogPage() {
-    return <components.Blog />
+    return <Blog />
 }
