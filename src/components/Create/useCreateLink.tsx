@@ -34,7 +34,7 @@ import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 
 // Viem imports
 import { arbitrum } from 'viem/chains'
-import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem'
+import { createPublicClient, http, parseAbi, encodeFunctionData, Address, Hex } from 'viem'
 
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
@@ -284,11 +284,11 @@ export const useCreateLink = () => {
                     amountUsd: amountUSD,
                     transaction: preparedTx
                         ? {
-                              from: preparedTx.from ? preparedTx.from.toString() : address,
-                              to: preparedTx.to ? preparedTx.to.toString() : '',
-                              data: preparedTx.data ? preparedTx.data.toString() : '',
-                              value: preparedTx.value ? preparedTx.value.toString() : '',
-                          }
+                            from: preparedTx.from ? preparedTx.from.toString() : address,
+                            to: preparedTx.to ? preparedTx.to.toString() : '',
+                            data: preparedTx.data ? preparedTx.data.toString() : '',
+                            value: preparedTx.value ? preparedTx.value.toString() : '',
+                        }
                         : undefined,
                     chainId: chainId,
                     userAddress: address,
@@ -537,9 +537,9 @@ export const useCreateLink = () => {
                     if (isActiveWalletPW) {
                         // TODO: add retry logic in handleSendUserOpEncoded() as below flow
                         let hash = await handleSendUserOpEncoded({
-                            to: tx.to!,
+                            to: tx.to! as Address,
                             value: tx.value!,
-                            data: tx.data!,
+                            data: tx.data! as Hex,
                         })
 
                         // TODO: same call as below - group w/ flow below as much as possible
