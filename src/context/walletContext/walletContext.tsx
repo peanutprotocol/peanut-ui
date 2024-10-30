@@ -4,7 +4,6 @@ import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 
 // ZeroDev imports
-import { useKernelClient } from "@zerodev/waas"
 import { useZeroDev } from './zeroDevContext.context'
 
 // TOOD: go through TODOs
@@ -15,9 +14,9 @@ interface WalletContextType {
     address: string | undefined
     activeWalletType: interfaces.WalletType | undefined
     isWalletConnected: boolean
-    activeWallet: ActiveWallet|undefined,
-    isActiveWalletPW: boolean,
-    isActiveWalletBYOW: boolean,
+    activeWallet: ActiveWallet | undefined
+    isActiveWalletPW: boolean
+    isActiveWalletBYOW: boolean
     activateWallet: (activeWalletType: interfaces.WalletType, address: string) => void
 }
 // TODO: move to context consts
@@ -34,7 +33,6 @@ interface ActiveWallet {
     address: string | undefined
 }
 
-
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 // TODO: change description
@@ -44,19 +42,18 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
-
     ////// BYOW props
     //
-    const { address: wagmiAddress, isConnected: isWagmiConnected, addresses} = useAccount()
+    const { address: wagmiAddress, isConnected: isWagmiConnected, addresses } = useAccount()
 
     ////// context props
     //
-    const [address, setAddress] = useState<string | undefined>(undefined)       // mapped to the activeWallet's address at all times
+    const [address, setAddress] = useState<string | undefined>(undefined) // mapped to the activeWallet's address at all times
     const [isWalletConnected, setIsWalletConnected] = useState<boolean>(false)
     const [activeWalletType, setActiveWalletType] = useState<interfaces.WalletType | undefined>(undefined)
     const [isActiveWalletPW, setIsActiveWalletPW] = useState<boolean>(false)
     const [isActiveWalletBYOW, setIsActiveWalletBYOW] = useState<boolean>(false)
-    const [activeWallet, setActiveWallet] = useState<ActiveWallet|undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
+    const [activeWallet, setActiveWallet] = useState<ActiveWallet | undefined>(undefined) // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
     // username keeps the current state of the passkey username
     //
     // it changes via the handle input during the Setup flow - at that time,
@@ -69,22 +66,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // is mainly used in their OS to differentiate passkeys stored)
     const [username, setUsername] = useState<string>('')
 
-
     ////// ZeroDev props
     //
-    const {address: kernelClientAddress, isKernelClientReady} = useZeroDev()
+    const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
     ////// Lifecycle hooks
     //
     // TODO: we need to be performing a check if the connected address is the right address
     useEffect(() => {
         // called when BYOW changes
-        console.log({isWagmiConnected})
+        console.log({ isWagmiConnected })
         if (isWagmiConnected) {
-            console.log({wagmiAddress, addresses})
+            console.log({ wagmiAddress, addresses })
         }
     }, [wagmiAddress]) // TODO: remove this hook
-
 
     ////// Logic hooks
     //
@@ -96,7 +91,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 setActiveWallet({
                     activeWalletType,
                     connected: true,
-                    address: address
+                    address: address,
                 })
                 setAddress(address)
                 setIsActiveWalletPW(true)
@@ -108,7 +103,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 setActiveWallet({
                     activeWalletType,
                     connected: true,
-                    address: address
+                    address: address,
                 })
                 setAddress(address)
                 setIsActiveWalletBYOW(true)
@@ -119,21 +114,20 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // TODO: return failure
     }
 
-    const deactiveWalletOnLogout = () => {
-
-    }
+    const deactiveWalletOnLogout = () => {}
 
     return (
         <WalletContext.Provider
-        value={{
-            address,
-            activeWalletType,
-            isWalletConnected, 
-            activeWallet,
-            isActiveWalletPW,
-            isActiveWalletBYOW,
-            activateWallet
-        }}>
+            value={{
+                address,
+                activeWalletType,
+                isWalletConnected,
+                activeWallet,
+                isActiveWalletPW,
+                isActiveWalletBYOW,
+                activateWallet,
+            }}
+        >
             {children}
         </WalletContext.Provider>
     )

@@ -11,6 +11,7 @@ import { useRef, useEffect, useState } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
+import Link from 'next/link'
 
 const Home = () => {
     const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
@@ -42,7 +43,7 @@ const Home = () => {
     }
 
     return (
-        <div className="flex h-full w-full flex-row justify-center overflow-hidden">
+        <div className="flex h-full w-full flex-row justify-center">
             <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
                 <div className="w-full">
                     <div className="relative mb-2.5 h-21 w-21 self-center">
@@ -51,10 +52,13 @@ const Home = () => {
                     <div className="text-h4">{wallets[selectedWalletIndex].username}</div>
                     <div className="text-sm">{wallets[selectedWalletIndex].email}</div>
                 </div>
-                <div className="relative" style={{ height: '250px' }}>
+                <div
+                    className="relative overflow-hidden sm:overflow-visible"
+                    style={{ height: '250px', marginRight: -16, marginLeft: -16, padding: 16 }}
+                >
                     <motion.div
                         ref={carouselRef}
-                        className="absolute left-0 flex"
+                        className="absolute flex"
                         animate={controls}
                         drag="x"
                         dragConstraints={{ left: -((wallets.length - 1) * (cardWidth + cardMargin)), right: 0 }}
@@ -75,6 +79,18 @@ const Home = () => {
                             }
                         }}
                     >
+                        <Card
+                            className="mr-4 flex flex-col gap-4 rounded-md hover:cursor-pointer"
+                            style={{ width: `${cardWidth}px` }}
+                            shadowSize="6"
+                        >
+                            <Link href="/setup" className="h-full">
+                                <Card.Content className="flex h-full flex-row items-center justify-start gap-2">
+                                    <Icon name="plus-circle" className="h-10 w-10" />
+                                    <p className="text-lg font-bold">Create a peanut wallet</p>
+                                </Card.Content>
+                            </Link>
+                        </Card>
                         {wallets.map((wallet, index) => {
                             const selected = selectedWalletIndex === index
                             return (
@@ -106,24 +122,33 @@ const Home = () => {
                     </motion.div>
                 </div>
                 <div className="flex w-full flex-row items-center justify-center gap-4 sm:justify-between sm:gap-8">
-                    <div className="flex flex-col items-center gap-2">
+                    <motion.div
+                        className="flex flex-col items-center gap-2"
+                        whileTap={{ scale: 0.95 }}
+                    >
                         <HomeLink href={'/send'}>
                             <ArrowIcon />
                         </HomeLink>
                         <p className="text-base">Send</p>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
+                    </motion.div>
+                    <motion.div
+                        className="flex flex-col items-center gap-2"
+                        whileTap={{ scale: 0.95 }}
+                    >
                         <HomeLink href={'/request/create'}>
                             <ArrowIcon className="rotate-180" />
                         </HomeLink>
                         <p>Recieve</p>
-                    </div>
-                    <div className="flex flex-col items-center gap-2">
+                    </motion.div>
+                    <motion.div
+                        className="flex flex-col items-center gap-2"
+                        whileTap={{ scale: 0.95 }}
+                    >
                         <HomeLink href={'/cashout'}>
                             <Icon name="bank" className="h-10 w-10" />
                         </HomeLink>
                         <p>Cashout</p>
-                    </div>
+                    </motion.div>
                 </div>
             </div>
         </div>

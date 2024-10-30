@@ -1,3 +1,5 @@
+// Note: Adding not check because @zeodev/waas in not installed anymore but keeping code for reference
+// @ts-nocheck
 // Based on https://docs.zerodev.app/smart-wallet/quickstart-react
 // Converts the Handle.view.tsx via the waas provider
 
@@ -18,7 +20,7 @@ import React, { useState } from "react"
 // - ERC-4337 docs: https://www.erc4337.io/docs
 // - ZeroDev docs: https://docs.zerodev.app/
 
-export const HandleSetupView = ({}) => {
+export const HandleSetupView = ({ }) => {
     const [username, setUsername] = useState("")
     const [userOpStatus, setUserOpStatus] = useState("")
 
@@ -31,10 +33,10 @@ export const HandleSetupView = ({}) => {
 
     const { data: userOpHash, write, isPending: isUserOpPending, } = useSendUserOperation({
         paymaster: {
-          type: "SPONSOR"
+            type: "SPONSOR"
         }
-      })
-    
+    })
+
     const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
     const contractABI = parseAbi([
         "function mint(address _to) public",
@@ -55,16 +57,16 @@ export const HandleSetupView = ({}) => {
     //       }),
     //     },
     //   });
-    
+
     const handleSendUserOp = async () => {
         setUserOpStatus('Sending UserOp...')
         write([
             {
-              address: contractAddress,
-              abi: contractABI,
-              functionName: "mint",
-              args: [address],
-              value: BigInt(0),
+                address: contractAddress,
+                abi: contractABI,
+                functionName: "mint",
+                args: [address],
+                value: BigInt(0),
             }
         ])
 
@@ -102,7 +104,7 @@ export const HandleSetupView = ({}) => {
             ></path>
         </svg>
     )
-      
+
     return (
         <main className="flex items-center justify-center min-h-screen px-4 py-24">
             <div className="w-full max-w-lg mx-auto">
@@ -141,7 +143,7 @@ export const HandleSetupView = ({}) => {
                         {/* Register Button */}
                         <button
                             onClick={() => {
-                              connectRegister({username: username})
+                                connectRegister({ username: username })
                             }}
                             disabled={isCreateKernelPending}
                             className="flex justify-center items-center px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full"
@@ -164,11 +166,10 @@ export const HandleSetupView = ({}) => {
                         <button
                             onClick={handleSendUserOp}
                             disabled={isCreateKernelPending || isUserOpPending}
-                            className={`px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-opacity-50 flex justify-center items-center w-full ${
-                                !isCreateKernelPending && !isUserOpPending
-                                    ? "bg-green-500 hover:bg-green-700 focus:ring-green-500"
-                                    : "bg-gray-500"
-                            }`}
+                            className={`px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-opacity-50 flex justify-center items-center w-full ${!isCreateKernelPending && !isUserOpPending
+                                ? "bg-green-500 hover:bg-green-700 focus:ring-green-500"
+                                : "bg-gray-500"
+                                }`}
                         >
                             {isUserOpPending ? <Spinner /> : "Send UserOp"}
                         </button>

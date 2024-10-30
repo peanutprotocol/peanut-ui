@@ -28,29 +28,27 @@ interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
-
 // FOR ZERODEV TESTS
 import {
     createKernelAccount,
     createKernelAccountClient,
     createZeroDevPaymasterClient,
-    KernelAccountClient
-} from "@zerodev/sdk"
+    KernelAccountClient,
+} from '@zerodev/sdk'
 import {
     toPasskeyValidator,
     toWebAuthnKey,
     WebAuthnMode,
-    PasskeyValidatorContractVersion
-} from "@zerodev/passkey-validator"
-import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
+    PasskeyValidatorContractVersion,
+} from '@zerodev/passkey-validator'
+import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 
 // Viem imports
 import { arbitrum } from 'viem/chains'
-import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
+import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem'
 
 // Permissionless imports
-import { bundlerActions, ENTRYPOINT_ADDRESS_V07} from 'permissionless'
-import { UserOperation } from "viem/_types/account-abstraction/types/userOperation"
+import { bundlerActions, ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 
@@ -78,17 +76,9 @@ export const useCreateLink = () => {
     const { walletType, environmentInfo } = useWalletType()
     const { refetchBalances } = useBalance()
 
-    const { 
-        address,
-        activeWallet,
-        isActiveWalletBYOW,
-        isActiveWalletPW
-    } = useWallet()
+    const { address, activeWallet, isActiveWalletBYOW, isActiveWalletPW } = useWallet()
 
-    const {
-        handleSendUserOpNotEncoded,
-        handleSendUserOpEncoded
-    } = useZeroDev()
+    const { handleSendUserOpNotEncoded, handleSendUserOpEncoded } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = async ({ tokenValue }: ICheckUserHasEnoughBalanceProps) => {
@@ -553,8 +543,6 @@ export const useCreateLink = () => {
         }
     }
 
-
-
     const sendTransactions = useCallback(
         async ({
             preparedDepositTxs,
@@ -585,9 +573,9 @@ export const useCreateLink = () => {
                         let hash = await handleSendUserOpEncoded({
                             to: tx.to!,
                             value: tx.value!,
-                            data: tx.data!
+                            data: tx.data!,
                         })
-                        
+
                         // TODO: same call as below - group w/ flow below as much as possible
                         signedTxsResponse.push(hash.toString())
                         idx++

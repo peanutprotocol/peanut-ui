@@ -13,8 +13,11 @@ module.exports = {
                     2: '#ffb3ee',
                     3: '#ffe3f8',
                 },
+                blue: {
+                    1: '#90A8ED',
+                },
                 yellow: {
-                    1: '#FAE8A4',
+                    1: '#FFC900',
                     2: '#FEFAED',
                 },
                 pink: {
@@ -75,6 +78,16 @@ module.exports = {
                     '0%': { opacity: 1 },
                     '50%,100%': { opacity: 0.15 },
                 },
+                rock: {
+                    '0%, 100%': { transform: 'rotate(-10deg)' },
+                    '50%': { transform: 'rotate(10deg)' },
+                },
+            },
+            animation: {
+                colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                rock: 'rock 1.5s ease-in-out infinite',
+                'rock-delay-1': 'rock 1.5s ease-in-out infinite 0.3s',
+                'rock-delay-2': 'rock 1.5s ease-in-out infinite 0.6s',
             },
             opacity: {
                 85: '.85',
