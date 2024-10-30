@@ -6,7 +6,7 @@ import { Step, Steps, useSteps } from 'chakra-ui-steps'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
-import IframeWrapper from '../IframeWrapper'
+import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
 import Loading from '../Loading'
@@ -33,16 +33,13 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    const [iframeOptions, setIframeOptions] = useState<{
-        src: string
-        visible: boolean
-        onClose: () => void
-    }>({
+    const [iframeOptions, setIframeOptions] = useState<IFrameWrapperProps>({
         src: '',
         visible: false,
         onClose: () => {
             setIframeOptions({ ...iframeOptions, visible: false })
         },
+        closeConfirmMessage: 'Are you sure ?',
     })
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
@@ -141,7 +138,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 setLoadingState('Awaiting TOS confirmation')
 
                 console.log('Awaiting TOS confirmation...')
-                setIframeOptions({ ...iframeOptions, src: tos_link, visible: true })
+                setIframeOptions({ ...iframeOptions, src: tos_link, visible: true, closeConfirmMessage: 'Are you sure ? your TOS progress will be lost.' })
                 await utils.awaitStatusCompletion(
                     id,
                     'tos',
@@ -195,7 +192,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 setLoadingState('Awaiting KYC confirmation')
                 console.log('Awaiting KYC confirmation...')
                 const kyclink = utils.convertPersonaUrl(kyc_link)
-                setIframeOptions({ ...iframeOptions, src: kyclink, visible: true })
+                setIframeOptions({ ...iframeOptions, src: kyclink, visible: true, closeConfirmMessage: 'Are you sure ? your KYC progress will be lost.' })
                 await utils.awaitStatusCompletion(
                     id,
                     'kyc',
@@ -402,9 +399,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                     )}
                 </div>
                 <IframeWrapper
-                    src={iframeOptions.src}
-                    visible={iframeOptions.visible}
-                    onClose={iframeOptions.onClose}
+                    {...iframeOptions}
                 />
             </div>
         </div>
