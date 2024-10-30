@@ -296,7 +296,8 @@ export const HandleSetupView = ({ }) => {
 
     // setUserOpHash(userOpHash)
 
-    const bundlerClient = kernelClientResult.extend(bundlerActions(entryPoint))
+    //TODO: fix type
+    const bundlerClient = (kernelClientResult as any).extend(bundlerActions(entryPoint))
 
     console.log({ bundlerClient })
     await bundlerClient.waitForUserOperationReceipt({

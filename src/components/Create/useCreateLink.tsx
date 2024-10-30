@@ -36,8 +36,6 @@ import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { arbitrum } from 'viem/chains'
 import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem'
 
-// Permissionless imports
-import { bundlerActions, ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 

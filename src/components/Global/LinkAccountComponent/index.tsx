@@ -421,7 +421,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                     orientation="vertical"
                     colorScheme="purple"
                     activeStep={activeStep}
-                    onClickStep={(step) => setActiveStep(step)}
+                    onClickStep={(step: number) => setActiveStep(step)}
                     sx={{
                         '& .cui-steps__vertical-step': {
                             '&:last-of-type': {

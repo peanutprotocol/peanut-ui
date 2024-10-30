@@ -576,7 +576,6 @@ export const InitialClaimLinkView = ({
                                     )}
                                 </span>
                             </div>
-                        )}
 
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
