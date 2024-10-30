@@ -3,7 +3,8 @@ import * as consts from '@/constants'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
 
-export const shortenAddress = (address: string) => {
+export const shortenAddress = (address?: string) => {
+    if (!address) return ''
     const firstBit = address.substring(0, 6)
 
     return firstBit + '..'
