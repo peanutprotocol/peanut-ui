@@ -1,12 +1,16 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
 import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useAccount } from 'wagmi'
+import { useWallet } from './walletContext'
+import { useZeroDev } from './walletContext/zeroDevContext.context'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
     setUser: (user: interfaces.IUserProfile | null) => void
+    isAuthed: boolean
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
@@ -34,8 +38,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // TODO: address here should be fetched from the walletContext
     // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
+
+    const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
+
+    const {address: kernelClientAddress, isKernelClientReady, handleLogin} = useZeroDev()
+
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
+    const [isAuthed, setIsAuthed] = useState<boolean>(false)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
         position: 'bottom-right',
@@ -44,6 +54,95 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         icon: '🥜',
     })
     const toastIdRef = useRef<ToastId | undefined>(undefined)
+
+    useEffect(() => {
+        if (user != null) {
+            afterLoginUserSetup()
+        } else {
+            setIsAuthed(false)
+        }
+    }, [user])
+
+    // TODO: this needs to be moved elsewhere (i.e. possible walletContext), was
+    // here for testing - POSSIBLY be removed bc the order is reversed:
+    // you first login w/ passkeys, so flow below would never happen
+    useEffect(() => {
+        if (kernelClientAddress != null && isKernelClientReady) {
+            // set PW as active wallet
+            setupWalletsAfterLogin()
+        }
+    }, [kernelClientAddress, isKernelClientReady])
+
+    const registerUserWithPasskey = async (username: string) => {
+        //  validatiion of @handle has happened before this function
+        await handleLogin(username) //  TODO: replace this with handleRegister
+        // TODO: case of failure on register
+
+
+        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                accountIdentifier: address,
+            }),
+        })
+
+        const response = await userIdResponse.json()
+
+        const siwemsg = utils.createSiweMessage({
+            address: address ?? '',
+            statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
+        })
+
+        const signature = await signMessageAsync({
+            message: siwemsg,
+        })
+
+        await fetch('/api/peanut/user/get-jwt-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                signature: signature,
+                message: siwemsg,
+            }),
+        })
+
+
+        // TODO: handle case where they try to register w/ pre-registered passkey 
+    }
+
+    const loginUserWithPasskey = async (username: string) => {
+
+    }
+
+    // TODO: document better
+    // used after register too (there is a login event then too)
+    const afterLoginUserSetup = async (): Promise<undefined> => {
+        // set isAuthed
+        setIsAuthed(true)
+
+        //TODO: REMOVE THIS - ONLY FOR TESTING
+        await handleLogin('hey2')
+
+        // // fetch user wallets
+        // // set PW as active wallet
+        // setupWalletsAfterLogin()
+
+
+    }
+
+    const afterLogoutUserSetup = async (): Promise<undefined> => {
+        // set isAuthed
+        setIsAuthed(false)
+
+        // fetch user wallets
+        deactiveWalletsOnLogout()
+    }
+
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
         // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
@@ -259,7 +358,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    // this doesn't make sense
+    // TODO: this doesn't make sense
     // when we connect another wallet, we don't change the user at all
     useEffect(() => {
         const timeoutId = setTimeout(() => {
@@ -274,6 +373,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             value={{
                 user,
                 setUser,
+                isAuthed,
                 updateBridgeCustomerId,
                 fetchUser,
                 updateUserName,

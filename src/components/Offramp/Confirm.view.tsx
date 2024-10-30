@@ -533,6 +533,7 @@ export const OfframpConfirmView = ({
                         address.currency === tokenName &&
                         address.external_account_id === bridgeExternalAccountId
                 )
+
                 if (!liquidationAddress) {
                     liquidationAddress = await utils.createLiquidationAddress(
                         bridgeCustomerId,
