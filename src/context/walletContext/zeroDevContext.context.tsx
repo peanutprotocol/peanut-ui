@@ -33,7 +33,7 @@ interface ZeroDevContextType {
   setIsSendingUserOp: (sendingUserOp: boolean) => void
   handleRegister: (username: string) => Promise<void>
   handleLogin: (username: string) => Promise<void>
-  signUserTx: (message: any) => Promise<string>
+  signMessage: (message: any) => Promise<string>
   handleSendUserOpEncoded: (
     {
       to,
@@ -140,6 +140,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     setKernelClient(kernelClient)
     setAddress(kernelClient.account!.address)
     setIsKernelClientReady(true)
+    return kernelClient
   }
 
   // TODO: handle logout
@@ -165,9 +166,9 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
     })
 
-    await createKernelClient(passkeyValidator)
-
+    const kernelClient = await createKernelClient(passkeyValidator)
     setIsRegistering(false)
+    return kernelClient
   }
 
   ////// Login functions
@@ -189,16 +190,16 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
     })
 
-    await createKernelClient(passkeyValidator)
-
+    const kernelClient = await createKernelClient(passkeyValidator)
     setIsLoggingIn(false)
+    return kernelClient
   }
 
 
   ////// UserOp functions
   //
 
-  const signUserTx = async (message: any) => {
+  const signMessage = async (message: any) => {
     return  kernelClient!.account!.signMessage({
       message
     })
@@ -319,7 +320,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         isSendingUserOp, setIsSendingUserOp,
         handleRegister,
         handleLogin,
-        signUserTx,
+        signMessage,
         handleSendUserOpEncoded,
         handleSendUserOpNotEncoded,
         address

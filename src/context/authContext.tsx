@@ -44,13 +44,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
 
-    const {address: kernelClientAddress, isKernelClientReady, handleLogin, signUserTx} = useZeroDev()
+    const {address: kernelClientAddress, isKernelClientReady, handleLogin, signMessage} = useZeroDev()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
-    const [username, setUsername] = useState<string>('')
-    const [isRegistering, setIsRegistering] = useState<boolean>(false)
-    const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false)
     const [isAuthed, setIsAuthed] = useState<boolean>(false)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
@@ -74,51 +71,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // you first login w/ passkeys, so flow below would never happen
     useEffect(() => {
         if (kernelClientAddress != null && isKernelClientReady) {
-            if (isRegistering){
-                const fetchRegister = async () => {
-                    await fetch('/api/peanut/user/register-user-with-passkey', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            username,
-                            address: kernelClientAddress,
-                        }),
-                    })
-                }
-
-                fetchRegister()
-                setIsRegistering(false)
-                setUsername('')
-
-                // TODO: handle case where they try to register w/ pre-registered passkey 
-            } else if (isLoggingIn) {
-                handleLoginAfterKernelProvider(kernelClientAddress)
-            }
-
-            // set PW as active wallet
-            setupWalletsAfterLogin()
+            authAndFetchUser(kernelClientAddress)
         }
     }, [kernelClientAddress, isKernelClientReady])
 
     const registerUserWithPasskey = async (username: string) => {
-        setIsRegistering(true)
-        setUsername(username)
         //  validatiion of @handle has happened before this function
-        await handleLogin(username) //  TODO: replace this with handleRegister
+        const kernelClient = await handleLogin(username) //  TODO: replace this with handleRegister
         // TODO: case of failure on register
     }
 
     const loginUserWithPasskey = async (username: string) => {
-        setIsLoggingIn(true)
-        setUsername(username)
         //  validatiion of @handle has happened before this function
-        await handleLogin(username)
+        const kernelClient = await handleLogin(username)
         // TODO: case of failure on login
     }
 
-    const handleLoginAfterKernelProvider = async (address: string, ) => {
+    const authAndFetchUser = async (address: string) => {
+        await authUser(address)
+        await fetchUser()
+    }
+
+    const authUser = async (address: string) => {
         const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
             method: 'POST',
             headers: {
@@ -131,12 +105,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         const response = await userIdResponse.json()
 
-        const siwemsg = utils.createSiweMessage({
-            address: address ?? '',
-            statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
-        })
+        const message = 'CHANGE THIS STRING WITH A MORE ROBUST THAT INCLUDES USER_ID'
 
-        const signature = await signUserTx(siwemsg)
+        const signature = await signMessage(message)
 
         await fetch('/api/peanut/user/get-jwt-token', {
             method: 'POST',
@@ -145,28 +116,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             },
             body: JSON.stringify({
                 signature: signature,
-                message: siwemsg,
+                message: message,
             }),
         })
-
-        return
-
-        await fetch('/api/peanut/user/login-user-with-passkey', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                signature: signature,
-                message: siwemsg,
-                address: kernelClientAddress,
-                user_id: response.userId
-            }),
-        })
-
-        fetchUser()
-        setIsRegistering(false)
-        setUsername('')
     }
 
     // TODO: document better
@@ -177,19 +129,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         // // fetch user wallets
         // // set PW as active wallet
-        // setupWalletsAfterLogin()
-
-
+        setupWalletsAfterLogin()
     }
 
     const afterLogoutUserSetup = async (): Promise<undefined> => {
         // set isAuthed
         setIsAuthed(false)
 
-        // fetch user wallets
+        // deactivate wallets
         deactiveWalletsOnLogout()
     }
-
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
         // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
