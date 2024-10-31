@@ -21,7 +21,7 @@ const WelcomeStep = () => {
         })
     }
 
-    const businessLogic = async () => {
+    const submitHandle = async () => {
         try {
             await checkHandleValidity(handle)
             return true
@@ -42,7 +42,7 @@ const WelcomeStep = () => {
             <Button
                 loading={isLoading}
                 onClick={() => {
-                    handleNext<'passkey'>(businessLogic, { handle })
+                    handleNext<'passkey'>(submitHandle, { handle })
                 }}
             >
                 Next

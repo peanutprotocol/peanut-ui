@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react'
 import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 
@@ -98,7 +98,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         connected
                     }
                 }) || [],
-                selectedWallet,
+                selectedWallet: selectedWallet && {
+                    ...selectedWallet,
+                    connected: selectedWallet?.walletProviderType == interfaces.WalletProviderType.PEANUT
+                        ? isKernelClientReady && kernelClientAddress == selectedWallet.address
+                        : isWagmiConnected && wagmiAddress == selectedWallet?.address
+                },
                 setSelectedWallet,
                 address: selectedWallet?.address
             }}>
