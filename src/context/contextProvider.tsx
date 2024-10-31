@@ -1,3 +1,4 @@
+import { ToastProvider } from '@/components/0_Bruddle/Toast'
 import { AuthProvider } from './authContext'
 import { LoadingStateContextProvider } from './loadingStates.context'
 import { TokenContextProvider } from './tokenSelector.context'
@@ -6,14 +7,16 @@ import { ZeroDevProvider } from './walletContext/zeroDevContext.context'
 
 export const ContextProvider = ({ children }: { children: React.ReactNode }) => {
     return (
-        <ZeroDevProvider>
-            <WalletProvider>
+        <ToastProvider>
+            <ZeroDevProvider>
                 <AuthProvider>
-                    <TokenContextProvider>
-                        <LoadingStateContextProvider>{children}</LoadingStateContextProvider>
-                    </TokenContextProvider>
+                    <WalletProvider>
+                        <TokenContextProvider>
+                            <LoadingStateContextProvider>{children}</LoadingStateContextProvider>
+                        </TokenContextProvider>
+                    </WalletProvider>
                 </AuthProvider>
-            </WalletProvider>
-        </ZeroDevProvider>
+            </ZeroDevProvider>
+        </ToastProvider>
     )
 }

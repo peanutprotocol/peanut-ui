@@ -3,12 +3,13 @@ import { ReactNode, createContext, useContext, useState } from 'react'
 
 // ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
-import { http, createPublicClient, encodeFunctionData, Abi, Transport } from "viem"
+import { http, createPublicClient, encodeFunctionData, Abi, Transport, Hex, Address } from "viem"
 import {
   createKernelAccount,
   createKernelAccountClient,
   createZeroDevPaymasterClient,
-  KernelAccountClient
+  KernelAccountClient,
+  KernelSmartAccount
 } from "@zerodev/sdk"
 import {
   toPasskeyValidator,
@@ -20,8 +21,24 @@ import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 
 // Permissionless imports
 import { bundlerActions, type BundlerClient } from 'permissionless'
+import { useToast } from '@/components/0_Bruddle/Toast'
 // TODO: move to context consts
 
+
+// Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
+type AppSmartAccountClient = KernelAccountClient<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN, KernelSmartAccount<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN>>
+type UserOpNotEncodedParams = {
+  to: Address,                 // contractAddress to send userop to
+  value: number,
+  abi: Abi,                    // abi already parsed via the parseAbi() viem func
+  functionName: string,
+  args: any[]
+};
+type UserOpEncodedParams = {
+  to: Address,
+  value: BigInt | null,
+  data: Hex
+}
 interface ZeroDevContextType {
   isKernelClientReady: boolean
   setIsKernelClientReady: (clientReady: boolean) => void
@@ -39,11 +56,7 @@ interface ZeroDevContextType {
       to,
       value,
       data
-    }: {
-      to: string,
-      value: BigInt | null,
-      data: string
-    }
+    }: UserOpEncodedParams
   ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)
   handleSendUserOpNotEncoded: (
     {
@@ -52,19 +65,10 @@ interface ZeroDevContextType {
       abi,
       functionName,
       args
-    }: {
-      to: string,
-      value: number,
-      abi: Abi,
-      functionName: string,
-      args: any[]
-    }
+    }: UserOpNotEncodedParams
   ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)  
   address: string | undefined
 }
-
-// Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
-type AppSmartAccountClient = KernelAccountClient<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN, any>
 
 // TODO: remove any unused imports
 // TODO: order imports
@@ -78,7 +82,8 @@ const ZeroDevContext = createContext<ZeroDevContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
-
+  const toast = useToast()
+  const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
   ////// context props
   //
 
@@ -149,11 +154,11 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
   ////// Register functions
   //
-  const handleRegister = async (username: string) => {
+  const handleRegister = async (handle: string): Promise<AppSmartAccountClient> => {
     setIsRegistering(true)
 
     const webAuthnKey = await toWebAuthnKey({
-      passkeyName: username,
+      passkeyName: _getPasskeyName(handle),
       passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
       mode: WebAuthnMode.Register,
       passkeyServerHeaders: {},
@@ -166,33 +171,40 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
     })
 
-    const kernelClient = await createKernelClient(passkeyValidator)
+    const client = await createKernelClient(passkeyValidator)
+
     setIsRegistering(false)
-    return kernelClient
+
+    return client
   }
 
   ////// Login functions
   //
-  const handleLogin = async (username: string) => {
+  const handleLogin = async (handle: string) => {
     setIsLoggingIn(true)
+    try {
 
-    const webAuthnKey = await toWebAuthnKey({
-      passkeyName: username,
-      passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-      mode: WebAuthnMode.Login,
-      passkeyServerHeaders: {}
-    })
+      const webAuthnKey = await toWebAuthnKey({
+        passkeyName: _getPasskeyName(handle),
+        passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+        mode: WebAuthnMode.Login,
+        passkeyServerHeaders: {}
+      })
 
-    const passkeyValidator = await toPasskeyValidator(publicClient, {
-      webAuthnKey,
-      entryPoint: consts.USER_OP_ENTRY_POINT,
-      kernelVersion: KERNEL_V3_1,
-      validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
-    })
+      const passkeyValidator = await toPasskeyValidator(publicClient, {
+        webAuthnKey,
+        entryPoint: consts.USER_OP_ENTRY_POINT,
+        kernelVersion: KERNEL_V3_1,
+        validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
+      })
 
-    const kernelClient = await createKernelClient(passkeyValidator)
-    setIsLoggingIn(false)
-    return kernelClient
+      await createKernelClient(passkeyValidator)
+
+    } catch (e) {
+      toast.error('Error logging in. Please try again.')
+    } finally {
+      setIsLoggingIn(false)
+    }
   }
 
 
@@ -213,11 +225,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       to,
       value,
       data
-    }: {
-      to: string,
-      value: BigInt | null,
-      data: string
-    }
+    }: UserOpEncodedParams
   ) => {
     setIsSendingUserOp(true)
     const userOpHash = await kernelClient!.sendUserOperation({
@@ -226,7 +234,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         callData: await kernelClient!.account!.encodeCallData({
           to: (to ? to : '') as `0x${string}`,
           value: value ? BigInt(value.toString()) : BigInt(0),
-          data: data ? (data as `0x${string}`) : ''
+          data
         }),
       },
     });
@@ -259,13 +267,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       abi,
       functionName,
       args
-    }: {
-      to: string,                 // contractAddress to send userop to
-      value: number,
-      abi: Abi,                    // abi already parsed via the parseAbi() viem func
-      functionName: string,
-      args: any[]
-    }
+    }: UserOpNotEncodedParams
   ) => {
     setIsSendingUserOp(true)
 

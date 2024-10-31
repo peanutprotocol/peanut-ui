@@ -2,7 +2,7 @@ import React, { forwardRef } from 'react'
 import Loading from '../Global/Loading'
 import { twMerge } from 'tailwind-merge'
 
-type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark'
+type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark' | 'green'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'
 type ButtonShape = 'default' | 'square'
 type ShadowSize = '4' | '6' | '8'
@@ -23,6 +23,7 @@ const buttonVariants: Record<ButtonVariant, string> = {
     stroke: 'btn-stroke',
     'transparent-light': 'btn-transparent-light',
     'transparent-dark': 'btn-transparent-dark',
+    green: 'bg-green-1',
 }
 
 const buttonSizes: Record<ButtonSize, string> = {

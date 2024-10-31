@@ -17,27 +17,11 @@ interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
-// FOR ZERODEV TESTS
-import {
-    createKernelAccount,
-    createKernelAccountClient,
-    createZeroDevPaymasterClient,
-    KernelAccountClient,
-} from '@zerodev/sdk'
-import {
-    toPasskeyValidator,
-    toWebAuthnKey,
-    WebAuthnMode,
-    PasskeyValidatorContractVersion,
-} from '@zerodev/passkey-validator'
-import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
-
-// Viem imports
-import { arbitrum } from 'viem/chains'
-import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem'
+import { Address, Hex } from 'viem'
 
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { WalletProviderType } from '@/interfaces'
 
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
@@ -46,7 +30,7 @@ export const useCreateLink = () => {
     // needs changes in checkUserHasEnoughBalance
     const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain, address: wagmiAddress } = useAccount()
+    const { chain: currentChain } = useAccount()
 
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
@@ -54,9 +38,11 @@ export const useCreateLink = () => {
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
 
-    const { address, activeWallet, isActiveWalletBYOW, isActiveWalletPW } = useWallet()
+    const { address, selectedWallet } = useWallet()
+    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT;
+    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW;
 
-    const { handleSendUserOpNotEncoded, handleSendUserOpEncoded } = useZeroDev()
+    const { handleSendUserOpEncoded } = useZeroDev()
 
     // step 1
     const checkUserHasEnoughBalance = useCallback(
@@ -284,11 +270,11 @@ export const useCreateLink = () => {
                     amountUsd: amountUSD,
                     transaction: preparedTx
                         ? {
-                              from: preparedTx.from ? preparedTx.from.toString() : address,
-                              to: preparedTx.to ? preparedTx.to.toString() : '',
-                              data: preparedTx.data ? preparedTx.data.toString() : '',
-                              value: preparedTx.value ? preparedTx.value.toString() : '',
-                          }
+                            from: preparedTx.from ? preparedTx.from.toString() : address,
+                            to: preparedTx.to ? preparedTx.to.toString() : '',
+                            data: preparedTx.data ? preparedTx.data.toString() : '',
+                            value: preparedTx.value ? preparedTx.value.toString() : '',
+                        }
                         : undefined,
                     chainId: chainId,
                     userAddress: address,
@@ -537,9 +523,9 @@ export const useCreateLink = () => {
                     if (isActiveWalletPW) {
                         // TODO: add retry logic in handleSendUserOpEncoded() as below flow
                         let hash = await handleSendUserOpEncoded({
-                            to: tx.to!,
+                            to: tx.to! as Address,
                             value: tx.value!,
-                            data: tx.data!,
+                            data: tx.data! as Hex,
                         })
 
                         // TODO: same call as below - group w/ flow below as much as possible
@@ -632,6 +618,7 @@ export const useCreateLink = () => {
 
     const prepareCreateLinkWrapper = useCallback(
         async ({ tokenValue }: { tokenValue: string }) => {
+
             await checkUserHasEnoughBalance({ tokenValue })
             const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
             const password = await generatePassword()

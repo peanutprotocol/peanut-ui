@@ -40,11 +40,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // TODO: address here should be fetched from the walletContext
     // TODO: all mentions of wallet in components should pull from that address
     const { address } = useAccount()
-    const { signMessageAsync } = useSignMessage()
 
-    const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
-
-    const {address: kernelClientAddress, isKernelClientReady, handleLogin, signMessage} = useZeroDev()
+    const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -132,13 +129,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setupWalletsAfterLogin()
     }
 
-    const afterLogoutUserSetup = async (): Promise<undefined> => {
-        // set isAuthed
-        setIsAuthed(false)
-
-        // deactivate wallets
-        deactiveWalletsOnLogout()
-    }
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
         // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
