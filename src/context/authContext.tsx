@@ -73,17 +73,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (kernelClientAddress != null && isKernelClientReady) {
             if (isRegistering){
+                const fetchRegister = async () => {
+                    await fetch('/api/peanut/user/register-user-with-passkey', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            username,
+                            address: kernelClientAddress,
+                        }),
+                    })
+                }
 
-                await fetch('/api/peanut/user/register-user-with-passkey', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        username,
-                        address: kernelClientAddress,
-                    }),
-                })
+                fetchRegister()
                 setIsRegistering(false)
                 setUsername('')
 
