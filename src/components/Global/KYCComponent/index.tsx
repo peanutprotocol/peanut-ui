@@ -39,7 +39,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         onClose: () => {
             setIframeOptions({ ...iframeOptions, visible: false })
         },
-        closeConfirmMessage: 'Are you sure ?',
     })
     const [customerObject, setCustomerObject] = useState<interfaces.KYCData | null>(null)
     const [tosLinkOpened, setTosLinkOpened] = useState<boolean>(false)
@@ -138,7 +137,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 setLoadingState('Awaiting TOS confirmation')
 
                 console.log('Awaiting TOS confirmation...')
-                setIframeOptions({ ...iframeOptions, src: tos_link, visible: true, closeConfirmMessage: 'Are you sure ? your TOS progress will be lost.' })
+                setIframeOptions({ ...iframeOptions, src: tos_link, visible: true })
                 await utils.awaitStatusCompletion(
                     id,
                     'tos',
