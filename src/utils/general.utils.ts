@@ -235,6 +235,10 @@ export function formatAmount(amount: number) {
     return amount.toFixed(2)
 }
 
+export function floorFixed(value: number, decimals: number) {
+    return (Math.floor(value * 10 ** decimals) / 10 ** decimals).toFixed(decimals)
+}
+
 export function formatAmountWithSignificantDigits(amount: number, significantDigits: number): string {
     let fractionDigits = Math.floor(Math.log10(1 / amount)) + significantDigits
     fractionDigits = fractionDigits < 0 ? 0 : fractionDigits

@@ -1,16 +1,16 @@
 import { useAccount } from 'wagmi'
-import * as interfaces from '@/interfaces'
-import { useEffect, useState, useRef } from 'react'
-import * as utils from '@/utils'
+import { IUserBalance, ChainValue } from '@/interfaces'
+import { useEffect, useState, useRef, useCallback } from 'react'
+import { areTokenAddressesEqual, isAddressZero } from '@/utils'
 
 /**
  * Custom React hook to fetch and manage user's wallet balances across multiple chains,
  * convert API response to a structured format, and calculate total value per chain.
  */
 export const useBalance = () => {
-    const [balances, setBalances] = useState<interfaces.IUserBalance[]>([])
+    const [balances, setBalances] = useState<IUserBalance[]>([])
     const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)
-    const [valuePerChain, setValuePerChain] = useState<interfaces.ChainValue[]>([])
+    const [valuePerChain, setValuePerChain] = useState<ChainValue[]>([])
     const { address } = useAccount()
     const prevAddressRef = useRef<string | undefined>(undefined)
 
@@ -33,7 +33,7 @@ export const useBalance = () => {
             iconUrl: string
             address?: string
         }>
-    ): interfaces.IUserBalance[] {
+    ): IUserBalance[] {
         return data.map((item) => ({
             chainId: item?.chainId ? item.chainId.split(':')[1] : '1',
             address: item?.address ? item.address.split(':')[2] : '0x0000000000000000000000000000000000000000',
@@ -59,8 +59,8 @@ export const useBalance = () => {
             iconUrl: string
             address?: string
         }[]
-    ): interfaces.ChainValue[] {
-        let result: interfaces.ChainValue[] = []
+    ): ChainValue[] {
+        let result: ChainValue[] = []
 
         try {
             const chainValueMap: { [key: string]: number } = {}
@@ -89,7 +89,7 @@ export const useBalance = () => {
             let attempts = 0
             const maxAttempts = 3
             let success = false
-            let userBalances: interfaces.IUserBalance[] = []
+            let userBalances: IUserBalance[] = []
 
             while (!success && attempts < maxAttempts) {
                 try {
@@ -123,10 +123,8 @@ export const useBalance = () => {
                                 const valueB = parseFloat(b.value)
 
                                 if (valueA === valueB) {
-                                    if (utils.isAddressZero(a.address))
-                                        return -1
-                                    if (utils.isAddressZero(b.address))
-                                        return 1
+                                    if (isAddressZero(a.address)) return -1
+                                    if (isAddressZero(b.address)) return 1
 
                                     return b.amount - a.amount
                                 } else {
@@ -166,5 +164,15 @@ export const useBalance = () => {
         }
     }
 
-    return { balances, fetchBalances, valuePerChain, refetchBalances, hasFetchedBalances }
+    const balanceByToken = useCallback(
+        (chainId: string, tokenAddress: string): IUserBalance | undefined => {
+            if (!chainId || !tokenAddress) return undefined
+            return balances.find(
+                (balance) => balance.chainId === chainId && areTokenAddressesEqual(balance.address, tokenAddress)
+            )
+        },
+        [balances]
+    )
+
+    return { balances, fetchBalances, valuePerChain, refetchBalances, hasFetchedBalances, balanceByToken }
 }

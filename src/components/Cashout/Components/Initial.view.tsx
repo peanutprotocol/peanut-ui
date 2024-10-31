@@ -14,7 +14,7 @@ import { useAuth } from '@/context/authContext'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { Icon as ChakraIcon } from '@chakra-ui/react'
 import * as assets from '@/assets'
-import { formatIban, validateBankAccount } from '@/utils'
+import { formatIban, validateBankAccount, floorFixed } from '@/utils'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
 import Icon from '@/components/Global/Icon'
@@ -32,9 +32,11 @@ export const InitialCashoutView = ({
     setOfframpForm,
     crossChainDetails,
 }: _consts.ICashoutScreenProps) => {
-    const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
+        context.tokenSelectorContext
+    )
 
-    const { balances, hasFetchedBalances } = useBalance()
+    const { balances, hasFetchedBalances, balanceByToken } = useBalance()
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
@@ -189,6 +191,13 @@ export const InitialCashoutView = ({
         }
     }
 
+    const maxValue = useMemo(() => {
+        const balance = balanceByToken(selectedChainID, selectedTokenAddress)
+        if (!balance) return ''
+        // 6 decimal places, prettier
+        return floorFixed(balance.amount, 6)
+    }, [selectedChainID, selectedTokenAddress, balanceByToken])
+
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
@@ -219,6 +228,7 @@ export const InitialCashoutView = ({
                     className="w-full max-w-[100%]"
                     tokenValue={_tokenValue}
                     setTokenValue={_setTokenValue}
+                    maxValue={maxValue}
                     onSubmit={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
