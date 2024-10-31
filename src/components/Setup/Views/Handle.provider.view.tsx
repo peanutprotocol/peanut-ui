@@ -1,31 +1,13 @@
 // Based on https://github.com/zerodevapp/passkey-tutorial/blob/7e17e287cbaaa1c2f2df53feb016e5fb0a42ac34/app/page.tsx
 'use client'
 
-// ZeroDev imports
-import {
-    createKernelAccount,
-    createKernelAccountClient,
-    createZeroDevPaymasterClient,
-    KernelAccountClient
-} from "@zerodev/sdk"
-import {
-    toPasskeyValidator,
-    toWebAuthnKey,
-    WebAuthnMode,
-    PasskeyValidatorContractVersion
-} from "@zerodev/passkey-validator"
-import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
-
-// Viem imports
-import { arbitrum } from 'viem/chains'
-import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
+import { parseAbi } from "viem"
 
 // Permissionless imports
 
 import React, { useEffect, useState } from "react"
 import { useZeroDev } from "@/context/walletContext/zeroDevContext.context"
 import { useWallet } from "@/context/walletContext"
-import { WalletProviderType } from "@/interfaces"
 import { useAccount } from "wagmi"
 
 
@@ -72,7 +54,7 @@ export const HandleSetupView = ({ }) => {
         console.log({ isKernelClientReady })
     }, [isKernelClientReady]);
 
-    const { wallets, checkActivateWallet, activeWallet } = useWallet()
+    const { wallets } = useWallet()
 
 
     const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
@@ -149,41 +131,38 @@ export const HandleSetupView = ({ }) => {
                         onChange={(e) => setUsername(e.target.value)}
                         className="p-2 text-black border border-gray-300 w-full"
                     />
-                    {/* Test buttons to switch between PW and BYOW */}
-                    <div className="flex flex-col sm:flex-row sm:space-x-4">
-                        {/* PW Button */}
-                        {/* Note: These buttons don't have CSS when disabled, they are just not clicked */}
-                        <button
-                            onClick={() => {
-                                const pWallet = wallets.find((wallet) => wallet.address == kernelClientAddress)
-                                checkActivateWallet(pWallet!)
-                            }}
-                            disabled={!isKernelClientReady}
-                            className="flex justify-center items-center px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full"
-                        >
-                            {isRegistering ? <Spinner /> : "Select PW"}
-                        </button>
-
-                        {/* BYOW Button */}
-                        {/* Note: These buttons don't have CSS when disabled, they are just not clicked */}
-                        <button
-                            onClick={() => {
-                                const wallet = wallets.find((wallet) => wallet.address == wagmiAddress)
-                                checkActivateWallet(wallet!)
-                            }}
-                            disabled={!wagmiAddress}
-                            className="mt-2 sm:mt-0 flex justify-center items-center px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 w-full"
-                        >
-                            {"Select BYOW"}
-                        </button>
-                    </div>
-                    {activeWallet && (
-                        <>
-                            {activeWallet.walletProviderType}
-                            {activeWallet.address}
-                            {activeWallet.connected}
-                        </>
-                    )}
+                    {/* Test buttons to switch between PW and BYOW [DEPRECATED] */}
+                    {/* <>
+                        <div className="flex flex-col sm:flex-row sm:space-x-4">
+                            <button
+                                onClick={() => {
+                                    const pWallet = wallets.find((wallet) => wallet.address == kernelClientAddress)
+                                    checkActivateWallet(pWallet!)
+                                }}
+                                disabled={!isKernelClientReady}
+                                className="flex justify-center items-center px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full"
+                            >
+                                {isRegistering ? <Spinner /> : "Select PW"}
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const wallet = wallets.find((wallet) => wallet.address == wagmiAddress)
+                                    checkActivateWallet(wallet!)
+                                }}
+                                disabled={!wagmiAddress}
+                                className="mt-2 sm:mt-0 flex justify-center items-center px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 w-full"
+                            >
+                                {"Select BYOW"}
+                            </button>
+                        </div>
+                        {activeWallet && (
+                            <>
+                                {activeWallet.walletProviderType}
+                                {activeWallet.address}
+                                {activeWallet.connected}
+                            </>
+                        )}
+                    </> */}
 
 
                     {/* Register and Login Buttons */}

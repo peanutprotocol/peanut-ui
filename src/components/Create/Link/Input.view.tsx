@@ -20,6 +20,7 @@ import { useBalance } from '@/hooks/useBalance'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { formatEther } from 'viem'
+import { WalletProviderType } from '@/interfaces'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -70,7 +71,7 @@ export const CreateLinkInputView = ({
     )
 
     const { isConnected, address } = useAccount()
-    const { isActiveWalletPW } = useWallet()
+    const { selectedWallet } = useWallet()
 
     const { open } = useWeb3Modal()
 
@@ -111,7 +112,7 @@ export const CreateLinkInputView = ({
                     chainId: selectedChainID,
                     tokenAddress: selectedTokenAddress,
                 })
-                if (_isGaslessDepositPossible && !isActiveWalletPW) {
+                if (_isGaslessDepositPossible && selectedWallet?.walletProviderType !== WalletProviderType.PEANUT) {
                     // PW userops are marked as 'not-gasless' in this flow, since
                     // they will become gasless via the paymaster
                     setTransactionType('gasless')
@@ -210,7 +211,7 @@ export const CreateLinkInputView = ({
                     preparedTx: _isGaslessDepositPossible
                         ? undefined
                         : prepareDepositTxsResponse &&
-                          prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
+                        prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
                     actionType: 'CREATE',
                 })
 
@@ -298,8 +299,8 @@ export const CreateLinkInputView = ({
                     {createType === 'link'
                         ? 'Text Tokens'
                         : createType === 'direct'
-                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
-                          : `Send to ${recipient.name}`}
+                            ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                            : `Send to ${recipient.name}`}
                 </Card.Title>
                 <Card.Description>
                     {createType === 'link' &&

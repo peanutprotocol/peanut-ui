@@ -7,7 +7,7 @@ import React from 'react'
 import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
 import Icon from '@/components/Global/Icon'
 import { motion, useAnimation } from 'framer-motion'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
@@ -21,19 +21,21 @@ const cardMargin = 16
 
 const Home = () => {
     const controls = useAnimation()
-    const { address, handleLogin, isLoggingIn } = useZeroDev()
-    const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
+    const { handleLogin, isLoggingIn } = useZeroDev()
 
     const carouselRef = useRef<HTMLDivElement>(null)
 
-    const { wallets } = useWallet()
+    const { wallets, selectedWallet, setSelectedWallet } = useWallet()
 
-    const { uri: avatarURI } = useAvatar(wallets[selectedWalletIndex] ? wallets[selectedWalletIndex].address : 'i am sad bc i dont have peanut')
+    const { uri: avatarURI } = useAvatar(selectedWallet ? selectedWallet.address : 'i am sad bc i dont have peanut')
 
-    const currentWallet = wallets[selectedWalletIndex]
-    const isConnectWallet = currentWallet?.account === address
+
+    const rawIndex = wallets.findIndex(wallet => wallet.address === selectedWallet?.address);
+    const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const hasWallets = wallets.length > 0
+    const isConnectWallet = selectedWallet?.connected;
 
+    console.log({ selectedWallet, isConnectWallet })
 
     useEffect(() => {
         controls.start({
@@ -43,7 +45,7 @@ const Home = () => {
     }, [selectedWalletIndex, controls])
 
     const handleCardClick = (index: number) => {
-        setSelectedWalletIndex(index)
+        setSelectedWallet(wallets[index])
     }
 
     return (
@@ -55,39 +57,24 @@ const Home = () => {
                             <div className="relative mb-2.5 h-21 w-21 self-center">
                                 <img className="rounded-full object-cover" src={avatarURI} alt="Avatar" />
                             </div>
-                            <div className="text-h4">{currentWallet?.handle}</div>
-                            <div className="text-sm">{shortenAddress(currentWallet?.account)}</div>
+                            <div className="text-h4">{selectedWallet?.handle}</div>
+                            <div className="text-sm">{shortenAddress(selectedWallet?.address)}</div>
                         </div>
-                        <div>
+                        {hasWallets && <div>
                             <Button
                                 loading={isLoggingIn}
                                 disabled={isLoggingIn}
                                 shadowSize={!isConnectWallet ? "4" : undefined}
                                 variant={isConnectWallet ? "green" : 'purple'}
                                 onClick={() => {
-                                    if (currentWallet?.handle) {
-                                        handleLogin(currentWallet?.handle)
-                                    }
+                                    if (!selectedWallet?.handle) return
+                                    handleLogin(selectedWallet?.handle)
                                 }}
                             >
                                 {isConnectWallet ? 'Connected' : 'Sign In'}
                             </Button>
-                        </div>
+                        </div>}
                     </div>
-                    {hasWallets && <div>
-                        <Button
-                            loading={isLoggingIn}
-                            disabled={isLoggingIn}
-                            shadowSize={!isConnectWallet ? "4" : undefined}
-                            variant={isConnectWallet ? "green" : 'purple'}
-                            onClick={() => {
-                                if (!currentWallet?.handle) return
-                                handleLogin(currentWallet?.handle)
-                            }}
-                        >
-                            {isConnectWallet ? 'Connected' : 'Sign In'}
-                        </Button>
-                    </div>}
                 </div>
                 <div
                     className="relative overflow-hidden sm:overflow-visible"
@@ -104,10 +91,10 @@ const Home = () => {
                             const swipe = Math.abs(offset.x) * velocity.x
                             if (swipe < -10000) {
                                 const nextIndex = Math.min(selectedWalletIndex + 1, wallets.length - 1)
-                                setSelectedWalletIndex(nextIndex)
+                                setSelectedWallet(wallets[nextIndex])
                             } else if (swipe > 10000) {
                                 const prevIndex = Math.max(selectedWalletIndex - 1, 0)
-                                setSelectedWalletIndex(prevIndex)
+                                setSelectedWallet(wallets[prevIndex])
                             } else {
                                 controls.start({
                                     x: -(selectedWalletIndex * (cardWidth + cardMargin)),
@@ -118,7 +105,7 @@ const Home = () => {
                     >
                         {wallets.length ? wallets.map((wallet, index) => {
                             const selected = selectedWalletIndex === index
-                            const selectedIsConnected = wallet?.account === address
+                            const selectedIsConnected = wallet.connected
                             return (
                                 <motion.div
                                     key={index}
@@ -133,11 +120,12 @@ const Home = () => {
                                             "bg-green-1": selectedIsConnected,
                                             "bg-purple-1": !selectedIsConnected,
                                         })}
-                                        onClick={() => handleCardClick(index)}
+                                        style={{ width: `${cardWidth}px` }}
+                                        shadowSize="6"
                                     >
                                         <Card.Content className="flex flex-col gap-2">
                                             <Image src={PeanutWalletIcon} alt="" />
-                                            <p className="text-4xl font-black sm:text-5xl">$0.00</p>
+                                            <p className="text-4xl font-black sm:text-5xl">{ }</p>
                                             <div className="flex flex-col">
                                                 <p>peanut.me/</p>
                                                 <p className="font-bold">{wallet.handle}</p>

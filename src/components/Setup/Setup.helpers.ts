@@ -17,6 +17,7 @@ export class PasskeyStorage {
 
     static list(): Passkey[] {
         const storedData = localStorage.getItem(this.STORAGE_KEY)
+        console.log('storedData:', storedData)
         if (!storedData) return []
 
         try {

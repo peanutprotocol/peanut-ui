@@ -26,7 +26,6 @@ export interface IWallet extends IDBWallet {
     // and the provider will always be connected to that.
     connected: boolean
     handle?: string
-    account?: Address
 }
 
 export enum WalletErrorType {
