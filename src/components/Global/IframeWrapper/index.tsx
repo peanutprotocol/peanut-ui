@@ -1,17 +1,21 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from '../Modal'
+
+export type IFrameWrapperProps = {
+    src: string
+    visible: boolean
+    onClose: () => void
+    closeConfirmMessage?: string
+}
 
 const IframeWrapper = ({
     src,
-    style,
     visible,
     onClose,
-}: {
-    src: string
-    style?: React.CSSProperties
-    visible: boolean
-    onClose: () => void
-}) => {
+    closeConfirmMessage
+}: IFrameWrapperProps) => {
+    const enableConfirmationPrompt = closeConfirmMessage !== undefined
+    const [showCloseConfirmMessage, setShowCloseConfirmMessage] = useState(false)
     useEffect(() => {
         const handleMessage = (event: MessageEvent) => {
             const expectedOrigin = window.location.origin
@@ -28,11 +32,39 @@ const IframeWrapper = ({
         }
     }, [onClose])
 
+    const areYouSurePromptRow = showCloseConfirmMessage ? (
+        <div className='flex flex-col text-center sm:text-left sm:flex-row justify-between sm:items-center gap-4 p-2 sm:p-0 w-full'>
+            <p className="text-sm ml-1">{closeConfirmMessage}</p>
+            <div className="flex flex-row items-center gap-2">
+                <button className='btn-stroke w-full' onClick={() => {
+                    setShowCloseConfirmMessage(false)
+                }}>Cancel</button>
+                <button className='btn-purple w-full' onClick={() => {
+                    onClose()
+                    setShowCloseConfirmMessage(false)
+                }}>Close</button>
+            </div>
+        </div>
+    ) : <button className="btn-purple w-full rounded-none" onClick={() => {
+        setShowCloseConfirmMessage(true)
+    }}>
+        CLOSE
+    </button>
+
     return (
         <Modal
             visible={visible}
-            onClose={onClose}
-            classWrap="w-full max-w-2xl border-none sm:border"
+            onClose={() => {
+                /**
+                 * If the confirmation prompt is disabled, close the modal directly
+                 */
+                if (!enableConfirmationPrompt) {
+                    onClose()
+                    return
+                }
+                setShowCloseConfirmMessage(true)
+            }}
+            classWrap="h-[75%] sm:h-full w-full sm:min-w-[600px] border-none"
             classOverlay="bg-black bg-opacity-50"
             video={false}
             /**
@@ -42,25 +74,29 @@ const IframeWrapper = ({
             className="z-[1000001]"
             classButtonClose="hidden"
         >
-            <div className="flex flex-col gap-2 p-0 sm:p-5">
+            <div className="flex flex-col h-full gap-2 p-0 sm:p-2">
                 <div className="w-full sm:hidden">
-                    <button className="btn-purple w-full rounded-none" onClick={onClose}>
+                    {enableConfirmationPrompt ? areYouSurePromptRow : <button className="btn-purple w-full rounded-none" onClick={() => {
+                        onClose()
+                    }}>
                         CLOSE
-                    </button>
+                    </button>}
                 </div>
-                <div className="h-[550px] overflow-hidden rounded-sm sm:h-[500px] sm:border sm:border-black">
+                <div className="overflow-hidden h-full">
                     <iframe
                         src={src}
                         allow="camera;"
-                        style={{ ...style, width: '100%', height: '100%', border: 'none' }}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
                         className="rounded-md"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
                     />
                 </div>
-                <div className="hidden w-full sm:flex">
-                    <button className="btn-purple w-full" onClick={onClose}>
-                        Close
-                    </button>
+                <div className="hidden sm:flex flex-row w-full items-center">
+                    {enableConfirmationPrompt ? areYouSurePromptRow : <button className="btn-purple w-full rounded-none" onClick={() => {
+                        onClose()
+                    }}>
+                        CLOSE
+                    </button>}
                 </div>
             </div>
         </Modal>
