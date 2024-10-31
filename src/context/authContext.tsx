@@ -46,6 +46,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
+    const [username, setUsername] = useState<string>('')
+    const [isRegistering, setIsRegistering] = useState<boolean>(false)
+    const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false)
     const [isAuthed, setIsAuthed] = useState<boolean>(false)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
@@ -69,51 +72,35 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // you first login w/ passkeys, so flow below would never happen
     useEffect(() => {
         if (kernelClientAddress != null && isKernelClientReady) {
+            if (isRegistering){
+
+                await fetch('/api/peanut/user/register-user-with-passkey', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        username,
+                        address: kernelClientAddress,
+                    }),
+                })
+                setIsRegistering(false)
+                setUsername('')
+
+                // TODO: handle case where they try to register w/ pre-registered passkey 
+            }
+
             // set PW as active wallet
             setupWalletsAfterLogin()
         }
     }, [kernelClientAddress, isKernelClientReady])
 
     const registerUserWithPasskey = async (username: string) => {
+        setIsRegistering(true)
+        setUsername(username)
         //  validatiion of @handle has happened before this function
         await handleLogin(username) //  TODO: replace this with handleRegister
         // TODO: case of failure on register
-
-
-        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                accountIdentifier: address,
-            }),
-        })
-
-        const response = await userIdResponse.json()
-
-        const siwemsg = utils.createSiweMessage({
-            address: address ?? '',
-            statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
-        })
-
-        const signature = await signMessageAsync({
-            message: siwemsg,
-        })
-
-        await fetch('/api/peanut/user/get-jwt-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                signature: signature,
-                message: siwemsg,
-            }),
-        })
-
-
-        // TODO: handle case where they try to register w/ pre-registered passkey 
     }
 
     const loginUserWithPasskey = async (username: string) => {
