@@ -15,6 +15,8 @@ interface AuthContextType {
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
     updateBridgeCustomerId: (bridgeCustomerId: string) => Promise<void>
+    registerUserWithPasskey: (username: string) => Promise<void>
+    loginUserWithPasskey: (username: string) => Promise<void>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -172,9 +174,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const afterLoginUserSetup = async (): Promise<undefined> => {
         // set isAuthed
         setIsAuthed(true)
-
-        //TODO: REMOVE THIS - ONLY FOR TESTING
-        await handleLogin('hey2')
 
         // // fetch user wallets
         // // set PW as active wallet
@@ -426,6 +425,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 fetchUser,
                 updateUserName,
                 submitProfilePhoto,
+                loginUserWithPasskey,
+                registerUserWithPasskey,
                 addAccount,
                 isFetchingUser,
                 logoutUser,

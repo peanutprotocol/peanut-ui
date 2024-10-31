@@ -23,6 +23,7 @@ const SetupPage = () => {
                 step.containerClassname
             )}
         >
+
             <div className='w-full md:w-1/2 mg:1/3 mx-auto gap-8 lg:gap-12 h-full flex flex-col'>
                 <div className="flex h-[100px] flex-col gap-4">
                     <h1 className="text-center text-5xl font-bold">{step.title}</h1>
