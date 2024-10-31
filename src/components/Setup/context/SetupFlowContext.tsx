@@ -24,7 +24,7 @@ interface SetupFlowContextType {
     isFirstStep: boolean
     isLastStep: boolean
     isLoading: boolean
-    handleNext: <T extends ScreenId>(businessLogic?: () => Promise<boolean>, props?: ScreenProps[T]) => Promise<void>
+    handleNext: <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => Promise<void>
     handleBack: () => void
     step: Step
     screenProps: ScreenProps[ScreenId] | undefined
@@ -50,16 +50,16 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
 
     /**
      * Notice: Callers of this function should handle errors themselves
-     * @param businessLogic Should return a boolean indicating the step logic was successful
+     * @param callback Should return a boolean indicating the step logic was successful
      * @param props 
      * @returns 
      */
-    const handleNext = async <T extends ScreenId>(businessLogic?: () => Promise<boolean>, props?: ScreenProps[T]) => {
+    const handleNext = async <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => {
         setIsLoading(true)
 
         try {
-            if (businessLogic) {
-                const isValid = await businessLogic()
+            if (callback) {
+                const isValid = await callback()
                 if (!isValid) return
             }
 
