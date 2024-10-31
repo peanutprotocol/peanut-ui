@@ -1,5 +1,4 @@
-import * as components from '@/components'
-import Layout from '@/components/Global/Layout'
+import { Claim } from '@/components'
 import { Metadata } from 'next'
 import { headers } from 'next/headers'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
@@ -55,12 +54,12 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 
     let previewUrl = '/claim-metadata-img.jpg'
     if (linkDetails) {
-        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&senderAddress=${linkDetails.senderAddress}&tokenPrice=${undefined}`
+        previewUrl = `${host}/api/preview-image?amount=${linkDetails.tokenAmount}&chainId=${linkDetails.chainId}&tokenAddress=${linkDetails.tokenAddress}&tokenSymbol=${linkDetails.tokenSymbol}&address=${linkDetails.senderAddress}`
     }
     return {
         title: title,
         icons: {
-            icon: '/logo-favicon.png',
+            icon: '/favicon.ico',
         },
         openGraph: {
             images: [
@@ -73,5 +72,5 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
 }
 
 export default function ClaimPage() {
-    return <components.Claim />
+    return <Claim />
 }

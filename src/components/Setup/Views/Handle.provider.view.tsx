@@ -21,7 +21,6 @@ import { arbitrum } from 'viem/chains'
 import { createPublicClient, http, parseAbi, encodeFunctionData, } from "viem"
 
 // Permissionless imports
-import { bundlerActions, ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
 
 import React, { useEffect, useState } from "react"
 import { useZeroDev } from "@/context/walletContext/zeroDevContext.context"

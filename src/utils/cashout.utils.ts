@@ -187,31 +187,35 @@ export async function createExternalAccount(
             }),
         })
 
-        const data = await response.json()
-
         if (!response.ok) {
-            if (data.code && data.code == 'duplicate_external_account') {
-                // if bridge account already exists for this iban
-                // but somehow not stored in our DB (this should never happen in
-                // prod, but can happen if same email used in prod & staging)
-                //
-                // returns:  not interfaces.IBridgeAccount type, but
-                // a currently undefined error type on the data field of interfaces.IResponse
-                // of format:
-                // {
-                //     id: '4c537540-80bf-41dd-a528-d79a4',
-                //     code: 'duplicate_external_account',
-                //     message: 'An external account with the same information has already been added for this customer'
-                // }
-                //
-                // TODO: HTTP responses need to be standardized client wide
-                return {
-                    success: false,
-                    data,
-                } as interfaces.IResponse
+            try {
+                const data = await response.json()
+                if (data.code && data.code == 'duplicate_external_account') {
+                    // if bridge account already exists for this iban
+                    // but somehow not stored in our DB (this should never happen in
+                    // prod, but can happen if same email used in prod & staging)
+                    //
+                    // returns:  not interfaces.IBridgeAccount type, but
+                    // a currently undefined error type on the data field of interfaces.IResponse
+                    // of format:
+                    // {
+                    //     id: '4c537540-80bf-41dd-a528-d79a4',
+                    //     code: 'duplicate_external_account',
+                    //     message: 'An external account with the same information has already been added for this customer'
+                    // }
+                    //
+                    // TODO: HTTP responses need to be standardized client wide
+                    return {
+                        success: false,
+                        data,
+                    } as interfaces.IResponse
+                }
+            } catch (error) {
+                console.error('Error creating external account', response)
+                throw new Error('Unexpected error')
             }
-            throw new Error('Failed to create external account')
         }
+        const data = await response.json()
 
         return {
             success: true,
@@ -298,12 +302,12 @@ export const createLiquidationAddress = async (
     })
 
     if (!response.ok) {
-        // log the response body
         console.error(response)
-        // log either response body or response json, whatever is not undefined
-        const responseBody = await response.text()
-        console.error(responseBody)
-        throw new Error('Failed to create liquidation address')
+        console.error('Failed to create liquidation address. Most likely a duplicate address or incomplete KYC.')
+        console.info(
+            `Customer ID: ${customerId}, external account ID: ${externalAccountId}, destination payment rail: ${destinationPaymentRail}, destination currency: ${destinationCurrency}`
+        )
+        throw new Error('Failed to create liquidation address. Contact support.')
     }
 
     const data: interfaces.IBridgeLiquidationAddress = await response.json()
@@ -371,14 +375,14 @@ export function getChainIdFromBridgeChainName(chainName: string): string | undef
 }
 
 export async function validateBankAccount(bankAccount: string): Promise<boolean> {
-    bankAccount = bankAccount.replace(/\s/g, '')
-    const response = await fetch(`/api/peanut/iban/validate-bank-account`, {
+    const bankAccountNumber = bankAccount.replace(/\s/g, '')
+    const response = await fetch(`/api/peanut/iban/validate-bank-account-number`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-            bankAccount,
+            bankAccountNumber,
         }),
     })
 

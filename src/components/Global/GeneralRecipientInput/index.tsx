@@ -1,178 +1,103 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useCallback, useRef } from 'react'
 import { isIBAN } from 'validator'
-import Icon from '@/components/Global/Icon'
-import * as interfaces from '@/interfaces'
+import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 import * as utils from '@/utils'
-import { ethers } from 'ethers'
-import BaseInput from '@/components/0_Bruddle/BaseInput'
-import classNames from 'classnames'
+import { isAddress } from 'viem'
+import * as interfaces from '@/interfaces'
 
 type GeneralRecipientInputProps = {
     className?: string
     placeholder: string
-    value: string
-    onSubmit: any
-    _setIsValidRecipient: any
-    setIsValueChanging?: any
-    setRecipientType: any
-    onDeleteClick: any
+    recipient: { name: string | undefined; address: string }
+    onUpdate: (update: GeneralRecipientUpdate) => void
 }
 
-const GeneralRecipientInput = ({
-    placeholder,
-    value,
-    onSubmit,
-    _setIsValidRecipient,
-    setIsValueChanging,
-    setRecipientType,
-    onDeleteClick,
-}: GeneralRecipientInputProps) => {
-    const [userInput, setUserInput] = useState<string>(value)
-    const [recipient, setAddress] = useState<string>(value)
-    const [deboundedRecipient, setDeboundedRecipient] = useState<string>('')
-    const [isValidRecipient, setIsValidRecipient] = useState(false)
-    const [isLoading, setIsLoading] = useState(false)
-    const [type, setType] = useState<interfaces.RecipientType>('address')
+export type GeneralRecipientUpdate = {
+    recipient: { name: string | undefined; address: string }
+    type: interfaces.RecipientType
+    isValid: boolean
+    isChanging: boolean
+    errorMessage: string
+}
 
-    async function checkAddress(recipient: string) {
+const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: GeneralRecipientInputProps) => {
+    const recipientType = useRef<interfaces.RecipientType>('address')
+    const errorMessage = useRef('')
+    const resolvedAddress = useRef('')
+
+    const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
+            let isValid = false
+            let type: interfaces.RecipientType = 'address'
             if (isIBAN(recipient)) {
-                const validAccount = await utils.validateBankAccount(recipient)
-                if (validAccount) {
-                    setIsValidRecipient(true)
-                    _setIsValidRecipient({ isValid: true })
-                    setRecipientType('iban')
-                    setType('iban')
-                    setAddress(recipient)
-                    onSubmit(userInput, recipient)
-                } else {
-                    setIsValidRecipient(false)
-                    _setIsValidRecipient({ isValid: false, error: 'Invalid IBAN, country not supported' })
-                }
+                type = 'iban'
+                isValid = await utils.validateBankAccount(recipient)
+                if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
             } else if (/^[0-9]{6,17}$/.test(recipient)) {
-                const validateBankAccount = await utils.validateBankAccount(recipient)
-                if (validateBankAccount) {
-                    setIsValidRecipient(true)
-                    _setIsValidRecipient({ isValid: true })
-                    setRecipientType('us')
-                    setType('us')
-                    setAddress(recipient)
-                    onSubmit(userInput, recipient)
-                } else {
-                    setIsValidRecipient(false)
-                    _setIsValidRecipient({ isValid: false, error: 'Invalid US account number' })
-                }
+                type = 'us'
+                isValid = await utils.validateBankAccount(recipient)
+                if (!isValid) errorMessage.current = 'Invalid US account number'
             } else if (recipient.toLowerCase().endsWith('.eth')) {
-                const resolvedAddress = await utils.resolveFromEnsName(recipient.toLowerCase())
-                if (resolvedAddress) {
-                    recipient = resolvedAddress
-                    setIsValidRecipient(true)
-                    _setIsValidRecipient({ isValid: true })
-                    setAddress(recipient)
-                    setRecipientType('ens')
-                    setType('ens')
-                    onSubmit(userInput, recipient)
+                type = 'ens'
+                const address = await utils.resolveFromEnsName(recipient.toLowerCase())
+                if (address) {
+                    resolvedAddress.current = address
+                    isValid = true
                 } else {
-                    setIsValidRecipient(false)
-                    _setIsValidRecipient({ isValid: false })
+                    errorMessage.current = 'ENS not found'
+                    isValid = false
                 }
-            } else if (ethers.utils.isAddress(recipient)) {
-                setAddress(recipient)
-                setIsValidRecipient(true)
-                _setIsValidRecipient({ isValid: true })
-                setRecipientType('address')
-                setType('address')
-                onSubmit(undefined, recipient)
             } else {
-                setIsValidRecipient(false)
-                _setIsValidRecipient({ isValid: false })
+                type = 'address'
+                isValid = isAddress(recipient, { strict: false })
+                if (!isValid) errorMessage.current = 'Invalid address'
             }
+            recipientType.current = type
+            return isValid
         } catch (error) {
             console.error('Error while validating recipient input field:', error)
-            setIsValidRecipient(false)
-            _setIsValidRecipient({ isValid: false })
-        } finally {
-            setIsLoading(false)
+            return false
         }
-    }
+    }, [])
 
-    useEffect(() => {
-        if (recipient && isValidRecipient) {
-            _setIsValidRecipient({ isValid: true })
+    const onInputUpdate = useCallback((update: InputUpdate) => {
+        let _update: GeneralRecipientUpdate
+        if (update.isValid) {
+            errorMessage.current = ''
+            _update = {
+                recipient:
+                    'ens' === recipientType.current
+                        ? { address: resolvedAddress.current, name: update.value }
+                        : { address: update.value, name: undefined },
+                type: recipientType.current,
+                isValid: true,
+                isChanging: update.isChanging,
+                errorMessage: '',
+            }
+        } else {
+            resolvedAddress.current = ''
+            _update = {
+                recipient: { address: update.value, name: undefined },
+                type: recipientType.current,
+                isValid: false,
+                isChanging: update.isChanging,
+                errorMessage: errorMessage.current,
+            }
         }
-    }, [recipient])
-
-    useEffect(() => {
-        setIsLoading(true)
-        const handler = setTimeout(() => {
-            setDeboundedRecipient(userInput)
-        }, 750)
-        return () => {
-            clearTimeout(handler)
-        }
-    }, [userInput])
-
-    useEffect(() => {
-        if (deboundedRecipient) {
-            checkAddress(deboundedRecipient)
-        }
-    }, [deboundedRecipient])
-
-    useEffect(() => {
-        setUserInput(value)
-    }, [value])
+        onUpdate(_update)
+    }, [])
 
     return (
-        <div className={classNames('relative w-full', {})}>
-            <div className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
-                To:
-            </div>
-            <BaseInput
-                className={classNames('pl-8', {
-                    'border-red-1': userInput && !isLoading && !isValidRecipient,
-                })}
-                type="text"
-                placeholder={placeholder}
-                value={userInput}
-                onSubmit={(e) => {
-                    e.preventDefault()
-                }}
-                onChange={(e) => {
-                    setIsValueChanging(true)
-                    if (e.target.value) {
-                        setUserInput(e.target.value)
-                    } else {
-                        _setIsValidRecipient({ isValid: false })
-                        setUserInput('')
-                    }
-                }}
-                spellCheck="false"
-            />
-            {userInput.length > 0 ? (
-                isLoading ? (
-                    <div className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white">
-                        <div
-                            className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-none"
-                            role="status"
-                        />
-                    </div>
-                ) : (
-                    userInput && (
-                        <button
-                            onClick={(e) => {
-                                e.preventDefault()
-                                setUserInput('')
-                                onDeleteClick()
-                            }}
-                            className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center bg-white"
-                        >
-                            <Icon className="h-6 w-6 dark:fill-white" name="close" />
-                        </button>
-                    )
-                )
-            ) : null}
-        </div>
+        <ValidatedInput
+            placeholder={placeholder}
+            label="To"
+            value={recipient.name ?? recipient.address}
+            debounceTime={750}
+            validate={checkAddress}
+            onUpdate={onInputUpdate}
+            className={className}
+        />
     )
 }
 

@@ -19,7 +19,7 @@ import {
 import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 
 // Permissionless imports
-import { bundlerActions } from 'permissionless'
+import { bundlerActions, type BundlerClient } from 'permissionless'
 // TODO: move to context consts
 
 interface ZeroDevContextType {
@@ -226,7 +226,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     // type: Permisionless.js BundlerClient
     const bundlerClient = kernelClient!.extend(
       bundlerActions(consts.USER_OP_ENTRY_POINT)
-    )
+    ) as AppSmartAccountClient & BundlerClient<typeof consts.USER_OP_ENTRY_POINT, typeof consts.PEANUT_WALLET_CHAIN>
 
     const receipt = await bundlerClient.waitForUserOperationReceipt({
       hash: userOpHash,
@@ -289,7 +289,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
     const bundlerClient = kernelClient!.extend(
       bundlerActions(consts.USER_OP_ENTRY_POINT)
-    )
+    ) as AppSmartAccountClient & BundlerClient<typeof consts.USER_OP_ENTRY_POINT, typeof consts.PEANUT_WALLET_CHAIN>
 
     await bundlerClient!.waitForUserOperationReceipt({
       hash: userOpHash,

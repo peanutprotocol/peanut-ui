@@ -4,32 +4,22 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useState, useContext, useEffect } from 'react'
+import { useState, useContext, useEffect, useMemo } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
 import * as _consts from '../Create.consts'
-import * as _utils from '../Create.utils'
+import { isGaslessDepositPossible } from '../Create.utils'
 import * as context from '@/context'
-import * as utils from '@/utils'
-import Loading from '@/components/Global/Loading'
+import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed } from '@/utils'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import peanut, {
-    ERC20_ABI,
-    ethersV5ToPeanutTx,
-    getDefaultProvider,
-    getLatestContractVersion,
-    interfaces,
-    PEANUT_CONTRACTS,
-    prepareApproveERC20Tx,
-} from '@squirrel-labs/peanut-sdk'
-import * as ethers from 'ethers'
-import SafeAppsSDK from '@safe-global/safe-apps-sdk'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useBalance } from '@/hooks/useBalance'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
+import { formatEther } from 'viem'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -68,7 +58,7 @@ export const CreateLinkInputView = ({
         context.tokenSelectorContext
     )
     const { walletType, environmentInfo } = useWalletType()
-    const { balances, hasFetchedBalances } = useBalance()
+    const { balances, hasFetchedBalances, balanceByToken } = useBalance()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -117,11 +107,11 @@ export const CreateLinkInputView = ({
                 setLoadingState('Preparing transaction')
 
                 let prepareDepositTxsResponse: interfaces.IPrepareDepositTxsResponse | undefined
-                const isGaslessDepositPossible = _utils.isGaslessDepositPossible({
+                const _isGaslessDepositPossible = isGaslessDepositPossible({
                     chainId: selectedChainID,
                     tokenAddress: selectedTokenAddress,
                 })
-                if (isGaslessDepositPossible && !isActiveWalletPW) {
+                if (_isGaslessDepositPossible && !isActiveWalletPW) {
                     // PW userops are marked as 'not-gasless' in this flow, since
                     // they will become gasless via the paymaster
                     setTransactionType('gasless')
@@ -173,12 +163,15 @@ export const CreateLinkInputView = ({
 
                     setPreparedDepositTxs(prepareDepositTxsResponse)
 
+                    let _feeOptions = undefined
+
                     try {
                         const { feeOptions, transactionCostUSD } = await estimateGasFee({
                             chainId: selectedChainID,
                             preparedTx: prepareDepositTxsResponse?.unsignedTxs[0],
                         })
 
+                        _feeOptions = feeOptions
                         setFeeOptions(feeOptions)
                         setTransactionCostUSD(transactionCostUSD)
                     } catch (error) {
@@ -186,14 +179,35 @@ export const CreateLinkInputView = ({
                         setFeeOptions(undefined)
                         setTransactionCostUSD(undefined)
                     }
-                    console.log({ prepareDepositTxsResponse })
+                    // If the selected token is native currency, we need to check
+                    // the user's balance to ensure they have enough to cover the
+                    // gas fees.
+                    if (undefined !== _feeOptions && isNativeCurrency(selectedTokenAddress)) {
+                        const maxGasAmount = Number(
+                            formatEther(_feeOptions.gasLimit.mul(_feeOptions.maxFeePerGas || _feeOptions.gasPrice))
+                        )
+                        try {
+                            await checkUserHasEnoughBalance({
+                                tokenValue: String(Number(tokenValue) + maxGasAmount),
+                            })
+                        } catch (error) {
+                            // 6 decimal places, prettier
+                            _setTokenValue((Number(tokenValue) - maxGasAmount * 1.3).toFixed(6))
+                            setErrorState({
+                                showError: true,
+                                errorMessage:
+                                    'You do not have enough balance to cover the transaction fees, try again with suggested amount',
+                            })
+                            return
+                        }
+                    }
                 }
 
                 const estimatedPoints = await estimatePoints({
                     chainId: selectedChainID,
                     address: address ?? '',
                     amountUSD: parseFloat(usdValue ?? '0'),
-                    preparedTx: isGaslessDepositPossible
+                    preparedTx: _isGaslessDepositPossible
                         ? undefined
                         : prepareDepositTxsResponse &&
                           prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
@@ -244,7 +258,7 @@ export const CreateLinkInputView = ({
             await switchNetwork(selectedChainID)
             onNext()
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -253,6 +267,13 @@ export const CreateLinkInputView = ({
             setLoadingState('Idle')
         }
     }
+
+    const maxValue = useMemo(() => {
+        const balance = balanceByToken(selectedChainID, selectedTokenAddress)
+        if (!balance) return ''
+        // 6 decimal places, prettier
+        return floorFixed(balance.amount, 6)
+    }, [selectedChainID, selectedTokenAddress, balanceByToken])
 
     useEffect(() => {
         if (!_tokenValue) return
@@ -277,7 +298,7 @@ export const CreateLinkInputView = ({
                     {createType === 'link'
                         ? 'Text Tokens'
                         : createType === 'direct'
-                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
+                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </Card.Title>
                 <Card.Description>
@@ -296,6 +317,7 @@ export const CreateLinkInputView = ({
                     <TokenAmountInput
                         className="w-full"
                         tokenValue={_tokenValue}
+                        maxValue={maxValue}
                         setTokenValue={_setTokenValue}
                         onSubmit={() => {
                             if (!isConnected) handleConnectWallet()

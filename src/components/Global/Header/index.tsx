@@ -1,11 +1,11 @@
 'use client'
-
 import React, { useEffect, useState, useCallback } from 'react'
 import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
 import Link from 'next/link'
-import * as assets from '@/assets'
-import * as utils from '@/utils'
+
+import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
+import { shortenAddress } from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
@@ -13,7 +13,7 @@ import { breakpoints, emToPx } from '@/styles/theme'
 import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
-    animationData: assets.HAMBURGER_LOTTIE,
+    animationData: HAMBURGER_LOTTIE,
     loop: true,
     autoplay: false,
     rendererSettings: {
@@ -51,15 +51,17 @@ export const Header = () => {
             <Flex width={'100%'} alignItems={'center'} justifyContent={'space-between'} height={'16'}>
                 <Box display={{ base: 'none', lg: 'flex' }} flexDirection={'row'} height="100%">
                     <div
-                        className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
+                        className="flex h-full w-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
                             if (window?.location.pathname == '/') window?.location.reload()
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-10" />
-                        <span className="inline px-2 text-h5 sm:px-6 sm:text-h4">peanut protocol</span>
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 sm:h-9" />
+                        <span className="inline px-3 sm:px-4">peanut protocol</span>
                     </div>
+                </Box>
+                <Box display={{ base: 'none', md: 'block' }} flexDirection={'row'} alignContent={'center'}>
                     <MenuLinks />
                 </Box>
                 <Box
@@ -71,14 +73,14 @@ export const Header = () => {
                     height={'100%'}
                 >
                     <div
-                        className="flex h-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
+                        className="flex h-full w-full cursor-pointer items-center px-2 font-bold uppercase hover:bg-white hover:text-black"
                         onClick={() => {
                             if (window?.location.pathname == '/') window?.location.reload()
                             else window.location.href = '/'
                         }}
                     >
-                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
-                        <span className="inline px-2 text-h5 ">peanut protocol</span>
+                        <img src={PEANUTMAN_LOGO.src} alt="logo" className="ml-2 h-6 " />
+                        <span className="text-h5- inline px-2 ">peanut protocol</span>
                     </div>
 
                     <MenuToggle isOpen={isOpenState} toggle={onToggle} />
@@ -115,7 +117,17 @@ const MenuToggle = ({ toggle, isOpen }: { toggle: () => void; isOpen: boolean })
     )
 }
 
-const MenuLink = ({ route, title, isBeta = false }: { route: string; title: string; isBeta?: boolean }) => {
+const MenuLink = ({
+    route,
+    title,
+    isBeta = false,
+    className = '',
+}: {
+    route: string
+    title: string
+    isBeta?: boolean
+    className?: string
+}) => {
     const router = useRouter()
 
     const handleClick = useCallback(
@@ -133,7 +145,7 @@ const MenuLink = ({ route, title, isBeta = false }: { route: string; title: stri
     )
 
     return (
-        <NavLink href={route} onClick={handleClick}>
+        <NavLink href={route} onClick={handleClick} className={className}>
             <Text display="block" className="flex items-center">
                 {title}
             </Text>
@@ -162,7 +174,7 @@ const ToolsDropdown = () => {
                         }}
                         className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
                     >
-                        tools
+                        <div className="flex h-full w-full items-center justify-center">tools</div>
                     </button>
                 </NavItemBox>
                 {showMenu && (
@@ -173,7 +185,7 @@ const ToolsDropdown = () => {
                         onMouseLeave={() => {
                             setShowMenu(false)
                         }}
-                        className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none"
+                        className="absolute left-0 z-10 w-48 origin-top-right bg-black p-0 font-medium uppercase text-white no-underline shadow-lg transition-colors"
                     >
                         <MenuLink route={'/raffle/create'} title={'raffle'} />
                         <MenuLink route={'/batch/create'} title={'batch'} />
@@ -187,16 +199,20 @@ const ToolsDropdown = () => {
                         onClick={() => {
                             setShowMenu(!showMenu)
                         }}
-                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
+                        className="text-bold flex h-full w-full items-center justify-start rounded-md py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1"
                     >
-                        <Text display="block"> tools</Text>
+                        <div className="flex h-full w-full items-center justify-start">
+                            <Text display="block">tools</Text>
+                        </div>
                     </button>
                 </NavItemBox>
                 {showMenu && (
-                    <div className="bg-black p-0  font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                        <MenuLink route={'/raffle/create'} title={'raffle'} />
-                        <MenuLink route={'/batch/create'} title={'batch'} />
-                        <MenuLink route={'/refund'} title={'refund'} />
+                    <div className="bg-black p-0 font-medium uppercase text-white no-underline shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
+                        <div className="pl-4">
+                            <MenuLink route={'/raffle/create'} title={'raffle'} />
+                            <MenuLink route={'/batch/create'} title={'batch'} />
+                            <MenuLink route={'/refund'} title={'refund'} />
+                        </div>
                     </div>
                 )}
             </div>
@@ -248,7 +264,7 @@ const MenuLinks = () => {
                     >
                         <Text display="block text-nowrap">
                             {' '}
-                            {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                            {isConnected ? shortenAddress(address ?? '') : 'Connect'}
                         </Text>
                     </button>
                 </NavItemBox>
@@ -272,13 +288,15 @@ const SocialLinks = () => {
                     web3modalOpen()
                 }}
             >
-                {isConnected ? utils.shortenAddress(address ?? '') : 'Connect'}
+                {isConnected ? shortenAddress(address ?? '') : 'Connect'}
             </button>
         </Stack>
     )
 }
 
 const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) => {
+    const themeBG = 'black'
+    const themeColor = 'white'
     return (
         <Flex
             as="nav"
@@ -286,11 +304,11 @@ const NavBarContainer = ({ children, ...props }: { children: React.ReactNode }) 
             justify="space-between"
             wrap="wrap"
             w="100%"
-            bg={{ base: 'black', md: 'black' }}
-            color={{ base: 'white', md: 'white' }}
+            bg={{ base: themeBG, md: themeBG }}
+            color={{ base: themeColor, md: themeColor }}
             {...props}
-            className="z-[9999] text-h6"
             zIndex={9999} // always on top
+            className="z-[9999] !m-0 border-b-2 border-n-1 !p-0 font-black"
         >
             {children}
         </Flex>

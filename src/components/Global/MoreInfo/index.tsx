@@ -20,8 +20,8 @@ const MoreInfo = ({ text }: MoreInfoProps) => {
                     leaveFrom="opacity-100"
                     leaveTo="opacity-0"
                 >
-                    <Menu.Items className="shadow-primary-4 absolute bottom-full right-0 z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-4 py-2 md:left-0 md:right-auto">
-                        <Menu.Item as={'label'} className={'text-h8 font-normal'}>
+                    <Menu.Items className="absolute bottom-full right-0 z-30 mb-1 mr-1 w-64 border border-n-1 bg-white px-3 py-2 shadow-lg md:left-0 md:right-auto">
+                        <Menu.Item as={'label'} className={'text-h8 font-normal text-black'}>
                             {text}
                         </Menu.Item>
                     </Menu.Items>

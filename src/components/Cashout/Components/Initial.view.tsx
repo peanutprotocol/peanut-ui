@@ -2,6 +2,7 @@
 
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
@@ -10,12 +11,10 @@ import * as context from '@/context'
 import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { Icon as ChakraIcon } from '@chakra-ui/react'
 import * as assets from '@/assets'
-import * as utils from '@/utils'
+import { formatIban, validateBankAccount, floorFixed } from '@/utils'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
-import { motion, AnimatePresence } from 'framer-motion'
 import Icon from '@/components/Global/Icon'
 import { twMerge } from 'tailwind-merge'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
@@ -32,9 +31,11 @@ export const InitialCashoutView = ({
     setOfframpForm,
     crossChainDetails,
 }: _consts.ICashoutScreenProps) => {
-    const { selectedTokenPrice, inputDenomination, selectedChainID } = useContext(context.tokenSelectorContext)
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
+        context.tokenSelectorContext
+    )
 
-    const { balances, hasFetchedBalances } = useBalance()
+    const { balances, hasFetchedBalances, balanceByToken } = useBalance()
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
@@ -61,6 +62,9 @@ export const InitialCashoutView = ({
     const [_tokenValue, _setTokenValue] = useState<string | undefined>(
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
+    const [bankAccountNumber, setBankAccountNumber] = useState<string>('')
+    const [isValidBankAccountNumber, setIsValidBankAccountNumber] = useState<boolean>(false)
+    const [isValidatingBankAccountNumber, setIsValidatingBankAccountNumber] = useState<boolean>(false)
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
@@ -70,10 +74,6 @@ export const InitialCashoutView = ({
     const handleConnectWallet = async () => {
         open()
     }
-
-    const [selectedBankAccount, setSelectedBankAccount] = useState<string | undefined>(undefined)
-    const [newBankAccount, setNewBankAccount] = useState<string>('')
-    const [activeInput, setActiveInput] = useState<'newBankAccount' | 'selectedBankAccount'>()
 
     const isBelowMinLimit = useMemo(() => {
         return !usdValue || parseFloat(usdValue) < MIN_CASHOUT_LIMIT
@@ -86,35 +86,31 @@ export const InitialCashoutView = ({
     const isDisabled = useMemo(() => {
         return (
             !_tokenValue ||
-            (!selectedBankAccount && !newBankAccount) ||
+            !isValidBankAccountNumber ||
+            isValidatingBankAccountNumber ||
             !xchainAllowed ||
             !!isBelowMinLimit ||
             !!isExceedingMaxLimit
         )
-    }, [_tokenValue, selectedBankAccount, newBankAccount, xchainAllowed, isBelowMinLimit, isExceedingMaxLimit])
+    }, [
+        _tokenValue,
+        isValidBankAccountNumber,
+        isValidatingBankAccountNumber,
+        xchainAllowed,
+        isBelowMinLimit,
+        isExceedingMaxLimit,
+    ])
 
     const handleOnNext = async (_inputValue?: string) => {
         setLoadingState('Loading')
         setErrorState({ showError: false, errorMessage: '' })
         try {
-            if (!selectedBankAccount && !newBankAccount) {
+            if (!bankAccountNumber) {
                 setErrorState({ showError: true, errorMessage: 'Please select a bank account.' })
                 setLoadingState('Idle')
                 return
             }
             if (!_tokenValue) return
-
-            const recipientBankAccount = selectedBankAccount || newBankAccount
-
-            const validAccount = await utils.validateBankAccount(recipientBankAccount)
-            if (!validAccount) {
-                console.error('Invalid bank account')
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Invalid bank account. Please make sure your account is supported',
-                })
-                return
-            }
 
             if (!user) {
                 await fetchUser()
@@ -132,11 +128,11 @@ export const InitialCashoutView = ({
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        accountIdentifier: recipientBankAccount,
+                        accountIdentifier: bankAccountNumber,
                     }),
                 })
 
-                if (userIdResponse.status === 404) {
+                if (userIdResponse.status === 404 || userIdResponse.status === 400) {
                     setUserType('NEW')
                 } else {
                     const response = await userIdResponse.json()
@@ -151,21 +147,21 @@ export const InitialCashoutView = ({
                     name: '',
                     email: '',
                     password: '',
-                    recipient: recipientBankAccount,
+                    recipient: bankAccountNumber,
                 })
                 setInitialKYCStep(0)
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipientBankAccount,
+                    recipient: bankAccountNumber,
                     password: '',
                 })
                 if (user?.user.kycStatus == 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
-                            account.account_identifier.toLowerCase() ===
-                            recipientBankAccount.replaceAll(' ', '').toLowerCase()
+                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                            bankAccountNumber.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {
@@ -194,19 +190,12 @@ export const InitialCashoutView = ({
         }
     }
 
-    const [showNewBankAccount, setShowNewBankAccount] = useState(true)
-
-    useEffect(() => {
-        setShowNewBankAccount(!selectedBankAccount)
-    }, [selectedBankAccount])
-
-    useEffect(() => {
-        if (activeInput === 'newBankAccount') {
-            setSelectedBankAccount(undefined)
-        } else if (activeInput === 'selectedBankAccount') {
-            setNewBankAccount('')
-        }
-    }, [newBankAccount, selectedBankAccount])
+    const maxValue = useMemo(() => {
+        const balance = balanceByToken(selectedChainID, selectedTokenAddress)
+        if (!balance) return ''
+        // 6 decimal places, prettier
+        return floorFixed(balance.amount, 6)
+    }, [selectedChainID, selectedTokenAddress, balanceByToken])
 
     useEffect(() => {
         if (!_tokenValue) return
@@ -228,15 +217,17 @@ export const InitialCashoutView = ({
             <Card.Header>
                 <Card.Title>Cash Out</Card.Title>
                 <Card.Description>
-                    Convert your crypto to FIAT. From any token, any chain, directly to your bank account.
-                    <FAQComponent />
+                    Cash out your crypto to your bank account. Works best with popular stablecoins and other commonly
+                    traded tokens.
                 </Card.Description>
+                <FAQComponent />
             </Card.Header>
             <Card.Content className="col gap-2">
                 <TokenAmountInput
                     className="w-full max-w-[100%]"
                     tokenValue={_tokenValue}
                     setTokenValue={_setTokenValue}
+                    maxValue={maxValue}
                     onSubmit={() => {
                         if (!isConnected) handleConnectWallet()
                         else handleOnNext()
@@ -280,7 +271,7 @@ export const InitialCashoutView = ({
                                                     key={index}
                                                     className={twMerge(
                                                         'flex w-full items-center  justify-between text-nowrap border border-black p-2',
-                                                        selectedBankAccount === account.account_identifier
+                                                        bankAccountNumber === account.account_identifier
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
                                                         xchainAllowed && 'cursor-pointer',
@@ -288,27 +279,22 @@ export const InitialCashoutView = ({
                                                     )}
                                                     onClick={() => {
                                                         if (!xchainAllowed) return
-                                                        if (selectedBankAccount === account.account_identifier) {
-                                                            setSelectedBankAccount(undefined)
-                                                        } else {
-                                                            setSelectedBankAccount(account.account_identifier)
-                                                            setActiveInput('selectedBankAccount')
-                                                        }
+                                                        setBankAccountNumber(account.account_identifier)
                                                     }}
                                                 >
                                                     <div className="flex flex-grow items-center">
                                                         <Icon name={'bank'} className="mr-2 h-4 fill-gray-1" />
                                                         <label htmlFor={`bank-${index}`} className="text-right">
-                                                            {utils.formatIban(account.account_identifier)}
+                                                            {formatIban(account.account_identifier)}
                                                         </label>
                                                     </div>
                                                     <div className="flex w-6 justify-center">
-                                                        {selectedBankAccount === account.account_identifier && (
+                                                        {bankAccountNumber === account.account_identifier && (
                                                             <button
                                                                 className="text-lg text-black"
                                                                 onClick={(e) => {
                                                                     e.stopPropagation()
-                                                                    setSelectedBankAccount(undefined)
+                                                                    setBankAccountNumber('')
                                                                 }}
                                                             >
                                                                 ✕
@@ -319,73 +305,35 @@ export const InitialCashoutView = ({
                                             ))}
                                     </div>
                                 )}
-                                <AnimatePresence>
-                                    {showNewBankAccount && (
-                                        <motion.div
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                            className="flex w-full flex-col items-start justify-center gap-2 overflow-hidden"
-                                        >
-                                            <label className="text-left text-h8 font-light">
-                                                Cashout to a new bank account:
-                                            </label>
-                                            <div
-                                                className={twMerge(
-                                                    'flex w-full border border-black p-2',
-                                                    xchainAllowed && 'cursor-pointer',
-                                                    !xchainAllowed && 'opacity-60'
-                                                )}
-                                            >
-                                                <label className="ml-2 text-right">To:</label>
-                                                <input
-                                                    type="text"
-                                                    className={twMerge(
-                                                        !xchainAllowed && 'bg-transparent',
-                                                        'ml-2 w-full border-none outline-none'
-                                                    )}
-                                                    placeholder="IBAN / US account number"
-                                                    value={newBankAccount}
-                                                    onChange={(e) => setNewBankAccount(e.target.value)}
-                                                    onFocus={() => setActiveInput('newBankAccount')}
-                                                    spellCheck="false"
-                                                    autoComplete="iban"
-                                                    disabled={!xchainAllowed}
-                                                />
-                                            </div>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                             </>
-                        ) : (
-                            <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <label className="text-left text-h8 font-light">Cashout to a new bank account:</label>
-                                <div
-                                    className={twMerge(
-                                        'flex w-full border border-black p-2',
-                                        xchainAllowed && 'cursor-pointer',
-                                        !xchainAllowed && 'opacity-60'
-                                    )}
-                                >
-                                    <label className="ml-2 text-right">To:</label>
-                                    <input
-                                        type="text"
-                                        className={twMerge(
-                                            !xchainAllowed && 'bg-transparent',
-                                            'ml-2 w-full border-none outline-none'
-                                        )}
-                                        placeholder="IBAN / US account number"
-                                        value={newBankAccount}
-                                        onChange={(e) => setNewBankAccount(e.target.value)}
-                                        onFocus={() => setActiveInput('newBankAccount')}
-                                        spellCheck="false"
-                                        autoComplete="iban"
-                                        disabled={!xchainAllowed}
-                                    />
-                                </div>
-                            </div>
-                        )}
+                        ) : null}
+                        <div className="flex w-full flex-col items-start justify-center gap-2">
+                            <label className="text-left text-h8 font-light">Cash out to a bank account:</label>
+                            <ValidatedInput
+                                placeholder="IBAN / US account number"
+                                label="To"
+                                value={bankAccountNumber}
+                                debounceTime={750}
+                                validate={validateBankAccount}
+                                onUpdate={({ value, isValid, isChanging }) => {
+                                    setBankAccountNumber(value)
+                                    setIsValidBankAccountNumber(isValid)
+                                    setIsValidatingBankAccountNumber(isChanging)
+                                    if (!isChanging && value && !isValid) {
+                                        setErrorState({
+                                            showError: true,
+                                            errorMessage:
+                                                'Invalid bank account. Please make sure your account is supported',
+                                        })
+                                    } else {
+                                        setErrorState({
+                                            showError: false,
+                                            errorMessage: '',
+                                        })
+                                    }
+                                }}
+                            />
+                        </div>
                     </div>
                 </div>
                 <Button
@@ -406,19 +354,18 @@ export const InitialCashoutView = ({
                 )}
                 {isBelowMinLimit && (
                     <span className="text-h8 font-normal">
-                        <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}
-                        .
+                        <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
                     </span>
                 )}
                 {isExceedingMaxLimit && (
                     <span className=" text-h8 font-normal ">
-                        <ChakraIcon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
+                        <Icon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
                         {MAX_CASHOUT_LIMIT.toLocaleString()}.
                     </span>
                 )}
                 {!xchainAllowed && (
                     <span className=" text-h8 font-normal ">
-                        <ChakraIcon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                        <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
                     </span>
                 )}
             </Card.Content>

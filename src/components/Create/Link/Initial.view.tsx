@@ -215,22 +215,3 @@ export const CreateLinkInitialView = ({
         </Card>
     )
 }
-
-{
-    /* <button
-    onClick={() => {
-        utils.shareToSms('+32475385638', 'link')
-    }}
-    className="btn h-max w-full cursor-pointer py-1 text-h1"
->
-    test sms
-</button>
-<button
-    onClick={() => {
-        utils.shareToEmail('borcherd@me.com', 'link')
-    }}
-    className="btn h-max w-full cursor-pointer py-1 text-h1"
->
-    test email
-</button> */
-}

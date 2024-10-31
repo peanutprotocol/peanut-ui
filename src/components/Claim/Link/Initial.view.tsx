@@ -1,5 +1,5 @@
 'use client'
-import GeneralRecipientInput from '@/components/Global/GeneralRecipientInput'
+import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
@@ -8,7 +8,6 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import * as consts from '@/constants'
-import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
@@ -135,17 +134,6 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    const _estimatePoints = async () => {
-        const USDValue = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
-        const estimatedPoints = await estimatePoints({
-            address: recipient.address ?? address ?? '',
-            chainId: claimLinkData.chainId,
-            amountUSD: USDValue,
-            actionType: ActionType.CLAIM,
-        })
-        setEstimatedPoints(estimatedPoints)
-    }
-
     const handleIbanRecipient = async () => {
         try {
             setErrorState({
@@ -201,20 +189,21 @@ export const InitialClaimLinkView = ({
             setLoadingState('Getting KYC status')
 
             if (!user) {
+                console.log(`user not logged in, getting account status for ${recipient.address}`)
                 const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        accountIdentifier: recipient.name,
+                        accountIdentifier: recipient.address,
                     }),
                 })
-
                 const response = await userIdResponse.json()
                 if (response.isNewUser) {
                     setUserType('NEW')
                 } else {
+                    // TODO: if not logged in but existing user, should show this somewhere in the UI.
                     setUserType('EXISTING')
                 }
                 setOfframpForm({
@@ -223,7 +212,7 @@ export const InitialClaimLinkView = ({
                     password: '',
                     recipient: recipient.name ?? '',
                 })
-                setInitialKYCStep(0)
+                setInitialKYCStep(0) // even if user exists, need to login
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
@@ -234,8 +223,8 @@ export const InitialClaimLinkView = ({
                 if (user?.user.kycStatus === 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
-                            account.account_identifier.toLowerCase() ===
-                            recipient.name?.replaceAll(' ', '').toLowerCase()
+                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                            recipient.name?.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {
@@ -264,10 +253,24 @@ export const InitialClaimLinkView = ({
     }
 
     useEffect(() => {
-        if (recipient) {
-            _estimatePoints()
+        let isMounted = true
+        if (recipient?.address && isValidRecipient) {
+            const amountUSD = Number(claimLinkData.tokenAmount) * (tokenPrice ?? 0)
+            estimatePoints({
+                address: recipient.address,
+                chainId: claimLinkData.chainId,
+                amountUSD,
+                actionType: ActionType.CLAIM,
+            }).then((points) => {
+                if (isMounted) {
+                    setEstimatedPoints(points)
+                }
+            })
         }
-    }, [recipient])
+        return () => {
+            isMounted = false
+        }
+    }, [recipient.address, isValidRecipient, claimLinkData.tokenAmount, claimLinkData.chainId, tokenPrice])
 
     useEffect(() => {
         if (recipient.address) return
@@ -470,50 +473,68 @@ export const InitialClaimLinkView = ({
                     }}
                     isStatic={recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false}
                 />
-                <GeneralRecipientInput
-                    className="px-1"
-                    placeholder="wallet address / ENS / IBAN / US account number"
-                    value={recipient.name ? recipient.name : (recipient.address ?? '')}
-                    onSubmit={(name: string, address: string) => {
-                        setRecipient({ name, address })
-                        setInputChanging(false)
-                    }}
-                    _setIsValidRecipient={({ isValid, error }: { isValid: boolean; error?: string }) => {
-                        setIsValidRecipient(isValid)
-                        if (error) {
+                    <GeneralRecipientInput
+                        className="px-1"
+                        placeholder="wallet address / ENS / IBAN / US account number"
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            setRecipientType(update.type)
+                            setIsValidRecipient(update.isValid)
                             setErrorState({
-                                showError: true,
-                                errorMessage: error,
+                                showError: !update.isValid,
+                                errorMessage: update.errorMessage,
                             })
-                        } else {
-                            setErrorState({
-                                showError: false,
-                                errorMessage: '',
-                            })
-                        }
-                        setInputChanging(false)
-                    }}
-                    setIsValueChanging={() => {
-                        setInputChanging(true)
-                    }}
-                    setRecipientType={(type: interfaces.RecipientType) => {
-                        setRecipientType(type)
-                    }}
-                    onDeleteClick={() => {
-                        setRecipientType('address')
-                        setRecipient({
-                            name: undefined,
-                            address: '',
-                        })
-                        setErrorState({
-                            showError: false,
-                            errorMessage: '',
-                        })
-                    }}
-                />
-                {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        {selectedRoute && (
+                            setInputChanging(update.isChanging)
+                        }}
+                    />
+                    {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                            {selectedRoute && (
+                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <label className="font-bold">Route</label>
+                                    </div>
+                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                        {isXchainLoading ? (
+                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                        ) : (
+                                            selectedRoute && (
+                                                <>
+                                                    {
+                                                        consts.supportedPeanutChains.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.fromChain
+                                                        )?.name
+                                                    }
+                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                    {
+                                                        mappedData.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.toChain
+                                                        )?.name
+                                                    }
+                                                    <MoreInfo
+                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                            consts.supportedPeanutChains.find(
+                                                                (chain) =>
+                                                                    chain.chainId ===
+                                                                    selectedRoute.route.params.fromChain
+                                                            )?.name
+                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                            mappedData.find(
+                                                                (chain) =>
+                                                                    chain.chainId === selectedRoute.route.params.toChain
+                                                            )?.name
+                                                        }.`}
+                                                    />
+                                                </>
+                                            )
+                                        )}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <Icon name={'forward'} className="h-4 fill-gray-1" />
@@ -555,7 +576,6 @@ export const InitialClaimLinkView = ({
                                     )}
                                 </span>
                             </div>
-                        )}
 
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">

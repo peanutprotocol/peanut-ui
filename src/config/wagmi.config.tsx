@@ -40,6 +40,7 @@ const config = createConfig({
             appName: 'Peanut Protocol',
         }),
         injected({ shimDisconnect: true }),
+        // @ts-ignore
         authConnector({
             chains: consts.chains,
             options: {

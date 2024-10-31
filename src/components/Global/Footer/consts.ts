@@ -1,4 +1,5 @@
 import * as icons from '@/assets/icons'
+
 export const SOCIALS = [
     {
         name: 'twitter',
@@ -18,7 +19,7 @@ export const SOCIALS = [
     {
         name: 'github',
         url: 'https://github.com/peanutprotocol/',
-        logoSrc: icons.GITHUB_INVERTED_ICON.src,
+        logoSrc: icons.GITHUB_ICON.src,
     },
 ]
 

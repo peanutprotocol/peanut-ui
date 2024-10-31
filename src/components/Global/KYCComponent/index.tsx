@@ -86,8 +86,8 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 if (
                     _user?.accounts.find(
                         (account) =>
-                            account.account_identifier.toLowerCase().replaceAll(' ', '') ===
-                            inputFormData.recipient.toLowerCase().replaceAll(' ', '')
+                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                            inputFormData.recipient.replaceAll(/\s/g, '').toLowerCase()
                     )
                 ) {
                     setActiveStep(4)
@@ -353,7 +353,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         <Card shadowSize="6">
             <Card.Header>
                 <Card.Title>KYC Process</Card.Title>
-                <Card.Description>After KYC, you can cashout straight to your bank account!</Card.Description>
+                <Card.Description>Regulations require us to verify your identity.</Card.Description>
             </Card.Header>
             <Card.Content>
                 <Steps
