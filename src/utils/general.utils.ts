@@ -10,7 +10,8 @@ export const shortenAddress = (address?: string) => {
     return firstBit + '..'
 }
 
-export const shortenAddressLong = (address: string, chars?: number): string => {
+export const shortenAddressLong = (address?: string, chars?: number): string => {
+    if (!address) return ''
     if (!chars) chars = 6
     const firstBit = address.substring(0, chars)
     const endingBit = address.substring(address.length - chars, address.length)

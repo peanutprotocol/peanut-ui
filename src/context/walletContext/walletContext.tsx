@@ -34,14 +34,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const { user } = useAuth()
 
     ////// BYOW props
-    const { address: wagmiAddress, isConnected: isWagmiConnected, addresses } = useAccount()
+    const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
 
     ////// Selected Wallet
     const [selectedWallet, setSelectedWallet] = useState<interfaces.IWallet | undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
 
     ////// Wallets
     const { data: wallets } = useQuery({
-        queryKey: ["wallets", user?.user.userId],
+        queryKey: ["wallets", user?.user.userId, kernelClientAddress, wagmiAddress],
         queryFn: async () => {
             /**
              * TODO: fetch wallets from backend
