@@ -48,8 +48,8 @@ interface ZeroDevContextType {
   setIsLoggingIn: (loggingIn: boolean) => void
   isSendingUserOp: boolean
   setIsSendingUserOp: (sendingUserOp: boolean) => void
-  handleRegister: (username: string) => Promise<void>
-  handleLogin: (username: string) => Promise<void>
+  handleRegister: (username: string) => Promise<AppSmartAccountClient>
+  handleLogin: (username: string) => Promise<AppSmartAccountClient>
   signMessage: (message: any) => Promise<string>
   handleSendUserOpEncoded: (
     {
@@ -180,7 +180,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
   ////// Login functions
   //
-  const handleLogin = async (handle: string) => {
+  const handleLogin = async (handle: string): Promise<AppSmartAccountClient | undefined> => {
     setIsLoggingIn(true)
     try {
 
@@ -198,12 +198,17 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2
       })
 
-      await createKernelClient(passkeyValidator)
+      const client = await createKernelClient(passkeyValidator)
+
+      setIsLoggingIn(false)
+  
+      return client
 
     } catch (e) {
       toast.error('Error logging in. Please try again.')
     } finally {
       setIsLoggingIn(false)
+      return undefined
     }
   }
 

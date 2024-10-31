@@ -123,10 +123,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const afterLoginUserSetup = async (): Promise<undefined> => {
         // set isAuthed
         setIsAuthed(true)
-
-        // // fetch user wallets
-        // // set PW as active wallet
-        setupWalletsAfterLogin()
     }
 
 
