@@ -24,7 +24,7 @@ interface SetupFlowContextType {
     isFirstStep: boolean
     isLastStep: boolean
     isLoading: boolean
-    handleNext: <T extends ScreenId>(businessLogic?: () => Promise<void>, props?: ScreenProps[T]) => Promise<void>
+    handleNext: <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => Promise<void>
     handleBack: () => void
     step: Step
     screenProps: ScreenProps[ScreenId] | undefined
@@ -48,24 +48,29 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
     const isLastStep = currentStep === steps.length
     const step = steps[currentStep - 1]
 
-    const handleNext = async <T extends ScreenId>(businessLogic?: () => Promise<void>, props?: ScreenProps[T]) => {
+    /**
+     * Notice: Callers of this function should handle errors themselves
+     * @param callback Should return a boolean indicating the step logic was successful
+     * @param props 
+     * @returns 
+     */
+    const handleNext = async <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => {
+        setIsLoading(true)
+
         try {
-            setIsLoading(true)
-
-            if (businessLogic) {
-                await businessLogic()
-            }
-
-            if (isLastStep) {
-                onComplete?.()
-                return
+            if (callback) {
+                const isValid = await callback()
+                if (!isValid) return
             }
 
             setScreenProps(props)
             setDirection(1)
             setCurrentStep((prev) => Math.min(steps.length, prev + 1))
-        } catch (error) {
-            console.error('Error in handleNext:', error)
+
+            if (isLastStep) {
+                onComplete?.()
+                return
+            }
         } finally {
             setIsLoading(false)
         }

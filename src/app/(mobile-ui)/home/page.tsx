@@ -1,50 +1,39 @@
 'use client'
 
-import { Card } from '@/components/0_Bruddle'
+import { Button, Card } from '@/components/0_Bruddle'
 import { ArrowIcon } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import React from 'react'
 import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
 import Icon from '@/components/Global/Icon'
 import { motion, useAnimation } from 'framer-motion'
-import { useRef, useEffect, useState } from 'react'
+import { useRef, useEffect } from 'react'
 import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
 import { useWallet } from '@/context/walletContext'
-import { IWallet, WalletProviderType } from '@/interfaces'
-import { useAuth } from '@/context/authContext'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import Link from 'next/link'
+import { shortenAddressLong } from '@/utils'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 
-import * as interfaces from '@/interfaces'
+const cardWidth = 300
+const cardMargin = 16
 
 const Home = () => {
-    const [selectedWalletIndex, setSelectedWalletIndex] = useState(0)
-    // TODO: should error strings be moved to the walletContext?
-    const [walletErrorStrings, setWalletErrorStrings] = useState<(string | null)[]>([])
-    const [connectProviderButtonShown, setConnectProviderButtonShown] = useState<boolean>(false)
+    const controls = useAnimation()
+    const { handleLogin, isLoggingIn } = useZeroDev()
 
     const carouselRef = useRef<HTMLDivElement>(null)
-    const controls = useAnimation()
 
-    const { wallets, areWalletsFetchedAndSetup, checkActivateWallet } = useWallet()
-    const { user } = useAuth()
+    const { wallets, selectedWallet, setSelectedWallet } = useWallet()
 
-    const { open } = useWeb3Modal()
+    const { uri: avatarURI } = useAvatar(selectedWallet ? selectedWallet.address : 'i am sad bc i dont have peanut')
 
-    // const wallets = [
-    //     { amount: '$40.00', username: 'kkonrad', email: 'kkonrad@peanut.to' },
-    //     { amount: '$55.00', username: 'alice123', email: 'alice123@peanut.to' },
-    //     { amount: '$30.00', username: 'bob456', email: 'bob456@peanut.to' },
-    //     { amount: '$70.00', username: 'charlie789', email: 'charlie789@peanut.to' },
-    //     { amount: '$25.00', username: 'david101', email: 'david101@peanut.to' },
-    // ]
 
-    const cardWidth = 300
-    const cardMargin = 16
-    const { uri: avatarURI } = useAvatar(wallets[selectedWalletIndex] ? wallets[selectedWalletIndex].address : 'i am sad bc i dont have peanut')
-
-    const { uri: sadAvatarURI} = useAvatar('i am sad bc i dont have peanut')
+    const rawIndex = wallets.findIndex(wallet => wallet.address === selectedWallet?.address);
+    const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
+    const hasWallets = wallets.length > 0
+    const isConnectWallet = selectedWallet?.connected;
 
     useEffect(() => {
         controls.start({
@@ -53,76 +42,57 @@ const Home = () => {
         })
     }, [selectedWalletIndex, controls])
 
-    // sets errorString size
-    useEffect(() => {
-        if (wallets) {
-            cleanErrors()
-        } else{
-            setWalletErrorStrings([])
-        }
-    }, [wallets])
-
-    const handleCardClick = async (wallet: IWallet, index: number, ) => {
-        try {
-            await checkActivateWallet(wallet)
-            setSelectedWalletIndex(index)
-            cleanErrors()
-        } catch (error) {
-            if (error instanceof interfaces.WalletError) {
-                // TODO: handle that it throws error
-                walletErrorStrings[index] = error.message
-                setWalletErrorStrings([...walletErrorStrings])
-
-                // TODO: differentiate between kinds of errors
-                setConnectProviderButtonShown(true)
-            } else {
-                throw error
-            }
-        }
+    const handleCardClick = (index: number) => {
+        setSelectedWallet(wallets[index])
     }
-
-    const cleanErrors = async () => {
-        setWalletErrorStrings(new Array(wallets.length).fill(null))
-    }
-
-    const handleConnectCorrectBYOWToProvider = async (index: number, wallet: IWallet) => {
-        await open()
-        handleCardClick(wallet, index)
-    }
-
-    const handleAddBYOW = () => {}
-
 
     return (
         <div className="flex h-full w-full flex-row justify-center">
             <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
-                {/* Logged in (always an available wallet) */}
-                {areWalletsFetchedAndSetup && (
-                    <div className="w-full">
-                        <div className="relative mb-2.5 h-21 w-21 self-center">
-                            <img className="rounded-full object-cover" src={avatarURI} alt="Avatar" />
+                <div className="w-full flex flex-row justify-between">
+                    <div className='flex flex-col'>
+                        <div className="relative mb-2.5 h-21 w-21">
+                            <img className="rounded-full object-cover bg-white border-black border" src={avatarURI} alt="Avatar" />
                         </div>
-                        <div className="text-h4">{wallets[selectedWalletIndex].address}</div>
-                        <div className="text-sm">{wallets[selectedWalletIndex].protocolType}</div>
+                        <div className="text-h4">{selectedWallet?.handle}</div>
+                        <div className="text-sm">{shortenAddressLong(selectedWallet?.address)}</div>
                     </div>
-                )}
+                    {hasWallets && <div>
+                        <Button
+                            loading={isLoggingIn}
+                            disabled={isLoggingIn}
+                            shadowSize={!isConnectWallet ? "4" : undefined}
+                            variant={isConnectWallet ? "green" : 'purple'}
+                            onClick={() => {
+                                if (!selectedWallet?.handle) return
+                                handleLogin(selectedWallet?.handle)
+                            }}
+                        >
+                            {isConnectWallet ? 'Connected' : 'Sign In'}
+                        </Button>
+                    </div>}
+                </div>
+                <div
+                    className={classNames("relative sm:overflow-visible h-[250px] mr-[calc(0px - 16px)] ml-[calc(0px - 16px)]", {
+                        'overflow-hidden': wallets.length > 0
+                    })}
+                >
 
-                <div className="relative" style={{ height: '250px' }}>
-                    <motion.div
+                    {wallets.length ? <motion.div
                         ref={carouselRef}
-                        className="absolute flex"
+                        className="absolute flex h-[calc(100%-32px)]"
                         animate={controls}
                         drag="x"
                         dragConstraints={{ left: -((wallets.length - 1) * (cardWidth + cardMargin)), right: 0 }}
                         dragElastic={0.2}
-                        onDragEnd={(_e, { offset, velocity }) => {
+                        onDragEnd={(e, { offset, velocity }) => {
                             const swipe = Math.abs(offset.x) * velocity.x
                             if (swipe < -10000) {
                                 const nextIndex = Math.min(selectedWalletIndex + 1, wallets.length - 1)
-                                setSelectedWalletIndex(nextIndex)
+                                setSelectedWallet(wallets[nextIndex])
                             } else if (swipe > 10000) {
                                 const prevIndex = Math.max(selectedWalletIndex - 1, 0)
-                                setSelectedWalletIndex(prevIndex)
+                                setSelectedWallet(wallets[prevIndex])
                             } else {
                                 controls.start({
                                     x: -(selectedWalletIndex * (cardWidth + cardMargin)),
@@ -131,97 +101,76 @@ const Home = () => {
                             }
                         }}
                     >
-                        {areWalletsFetchedAndSetup && (
-                            <>
-                                {wallets.map((wallet: IWallet, index) => {
-                                    const selected = selectedWalletIndex === index
-                                    return (
-                                        <motion.div
-                                            key={index}
-                                            className={classNames('mr-4', {
-                                                'opacity-40': !selected,
-                                            })}
-                                            onClick={() => {
-                                                handleCardClick(
-                                                    wallet,
-                                                    index
-                                                )
-                                            }}
-                                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                        >
-                                            <Card
-                                                className="flex flex-col gap-4 rounded-md bg-purple-1 text-white hover:cursor-pointer"
-                                                style={{ width: `${cardWidth}px` }}
-                                                shadowSize="6"
-                                            >
-                                                {wallet.walletProviderType == WalletProviderType.PEANUT && (
-                                                    <Card.Content className="flex flex-col gap-2">
-                                                        <Image src={PeanutWalletIcon} alt="" />
-                                                        {/* <p className="text-4xl font-black sm:text-5xl">{wallet.amount}</p> */}
-                                                        <div className="flex flex-col">
-                                                            <p>peanut.me/</p>
-                                                            <p className="font-bold">{user?.user.username}</p>
-                                                        </div>
-                                                    </Card.Content>
-                                                )}
-                                                {wallet.walletProviderType == WalletProviderType.BYOW && (
-                                                    <Card.Content className="flex flex-col gap-2">
-                                                        <img className="rounded-full object-cover" src={useAvatar(wallet.address).uri} alt="Avatar" />
-                                                        {/* <p className="text-4xl font-black sm:text-5xl">{wallet.amount}</p> */}
-                                                        <div className="flex flex-col">
-                                                            <p className="font-bold">{wallet.address}</p>
-                                                        </div>
-                                                        {/* TODO: make errors look nicer and have proper if-cases */}
-                                                        {walletErrorStrings[index] && (
-                                                            <div>
-                                                                {walletErrorStrings[index]}
-                                                                {connectProviderButtonShown && (
-                                                                    <div
-                                                                        onClick={(event) => {
-                                                                            event.stopPropagation()
-                                                                            handleConnectCorrectBYOWToProvider(index, wallet)
-                                                                        }}
-                                                                    >
-                                                                        this is the provider button - click to get provider
-                                                                    </div>
-                                                                )}
+                        {wallets.map((wallet, index) => {
+                            const selected = selectedWalletIndex === index
+                            const selectedIsConnected = wallet.connected
+                            return (
+                                <motion.div
+                                    key={index}
+                                    className={classNames('mr-4 h-full', {
+                                        'opacity-40': !selected,
+                                    })}
+                                    onClick={() => handleCardClick(index)}
+                                    transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                >
+                                    <Card
+                                        className={classNames("flex h-full flex-col gap-4 rounded-md text-white hover:cursor-pointer w-[300px]", {
+                                            "bg-green-1": selectedIsConnected,
+                                            "bg-purple-1": !selectedIsConnected,
+                                        })}
 
-                                                            </div>
-                                                        )}
-                                                        
-                                                    </Card.Content>
-                                                )}
-
-                                            </Card>
-                                        </motion.div>
-                                    )
-                                })}
-                            </>
-
-                        )}
-
-                    <motion.div
-                            onClick={() => handleAddBYOW()}
-                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                        shadowSize="6"
+                                    >
+                                        <Card.Content className="flex flex-col h-full justify-between gap-2">
+                                            <div className='flex flex-row items-center gap-4'>
+                                                <Image src={PeanutWalletIcon} alt="" />
+                                                <p className="text-xl">peanut.me/<span className="font-bold">{wallet.handle}</span></p>
+                                            </div>
+                                            <p className="text-4xl font-black sm:text-5xl">$ 0.00</p>
+                                            <div>
+                                                <div className="flex flex-col">
+                                                    <p className="text-2xl font-black sm:text-3xl">{shortenAddressLong(wallet.address)}</p>
+                                                </div>
+                                            </div>
+                                        </Card.Content>
+                                    </Card>
+                                </motion.div>
+                            )
+                        })}
+                    </motion.div> : <div
+                        className="w-full flex-grow h-full flex flex-col justify-center"
+                    >
+                        <Card
+                            className={classNames("flex flex-col gap-4 rounded-md text-black hover:cursor-pointer w-full")}
+                            shadowSize="6"
                         >
-                            <Card
-                                className="flex flex-col gap-4 rounded-md bg-purple-1 text-white hover:cursor-pointer"
-                                style={{ width: `${cardWidth}px` }}
-                                shadowSize="6"
-                            >
-                                <Card.Content className="flex flex-col gap-2">
-                                    <Image src={PeanutWalletIcon} alt="" />
-                                    <p className="text-4xl font-black sm:text-5xl">Add your own wallet</p>
-                                    <div className="flex flex-col">
-                                        <p className="font-bold">Connect your wallets to your Peanut account</p>
+                            <Link href="/setup" className="h-full">
+                                <Card.Content className="h-full flex-col gap-8 flex justify-center items-center">
+                                    <p className="text-2xl font-bold">Get Started !</p>
+                                    <div className='flex flex-row items-center gap-4 justify-start'>
+                                        <Icon name="plus-circle" className="h-8 w-8" />
+                                        <p className="text-lg">Create a peanut wallet</p>
+
                                     </div>
                                 </Card.Content>
-                            </Card>
-                        </motion.div>
-
-                    </motion.div>
+                            </Link>
+                        </Card>
+                    </div>}
                 </div>
-                <div className="flex w-full flex-row items-center justify-center gap-4 sm:justify-between sm:gap-8">
+                {hasWallets && <div className=''>
+                    <Card
+                        className="flex flex-col gap-4 w-full rounded-md hover:cursor-pointer"
+                        shadowSize="4"
+                    >
+                        <Link href="/setup" className="h-full">
+                            <Card.Content className="flex h-full flex-row items-center justify-start gap-2">
+                                <Icon name="plus-circle" className="h-8 w-8" />
+                                <p className="text-lg font-bold">Create a peanut wallet</p>
+                            </Card.Content>
+                        </Link>
+                    </Card>
+                </div>}
+                <div className="flex w-full flex-row items-center flex-grow justify-center gap-4 sm:justify-between sm:gap-8">
                     <motion.div
                         className="flex flex-col items-center gap-2"
                         whileTap={{ scale: 0.95 }}
@@ -251,7 +200,7 @@ const Home = () => {
                     </motion.div>
                 </div>
             </div>
-        </div>
+        </div >
     )
 }
 

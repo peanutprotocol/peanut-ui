@@ -1,11 +1,12 @@
+import { Address } from 'viem'
 
 export enum WalletProviderType {
     PEANUT = 'PEANUT',
-    BYOW = 'BYOW'
+    BYOW = 'BYOW',
 }
 
 export enum WalletProtocolType {
-    EVM = 'EVM'
+    EVM = 'EVM',
 }
 
 // the data model as it is fetched from the backend
@@ -15,7 +16,7 @@ export interface IDBWallet {
     address: string
 }
 
-export interface IWallet extends IDBWallet{
+export interface IWallet extends IDBWallet {
     // connected refers to the provider state
     //
     // The user may select a wallet but the provider may be connected
@@ -24,6 +25,7 @@ export interface IWallet extends IDBWallet{
     // and the user is logged in. That is because there is only one PW per user,
     // and the provider will always be connected to that.
     connected: boolean
+    handle?: string
 }
 
 export enum WalletErrorType {
@@ -39,22 +41,21 @@ export enum WalletErrorType {
 }
 
 export interface IWalletError {
-    walletErrorType: WalletErrorType;
+    walletErrorType: WalletErrorType
 }
 
 export class WalletError extends Error implements IWalletError {
-    walletErrorType: WalletErrorType;
+    walletErrorType: WalletErrorType
 
     constructor(walletErrorType: WalletErrorType, message: string | undefined = undefined) {
         if (!message) {
             message = walletErrorType.valueOf()
         }
-        super(message);
-        this.walletErrorType = walletErrorType;
-        this.name = "WalletError";
+        super(message)
+        this.walletErrorType = walletErrorType
+        this.name = 'WalletError'
 
         // fixes the prototype chain for inheritance when targeting ES5 or earlier
-        Object.setPrototypeOf(this, WalletError.prototype);
+        Object.setPrototypeOf(this, WalletError.prototype)
     }
 }
-

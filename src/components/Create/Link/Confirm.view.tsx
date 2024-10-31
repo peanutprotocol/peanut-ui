@@ -61,7 +61,7 @@ export const CreateLinkConfirmView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     // const { address } = useAccount()
-    const { address, isActiveWalletPW } = useWallet()
+    const { address } = useWallet()
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -190,8 +190,8 @@ export const CreateLinkConfirmView = ({
                     {createType == 'link'
                         ? 'Text Tokens'
                         : createType == 'direct'
-                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
-                          : `Send to ${recipient.name}`}
+                            ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
+                            : `Send to ${recipient.name}`}
                 </Card.Title>
                 <Card.Description>
                     {createType === 'link' &&
@@ -260,8 +260,8 @@ export const CreateLinkConfirmView = ({
                                 {transactionCostUSD === 0
                                     ? '$0'
                                     : transactionCostUSD < 0.01
-                                      ? '$<0.01'
-                                      : `$${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
+                                        ? '$<0.01'
+                                        : `$${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
                                 <MoreInfo
                                     text={
                                         transactionCostUSD > 0
@@ -285,8 +285,8 @@ export const CreateLinkConfirmView = ({
                                         ? estimatedPoints > 0
                                             ? `This transaction will add ${estimatedPoints} to your total points balance.`
                                             : estimatedPoints < 0
-                                              ? `This transaction will cost you ${estimatedPoints} points, but will not cost you any gas fees!`
-                                              : 'This transaction will not add any points to your total points balance'
+                                                ? `This transaction will cost you ${estimatedPoints} points, but will not cost you any gas fees!`
+                                                : 'This transaction will not add any points to your total points balance'
                                         : 'This transaction will not add any points to your total points balance'
                                 }
                             />

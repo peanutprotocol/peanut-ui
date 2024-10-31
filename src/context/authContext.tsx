@@ -40,9 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address } = useAccount()
     const { signMessageAsync } = useSignMessage()
 
-    const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
-
-    const {address: kernelClientAddress, isKernelClientReady, handleLogin} = useZeroDev()
+    const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -63,16 +61,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsAuthed(false)
         }
     }, [user])
-
-    // TODO: this needs to be moved elsewhere (i.e. possible walletContext), was
-    // here for testing - POSSIBLY be removed bc the order is reversed:
-    // you first login w/ passkeys, so flow below would never happen
-    useEffect(() => {
-        if (kernelClientAddress != null && isKernelClientReady) {
-            // set PW as active wallet
-            setupWalletsAfterLogin()
-        }
-    }, [kernelClientAddress, isKernelClientReady])
 
     const registerUserWithPasskey = async (username: string) => {
         //  validatiion of @handle has happened before this function
@@ -116,9 +104,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // TODO: handle case where they try to register w/ pre-registered passkey 
     }
 
-    const loginUserWithPasskey = async (username: string) => {
-
-    }
 
     // TODO: document better
     // used after register too (there is a login event then too)
@@ -134,14 +119,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // setupWalletsAfterLogin()
 
 
-    }
-
-    const afterLogoutUserSetup = async (): Promise<undefined> => {
-        // set isAuthed
-        setIsAuthed(false)
-
-        // fetch user wallets
-        deactiveWalletsOnLogout()
     }
 
 
