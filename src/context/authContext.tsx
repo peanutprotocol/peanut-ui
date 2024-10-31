@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
     const { deactiveWalletsOnLogout, setupWalletsAfterLogin } = useWallet()
 
-    const {address: kernelClientAddress, isKernelClientReady, handleLogin} = useZeroDev()
+    const {address: kernelClientAddress, isKernelClientReady, handleLogin, signUserTx} = useZeroDev()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -91,6 +91,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 setUsername('')
 
                 // TODO: handle case where they try to register w/ pre-registered passkey 
+            } else if (isLoggingIn) {
+                handleLoginAfterKernelProvider(kernelClientAddress)
             }
 
             // set PW as active wallet
@@ -107,7 +109,62 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const loginUserWithPasskey = async (username: string) => {
+        setIsLoggingIn(true)
+        setUsername(username)
+        //  validatiion of @handle has happened before this function
+        await handleLogin(username)
+        // TODO: case of failure on login
+    }
 
+    const handleLoginAfterKernelProvider = async (address: string, ) => {
+        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                accountIdentifier: address,
+            }),
+        })
+
+        const response = await userIdResponse.json()
+
+        const siwemsg = utils.createSiweMessage({
+            address: address ?? '',
+            statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
+        })
+
+        const signature = await signUserTx(siwemsg)
+
+        await fetch('/api/peanut/user/get-jwt-token', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                signature: signature,
+                message: siwemsg,
+            }),
+        })
+
+        return
+
+        await fetch('/api/peanut/user/login-user-with-passkey', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                signature: signature,
+                message: siwemsg,
+                address: kernelClientAddress,
+                user_id: response.userId
+            }),
+        })
+
+        fetchUser()
+        setIsRegistering(false)
+        setUsername('')
     }
 
     // TODO: document better

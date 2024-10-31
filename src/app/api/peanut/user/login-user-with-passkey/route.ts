@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 import * as consts from '@/constants'
 export async function POST(request: NextRequest) {
-    const { signature, message, address, user_id } = await request.json()
+    const { signature, message } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
 
     if (!signature || !message || !apiKey) {
@@ -10,7 +10,7 @@ export async function POST(request: NextRequest) {
     }
 
     try {
-        const response = await fetch(`${consts.PEANUT_API_URL}/login-user-with-passkey`, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/get-token`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -19,13 +19,11 @@ export async function POST(request: NextRequest) {
             body: JSON.stringify({
                 signature: signature,
                 message: message,
-                address: address,
-                user_id: user_id
             }),
         })
 
         if (response.status != 200) {
-            return new NextResponse('Error in login-user-with-passkey', {
+            return new NextResponse('Error in get-jwt-token', {
                 status: response.status,
                 headers: {
                     'Content-Type': 'application/json',

@@ -33,6 +33,7 @@ interface ZeroDevContextType {
   setIsSendingUserOp: (sendingUserOp: boolean) => void
   handleRegister: (username: string) => Promise<void>
   handleLogin: (username: string) => Promise<void>
+  signUserTx: (message: any) => Promise<string>
   handleSendUserOpEncoded: (
     {
       to,
@@ -197,6 +198,12 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   ////// UserOp functions
   //
 
+  const signUserTx = async (message: any) => {
+    return  kernelClient!.account!.signMessage({
+      message
+    })
+  }
+
   // TODO: better docstrings
   // used when data is already encoded from Peanut
   // but remains unsigned
@@ -312,6 +319,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         isSendingUserOp, setIsSendingUserOp,
         handleRegister,
         handleLogin,
+        signUserTx,
         handleSendUserOpEncoded,
         handleSendUserOpNotEncoded,
         address
