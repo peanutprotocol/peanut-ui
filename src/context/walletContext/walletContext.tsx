@@ -22,9 +22,9 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 // TODO: change description
 /**
- * Context provider to manage user authentication and profile interactions.
- * It handles fetching the user profile, updating user details (e.g., username, profile photo),
- * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
+ * 
+ * 
+ * 
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     ////// ZeroDev props
