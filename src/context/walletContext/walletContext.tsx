@@ -1,14 +1,15 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react'
 import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 
 // ZeroDev imports
 import { useZeroDev } from './zeroDevContext.context'
 import { PasskeyStorage } from '@/components/Setup/Setup.helpers'
-import { useAuth } from '../authContext'
 import { useQuery } from '@tanstack/react-query'
+import { PEANUT_WALLET_CHAIN } from '@/constants'
+import { Chain } from 'viem'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined,
@@ -16,6 +17,8 @@ interface WalletContextType {
     wallets: interfaces.IWallet[],
     // TODO: to refactor
     address?: string
+    chain: Chain
+    isConnected: boolean
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -28,20 +31,17 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     ////// ZeroDev props
-    const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
-
-    ////// Auth props
-    const { user } = useAuth()
+    const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
 
     ////// BYOW props
     const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
 
     ////// Selected Wallet
-    const [selectedWallet, setSelectedWallet] = useState<interfaces.IWallet | undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useAccount() anywhere
+    const [selectedWallet, setSelectedWallet] = useState<interfaces.IWallet | undefined>(undefined)  // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useWallet() anywhere
 
     ////// Wallets
     const { data: wallets } = useQuery({
-        queryKey: ["wallets", user?.user.userId, kernelClientAddress, wagmiAddress],
+        queryKey: ["wallets", kernelClientAddress, wagmiAddress],
         queryFn: async () => {
             /**
              * TODO: fetch wallets from backend
@@ -76,20 +76,35 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         }
     })
 
+    const updateSelectedWalletWithConnectionStatus = useCallback((wallet: interfaces.IWallet) => {
+        const isPeanut = wallet.walletProviderType == interfaces.WalletProviderType.PEANUT
+        if (isPeanut) {
+            wallet.connected = isKernelClientReady && kernelClientAddress == wallet.address
+        } else {
+            wallet.connected = isWagmiConnected && wagmiAddress == wallet.address
+        }
+        setSelectedWallet(wallet)
+    }, [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddress])
+
+    /**
+     * Update initial selected wallet
+     */
     useEffect(() => {
         if (!selectedWallet && wallets && wallets.length > 0) {
             const wallet = wallets[0];
 
-            const isPeanut = wallet.walletProviderType == interfaces.WalletProviderType.PEANUT
-            if (isPeanut) {
-                wallet.connected = isKernelClientReady && kernelClientAddress == wallet.address
-            } else {
-                wallet.connected = isWagmiConnected && wagmiAddress == wallet.address
-            }
-
-            setSelectedWallet(wallet)
+            updateSelectedWalletWithConnectionStatus(wallet)
         }
     }, [wallets])
+
+    /**
+     * Update selected wallet with connection status when kernel client is ready or wagmi is connected
+     */
+    useEffect(() => {
+        if (selectedWallet) {
+            updateSelectedWalletWithConnectionStatus(selectedWallet)
+        }
+    }, [kernelClientAddress, wagmiAddress])
 
 
     const removeBYOW = async () => {
@@ -102,6 +117,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // if another wallet is connected to the provider, make that active, otherwise 
         // no wallet active (have to review all props to ensure they are null)
     }
+
+    const isConnected = selectedWallet?.connected || false
+
+    console.log({ isConnected })
 
     return (
         <WalletContext.Provider
@@ -125,8 +144,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         ? isKernelClientReady && kernelClientAddress == selectedWallet.address
                         : isWagmiConnected && wagmiAddress == selectedWallet?.address
                 },
-                setSelectedWallet,
-                address: selectedWallet?.address
+                setSelectedWallet: (wallet: interfaces.IWallet) => {
+                    updateSelectedWalletWithConnectionStatus(wallet)
+                },
+                address: selectedWallet?.address,
+                chain: PEANUT_WALLET_CHAIN,
+                isConnected,
             }}>
             {children}
         </WalletContext.Provider>
