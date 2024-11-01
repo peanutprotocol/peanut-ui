@@ -7,7 +7,7 @@ import { createWeb3Modal } from '@web3modal/wagmi/react'
 import { WagmiProvider, createConfig, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { createClient } from 'viem'
+import { Chain, createClient } from 'viem'
 import { authConnector } from '@web3modal/wagmi'
 
 // 0. Setup queryClient
@@ -42,7 +42,8 @@ const config = createConfig({
         injected({ shimDisconnect: true }),
         // @ts-ignore
         authConnector({
-            chains: consts.chains,
+            // @ts-ignore
+            chains: consts.chains as readonly [Chain, ...Chain[]],
             options: {
                 projectId,
             },
