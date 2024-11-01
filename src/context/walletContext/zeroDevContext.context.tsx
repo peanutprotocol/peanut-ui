@@ -203,6 +203,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       await createKernelClient(passkeyValidator)
 
     } catch (e) {
+      console.error('Error logging in', e)
       toast.error('Error logging in. Please try again.')
     } finally {
       setIsLoggingIn(false)
