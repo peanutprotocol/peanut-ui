@@ -66,11 +66,9 @@ export const InitialClaimLinkView = ({
     )
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
-    const { open } = useWeb3Modal()
 
     // TODO: isConnected needs to be moved in useWallet()
-    const { address } = useWallet()
-    const { isConnected } = useWallet()
+    const { isConnected, address, promptWalletSignIn } = useWallet()
     const { user } = useAuth()
 
     // TODO: all handleConnectWallet will need to pass through useWallet()
@@ -80,7 +78,7 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
-            open()
+            promptWalletSignIn()
         }
     }
 

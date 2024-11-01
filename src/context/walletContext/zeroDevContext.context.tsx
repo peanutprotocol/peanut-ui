@@ -98,7 +98,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   const [address, setAddress] = useState<string | undefined>(undefined)
 
   const publicClient = createPublicClient({
-    transport: http(consts.BUNDLER_URL),
+    // Replace with custom RPC url if needed (alchemy, infura, etc)
+    transport: http(),
     chain: consts.PEANUT_WALLET_CHAIN,
   })
 

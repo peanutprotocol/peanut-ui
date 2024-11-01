@@ -1,10 +1,13 @@
 'use client'
 
 import '../../styles/globals.bruddle.css'
-import { NavIcons, NavIconsName } from '@/components/0_Bruddle'
+import { Button, NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import HomeNav from '@/components/Home/HomeNav'
+import Modal from '@/components/Global/Modal'
+import { useWallet } from '@/context/walletContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 
 type NavTabProps = {
     name: string
@@ -32,6 +35,8 @@ const tabs: NavTabProps[] = [
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const [isReady, setIsReady] = useState(false)
+    const { promptWalletSigninOpen, promptWalletSigninClose, selectedWallet } = useWallet()
+    const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
         setIsReady(true)
@@ -54,6 +59,18 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                 ))}
             </div>
+            <Modal visible={promptWalletSigninOpen} onClose={() => {
+                promptWalletSigninClose()
+            }} title={"Sign In with your Peanut Wallet"}>
+                <div className="p-5 flex flex-col gap-2">
+                    <p>Selected Wallet: <span className="font-bold">{selectedWallet?.handle}.peanut.wallet</span></p>
+                    <Button loading={isLoggingIn} disabled={isLoggingIn} onClick={() => {
+                        if (!selectedWallet) return
+                        const { handle } = selectedWallet
+                        handleLogin(handle)
+                    }}>Sign In</Button>
+                </div>
+            </Modal>
         </div>
     )
 }

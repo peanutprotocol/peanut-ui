@@ -1,6 +1,5 @@
 import * as _consts from '../Pay.consts'
 import { useSwitchChain } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
@@ -21,7 +20,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { Button, Card } from '@/components/0_Bruddle'
+import { Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { type ITokenPriceData } from '@/interfaces'
 
@@ -71,10 +70,9 @@ export const InitialView = ({
     // TODO: currentChain needs to be moved to useWallet
     const { isConnected, chain: currentChain } = useWallet()
 
-    const { address } = useWallet()
+    const { address, promptWalletSignIn } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
-    const { open } = useWeb3Modal()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedTokenData,
@@ -228,9 +226,7 @@ export const InitialView = ({
     }
 
     const handleConnectWallet = async () => {
-        open().finally(() => {
-            if (isConnected) setLoadingState('Loading')
-        })
+        promptWalletSignIn()
     }
 
     const switchNetwork = async (chainId: string) => {

@@ -17,10 +17,9 @@ import PageContainer from '../0_Bruddle/PageContainer'
 import { useWallet } from '@/context/walletContext'
 
 export const Refund = () => {
-    const { isConnected } = useWallet()
+    const { isConnected, promptWalletSignIn } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const { open } = useWeb3Modal()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -170,7 +169,7 @@ export const Refund = () => {
                                 type={isConnected ? 'submit' : 'button'}
                                 onClick={() => {
                                     if (!isConnected) {
-                                        open()
+                                        promptWalletSignIn()
                                     }
                                 }}
                                 disabled={isLoading || claimedExploredUrlWithHash ? true : false}

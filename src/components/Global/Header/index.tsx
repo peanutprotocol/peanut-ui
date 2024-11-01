@@ -221,8 +221,7 @@ const ToolsDropdown = () => {
 }
 
 const MenuLinks = () => {
-    const { open: web3modalOpen } = useWeb3Modal()
-    const { address, isConnected } = useWallet()
+    const { address, isConnected, promptWalletSignIn } = useWallet()
 
     return (
         <Stack
@@ -258,7 +257,7 @@ const MenuLinks = () => {
                 <NavItemBox>
                     <button
                         onClick={() => {
-                            web3modalOpen()
+                            promptWalletSignIn()
                         }}
                         className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
                     >
@@ -274,8 +273,7 @@ const MenuLinks = () => {
 }
 
 const SocialLinks = () => {
-    const { open: web3modalOpen } = useWeb3Modal()
-    const { address, isConnected } = useWallet()
+    const { address, isConnected, promptWalletSignIn } = useWallet()
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
@@ -285,7 +283,7 @@ const SocialLinks = () => {
             <button
                 className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
-                    web3modalOpen()
+                    promptWalletSignIn()
                 }}
             >
                 {isConnected ? shortenAddress(address ?? '') : 'Connect'}

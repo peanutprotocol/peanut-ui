@@ -10,6 +10,7 @@ import { PasskeyStorage } from '@/components/Setup/Setup.helpers'
 import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { Chain } from 'viem'
+import { useRouter } from 'next/navigation'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined,
@@ -19,6 +20,9 @@ interface WalletContextType {
     address?: string
     chain: Chain
     isConnected: boolean
+    promptWalletSignIn: () => void
+    promptWalletSigninOpen: boolean
+    promptWalletSigninClose: () => void
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -30,6 +34,8 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
+    const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
+    const { push } = useRouter()
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
 
@@ -118,9 +124,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // no wallet active (have to review all props to ensure they are null)
     }
 
-    const isConnected = selectedWallet?.connected || false
-
-    console.log({ isConnected })
+    /**
+     * Method used as app prompt to connect wallet
+     * Now: Refirecting to /home
+     * Future: Open modal to pick wallet
+     */
+    const promptWalletSignIn = async () => {
+        setPromptWalletSigninOpen(true)
+    }
 
     return (
         <WalletContext.Provider
@@ -149,7 +160,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 },
                 address: selectedWallet?.address,
                 chain: PEANUT_WALLET_CHAIN,
-                isConnected,
+                isConnected: selectedWallet?.connected || false,
+                promptWalletSignIn,
+                promptWalletSigninOpen,
+                promptWalletSigninClose: () => setPromptWalletSigninOpen(false)
             }}>
             {children}
         </WalletContext.Provider>
