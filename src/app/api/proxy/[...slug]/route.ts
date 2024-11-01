@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
         'x-forwarded-for': userIp,
         'Accept-Encoding': 'gzip', // Explicitly accept gzip encoding
         'Api-Key': process.env.PEANUT_API_KEY!,
+        'Origin': request.headers.get('origin'),
     } as any
 
     const apiResponse = await fetch(fullAPIUrl, {

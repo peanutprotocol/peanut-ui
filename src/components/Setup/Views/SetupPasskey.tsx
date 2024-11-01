@@ -25,6 +25,7 @@ const SetupPasskey = () => {
 
             return true;
         } catch (error) {
+            console.error('Error creating passkey', error)
             toast.error('Failed to create passkey')
             return false;
         }
