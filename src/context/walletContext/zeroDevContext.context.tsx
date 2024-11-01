@@ -119,6 +119,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
     console.log({ kernelAccount })
 
+    console.log('Creating kernel account client with consts')
+    console.dir(consts)
     const kernelClient = createKernelAccountClient({
       account: kernelAccount,
       chain: consts.PEANUT_WALLET_CHAIN,
