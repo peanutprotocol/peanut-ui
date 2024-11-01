@@ -13,7 +13,6 @@ import Icon from '@/components/Global/Icon'
 import { ethers } from 'ethers'
 import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
-import { useAccount } from 'wagmi'
 import { CrispButton } from '@/components/CrispChat'
 import { Button, Card } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
@@ -32,7 +31,6 @@ export const CreateLinkInitialView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
-    const { isConnected } = useAccount()
 
     const handleInputValidation = async (value: string) => {
         //email check

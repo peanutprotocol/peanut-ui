@@ -16,6 +16,7 @@ import * as components from './components'
 import Modal from '../Global/Modal'
 
 import { useDashboard } from './useDashboard'
+import { useWallet } from '@/context/walletContext'
 
 export const Dashboard = () => {
     const itemsPerPage = 10
@@ -27,7 +28,7 @@ export const Dashboard = () => {
     const [currentPage, setCurrentPage] = useState<number>(1)
     const [legacyLinks, setLegacyLinks] = useState<string[]>([])
 
-    const { address } = useAccount()
+    const { address } = useWallet()
     const router = useRouter()
 
     const { composeLinkDataArray, fetchLinkDetailsAsync, filterDashboardData, sortDashboardData } = useDashboard()

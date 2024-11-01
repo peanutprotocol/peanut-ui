@@ -9,13 +9,13 @@ export const ContextProvider = ({ children }: { children: React.ReactNode }) => 
     return (
         <ToastProvider>
             <ZeroDevProvider>
-                <AuthProvider>
-                    <WalletProvider>
+                <WalletProvider>
+                    <AuthProvider>
                         <TokenContextProvider>
                             <LoadingStateContextProvider>{children}</LoadingStateContextProvider>
                         </TokenContextProvider>
-                    </WalletProvider>
-                </AuthProvider>
+                    </AuthProvider>
+                </WalletProvider>
             </ZeroDevProvider>
         </ToastProvider>
     )

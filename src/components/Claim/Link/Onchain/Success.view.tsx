@@ -4,13 +4,14 @@ import * as utils from '@/utils'
 import * as context from '@/context'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
-import { useAccount, useConnections, useSwitchChain } from 'wagmi'
+import { useConnections, useSwitchChain } from 'wagmi'
 import { fetchDestinationChain } from '@/components/utils/utils'
 import { Button, Card } from '@/components/0_Bruddle'
+import { useWallet } from '@/context/walletContext'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
-    const { isConnected, address, chain: currentChain } = useAccount()
+    const { isConnected, address, chain: currentChain } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
     const { resetTokenContextProvider, selectedChainID } = useContext(context.tokenSelectorContext)

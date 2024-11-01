@@ -1,6 +1,6 @@
 'use client'
 import { useForm } from 'react-hook-form'
-import { useAccount, useConfig, useSendTransaction, useSwitchChain } from 'wagmi'
+import { useConfig, useSendTransaction } from 'wagmi'
 import peanut from '@squirrel-labs/peanut-sdk'
 
 import * as consts from '@/constants'
@@ -14,9 +14,10 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Button, Card } from '../0_Bruddle'
 import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
+import { useWallet } from '@/context/walletContext'
 
 export const Refund = () => {
-    const { isConnected } = useAccount()
+    const { isConnected } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
     const { open } = useWeb3Modal()

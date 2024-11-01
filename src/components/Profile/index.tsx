@@ -2,19 +2,18 @@
 
 import Icon from '../Global/Icon'
 import AddressLink from '../Global/AddressLink'
-import * as components from './Components'
 import { useContext, useState } from 'react'
-import { Divider } from '@chakra-ui/react'
-import { useAccount, useSignMessage } from 'wagmi'
+import { useSignMessage } from 'wagmi'
 import * as utils from '@/utils'
 import Modal from '../Global/Modal'
 import { useAuth } from '@/context/authContext'
 import * as context from '@/context'
 import { Button, Card } from '../0_Bruddle'
 import ProfileHeader from './Components/ProfileHeader'
+import { useWallet } from '@/context/walletContext'
 
 export const Profile = () => {
-    const { address } = useAccount()
+    const { address } = useWallet()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const { signMessageAsync } = useSignMessage()
     const { user, fetchUser, isFetchingUser, logoutUser } = useAuth()
@@ -96,15 +95,13 @@ export const Profile = () => {
     }
 
     if (!user) {
+        // TODO: Sign In User Here
         return (
-            <components.ProfileSkeleton
-                onClick={() => {
-                    handleSiwe()
-                }}
-                showOverlay={!isFetchingUser}
-                errorState={errorState}
-                isLoading={_isLoading}
-            />
+            <div className='w-full h-full flex flex-col justify-center items-center'>
+                <Button disabled className='w-[80%] sm:w-[120px]'>
+                    Sign In
+                </Button>
+            </div>
         )
     } else
         return (
@@ -156,7 +153,6 @@ export const Profile = () => {
                                     <label className="w-[28%] text-h9">Referred Users</label>
                                     <label className="w-[30%] text-right text-h9">Points</label>
                                 </div>
-                                <Divider borderColor={'black'}></Divider>
                                 {user?.referredUsers &&
                                     user?.referredUsers > 0 &&
                                     user?.pointsPerReferral.map((referral, index) => (
@@ -195,7 +191,6 @@ export const Profile = () => {
                                         </div>
                                     ))}
 
-                                <Divider borderColor={'black'}></Divider>
                                 <div className="flex w-full items-center justify-between">
                                     <label className="w-[40%]">Total</label>
                                     <label className="w-[30%] text-center">{user?.totalReferralConnections}</label>

@@ -6,6 +6,7 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { useBalance } from '@/hooks/useBalance'
 import Loading from '../../Loading'
+import { useWallet } from '@/context/walletContext'
 
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
@@ -39,7 +40,7 @@ export const AdvancedTokenSelectorButton = ({
     onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
-    const { address } = useAccount()
+    const { address } = useWallet()
     const { hasFetchedBalances } = useBalance()
     const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
 

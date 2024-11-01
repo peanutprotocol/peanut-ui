@@ -1,8 +1,6 @@
 'use client'
 import Icon from '@/components/Global/Icon'
 import AddressLink from '@/components/Global/AddressLink'
-import { useAccount } from 'wagmi'
-
 import * as _consts from '../../Claim.consts'
 import * as utils from '@/utils'
 import useClaimLink from '../../useClaimLink'
@@ -14,6 +12,7 @@ import * as _utils from '../../Claim.utils'
 import * as consts from '@/constants'
 import { useBalance } from '@/hooks/useBalance'
 import { Button, Card } from '@/components/0_Bruddle'
+import { useWallet } from '@/context/walletContext'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -28,7 +27,7 @@ export const ConfirmClaimLinkView = ({
     selectedRoute,
     crossChainDetails,
 }: _consts.IClaimScreenProps) => {
-    const { address } = useAccount()
+    const { address } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -215,15 +214,13 @@ export const ConfirmClaimLinkView = ({
                                             )?.name
                                         }
                                         <MoreInfo
-                                            text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
-                                                )?.name
-                                            } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                mappedData.find(
+                                            text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                            )?.name
+                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${mappedData.find(
                                                     (chain) => chain.chainId === selectedRoute.route.params.toChain
                                                 )?.name
-                                            }.`}
+                                                }.`}
                                         />
                                     </>
                                 )}

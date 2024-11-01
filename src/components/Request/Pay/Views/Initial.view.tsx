@@ -1,5 +1,5 @@
 import * as _consts from '../Pay.consts'
-import { useAccount, useSwitchChain } from 'wagmi'
+import { useSwitchChain } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
@@ -69,7 +69,7 @@ export const InitialView = ({
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
     // TODO: currentChain needs to be moved to useWallet
-    const { isConnected, chain: currentChain } = useAccount()
+    const { isConnected, chain: currentChain } = useWallet()
 
     const { address } = useWallet()
 

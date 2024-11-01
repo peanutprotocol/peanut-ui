@@ -1,9 +1,9 @@
 'use client'
+
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
-import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
@@ -70,7 +70,7 @@ export const InitialClaimLinkView = ({
 
     // TODO: isConnected needs to be moved in useWallet()
     const { address } = useWallet()
-    const { isConnected } = useAccount()
+    const { isConnected } = useWallet()
     const { user } = useAuth()
 
     // TODO: all handleConnectWallet will need to pass through useWallet()

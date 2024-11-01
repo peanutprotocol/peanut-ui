@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useContext } from 'react'
 import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
+import { useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { useBalance } from '@/hooks/useBalance'
@@ -30,7 +30,7 @@ export const useCreateLink = () => {
     // needs changes in checkUserHasEnoughBalance
     const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain } = useAccount()
+    const { chain: currentChain } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()

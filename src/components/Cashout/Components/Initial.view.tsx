@@ -3,7 +3,6 @@
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
@@ -19,6 +18,7 @@ import Icon from '@/components/Global/Icon'
 import { twMerge } from 'tailwind-merge'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 import { Button, Card } from '@/components/0_Bruddle'
+import { useWallet } from '@/context/walletContext'
 
 export const InitialCashoutView = ({
     onNext,
@@ -68,7 +68,7 @@ export const InitialCashoutView = ({
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
-    const { isConnected } = useAccount()
+    const { isConnected } = useWallet()
     const { open } = useWeb3Modal()
 
     const handleConnectWallet = async () => {

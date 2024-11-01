@@ -2,7 +2,6 @@
 
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import { useCreateLink } from '../useCreateLink'
@@ -70,7 +69,7 @@ export const CreateLinkInputView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
-    const { isConnected, address } = useAccount()
+    const { isConnected, address } = useWallet()
     const { selectedWallet } = useWallet()
 
     const { open } = useWeb3Modal()

@@ -60,7 +60,6 @@ export const CreateLinkConfirmView = ({
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
-    // const { address } = useAccount()
     const { address } = useWallet()
 
     const handleConfirm = async () => {
