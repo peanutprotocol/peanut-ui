@@ -3,7 +3,7 @@ import { ReactNode, createContext, useContext, useState } from 'react'
 
 // ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
-import { http, createPublicClient, encodeFunctionData, Abi, Transport, Hex, Address } from "viem"
+import { http, encodeFunctionData, Abi, Transport, Hex, Address } from "viem"
 import {
   createKernelAccount,
   createKernelAccountClient,
@@ -22,8 +22,7 @@ import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 // Permissionless imports
 import { bundlerActions, type BundlerClient } from 'permissionless'
 import { useToast } from '@/components/0_Bruddle/Toast'
-// TODO: move to context consts
-
+import { peanutPublicClient } from '@/constants/viem.consts'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
 type AppSmartAccountClient = KernelAccountClient<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN, KernelSmartAccount<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN>>
@@ -51,20 +50,10 @@ interface ZeroDevContextType {
   handleRegister: (handle: string) => Promise<AppSmartAccountClient>
   handleLogin: (handle: string) => Promise<void>
   handleSendUserOpEncoded: (
-    {
-      to,
-      value,
-      data
-    }: UserOpEncodedParams
+    args: UserOpEncodedParams
   ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)
   handleSendUserOpNotEncoded: (
-    {
-      to,
-      value,
-      abi,
-      functionName,
-      args
-    }: UserOpNotEncodedParams
+    args: UserOpNotEncodedParams
   ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)  
   address: string | undefined
 }
@@ -97,11 +86,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   const [isKernelClientReady, setIsKernelClientReady] = useState<boolean>(false)
   const [address, setAddress] = useState<string | undefined>(undefined)
 
-  const publicClient = createPublicClient({
-    // Replace with custom RPC url if needed (alchemy, infura, etc)
-    transport: http(),
-    chain: consts.PEANUT_WALLET_CHAIN,
-  })
+
 
   ////// Lifecycle hooks
   //
@@ -110,7 +95,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   //
   const createKernelClient = async (passkeyValidator: any) => {
     console.log({ passkeyValidator })
-    const kernelAccount = await createKernelAccount(publicClient, {
+    const kernelAccount = await createKernelAccount(peanutPublicClient, {
       plugins: {
         sudo: passkeyValidator,
       },
@@ -166,7 +151,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       rpID: window.location.hostname,
     })
 
-    const passkeyValidator = await toPasskeyValidator(publicClient, {
+    const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
       webAuthnKey,
       entryPoint: consts.USER_OP_ENTRY_POINT,
       kernelVersion: KERNEL_V3_1,
@@ -194,7 +179,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         rpID: window.location.hostname,
       })
 
-      const passkeyValidator = await toPasskeyValidator(publicClient, {
+      const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
         webAuthnKey,
         entryPoint: consts.USER_OP_ENTRY_POINT,
         kernelVersion: KERNEL_V3_1,

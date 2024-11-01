@@ -1,5 +1,14 @@
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
+import { arbitrum, arbitrumSepolia } from 'viem/chains'
+
+export const infuraApiKey = process.env.INFURA_API_KEY
+
+export const infuraRpcUrls: Record<number, string> = {
+    [arbitrum.id]: `https://arbitrum-mainnet.infura.io/v3/${infuraApiKey}`,
+    [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${infuraApiKey}`,
+}
+
 export const ipfsProviderArray = [
     'https://ipfs.io/ipfs/',
     'https://cloudflare-ipfs.com/ipfs/',
