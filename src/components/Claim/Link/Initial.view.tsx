@@ -354,7 +354,7 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>
                     <div className="flex w-full flex-col items-center justify-center gap-2">

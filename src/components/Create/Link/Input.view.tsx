@@ -283,7 +283,7 @@ export const CreateLinkInputView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                     {' '}

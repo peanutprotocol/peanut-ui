@@ -153,7 +153,7 @@ export const CreateLinkInitialView = ({
     }, [])
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>Send crypto</Card.Title>
                 <Card.Description>

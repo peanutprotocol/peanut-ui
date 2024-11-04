@@ -118,7 +118,7 @@ export const Refund = () => {
 
     return (
         <PageContainer>
-            <Card shadowSize="6">
+            <Card className="sm:shadow-primary-4 shadow-none">
                 <Card.Header>
                     <Card.Title>Refund</Card.Title>
                     <Card.Description>

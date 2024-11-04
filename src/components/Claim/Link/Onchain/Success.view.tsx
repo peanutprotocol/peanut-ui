@@ -59,7 +59,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     }, [isw3mEmailWallet])
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>Yay!</Card.Title>
                 <Card.Description>You have successfully claimed your funds!</Card.Description>

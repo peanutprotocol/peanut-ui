@@ -10,7 +10,7 @@ export const NotFoundClaimLink = () => {
     const router = useRouter()
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>Sorryyy</Card.Title>
                 <Card.Description>Deposit not found. Are you sure your link is correct?</Card.Description>
