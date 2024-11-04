@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
         'x-forwarded-for': userIp,
         'Accept-Encoding': 'gzip', // Explicitly accept gzip encoding
         'Api-Key': process.env.PEANUT_API_KEY!,
-        'Origin': request.headers.get('origin'),
+        Origin: request.headers.get('origin'),
     } as any
 
     const apiResponse = await fetch(fullAPIUrl, {
@@ -45,8 +45,13 @@ export async function POST(request: NextRequest) {
     // render returns in gzip format - turn to string and let next handle it
     const apiResponseString = await apiResponse.text()
 
-    return new NextResponse(apiResponseString, {
+    const response = new NextResponse(apiResponseString, {
         status: apiResponse.status,
         statusText: apiResponse.statusText,
     })
+    const cookies = apiResponse.headers.getSetCookie()
+    for (const cookie of cookies) {
+        response.headers.append('Set-Cookie', cookie)
+    }
+    return response
 }
