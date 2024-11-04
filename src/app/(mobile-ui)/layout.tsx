@@ -8,6 +8,8 @@ import HomeNav from '@/components/Home/HomeNav'
 import Modal from '@/components/Global/Modal'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { usePathname } from 'next/navigation'
+import classNames from 'classnames'
 
 type NavTabProps = {
     name: string
@@ -34,6 +36,7 @@ const tabs: NavTabProps[] = [
 ]
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
+    const pathName = usePathname()
     const [isReady, setIsReady] = useState(false)
     const { signInModal, selectedWallet } = useWallet()
     const { handleLogin, isLoggingIn } = useZeroDev()
@@ -53,7 +56,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     <Link
                         href={tab.href}
                         key={tab.name}
-                        className="flex flex-row justify-center py-2 hover:cursor-pointer hover:bg-gray-200 hover:text-purple-1"
+                        className={classNames("flex flex-row justify-center py-2 hover:cursor-pointer ", {
+                            "text-purple-1": pathName === tab.href,
+                        })}
                     >
                         <NavIcons name={tab.icon} size={30} />
                     </Link>
