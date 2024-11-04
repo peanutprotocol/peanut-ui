@@ -4,7 +4,6 @@ import '../../styles/globals.bruddle.css'
 import { Button, NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import HomeNav from '@/components/Home/HomeNav'
 import Modal from '@/components/Global/Modal'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
@@ -49,31 +48,48 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <div className="flex h-screen flex-col">
-            <HomeNav />
-            <div className="flex w-full flex-1 overflow-x-visible overflow-y-scroll p-4">{children}</div>
+            <div
+                className={classNames('flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
+                    'p-4': pathName !== '/home',
+                })}
+            >
+                {children}
+            </div>
             <div className="grid grid-cols-3 border-t-2 border-black p-2">
                 {tabs.map((tab) => (
                     <Link
                         href={tab.href}
                         key={tab.name}
-                        className={classNames("flex flex-row justify-center py-2 hover:cursor-pointer ", {
-                            "text-purple-1": pathName === tab.href,
+                        className={classNames('flex flex-row justify-center py-2 hover:cursor-pointer ', {
+                            'text-purple-1': pathName === tab.href,
                         })}
                     >
                         <NavIcons name={tab.icon} size={30} />
                     </Link>
                 ))}
             </div>
-            <Modal visible={signInModal.visible} onClose={() => {
-                signInModal.close()
-            }} title={"Sign In with your Peanut Wallet"}>
-                <div className="p-5 flex flex-col gap-2">
-                    <p>Selected Wallet: <span className="font-bold">{selectedWallet?.handle}.peanut.wallet</span></p>
-                    <Button loading={isLoggingIn} disabled={isLoggingIn} onClick={() => {
-                        if (!selectedWallet) return
-                        const { handle } = selectedWallet
-                        handleLogin(handle)
-                    }}>Sign In</Button>
+            <Modal
+                visible={signInModal.visible}
+                onClose={() => {
+                    signInModal.close()
+                }}
+                title={'Sign In with your Peanut Wallet'}
+            >
+                <div className="flex flex-col gap-2 p-5">
+                    <p>
+                        Selected Wallet: <span className="font-bold">{selectedWallet?.handle}.peanut.wallet</span>
+                    </p>
+                    <Button
+                        loading={isLoggingIn}
+                        disabled={isLoggingIn}
+                        onClick={() => {
+                            if (!selectedWallet) return
+                            const { handle } = selectedWallet
+                            handleLogin(handle)
+                        }}
+                    >
+                        Sign In
+                    </Button>
                 </div>
             </Modal>
         </div>

@@ -2,7 +2,7 @@ import { useAuth } from '@/context/authContext'
 import Icon from '../Global/Icon'
 import Link from 'next/link'
 
-const HomeNav = () => {
+const PointsBanner = () => {
     const { user } = useAuth()
     const points = user?.totalPoints ?? 0
     const invites = user?.referredUsers ?? 0
@@ -18,4 +18,4 @@ const HomeNav = () => {
     )
 }
 
-export default HomeNav
+export default PointsBanner
