@@ -50,6 +50,14 @@ const pages: ScreenProps[] = [
         name: 'Settings',
         href: '/settings',
     },
+    {
+        name: 'Cashout',
+        href: '/cashout',
+    },
+    {
+        name: 'Request',
+        href: '/request/create',
+    },
 ]
 
 const tabs: NavTabProps[] = [
