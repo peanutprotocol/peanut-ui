@@ -23,6 +23,7 @@ import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 import { bundlerActions, type BundlerClient } from 'permissionless'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { peanutPublicClient } from '@/constants/viem.consts'
+import { infuraRpcUrls } from '@/constants'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
 type AppSmartAccountClient = KernelAccountClient<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN, KernelSmartAccount<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN>>
@@ -100,7 +101,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         sudo: passkeyValidator,
       },
       entryPoint: consts.USER_OP_ENTRY_POINT,
-      kernelVersion: KERNEL_V3_1
+      kernelVersion: KERNEL_V3_1,
+
     })
 
     console.log({ kernelAccount })
@@ -143,6 +145,13 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   const handleRegister = async (handle: string): Promise<AppSmartAccountClient> => {
     setIsRegistering(true)
 
+    console.log({
+      bundlerURL: consts.BUNDLER_URL,
+      paymasterURL: consts.PAYMASTER_URL,
+      passkeyServerURL: consts.PASSKEY_SERVER_URL,
+      infuraRpcUrl: infuraRpcUrls[consts.PEANUT_WALLET_CHAIN.id]
+    })
+
     const webAuthnKey = await toWebAuthnKey({
       passkeyName: _getPasskeyName(handle),
       passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
@@ -150,6 +159,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       passkeyServerHeaders: {},
       rpID: window.location.hostname,
     })
+
+    console.log({ peanutPublicClient })
 
     const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
       webAuthnKey,

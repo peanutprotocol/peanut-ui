@@ -1,10 +1,7 @@
 'use client'
 import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
 import * as interfaces from '@/interfaces'
-import * as utils from '@/utils'
 import { useToast, ToastId } from '@chakra-ui/react'
-import { useSignMessage } from 'wagmi'
-import { useWallet } from './walletContext'
 import { useZeroDev } from './walletContext/zeroDevContext.context'
 
 interface AuthContextType {
@@ -35,12 +32,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    // TODO: address here should be fetched from the walletContext
-    // TODO: all mentions of wallet in components should pull from that address
-    const { address } = useWallet()
-    const { signMessageAsync } = useSignMessage()
-
-    const { handleLogin } = useZeroDev()
+    const { address, handleLogin } = useZeroDev()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -61,48 +53,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setIsAuthed(false)
         }
     }, [user])
-
-    const registerUserWithPasskey = async (username: string) => {
-        //  validatiion of @handle has happened before this function
-        await handleLogin(username) //  TODO: replace this with handleRegister
-        // TODO: case of failure on register
-
-
-        const userIdResponse = await fetch('/api/peanut/user/get-user-id', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                accountIdentifier: address,
-            }),
-        })
-
-        const response = await userIdResponse.json()
-
-        const siwemsg = utils.createSiweMessage({
-            address: address ?? '',
-            statement: `Sign in to peanut.to. This is your unique user identifier! ${response.userId}`,
-        })
-
-        const signature = await signMessageAsync({
-            message: siwemsg,
-        })
-
-        await fetch('/api/peanut/user/get-jwt-token', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                signature: signature,
-                message: siwemsg,
-            }),
-        })
-
-
-        // TODO: handle case where they try to register w/ pre-registered passkey 
-    }
 
 
     // TODO: document better
@@ -345,8 +295,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         return () => clearTimeout(timeoutId)
     }, [address])
-
-    console.log('user', user)
 
     return (
         <AuthContext.Provider
