@@ -9,12 +9,48 @@ import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { usePathname } from 'next/navigation'
 import classNames from 'classnames'
+import Icon from '@/components/Global/Icon'
+import { useRouter } from 'next/navigation'
 
-type NavTabProps = {
+type ScreenProps = {
     name: string
     href: string
+}
+
+type NavTabProps = ScreenProps & {
     icon: NavIconsName
 }
+
+/**
+ * Soft definitions of pages use to have page titles in header
+ * Note: nextjs might hold this information somewhere, need to check
+ */
+const pages: ScreenProps[] = [
+    {
+        name: 'Points',
+        href: '/points',
+    },
+    {
+        name: 'Send',
+        href: '/send',
+    },
+    {
+        name: 'Receive',
+        href: '/receive',
+    },
+    {
+        name: 'Profile',
+        href: '/profile',
+    },
+    {
+        name: 'History',
+        href: '/history',
+    },
+    {
+        name: 'Settings',
+        href: '/settings',
+    },
+]
 
 const tabs: NavTabProps[] = [
     {
@@ -36,6 +72,7 @@ const tabs: NavTabProps[] = [
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
+    const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
     const { signInModal, selectedWallet } = useWallet()
     const { handleLogin, isLoggingIn } = useZeroDev()
@@ -46,11 +83,29 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     if (!isReady) return null
 
+    const isHome = pathName === '/home'
+    const pageDefinition = pages.find((page) => page.href === pathName)
+
     return (
         <div className="flex h-screen flex-col">
+            {!isHome && (
+                <div className="flex min-h-[64px] flex-row items-center border-b-2 border-black p-4">
+                    <div
+                        className="absolute left-2"
+                        onClick={() => {
+                            back()
+                        }}
+                    >
+                        <Icon name="arrow-prev" className="h-[30px] w-[30px]" />
+                    </div>
+                    <div className="h-full flex-grow text-center">
+                        {pageDefinition && <p className="text-lg font-bold">{pageDefinition.name}</p>}
+                    </div>
+                </div>
+            )}
             <div
                 className={classNames('flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
-                    'p-4': pathName !== '/home',
+                    'p-4': !isHome,
                 })}
             >
                 {children}
