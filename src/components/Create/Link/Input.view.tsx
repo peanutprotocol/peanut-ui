@@ -69,7 +69,7 @@ export const CreateLinkInputView = ({
     )
 
     const { isConnected, address } = useWallet()
-    const { selectedWallet, promptWalletSignIn } = useWallet()
+    const { selectedWallet, signInModal } = useWallet()
 
     const handleOnNext = async () => {
         try {
@@ -313,7 +313,7 @@ export const CreateLinkInputView = ({
                         maxValue={maxValue}
                         setTokenValue={_setTokenValue}
                         onSubmit={() => {
-                            if (!isConnected) promptWalletSignIn()
+                            if (!isConnected) signInModal.open()
                             else handleOnNext()
                         }}
                     />
@@ -338,7 +338,7 @@ export const CreateLinkInputView = ({
                 <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
                     <Button
                         onClick={() => {
-                            if (!isConnected) promptWalletSignIn()
+                            if (!isConnected) signInModal.open()
                             else handleOnNext()
                         }}
                         loading={isLoading}

@@ -26,7 +26,7 @@ export const ProfileSkeleton = ({
     }
     isLoading: boolean
 }) => {
-    const { address, promptWalletSignIn } = useWallet()
+    const { address, signInModal } = useWallet()
     const [userState, setUserState] = useState<'login' | 'register'>('login')
 
     return (
@@ -185,7 +185,7 @@ export const ProfileSkeleton = ({
                                 if (address) {
                                     onClick()
                                 } else {
-                                    promptWalletSignIn()
+                                    signInModal.open()
                                 }
                             }}
                             className="z-20 w-max border border-black bg-white px-4 py-2 text-h6 text-black"

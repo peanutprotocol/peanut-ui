@@ -221,7 +221,7 @@ const ToolsDropdown = () => {
 }
 
 const MenuLinks = () => {
-    const { address, isConnected, promptWalletSignIn } = useWallet()
+    const { address, isConnected, signInModal } = useWallet()
 
     return (
         <Stack
@@ -257,7 +257,7 @@ const MenuLinks = () => {
                 <NavItemBox>
                     <button
                         onClick={() => {
-                            promptWalletSignIn()
+                            signInModal.open()
                         }}
                         className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
                     >
@@ -273,7 +273,7 @@ const MenuLinks = () => {
 }
 
 const SocialLinks = () => {
-    const { address, isConnected, promptWalletSignIn } = useWallet()
+    const { address, isConnected, signInModal } = useWallet()
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
@@ -283,7 +283,7 @@ const SocialLinks = () => {
             <button
                 className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
-                    promptWalletSignIn()
+                    signInModal.open()
                 }}
             >
                 {isConnected ? shortenAddress(address ?? '') : 'Connect'}

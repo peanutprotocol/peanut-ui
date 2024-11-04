@@ -133,7 +133,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID, isXChain } = useContext(
         context.tokenSelectorContext
     )
-    const { isConnected, promptWalletSignIn } = useWallet()
+    const { isConnected, signInModal } = useWallet()
     const { safeInfo, walletType } = useWalletType()
     console.log(balances)
 
@@ -263,7 +263,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                         <button
                             className="btn btn-purple btn-xl w-full"
                             onClick={() => {
-                                promptWalletSignIn()
+                                signInModal.open()
                             }}
                         >
                             Connect Wallet

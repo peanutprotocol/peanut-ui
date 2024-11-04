@@ -68,7 +68,7 @@ export const InitialClaimLinkView = ({
     const { claimLink } = useClaimLink()
 
     // TODO: isConnected needs to be moved in useWallet()
-    const { isConnected, address, promptWalletSignIn } = useWallet()
+    const { isConnected, address, signInModal } = useWallet()
     const { user } = useAuth()
 
     // TODO: all handleConnectWallet will need to pass through useWallet()
@@ -78,7 +78,7 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
-            promptWalletSignIn()
+            signInModal.open()
         }
     }
 

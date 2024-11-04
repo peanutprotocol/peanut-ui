@@ -35,7 +35,7 @@ const tabs: NavTabProps[] = [
 
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const [isReady, setIsReady] = useState(false)
-    const { promptWalletSigninOpen, promptWalletSigninClose, selectedWallet } = useWallet()
+    const { signInModal, selectedWallet } = useWallet()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
@@ -59,8 +59,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     </Link>
                 ))}
             </div>
-            <Modal visible={promptWalletSigninOpen} onClose={() => {
-                promptWalletSigninClose()
+            <Modal visible={signInModal.visible} onClose={() => {
+                signInModal.close()
             }} title={"Sign In with your Peanut Wallet"}>
                 <div className="p-5 flex flex-col gap-2">
                     <p>Selected Wallet: <span className="font-bold">{selectedWallet?.handle}.peanut.wallet</span></p>

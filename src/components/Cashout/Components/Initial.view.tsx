@@ -68,7 +68,7 @@ export const InitialCashoutView = ({
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
-    const { isConnected, promptWalletSignIn } = useWallet()
+    const { isConnected, signInModal } = useWallet()
 
     const isBelowMinLimit = useMemo(() => {
         return !usdValue || parseFloat(usdValue) < MIN_CASHOUT_LIMIT
@@ -224,7 +224,7 @@ export const InitialCashoutView = ({
                     setTokenValue={_setTokenValue}
                     maxValue={maxValue}
                     onSubmit={() => {
-                        if (!isConnected) promptWalletSignIn()
+                        if (!isConnected) signInModal.open()
                         else handleOnNext()
                     }}
                 />
@@ -333,7 +333,7 @@ export const InitialCashoutView = ({
                 </div>
                 <Button
                     onClick={() => {
-                        if (!isConnected) promptWalletSignIn()
+                        if (!isConnected) signInModal.open()
                         else handleOnNext()
                     }}
                     loading={isLoading}

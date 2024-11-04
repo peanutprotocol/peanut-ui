@@ -16,13 +16,14 @@ interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined,
     setSelectedWallet: (wallet: interfaces.IWallet) => void,
     wallets: interfaces.IWallet[],
-    // TODO: to refactor
     address?: string
     chain: Chain
     isConnected: boolean
-    promptWalletSignIn: () => void
-    promptWalletSigninOpen: boolean
-    promptWalletSigninClose: () => void
+    signInModal: {
+        visible: boolean
+        open: () => void
+        close: () => void
+    }
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -124,15 +125,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // no wallet active (have to review all props to ensure they are null)
     }
 
-    /**
-     * Method used as app prompt to connect wallet
-     * Now: Refirecting to /home
-     * Future: Open modal to pick wallet
-     */
-    const promptWalletSignIn = async () => {
-        setPromptWalletSigninOpen(true)
-    }
-
     return (
         <WalletContext.Provider
             value={{
@@ -161,9 +153,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 address: selectedWallet?.address,
                 chain: PEANUT_WALLET_CHAIN,
                 isConnected: selectedWallet?.connected || false,
-                promptWalletSignIn,
-                promptWalletSigninOpen,
-                promptWalletSigninClose: () => setPromptWalletSigninOpen(false)
+                signInModal: {
+                    visible: promptWalletSigninOpen,
+                    open: () => setPromptWalletSigninOpen(true),
+                    close: () => setPromptWalletSigninOpen(false)
+                }
             }}>
             {children}
         </WalletContext.Provider>

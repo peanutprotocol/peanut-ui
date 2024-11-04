@@ -70,7 +70,7 @@ export const InitialView = ({
     // TODO: currentChain needs to be moved to useWallet
     const { isConnected, chain: currentChain } = useWallet()
 
-    const { address, promptWalletSignIn } = useWallet()
+    const { address, signInModal } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -226,7 +226,7 @@ export const InitialView = ({
     }
 
     const handleConnectWallet = async () => {
-        promptWalletSignIn()
+        signInModal.open()
     }
 
     const switchNetwork = async (chainId: string) => {
