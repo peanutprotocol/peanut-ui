@@ -365,6 +365,7 @@ interface Account {
     referrer: string | null
     referred_users_points: number
     totalReferralPoints: number
+    chain: string
 }
 
 export interface IUserProfile {
