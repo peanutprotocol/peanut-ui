@@ -40,7 +40,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address } = useWallet()
     const { signMessageAsync } = useSignMessage()
 
-    const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
+    const { handleLogin } = useZeroDev()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -345,6 +345,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         return () => clearTimeout(timeoutId)
     }, [address])
+
+    console.log('user', user)
 
     return (
         <AuthContext.Provider

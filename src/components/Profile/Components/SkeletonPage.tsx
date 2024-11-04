@@ -1,10 +1,19 @@
 import React, { useState } from 'react'
 import * as assets from '@/assets'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
 import Loading from '@/components/Global/Loading'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
 import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
 import { useWallet } from '@/context/walletContext'
+
+type ProfileSkeletonProps = {
+    onClick: () => void
+    showOverlay?: boolean
+    errorState: {
+        showError: boolean
+        errorMessage: string
+    }
+    isLoading: boolean
+}
 
 /**
  * ProfileSkeleton is a component that displays a loading skeleton for the profile section of the app.
@@ -17,15 +26,7 @@ export const ProfileSkeleton = ({
     showOverlay = true,
     errorState,
     isLoading,
-}: {
-    onClick: () => void
-    showOverlay?: boolean
-    errorState: {
-        showError: boolean
-        errorMessage: string
-    }
-    isLoading: boolean
-}) => {
+}: ProfileSkeletonProps) => {
     const { address, signInModal } = useWallet()
     const [userState, setUserState] = useState<'login' | 'register'>('login')
 

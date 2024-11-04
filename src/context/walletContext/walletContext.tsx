@@ -38,7 +38,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
     const { push } = useRouter()
     ////// ZeroDev props
-    const { address: kernelClientAddress, isKernelClientReady, handleLogin } = useZeroDev()
+    const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
     ////// BYOW props
     const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()

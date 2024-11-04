@@ -135,7 +135,6 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     )
     const { isConnected, signInModal } = useWallet()
     const { safeInfo, walletType } = useWalletType()
-    console.log(balances)
 
     const selectedChainTokens = useMemo(() => {
         return (

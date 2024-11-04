@@ -67,10 +67,7 @@ export const InitialView = ({
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    // TODO: currentChain needs to be moved to useWallet
-    const { isConnected, chain: currentChain } = useWallet()
-
-    const { address, signInModal } = useWallet()
+    const { address, signInModal, isConnected, chain: currentChain } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)

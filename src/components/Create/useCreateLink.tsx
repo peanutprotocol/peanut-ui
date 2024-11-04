@@ -26,11 +26,9 @@ import { WalletProviderType } from '@/interfaces'
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
-    // TODO: balances needs to reflect PW too
-    // needs changes in checkUserHasEnoughBalance
     const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain } = useWallet()
+    const { chain: currentChain, address, selectedWallet } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
@@ -38,7 +36,6 @@ export const useCreateLink = () => {
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
 
-    const { address, selectedWallet } = useWallet()
     const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT;
     const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW;
 

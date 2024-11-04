@@ -68,8 +68,7 @@ export const CreateLinkInputView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
-    const { isConnected, address } = useWallet()
-    const { selectedWallet, signInModal } = useWallet()
+    const { selectedWallet, signInModal, isConnected, address } = useWallet()
 
     const handleOnNext = async () => {
         try {
