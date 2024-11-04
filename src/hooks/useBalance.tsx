@@ -1,7 +1,7 @@
-import { useAccount } from 'wagmi'
 import { IUserBalance, ChainValue } from '@/interfaces'
 import { useEffect, useState, useRef, useCallback } from 'react'
 import { areTokenAddressesEqual, isAddressZero } from '@/utils'
+import { useWallet } from '@/context/walletContext'
 
 /**
  * Custom React hook to fetch and manage user's wallet balances across multiple chains,
@@ -11,8 +11,9 @@ export const useBalance = () => {
     const [balances, setBalances] = useState<IUserBalance[]>([])
     const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)
     const [valuePerChain, setValuePerChain] = useState<ChainValue[]>([])
-    const { address } = useAccount()
+    const { address: wagmiAddress, address: selectedAddress } = useWallet()
     const prevAddressRef = useRef<string | undefined>(undefined)
+    const address = selectedAddress || wagmiAddress
 
     useEffect(() => {
         if (address && prevAddressRef.current !== address) {
@@ -113,10 +114,10 @@ export const useBalance = () => {
                                 balance.chainId === '8508132'
                                     ? { ...balance, chainId: '534352' }
                                     : balance.chainId === '81032'
-                                      ? { ...balance, chainId: '81457' }
-                                      : balance.chainId === '59160'
-                                        ? { ...balance, chainId: '59144' }
-                                        : balance
+                                        ? { ...balance, chainId: '81457' }
+                                        : balance.chainId === '59160'
+                                            ? { ...balance, chainId: '59144' }
+                                            : balance
                             )
                             .sort((a, b) => {
                                 const valueA = parseFloat(a.value)

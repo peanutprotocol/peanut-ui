@@ -7,10 +7,10 @@ import Link from 'next/link'
 import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
 import { shortenAddress } from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { breakpoints, emToPx } from '@/styles/theme'
 import { NavItemBox, NavLink } from './components'
+import { useWallet } from '@/context/walletContext'
 
 const defaultLottieOptions: LottieOptions = {
     animationData: HAMBURGER_LOTTIE,
@@ -221,8 +221,7 @@ const ToolsDropdown = () => {
 }
 
 const MenuLinks = () => {
-    const { open: web3modalOpen } = useWeb3Modal()
-    const { address, isConnected } = useAccount()
+    const { address, isConnected, signInModal } = useWallet()
 
     return (
         <Stack
@@ -258,7 +257,7 @@ const MenuLinks = () => {
                 <NavItemBox>
                     <button
                         onClick={() => {
-                            web3modalOpen()
+                            signInModal.open()
                         }}
                         className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
                     >
@@ -274,8 +273,7 @@ const MenuLinks = () => {
 }
 
 const SocialLinks = () => {
-    const { open: web3modalOpen } = useWeb3Modal()
-    const { address, isConnected } = useAccount()
+    const { address, isConnected, signInModal } = useWallet()
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
@@ -285,7 +283,7 @@ const SocialLinks = () => {
             <button
                 className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
-                    web3modalOpen()
+                    signInModal.open()
                 }}
             >
                 {isConnected ? shortenAddress(address ?? '') : 'Connect'}

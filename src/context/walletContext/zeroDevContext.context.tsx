@@ -3,7 +3,7 @@ import { ReactNode, createContext, useContext, useState } from 'react'
 
 // ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
-import { http, createPublicClient, encodeFunctionData, Abi, Transport, Hex, Address } from "viem"
+import { http, encodeFunctionData, Abi, Transport, Hex, Address } from "viem"
 import {
   createKernelAccount,
   createKernelAccountClient,
@@ -22,8 +22,8 @@ import { KERNEL_V3_1 } from "@zerodev/sdk/constants"
 // Permissionless imports
 import { bundlerActions, type BundlerClient } from 'permissionless'
 import { useToast } from '@/components/0_Bruddle/Toast'
-// TODO: move to context consts
-
+import { peanutPublicClient } from '@/constants/viem.consts'
+import { infuraRpcUrls } from '@/constants'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
 type AppSmartAccountClient = KernelAccountClient<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN, KernelSmartAccount<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN>>
@@ -51,20 +51,10 @@ interface ZeroDevContextType {
   handleRegister: (handle: string) => Promise<AppSmartAccountClient>
   handleLogin: (handle: string) => Promise<void>
   handleSendUserOpEncoded: (
-    {
-      to,
-      value,
-      data
-    }: UserOpEncodedParams
+    args: UserOpEncodedParams
   ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)
   handleSendUserOpNotEncoded: (
-    {
-      to,
-      value,
-      abi,
-      functionName,
-      args
-    }: UserOpNotEncodedParams
+    args: UserOpNotEncodedParams
   ) => Promise<string>            // TODO: return type may be undefined here (if userop fails for whatever reason)  
   address: string | undefined
 }
@@ -97,10 +87,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   const [isKernelClientReady, setIsKernelClientReady] = useState<boolean>(false)
   const [address, setAddress] = useState<string | undefined>(undefined)
 
-  const publicClient = createPublicClient({
-    transport: http(consts.BUNDLER_URL),
-    chain: consts.PEANUT_WALLET_CHAIN,
-  })
+
 
   ////// Lifecycle hooks
   //
@@ -109,12 +96,13 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   //
   const createKernelClient = async (passkeyValidator: any) => {
     console.log({ passkeyValidator })
-    const kernelAccount = await createKernelAccount(publicClient, {
+    const kernelAccount = await createKernelAccount(peanutPublicClient, {
       plugins: {
         sudo: passkeyValidator,
       },
       entryPoint: consts.USER_OP_ENTRY_POINT,
-      kernelVersion: KERNEL_V3_1
+      kernelVersion: KERNEL_V3_1,
+
     })
 
     console.log({ kernelAccount })
@@ -159,6 +147,13 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
   const handleRegister = async (handle: string): Promise<AppSmartAccountClient> => {
     setIsRegistering(true)
 
+    console.log({
+      bundlerURL: consts.BUNDLER_URL,
+      paymasterURL: consts.PAYMASTER_URL,
+      passkeyServerURL: consts.PASSKEY_SERVER_URL,
+      infuraRpcUrl: infuraRpcUrls[consts.PEANUT_WALLET_CHAIN.id]
+    })
+
     const webAuthnKey = await toWebAuthnKey({
       passkeyName: _getPasskeyName(handle),
       passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
@@ -167,7 +162,9 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
       rpID: window.location.hostname,
     })
 
-    const passkeyValidator = await toPasskeyValidator(publicClient, {
+    console.log({ peanutPublicClient })
+
+    const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
       webAuthnKey,
       entryPoint: consts.USER_OP_ENTRY_POINT,
       kernelVersion: KERNEL_V3_1,
@@ -195,7 +192,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         rpID: window.location.hostname,
       })
 
-      const passkeyValidator = await toPasskeyValidator(publicClient, {
+      const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
         webAuthnKey,
         entryPoint: consts.USER_OP_ENTRY_POINT,
         kernelVersion: KERNEL_V3_1,

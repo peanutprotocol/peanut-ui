@@ -1,4 +1,4 @@
-import '../styles/globals.bruddle.css'
+import '../styles/globals.css'
 import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
 import CrispChat from '../components/CrispChat'
 import { PeanutProvider } from '@/config'

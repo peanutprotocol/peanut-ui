@@ -1,12 +1,19 @@
 import React, { useState } from 'react'
-import { Divider } from '@chakra-ui/react'
 import * as assets from '@/assets'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useAccount } from 'wagmi'
-import { errors } from 'ethers'
 import Loading from '@/components/Global/Loading'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
 import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
+import { useWallet } from '@/context/walletContext'
+
+type ProfileSkeletonProps = {
+    onClick: () => void
+    showOverlay?: boolean
+    errorState: {
+        showError: boolean
+        errorMessage: string
+    }
+    isLoading: boolean
+}
 
 /**
  * ProfileSkeleton is a component that displays a loading skeleton for the profile section of the app.
@@ -19,17 +26,8 @@ export const ProfileSkeleton = ({
     showOverlay = true,
     errorState,
     isLoading,
-}: {
-    onClick: () => void
-    showOverlay?: boolean
-    errorState: {
-        showError: boolean
-        errorMessage: string
-    }
-    isLoading: boolean
-}) => {
-    const { open } = useWeb3Modal()
-    const { address } = useAccount()
+}: ProfileSkeletonProps) => {
+    const { address, signInModal } = useWallet()
     const [userState, setUserState] = useState<'login' | 'register'>('login')
 
     return (
@@ -50,7 +48,6 @@ export const ProfileSkeleton = ({
                         <span className="h-8 w-1/3  animate-pulse rounded-none bg-slate-700"></span>
                         <span className="h-8 w-1/3 animate-pulse rounded-none bg-slate-700"></span>
                     </div>
-                    <Divider borderColor={'black'} />
                     <table className="table-custom hidden bg-background sm:table">
                         <thead>
                             <tr className="h-16">
@@ -182,16 +179,14 @@ export const ProfileSkeleton = ({
                             </>
                         )}
                         <span className="flex w-full flex-row items-center justify-center gap-2">
-                            <Divider borderColor={'black'} />
                             <p>Or</p>
-                            <Divider borderColor={'black'} />
                         </span>
                         <button
                             onClick={() => {
                                 if (address) {
                                     onClick()
                                 } else {
-                                    open()
+                                    signInModal.open()
                                 }
                             }}
                             className="z-20 w-max border border-black bg-white px-4 py-2 text-h6 text-black"

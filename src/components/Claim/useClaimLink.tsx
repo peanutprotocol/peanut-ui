@@ -1,18 +1,20 @@
 'useClient'
 
 import { useContext } from 'react'
-import { useAccount, useSwitchChain } from 'wagmi'
+import { useSwitchChain } from 'wagmi'
 import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 
 import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
+import { useWallet } from '@/context/walletContext'
+
 export const useClaimLink = () => {
-    const { chain: currentChain } = useAccount()
+    const { chain: currentChain } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
-    const { loadingState, setLoadingState } = useContext(context.loadingStateContext)
+    const { setLoadingState } = useContext(context.loadingStateContext)
 
     const claimLink = async ({ address, link }: { address: string; link: string }) => {
         setLoadingState('Executing transaction')
@@ -77,7 +79,7 @@ export const useClaimLink = () => {
         linkDetails: interfaces.IPeanutLinkDetails
         destinationChainId: string
         destinationToken: string
-    }) => {}
+    }) => { }
 
     const switchNetwork = async (chainId: string) => {
         try {
@@ -94,7 +96,7 @@ export const useClaimLink = () => {
             console.error('Failed to switch network:', error)
         }
     }
-    const checkTxStatus = async (txHash: string) => {}
+    const checkTxStatus = async (txHash: string) => { }
 
     const getAttachmentInfo = async (link: string) => {
         try {

@@ -6,13 +6,12 @@ import TablePagination from '@/components/Global/TablePagination'
 import { MobileTableComponent, TableComponent, Tabs } from '@/components/Profile/Components'
 import { PEANUT_API_URL } from '@/constants'
 import { useAuth } from '@/context/authContext'
+import { useWallet } from '@/context/walletContext'
 import { IDashboardItem, IProfileTableData } from '@/interfaces'
 import { formatDate, formatIban, printableAddress } from '@/utils'
-import { Divider } from '@chakra-ui/react'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
 import { useEffect, useState } from 'react'
-import { useAccount } from 'wagmi'
 
 const tabs = [
     {
@@ -30,7 +29,7 @@ const tabs = [
 ]
 
 const HistoryPage = () => {
-    const { address } = useAccount()
+    const { address } = useWallet()
     const { user } = useAuth()
     const { composeLinkDataArray, fetchLinkDetailsAsync, removeRequestLinkFromLocalStorage } = useDashboard()
 
@@ -122,8 +121,8 @@ const HistoryPage = () => {
                     account.account_type === 'iban'
                         ? 'Bank account (iban)'
                         : account.account_type === 'us'
-                          ? 'Bank account (US account)'
-                          : 'Wallet',
+                            ? 'Bank account (US account)'
+                            : 'Wallet',
                 accountIdentifier: account.account_identifier,
             }))
         setAccountData(accountsData)
@@ -162,11 +161,11 @@ const HistoryPage = () => {
                             ? data.avatar.length > 0
                                 ? data.avatar
                                 : createAvatar(identicon, {
-                                      seed: data.address,
-                                  }).toDataUri()
+                                    seed: data.address,
+                                }).toDataUri()
                             : createAvatar(identicon, {
-                                  seed: data.address,
-                              }).toDataUri()
+                                seed: data.address,
+                            }).toDataUri()
 
                         return {
                             primaryText: data.userName,
@@ -258,7 +257,6 @@ const HistoryPage = () => {
                     className="mx-0 w-full gap-0 px-0"
                     classButton="w-1/3 mx-0 px-0 ml-0 !rounded-none"
                 />
-                <Divider borderColor={'black'}></Divider>
                 <div className="block w-full sm:hidden">
                     {tableData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((data) => (
                         <div key={(data.itemKey ?? '') + Math.random()}>
@@ -316,7 +314,6 @@ const HistoryPage = () => {
                             <label>Early frend</label>
                             <label>1.4X</label>
                         </div>
-                        <Divider borderColor={'black'}></Divider>
                         <div className="flex w-full items-center justify-between">
                             <label>Total</label>
                             <label>1.4X</label>

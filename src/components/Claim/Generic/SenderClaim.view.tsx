@@ -7,10 +7,10 @@ import * as utils from '@/utils'
 import { useRouter } from 'next/navigation'
 import { useContext, useState } from 'react'
 import useClaimLink from '../useClaimLink'
-import { useAccount } from 'wagmi'
 import * as interfaces from '@/interfaces'
 import Link from 'next/link'
 import { Button, Card } from '@/components/0_Bruddle'
+import { useWallet } from '@/context/walletContext'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -26,7 +26,7 @@ export const SenderClaimLinkView = ({
     onCustom,
 }: ISenderClaimLinkViewProps) => {
     const { claimLink } = useClaimLink()
-    const { address } = useAccount()
+    const { address } = useWallet()
 
     const router = useRouter()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)

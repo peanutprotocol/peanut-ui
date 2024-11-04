@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useContext } from 'react'
 import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
+import { useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { useBalance } from '@/hooks/useBalance'
@@ -26,11 +26,9 @@ import { WalletProviderType } from '@/interfaces'
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
-    // TODO: balances needs to reflect PW too
-    // needs changes in checkUserHasEnoughBalance
     const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain } = useAccount()
+    const { chain: currentChain, address, selectedWallet } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
@@ -38,7 +36,6 @@ export const useCreateLink = () => {
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
 
-    const { address, selectedWallet } = useWallet()
     const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT;
     const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW;
 

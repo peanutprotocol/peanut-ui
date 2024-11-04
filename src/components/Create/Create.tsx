@@ -6,10 +6,10 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as _consts from './Create.consts'
 import * as context from '@/context'
 import * as utils from '@/utils'
-import { useAccount } from 'wagmi'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useBalance } from '@/hooks/useBalance'
 import PageContainer from '../0_Bruddle/PageContainer'
+import { useWallet } from '@/context/walletContext'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -56,7 +56,7 @@ export const Create = () => {
         }[]
     >([])
 
-    const { address } = useAccount({})
+    const { address } = useWallet()
 
     const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
     useBalance() // Fetch balances here, decreases load time on input screen for tokenselector

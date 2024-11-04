@@ -13,11 +13,11 @@ import { AdvancedTokenSelectorButton } from './Components'
 import { IToken, IUserBalance } from '@/interfaces'
 
 import * as _consts from './TokenSelector.consts'
-import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
+import { useWallet } from '@/context/walletContext'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
@@ -133,8 +133,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID, isXChain } = useContext(
         context.tokenSelectorContext
     )
-    const { isConnected } = useAccount()
-    const { open } = useWeb3Modal()
+    const { isConnected, signInModal } = useWallet()
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
@@ -263,7 +262,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                         <button
                             className="btn btn-purple btn-xl w-full"
                             onClick={() => {
-                                open()
+                                signInModal.open()
                             }}
                         >
                             Connect Wallet
@@ -288,7 +287,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                 placeholder="Search by token name"
                                 value={filterValue}
                                 onChange={(e: any) => setFilterValue(e.target.value)}
-                                onSubmit={() => {}}
+                                onSubmit={() => { }}
                                 medium
                                 border
                             />

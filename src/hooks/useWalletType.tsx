@@ -1,6 +1,6 @@
+import { useWallet } from '@/context/walletContext'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useEffect, useState, useRef } from 'react'
-import { useAccount } from 'wagmi'
 
 type Opts = {
     allowedDomains?: RegExp[]
@@ -23,7 +23,7 @@ export const useWalletType = () => {
     const [walletType, setWalletType] = useState<'blockscout' | undefined>(undefined)
     const [environmentInfo, setEnvironmentInfo] = useState<any | undefined>(undefined)
     const [safeInfo, setSafeInfo] = useState<any | undefined>(undefined)
-    const { address } = useAccount()
+    const { address } = useWallet()
     const prevAddressRef = useRef<string | undefined>(undefined)
 
     const sdk = new SafeAppsSDK(opts)

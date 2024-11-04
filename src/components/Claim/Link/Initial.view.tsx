@@ -1,9 +1,9 @@
 'use client'
+
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
-import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
@@ -66,11 +66,9 @@ export const InitialClaimLinkView = ({
     )
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
-    const { open } = useWeb3Modal()
 
     // TODO: isConnected needs to be moved in useWallet()
-    const { address } = useWallet()
-    const { isConnected } = useAccount()
+    const { isConnected, address, signInModal } = useWallet()
     const { user } = useAuth()
 
     // TODO: all handleConnectWallet will need to pass through useWallet()
@@ -80,7 +78,7 @@ export const InitialClaimLinkView = ({
             await new Promise((resolve) => setTimeout(resolve, 100))
             setRecipient({ name: undefined, address: address })
         } else {
-            open()
+            signInModal.open()
         }
     }
 

@@ -2,8 +2,6 @@
 
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
@@ -70,14 +68,7 @@ export const CreateLinkInputView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
-    const { isConnected, address } = useAccount()
-    const { selectedWallet } = useWallet()
-
-    const { open } = useWeb3Modal()
-
-    const handleConnectWallet = async () => {
-        open()
-    }
+    const { selectedWallet, signInModal, isConnected, address } = useWallet()
 
     const handleOnNext = async () => {
         try {
@@ -321,7 +312,7 @@ export const CreateLinkInputView = ({
                         maxValue={maxValue}
                         setTokenValue={_setTokenValue}
                         onSubmit={() => {
-                            if (!isConnected) handleConnectWallet()
+                            if (!isConnected) signInModal.open()
                             else handleOnNext()
                         }}
                     />
@@ -346,7 +337,7 @@ export const CreateLinkInputView = ({
                 <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
                     <Button
                         onClick={() => {
-                            if (!isConnected) handleConnectWallet()
+                            if (!isConnected) signInModal.open()
                             else handleOnNext()
                         }}
                         loading={isLoading}
