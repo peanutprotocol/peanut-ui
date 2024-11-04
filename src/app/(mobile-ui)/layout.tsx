@@ -58,6 +58,10 @@ const pages: ScreenProps[] = [
         name: 'Request',
         href: '/request/create',
     },
+    {
+        name: 'Support',
+        href: '/support',
+    },
 ]
 
 const tabs: NavTabProps[] = [
@@ -75,6 +79,11 @@ const tabs: NavTabProps[] = [
         name: 'Settings',
         href: '/profile',
         icon: 'settings',
+    },
+    {
+        name: 'Support',
+        href: '/support',
+        icon: 'support',
     },
 ]
 
@@ -118,7 +127,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
             >
                 {children}
             </div>
-            <div className="grid grid-cols-3 border-t-2 border-black p-2">
+            <div className="grid grid-cols-4 border-t-2 border-black p-2">
                 {tabs.map((tab) => (
                     <Link
                         href={tab.href}
