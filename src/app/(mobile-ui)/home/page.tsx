@@ -16,12 +16,14 @@ import Link from 'next/link'
 import { shortenAddressLong } from '@/utils'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import PointsBanner from '@/components/Home/PointsBanner'
+import { useRouter } from 'next/navigation'
 
 const cardWidth = 300
 const cardMargin = 16
 
 const Home = () => {
     const controls = useAnimation()
+    const router = useRouter()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     const carouselRef = useRef<HTMLDivElement>(null)
@@ -43,7 +45,11 @@ const Home = () => {
     }, [selectedWalletIndex, controls])
 
     const handleCardClick = (index: number) => {
-        setSelectedWallet(wallets[index])
+        if (selectedWalletIndex === index) {
+            router.push('/wallet')
+        } else {
+            setSelectedWallet(wallets[index])
+        }
     }
 
     return (
