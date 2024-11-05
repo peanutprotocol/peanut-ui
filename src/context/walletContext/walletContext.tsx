@@ -73,7 +73,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 .filter((account) => Object.values(interfaces.WalletProviderType).includes(account.account_type))
                 .map((account) => ({
                     walletProviderType: account.account_type,
-                    protocolType: account.chain,
+                    protocolType: interfaces.WalletProtocolType.EVM,
                     address: account.account_identifier,
                     connected: false,
                 }))

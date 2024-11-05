@@ -352,11 +352,21 @@ interface User {
     full_name: string
 }
 
+// based on the API's AccountType
+// https://github.com/peanutprotocol/peanut-api-ts/blob/b32570b7bd366efed7879f607040c511fa036a57/src/db/interfaces/account.ts
+export enum AccountType {
+	IBAN = 'iban',
+	US = 'us',
+	EVM_ADDRESS = 'evm-address',
+	PEANUT_WALLET = 'peanut-wallet',
+	BRIDGE = 'bridgeBankAccount',
+}
+
 interface Account {
     account_id: string
     user_id: string
     bridge_account_id: string
-    account_type: string
+    account_type: AccountType
     account_identifier: string
     account_details: string
     created_at: string
@@ -365,7 +375,6 @@ interface Account {
     referrer: string | null
     referred_users_points: number
     totalReferralPoints: number
-    chain: string
 }
 
 export interface IUserProfile {
