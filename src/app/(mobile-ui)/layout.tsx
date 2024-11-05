@@ -11,6 +11,7 @@ import { usePathname } from 'next/navigation'
 import classNames from 'classnames'
 import Icon from '@/components/Global/Icon'
 import { useRouter } from 'next/navigation'
+import WalletToggleButton from '@/components/Home/WalletToggleButton'
 
 type ScreenProps = {
     name: string
@@ -71,6 +72,11 @@ const tabs: NavTabProps[] = [
         icon: 'home',
     },
     {
+        name: 'Wallet',
+        href: '/wallet',
+        icon: 'wallet',
+    },
+    {
         name: 'History',
         href: '/history',
         icon: 'history',
@@ -91,7 +97,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal, selectedWallet } = useWallet()
+    const { signInModal, selectedWallet, walletColor } = useWallet()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
@@ -124,21 +130,30 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 className={classNames('flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
                     'p-4': !isHome,
                 })}
+                style={{
+                    backgroundColor: walletColor,
+                }}
             >
                 {children}
             </div>
-            <div className="grid grid-cols-4 border-t-2 border-black p-2">
-                {tabs.map((tab) => (
-                    <Link
-                        href={tab.href}
-                        key={tab.name}
-                        className={classNames('flex flex-row justify-center py-2 hover:cursor-pointer ', {
-                            'text-purple-1': pathName === tab.href,
-                        })}
-                    >
-                        <NavIcons name={tab.icon} size={30} />
-                    </Link>
-                ))}
+            <div className="grid grid-cols-5 border-t-2 border-black p-2">
+                {tabs.map((tab) => {
+                    if (tab.icon === 'wallet') {
+                        return <WalletToggleButton />
+                    }
+
+                    return (
+                        <Link
+                            href={tab.href}
+                            key={tab.name}
+                            className={classNames('flex flex-row justify-center py-2 hover:cursor-pointer ', {
+                                'text-purple-1': pathName === tab.href,
+                            })}
+                        >
+                            <NavIcons name={tab.icon} size={30} />
+                        </Link>
+                    )
+                })}
             </div>
             <Modal
                 visible={signInModal.visible}
