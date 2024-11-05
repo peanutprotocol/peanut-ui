@@ -98,7 +98,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             if (isIBAN(sanitizedAccountNumber)) {
                 setAccountDetailsValue('type', 'iban')
-            } else if (/^[0-9]{6,17}$/.test(sanitizedAccountNumber)) {
+                // this code is also repeated in GeneralRecipientInput.tsx
+            } else if (/^[0-9]{6,26}$/.test(sanitizedAccountNumber)) {
                 setAccountDetailsValue('type', 'us')
             } else {
                 setIbanFormError('accountNumber', { message: 'Invalid account number' })
