@@ -595,7 +595,7 @@ export const OfframpConfirmView = ({
     }
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>Confirm your details</Card.Title>
                 <Card.Description>
@@ -747,13 +747,13 @@ export const OfframpConfirmView = ({
                                         ? offrampType == OfframpType.CASHOUT
                                             ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
                                             : tokenPrice &&
-                                              claimLinkData &&
-                                              utils.formatTokenAmount(
-                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                              )
+                                            claimLinkData &&
+                                            utils.formatTokenAmount(
+                                                tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                            )
                                         : offrampType == OfframpType.CASHOUT
-                                          ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                          : tokenPrice &&
+                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                            : tokenPrice &&
                                             claimLinkData &&
                                             utils.formatTokenAmount(
                                                 tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5

@@ -11,7 +11,7 @@ export const HomeLink = ({
         <Card
             shadowSize="4"
             className={classNames(
-                'flex h-24 w-24 flex-row items-center justify-center rounded-full text-center sm:h-30 sm:w-30',
+                'flex h-28 w-28 flex-row items-center justify-center rounded-full text-center sm:h-30 sm:w-30',
                 {
                     'cursor-not-allowed bg-gray-100': disabled,
                 }
