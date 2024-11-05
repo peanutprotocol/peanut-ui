@@ -324,7 +324,8 @@ export const InitialCashoutView = ({
                                         setErrorState({
                                             showError: true,
                                             errorMessage:
-                                                'Invalid bank account. Please make sure your account is supported',
+                                                'Invalid bank account. For US bank accounts, enter your bank routing number (9 digits) followed by your account number \
+                                                (example: 1112223330001234567 where routing number is: 111222333 and account number: 0001234567)',
                                         })
                                     } else {
                                         setErrorState({

@@ -34,7 +34,9 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
                 type = 'iban'
                 isValid = await utils.validateBankAccount(recipient)
                 if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
-            } else if (/^[0-9]{6,17}$/.test(recipient)) {
+            } else if (/^[0-9]{6,26}$/.test(recipient)) {
+                // routing number: 9 digits
+                // account number: 8-12 digits (can go up to 17)
                 type = 'us'
                 isValid = await utils.validateBankAccount(recipient)
                 if (!isValid) errorMessage.current = 'Invalid US account number'

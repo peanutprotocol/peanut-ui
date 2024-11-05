@@ -21,15 +21,27 @@ export const RecipientInfoComponent = ({ className }: { className?: string }) =>
                         {/* TODO: these need to be standardized. It's dumb to have 10000 tw classes in here but also in Faq.comp.tsx etc... */}
                         <Menu.Items className="shadow-primary-4 absolute bottom-full left-0 z-[999] mb-1 mr-1 w-64 border border-n-1 bg-white px-4 py-2 md:left-0 md:right-auto">
                             <Menu.Item as={'label'} className={'text-h8 font-normal'}>
-                                You can claim directly to your IBAN OR US bank account. Click{' '}
+                                You can claim directly to your IBAN OR US bank account.
+                                <br />
+                                <br />
+                                For US bank accounts, enter your
+                                bank routing number (9 digits) and account number together.
+                                <br />
+                                <br />
+                                Example US bank account: 1112223330001234567, with:
+                                <br />
+                                Routing number (9 digits): 111222333
+                                <br />
+                                Account number: 0001234567
+                                <br />
+                                <br />
                                 <a
                                     href="https://docs.peanut.to/app/cashout/supported-geographies"
                                     target="_blank"
                                     className="underline"
                                 >
-                                    here
-                                </a>{' '}
-                                to see if your region is supported.
+                                    Supported regions
+                                </a>
                             </Menu.Item>
                         </Menu.Items>
                     </Transition>
