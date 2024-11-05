@@ -67,8 +67,8 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     ////// Wallets
     const { data: wallets } = useQuery<interfaces.IWallet[]>({
-        queryKey: ['wallets', user?.user.userId],
-        queryFn: () => {
+        queryKey: ['wallets', user?.accounts],
+        queryFn: async () => {
             const processedWallets = user?.accounts
                 .filter((account) => Object.values(interfaces.WalletProviderType).includes(account.account_type))
                 .map((account) => ({
