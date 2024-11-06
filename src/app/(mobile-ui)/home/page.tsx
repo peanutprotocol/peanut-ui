@@ -109,7 +109,7 @@ const Home = () => {
                                                     <div className="flex flex-row items-center gap-4">
                                                         <Image src={PeanutWalletIcon} alt="" />
                                                         <p className="text-md">
-                                                            peanut.me/<span className="font-bold">{wallet.handle}</span>
+                                                            peanut.me/<span className="font-bold">{'username'}</span>
                                                         </p>
                                                     </div>
                                                     <p className="text-4xl font-black sm:text-5xl">$ 0.00</p>

@@ -12,6 +12,7 @@ import classNames from 'classnames'
 import Icon from '@/components/Global/Icon'
 import { useRouter } from 'next/navigation'
 import WalletToggleButton from '@/components/Home/WalletToggleButton'
+import { useAuth } from '@/context/authContext'
 
 type ScreenProps = {
     name: string
@@ -98,6 +99,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
     const { signInModal, selectedWallet, walletColor } = useWallet()
+    const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
@@ -163,16 +165,16 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 title={'Sign In with your Peanut Wallet'}
             >
                 <div className="flex flex-col gap-2 p-5">
+                    {/* TODO: Explicit by something else than username */}
                     <p>
-                        Selected Wallet: <span className="font-bold">{selectedWallet?.handle}.peanut.wallet</span>
+                        Selected Wallet: <span className="font-bold">{'username'}.peanut.wallet</span>
                     </p>
                     <Button
                         loading={isLoggingIn}
                         disabled={isLoggingIn}
                         onClick={() => {
-                            if (!selectedWallet) return
-                            const { handle } = selectedWallet
-                            handleLogin(handle)
+                            if (!user?.user?.username) return
+                            handleLogin(user?.user?.username)
                         }}
                     >
                         Sign In
