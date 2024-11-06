@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 
@@ -10,7 +10,6 @@ import { PasskeyStorage } from '@/components/Setup/Setup.helpers'
 import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { Chain } from 'viem'
-import { useRouter } from 'next/navigation'
 import { backgroundColorFromAddress } from '@/utils'
 import { useAuth } from '../authContext'
 
@@ -39,7 +38,7 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
-    const { push } = useRouter()
+
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
@@ -70,14 +69,18 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         queryKey: ['wallets', user?.accounts],
         queryFn: async () => {
             const processedWallets = user?.accounts
-                .filter((account) => Object.values(interfaces.WalletProviderType).includes(account.account_type))
+                .filter((account) =>
+                    Object.values(interfaces.WalletProviderType).includes(
+                        account.account_type as unknown as interfaces.WalletProviderType
+                    )
+                )
                 .map((account) => ({
-                    walletProviderType: account.account_type,
+                    walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
                     protocolType: interfaces.WalletProtocolType.EVM,
                     address: account.account_identifier,
                     connected: false,
                 }))
-            return processedWallets ? processedWallets : []
+            return (processedWallets ? processedWallets : []).concat(legacy_getLocalPWs())
         },
     })
 

@@ -7,7 +7,6 @@ import { useZeroDev } from './walletContext/zeroDevContext.context'
 interface AuthContextType {
     user: interfaces.IUserProfile | null
     setUser: (user: interfaces.IUserProfile | null) => void
-    isAuthed: boolean
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
@@ -32,11 +31,8 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const { address, handleLogin } = useZeroDev()
-
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
-    const [isAuthed, setIsAuthed] = useState<boolean>(false)
     const [isFetchingUser, setIsFetchingUser] = useState(true)
     const toast = useToast({
         position: 'bottom-right',
@@ -47,41 +43,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const toastIdRef = useRef<ToastId | undefined>(undefined)
 
     useEffect(() => {
-        if (user != null) {
-            afterLoginUserSetup()
-        } else {
-            setIsAuthed(false)
-        }
-    }, [user])
-
-
-    // TODO: document better
-    // used after register too (there is a login event then too)
-    const afterLoginUserSetup = async (): Promise<undefined> => {
-        // set isAuthed
-        setIsAuthed(true)
-
-        //TODO: REMOVE THIS - ONLY FOR TESTING
-        await handleLogin('hey2')
-
-        // // fetch user wallets
-        // // set PW as active wallet
-        // setupWalletsAfterLogin()
-
-
-    }
-
+        fetchUser()
+    }, [])
 
     const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
         // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
         try {
-            const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
-            const { address: tokenAddress } = await tokenAddressResponse.json()
-            if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
-                setIsFetchingUser(false)
-                setUser(null)
-                return null
-            }
+            // const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
+            // const { address: tokenAddress } = await tokenAddressResponse.json()
+            // if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
+            //     setIsFetchingUser(false)
+            //     setUser(null)
+            //     return null
+            // }
 
             const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
             if (userResponse.ok) {
@@ -286,12 +260,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    console.log({ user })
+
     return (
         <AuthContext.Provider
             value={{
                 user,
                 setUser,
-                isAuthed,
                 updateBridgeCustomerId,
                 fetchUser,
                 updateUserName,
