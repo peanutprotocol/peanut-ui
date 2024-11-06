@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useZeroDev } from './walletContext/zeroDevContext.context'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -12,6 +13,7 @@ interface AuthContextType {
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
     updateBridgeCustomerId: (bridgeCustomerId: string) => Promise<void>
+    addBYOW: () => Promise<void>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -33,6 +35,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { address, handleLogin } = useZeroDev()
+    const { open: web3modalOpen } = useWeb3Modal()
 
     // TODO: add handle
     const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
@@ -227,6 +230,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    const addBYOW = async () => {
+        const currConnectedBYOW = null
+        // TODO: 
+        // const currConnectedBYOW = get it by filtering through wallets
+        web3modalOpen()
+        .then(
+            // check if currConnectedBYOW and wallet connected in provider are different
+
+                // if yes
+                    // if currConnectedBYOW is not already in wallets
+                        // addAccount() and then,
+                        // add wallet to wallets
+        )
+    }
+
     const addAccount = async ({
         accountIdentifier,
         accountType,
@@ -306,6 +324,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 fetchUser,
                 updateUserName,
                 submitProfilePhoto,
+                addBYOW,
                 addAccount,
                 isFetchingUser,
                 logoutUser,
