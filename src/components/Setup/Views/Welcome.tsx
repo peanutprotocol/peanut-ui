@@ -17,13 +17,21 @@ const WelcomeStep = () => {
             toast.error('Handle must be at least 4 characters long')
             return false
         }
+        if (!handle.match(/^[a-zA-Z/d]$/)) {
+            toast.error('Handle must contain only letters and numbers')
+            return false
+        }
         const res = await fetch(`${next_proxy_url}/get/users/username/${handle}`, {
             method: 'HEAD', // we only need the status code no body
         })
-        // 404 on user means no user exist with this handle
-        const isHandleTaken = 404 !== res.status
+        // 200 on user means an user exists with this handle
+        const isHandleTaken = 200 === res.status
         if (isHandleTaken) {
             toast.error('Handle already taken')
+        } else if (404 !== res.status) {
+            console.error('Failed to check handle', res)
+            toast.error('Failed to check handle')
+            return false
         }
         return !isHandleTaken
     }
