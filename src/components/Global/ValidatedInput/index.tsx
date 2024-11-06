@@ -1,7 +1,10 @@
 import { useState, useEffect, ChangeEvent, useRef } from 'react'
 import Icon from '@/components/Global/Icon'
+import BaseInput from '@/components/0_Bruddle/BaseInput'
+import classNames from 'classnames'
+
 type ValidatedInputProps = {
-    label: string
+    label?: string
     value: string
     placeholder?: string
     debounceTime?: number
@@ -69,20 +72,19 @@ const ValidatedInput = ({
         onUpdate({ value: newValue, isValid: false, isChanging: !!newValue })
     }
     return (
-        <div
-            className={`relative w-full max-w-96 border border-n-1 dark:border-white${
-                value && !isValidating && !isValid ? ' border-red dark:border-red' : ''
-            } ${className}`}
-        >
-            <label className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
-                {label}:
-            </label>
-            <input
+        <div className={classNames(`relative w-full ${className}`, {})}>
+            {label && (
+                <label className="absolute left-1 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center bg-white text-h8 font-medium">
+                    {label}:
+                </label>
+            )}
+            <BaseInput
                 type="text"
                 value={value}
                 onChange={handleChange}
-                className={`transition-color h-12 w-full rounded-none bg-transparent
-                bg-white px-4 pl-8 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
+                className={classNames('pl-12', {
+                    'border-red': value && !isValidating && !isValid,
+                })}
                 placeholder={placeholder}
                 spellCheck="false"
             />
