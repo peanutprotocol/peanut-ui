@@ -16,12 +16,14 @@ import Link from 'next/link'
 import { shortenAddressLong } from '@/utils'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import PointsBanner from '@/components/Home/PointsBanner'
+import { useRouter } from 'next/navigation'
 
 const cardWidth = 300
 const cardMargin = 16
 
 const Home = () => {
     const controls = useAnimation()
+    const router = useRouter()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     const carouselRef = useRef<HTMLDivElement>(null)
@@ -43,14 +45,18 @@ const Home = () => {
     }, [selectedWalletIndex, controls])
 
     const handleCardClick = (index: number) => {
-        setSelectedWallet(wallets[index])
+        if (selectedWalletIndex === index) {
+            router.push('/wallet')
+        } else {
+            setSelectedWallet(wallets[index])
+        }
     }
 
     return (
         <div className="w-full">
             <PointsBanner />
             <div className="flex w-full flex-row justify-center overflow-hidden p-4">
-                <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
+                <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[50%]">
                     <div className="flex w-full flex-row justify-between">
                         <div className="flex flex-col">
                             <div className="relative mb-2.5 h-21 w-21">
@@ -80,7 +86,7 @@ const Home = () => {
                         )}
                     </div>
                     <div
-                        className={classNames('relative h-[250px] p-4 sm:overflow-visible', {
+                        className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                             'overflow-hidden': wallets.length > 0,
                         })}
                         style={{
@@ -188,7 +194,7 @@ const Home = () => {
                             </Card>
                         </div>
                     )}
-                    <div className="flex w-full flex-grow flex-row items-center justify-center gap-4 py-4 sm:justify-evenly sm:gap-8">
+                    <div className="flex w-full flex-grow flex-row items-center justify-center gap-4 sm:justify-evenly sm:gap-8">
                         <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
                             <HomeLink href={'/send'}>
                                 <ArrowIcon />

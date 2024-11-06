@@ -39,6 +39,7 @@
         "autoprefixer": "^10.4.20",
         "axios": "^1.7.7",
         "chakra-ui-steps": "^2.1.0",
+        "chroma-js": "^3.1.2",
         "classnames": "^2.5.1",
         "country-list": "^2.3.0",
         "encoding": "^0.1.13",
@@ -83,6 +84,7 @@
         "web3": "^1.10.4"
     },
     "devDependencies": {
+        "@types/chroma-js": "^2.4.4",
         "@types/country-list": "^2.1.4",
         "@types/fs-extra": "^11.0.4",
         "@types/multicoin-address-validator": "^0.5.3",
