@@ -163,6 +163,22 @@ const Home = () => {
                                         </motion.div>
                                     )
                                 })}
+                                <Card
+                                    className={classNames("flex flex-col gap-4 rounded-md text-black hover:cursor-pointer w-full")}
+                                    shadowSize="6"
+                                    onClick={() => addBYOW()}
+                                >
+                                    <Link href="/setup" className="h-full">
+                                        <Card.Content className="h-full flex-col gap-8 flex justify-center items-center">
+                                            <p className="text-2xl font-bold">Add your own ETH wallet</p>
+                                            <div className='flex flex-row items-center gap-4 justify-start'>
+                                                <Icon name="plus-circle" className="h-8 w-8" />
+                                                <p className="text-lg">Add BYOW wallet</p>
+
+                                            </div>
+                                        </Card.Content>
+                                    </Link>
+                                </Card>
                             </motion.div>
                         ) : (
                             <div className="flex h-full w-full flex-grow flex-col justify-center">
