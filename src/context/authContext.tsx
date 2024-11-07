@@ -63,10 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const afterLoginUserSetup = async (): Promise<undefined> => {
         // set isAuthed
         setIsAuthed(true)
-
-        //TODO: REMOVE THIS - ONLY FOR TESTING
-        await handleLogin('hey2')
-
+        
         // // fetch user wallets
         // // set PW as active wallet
         // setupWalletsAfterLogin()
