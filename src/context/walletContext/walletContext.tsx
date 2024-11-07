@@ -134,21 +134,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             if (!foundWallet) {
                 // if currConnectedBYOW is not already in wallets
                 // addAccount() and then,
-                // add wallet to wallets
+                // it does NOT need to add a new wallet to the wallets prop,
+                // that is because addAccount() calls fetchUser() on success,
+                // and accounts are populated anew
                 addAccount({
                     accountIdentifier: wagmiAddress,
                     accountType: interfaces.WalletProviderType.BYOW,
                     userId: user?.user.userId as string                 // will always be defined, since user logged in
                 })
-                const newWallet: interfaces.IWallet = {
-                    walletProviderType: interfaces.WalletProviderType.BYOW,
-                    protocolType: interfaces.WalletProtocolType.EVM,
-                    address: wagmiAddress,
-                    connected: false,       // will be handled in context value re-evaluation 
-                    handle: ''              // TODO: remove once handle has been removed via other branch
-                }
-
-                wallets.push(newWallet)
             }
 
         }
