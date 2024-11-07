@@ -6,6 +6,8 @@ import { twMerge } from 'tailwind-merge'
 
 import peanutClub from '@/assets/peanut/peanut-club.png'
 import starImage from '@/assets/icons/star.png'
+import fingerprint from '@/assets/icons/fingerprint.png'
+import { EyeIcon } from '@/components/Setup/components/EyesIcon'
 
 const SetupPage = () => {
     const { currentStep, direction, step } = useSetupFlow()
@@ -16,6 +18,13 @@ const SetupPage = () => {
         'right-[10%] animate-rock top-[10%] h-12 w-12',
     ]
 
+    const passKeyImageComponent = (
+        <div className="flex h-full scale-75 flex-col items-center justify-center">
+            <EyeIcon className="w-[80%]" />
+            <img src={fingerprint.src} />
+        </div>
+    )
+
     return (
         <div className={twMerge('flex h-screen flex-col bg-opacity-100 p-6 transition-all', step.containerClassname)}>
             <div className="mg:1/3 mx-auto flex h-full w-full flex-col gap-8 md:w-1/2 lg:gap-12">
@@ -24,15 +33,20 @@ const SetupPage = () => {
                     <p className="text-center">{step.description}</p>
                 </div>
                 <div className="relative flex flex-grow flex-row items-center justify-center">
-                    {starPositions.map((positions, index) => (
-                        <img
-                            key={index}
-                            src={starImage.src}
-                            alt="Star"
-                            className={twMerge(positions, 'absolute z-[11]')}
-                        />
-                    ))}
-                    <img src={peanutClub.src} className="z-10 aspect-square h-full scale-75 object-contain" />
+                    {step.screenId !== 'passkey' &&
+                        starPositions.map((positions, index) => (
+                            <img
+                                key={index}
+                                src={starImage.src}
+                                alt="Star"
+                                className={twMerge(positions, 'absolute z-[11]')}
+                            />
+                        ))}
+                    {step.screenId === 'passkey' ? (
+                        passKeyImageComponent
+                    ) : (
+                        <img src={peanutClub.src} className="z-10 aspect-square h-full scale-75 object-contain" />
+                    )}
                 </div>
                 <div className="relative overflow-hidden">
                     <StepTransition step={currentStep} direction={direction}>
