@@ -17,7 +17,7 @@ const WelcomeStep = () => {
             toast.error('Handle must be at least 4 characters long')
             return false
         }
-        if (!handle.match(/^[a-zA-Z/d]$/)) {
+        if (!handle.match(/^[a-zA-Z\d]*$/)) {
             toast.error('Handle must contain only letters and numbers')
             return false
         }
