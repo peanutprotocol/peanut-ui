@@ -286,16 +286,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    // TODO: this doesn't make sense
-    // when we connect another wallet, we don't change the user at all
-    useEffect(() => {
-        const timeoutId = setTimeout(() => {
-            fetchUser()
-        }, 500)
-
-        return () => clearTimeout(timeoutId)
-    }, [address])
-
     return (
         <AuthContext.Provider
             value={{
