@@ -231,18 +231,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
 
     const addBYOW = async () => {
-        const currConnectedBYOW = null
-        // TODO: 
-        // const currConnectedBYOW = get it by filtering through wallets
+        // we open the web3modal, so the user can disconnect the previous wallet,
+        // connect a new wallet and allow the useEffect(..., [wagmiAddress]) in walletContext take over
         web3modalOpen()
-        .then(
-            // check if currConnectedBYOW and wallet connected in provider are different
-
-                // if yes
-                    // if currConnectedBYOW is not already in wallets
-                        // addAccount() and then,
-                        // add wallet to wallets
-        )
+        
     }
 
     const addAccount = async ({

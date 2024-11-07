@@ -11,6 +11,7 @@ import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { Chain } from 'viem'
 import { useRouter } from 'next/navigation'
+import { useAuth } from '../authContext'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined,
@@ -37,6 +38,7 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
     const { push } = useRouter()
+    const { addAccount, user } = useAuth()
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
@@ -112,6 +114,40 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             updateSelectedWalletWithConnectionStatus(selectedWallet)
         }
     }, [kernelClientAddress, wagmiAddress])
+
+    /**
+     * Add a new BYOW to DB and local wallets prop.
+     * Called every time a new address is connected to the wagmi provider
+     * Will add new BYOW only if:
+     * - wagmiAddress is not undefined
+     * - wallets are not undefined and user logged in (PW available, at least)
+     */
+    useEffect(() => {
+        if (wagmiAddress && wallets && wallets?.length > 0) {
+            // only check if user logged in (wallets will always include PW in this case) and wallets have been set up
+            const foundWallet = wallets?.find((wallet: interfaces.IWallet) => {wallet.address == wagmiAddress})
+            if (!foundWallet) {
+                // if currConnectedBYOW is not already in wallets
+                // addAccount() and then,
+                // add wallet to wallets
+                addAccount({
+                    accountIdentifier: wagmiAddress,
+                    accountType: interfaces.WalletProviderType.BYOW,
+                    userId: user?.user.userId as string                 // will always be defined, since user logged in
+                })
+                const newWallet: interfaces.IWallet = {
+                    walletProviderType: interfaces.WalletProviderType.BYOW,
+                    protocolType: interfaces.WalletProtocolType.EVM,
+                    address: wagmiAddress,
+                    connected: false,       // will be handled in context value re-evaluation 
+                    handle: ''              // TODO: remove once handle has been removed via other branch
+                }
+
+                wallets.push(newWallet)
+            }
+
+        }
+    }, [wagmiAddress])
 
 
     const removeBYOW = async () => {
