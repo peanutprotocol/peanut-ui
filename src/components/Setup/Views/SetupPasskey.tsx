@@ -4,10 +4,12 @@ import Icon from '@/components/Global/Icon'
 import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { PasskeyStorage } from '../Setup.helpers'
+import { useAuth } from '@/context/authContext'
 
 const SetupPasskey = () => {
     const { handleNext, handleBack, isLoading, screenProps = { handle: '' } } = useSetupFlow()
     const { handleRegister } = useZeroDev()
+    const { fetchUser } = useAuth()
     const toast = useToast()
 
     const { handle } = screenProps
@@ -16,11 +18,23 @@ const SetupPasskey = () => {
 
     const createKey = async () => {
         try {
+            // set register
             const { account } = await handleRegister(handle)
+
+            // once register is set, provider is setup,
+            // all calls get a response and
+            // cookies are set properly, then get the user
+            //
+            // note: this was tested to ensure jwt will be set in Cookies
+            // by the time we arive to fetchUser()
+            //
+            // TODO: ensure getUser() is properly called on reload
+            fetchUser()
+            
 
             const smartAccountAddress = account.address
 
-            // TODO: REPLACE w/ create account in backend
+            // TODO: Remove PasskeyStorage altogether
             PasskeyStorage.add({ handle, account: smartAccountAddress })
 
             return true;
