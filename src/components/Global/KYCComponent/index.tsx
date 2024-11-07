@@ -350,7 +350,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     }
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>KYC Process</Card.Title>
                 <Card.Description>Regulations require us to verify your identity.</Card.Description>

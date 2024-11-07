@@ -208,7 +208,7 @@ export const InitialCashoutView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title>Cash Out</Card.Title>
                 <Card.Description>

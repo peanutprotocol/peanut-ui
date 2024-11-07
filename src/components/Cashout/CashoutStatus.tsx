@@ -28,7 +28,7 @@ export const CashoutStatus = () => {
 
     if (!cashoutStatus) {
         return (
-            <Card shadowSize="6">
+            <Card className="sm:shadow-primary-4 shadow-none">
                 <Card.Content>
                     <div className="relative flex w-full items-center justify-center">
                         <div className="animate-spin">
@@ -42,7 +42,7 @@ export const CashoutStatus = () => {
     }
 
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header>
                 <Card.Title></Card.Title>
             </Card.Header>

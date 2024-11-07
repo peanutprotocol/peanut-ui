@@ -7,7 +7,7 @@ import { Button, Card } from '@/components/0_Bruddle'
 
 export const SuccessView = ({ link }: _consts.ICreateScreenProps) => {
     return (
-        <Card shadowSize="6">
+        <Card className="sm:shadow-primary-4 shadow-none">
             <Card.Header className="relative">
                 <Card.Title>Yay !</Card.Title>
             </Card.Header>

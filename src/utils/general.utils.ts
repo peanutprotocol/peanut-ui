@@ -2,6 +2,18 @@ import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
+import chroma from 'chroma-js'
+
+export const backgroundColorFromAddress = (address: string): string => {
+    // Hash the Ethereum address to a number
+    const hash = Array.from(address).reduce((acc, char) => acc + char.charCodeAt(0), 0)
+
+    // Generate color with a lightness range to avoid dark colors
+    const colorScale = chroma.scale(['#FF90E7', '#90A8ED', '#FFC900', '#98E9AB']).mode('lab').domain([0, 255])
+
+    // Get color from scale
+    return colorScale(hash % 255).hex()
+}
 
 export const shortenAddress = (address?: string) => {
     if (!address) return ''
