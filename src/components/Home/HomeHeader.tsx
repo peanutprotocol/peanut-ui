@@ -2,8 +2,10 @@ import { useWallet } from '@/context/walletContext'
 import useAvatar from '@/hooks/useAvatar'
 import { Button } from '../0_Bruddle'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useAuth } from '@/context/authContext'
 
 const HomeHeader = () => {
+    const { username } = useAuth()
     const { selectedWallet, wallets } = useWallet()
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
@@ -23,7 +25,7 @@ const HomeHeader = () => {
                 </div>
                 <div className="">
                     <p>www.peanute.me/</p>
-                    <p className="text-h4">{selectedWallet?.handle}</p>
+                    <p className="text-h4">{username}</p>
                 </div>
                 {hasWallets && (
                     <div>
@@ -34,8 +36,8 @@ const HomeHeader = () => {
                             variant={isConnectWallet ? 'green' : 'purple'}
                             size="small"
                             onClick={() => {
-                                if (!selectedWallet?.handle) return
-                                handleLogin(selectedWallet?.handle)
+                                if (!username) return
+                                handleLogin(username)
                             }}
                         >
                             {isConnectWallet ? 'Connected' : 'Sign In'}
