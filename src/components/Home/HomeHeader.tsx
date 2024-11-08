@@ -12,8 +12,8 @@ const HomeHeader = () => {
     const { uri: avatarURI } = useAvatar(selectedWallet ? selectedWallet.address : 'i am sad bc i dont have peanut')
 
     return (
-        <div className="flex w-full flex-row justify-between">
-            <div className="flex flex-col">
+        <div className="relative flex w-full flex-row justify-center">
+            <div className="flex flex-row items-center gap-4">
                 <div className="relative mb-2.5 h-21 w-21">
                     <img
                         className="rounded-full border border-black bg-white object-cover"
@@ -21,24 +21,28 @@ const HomeHeader = () => {
                         alt="Avatar"
                     />
                 </div>
-                <div className="text-h4">{selectedWallet?.handle}</div>
-            </div>
-            {hasWallets && (
-                <div>
-                    <Button
-                        loading={isLoggingIn}
-                        disabled={isLoggingIn}
-                        shadowSize={!isConnectWallet ? '4' : undefined}
-                        variant={isConnectWallet ? 'green' : 'purple'}
-                        onClick={() => {
-                            if (!selectedWallet?.handle) return
-                            handleLogin(selectedWallet?.handle)
-                        }}
-                    >
-                        {isConnectWallet ? 'Connected' : 'Sign In'}
-                    </Button>
+                <div className="">
+                    <p>www.peanute.me/</p>
+                    <p className="text-h4">{selectedWallet?.handle}</p>
                 </div>
-            )}
+                {hasWallets && (
+                    <div>
+                        <Button
+                            loading={isLoggingIn}
+                            disabled={isLoggingIn}
+                            shadowSize={!isConnectWallet ? '4' : undefined}
+                            variant={isConnectWallet ? 'green' : 'purple'}
+                            size="small"
+                            onClick={() => {
+                                if (!selectedWallet?.handle) return
+                                handleLogin(selectedWallet?.handle)
+                            }}
+                        >
+                            {isConnectWallet ? 'Connected' : 'Sign In'}
+                        </Button>
+                    </div>
+                )}
+            </div>
         </div>
     )
 }
