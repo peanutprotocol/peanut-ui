@@ -80,7 +80,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     address: account.account_identifier,
                     connected: false,
                 }))
-            return (processedWallets ? processedWallets : []).concat(legacy_getLocalPWs())
+            return processedWallets ? processedWallets : []
         },
     })
 

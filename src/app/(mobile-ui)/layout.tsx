@@ -98,8 +98,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal, selectedWallet, walletColor } = useWallet()
-    const { user } = useAuth()
+    const { signInModal, walletColor } = useWallet()
+    const { username } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
@@ -167,14 +167,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 <div className="flex flex-col gap-2 p-5">
                     {/* TODO: Explicit by something else than username */}
                     <p>
-                        Selected Wallet: <span className="font-bold">{'username'}.peanut.wallet</span>
+                        Selected Wallet: <span className="font-bold">{username}.peanut.wallet</span>
                     </p>
                     <Button
                         loading={isLoggingIn}
                         disabled={isLoggingIn}
                         onClick={() => {
-                            if (!user?.user?.username) return
-                            handleLogin(user?.user?.username)
+                            if (!username) return
+                            handleLogin(username)
                         }}
                     >
                         Sign In
