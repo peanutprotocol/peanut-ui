@@ -24,7 +24,7 @@ const HomeHeader = () => {
                     />
                 </div>
                 <div className="">
-                    <p>www.peanute.me/</p>
+                    <p>www.peanut.me/</p>
                     <p className="text-h4">{username}</p>
                 </div>
                 {hasWallets && (
