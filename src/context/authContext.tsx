@@ -1,13 +1,12 @@
 'use client'
-import { createContext, useContext, useEffect, useState, ReactNode, useRef } from 'react'
+import { createContext, useContext, ReactNode, useRef } from 'react'
 import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
-import { useZeroDev } from './walletContext/zeroDevContext.context'
+import { useQuery } from '@tanstack/react-query'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
-    setUser: (user: interfaces.IUserProfile | null) => void
-    isAuthed: boolean
+    username: string | undefined
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
@@ -32,12 +31,31 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const { address, handleLogin } = useZeroDev()
+    const {
+        data: user,
+        isLoading: isFetchingUser,
+        refetch: fetchUser,
+    } = useQuery<interfaces.IUserProfile | null>({
+        queryKey: ['user'],
+        initialData: null,
+        queryFn: async () => {
+            const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
+            if (userResponse.ok) {
+                const userData: interfaces.IUserProfile | null = await userResponse.json()
 
-    // TODO: add handle
-    const [user, setUser] = useState<interfaces.IUserProfile | null>(null)
-    const [isAuthed, setIsAuthed] = useState<boolean>(false)
-    const [isFetchingUser, setIsFetchingUser] = useState(true)
+                return userData
+            } else {
+                console.warn('Failed to fetch user. Probably not logged in.')
+                return null
+            }
+        },
+    })
+
+    const legacy_fetchUser = async () => {
+        const { data: fetchedUser } = await fetchUser()
+        return fetchedUser ?? null
+    }
+
     const toast = useToast({
         position: 'bottom-right',
         duration: 5000,
@@ -45,62 +63,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         icon: '🥜',
     })
     const toastIdRef = useRef<ToastId | undefined>(undefined)
-
-    useEffect(() => {
-        if (user != null) {
-            afterLoginUserSetup()
-        } else {
-            setIsAuthed(false)
-        }
-    }, [user])
-
-
-    // TODO: document better
-    // used after register too (there is a login event then too)
-    const afterLoginUserSetup = async (): Promise<undefined> => {
-        // set isAuthed
-        setIsAuthed(true)
-
-        //TODO: REMOVE THIS - ONLY FOR TESTING
-        await handleLogin('hey2')
-
-        // // fetch user wallets
-        // // set PW as active wallet
-        // setupWalletsAfterLogin()
-
-
-    }
-
-
-    const fetchUser = async (): Promise<interfaces.IUserProfile | null> => {
-        // @Hugo0: this logic seems a bit duplicated. We should rework with passkeys login.
-        try {
-            const tokenAddressResponse = await fetch('/api/peanut/user/get-decoded-token')
-            const { address: tokenAddress } = await tokenAddressResponse.json()
-            if (address && tokenAddress && tokenAddress.toLowerCase() !== address.toLowerCase()) {
-                setIsFetchingUser(false)
-                setUser(null)
-                return null
-            }
-
-            const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
-            if (userResponse.ok) {
-                const userData: interfaces.IUserProfile | null = await userResponse.json()
-                setUser(userData)
-                return userData
-            } else {
-                console.warn('Failed to fetch user. Probably not logged in.')
-                return null
-            }
-        } catch (error) {
-            console.error('ERROR WHEN FETCHING USER', error)
-            return null
-        } finally {
-            setTimeout(() => {
-                setIsFetchingUser(false)
-            }, 500)
-        }
-    }
 
     const updateUserName = async (username: string) => {
         if (!user) return
@@ -238,8 +200,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userId: string
         bridgeAccountId?: string
     }) => {
-        if (!user) return
-
         try {
             const response = await fetch('/api/peanut/user/add-account', {
                 method: 'POST',
@@ -255,10 +215,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.ok) {
-                const updatedUserData: any = await response.json()
-                if (updatedUserData.success) {
-                    fetchUser()
-                }
+                fetchUser()
             } else {
                 console.error('Failed to update user')
             }
@@ -277,7 +234,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.ok) {
-                setUser(null)
+                fetchUser()
             } else {
                 console.error('Failed to log out user')
             }
@@ -286,14 +243,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    console.log({ user })
+
     return (
         <AuthContext.Provider
             value={{
                 user,
-                setUser,
-                isAuthed,
+                username: user?.user?.username ?? undefined,
                 updateBridgeCustomerId,
-                fetchUser,
+                fetchUser: legacy_fetchUser,
                 updateUserName,
                 submitProfilePhoto,
                 addAccount,

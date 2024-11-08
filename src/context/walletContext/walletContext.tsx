@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useMemo, useCallback } from 'react'
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react'
 import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 
@@ -10,8 +10,8 @@ import { PasskeyStorage } from '@/components/Setup/Setup.helpers'
 import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { Chain } from 'viem'
-import { useRouter } from 'next/navigation'
 import { backgroundColorFromAddress } from '@/utils'
+import { useAuth } from '../authContext'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined
@@ -38,50 +38,49 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
-    const { push } = useRouter()
+
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
     ////// BYOW props
     const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
 
+    ////// User props
+    const { user } = useAuth()
+
     ////// Selected Wallet
     const [selectedWallet, setSelectedWallet] = useState<interfaces.IWallet | undefined>(undefined) // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useWallet() anywhere
 
+    const legacy_getLocalPWs = () => {
+        const localPasskeys = PasskeyStorage.list()
+        return [
+            ...localPasskeys.map(({ handle, account }) => ({
+                walletProviderType: interfaces.WalletProviderType.PEANUT,
+                protocolType: interfaces.WalletProtocolType.EVM,
+                connected: false,
+                address: account,
+                handle,
+            })),
+        ]
+    }
+
     ////// Wallets
-    const { data: wallets } = useQuery({
-        queryKey: ['wallets', kernelClientAddress, wagmiAddress],
+    const { data: wallets } = useQuery<interfaces.IWallet[]>({
+        queryKey: ['wallets', user?.accounts],
         queryFn: async () => {
-            /**
-             * TODO: fetch wallets from backend
-             * TODO: 2: Remove fetch & pass user?.account ?
-             */
-            const localPasskeys = PasskeyStorage.list()
-            // const walletsResponse = await fetch('/api/peanut/user/get-wallets')
-            // if (walletsResponse.ok) {
-            //     // receive in backend format
-            //     const { dbWallets }: { dbWallets: interfaces.IDBWallet[] } = await walletsResponse.json()
-            //     // manipulate to frontend format (add connected attribute)
-            //     const wallets: interfaces.IWallet[] = dbWallets.map((dbWallet: interfaces.IDBWallet) => ({
-            //         ...dbWallet,
-            //         connected: false    // this property will be processed into accurate values later in the flow
-            //     }))
-            // }
-            return [
-                // {
-                //     walletProviderType: interfaces.WalletProviderType.BYOW,
-                //     protocolType: interfaces.WalletProtocolType.EVM,
-                //     connected: false,
-                //     address: '0x7D4c7063E003CeB8B9413f63569e7AB968AF3714'
-                // },
-                ...localPasskeys.map(({ handle, account }) => ({
-                    walletProviderType: interfaces.WalletProviderType.PEANUT,
+            const processedWallets = user?.accounts
+                .filter((account) =>
+                    Object.values(interfaces.WalletProviderType).includes(
+                        account.account_type as unknown as interfaces.WalletProviderType
+                    )
+                )
+                .map((account) => ({
+                    walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
                     protocolType: interfaces.WalletProtocolType.EVM,
+                    address: account.account_identifier,
                     connected: false,
-                    address: account,
-                    handle,
-                })),
-            ]
+                }))
+            return processedWallets ? processedWallets : []
         },
     })
 
