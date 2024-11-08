@@ -37,7 +37,7 @@ const WelcomeStep = () => {
     }
 
     return (
-        <div className="flex h-full flex-col justify-end gap-8">
+        <div className="flex h-full flex-col justify-end gap-4">
             <ValidatedInput
                 placeholder="Pick your new handle"
                 value={handle}
