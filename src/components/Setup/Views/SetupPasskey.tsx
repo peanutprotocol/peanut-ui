@@ -30,24 +30,25 @@ const SetupPasskey = () => {
             //
             // TODO: ensure getUser() is properly called on reload
             fetchUser()
-            
 
             const smartAccountAddress = account.address
 
             // TODO: Remove PasskeyStorage altogether
             PasskeyStorage.add({ handle, account: smartAccountAddress })
 
-            return true;
+            return true
         } catch (error) {
             console.log('Error creating passkey', error)
             toast.error('Failed to create passkey')
-            return false;
+            return false
         }
     }
 
     return (
-        <div className="flex h-full gap-4 flex-col text-center justify-between">
-            <p className="">You're about to register as: <span className="text-lg font-bold">{handle}</span></p>
+        <div className="flex h-full flex-col justify-end gap-4 text-center">
+            <p className="">
+                You're about to register as: <span className="text-lg font-bold">{handle}</span>
+            </p>
             <div className="flex flex-row items-center gap-2">
                 <Button onClick={handleBack} variant="stroke">
                     <Icon name="arrow-prev" />
@@ -58,7 +59,6 @@ const SetupPasskey = () => {
                         handleNext(createKey)
                     }}
                     className="text-nowrap"
-
                 >
                     Create
                 </Button>
