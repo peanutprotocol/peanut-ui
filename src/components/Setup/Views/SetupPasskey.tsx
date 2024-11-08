@@ -5,11 +5,12 @@ import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { PasskeyStorage } from '../Setup.helpers'
 import { useAuth } from '@/context/authContext'
+import { WalletProviderType } from '@/interfaces'
 
 const SetupPasskey = () => {
     const { handleNext, handleBack, isLoading, screenProps = { handle: '' } } = useSetupFlow()
     const { handleRegister } = useZeroDev()
-    const { fetchUser } = useAuth()
+    const { fetchUser, addAccount } = useAuth()
     const toast = useToast()
 
     const { handle } = screenProps
@@ -23,13 +24,20 @@ const SetupPasskey = () => {
 
             // once register is set, provider is setup,
             // all calls get a response and
-            // cookies are set properly, then get the user
+            // cookies are set properly, then get add the new PW
+            // as an account (calls fetchUser() interanlly on success)
             //
             // note: this was tested to ensure jwt will be set in Cookies
             // by the time we arive to fetchUser()
             //
             // TODO: ensure getUser() is properly called on reload
-            fetchUser()
+            // TODO: on login -> this will need to be just fetchUser() instead of, also, addAccount()
+            const fetchedUser = await fetchUser()
+            await addAccount({
+                accountIdentifier: account.address,
+                accountType: WalletProviderType.PEANUT,
+                userId: fetchedUser?.user.userId as string,
+            })
 
             const smartAccountAddress = account.address
 

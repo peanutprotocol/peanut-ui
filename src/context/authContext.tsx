@@ -212,8 +212,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userId: string
         bridgeAccountId?: string
     }) => {
-        if (!user) return
-
         try {
             const response = await fetch('/api/peanut/user/add-account', {
                 method: 'POST',
@@ -229,10 +227,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             })
 
             if (response.ok) {
-                const updatedUserData: any = await response.json()
-                if (updatedUserData.success) {
-                    fetchUser()
-                }
+                fetchUser()
             } else {
                 console.error('Failed to update user')
             }
