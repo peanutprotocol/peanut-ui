@@ -99,6 +99,8 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
             validate={checkAddress}
             onUpdate={onInputUpdate}
             className={className}
+            autoComplete="on"
+            name="recipient"
         />
     )
 }

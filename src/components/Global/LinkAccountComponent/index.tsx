@@ -232,8 +232,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             })}
                             className={`custom-input ${ibanErrors.accountNumber ? 'border border-red' : ''}`}
                             placeholder={'Bank account'}
-                            autoComplete="on"
-                            name="bankAccount"
+                            autoComplete="account-number"
+                            name="account-number"
                         />
                         {ibanErrors.accountNumber && (
                             <span className="text-h9 font-normal text-red">{ibanErrors.accountNumber.message}</span>
@@ -304,6 +304,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                     })}
                                     className={`custom-input ${accountDetailsErrors.street ? 'border border-red' : ''}`}
                                     placeholder="Your street and number"
+                                    autoComplete="street-address"
+                                    name="street"
                                 />
                                 {accountDetailsErrors.street && (
                                     <span className="text-h9 font-normal text-red">
@@ -322,6 +324,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             })}
                                             className={`custom-input ${accountDetailsErrors.city ? 'border border-red' : ''}`}
                                             placeholder="Your city"
+                                            autoComplete="address-level2"
+                                            name="city"
                                         />
                                         {accountDetailsErrors.city && (
                                             <span className="text-h9 font-normal text-red">
@@ -339,6 +343,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             })}
                                             className={`custom-input ${accountDetailsErrors.postalCode ? 'border border-red' : ''}`}
                                             placeholder="Your postal code"
+                                            autoComplete="postal-code"
+                                            name="postal-code"
                                         />
                                         {accountDetailsErrors.postalCode && (
                                             <span className="text-h9 font-normal text-red">
@@ -358,6 +364,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             })}
                                             className={`custom-input ${accountDetailsErrors.state ? 'border border-red' : ''}`}
                                             placeholder="Your state "
+                                            autoComplete="address-level1"
+                                            name="state"
                                         />
                                         {accountDetailsErrors.state && (
                                             <span className="text-h9 font-normal text-red">

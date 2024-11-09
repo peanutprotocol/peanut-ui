@@ -8,6 +8,8 @@ type ValidatedInputProps = {
     validate: (value: string) => Promise<boolean>
     onUpdate: (update: InputUpdate) => void
     className?: string
+    autoComplete?: string
+    name?: string
 }
 export type InputUpdate = {
     value: string
@@ -22,6 +24,8 @@ const ValidatedInput = ({
     onUpdate,
     validate,
     className,
+    autoComplete,
+    name,
 }: ValidatedInputProps) => {
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
@@ -85,6 +89,8 @@ const ValidatedInput = ({
                 bg-white px-4 pl-8 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                 placeholder={placeholder}
                 spellCheck="false"
+                autoComplete={autoComplete}
+                name={name}
             />
             {value &&
                 (isValidating ? (
