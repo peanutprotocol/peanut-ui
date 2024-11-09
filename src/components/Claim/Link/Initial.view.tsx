@@ -467,7 +467,7 @@ export const InitialClaimLinkView = ({
                         }
                     />
                     <GeneralRecipientInput
-                        className="px-1"
+                        className=""
                         placeholder="wallet address / ENS / IBAN / US account number"
                         recipient={recipient}
                         onUpdate={(update: GeneralRecipientUpdate) => {

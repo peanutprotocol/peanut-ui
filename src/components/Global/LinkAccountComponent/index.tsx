@@ -232,8 +232,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                             })}
                             className={`custom-input ${ibanErrors.accountNumber ? 'border border-red' : ''}`}
                             placeholder={'Bank account'}
-                            autoComplete="account-number"
-                            name="account-number"
+                            autoComplete="on"
+                            name="bank-account"
                         />
                         {ibanErrors.accountNumber && (
                             <span className="text-h9 font-normal text-red">{ibanErrors.accountNumber.message}</span>

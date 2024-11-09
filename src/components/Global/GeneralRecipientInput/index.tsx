@@ -5,6 +5,7 @@ import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 import * as utils from '@/utils'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
+import { useRecentRecipients } from '@/hooks/useRecentRecipients'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -25,6 +26,7 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
+    const { getSuggestions, addRecipient } = useRecentRecipients()
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
@@ -63,32 +65,36 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
         }
     }, [])
 
-    const onInputUpdate = useCallback((update: InputUpdate) => {
-        let _update: GeneralRecipientUpdate
-        if (update.isValid) {
-            errorMessage.current = ''
-            _update = {
-                recipient:
-                    'ens' === recipientType.current
-                        ? { address: resolvedAddress.current, name: update.value }
-                        : { address: update.value, name: undefined },
-                type: recipientType.current,
-                isValid: true,
-                isChanging: update.isChanging,
-                errorMessage: '',
+    const onInputUpdate = useCallback(
+        (update: InputUpdate) => {
+            let _update: GeneralRecipientUpdate
+            if (update.isValid) {
+                errorMessage.current = ''
+                _update = {
+                    recipient:
+                        'ens' === recipientType.current
+                            ? { address: resolvedAddress.current, name: update.value }
+                            : { address: update.value, name: undefined },
+                    type: recipientType.current,
+                    isValid: true,
+                    isChanging: update.isChanging,
+                    errorMessage: '',
+                }
+                addRecipient(update.value, recipientType.current)
+            } else {
+                resolvedAddress.current = ''
+                _update = {
+                    recipient: { address: update.value, name: undefined },
+                    type: recipientType.current,
+                    isValid: false,
+                    isChanging: update.isChanging,
+                    errorMessage: errorMessage.current,
+                }
             }
-        } else {
-            resolvedAddress.current = ''
-            _update = {
-                recipient: { address: update.value, name: undefined },
-                type: recipientType.current,
-                isValid: false,
-                isChanging: update.isChanging,
-                errorMessage: errorMessage.current,
-            }
-        }
-        onUpdate(_update)
-    }, [])
+            onUpdate(_update)
+        },
+        [addRecipient]
+    )
 
     return (
         <ValidatedInput
@@ -100,7 +106,8 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
             onUpdate={onInputUpdate}
             className={className}
             autoComplete="on"
-            name="recipient"
+            name="bank-account"
+            suggestions={getSuggestions(recipientType.current)}
         />
     )
 }

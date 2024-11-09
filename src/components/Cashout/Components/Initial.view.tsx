@@ -334,8 +334,8 @@ export const InitialCashoutView = ({
                                         })
                                     }
                                 }}
-                                autoComplete="account-number"
-                                name="account-number"
+                                autoComplete="on"
+                                name="bank-account"
                             />
                         </div>
                     </div>
