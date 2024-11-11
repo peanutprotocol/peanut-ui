@@ -2,6 +2,7 @@
 import { createContext, useContext, ReactNode, useRef } from 'react'
 import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useQuery } from '@tanstack/react-query'
 
 interface AuthContextType {
@@ -11,6 +12,7 @@ interface AuthContextType {
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
     updateBridgeCustomerId: (bridgeCustomerId: string) => Promise<void>
+    addBYOW: () => Promise<void>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -31,6 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+    const { open: web3modalOpen } = useWeb3Modal()
     const {
         data: user,
         isLoading: isFetchingUser,
@@ -189,6 +192,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
+    const addBYOW = async () => {
+        // we open the web3modal, so the user can disconnect the previous wallet,
+        // connect a new wallet and allow the useEffect(..., [wagmiAddress]) in walletContext take over
+        web3modalOpen()
+        
+    }
+
     const addAccount = async ({
         accountIdentifier,
         accountType,
@@ -254,6 +264,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 fetchUser: legacy_fetchUser,
                 updateUserName,
                 submitProfilePhoto,
+                addBYOW,
                 addAccount,
                 isFetchingUser,
                 logoutUser,

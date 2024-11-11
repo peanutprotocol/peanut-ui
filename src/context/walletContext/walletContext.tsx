@@ -10,8 +10,8 @@ import { PasskeyStorage } from '@/components/Setup/Setup.helpers'
 import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { Chain } from 'viem'
-import { backgroundColorFromAddress } from '@/utils'
 import { useAuth } from '../authContext'
+import { backgroundColorFromAddress } from '@/utils'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined
@@ -38,7 +38,6 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
  */
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
-
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
@@ -46,7 +45,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
 
     ////// User props
-    const { user } = useAuth()
+    const { addAccount, user } = useAuth()
 
     ////// Selected Wallet
     const [selectedWallet, setSelectedWallet] = useState<interfaces.IWallet | undefined>(undefined) // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useWallet() anywhere
@@ -116,6 +115,33 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             updateSelectedWalletWithConnectionStatus(selectedWallet)
         }
     }, [kernelClientAddress, wagmiAddress])
+
+    /**
+     * Add a new BYOW to DB and local wallets prop.
+     * Called every time a new address is connected to the wagmi provider
+     * Will add new BYOW only if:
+     * - wagmiAddress is not undefined
+     * - wallets are not undefined and user logged in (PW available, at least)
+     */
+    useEffect(() => {
+        if (wagmiAddress && wallets && wallets?.length > 0) {
+            // only check if user logged in (wallets will always include PW in this case) and wallets have been set up
+            const foundWallet = wallets?.find((wallet: interfaces.IWallet) => {wallet.address == wagmiAddress})
+            if (!foundWallet) {
+                // if currConnectedBYOW is not already in wallets
+                // addAccount() and then,
+                // it does NOT need to add a new wallet to the wallets prop,
+                // that is because addAccount() calls fetchUser() on success,
+                // and accounts are populated anew
+                addAccount({
+                    accountIdentifier: wagmiAddress,
+                    accountType: interfaces.WalletProviderType.BYOW,
+                    userId: user?.user.userId as string                 // will always be defined, since user logged in
+                })
+            }
+
+        }
+    }, [wagmiAddress])
 
     const removeBYOW = async () => {
         // TODO: when successful API call, do NOT refetch all wallets (bad UX), but

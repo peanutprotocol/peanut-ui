@@ -13,10 +13,11 @@ import { HomeLink } from '@/components/Home/HomeLink'
 import { useWallet } from '@/context/walletContext'
 import Link from 'next/link'
 import { shortenAddressLong } from '@/utils'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useAuth } from '@/context/authContext'
 import PointsBanner from '@/components/Home/PointsBanner'
 import { useRouter } from 'next/navigation'
 import HomeHeader from '@/components/Home/HomeHeader'
-import { useAuth } from '@/context/authContext'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -25,11 +26,13 @@ const Home = () => {
     const controls = useAnimation()
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
+
+    const { addBYOW, username} = useAuth()
+
     const { wallets, selectedWallet, setSelectedWallet } = useWallet()
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const hasWallets = wallets.length > 0
-    const { username } = useAuth()
 
     useEffect(() => {
         controls.start({
@@ -127,6 +130,22 @@ const Home = () => {
                                         </motion.div>
                                     )
                                 })}
+                                <Card
+                                    className={classNames("flex flex-col gap-4 rounded-md text-black hover:cursor-pointer w-full")}
+                                    shadowSize="6"
+                                    onClick={() => addBYOW()}
+                                >
+                                    <Link href="/setup" className="h-full">
+                                        <Card.Content className="h-full flex-col gap-8 flex justify-center items-center">
+                                            <p className="text-2xl font-bold">Add your own ETH wallet</p>
+                                            <div className='flex flex-row items-center gap-4 justify-start'>
+                                                <Icon name="plus-circle" className="h-8 w-8" />
+                                                <p className="text-lg">Add BYOW wallet</p>
+
+                                            </div>
+                                        </Card.Content>
+                                    </Link>
+                                </Card>
                             </motion.div>
                         ) : (
                             <div className="flex h-full w-full flex-grow flex-col justify-center">
