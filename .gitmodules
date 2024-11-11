@@ -1,3 +1,3 @@
 [submodule "src/assets/animations"]
 	path = src/assets/animations
-	url = git@github.com:peanutprotocol/peanut-animations.git
+	url = https://github.com/peanutprotocol/peanut-animations.git
