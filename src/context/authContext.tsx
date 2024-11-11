@@ -33,7 +33,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const {
         data: user,
-        isLoading: isFetchingUser,
+        isFetching: isFetchingUser,
         refetch: fetchUser,
     } = useQuery<interfaces.IUserProfile | null>({
         queryKey: ['user'],
