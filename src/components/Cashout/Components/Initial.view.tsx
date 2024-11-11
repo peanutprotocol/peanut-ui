@@ -77,11 +77,15 @@ export const InitialCashoutView = ({
     }
 
     const isBelowMinLimit = useMemo(() => {
-        return !usdValue || parseFloat(usdValue) < MIN_CASHOUT_LIMIT
+        if (!usdValue) return false
+        const numericValue = parseFloat(usdValue)
+        return !isNaN(numericValue) && numericValue < MIN_CASHOUT_LIMIT
     }, [usdValue])
 
     const isExceedingMaxLimit = useMemo(() => {
-        return usdValue && parseFloat(usdValue) > MAX_CASHOUT_LIMIT
+        if (!usdValue) return false
+        const numericValue = parseFloat(usdValue)
+        return !isNaN(numericValue) && numericValue > MAX_CASHOUT_LIMIT
     }, [usdValue])
 
     const isDisabled = useMemo(() => {
@@ -90,8 +94,8 @@ export const InitialCashoutView = ({
             !isValidBankAccountNumber ||
             isValidatingBankAccountNumber ||
             !xchainAllowed ||
-            !!isBelowMinLimit ||
-            !!isExceedingMaxLimit
+            isBelowMinLimit ||
+            isExceedingMaxLimit
         )
     }, [
         _tokenValue,
@@ -213,6 +217,14 @@ export const InitialCashoutView = ({
         }
     }, [_tokenValue, inputDenomination])
 
+    // Update the bank account selection handler
+    const handleBankAccountSelect = (accountIdentifier: string) => {
+        if (!xchainAllowed) return
+        setBankAccountNumber(accountIdentifier.toLowerCase())
+        setIsValidBankAccountNumber(true)
+        setIsValidatingBankAccountNumber(false)
+    }
+
     return (
         <div className="mx-auto flex max-w-[96%] flex-col items-center justify-center gap-4 text-center">
             <label className="text-h2">Cash Out</label>
@@ -234,6 +246,12 @@ export const InitialCashoutView = ({
                         else handleOnNext()
                     }}
                 />
+                {isBelowMinLimit && (
+                    <div className="w-full text-left text-red">
+                        <Icon name="warning" className="-mt-0.5 mr-1" />
+                        Minimum amount is ${MIN_CASHOUT_LIMIT}
+                    </div>
+                )}
                 <TokenSelector classNameButton="max-w-[100%]" />
                 {hasFetchedBalances && balances.length === 0 && (
                     <div
@@ -271,26 +289,28 @@ export const InitialCashoutView = ({
                                                 <div
                                                     key={index}
                                                     className={twMerge(
-                                                        'flex w-full  items-center justify-between border border-black p-2',
-                                                        bankAccountNumber === account.account_identifier
+                                                        'flex w-full items-center justify-between border border-black p-2',
+                                                        bankAccountNumber.toLowerCase() ===
+                                                            account.account_identifier.toLowerCase()
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
                                                         xchainAllowed && 'cursor-pointer',
                                                         !xchainAllowed && 'opacity-60'
                                                     )}
-                                                    onClick={() => {
-                                                        if (!xchainAllowed) return
-                                                        setBankAccountNumber(account.account_identifier)
-                                                    }}
+                                                    onClick={() => handleBankAccountSelect(account.account_identifier)}
                                                 >
                                                     <div className="flex flex-grow items-center">
                                                         <Icon name={'bank'} className="mr-2 h-4 fill-gray-1" />
-                                                        <label htmlFor={`bank-${index}`} className="text-right">
+                                                        <label
+                                                            htmlFor={`bank-${index}`}
+                                                            className="text-right uppercase"
+                                                        >
                                                             {formatIban(account.account_identifier)}
                                                         </label>
                                                     </div>
                                                     <div className="flex w-6 justify-center">
-                                                        {bankAccountNumber === account.account_identifier && (
+                                                        {bankAccountNumber.toLowerCase() ===
+                                                            account.account_identifier.toLowerCase() && (
                                                             <button
                                                                 className="text-lg text-black"
                                                                 onClick={(e) => {
@@ -314,10 +334,11 @@ export const InitialCashoutView = ({
                                 placeholder="IBAN / US account number"
                                 label="To"
                                 value={bankAccountNumber}
+                                className="uppercase"
                                 debounceTime={750}
                                 validate={validateBankAccount}
                                 onUpdate={({ value, isValid, isChanging }) => {
-                                    setBankAccountNumber(value)
+                                    setBankAccountNumber(value.toLowerCase())
                                     setIsValidBankAccountNumber(isValid)
                                     setIsValidatingBankAccountNumber(isChanging)
                                     if (!isChanging && value && !isValid) {
@@ -334,6 +355,8 @@ export const InitialCashoutView = ({
                                         })
                                     }
                                 }}
+                                autoComplete="on"
+                                name="bank-account"
                             />
                         </div>
                     </div>
@@ -346,7 +369,6 @@ export const InitialCashoutView = ({
                     if (!isConnected) handleConnectWallet()
                     else handleOnNext()
                 }}
-                // Only allow the user to proceed if they are connected and the form is valid
                 disabled={isConnected && isDisabled}
             >
                 {!isConnected ? (
@@ -363,11 +385,6 @@ export const InitialCashoutView = ({
                 <div className="text-center">
                     <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                 </div>
-            )}
-            {isBelowMinLimit && (
-                <span className="text-h8 font-normal">
-                    <ChakraIcon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
-                </span>
             )}
             {isExceedingMaxLimit && (
                 <span className=" text-h8 font-normal ">

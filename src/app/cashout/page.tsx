@@ -1,4 +1,4 @@
-import * as components from '@/components'
+import { Cashout } from '@/components'
 import Layout from '@/components/Global/Layout'
 
 export const dynamic = 'force-dynamic'
@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic'
 export default function CashoutPage() {
     return (
         <Layout>
-            <components.Cashout />
+            <Cashout />
         </Layout>
     )
 }
