@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
             await request.json()
 
         if (!process.env.BRIDGE_API_KEY) {
-            throw new Error('BRIDGE_API_KEY is not defined')
+            return NextResponse.json({ error: 'BRIDGE_API_KEY is not defined' }, { status: 500 })
         }
 
         const idempotencyKey = uuidv4()
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
             headers: {
                 'Api-Key': process.env.BRIDGE_API_KEY,
                 'Idempotency-Key': idempotencyKey,
-                accept: 'application/json',
-                'content-type': 'application/json',
+                Accept: 'application/json',
+                'Content-Type': 'application/json',
             },
             body: JSON.stringify({
                 chain,
@@ -31,38 +31,42 @@ export async function POST(request: NextRequest) {
             }),
         })
 
-        let data: IBridgeLiquidationAddress = await response.json()
+        let data = await response.json()
 
-        if (
-            //@ts-ignore
-            data.code === 'invalid_parameters' && //@ts-ignore
-            data.message ===
-                'Liquidation address with this external account on this chain, currency and destination_payment_rail already exists for this customer'
-        ) {
-            response = await fetch(
-                `https://api.bridge.xyz/v0/customers/${customer_id}/liquidation_addresses/${data.id}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Api-Key': process.env.BRIDGE_API_KEY,
-                        accept: 'application/json',
+        console.log('Bridge API Response:', {
+            status: response.status,
+            data: data,
+        })
+
+        if (!response.ok) {
+            if (data.code === 'not_allowed' && data.message?.includes('does not own external account')) {
+                return NextResponse.json(
+                    {
+                        error: 'external_account_mismatch',
+                        details: data,
                     },
-                }
-            )
+                    { status: 401 }
+                )
+            }
 
-            data = await response.json()
-        } else if (!response.ok) {
-            throw new Error(`Failed to create liquidation address: ${response.status}`)
+            return NextResponse.json(
+                {
+                    error: `Failed to create liquidation address: ${response.status}`,
+                    details: data,
+                },
+                { status: response.status }
+            )
         }
 
-        return new NextResponse(JSON.stringify(data), {
-            status: 200,
-            headers: {
-                'Content-Type': 'application/json',
-            },
-        })
+        return NextResponse.json(data)
     } catch (error) {
-        console.error('Error:', error)
-        return new NextResponse('Internal Server Error', { status: 500 })
+        console.error('Error in liquidation-address/create:', error)
+        return NextResponse.json(
+            {
+                error: error instanceof Error ? error.message : 'Internal Server Error',
+                details: error,
+            },
+            { status: 500 }
+        )
     }
 }

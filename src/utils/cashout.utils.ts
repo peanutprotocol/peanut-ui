@@ -300,41 +300,109 @@ export const validateAccountFormData = async (formData: any, setAccountFormError
     return isValid
 }
 
-export const createLiquidationAddress = async (
+export async function createLiquidationAddress(
     customerId: string,
     chainName: string,
     tokenName: string,
     externalAccountId: string,
     destinationPaymentRail: string,
     destinationCurrency: string
-): Promise<interfaces.IBridgeLiquidationAddress> => {
-    const response = await fetch('/api/bridge/liquidation-address/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            customer_id: customerId,
-            chain: chainName,
-            currency: tokenName,
-            external_account_id: externalAccountId,
-            destination_payment_rail: destinationPaymentRail,
-            destination_currency: destinationCurrency,
-        }),
-    })
-
-    if (!response.ok) {
-        console.error(response)
-        console.error('Failed to create liquidation address. Most likely a duplicate address or incomplete KYC.')
-        console.info(
-            `Customer ID: ${customerId}, external account ID: ${externalAccountId}, destination payment rail: ${destinationPaymentRail}, destination currency: ${destinationCurrency}`
+): Promise<interfaces.IBridgeLiquidationAddress> {
+    try {
+        // First, try to find an existing liquidation address
+        const existingAddresses = await getLiquidationAddresses(customerId)
+        const existingAddress = existingAddresses.find(
+            (address) =>
+                address.chain === chainName &&
+                address.currency === tokenName &&
+                address.external_account_id === externalAccountId &&
+                address.destination_payment_rail === destinationPaymentRail &&
+                address.destination_currency === destinationCurrency
         )
-        throw new Error('Failed to create liquidation address. Contact support.')
+
+        if (existingAddress) {
+            console.log('Found existing liquidation address:', existingAddress)
+            return existingAddress
+        }
+
+        // If no existing address found, create a new one
+        const response = await fetch('/api/bridge/liquidation-address/create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                customer_id: customerId,
+                chain: chainName,
+                currency: tokenName,
+                external_account_id: externalAccountId,
+                destination_payment_rail: destinationPaymentRail,
+                destination_currency: destinationCurrency,
+            }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok) {
+            console.error('Failed to create liquidation address:', data)
+
+            // Handle the case where the external account doesn't belong to this customer
+            if (data.error === 'external_account_mismatch') {
+                console.log('External account mismatch, fetching correct account...')
+                // We need to fetch the correct external account for this customer
+                const accountsResponse = await fetch(`/api/bridge/external-account/get-all-for-customerId`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        customerId,
+                    }),
+                })
+
+                if (!accountsResponse.ok) {
+                    throw new Error('Failed to fetch customer accounts')
+                }
+
+                const accountsData = await accountsResponse.json()
+
+                // Ensure we have an array of accounts
+                if (!Array.isArray(accountsData)) {
+                    console.error('Unexpected accounts response:', accountsData)
+                    throw new Error('Invalid accounts data received')
+                }
+
+                // Find a matching account by type
+                const matchingAccount = accountsData.find((account: interfaces.IBridgeAccount) => {
+                    console.log('Checking account:', account)
+                    return account.account_type === (destinationPaymentRail === 'sepa' ? 'iban' : 'us')
+                })
+
+                if (!matchingAccount) {
+                    throw new Error('No matching account found for this customer')
+                }
+
+                console.log('Found matching account:', matchingAccount.id)
+
+                // Try creating the liquidation address again with the correct external account ID
+                return await createLiquidationAddress(
+                    customerId,
+                    chainName,
+                    tokenName,
+                    matchingAccount.id,
+                    destinationPaymentRail,
+                    destinationCurrency
+                )
+            }
+
+            throw new Error(data.error || `Failed to create liquidation address: ${data.details || response.status}`)
+        }
+
+        return data as interfaces.IBridgeLiquidationAddress
+    } catch (error) {
+        console.error('Error in createLiquidationAddress:', error)
+        throw error instanceof Error ? error : new Error('Failed to create liquidation address')
     }
-
-    const data: interfaces.IBridgeLiquidationAddress = await response.json()
-
-    return data
 }
 
 export const getLiquidationAddresses = async (customerId: string): Promise<interfaces.IBridgeLiquidationAddress[]> => {
