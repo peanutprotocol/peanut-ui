@@ -17,12 +17,14 @@ const SetupPage = () => {
 
     return (
         <div className={twMerge('flex h-full flex-col bg-opacity-100 p-6 transition-all', step.containerClassname)}>
-            <div className="mg:1/3 mx-auto flex h-full w-full flex-col gap-8 md:w-1/2 lg:gap-12">
-                <div className="flex h-[100px] flex-col gap-4">
-                    <h1 className="text-center text-5xl font-bold">{step.title}</h1>
-                    <p className="text-center">{step.description}</p>
+            <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-col gap-8 md:w-1/2 lg:gap-12">
+                <div className="flex h-[100px] flex-col gap-4 text-center">
+                    <h1 className="font-knerd-outline relative left-1/2 -translate-x-1/2 whitespace-nowrap stroke-1 text-6xl font-bold text-white">
+                        {step.title}
+                    </h1>
+                    <p className="rounded-lg p-2 text-center font-bold backdrop-blur-lg">{step.description}</p>
                 </div>
-                <div className="relative flex min-h-0 flex-grow flex-row items-center justify-center">
+                <div className="relative flex min-h-0  flex-grow flex-row items-center justify-center overflow-visible">
                     {step.screenId !== 'passkey' &&
                         starPositions.map((positions, index) => (
                             <img

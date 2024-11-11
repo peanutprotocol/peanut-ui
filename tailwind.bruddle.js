@@ -85,14 +85,14 @@ module.exports = {
                 float: {
                     '0%, 100%': { transform: 'translateY(0)' },
                     '50%': { transform: 'translateY(-30px)' },
-                  }
+                },
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 rock: 'rock 1.5s ease-in-out infinite',
                 'rock-delay-1': 'rock 1.5s ease-in-out infinite 0.3s',
                 'rock-delay-2': 'rock 1.5s ease-in-out infinite 0.6s',
-                float: 'float 3s ease-in-out infinite'
+                float: 'float 3s ease-in-out infinite',
             },
             opacity: {
                 85: '.85',
@@ -103,6 +103,16 @@ module.exports = {
             },
             fontFamily: {
                 sans: ['var(--font-roboto)', ...fontFamily.sans],
+                display: ['var(--font-sniglet)', ...fontFamily.sans],
+                condensed: [
+                    'var(--font-roboto)',
+                    {
+                        fontVariationSettings: '"wdth" 50',
+                    },
+                ],
+                'knerd-outline': ['var(--font-knerd-outline)', ...fontFamily.sans],
+                'knerd-filled': ['var(--font-knerd-filled)', ...fontFamily.sans],
+                roboto: ['var(--font-roboto)', ...fontFamily.sans],
             },
             fontSize: {
                 0: ['0px', '0px'],
