@@ -16,13 +16,6 @@ const placeAsset = (url: string) => {
     return <img src={url} className="z-10 h-full w-full object-contain" />
 }
 
-const staticPasskeyImage = (
-    <div className="flex h-auto w-full max-w-[300px] flex-col items-center justify-center md:max-w-[400px]">
-        <img src={eyes.src} className="w-[150px] object-contain md:w-[200px]" />
-        <img src={fingerprint.src} className="animate-float mt-[30px] w-[170px] object-contain md:w-[220px]" />
-    </div>
-)
-
 const LetPeanutBeHappy = () => {
     const [peanutCantMove, setPeanutCantMove] = useState(false)
 
@@ -58,7 +51,12 @@ export const SETUP_STEPS: Step[] = [
         containerClassname: 'bg-yellow-1/100',
         component: () => <SetupPasskey />,
         centerComponent: () => {
-            return staticPasskeyImage
+            return (
+                <div className="flex h-auto w-full max-w-[300px] flex-col items-center justify-center md:max-w-[400px]">
+                    <img src={eyes.src} className="w-[150px] object-contain md:w-[200px]" />
+                    <img src={fingerprint.src} className="mt-[40px] w-[170px] object-contain md:w-[220px]" />
+                </div>
+            )
         },
     },
     {
