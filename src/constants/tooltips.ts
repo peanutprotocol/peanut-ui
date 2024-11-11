@@ -16,4 +16,14 @@ Account number: 0001234567
 • US bank account (routing + account number)
 
 <a href="https://docs.peanut.to/app/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Learn more about supported regions</a>`,
+
+    CASHOUT_FAQ: `• What currencies can I cash out?
+    Most popular tokens and stablecoins are supported.
+    
+• How long does it take?
+    Usually 1-2 business days.
+    
+• What are the fees?
+    SEPA (EU): $1
+    ACH (US): $0.50`,
 }
