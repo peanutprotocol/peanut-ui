@@ -82,12 +82,17 @@ module.exports = {
                     '0%, 100%': { transform: 'rotate(-10deg)' },
                     '50%': { transform: 'rotate(10deg)' },
                 },
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-30px)' },
+                  }
             },
             animation: {
                 colorPulse: 'colorPulse 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                 rock: 'rock 1.5s ease-in-out infinite',
                 'rock-delay-1': 'rock 1.5s ease-in-out infinite 0.3s',
                 'rock-delay-2': 'rock 1.5s ease-in-out infinite 0.6s',
+                float: 'float 3s ease-in-out infinite'
             },
             opacity: {
                 85: '.85',
