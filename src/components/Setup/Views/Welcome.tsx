@@ -17,7 +17,7 @@ const WelcomeStep = () => {
             toast.error('Handle must be at least 4 characters long')
             return false
         }
-        if (!handle.match(/^[a-zA-Z/d]$/)) {
+        if (!handle.match(/^[a-zA-Z\d]*$/)) {
             toast.error('Handle must contain only letters and numbers')
             return false
         }
@@ -37,7 +37,7 @@ const WelcomeStep = () => {
     }
 
     return (
-        <div className="flex h-full flex-col justify-end gap-8">
+        <div className="flex h-full flex-col justify-end gap-4">
             <ValidatedInput
                 placeholder="Pick your new handle"
                 value={handle}

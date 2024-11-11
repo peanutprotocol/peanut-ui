@@ -7,21 +7,36 @@ import smallPeanut from '@/assets/icons/small-peanut.png'
 import Link from 'next/link'
 import { motion } from 'framer-motion'
 import { HomeLink } from '@/components/Home/HomeLink'
+import { useAuth } from '@/context/authContext'
+import { WalletProviderType } from '@/interfaces'
 
 const WalletDetailsPage = () => {
     const { selectedWallet } = useWallet()
+    const { user } = useAuth()
+    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
+    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
 
     return (
         <div className="flex w-full flex-row justify-center gap-2">
             <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[35%]">
-                <Card shadowSize="4" className="w-full rounded-md py-5">
-                    <Card.Content className="flex h-full flex-row items-center justify-evenly">
-                        <img src={smallPeanut.src} className="h-15 w-15 object-contain" />
-                        <p className="text-xl sm:text-2xl">
-                            <span className="font-bold">{selectedWallet?.handle}</span>.peanut.wallet
-                        </p>
-                    </Card.Content>
-                </Card>
+                {selectedWallet && (
+                    <Card shadowSize="4" className="w-full rounded-md py-5">
+                        <Card.Content className="flex h-full flex-row items-center justify-evenly">
+                            <img src={smallPeanut.src} className="h-15 w-15 object-contain" />
+                            {isActiveWalletPW && (
+                                <p className="text-xl sm:text-2xl">
+                                    <span className="font-bold">{user?.user.username}</span>.peanut.wallet
+                                </p>
+                            )}
+                            {isActiveWalletBYOW && (
+                                <p className="text-xl sm:text-2xl">
+                                    <span className="font-bold">{selectedWallet.address}</span>.peanut.wallet
+                                </p>
+                            )}
+                        </Card.Content>
+                    </Card>
+                )}
+
                 <Card shadowSize="4" className="w-full rounded-md py-10">
                     <Card.Content className="flex h-full flex-row items-center justify-center">
                         <div className="text-5xl">{'$ 420.69'}</div>

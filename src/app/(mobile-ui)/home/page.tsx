@@ -1,6 +1,6 @@
 'use client'
 
-import { Button, Card } from '@/components/0_Bruddle'
+import { Card } from '@/components/0_Bruddle'
 import { ArrowIcon } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import React from 'react'
@@ -8,7 +8,6 @@ import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
 import Icon from '@/components/Global/Icon'
 import { motion, useAnimation } from 'framer-motion'
 import { useRef, useEffect } from 'react'
-import useAvatar from '@/hooks/useAvatar'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
 import { useWallet } from '@/context/walletContext'
@@ -18,6 +17,7 @@ import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useAuth } from '@/context/authContext'
 import PointsBanner from '@/components/Home/PointsBanner'
 import { useRouter } from 'next/navigation'
+import HomeHeader from '@/components/Home/HomeHeader'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -25,20 +25,14 @@ const cardMargin = 16
 const Home = () => {
     const controls = useAnimation()
     const router = useRouter()
-    const { handleLogin, isLoggingIn } = useZeroDev()
-
     const carouselRef = useRef<HTMLDivElement>(null)
 
-    const {addBYOW} = useAuth()
+    const { addBYOW, username} = useAuth()
 
     const { wallets, selectedWallet, setSelectedWallet } = useWallet()
-
-    const { uri: avatarURI } = useAvatar(selectedWallet ? selectedWallet.address : 'i am sad bc i dont have peanut')
-
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const hasWallets = wallets.length > 0
-    const isConnectWallet = selectedWallet?.connected
 
     useEffect(() => {
         controls.start({
@@ -60,34 +54,7 @@ const Home = () => {
             <PointsBanner />
             <div className="flex w-full flex-row justify-center overflow-hidden p-4">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[50%]">
-                    <div className="flex w-full flex-row justify-between">
-                        <div className="flex flex-col">
-                            <div className="relative mb-2.5 h-21 w-21">
-                                <img
-                                    className="rounded-full border border-black bg-white object-cover"
-                                    src={avatarURI}
-                                    alt="Avatar"
-                                />
-                            </div>
-                            <div className="text-h4">{selectedWallet?.handle}</div>
-                        </div>
-                        {hasWallets && (
-                            <div>
-                                <Button
-                                    loading={isLoggingIn}
-                                    disabled={isLoggingIn}
-                                    shadowSize={!isConnectWallet ? '4' : undefined}
-                                    variant={isConnectWallet ? 'green' : 'purple'}
-                                    onClick={() => {
-                                        if (!selectedWallet?.handle) return
-                                        handleLogin(selectedWallet?.handle)
-                                    }}
-                                >
-                                    {isConnectWallet ? 'Connected' : 'Sign In'}
-                                </Button>
-                            </div>
-                        )}
-                    </div>
+                    <HomeHeader />
                     <div
                         className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                             'overflow-hidden': wallets.length > 0,
@@ -147,7 +114,7 @@ const Home = () => {
                                                     <div className="flex flex-row items-center gap-4">
                                                         <Image src={PeanutWalletIcon} alt="" />
                                                         <p className="text-md">
-                                                            peanut.me/<span className="font-bold">{wallet.handle}</span>
+                                                            peanut.me/<span className="font-bold">{username}</span>
                                                         </p>
                                                     </div>
                                                     <p className="text-4xl font-black sm:text-5xl">$ 0.00</p>
