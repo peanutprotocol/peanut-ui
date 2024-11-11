@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
 
 import * as utils from '@/utils'
@@ -14,6 +14,7 @@ import { GlobalLoginComponent } from '../LoginComponent'
 import { GlobalRegisterComponent } from '../RegisterComponent'
 import { Divider } from '@chakra-ui/react'
 import { CrispButton } from '@/components/CrispChat'
+import { useToast } from '@chakra-ui/react'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -48,6 +49,8 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
     const { fetchUser, updateBridgeCustomerId } = useAuth()
 
+    const [kycStatus, setKycStatus] = useState<'completed' | 'under_review' | 'rejected' | 'approved'>('completed')
+
     const {
         setStep: setActiveStep,
         activeStep,
@@ -64,6 +67,8 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         mode: 'onChange',
         defaultValues: offrampForm,
     })
+
+    const toast = useToast()
 
     const handleEmail = async (inputFormData: consts.IOfframpForm) => {
         setOfframpForm(inputFormData)
@@ -119,7 +124,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
     const handleTOSStatus = async () => {
         try {
             // Handle TOS status
-
             let _customerObject
             const _offrampForm = watchOfframp()
 
@@ -137,7 +141,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 setLoadingState('Awaiting TOS confirmation')
 
                 console.log('Awaiting TOS confirmation...')
-                setIframeOptions({ ...iframeOptions, src: tos_link, visible: true })
+                setIframeOptions({
+                    ...iframeOptions,
+                    src: tos_link,
+                    visible: true,
+                    closeConfirmMessage: undefined,
+                })
                 await utils.awaitStatusCompletion(
                     id,
                     'tos',
@@ -153,13 +162,18 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             }
             setLoadingState('Idle')
             goToNext()
+
+            // Reset iframe options before moving to KYC
+            setIframeOptions({
+                src: '',
+                visible: false,
+                onClose: () => {
+                    setIframeOptions({ ...iframeOptions, visible: false })
+                },
+            })
         } catch (error) {
             console.error('Error during the submission process:', error)
-
             setErrorState({ showError: true, errorMessage: 'An error occurred. Please try again later' })
-
-            setLoadingState('Idle')
-        } finally {
             setLoadingState('Idle')
         }
     }
@@ -175,35 +189,71 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 _customerObject = customerObject
             }
             const { kyc_status: kycStatus, id, kyc_link } = _customerObject
+
             if (kycStatus === 'under_review') {
                 setErrorState({
                     showError: true,
                     errorMessage: 'KYC under review',
                 })
+                toast({
+                    title: 'Under Review',
+                    description: 'Your KYC is under review. Our team will process it shortly.',
+                    status: 'info',
+                    duration: 5000,
+                    isClosable: true,
+                })
+                onCompleted?.('KYC under review')
                 return
             } else if (kycStatus === 'rejected') {
                 setErrorState({
                     showError: true,
                     errorMessage: 'KYC rejected',
                 })
+                toast({
+                    title: 'KYC Rejected',
+                    description: 'Please contact support.',
+                    status: 'error',
+                    duration: 5000,
+                    isClosable: true,
+                })
                 return
             } else if (kycStatus !== 'approved') {
                 setLoadingState('Awaiting KYC confirmation')
                 console.log('Awaiting KYC confirmation...')
                 const kyclink = utils.convertPersonaUrl(kyc_link)
-                setIframeOptions({ ...iframeOptions, src: kyclink, visible: true, closeConfirmMessage: 'Are you sure ? your KYC progress will be lost.' })
-                await utils.awaitStatusCompletion(
-                    id,
-                    'kyc',
-                    kycStatus,
-                    kyc_link,
-                    setTosLinkOpened,
-                    setKycLinkOpened,
-                    tosLinkOpened,
-                    kycLinkOpened
-                )
-            } else {
-                console.log('KYC already approved.')
+                setIframeOptions({
+                    ...iframeOptions,
+                    src: kyclink,
+                    visible: true,
+                    closeConfirmMessage: 'Are you sure? Your KYC progress will be lost.',
+                    onClose: () => {
+                        setIframeOptions((prev) => ({ ...prev, visible: false }))
+                    },
+                })
+
+                try {
+                    await utils.awaitStatusCompletion(
+                        id,
+                        'kyc',
+                        kycStatus,
+                        kyc_link,
+                        setTosLinkOpened,
+                        setKycLinkOpened,
+                        tosLinkOpened,
+                        kycLinkOpened
+                    )
+                } catch (error) {
+                    if (error instanceof Error && error.message === 'KYC_UNDER_REVIEW') {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Your KYC is under review. Our team will process it shortly.',
+                        })
+                        onCompleted?.('KYC under review')
+                        setIframeOptions((prev) => ({ ...prev, visible: false }))
+                        return
+                    }
+                    throw error
+                }
             }
 
             // Get customer ID
@@ -239,40 +289,39 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
         }
     }
 
-    const [userState, setUserState] = useState<'login' | 'register'>('login')
+    const [userState, setUserState] = useState<'login' | 'register'>('register')
+
+    useEffect(() => {
+        // Listen for messages from the iframe
+        const handleMessage = (event: MessageEvent) => {
+            // Add origin check for security
+            if (event.origin !== window.location.origin) return
+
+            if (event.data.type === 'PERSONA_COMPLETE') {
+                console.log('KYC completed successfully')
+                // Add mobile-specific logging
+                console.log('Device info:', {
+                    isMobile: window.innerWidth < 768,
+                    windowSize: `${window.innerWidth}x${window.innerHeight}`,
+                    userAgent: navigator.userAgent,
+                })
+
+                // Ensure the state updates happen
+                setKycStatus('completed')
+                if (onCompleted) {
+                    onCompleted('KYC completed')
+                }
+            }
+        }
+
+        window.addEventListener('message', handleMessage)
+        return () => window.removeEventListener('message', handleMessage)
+    }, [onCompleted])
 
     const renderComponent = () => {
         switch (activeStep) {
             case 0:
-                return userState === 'login' ? (
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <GlobalLoginComponent
-                            onSubmit={({ status, message }) => {
-                                if (status === 'success') {
-                                    handleEmail(watchOfframp())
-                                } else {
-                                    setErrorState({
-                                        showError: true,
-                                        errorMessage: message,
-                                    })
-                                }
-                            }}
-                        />{' '}
-                        <span className="flex w-full flex-row items-center justify-center gap-2">
-                            <Divider borderColor={'black'} />
-                            <p>or</p>
-                            <Divider borderColor={'black'} />
-                        </span>
-                        <button
-                            className="btn btn-xl h-8 text-h8"
-                            onClick={() => {
-                                setUserState('register')
-                            }}
-                        >
-                            Register
-                        </button>
-                    </div>
-                ) : (
+                return userState === 'register' ? (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         <GlobalRegisterComponent
                             onSubmit={({ status, message }) => {
@@ -298,6 +347,34 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                             }}
                         >
                             Login
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <GlobalLoginComponent
+                            onSubmit={({ status, message }) => {
+                                if (status === 'success') {
+                                    handleEmail(watchOfframp())
+                                } else {
+                                    setErrorState({
+                                        showError: true,
+                                        errorMessage: message,
+                                    })
+                                }
+                            }}
+                        />{' '}
+                        <span className="flex w-full flex-row items-center justify-center gap-2">
+                            <Divider borderColor={'black'} />
+                            <p>or</p>
+                            <Divider borderColor={'black'} />
+                        </span>
+                        <button
+                            className="btn btn-xl h-8 text-h8"
+                            onClick={() => {
+                                setUserState('register')
+                            }}
+                        >
+                            Register
                         </button>
                     </div>
                 )
@@ -399,6 +476,12 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 </div>
                 <IframeWrapper
                     {...iframeOptions}
+                    customerId={customerObject?.id}
+                    onKycComplete={() => {
+                        // Handle KYC completion - you can trigger the same logic
+                        // that currently happens when KYC is completed
+                        handleKYCStatus()
+                    }}
                 />
             </div>
         </div>

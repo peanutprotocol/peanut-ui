@@ -25,6 +25,8 @@ import {
     optimismChainId,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
+import { TOOLTIPS } from '@/constants/tooltips'
+import AddressLink from '@/components/Global/AddressLink'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -196,7 +198,6 @@ export const InitialClaimLinkView = ({
                     setUserType('NEW')
                     console.log('New user!')
                 } else {
-                    // TODO: if not logged in but existing user, should show this somewhere in the UI.
                     setUserType('EXISTING')
                     console.log('Existing user!')
                 }
@@ -204,21 +205,21 @@ export const InitialClaimLinkView = ({
                     name: '',
                     email: '',
                     password: '',
-                    recipient: recipient.name ?? '',
+                    recipient: recipient.name ?? recipient.address,
                 })
-                setInitialKYCStep(0) // even if user exists, need to login
+                setInitialKYCStep(0)
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipient.name ?? '',
+                    recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
                 if (user?.user.kycStatus === 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
                             account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                            recipient.name?.replaceAll(/\s/g, '').toLowerCase()
+                            recipient.address.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {
@@ -379,7 +380,9 @@ export const InitialClaimLinkView = ({
                     </>
                 )}
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
+                    <label className="text-h4">
+                        <AddressLink address={claimLinkData.senderAddress} /> sent you
+                    </label>
                     {tokenPrice ? (
                         <label className="text-h2">
                             $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
@@ -480,6 +483,7 @@ export const InitialClaimLinkView = ({
                             })
                             setInputChanging(update.isChanging)
                         }}
+                        infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
                     />
                     {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                         <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -609,7 +613,7 @@ export const InitialClaimLinkView = ({
                             {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
                         </div>
                     )}
-                    {errorState.showError ? (
+                    {errorState.showError && (
                         <div className="text-center">
                             {errorState.errorMessage === 'offramp unavailable' ? (
                                 <label className="text-h8 font-normal text-red">
@@ -620,7 +624,7 @@ export const InitialClaimLinkView = ({
                                 <>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
-                                            <label className=" text-h8 font-normal text-red ">
+                                            <label className="text-h8 font-normal text-red">
                                                 {errorState.errorMessage}
                                             </label>{' '}
                                             <span
@@ -639,32 +643,29 @@ export const InitialClaimLinkView = ({
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (
-                                        <>
-                                            <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
-                                                account.{' '}
-                                            </label>
-                                        </>
+                                        <label className="text-h8 font-normal text-red">
+                                            You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
+                                            account.
+                                        </label>
                                     )}
                                     {errorState.errorMessage === 'offramp_mt_maximum' && (
-                                        <>
-                                            <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
-                                                account.{' '}
-                                            </label>
-                                        </>
+                                        <label className="text-h8 font-normal text-red">
+                                            You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
+                                            account.
+                                        </label>
+                                    )}
+                                    {![
+                                        'offramp_lt_minimum',
+                                        'offramp_mt_maximum',
+                                        'No route found for the given token pair.',
+                                    ].includes(errorState.errorMessage) && (
+                                        <label className="text-h8 font-normal text-red">
+                                            {errorState.errorMessage}
+                                        </label>
                                     )}
                                 </>
                             )}
                         </div>
-                    ) : (
-                        (recipientType === 'iban' || recipientType === 'us') && (
-                            <label className="text-h8 font-normal ">
-                                Only US and EU accounts are supported currently.{' '}
-                                <CrispButton className="mr-1 underline">Reach out</CrispButton>
-                                if you would like more info.
-                            </label>
-                        )
                     )}
                 </div>{' '}
             </div>

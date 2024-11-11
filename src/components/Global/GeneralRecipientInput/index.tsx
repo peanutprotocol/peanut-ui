@@ -12,6 +12,7 @@ type GeneralRecipientInputProps = {
     placeholder: string
     recipient: { name: string | undefined; address: string }
     onUpdate: (update: GeneralRecipientUpdate) => void
+    infoText?: string
 }
 
 export type GeneralRecipientUpdate = {
@@ -22,7 +23,13 @@ export type GeneralRecipientUpdate = {
     errorMessage: string
 }
 
-const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: GeneralRecipientInputProps) => {
+const GeneralRecipientInput = ({
+    placeholder,
+    recipient,
+    onUpdate,
+    className,
+    infoText,
+}: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
@@ -32,16 +39,18 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
         try {
             let isValid = false
             let type: interfaces.RecipientType = 'address'
+
             if (isIBAN(recipient)) {
                 type = 'iban'
                 isValid = await utils.validateBankAccount(recipient)
                 if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
             } else if (/^[0-9]{6,26}$/.test(recipient)) {
-                // routing number: 9 digits
-                // account number: 8-12 digits (can go up to 17)
                 type = 'us'
                 isValid = await utils.validateBankAccount(recipient)
-                if (!isValid) errorMessage.current = 'Invalid US account number'
+                if (!isValid) {
+                    errorMessage.current =
+                        'Invalid bank account. For US bank accounts, enter your bank routing number (9 digits) followed by your account number (example: 1112223330001234567 where routing number is: 111222333 and account number: 0001234567)'
+                }
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 type = 'ens'
                 const address = await utils.resolveFromEnsName(recipient.toLowerCase())
@@ -49,13 +58,13 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
                     resolvedAddress.current = address
                     isValid = true
                 } else {
-                    errorMessage.current = 'ENS not found'
+                    errorMessage.current = 'ENS name not found'
                     isValid = false
                 }
             } else {
                 type = 'address'
                 isValid = isAddress(recipient, { strict: false })
-                if (!isValid) errorMessage.current = 'Invalid address'
+                if (!isValid) errorMessage.current = 'Invalid Ethereum address'
             }
             recipientType.current = type
             return isValid
@@ -108,6 +117,7 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
             autoComplete="on"
             name="bank-account"
             suggestions={getSuggestions(recipientType.current)}
+            infoText={infoText}
         />
     )
 }

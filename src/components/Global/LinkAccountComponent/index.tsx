@@ -1,5 +1,5 @@
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
-import { useContext, useMemo, useState } from 'react'
+import { useContext, useMemo, useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 
 import * as utils from '@/utils'
@@ -83,6 +83,21 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     })
     const { user, fetchUser } = useAuth()
 
+    useEffect(() => {
+        if (accountNumber && /^[0-9]{6,26}$/.test(accountNumber)) {
+            // Extract routing number (first 9 digits) and account number (rest)
+            const routingNumber = accountNumber.slice(0, 9)
+            const bankAccountNumber = accountNumber.slice(9)
+
+            // Pre-fill the form
+            setAccountDetailsValue('routingNumber', routingNumber)
+            setAccountDetailsValue('accountNumber', bankAccountNumber)
+        } else if (accountNumber) {
+            // If it's an IBAN, just set it as is
+            setAccountDetailsValue('accountNumber', accountNumber)
+        }
+    }, [accountNumber, setAccountDetailsValue])
+
     const handleCheckIban = async ({ accountNumber }: { accountNumber: string | undefined }) => {
         try {
             setErrorState({
@@ -138,7 +153,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 return
             }
 
-            // Check if user?.accounts already has an account wit this identifier
+            // Check if user?.accounts already has an account with this identifier
             const accountExists = user?.accounts.find(
                 (account) =>
                     account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
@@ -188,12 +203,6 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             )
 
             if (!response.success) {
-                if (response.data && response.data.code == 'duplicate_external_account') {
-                    // bridge account already exists for this IBAN
-                    const errorMessage =
-                        'An external account with the same information has already been added for this customer'
-                    throw new Error(errorMessage)
-                }
                 throw new Error('Creating Bridge account failed')
             }
 
