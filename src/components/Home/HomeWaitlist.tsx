@@ -24,14 +24,21 @@ const HomeWaitlist = () => {
         <div className="flex h-full w-full flex-col items-center justify-between p-8">
             <div className="flex h-full flex-col items-center justify-between">
                 <h1 className="font-knerd-filled text-4xl text-black">Peanut Wallet</h1>
+                <p className="text-center text-lg">
+                    Thanks <span className="text-xl font-bold">{username}</span> !
+                </p>
                 <img src={peanutClub.src} alt="peanut-club" className="w-[200px] object-cover" />
                 <div className="mt-5 w-full text-center">
                     {username ? (
-                        <p className="">
-                            Thanks <span className="text-xl font-bold">{username}</span> ! You're all setup, stay tuned
-                            for the Peanut Wallet release ! You are number {user?.pwQueue.userPosition ?? 0} of{' '}
-                            {user?.pwQueue.totalUsers} in the waitlist
-                        </p>
+                        <div className="flex flex-col items-center">
+                            <p className="text-center text-lg">
+                                You're all set up. Stay tuned for the Peanut Wallet release!
+                            </p>
+                            <p className="mt-2 text-center">
+                                You are number <span className="font-bold">{user?.pwQueue.userPosition ?? 0}</span> of{' '}
+                                <span className="font-bold">{user?.pwQueue.totalUsers}</span> in the waitlist.
+                            </p>
+                        </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center">
                             <Button
