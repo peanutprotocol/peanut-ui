@@ -1,3 +1,5 @@
+'use cient'
+
 import { useEffect, useState } from 'react'
 
 const cloud1 = (
@@ -69,15 +71,22 @@ const CloudsBackground: React.FC = () => {
         { left: 60, top: 70, scale: 0.6, variant: 1 as const },
     ]
 
-    const [isMobile, setIsMobile] = useState(window.innerWidth <= 768)
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
 
     useEffect(() => {
+        if (typeof window === 'undefined') return
+
         const handleResize = () => {
+            if (typeof window === 'undefined') return
             setIsMobile(window.innerWidth <= 768)
         }
 
-        window.addEventListener('resize', handleResize)
-        return () => window.removeEventListener('resize', handleResize)
+        handleResize()
+
+        if (typeof window !== 'undefined') {
+            window.addEventListener('resize', handleResize)
+            return () => window.removeEventListener('resize', handleResize)
+        }
     }, [])
 
     const clouds = isMobile ? mobileClouds : desktopClouds
