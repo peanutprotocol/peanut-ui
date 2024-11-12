@@ -1,4 +1,3 @@
-import { Step } from '@/components/Setup/context/SetupFlowContext'
 import WelcomeStep from './Views/Welcome'
 import SetupPasskey from './Views/SetupPasskey'
 import SetupSuccess from './Views/Success'
@@ -11,6 +10,7 @@ import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF
 import sadPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_04.gif'
 import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import { useState } from 'react'
+import { Step } from './Setup.types'
 
 const placeAsset = (url: string) => {
     return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
