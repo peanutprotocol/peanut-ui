@@ -7,32 +7,13 @@ import ContactInfo from './Views/ContactInfo'
 
 import happyPeanutAnimi from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import sadPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_04.gif'
 import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
-import { useState } from 'react'
 import { Step } from './Setup.types'
 import InstallPWA from './Views/InstallPWA'
 import { peanutWalletIsInPreview } from '@/constants'
 
 const placeAsset = (url: string) => {
     return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
-}
-
-const LetPeanutBeHappy = () => {
-    const [peanutCantMove, setPeanutCantMove] = useState(false)
-
-    return (
-        <div className="h-full w-full">
-            <img
-                src={peanutCantMove ? sadPeanutAnim.src : happyPeanutAnimi.src}
-                className={`h-full w-full object-contain `}
-                onMouseDown={() => setPeanutCantMove(true)}
-                onMouseUp={() => setPeanutCantMove(false)}
-                onPointerDown={() => setPeanutCantMove(true)}
-                onPointerUp={() => setPeanutCantMove(false)}
-            />
-        </div>
-    )
 }
 
 export const SETUP_STEPS = [
@@ -93,7 +74,7 @@ export const SETUP_STEPS = [
         containerClassname: 'bg-green-1/100',
         component: () => <SetupSuccess />,
         centerComponent: () => {
-            return <LetPeanutBeHappy />
+            return placeAsset(happyPeanutAnimi.src)
         },
     },
 ].filter((step) => step.active) as Step[]
