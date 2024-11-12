@@ -11,6 +11,7 @@ import sadPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_k
 import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import { useState } from 'react'
 import { Step } from './Setup.types'
+import InstallPWA from './Views/InstallPWA'
 
 const placeAsset = (url: string) => {
     return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
@@ -34,6 +35,16 @@ const LetPeanutBeHappy = () => {
 }
 
 export const SETUP_STEPS: Step[] = [
+    {
+        screenId: 'pwa-install',
+        title: 'Install',
+        description: 'Install the peanut wallet app on your device !',
+        containerClassname: 'bg-blue-1/100 text-black',
+        component: () => <InstallPWA />,
+        centerComponent: () => {
+            return placeAsset(pointingPeanutAnim.src)
+        },
+    },
     {
         screenId: 'welcome',
         title: 'Welcome',

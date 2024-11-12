@@ -15,6 +15,8 @@ const SetupPage = () => {
         'right-[10%] animate-rock top-[10%] h-10 w-10',
     ]
 
+    const centerComponent = step.centerComponent()
+
     return (
         <div className={twMerge('flex h-full flex-col bg-opacity-100 p-6 transition-all', step.containerClassname)}>
             <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-col gap-8 md:w-1/2 lg:gap-12">
@@ -24,20 +26,20 @@ const SetupPage = () => {
                     </h1>
                     <p className="rounded-lg p-2 text-center font-bold backdrop-blur-lg">{step.description}</p>
                 </div>
-                <div className="relative flex min-h-0  flex-grow flex-row items-center justify-center overflow-visible">
-                    {step.screenId !== 'passkey' &&
-                        starPositions.map((positions, index) => (
-                            <img
-                                key={index}
-                                src={starImage.src}
-                                alt="Star"
-                                className={twMerge(positions, 'absolute z-[11]')}
-                            />
-                        ))}
-                    <div className="flex h-full w-full flex-row justify-center">
-                        {step.centerComponent && step.centerComponent()}
+                {centerComponent && (
+                    <div className="relative flex flex-row items-center justify-center overflow-visible sm:h-full">
+                        {step.screenId !== 'passkey' &&
+                            starPositions.map((positions, index) => (
+                                <img
+                                    key={index}
+                                    src={starImage.src}
+                                    alt="Star"
+                                    className={twMerge(positions, 'absolute z-[11]')}
+                                />
+                            ))}
+                        <div className="flex h-full w-full flex-row justify-center">{centerComponent}</div>
                     </div>
-                </div>
+                )}
                 <div className="relative h-auto">
                     <StepTransition step={currentStep} direction={direction}>
                         <step.component />
