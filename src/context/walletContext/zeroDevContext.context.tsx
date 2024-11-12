@@ -24,6 +24,7 @@ import { bundlerActions, type BundlerClient } from 'permissionless'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { peanutPublicClient } from '@/constants/viem.consts'
 import { infuraRpcUrls } from '@/constants'
+import { useAuth } from '../authContext'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
 type AppSmartAccountClient = KernelAccountClient<
@@ -73,6 +74,7 @@ const ZeroDevContext = createContext<ZeroDevContextType | undefined>(undefined)
  */
 export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     const toast = useToast()
+    const { fetchUser } = useAuth()
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
     ////// context props
     //
@@ -199,8 +201,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             await createKernelClient(passkeyValidator)
         } catch (e) {
             console.error('Error logging in', e)
-            toast.error('Error logging in. Please try again.')
         } finally {
+            await fetchUser()
             setIsLoggingIn(false)
         }
     }

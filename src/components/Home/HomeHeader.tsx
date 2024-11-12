@@ -36,8 +36,7 @@ const HomeHeader = () => {
                             variant={isConnectWallet ? 'green' : 'purple'}
                             size="small"
                             onClick={() => {
-                                if (!username) return
-                                handleLogin(username)
+                                handleLogin()
                             }}
                         >
                             {isConnectWallet ? 'Connected' : 'Sign In'}
