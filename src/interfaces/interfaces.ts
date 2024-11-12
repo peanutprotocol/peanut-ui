@@ -350,16 +350,17 @@ interface User {
     kycStatus: string
     bridge_customer_id: string | null
     full_name: string
+    telegram: string | null
 }
 
 // based on the API's AccountType
 // https://github.com/peanutprotocol/peanut-api-ts/blob/b32570b7bd366efed7879f607040c511fa036a57/src/db/interfaces/account.ts
 export enum AccountType {
-	IBAN = 'iban',
-	US = 'us',
-	EVM_ADDRESS = 'evm-address',
-	PEANUT_WALLET = 'peanut-wallet',
-	BRIDGE = 'bridgeBankAccount',
+    IBAN = 'iban',
+    US = 'us',
+    EVM_ADDRESS = 'evm-address',
+    PEANUT_WALLET = 'peanut-wallet',
+    BRIDGE = 'bridgeBankAccount',
 }
 
 // these types should always be the same as ChainId defined in
@@ -367,21 +368,21 @@ export enum AccountType {
 // previously defined here:
 // https://github.com/peanutprotocol/peanut-ui/blob/195c4a71111389b50034842e3a150fc82d827ef3/src/constants/general.consts.ts#L18
 export type ChainIdType =
-| '1'
-| '10'
-| '56'
-| '100'
-| '137'
-| '324'
-| '1101'
-| '5000'
-| '8217'
-| '8453'
-| '42161'
-| '42220'
-| '43114'
-| '7777777'
-| '1313161554';
+    | '1'
+    | '10'
+    | '56'
+    | '100'
+    | '137'
+    | '324'
+    | '1101'
+    | '5000'
+    | '8217'
+    | '8453'
+    | '42161'
+    | '42220'
+    | '43114'
+    | '7777777'
+    | '1313161554'
 
 interface Account {
     account_id: string

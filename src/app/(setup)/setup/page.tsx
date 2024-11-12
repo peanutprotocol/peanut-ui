@@ -34,7 +34,9 @@ const SetupPage = () => {
                                 className={twMerge(positions, 'absolute z-[11]')}
                             />
                         ))}
-                    <div className="h-full">{step.centerComponent && step.centerComponent()}</div>
+                    <div className="flex h-full w-full flex-row justify-center">
+                        {step.centerComponent && step.centerComponent()}
+                    </div>
                 </div>
                 <div className="relative h-auto">
                     <StepTransition step={currentStep} direction={direction}>

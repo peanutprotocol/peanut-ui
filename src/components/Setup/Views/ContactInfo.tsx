@@ -4,16 +4,61 @@ import { FormProvider, useForm } from 'react-hook-form'
 import { z } from 'zod'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useMutation } from '@tanstack/react-query'
+import { useAuth } from '@/context/authContext'
 
 const contactSchema = z.object({
-    email: z.string().email('Please enter a valid email').min(1, 'Email is required'),
-    telegram: z.string().min(1, 'Telegram username is required'),
+    contact: z.string().min(1, 'Please enter an email or Telegram username')
+        .refine(
+            (value) => {
+                if (!value) return true
+                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+                const isTelegram = /^@?[\w\d]{5,32}$/.test(value)
+                return isEmail || isTelegram
+            },
+            {
+                message: 'Please enter a valid email or Telegram username',
+            }
+        )
 })
 
 type ContactFormData = z.infer<typeof contactSchema>
 
 const ContactInfo = () => {
     const toast = useToast()
+    const { userId } = useAuth()
+
+    const { mutate: updateUser, isPending } = useMutation({
+        mutationKey: ['update-user-', userId],
+        mutationFn: async ({ contact }: ContactFormData) => {
+            const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)
+
+            const response = await fetch('/api/peanut/user/update-user', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: isEmail ? contact : undefined,
+                    telegram: !isEmail ? contact : undefined,
+                    userId,
+                }),
+            })
+
+            if (!response.ok) {
+                throw new Error('Failed to update contact info')
+            }
+
+            return response.json()
+        },
+        onError: (error) => {
+            console.error('Error updating user', error)
+            toast.error('Failed to update contact info')
+        },
+        onSuccess: () => {
+            handleNext()
+        },
+    })
     const methods = useForm<ContactFormData>({
         resolver: zodResolver(contactSchema),
     })
@@ -26,8 +71,7 @@ const ContactInfo = () => {
 
     const onSubmit = handleSubmit(
         (data) => {
-            console.log(data)
-            handleNext()
+            updateUser(data)
         },
         (errors) => {
             const firstError = Object.values(errors)[0]
@@ -41,9 +85,12 @@ const ContactInfo = () => {
         <FormProvider {...methods}>
             <form onSubmit={onSubmit}>
                 <div className="flex h-full flex-col justify-end gap-2">
-                    <Field placeholder="Email" {...register('email')} autoComplete="off" />
-                    <Field placeholder="Telegram" {...register('telegram')} />
-                    <Button onClick={onSubmit} type="submit">
+                    <Field
+                        placeholder="squirrel-love@peanuts.com or @sqluv"
+                        label="Email or Telegram username"
+                        {...register('contact')}
+                    />
+                    <Button loading={isPending} disabled={isPending} onClick={onSubmit} type="submit">
                         Submit
                     </Button>
                 </div>
