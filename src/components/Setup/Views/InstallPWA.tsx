@@ -2,7 +2,7 @@ import { Button } from '@/components/0_Bruddle'
 import { useEffect, useState } from 'react'
 import { useSetupFlow } from '../context/SetupFlowContext'
 
-const StepTitle = ({ text }: { text: string }) => <h3 className="font-bold text-white mt-4">{text}</h3>
+const StepTitle = ({ text }: { text: string }) => <h3 className="mt-4 font-bold text-white">{text}</h3>
 
 const InstallPWA = () => {
     const { handleNext } = useSetupFlow()
@@ -11,8 +11,10 @@ const InstallPWA = () => {
     useEffect(() => {
         // Detect device type
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent)
-        const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)
-        
+        const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+        )
+
         if (isIOSDevice) {
             setDeviceType('ios')
         } else if (isMobileDevice) {
@@ -40,7 +42,7 @@ const InstallPWA = () => {
             <StepTitle text="Step 1: Open the Menu" />
             <p>Tap the three dots menu at the top of your screen.</p>
 
-                <StepTitle text="Step 2: Select 'Add to Home Screen'" />
+            <StepTitle text="Step 2: Select 'Add to Home Screen'" />
             <p>Scroll down and tap 'Add to Home Screen' from the options list.</p>
 
             <StepTitle text="Step 3: Confirm and Add" />
@@ -57,7 +59,7 @@ const InstallPWA = () => {
     )
 
     return (
-        <div className="flex flex-col gap-2 text-center">
+        <div className="flex flex-col gap-2 text-center backdrop-blur-lg">
             {deviceType === 'ios' && <IOSInstructions />}
             {deviceType === 'android' && <AndroidInstructions />}
             {deviceType === 'desktop' && <DesktopInstructions />}

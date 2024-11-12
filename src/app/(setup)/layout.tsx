@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { SetupFlowProvider } from '../../components/Setup/context/SetupFlowContext'
 import { SETUP_STEPS } from '@/components/Setup/Setup.consts'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
+import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     const { push } = useRouter()
@@ -20,6 +21,7 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
                 push('/home')
             }}
         >
+            <CloudsBackground />
             {children}
         </SetupFlowProvider>
     )

@@ -24,9 +24,11 @@ const HomeWaitlist = () => {
         <div className="flex h-full w-full flex-col items-center justify-between p-8">
             <div className="flex h-full flex-col items-center justify-between">
                 <h1 className="font-knerd-filled text-4xl text-black">Peanut Wallet</h1>
-                <p className="text-center text-lg">
-                    Thanks <span className="text-xl font-bold">{username}</span> !
-                </p>
+                {username && (
+                    <p className="p-2 text-center text-lg backdrop-blur-lg">
+                        Thanks <span className="text-xl font-bold">{username}</span> !
+                    </p>
+                )}
                 <img src={peanutClub.src} alt="peanut-club" className="w-[200px] object-cover" />
                 <div className="mt-5 w-full text-center">
                     {username ? (

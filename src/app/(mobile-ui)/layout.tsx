@@ -15,6 +15,7 @@ import WalletToggleButton from '@/components/Home/WalletToggleButton'
 import { useAuth } from '@/context/authContext'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { peanutWalletIsInPreview } from '@/constants'
+import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 
 type ScreenProps = {
     name: string
@@ -114,7 +115,13 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pageDefinition = pages.find((page) => page.href === pathName)
 
     return (
-        <div className="flex h-screen flex-col">
+        <div
+            className="flex h-screen flex-col"
+            style={{
+                backgroundColor: walletColor,
+            }}
+        >
+            <CloudsBackground />
             {!(isHome || peanutWalletIsInPreview) && (
                 <div className="flex min-h-[64px] flex-row items-center border-b-2 border-black p-4">
                     <div
@@ -131,12 +138,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </div>
             )}
             <div
-                className={classNames('flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
+                className={classNames('z-1 flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
                     'p-4': !isHome,
                 })}
-                style={{
-                    backgroundColor: walletColor,
-                }}
             >
                 {peanutWalletIsInPreview ? <HomeWaitlist /> : children}
             </div>
