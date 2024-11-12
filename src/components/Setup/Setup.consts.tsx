@@ -13,7 +13,7 @@ import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_
 import { useState } from 'react'
 
 const placeAsset = (url: string) => {
-    return <img src={url} className="z-10 h-full w-full object-contain" />
+    return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
 }
 
 const LetPeanutBeHappy = () => {
@@ -52,9 +52,9 @@ export const SETUP_STEPS: Step[] = [
         component: () => <SetupPasskey />,
         centerComponent: () => {
             return (
-                <div className="flex h-auto w-full max-w-[300px] flex-col items-center justify-center md:max-w-[400px]">
-                    <img src={eyes.src} className="w-[150px] object-contain md:w-[200px]" />
-                    <img src={fingerprint.src} className="mt-[40px] w-[170px] object-contain md:w-[220px]" />
+                <div className="flex h-full w-2/3 flex-col items-center justify-center md:max-w-[400px]">
+                    <img src={eyes.src} className="w-full object-contain md:w-[200px]" />
+                    <img src={fingerprint.src} className="mt-[40px] w-full object-contain md:w-[220px]" />
                 </div>
             )
         },
