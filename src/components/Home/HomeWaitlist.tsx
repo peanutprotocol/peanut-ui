@@ -4,10 +4,11 @@ import { Button } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
 
 import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { useEffect } from 'react'
 
 const HomeWaitlist = () => {
     const { push } = useRouter()
-    const { username, isFetchingUser } = useAuth()
+    const { username, isFetchingUser, user } = useAuth()
 
     if (isFetchingUser) {
         return (
@@ -16,6 +17,14 @@ const HomeWaitlist = () => {
             </div>
         )
     }
+
+    useEffect(() => {
+        if (!isFetchingUser && !username) {
+            push('/setup')
+        }
+    }, [isFetchingUser, username])
+
+    console.log({ user })
 
     return (
         <div className="flex h-full w-full flex-col items-center justify-between p-8">
