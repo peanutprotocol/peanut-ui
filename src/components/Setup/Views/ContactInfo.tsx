@@ -1,28 +1,25 @@
 import { Button, Field } from '@/components/0_Bruddle'
 import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
 import { FormProvider, useForm } from 'react-hook-form'
-import { z } from 'zod'
-import { zodResolver } from '@hookform/resolvers/zod'
+import * as yup from 'yup'
+import { yupResolver } from '@hookform/resolvers/yup'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useMutation } from '@tanstack/react-query'
 import { useAuth } from '@/context/authContext'
 
-const contactSchema = z.object({
-    contact: z.string().min(1, 'Please enter an email or Telegram username')
-        .refine(
-            (value) => {
-                if (!value) return true
-                const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
-                const isTelegram = /^@?[\w\d]{5,32}$/.test(value)
-                return isEmail || isTelegram
-            },
-            {
-                message: 'Please enter a valid email or Telegram username',
-            }
-        )
+const contactSchema = yup.object({
+    contact: yup
+        .string()
+        .required('Please enter an email or Telegram username')
+        .test('isValidContact', 'Please enter a valid email or Telegram username', (value) => {
+            if (!value) return true
+            const isEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+            const isTelegram = /^@?[\w\d]{5,32}$/.test(value)
+            return isEmail || isTelegram
+        }),
 })
 
-type ContactFormData = z.infer<typeof contactSchema>
+type ContactFormData = yup.InferType<typeof contactSchema>
 
 const ContactInfo = () => {
     const toast = useToast()
@@ -60,7 +57,7 @@ const ContactInfo = () => {
         },
     })
     const methods = useForm<ContactFormData>({
-        resolver: zodResolver(contactSchema),
+        resolver: yupResolver(contactSchema),
     })
     const {
         register,
