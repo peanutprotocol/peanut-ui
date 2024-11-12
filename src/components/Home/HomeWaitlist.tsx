@@ -4,11 +4,13 @@ import { Button } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
 
 import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { useEffect } from 'react'
+import Divider from '../0_Bruddle/Divider'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 
 const HomeWaitlist = () => {
     const { push } = useRouter()
     const { username, isFetchingUser, user } = useAuth()
+    const { handleLogin, isLoggingIn } = useZeroDev()
 
     if (isFetchingUser) {
         return (
@@ -18,18 +20,11 @@ const HomeWaitlist = () => {
         )
     }
 
-    useEffect(() => {
-        if (!isFetchingUser && !username) {
-            push('/setup')
-        }
-    }, [isFetchingUser, username])
-
-    console.log({ user })
-
     return (
         <div className="flex h-full w-full flex-col items-center justify-between p-8">
-            <div className="flex flex-col items-center justify-center">
+            <div className="flex h-full flex-col items-center justify-between">
                 <h1 className="font-knerd-filled text-4xl text-black">Peanut Wallet</h1>
+                <img src={peanutClub.src} alt="peanut-club" className="w-[200px] object-cover" />
                 <div className="mt-5 w-full text-center">
                     {username ? (
                         <p className="">
@@ -37,17 +32,30 @@ const HomeWaitlist = () => {
                             for the Peanut Wallet release !{' '}
                         </p>
                     ) : (
-                        <Button
-                            onClick={() => {
-                                push('/setup')
-                            }}
-                        >
-                            Setup now
-                        </Button>
+                        <div className="flex flex-col items-center justify-center">
+                            <Button
+                                onClick={() => {
+                                    push('/setup')
+                                }}
+                                shadowSize="4"
+                            >
+                                Register
+                            </Button>
+                            <Divider text="or" />
+                            <Button
+                                loading={isLoggingIn}
+                                disabled={isLoggingIn}
+                                onClick={() => {
+                                    handleLogin()
+                                }}
+                                variant="stroke"
+                            >
+                                Login
+                            </Button>
+                        </div>
                     )}
                 </div>
             </div>
-            <img src={peanutClub.src} alt="peanut-club" className="w-[200px] object-cover" />
         </div>
     )
 }

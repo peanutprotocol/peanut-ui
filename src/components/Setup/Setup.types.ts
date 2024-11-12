@@ -1,4 +1,4 @@
-export type ScreenId = 'welcome' | 'passkey' | 'add-wallets' | 'contact-info' | 'success' | 'pwa-install'
+export type ScreenId = 'pwa-install' | 'welcome' | 'passkey' | 'contact-info' | 'success'
 
 export type ScreenProps = {
     welcome: undefined
@@ -8,10 +8,12 @@ export type ScreenProps = {
     'add-wallets': undefined
     success: undefined
     'contact-info': undefined
+    'pwa-install': undefined
 }
 
 export type Step = {
     screenId: ScreenId
+    active: boolean
     title: string
     description?: string
     containerClassname: HTMLDivElement['className']

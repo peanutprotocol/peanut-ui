@@ -9,16 +9,14 @@ const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
     const { push } = useRouter()
 
     return (
-        <div className="sm:h-screen" style={{ minHeight: '100vh' }}>
-            <SetupFlowProvider
-                steps={SETUP_STEPS}
-                onComplete={() => {
-                    push('/home')
-                }}
-            >
-                {children}
-            </SetupFlowProvider>
-        </div>
+        <SetupFlowProvider
+            steps={SETUP_STEPS}
+            onComplete={() => {
+                push('/home')
+            }}
+        >
+            {children}
+        </SetupFlowProvider>
     )
 }
 

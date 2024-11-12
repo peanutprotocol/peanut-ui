@@ -12,6 +12,7 @@ import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_
 import { useState } from 'react'
 import { Step } from './Setup.types'
 import InstallPWA from './Views/InstallPWA'
+import { peanutWalletIsInPreview } from '@/constants'
 
 const placeAsset = (url: string) => {
     return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
@@ -37,6 +38,7 @@ const LetPeanutBeHappy = () => {
 export const SETUP_STEPS: Step[] = [
     {
         screenId: 'pwa-install',
+        active: peanutWalletIsInPreview,
         title: 'Install',
         description: 'Install the peanut wallet app on your device !',
         containerClassname: 'bg-blue-1/100 text-black',
@@ -47,6 +49,7 @@ export const SETUP_STEPS: Step[] = [
     },
     {
         screenId: 'welcome',
+        active: true,
         title: 'Welcome',
         description: 'Create your brand new peanut wallet now ! Choose a handle',
         containerClassname: 'bg-blue-1/100',
@@ -57,6 +60,7 @@ export const SETUP_STEPS: Step[] = [
     },
     {
         screenId: 'passkey',
+        active: true,
         title: 'Passkey',
         description: 'Add a passkey to secure your wallet',
         containerClassname: 'bg-yellow-1/100',
@@ -72,6 +76,7 @@ export const SETUP_STEPS: Step[] = [
     },
     {
         screenId: 'contact-info',
+        active: peanutWalletIsInPreview,
         title: 'Contact',
         description: 'Add your contact info to make it easier for us to reach you !',
         containerClassname: 'bg-purple-1/100',
@@ -82,6 +87,7 @@ export const SETUP_STEPS: Step[] = [
     },
     {
         screenId: 'success',
+        active: true,
         title: 'Success',
         description: "You're all set up! Let's get started",
         containerClassname: 'bg-green-1/100',
@@ -90,4 +96,4 @@ export const SETUP_STEPS: Step[] = [
             return <LetPeanutBeHappy />
         },
     },
-]
+].filter((step) => step.active)

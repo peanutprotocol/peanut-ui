@@ -2,6 +2,8 @@ import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
 import { arbitrum, arbitrumSepolia } from 'viem/chains'
 
+export const peanutWalletIsInPreview = true
+
 export const infuraApiKey = process.env.NEXT_PUBLIC_INFURA_API_KEY
 
 export const infuraRpcUrls: Record<number, string> = {

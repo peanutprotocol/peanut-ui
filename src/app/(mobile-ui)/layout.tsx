@@ -14,6 +14,7 @@ import { useRouter } from 'next/navigation'
 import WalletToggleButton from '@/components/Home/WalletToggleButton'
 import { useAuth } from '@/context/authContext'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
+import { peanutWalletIsInPreview } from '@/constants'
 
 type ScreenProps = {
     name: string
@@ -112,11 +113,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home'
     const pageDefinition = pages.find((page) => page.href === pathName)
 
-    const showWaitlistScreen = true
-
     return (
         <div className="flex h-screen flex-col">
-            {!(isHome || showWaitlistScreen) && (
+            {!(isHome || peanutWalletIsInPreview) && (
                 <div className="flex min-h-[64px] flex-row items-center border-b-2 border-black p-4">
                     <div
                         className="absolute left-2"
@@ -139,9 +138,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     backgroundColor: walletColor,
                 }}
             >
-                {showWaitlistScreen ? <HomeWaitlist /> : children}
+                {peanutWalletIsInPreview ? <HomeWaitlist /> : children}
             </div>
-            {!showWaitlistScreen && (
+            {!peanutWalletIsInPreview && (
                 <div className="grid grid-cols-5 border-t-2 border-black p-2">
                     {tabs.map((tab) => {
                         if (tab.icon === 'wallet') {
@@ -179,7 +178,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         disabled={isLoggingIn}
                         onClick={() => {
                             if (!username) return
-                            handleLogin(username)
+                            handleLogin()
                         }}
                     >
                         Sign In
