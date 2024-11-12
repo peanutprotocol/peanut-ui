@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, ReactNode } from 'react'
 
-export type ScreenId = 'welcome' | 'passkey' | 'add-wallets' | 'success'
+export type ScreenId = 'welcome' | 'passkey' | 'add-wallets' | "contact-info" | 'success'
 export type ScreenProps = {
     welcome: undefined
     passkey: {
@@ -8,6 +8,7 @@ export type ScreenProps = {
     }
     'add-wallets': undefined
     success: undefined
+    'contact-info': undefined
 }
 
 export type Step = {
@@ -16,6 +17,7 @@ export type Step = {
     description?: string
     containerClassname: HTMLDivElement['className']
     component: () => JSX.Element
+    centerComponent: () => JSX.Element
 }
 
 interface SetupFlowContextType {
@@ -51,8 +53,8 @@ export const SetupFlowProvider = ({ children, onComplete, steps }: SetupFlowProv
     /**
      * Notice: Callers of this function should handle errors themselves
      * @param callback Should return a boolean indicating the step logic was successful
-     * @param props 
-     * @returns 
+     * @param props
+     * @returns
      */
     const handleNext = async <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => {
         setIsLoading(true)

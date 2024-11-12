@@ -1,5 +1,6 @@
 import '../styles/globals.css'
 import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
+import localFont from 'next/font/local'
 import { PeanutProvider } from '@/config'
 import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
@@ -25,10 +26,22 @@ const sniglet = Sniglet({
     variable: '--font-sniglet',
 })
 
+const knerdOutline = localFont({
+    src: '../assets/fonts/knerd-outline.ttf',
+    variable: '--font-knerd-outline',
+})
+
+const knerdFilled = localFont({
+    src: '../assets/fonts/knerd-filled.ttf',
+    variable: '--font-knerd-filled',
+})
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
         <html lang="en">
-            <body className={`${roboto.variable} ${londrina.variable} ${sniglet.variable} chakra-ui-light font-sans`}>
+            <body
+                className={`${roboto.variable} ${londrina.variable} ${knerdOutline.variable} ${knerdFilled.variable} ${sniglet.variable} chakra-ui-light font-sans`}
+            >
                 <PeanutProvider>
                     <context.ContextProvider>
                         <FooterVisibilityProvider>{children}</FooterVisibilityProvider>

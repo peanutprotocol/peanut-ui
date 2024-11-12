@@ -188,7 +188,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     open: () => setPromptWalletSigninOpen(true),
                     close: () => setPromptWalletSigninOpen(false),
                 },
-                walletColor: backgroundColorFromAddress(selectedWallet?.address || ''),
+                walletColor: selectedWallet?.address ? backgroundColorFromAddress(selectedWallet?.address) : 'rgba(0,0,0,0)',
             }}
         >
             {children}

@@ -36,7 +36,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { open: web3modalOpen } = useWeb3Modal()
     const {
         data: user,
-        isLoading: isFetchingUser,
+        isFetching: isFetchingUser,
         refetch: fetchUser,
     } = useQuery<interfaces.IUserProfile | null>({
         queryKey: ['user'],
