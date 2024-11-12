@@ -35,7 +35,7 @@ const LetPeanutBeHappy = () => {
     )
 }
 
-export const SETUP_STEPS: Step[] = [
+export const SETUP_STEPS = [
     {
         screenId: 'pwa-install',
         active: peanutWalletIsInPreview,
@@ -96,4 +96,4 @@ export const SETUP_STEPS: Step[] = [
             return <LetPeanutBeHappy />
         },
     },
-].filter((step) => step.active)
+].filter((step) => step.active) as Step[]
