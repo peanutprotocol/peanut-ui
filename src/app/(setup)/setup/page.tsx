@@ -19,20 +19,17 @@ const SetupPage = () => {
 
     return (
         <div
-            className={twMerge(
-                'flex min-h-screen flex-col border border-green-500 bg-opacity-100 p-6 transition-all',
-                step.containerClassname
-            )}
+            className={twMerge('flex min-h-screen flex-col bg-opacity-100 p-6 transition-all', step.containerClassname)}
         >
-            <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-grow flex-col gap-8 border border-red md:w-1/2 lg:gap-12">
-                <div className="flex flex-col gap-4 border text-center">
+            <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-grow flex-col gap-8 md:w-1/2 lg:gap-12">
+                <div className="flex flex-col gap-4 text-center">
                     <h1 className="font-knerd-outline relative left-1/2 -translate-x-1/2 whitespace-nowrap stroke-1 text-6xl font-bold text-white">
                         {step.title}
                     </h1>
                     <p className="rounded-lg p-2 text-center font-bold backdrop-blur-lg">{step.description}</p>
                 </div>
                 {centerComponent && (
-                    <div className="relative flex flex-grow flex-row items-center justify-center overflow-visible border sm:h-full">
+                    <div className="relative flex flex-grow flex-row items-center justify-center overflow-visible sm:h-full">
                         {step.screenId !== 'passkey' &&
                             starPositions.map((positions, index) => (
                                 <img
@@ -45,7 +42,7 @@ const SetupPage = () => {
                         <div className="flex h-full w-full flex-row justify-center">{centerComponent}</div>
                     </div>
                 )}
-                <div className="relative h-auto border">
+                <div className="relative h-auto">
                     <StepTransition step={currentStep} direction={direction}>
                         <step.component />
                     </StepTransition>
