@@ -29,7 +29,8 @@ const HomeWaitlist = () => {
                     {username ? (
                         <p className="">
                             Thanks <span className="text-xl font-bold">{username}</span> ! You're all setup, stay tuned
-                            for the Peanut Wallet release !{' '}
+                            for the Peanut Wallet release ! You are number {user?.pwQueue.userPosition ?? 0} of{' '}
+                            {user?.pwQueue.totalUsers} in the waitlist
                         </p>
                     ) : (
                         <div className="flex flex-col items-center justify-center">

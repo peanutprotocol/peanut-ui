@@ -409,6 +409,7 @@ export interface IUserProfile {
     pointsPerReferral: PointsPerReferral[]
     referredUsers: number
     streak: number
+    pwQueue: { totalUsers: number; userPosition: number | null }
     user: User
     accounts: Account[]
     contacts: Contact[]
