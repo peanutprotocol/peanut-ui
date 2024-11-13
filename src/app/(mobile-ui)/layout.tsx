@@ -16,6 +16,7 @@ import { useAuth } from '@/context/authContext'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { peanutWalletIsInPreview } from '@/constants'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
+import { colorMap } from '@/utils'
 
 type ScreenProps = {
     name: string
@@ -101,7 +102,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal, walletColor } = useWallet()
+    const { signInModal } = useWallet()
     const { username } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
@@ -118,7 +119,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div
             className="flex h-screen flex-col"
             style={{
-                backgroundColor: walletColor,
+                backgroundColor: colorMap.lavender,
             }}
         >
             <CloudsBackground />
