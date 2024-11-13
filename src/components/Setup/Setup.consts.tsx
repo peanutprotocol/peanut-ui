@@ -71,7 +71,7 @@ export const SETUP_STEPS = [
         active: true,
         title: 'Success',
         description: "You're all set up! Let's get started",
-        containerClassname: 'bg-green-1/100',
+        containerClassname: 'bg-purple-1/100',
         component: () => <SetupSuccess />,
         centerComponent: () => {
             return placeAsset(happyPeanutAnimi.src)

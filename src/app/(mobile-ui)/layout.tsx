@@ -119,7 +119,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div
             className="flex h-screen flex-col"
             style={{
-                backgroundColor: colorMap.lavender,
+                backgroundColor: username ? colorMap.lavender : undefined,
             }}
         >
             <CloudsBackground />

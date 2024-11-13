@@ -63,7 +63,7 @@ const InstallPWA = () => {
             {deviceType === 'ios' && <IOSInstructions />}
             {deviceType === 'android' && <AndroidInstructions />}
             {deviceType === 'desktop' && <DesktopInstructions />}
-            <Button size="small" variant="stroke" onClick={() => handleNext()} className="mt-4">
+            <Button onClick={() => handleNext()} className="mt-4">
                 Later
             </Button>
         </div>
