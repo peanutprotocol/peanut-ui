@@ -4,6 +4,8 @@ import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useQuery } from '@tanstack/react-query'
+import { hitUserMetric } from '@/utils/metrics.utils'
+import { isPwa } from '@/utils'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -45,6 +47,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const userResponse = await fetch('/api/peanut/user/get-user-from-cookie')
             if (userResponse.ok) {
                 const userData: interfaces.IUserProfile | null = await userResponse.json()
+                if (userData) {
+                    // no await, log metric async
+                    hitUserMetric(userData.user.userId, 'login', { isPwa: isPwa() })
+                }
 
                 return userData
             } else {
@@ -196,7 +202,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // we open the web3modal, so the user can disconnect the previous wallet,
         // connect a new wallet and allow the useEffect(..., [wagmiAddress]) in walletContext take over
         web3modalOpen()
-        
     }
 
     const addAccount = async ({
