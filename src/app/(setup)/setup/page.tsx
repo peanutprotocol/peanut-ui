@@ -19,7 +19,7 @@ const SetupPage = () => {
 
     return (
         <div
-            className={twMerge('flex min-h-screen flex-col bg-opacity-100 p-6 transition-all', step.containerClassname)}
+            className={twMerge('flex min-h-screen flex-col bg-opacity-100 p-8 transition-all', step.containerClassname)}
         >
             <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-grow flex-col gap-8 md:w-1/2 lg:gap-12">
                 <div className="flex flex-col gap-4 text-center">
