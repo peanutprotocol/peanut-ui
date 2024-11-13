@@ -18,21 +18,10 @@ const placeAsset = (url: string) => {
 
 export const SETUP_STEPS = [
     {
-        screenId: 'pwa-install',
-        active: peanutWalletIsInPreview,
-        title: 'Install',
-        description: 'Install the peanut wallet app on your device !',
-        containerClassname: 'bg-blue-1/100 text-black',
-        component: () => <InstallPWA />,
-        centerComponent: () => {
-            return placeAsset(pointingPeanutAnim.src)
-        },
-    },
-    {
         screenId: 'welcome',
         active: true,
         title: 'Welcome',
-        description: 'Create your brand new peanut wallet now ! Choose a handle',
+        description: 'Create your brand new peanut wallet now ! Pick a handle, set the vibe',
         containerClassname: 'bg-blue-1/100',
         component: () => <WelcomeStep />,
         centerComponent: () => {
@@ -59,9 +48,20 @@ export const SETUP_STEPS = [
         screenId: 'contact-info',
         active: peanutWalletIsInPreview,
         title: 'Contact',
-        description: 'Add your contact info to make it easier for us to reach you !',
+        description: "We're cooking. Share your contact so we can share rewards for OGs who are early",
         containerClassname: 'bg-purple-1/100',
         component: () => <ContactInfo />,
+        centerComponent: () => {
+            return placeAsset(pointingPeanutAnim.src)
+        },
+    },
+    {
+        screenId: 'pwa-install',
+        active: peanutWalletIsInPreview,
+        title: 'Install',
+        description: 'Install the peanut wallet app on your device !',
+        containerClassname: 'bg-blue-1/100 text-black',
+        component: () => <InstallPWA />,
         centerComponent: () => {
             return placeAsset(pointingPeanutAnim.src)
         },
