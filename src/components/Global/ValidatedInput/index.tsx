@@ -82,7 +82,8 @@ const ValidatedInput = ({
                 type="text"
                 value={value}
                 onChange={handleChange}
-                className={classNames('pl-12', {
+                className={classNames({
+                    'pl-12': Boolean(label),
                     'border-red': value && !isValidating && !isValid,
                 })}
                 placeholder={placeholder}
