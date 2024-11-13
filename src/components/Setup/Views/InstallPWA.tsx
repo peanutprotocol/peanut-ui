@@ -1,11 +1,12 @@
 import { Button } from '@/components/0_Bruddle'
 import { useEffect, useState } from 'react'
 import { useSetupFlow } from '../context/SetupFlowContext'
+import Icon from '@/components/Global/Icon'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="mt-4 font-bold text-white">{text}</h3>
 
 const InstallPWA = () => {
-    const { handleNext } = useSetupFlow()
+    const { handleNext, handleBack } = useSetupFlow()
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
 
     useEffect(() => {
@@ -63,9 +64,12 @@ const InstallPWA = () => {
             {deviceType === 'ios' && <IOSInstructions />}
             {deviceType === 'android' && <AndroidInstructions />}
             {deviceType === 'desktop' && <DesktopInstructions />}
-            <Button onClick={() => handleNext()} className="mt-4">
-                Later
-            </Button>
+            <div className="mt-4 flex flex-row items-center gap-2">
+                <Button onClick={handleBack} variant="stroke">
+                    <Icon name="arrow-prev" />
+                </Button>
+                <Button onClick={() => handleNext()}>Skip</Button>
+            </div>
         </div>
     )
 }
