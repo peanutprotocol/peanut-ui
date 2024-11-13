@@ -1,11 +1,12 @@
-import peanutClub from '@/assets/peanut/peanut-club.png'
 import { useAuth } from '@/context/authContext'
-import { Button } from '../0_Bruddle'
+import { Button, Card } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
 
-import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import Divider from '../0_Bruddle/Divider'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import Title from '../0_Bruddle/Title'
+import RollingNumber from '../0_Bruddle/RollingNumber'
 
 const HomeWaitlist = () => {
     const { push } = useRouter()
@@ -22,25 +23,36 @@ const HomeWaitlist = () => {
 
     return (
         <div className="flex h-full w-full flex-col items-center justify-between p-8">
-            <div className="flex h-full flex-col items-center justify-between">
-                <h1 className="font-knerd-filled text-4xl text-black">Peanut Wallet</h1>
+            <div className="flex h-full w-full flex-col items-center justify-between">
+                <Title text="Home" className="text-8xl" />
                 {username && (
-                    <p className="p-2 text-center text-lg backdrop-blur-lg">
-                        Thanks <span className="text-xl font-bold">{username}</span> !
-                    </p>
+                    <Card>
+                        <Card.Header className="border-none">
+                            <Card.Title className="border-none">Thanks {username}!</Card.Title>
+                        </Card.Header>
+                    </Card>
                 )}
-                <img src={peanutClub.src} alt="peanut-club" className="w-[200px] object-cover" />
+                <img src={happyPeanut.src} alt="peanut-club" className="w-[200px] object-cover" />
                 <div className="mt-5 w-full text-center">
                     {username ? (
-                        <div className="flex flex-col items-center">
-                            <p className="text-center text-lg">
-                                You're all set up. Stay tuned for the Peanut Wallet release!
-                            </p>
-                            <p className="mt-2 text-center">
-                                You are number <span className="font-bold">{user?.pwQueue.userPosition ?? 0}</span> of{' '}
-                                <span className="font-bold">{user?.pwQueue.totalUsers}</span> in the waitlist.
-                            </p>
-                        </div>
+                        <Card>
+                            <Card.Header className="text-center">
+                                <Card.Title className="w-full text-center">You're all set up !</Card.Title>
+                                <Card.Description className="w-full text-center">
+                                    Stay tuned for the release
+                                </Card.Description>
+                            </Card.Header>
+                            <Card.Content>
+                                <div className="flex flex-col items-center gap-2">
+                                    <p>Your position in the waitlist:</p>
+                                    <RollingNumber
+                                        number={user?.pwQueue.userPosition ?? 0}
+                                        total={user?.pwQueue.totalUsers ?? 0}
+                                        className="text-4xl font-bold"
+                                    />
+                                </div>
+                            </Card.Content>
+                        </Card>
                     ) : (
                         <div className="flex flex-col items-center justify-center">
                             <Button
