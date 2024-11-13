@@ -5,6 +5,8 @@ import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
 import { twMerge } from 'tailwind-merge'
 
 import starImage from '@/assets/icons/star.png'
+import Title from '@/components/0_Bruddle/Title'
+import { Card } from '@/components/0_Bruddle'
 
 const SetupPage = () => {
     const { currentStep, direction, step } = useSetupFlow()
@@ -22,11 +24,15 @@ const SetupPage = () => {
             className={twMerge('flex min-h-screen flex-col bg-opacity-100 p-8 transition-all', step.containerClassname)}
         >
             <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-grow flex-col gap-8 md:w-1/2 lg:gap-12">
-                <div className="flex flex-col gap-4 text-center">
-                    <h1 className="font-knerd-outline relative left-1/2 -translate-x-1/2 whitespace-nowrap stroke-1 text-6xl font-bold text-white">
-                        {step.title}
-                    </h1>
-                    <p className="rounded-lg p-2 text-center font-bold backdrop-blur-lg">{step.description}</p>
+                <div className="flex w-full flex-row justify-center">
+                    <Title text={step.title} className="text-6xl" />
+                </div>
+                <div className="flex flex-col gap-4">
+                    <Card>
+                        <Card.Content>
+                            <p className="rounded-lg p-2 text-center font-bold">{step.description}</p>
+                        </Card.Content>
+                    </Card>
                 </div>
                 {centerComponent && (
                     <div className="relative flex flex-grow flex-row items-center justify-center overflow-visible sm:h-full">
