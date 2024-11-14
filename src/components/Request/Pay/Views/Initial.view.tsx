@@ -51,7 +51,6 @@ async function createXChainUnsignedTx({
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,
         fromTokenDecimals: tokenData.decimals as number,
-        // @ts-ignore // TODO: fix this
         linkDetails: requestLink,
     })
     return xchainUnsignedTxs
@@ -91,10 +90,19 @@ export const InitialView = ({
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const [tokenRequestedLogoURI, setTokenRequestedLogoURI] = useState<string | undefined>(undefined)
     const [tokenRequestedSymbol, setTokenRequestedSymbol] = useState<string>('')
+    const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
+    const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<interfaces.IPeanutUnsignedTransaction[] | undefined>(
+        undefined
+    )
 
     const calculatedFee = useMemo(() => {
         return isXChain ? txFee : formatTokenAmount(estimatedGasCost, 3)
     }, [isXChain, estimatedGasCost, txFee])
+
+    const calculatedSlippage = useMemo(() => {
+        if (!selectedTokenData?.price || !slippagePercentage) return null
+        return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
+    }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
     const isButtonDisabled = useMemo(() => {
         return (
@@ -132,14 +140,25 @@ export const InitialView = ({
                     requestLink: requestLinkData,
                     senderAddress: address!,
                 })
-                const { feeEstimation, estimatedFromAmount } = txData
+                const {
+                    feeEstimation,
+                    estimatedFromAmount,
+                    slippagePercentage,
+                    unsignedTxs: _xChainUnsignedTxs,
+                } = txData
                 setEstimatedFromValue(estimatedFromAmount)
+                console.log('slippage', slippagePercentage)
+                console.dir(txData)
+                setSlippagePercentage(slippagePercentage)
+                setXChainUnsignedTxs(_xChainUnsignedTxs)
                 clearError()
                 setTxFee(Number(feeEstimation).toFixed(2))
                 setViewState(ViewState.READY_TO_PAY)
             } catch (error) {
                 setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                 setIsFeeEstimationError(true)
+                setSlippagePercentage(undefined)
+                setXChainUnsignedTxs(undefined)
                 setTxFee('0')
             }
         }
@@ -165,6 +184,8 @@ export const InitialView = ({
     useEffect(() => {
         setLoadingState('Loading')
         clearError()
+        setSlippagePercentage(undefined)
+        setXChainUnsignedTxs(undefined)
         const isXChain =
             selectedChainID !== requestLinkData.chainId ||
             !areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
@@ -284,20 +305,15 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
+                if (!xChainUnsignedTxs) return
                 await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
                 if (selectedTokenData!.chainId !== String(currentChain?.id)) {
                     await switchNetwork(selectedTokenData!.chainId)
                 }
                 setLoadingState('Sign in wallet')
-                const xchainUnsignedTxs = await createXChainUnsignedTx({
-                    tokenData: selectedTokenData!,
-                    requestLink: requestLinkData,
-                    senderAddress: address ?? '',
-                })
 
-                const { unsignedTxs } = xchainUnsignedTxs
                 const hash = await sendTransactions({
-                    preparedDepositTxs: { unsignedTxs },
+                    preparedDepositTxs: { unsignedTxs: xChainUnsignedTxs },
                     feeOptions: undefined,
                 })
                 setLoadingState('Executing transaction')
@@ -405,6 +421,22 @@ export const InitialView = ({
                                 )}
                             </label>
                         </div>
+
+                        {null !== calculatedSlippage && (
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'money-out'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Slippage cost</label>
+                                </div>
+                                <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    ${calculatedSlippage}
+                                    <MoreInfo
+                                        text={`To ensure the request arrives with at least what was asked, we will charge you ${slippagePercentage!.toFixed(2)}% of the requested amount.`}
+                                    />
+                                </label>
+                            </div>
+                        )}
+
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
