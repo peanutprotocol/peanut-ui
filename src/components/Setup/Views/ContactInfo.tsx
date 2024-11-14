@@ -83,7 +83,7 @@ const ContactInfo = () => {
             <form onSubmit={onSubmit}>
                 <div className="flex h-full flex-col justify-end gap-2">
                     <Field
-                        placeholder="squirrel-love@peanuts.com or @sqluv"
+                        placeholder="telegram / email"
                         label="Email or Telegram username"
                         {...register('contact')}
                     />
