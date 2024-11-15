@@ -11,12 +11,25 @@ import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_
 import { Step } from './Setup.types'
 import InstallPWA from './Views/InstallPWA'
 import { peanutWalletIsInPreview } from '@/constants'
+import NotificationPermission from './Views/NotificationPermission'
 
 const placeAsset = (url: string) => {
     return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
 }
 
 export const SETUP_STEPS = [
+    // TODO: Move back to proper position (just @ launch for testing)
+    {
+        screenId: 'noficiation-permission',
+        active: true,
+        title: 'Notifications',
+        description: 'Enable notifications to get the latest updates',
+        containerClassname: 'bg-blue-1/100',
+        component: () => <NotificationPermission />,
+        centerComponent: () => {
+            return placeAsset(chillPeanutAnim.src)
+        },
+    },
     {
         screenId: 'welcome',
         active: true,

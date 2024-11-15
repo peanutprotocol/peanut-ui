@@ -7,6 +7,7 @@ import { twMerge } from 'tailwind-merge'
 import starImage from '@/assets/icons/star.png'
 import Title from '@/components/0_Bruddle/Title'
 import { Card } from '@/components/0_Bruddle'
+import classNames from 'classnames'
 
 const SetupPage = () => {
     const { currentStep, direction, step } = useSetupFlow()
@@ -25,7 +26,12 @@ const SetupPage = () => {
         >
             <div className="mg:1/3 z-10 mx-auto flex h-full w-full flex-grow flex-col gap-8 md:w-1/2 lg:gap-12">
                 <div className="flex w-full flex-row justify-center">
-                    <Title text={step.title} className="text-6xl" />
+                    <Title
+                        text={step.title}
+                        className={classNames('text-6xl', {
+                            'text-5xl md:text-6xl': step.screenId === 'noficiation-permission',
+                        })}
+                    />
                 </div>
                 <div className="flex flex-col gap-4">
                     <Card>
