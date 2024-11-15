@@ -82,11 +82,7 @@ const ContactInfo = () => {
         <FormProvider {...methods}>
             <form onSubmit={onSubmit}>
                 <div className="flex h-full flex-col justify-end gap-2">
-                    <Field
-                        placeholder="telegram / email"
-                        label="Email or Telegram username"
-                        {...register('contact')}
-                    />
+                    <Field placeholder="telegram / email" {...register('contact')} />
                     <Button loading={isPending} disabled={isPending} onClick={onSubmit} type="submit">
                         Submit
                     </Button>
