@@ -14,6 +14,9 @@ import { useRouter } from 'next/navigation'
 import WalletToggleButton from '@/components/Home/WalletToggleButton'
 import { useAuth } from '@/context/authContext'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
+import { peanutWalletIsInPreview } from '@/constants'
+import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
+import { colorMap } from '@/utils'
 
 type ScreenProps = {
     name: string
@@ -99,7 +102,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal, walletColor } = useWallet()
+    const { signInModal } = useWallet()
     const { username } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
@@ -112,11 +115,15 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home'
     const pageDefinition = pages.find((page) => page.href === pathName)
 
-    const showWaitlistScreen = true
-
     return (
-        <div className="flex h-screen flex-col">
-            {!(isHome || showWaitlistScreen) && (
+        <div
+            className="flex h-screen flex-col"
+            style={{
+                backgroundColor: username ? colorMap.lavender : undefined,
+            }}
+        >
+            <CloudsBackground />
+            {!(isHome || peanutWalletIsInPreview) && (
                 <div className="flex min-h-[64px] flex-row items-center border-b-2 border-black p-4">
                     <div
                         className="absolute left-2"
@@ -132,34 +139,33 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 </div>
             )}
             <div
-                className={classNames('flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
+                className={classNames('z-1 flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
                     'p-4': !isHome,
                 })}
-                style={{
-                    backgroundColor: walletColor,
-                }}
             >
-                {showWaitlistScreen ? <HomeWaitlist /> : children}
+                {peanutWalletIsInPreview ? <HomeWaitlist /> : children}
             </div>
-            <div className="grid grid-cols-5 border-t-2 border-black p-2">
-                {tabs.map((tab) => {
-                    if (tab.icon === 'wallet') {
-                        return <WalletToggleButton />
-                    }
+            {!peanutWalletIsInPreview && (
+                <div className="grid grid-cols-5 border-t-2 border-black p-2">
+                    {tabs.map((tab) => {
+                        if (tab.icon === 'wallet') {
+                            return <WalletToggleButton />
+                        }
 
-                    return (
-                        <Link
-                            href={tab.href}
-                            key={tab.name}
-                            className={classNames('flex flex-row justify-center py-2 hover:cursor-pointer ', {
-                                'text-purple-1': pathName === tab.href,
-                            })}
-                        >
-                            <NavIcons name={tab.icon} size={30} />
-                        </Link>
-                    )
-                })}
-            </div>
+                        return (
+                            <Link
+                                href={tab.href}
+                                key={tab.name}
+                                className={classNames('flex flex-row justify-center py-2 hover:cursor-pointer ', {
+                                    'text-purple-1': pathName === tab.href,
+                                })}
+                            >
+                                <NavIcons name={tab.icon} size={30} />
+                            </Link>
+                        )
+                    })}
+                </div>
+            )}
             <Modal
                 visible={signInModal.visible}
                 onClose={() => {
@@ -177,7 +183,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         disabled={isLoggingIn}
                         onClick={() => {
                             if (!username) return
-                            handleLogin(username)
+                            handleLogin()
                         }}
                     >
                         Sign In

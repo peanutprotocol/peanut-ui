@@ -1,10 +1,16 @@
 // middleware.ts
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { peanutWalletIsInPreview } from './constants'
 
 export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone()
     const promoList: { [key: string]: string } = JSON.parse(process.env.PROMO_LIST ?? '{}')
+
+    // Handle root path redirect when enabled
+    if (peanutWalletIsInPreview && url.pathname === '/') {
+        return NextResponse.redirect(new URL('/home', request.url))
+    }
 
     // Handle promo link redirection
     if (isPromoLink(url)) {
@@ -32,7 +38,7 @@ const isPromoLink = (url: URL) => {
     return !!(linkChainId && linkVersion)
 }
 
-// Specify the paths that should use this middleware
+// Updated matcher to include root path
 export const config = {
-    matcher: ['/claim/:path*', '/api/:path*'],
+    matcher: ['/', '/claim/:path*', '/api/:path*'],
 }

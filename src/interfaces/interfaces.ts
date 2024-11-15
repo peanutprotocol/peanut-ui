@@ -350,6 +350,7 @@ interface User {
     kycStatus: string
     bridge_customer_id: string | null
     full_name: string
+    telegram: string | null
 }
 
 // based on the API's AccountType
@@ -408,6 +409,7 @@ export interface IUserProfile {
     pointsPerReferral: PointsPerReferral[]
     referredUsers: number
     streak: number
+    pwQueue: { totalUsers: number; userPosition: number | null }
     user: User
     accounts: Account[]
     contacts: Contact[]

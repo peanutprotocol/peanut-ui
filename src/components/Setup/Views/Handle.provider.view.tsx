@@ -1,16 +1,14 @@
 // Based on https://github.com/zerodevapp/passkey-tutorial/blob/7e17e287cbaaa1c2f2df53feb016e5fb0a42ac34/app/page.tsx
 'use client'
 
-import { parseAbi } from "viem"
+import { parseAbi } from 'viem'
 
 // Permissionless imports
 
-import React, { useEffect, useState } from "react"
-import { useZeroDev } from "@/context/walletContext/zeroDevContext.context"
-import { useWallet } from "@/context/walletContext"
-import { useAccount } from "wagmi"
-
-
+import React, { useEffect, useState } from 'react'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useWallet } from '@/context/walletContext'
+import { useAccount } from 'wagmi'
 
 // let kernelAccount: any
 let kernelClient: any
@@ -21,20 +19,20 @@ let validator: any
 // import { bundlerActions } from "permissionless"
 
 // This file contains logic for an ZeroDev Account Abstraction (AA) Proof of Concept
-// If you don't know what Entry Points, UserOps, ECDSA validators, Kernel clients or 
+// If you don't know what Entry Points, UserOps, ECDSA validators, Kernel clients or
 // Passkey validators are, I suggest you read up on:
 // - ERC-4337 docs: https://www.erc4337.io/docs
 // - ZeroDev docs: https://docs.zerodev.app/
 
 // TODO: break logic in its appropriate files
 
-export const HandleSetupView = ({ }) => {
+export const HandleSetupView = ({}) => {
     // data related state
     const [mounted, setMounted] = useState(false)
-    const [username, setUsername] = useState("")
-    const [accountAddress, setAccountAddress] = useState("")
-    const [userOpHash, setUserOpHash] = useState("")
-    const [userOpStatus, setUserOpStatus] = useState("")
+    const [username, setUsername] = useState('')
+    const [accountAddress, setAccountAddress] = useState('')
+    const [userOpHash, setUserOpHash] = useState('')
+    const [userOpStatus, setUserOpStatus] = useState('')
 
     const { address: wagmiAddress } = useAccount()
 
@@ -49,18 +47,16 @@ export const HandleSetupView = ({ }) => {
         handleSendUserOpNotEncoded,
     } = useZeroDev()
 
-
     useEffect(() => {
         console.log({ isKernelClientReady })
-    }, [isKernelClientReady]);
+    }, [isKernelClientReady])
 
     const { wallets } = useWallet()
 
-
-    const contractAddress = "0x34bE7f35132E97915633BC1fc020364EA5134863"
+    const contractAddress = '0x34bE7f35132E97915633BC1fc020364EA5134863'
     const contractABI = parseAbi([
-        "function mint(address _to) public",
-        "function balanceOf(address owner) external view returns (uint256 balance)"
+        'function mint(address _to) public',
+        'function balanceOf(address owner) external view returns (uint256 balance)',
     ])
 
     const handleSendUserOp = async () => {
@@ -78,19 +74,12 @@ export const HandleSetupView = ({ }) => {
     // Spinner component for visual feedback during loading states
     const Spinner = () => (
         <svg
-            className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+            className="-ml-1 mr-3 h-5 w-5 animate-spin text-white"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
         >
-            <circle
-                className="opacity-25"
-                cx="12"
-                cy="12"
-                r="10"
-                stroke="currentColor"
-                strokeWidth="4"
-            ></circle>
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path
                 className="opacity-75"
                 fill="currentColor"
@@ -100,25 +89,23 @@ export const HandleSetupView = ({ }) => {
     )
 
     return (
-        <main className="flex items-center justify-center min-h-screen px-4 py-24">
-            <div className="w-full max-w-lg mx-auto">
-                <h1 className="text-4xl font-semibold text-center mb-12">
-                    Passkeys
-                </h1>
+        <main className="flex min-h-screen items-center justify-center px-4 py-24">
+            <div className="mx-auto w-full max-w-lg">
+                <h1 className="mb-12 text-center text-4xl font-semibold">Passkeys</h1>
 
                 <div className="space-y-4">
                     {/* Account Address Label */}
                     {kernelClientAddress && (
-                        <div className="text-center mb-4">
-                            Account address:{" "}
+                        <div className="mb-4 text-center">
+                            Account address:{' '}
                             <a
                                 href={`https://jiffyscan.xyz/account/${kernelClientAddress}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 className="text-blue-500 hover:text-blue-700"
                             >
-                                {" "}
-                                {kernelClientAddress}{" "}
+                                {' '}
+                                {kernelClientAddress}{' '}
                             </a>
                         </div>
                     )}
@@ -129,7 +116,7 @@ export const HandleSetupView = ({ }) => {
                         placeholder="handle"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
-                        className="p-2 text-black border border-gray-300 w-full"
+                        className="w-full border border-gray-300 p-2 text-black"
                     />
                     {/* Test buttons to switch between PW and BYOW [DEPRECATED] */}
                     {/* <>
@@ -164,7 +151,6 @@ export const HandleSetupView = ({ }) => {
                         )}
                     </> */}
 
-
                     {/* Register and Login Buttons */}
                     <div className="flex flex-col sm:flex-row sm:space-x-4">
                         {/* Register Button */}
@@ -173,41 +159,42 @@ export const HandleSetupView = ({ }) => {
                                 handleRegister(username)
                             }}
                             disabled={isRegistering || isLoggingIn}
-                            className="flex justify-center items-center px-4 py-2 bg-blue-500 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 w-full"
+                            className="flex w-full items-center justify-center bg-blue-500 px-4 py-2 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
                         >
-                            {isRegistering ? <Spinner /> : "Register"}
+                            {isRegistering ? <Spinner /> : 'Register'}
                         </button>
 
                         {/* Login Button */}
                         <button
                             onClick={() => {
-                                handleLogin(username)
+                                handleLogin()
                             }}
                             disabled={isLoggingIn || isRegistering}
-                            className="mt-2 sm:mt-0 flex justify-center items-center px-4 py-2 bg-purple-500 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 w-full"
+                            className="mt-2 flex w-full items-center justify-center bg-purple-500 px-4 py-2 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 sm:mt-0"
                         >
-                            {isLoggingIn ? <Spinner /> : "Login"}
+                            {isLoggingIn ? <Spinner /> : 'Login'}
                         </button>
                     </div>
 
                     {/* Send UserOp Button */}
-                    <div className="flex flex-col items-center w-full">
+                    <div className="flex w-full flex-col items-center">
                         <button
                             onClick={handleSendUserOp}
                             disabled={!isKernelClientReady || isSendingUserOp}
-                            className={`px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-opacity-50 flex justify-center items-center w-full ${isKernelClientReady && !isSendingUserOp
-                                ? "bg-green-500 hover:bg-green-700 focus:ring-green-500"
-                                : "bg-gray-500"
-                                }`}
+                            className={`flex w-full items-center justify-center px-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-opacity-50 ${
+                                isKernelClientReady && !isSendingUserOp
+                                    ? 'bg-green-500 hover:bg-green-700 focus:ring-green-500'
+                                    : 'bg-gray-500'
+                            }`}
                         >
-                            {isSendingUserOp ? <Spinner /> : "Send UserOp"}
+                            {isSendingUserOp ? <Spinner /> : 'Send UserOp'}
                         </button>
                         {/* UserOp Status Label */}
                         {userOpHash && (
                             <div
                                 className="mt-4"
                                 dangerouslySetInnerHTML={{
-                                    __html: userOpStatus
+                                    __html: userOpStatus,
                                 }}
                             />
                         )}

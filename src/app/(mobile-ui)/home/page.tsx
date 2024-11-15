@@ -27,7 +27,7 @@ const Home = () => {
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
 
-    const { addBYOW, username} = useAuth()
+    const { addBYOW, username } = useAuth()
 
     const { wallets, selectedWallet, setSelectedWallet } = useWallet()
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
@@ -131,17 +131,18 @@ const Home = () => {
                                     )
                                 })}
                                 <Card
-                                    className={classNames("flex flex-col gap-4 rounded-md text-black hover:cursor-pointer w-full")}
+                                    className={classNames(
+                                        'flex w-full flex-col gap-4 rounded-md text-black hover:cursor-pointer'
+                                    )}
                                     shadowSize="6"
                                     onClick={() => addBYOW()}
                                 >
                                     <Link href="/setup" className="h-full">
-                                        <Card.Content className="h-full flex-col gap-8 flex justify-center items-center">
+                                        <Card.Content className="flex h-full flex-col items-center justify-center gap-8">
                                             <p className="text-2xl font-bold">Add your own ETH wallet</p>
-                                            <div className='flex flex-row items-center gap-4 justify-start'>
+                                            <div className="flex flex-row items-center justify-start gap-4">
                                                 <Icon name="plus-circle" className="h-8 w-8" />
                                                 <p className="text-lg">Add BYOW wallet</p>
-
                                             </div>
                                         </Card.Content>
                                     </Link>

@@ -4,12 +4,20 @@ import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
 import chroma from 'chroma-js'
 
+export const colorMap = {
+    lavender: '#90A8ED',
+    pink: '#FF90E7',
+    green: '#98E9AB',
+    yellow: '#FFC900',
+}
 export const backgroundColorFromAddress = (address: string): string => {
     // Hash the Ethereum address to a number
     const hash = Array.from(address).reduce((acc, char) => acc + char.charCodeAt(0), 0)
 
+    const choices = Object.values(colorMap)
+
     // Generate color with a lightness range to avoid dark colors
-    const colorScale = chroma.scale(['#FF90E7', '#90A8ED', '#FFC900', '#98E9AB']).mode('lab').domain([0, 255])
+    const colorScale = chroma.scale(choices).mode('lab').domain([0, 255])
 
     // Get color from scale
     return colorScale(hash % 255).hex()

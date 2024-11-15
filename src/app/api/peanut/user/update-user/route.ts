@@ -2,8 +2,16 @@ import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
 
+type UserPayload = {
+    userId: string
+    username: string
+    bridge_customer_id: string
+    telegramUsername?: string
+    email?: string
+}
+
 export async function POST(request: NextRequest) {
-    const { userId, username, bridge_customer_id } = await request.json()
+    const { userId, username, bridge_customer_id, telegram, email } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
@@ -13,6 +21,20 @@ export async function POST(request: NextRequest) {
     }
 
     try {
+        const payload: UserPayload = {
+            userId,
+            username,
+            bridge_customer_id,
+        }
+
+        if (telegram) {
+            payload.telegramUsername = telegram
+        }
+
+        if (email) {
+            payload.email = email
+        }
+
         const response = await fetch(`${consts.PEANUT_API_URL}/update-user`, {
             method: 'POST',
             headers: {
@@ -20,11 +42,7 @@ export async function POST(request: NextRequest) {
                 Authorization: `Bearer ${token.value}`,
                 'api-key': apiKey,
             },
-            body: JSON.stringify({
-                userId,
-                username,
-                bridge_customer_id,
-            }),
+            body: JSON.stringify(payload),
         })
 
         if (response.status === 404) {

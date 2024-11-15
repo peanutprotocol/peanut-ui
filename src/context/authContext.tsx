@@ -9,6 +9,7 @@ import { isPwa } from '@/utils'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
+    userId: string | undefined
     username: string | undefined
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
@@ -264,6 +265,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         <AuthContext.Provider
             value={{
                 user,
+                userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
                 updateBridgeCustomerId,
                 fetchUser: legacy_fetchUser,
