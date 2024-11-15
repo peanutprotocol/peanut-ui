@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { sendNotification, subscribeUser } from '@/app/actions'
 import { urlBase64ToUint8Array } from '@/utils'
 import webpush from 'web-push'
+import { useAuth } from './authContext'
 
 interface PushContextType {
     subscribe: () => void
@@ -19,6 +20,7 @@ const PushContext = createContext<PushContextType | undefined>(undefined)
 
 export function PushProvider({ children }: { children: React.ReactNode }) {
     const toast = useToast()
+    const {userId} = useAuth()
     const [isSupported, setIsSupported] = useState(false)
     const [isSubscribed, setIsSubscribed] = useState(false)
     const [isSubscribing, setIsSubscribing] = useState(false)
@@ -71,7 +73,10 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
 
     const subscribe = async () => {
         if (!registration) {
-            toast.error('Service Worker not initialized')
+            toast.error('Something went wrong while initializing notifications')
+            return
+        } else if (!userId) {
+            toast.error('Something went wrong while initializing notifications')
             return
         }
 
@@ -93,7 +98,7 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 },
             }
 
-            await subscribeUser(plainSub)
+            await subscribeUser(userId, plainSub)
 
             setIsSubscribed(true)
         } catch (error: unknown) {
@@ -119,8 +124,6 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
                 auth: Buffer.from((subscription as any).getKey('auth')).toString('base64'),
             },
         }
-
-        console.log({ plainSub })
 
         await sendNotification(plainSub, { message, title })
     }

@@ -2,6 +2,19 @@
 
 import webpush from 'web-push'
 
+const updateSubscription = async ({ userId, pushSubscriptionId }: { userId: string; pushSubscriptionId: string }) => {
+    return fetch('/api/peanut/user/update-user', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            userId,
+            pushSubscriptionId,
+        }),
+    })
+}
+
 console.log(process.env.NEXT_PUBLIC_VAPID_SUBJECT_EMAIL)
 console.log(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
 console.log(process.env.VAPID_PRIVATE_KEY)
@@ -15,17 +28,27 @@ webpush.setVapidDetails(
 
 let subscription: webpush.PushSubscription | null = null
 
-export async function subscribeUser(sub: {
-    endpoint: string
-    keys: {
-        p256dh: string
-        auth: string
+export async function subscribeUser(
+    userId: string,
+    sub: {
+        endpoint: string
+        keys: {
+            p256dh: string
+            auth: string
+        }
     }
-}) {
-    subscription = sub as unknown as webpush.PushSubscription
-    // In a production environment, you would want to store the subscription in a database
-    // For example: await db.subscriptions.create({ data: sub })
-    return { success: true }
+) {
+    try {
+        await updateSubscription({
+            userId,
+            pushSubscriptionId: JSON.stringify(sub),
+        })
+
+        return { success: true }
+    } catch (error) {
+        console.error('Error updating subscription:', error)
+        return { success: false, error: 'Failed to update subscription' }
+    }
 }
 
 export async function unsubscribeUser() {
