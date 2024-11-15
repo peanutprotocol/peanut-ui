@@ -26,9 +26,12 @@ const serwist = new Serwist({
 
 self.addEventListener('push', (event) => {
     const data = JSON.parse(event.data?.text() ?? '{ title: "" }')
+
     event.waitUntil(
         self.registration.showNotification(data.title, {
             body: data.message,
+            tag: 'notification',
+            vibrate: [100, 50, 100],
             icon: '/icons/icon-192x192.png',
         })
     )

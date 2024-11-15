@@ -44,7 +44,7 @@ export async function sendNotification(
             sub,
             JSON.stringify({
                 title,
-                body: message,
+                message,
                 icon: '/icons/icon-192x192.png',
             })
         )
