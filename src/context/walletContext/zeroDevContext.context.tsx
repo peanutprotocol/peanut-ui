@@ -159,7 +159,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
             mode: WebAuthnMode.Register,
             passkeyServerHeaders: {},
-            rpID: window.location.hostname,
+            rpID: window.location.hostname.replace(/^www\./, ''),
         })
 
         console.log({ peanutPublicClient })
@@ -188,7 +188,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
                 passkeyServerHeaders: {},
-                rpID: window.location.hostname,
+                rpID: window.location.hostname.replace(/^www\./, ''),
             })
 
             const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
