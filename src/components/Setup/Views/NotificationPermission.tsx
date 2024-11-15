@@ -21,15 +21,6 @@ const NotificationPermission = () => {
                     <Icon name={isSubscribed ? 'notification-bell' : 'notification'} className="mr-2" />
                     {isSubscribed ? 'Subscribed !' : 'Enable Notifications'}
                 </Button>
-                {/* {isSubscribed && (
-                    <Button
-                        onClick={() => {
-                            send({ message: '🥜🥜🥜🥜🥜🥜🥜🥜', title: 'Peanut Club' })
-                        }}
-                    >
-                        P
-                    </Button>
-                )} */}
             </div>
             <div className="flex flex-row items-center gap-2">
                 <Button onClick={handleBack} variant="stroke">

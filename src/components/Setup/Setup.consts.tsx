@@ -18,18 +18,6 @@ const placeAsset = (url: string) => {
 }
 
 export const SETUP_STEPS = [
-    // TODO: Move back to proper position (just @ launch for testing)
-    {
-        screenId: 'noficiation-permission',
-        active: true,
-        title: 'Notifications',
-        description: 'Enable notifications to get the latest updates',
-        containerClassname: 'bg-blue-1/100',
-        component: () => <NotificationPermission />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
-    },
     {
         screenId: 'welcome',
         active: true,
@@ -55,6 +43,17 @@ export const SETUP_STEPS = [
                     <img src={fingerprint.src} className="mt-[40px] w-full object-contain md:w-[220px]" />
                 </div>
             )
+        },
+    },
+    {
+        screenId: 'noficiation-permission',
+        active: true,
+        title: 'Notifications',
+        description: 'Enable notifications to get the latest updates',
+        containerClassname: 'bg-blue-1/100',
+        component: () => <NotificationPermission />,
+        centerComponent: () => {
+            return placeAsset(chillPeanutAnim.src)
         },
     },
     {
