@@ -5,7 +5,8 @@ import { useEffect } from 'react'
 
 import Divider from '../0_Bruddle/Divider'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
+import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import Title from '../0_Bruddle/Title'
 import RollingNumber from '../0_Bruddle/RollingNumber'
 
@@ -23,7 +24,7 @@ const HomeWaitlist = () => {
     if (isFetchingUser) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center">
-                <img src={happyPeanut.src} alt="peanut-club" className="w-[300px] object-cover" />
+                <img src={chillPeanutAnim.src} alt="peanut-club" className="w-[300px] object-cover" />
             </div>
         )
     }
@@ -39,14 +40,22 @@ const HomeWaitlist = () => {
                         </Card.Header>
                     </Card>
                 )}
-                <img src={happyPeanut.src} alt="peanut-club" className="w-[300px] object-cover" />
+                <img src={chillPeanutAnim.src} alt="peanut-club" className="w-[300px] object-cover" />
                 <div className="mt-5 w-full text-center">
                     {username && (
                         <Card>
                             <Card.Header className="text-center">
                                 <Card.Title className="w-full text-center">You're all set up!</Card.Title>
                                 <Card.Description className="w-full text-center">
-                                    Stay tuned for the release
+                                    Join the group at{' '}
+                                    <a
+                                        href="https://t.me/clubpeanut"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="underline"
+                                    >
+                                        t.me/clubpeanut
+                                    </a>
                                 </Card.Description>
                             </Card.Header>
                             <Card.Content>

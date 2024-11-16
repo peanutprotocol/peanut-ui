@@ -46,17 +46,18 @@ export const SETUP_STEPS = [
             )
         },
     },
-    {
-        screenId: 'noficiation-permission',
-        active: false, // disable for now since not working
-        title: 'NOTIFICATIONS',
-        description: 'We will only send one notification. You want to be ready :)',
-        containerClassname: 'bg-blue-1/100',
-        component: () => <NotificationPermission />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
-    },
+    // disable
+    // {
+    //     screenId: 'noficiation-permission',
+    //     active: true, // disable for now since not working
+    //     title: 'NOTIFICATIONS',
+    //     description: 'We will only send one notification. You want to be ready :)',
+    //     containerClassname: 'bg-blue-1/100',
+    //     component: () => <NotificationPermission />,
+    //     centerComponent: () => {
+    //         return placeAsset(chillPeanutAnim.src)
+    //     },
+    // },
     {
         screenId: 'contact-info',
         active: peanutWalletIsInPreview,
@@ -65,7 +66,7 @@ export const SETUP_STEPS = [
         containerClassname: 'bg-purple-1/100',
         component: () => <ContactInfo />,
         centerComponent: () => {
-            return placeAsset(pointingPeanutAnim.src)
+            return placeAsset(chillPeanutAnim.src)
         },
     },
     {
@@ -76,7 +77,7 @@ export const SETUP_STEPS = [
         containerClassname: 'bg-blue-1/100 text-black',
         component: () => <InstallPWA />,
         centerComponent: () => {
-            return placeAsset(pointingPeanutAnim.src)
+            return placeAsset(chillPeanutAnim.src)
         },
     },
     {
