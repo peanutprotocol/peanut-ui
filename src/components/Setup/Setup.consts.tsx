@@ -48,7 +48,7 @@ export const SETUP_STEPS = [
     },
     {
         screenId: 'noficiation-permission',
-        active: true,
+        active: false, // disable for now since not working
         title: 'Notifications',
         description: 'We will only send one notification. You want to be ready :)',
         containerClassname: 'bg-blue-1/100',
