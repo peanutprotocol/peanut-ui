@@ -47,23 +47,23 @@ export const SETUP_STEPS = [
         },
     },
     {
-        screenId: 'pwa-install',
-        active: peanutWalletIsInPreview,
-        title: 'INSTALL',
-        description: 'Install Peanut on your phone for best UX and a lil bonus',
-        containerClassname: 'bg-blue-1/100 text-black',
-        component: () => <InstallPWA />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
-    },
-    {
         screenId: 'contact-info',
         active: peanutWalletIsInPreview,
         title: 'CONTACT',
         description: "We're cooking. Share your contact so we can share rewards for OGs who are early",
         containerClassname: 'bg-purple-1/100',
         component: () => <ContactInfo />,
+        centerComponent: () => {
+            return placeAsset(chillPeanutAnim.src)
+        },
+    },
+    {
+        screenId: 'pwa-install',
+        active: peanutWalletIsInPreview,
+        title: 'INSTALL',
+        description: 'Install Peanut on your phone for best UX and a lil bonus',
+        containerClassname: 'bg-blue-1/100 text-black',
+        component: () => <InstallPWA />,
         centerComponent: () => {
             return placeAsset(chillPeanutAnim.src)
         },
@@ -80,7 +80,6 @@ export const SETUP_STEPS = [
     //         return placeAsset(chillPeanutAnim.src)
     //     },
     // },
-
     {
         screenId: 'success',
         active: true,
