@@ -1,6 +1,5 @@
 import * as consts from '@/constants'
 import * as utils from '@/utils'
-import { headers } from 'next/headers'
 
 export enum PreviewType {
     CLAIM = 'claim',
@@ -36,9 +35,7 @@ export function LinkPreviewImg({
         ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.logoURI
     const chainImage = consts.supportedPeanutChains.find((chain) => chain.chainId === chainId)?.icon.url
 
-    let host = headers().get('host') || 'peanut.to'
-    host = `${process.env.NODE_ENV === 'development' ? 'http://' : 'https://'}${host}`
-    const previewBg = `${host}/preview-bg.png`
+    const previewBg = `${process.env.NEXT_PUBLIC_BASE_URL}/preview-bg.png`
     return (
         <div
             style={{
