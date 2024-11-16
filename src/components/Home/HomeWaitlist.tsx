@@ -36,7 +36,7 @@ const HomeWaitlist = () => {
                 {username && (
                     <Card>
                         <Card.Header className="border-none">
-                            <Card.Title className="border-none">Thanks {username}!</Card.Title>
+                            <Card.Title className="border-none">Yay {username}!!!</Card.Title>
                         </Card.Header>
                     </Card>
                 )}
