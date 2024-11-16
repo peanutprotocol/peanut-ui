@@ -22,8 +22,7 @@ export const SETUP_STEPS = [
         screenId: 'welcome',
         active: true,
         title: 'HENLOOO!',
-        description:
-            "Henloo! We're cooking something exciting. Pre-register now and claim some juicy rewards for peanut OGs like you.",
+        description: "We're cooking. Pre-register now and claim juicy rewards for peanut OGs like you.",
         containerClassname: 'bg-blue-1/100',
         component: () => <WelcomeStep />,
         centerComponent: () => {
@@ -50,7 +49,7 @@ export const SETUP_STEPS = [
         screenId: 'contact-info',
         active: peanutWalletIsInPreview,
         title: 'CONTACT',
-        description: "We're cooking. Share your contact so we can share rewards for OGs who are early",
+        description: "We're cooking. Share your contact so we can share rewards for early OGs",
         containerClassname: 'bg-purple-1/100',
         component: () => <ContactInfo />,
         centerComponent: () => {
