@@ -21,7 +21,7 @@ export const SETUP_STEPS = [
     {
         screenId: 'welcome',
         active: true,
-        title: 'Henlooo!',
+        title: 'HENLOOO!',
         description:
             "Henloo! We're cooking something exciting. Pre-register now and claim some juicy rewards for peanut OGs like you.",
         containerClassname: 'bg-blue-1/100',
@@ -33,7 +33,7 @@ export const SETUP_STEPS = [
     {
         screenId: 'passkey',
         active: true,
-        title: 'Passkey',
+        title: 'PASSKEY',
         description: 'Secure your account with your DNA',
         containerClassname: 'bg-yellow-1/100',
         component: () => <SetupPasskey />,
@@ -49,7 +49,7 @@ export const SETUP_STEPS = [
     {
         screenId: 'noficiation-permission',
         active: false, // disable for now since not working
-        title: 'Notifications',
+        title: 'NOTIFICATIONS',
         description: 'We will only send one notification. You want to be ready :)',
         containerClassname: 'bg-blue-1/100',
         component: () => <NotificationPermission />,
@@ -60,7 +60,7 @@ export const SETUP_STEPS = [
     {
         screenId: 'contact-info',
         active: peanutWalletIsInPreview,
-        title: 'Contact',
+        title: 'CONTACT',
         description: "We're cooking. Share your contact so we can share rewards for OGs who are early",
         containerClassname: 'bg-purple-1/100',
         component: () => <ContactInfo />,
@@ -71,7 +71,7 @@ export const SETUP_STEPS = [
     {
         screenId: 'pwa-install',
         active: peanutWalletIsInPreview,
-        title: 'Install',
+        title: 'INSTALL',
         description: 'Install Peanut on your phone for best UX and a lil bonus',
         containerClassname: 'bg-blue-1/100 text-black',
         component: () => <InstallPWA />,
@@ -82,7 +82,7 @@ export const SETUP_STEPS = [
     {
         screenId: 'success',
         active: true,
-        title: 'Success',
+        title: 'SUCCESS',
         description: "You're all set up! Let's get started",
         containerClassname: 'bg-purple-1/100',
         component: () => <SetupSuccess />,
