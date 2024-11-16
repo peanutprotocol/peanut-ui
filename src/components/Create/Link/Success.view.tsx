@@ -12,8 +12,7 @@ import { useToast } from '@chakra-ui/react'
 import { Button, Card } from '@/components/0_Bruddle'
 
 export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tokenValue }: ICreateScreenProps) => {
-    const { selectedChainID, inputDenomination, selectedTokenPrice } =
-        useContext(tokenSelectorContext)
+    const { selectedChainID, inputDenomination, selectedTokenPrice } = useContext(tokenSelectorContext)
     const toast = useToast()
 
     const [txUsdValue, setTxUsdValue] = useState<string | undefined>(undefined)
@@ -57,9 +56,9 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
     }, [])
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title>Yay !</Card.Title>
+                <Card.Title>Yay!</Card.Title>
             </Card.Header>
             <Card.Content className="flex flex-col gap-4">
                 {link && <QRCodeWrapper url={link} />}

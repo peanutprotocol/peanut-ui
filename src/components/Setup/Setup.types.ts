@@ -1,10 +1,18 @@
-export type ScreenId = 'pwa-install' | 'welcome' | 'passkey' | 'contact-info' | 'success'
+export type ScreenId =
+    | 'pwa-install'
+    | 'welcome'
+    | 'passkey'
+    | 'contact-info'
+    | 'success'
+    | 'noficiation-permission'
+    | 'add-wallets'
 
 export type ScreenProps = {
     welcome: undefined
     passkey: {
         handle: string
     }
+    'noficiation-permission': undefined
     'add-wallets': undefined
     success: undefined
     'contact-info': undefined

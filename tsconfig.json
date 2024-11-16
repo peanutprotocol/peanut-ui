@@ -22,7 +22,10 @@
         "paths": {
             "@/*": ["./src/*"],
             "@/animations/*": ["./src/assets/animations/*"],
-        }
+        },
+        "types": [
+            "@serwist/next/typings"
+        ]
     },
     "include": [
         "next-env.d.ts",
@@ -32,5 +35,5 @@
         "src/app/api/assetLinks.js",
         "src/app/api/appleAppSiteAssociation.js"
     ],
-    "exclude": ["node_modules"]
+    "exclude": ["node_modules", "src/app/sw.ts"]
 }

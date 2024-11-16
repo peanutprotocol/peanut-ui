@@ -1,3 +1,23 @@
+const os = require('os')
+
+const interfaces = os.networkInterfaces()
+let ipAddress = 'Unable to determine IP address'
+
+try {
+    // Loop through all network interfaces
+    Object.keys(interfaces).forEach((ifname) => {
+        interfaces[ifname].forEach((iface) => {
+            // Skip internal, non-IPv4 addresses, and APIPA addresses
+            if (iface.family === 'IPv4') {
+                ipAddress = iface.address
+            }
+        })
+    })
+    console.log(`Your IP address is: ${ipAddress}`)
+} catch (error) {
+    console.error('Error getting IP address:', error)
+}
+
 /** @type {import('next').NextConfig} */
 let nextConfig = {
     images: {
@@ -162,4 +182,10 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
     })
 }
 
-module.exports = nextConfig
+module.exports = async () => {
+    const withSerwist = (await import('@serwist/next')).default({
+        swSrc: './src/app/sw.ts',
+        swDest: 'public/sw.js',
+    })
+    return withSerwist(nextConfig)
+}

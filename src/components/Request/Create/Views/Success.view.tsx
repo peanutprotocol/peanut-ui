@@ -7,9 +7,9 @@ import { Button, Card } from '@/components/0_Bruddle'
 
 export const SuccessView = ({ link }: _consts.ICreateScreenProps) => {
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header className="relative">
-                <Card.Title>Yay !</Card.Title>
+                <Card.Title>Yay!</Card.Title>
             </Card.Header>
             <Card.Content className="flex flex-col gap-3">
                 <QRCodeWrapper url={link} />

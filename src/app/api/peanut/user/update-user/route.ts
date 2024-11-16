@@ -8,10 +8,11 @@ type UserPayload = {
     bridge_customer_id: string
     telegramUsername?: string
     email?: string
+    pushSubscriptionId?: string
 }
 
 export async function POST(request: NextRequest) {
-    const { userId, username, bridge_customer_id, telegram, email } = await request.json()
+    const { userId, username, bridge_customer_id, telegram, email, pushSubscriptionId } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
@@ -33,6 +34,10 @@ export async function POST(request: NextRequest) {
 
         if (email) {
             payload.email = email
+        }
+
+        if (pushSubscriptionId) {
+            payload.pushSubscriptionId = pushSubscriptionId
         }
 
         const response = await fetch(`${consts.PEANUT_API_URL}/update-user`, {
