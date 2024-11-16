@@ -26,6 +26,27 @@ const InstallPWADesktopIcon = () => {
 
 let deferredPrompt: any = null
 
+const ShareIcon = () => (
+    <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="24px"
+        height="24px"
+        viewBox="0 0 24 24"
+        className="relative -top-0.5 inline !h-5"
+    >
+        <g>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path
+                    fillRule="evenodd"
+                    clipRule="evenodd"
+                    d="M11.4697 1.71967C11.7626 1.42678 12.2374 1.42678 12.5303 1.71967L16.2803 5.46967C16.5732 5.76256 16.5732 6.23744 16.2803 6.53033C15.9874 6.82322 15.5126 6.82322 15.2197 6.53033L12.75 4.06066V15.0469C12.75 15.4611 12.4142 15.7969 12 15.7969C11.5858 15.7969 11.25 15.4611 11.25 15.0469V4.06066L8.78033 6.53033C8.48744 6.82322 8.01256 6.82322 7.71967 6.53033C7.42678 6.23744 7.42678 5.76256 7.71967 5.46967L11.4697 1.71967ZM6.375 9.75C6.07663 9.75 5.79048 9.86853 5.5795 10.0795C5.36853 10.2905 5.25 10.5766 5.25 10.875V19.875C5.25 20.1734 5.36853 20.4595 5.5795 20.6705C5.79048 20.8815 6.07663 21 6.375 21H17.625C17.9234 21 18.2095 20.8815 18.4205 20.6705C18.6315 20.4595 18.75 20.1734 18.75 19.875V10.875C18.75 10.5766 18.6315 10.2905 18.4205 10.0795C18.2095 9.86853 17.9234 9.75 17.625 9.75H15.75C15.3358 9.75 15 9.41421 15 9C15 8.58579 15.3358 8.25 15.75 8.25H17.625C18.3212 8.25 18.9889 8.52656 19.4812 9.01884C19.9734 9.51113 20.25 10.1788 20.25 10.875V19.875C20.25 20.5712 19.9734 21.2389 19.4812 21.7312C18.9889 22.2234 18.3212 22.5 17.625 22.5H6.375C5.67881 22.5 5.01113 22.2234 4.51884 21.7312C4.02656 21.2389 3.75 20.5712 3.75 19.875V10.875C3.75 10.1788 4.02656 9.51113 4.51884 9.01884C5.01113 8.52656 5.67881 8.25 6.375 8.25H8.25C8.66421 8.25 9 8.58579 9 9C9 9.41421 8.66421 9.75 8.25 9.75H6.375Z"
+                    fill="currentColor"
+                />
+            </svg>
+        </g>
+    </svg>
+)
+
 const InstallPWA = () => {
     const { handleNext } = useSetupFlow()
     const [canInstall, setCanInstall] = useState(false)
@@ -82,17 +103,9 @@ const InstallPWA = () => {
         <div className="flex flex-col gap-4">
             <div>
                 <StepTitle text="Step 1: Open the Sharing Options" />
-                <p>Tap the share icon at the bottom of your screen.</p>
-            </div>
-
-            <div>
-                <StepTitle text="Step 2: Select 'Add to Home Screen'" />
-                <p>Scroll down and tap 'Add to Home Screen' from the options list.</p>
-            </div>
-
-            <div>
-                <StepTitle text="Step 3: Confirm and Add" />
-                <p>Tap 'Add' to place the app icon on your home screen.</p>
+                <p>
+                    Tap the share icon (<ShareIcon />) at the bottom of your screen and then "Add to Home Screen"
+                </p>
             </div>
         </div>
     )
