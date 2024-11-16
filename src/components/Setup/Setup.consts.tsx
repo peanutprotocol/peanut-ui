@@ -84,7 +84,7 @@ export const SETUP_STEPS = [
         screenId: 'success',
         active: true,
         title: 'SUCCESS',
-        description: "You're all set up! Let's get started",
+        description: 'Grab a drink and enjoy payments day',
         containerClassname: 'bg-purple-1/100',
         component: () => <SetupSuccess />,
         centerComponent: () => {

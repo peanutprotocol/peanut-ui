@@ -51,6 +51,8 @@ const InstallPWA = () => {
     const { handleNext } = useSetupFlow()
     const [canInstall, setCanInstall] = useState(false)
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
+    const [canSkip, setCanSkip] = useState(false)
+    const [skipTimer, setSkipTimer] = useState(20)
 
     useEffect(() => {
         // Store the install prompt
@@ -70,6 +72,18 @@ const InstallPWA = () => {
             }, 1000)
         })
 
+        // Start the skip timer
+        const timer = setInterval(() => {
+            setSkipTimer((prev) => {
+                if (prev <= 1) {
+                    clearInterval(timer)
+                    setCanSkip(true)
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+
         // Detect device type
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent)
         const isMobileDevice = /Android|webOS|iPad|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
@@ -83,6 +97,8 @@ const InstallPWA = () => {
         } else {
             setDeviceType('desktop')
         }
+
+        return () => clearInterval(timer)
     }, [handleNext])
 
     const handleInstall = async () => {
@@ -168,8 +184,10 @@ const InstallPWA = () => {
                     handleNext()
                 }}
                 variant="stroke"
+                disabled={!canSkip}
+                loading={!canSkip}
             >
-                Done
+                {canSkip ? 'Done' : ``}
             </Button>
         </div>
     )
