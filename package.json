@@ -107,7 +107,7 @@
         "@types/uuid": "^9.0.8",
         "@types/validator": "^13.12.2",
         "knip": "^5.33.3",
-        "ngrok": "^5.0.0",
+        "ngrok": "^4.0.0",
         "postcss": "^8.4.47",
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.5.14",
