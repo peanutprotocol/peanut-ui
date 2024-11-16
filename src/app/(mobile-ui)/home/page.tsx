@@ -158,7 +158,7 @@ const Home = () => {
                                 >
                                     <Link href="/setup" className="h-full">
                                         <Card.Content className="flex h-full flex-col items-center justify-center gap-8">
-                                            <p className="text-2xl font-bold">Get Started !</p>
+                                            <p className="text-2xl font-bold">Get Started!</p>
                                             <div className="flex flex-row items-center justify-start gap-4">
                                                 <Icon name="plus-circle" className="h-8 w-8" />
                                                 <p className="text-lg">Create a peanut wallet</p>

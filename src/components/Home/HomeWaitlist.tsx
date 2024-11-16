@@ -1,6 +1,7 @@
 import { useAuth } from '@/context/authContext'
 import { Button, Card } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 import Divider from '../0_Bruddle/Divider'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
@@ -13,10 +14,16 @@ const HomeWaitlist = () => {
     const { username, isFetchingUser, user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
+    useEffect(() => {
+        if (!isFetchingUser && !username) {
+            push('/setup')
+        }
+    }, [username, isFetchingUser, push])
+
     if (isFetchingUser) {
         return (
             <div className="flex h-full w-full flex-col items-center justify-center">
-                <img src={happyPeanut.src} alt="peanut-club" className="w-[200px] object-cover" />
+                <img src={happyPeanut.src} alt="peanut-club" className="w-[300px] object-cover" />
             </div>
         )
     }
@@ -32,12 +39,12 @@ const HomeWaitlist = () => {
                         </Card.Header>
                     </Card>
                 )}
-                <img src={happyPeanut.src} alt="peanut-club" className="w-[200px] object-cover" />
+                <img src={happyPeanut.src} alt="peanut-club" className="w-[300px] object-cover" />
                 <div className="mt-5 w-full text-center">
-                    {username ? (
+                    {username && (
                         <Card>
                             <Card.Header className="text-center">
-                                <Card.Title className="w-full text-center">You're all set up !</Card.Title>
+                                <Card.Title className="w-full text-center">You're all set up!</Card.Title>
                                 <Card.Description className="w-full text-center">
                                     Stay tuned for the release
                                 </Card.Description>
@@ -53,7 +60,9 @@ const HomeWaitlist = () => {
                                 </div>
                             </Card.Content>
                         </Card>
-                    ) : (
+                    )}
+                    {/* removed regiser/login components. Should be in diff page. */}
+                    {/* : (
                         <div className="flex flex-col items-center justify-center">
                             <Button
                                 onClick={() => {
@@ -74,8 +83,7 @@ const HomeWaitlist = () => {
                             >
                                 Login
                             </Button>
-                        </div>
-                    )}
+                        </div> */}
                 </div>
             </div>
         </div>

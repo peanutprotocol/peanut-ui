@@ -5,7 +5,7 @@ import fingerprint from '@/assets/icons/fingerprint.png'
 import eyes from '@/assets/icons/eyes.png'
 import ContactInfo from './Views/ContactInfo'
 
-import happyPeanutAnimi from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
+import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
 import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import { Step } from './Setup.types'
@@ -14,15 +14,16 @@ import { peanutWalletIsInPreview } from '@/constants'
 import NotificationPermission from './Views/NotificationPermission'
 
 const placeAsset = (url: string) => {
-    return <img src={url} className="z-10 h-full w-full object-contain md:w-1/2" />
+    return <img src={url} className="z-10 h-full w-[300px] object-contain" />
 }
 
 export const SETUP_STEPS = [
     {
         screenId: 'welcome',
         active: true,
-        title: 'Welcome',
-        description: 'Create your brand new peanut wallet now ! Pick a handle, set the vibe',
+        title: 'Henlooo!',
+        description:
+            "Henloo! We're cooking something exciting. Pre-register now and claim some juicy rewards for peanut OGs like you.",
         containerClassname: 'bg-blue-1/100',
         component: () => <WelcomeStep />,
         centerComponent: () => {
@@ -33,7 +34,7 @@ export const SETUP_STEPS = [
         screenId: 'passkey',
         active: true,
         title: 'Passkey',
-        description: 'Add a passkey to secure your wallet',
+        description: 'Secure your account with your DNA',
         containerClassname: 'bg-yellow-1/100',
         component: () => <SetupPasskey />,
         centerComponent: () => {
@@ -49,7 +50,7 @@ export const SETUP_STEPS = [
         screenId: 'noficiation-permission',
         active: true,
         title: 'Notifications',
-        description: 'Enable notifications to get the latest updates',
+        description: 'We will only send one notification. You want to be ready :)',
         containerClassname: 'bg-blue-1/100',
         component: () => <NotificationPermission />,
         centerComponent: () => {
@@ -71,7 +72,7 @@ export const SETUP_STEPS = [
         screenId: 'pwa-install',
         active: peanutWalletIsInPreview,
         title: 'Install',
-        description: 'Install the peanut wallet app on your device !',
+        description: 'Install Peanut on your phone for best UX and a lil bonus',
         containerClassname: 'bg-blue-1/100 text-black',
         component: () => <InstallPWA />,
         centerComponent: () => {
@@ -86,7 +87,7 @@ export const SETUP_STEPS = [
         containerClassname: 'bg-purple-1/100',
         component: () => <SetupSuccess />,
         centerComponent: () => {
-            return placeAsset(happyPeanutAnimi.src)
+            return placeAsset(happyPeanutAnim.src)
         },
     },
 ].filter((step) => step.active) as Step[]
