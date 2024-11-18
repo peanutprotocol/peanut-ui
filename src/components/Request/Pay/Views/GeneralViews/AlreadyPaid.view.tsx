@@ -5,6 +5,7 @@ import * as consts from '@/constants'
 import * as _consts from '../../Pay.consts'
 import * as utils from '@/utils'
 import Link from 'next/link'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
     const chainName =
@@ -19,29 +20,10 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            {(requestLinkData?.reference || requestLinkData?.attachmentUrl) && (
-                <>
-                    <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
-                        {requestLinkData!.reference && (
-                            <label className="max-w-full text-h8">
-                                Ref: <span className="font-normal"> {requestLinkData!.reference} </span>
-                            </label>
-                        )}
-                        {requestLinkData!.attachmentUrl && (
-                            <a
-                                href={requestLinkData!.attachmentUrl}
-                                download
-                                target="_blank"
-                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                            >
-                                <Icon name={'download'} />
-                                Download attachment
-                            </a>
-                        )}
-                    </div>
-                    <div className="flex w-full border-t border-dotted border-black" />
-                </>
-            )}
+            <ReferenceAndAttachment
+                reference={requestLinkData?.reference}
+                attachmentUrl={requestLinkData?.attachmentUrl}
+            />
             <label className="text-h2">Sorry, this link has already been paid.</label>
             {dataAvailable && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">

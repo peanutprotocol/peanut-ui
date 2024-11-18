@@ -9,6 +9,7 @@ import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
@@ -80,29 +81,10 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            {(requestLinkData?.reference || requestLinkData?.attachmentUrl) && (
-                <>
-                    <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
-                        {requestLinkData!.reference && (
-                            <label className="max-w-full text-h8">
-                                Ref: <span className="font-normal"> {requestLinkData!.reference} </span>
-                            </label>
-                        )}
-                        {requestLinkData!.attachmentUrl && (
-                            <a
-                                href={requestLinkData!.attachmentUrl}
-                                download
-                                target="_blank"
-                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                            >
-                                <Icon name={'download'} />
-                                Download attachment
-                            </a>
-                        )}
-                    </div>
-                    <div className="flex w-full border-t border-dotted border-black" />
-                </>
-            )}
+            <ReferenceAndAttachment
+                reference={requestLinkData?.reference}
+                attachmentUrl={requestLinkData?.attachmentUrl}
+            />
             {isLoading ? (
                 <>
                     <div className="animate-spin">
