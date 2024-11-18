@@ -168,8 +168,7 @@ export const InitialClaimLinkView = ({
                 }
             }
 
-            if (tokenName && chainName) {
-            } else {
+            if (!tokenName || !chainName) {
                 if (!crossChainDetails) {
                     setErrorState({
                         showError: true,
