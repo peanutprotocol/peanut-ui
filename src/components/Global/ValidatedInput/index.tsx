@@ -103,7 +103,9 @@ const ValidatedInput = ({
                         dark:bg-n-1 dark:text-white dark:placeholder:text-white/75"
                     placeholder={placeholder}
                     spellCheck="false"
-                    autoComplete={autoComplete || 'iban'}
+                    autoComplete={autoComplete || 'off'}
+                    autoCorrect="off"
+                    autoCapitalize="off"
                     name={name}
                     list={suggestions ? listId.current : undefined}
                     style={{

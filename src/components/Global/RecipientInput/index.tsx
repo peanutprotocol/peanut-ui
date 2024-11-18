@@ -17,6 +17,9 @@ const RecipientInput = ({ placeholder, value, setValue, onEnter }: RecipientInpu
                 type="text"
                 placeholder={placeholder}
                 spellCheck="false"
+                autoCorrect="off"
+                autoCapitalize="off"
+                autoComplete="off"
                 value={value}
                 onChange={(e) => setValue(e.target.value)}
                 onKeyDown={(e) => {
