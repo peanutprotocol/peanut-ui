@@ -4,7 +4,8 @@ import { useState, useEffect } from 'react'
 import { Metadata } from 'next'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/Layout'
-import { Hero, FAQs, Features, Mike, Story, Intro, CashoutSection } from '@/components/Club'
+import { Hero, FAQs, Features, Mike, Story, Intro, BuildOnUs, CashoutSection } from '@/components/Club'
+import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import { useFooterVisibility } from '@/context/footerVisibility'
 
 const metadata: Metadata = {
@@ -168,7 +169,15 @@ export default function LandingPage() {
         <Layout className="!m-0 w-full !p-0">
             <Hero heading={hero.heading} marquee={hero.marquee} cta={hero.cta} buttonVisible={buttonVisible} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
-            <CashoutSection />
+            <BuildOnUs />
+            {/* <MarqueeComp
+                message="PEANUT PROTOCOL • BUILD WITH US • PEANUT PROTOCOL • BUILD WITH US"
+                imageSrc={assets.SmileStars.src}
+                backgroundColor="bg-n-1"
+            />
+            <div className="bg-blue-1">
+                <CashoutSection />
+            </div> */}
 
             {/* <Features sections={[features.sections[0]]} marquee={features.marquee} />
             <Intro />

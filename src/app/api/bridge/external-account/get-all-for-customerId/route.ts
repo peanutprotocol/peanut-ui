@@ -20,9 +20,12 @@ export async function POST(request: NextRequest) {
             throw new Error(`Failed to fetch data from Bridge API. Status: ${response.status}`)
         }
 
-        const data = await response.json()
+        const responseData = await response.json()
 
-        return new NextResponse(JSON.stringify(data), {
+        // Bridge API returns { data: Account[] }, we want to return just the array
+        const accounts = responseData.data || []
+
+        return new NextResponse(JSON.stringify(accounts), {
             status: 200,
             headers: {
                 'Content-Type': 'application/json',
