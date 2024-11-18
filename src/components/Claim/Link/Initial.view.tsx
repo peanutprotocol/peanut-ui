@@ -302,7 +302,7 @@ export const InitialClaimLinkView = ({
         } else {
             setIsXChain(true)
         }
-    }, [selectedChainID, selectedTokenAddress, claimLinkData])
+    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
 
     useEffect(() => {
         if (refetchXchainRoute) {
