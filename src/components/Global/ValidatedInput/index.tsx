@@ -85,6 +85,9 @@ const ValidatedInput = ({
                 bg-white px-4 pl-8 text-h8 font-medium outline-none placeholder:text-sm focus:border-purple-1 dark:border-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75 dark:focus:border-purple-1`}
                 placeholder={placeholder}
                 spellCheck="false"
+                autoCorrect="off"
+                autoCapitalize="off"
+                autoComplete="off"
             />
             {value &&
                 (isValidating ? (
