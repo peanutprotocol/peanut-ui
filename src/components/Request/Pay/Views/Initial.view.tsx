@@ -22,6 +22,7 @@ import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { type ITokenPriceData } from '@/interfaces'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -321,30 +322,10 @@ export const InitialView = ({
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
-            {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
-                <>
-                    <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
-                        {requestLinkData.reference && (
-                            <label className="max-w-full text-h8">
-                                Ref: <span className="font-normal"> {requestLinkData.reference} </span>
-                            </label>
-                        )}
-                        {requestLinkData.attachmentUrl && (
-                            <a
-                                href={requestLinkData.attachmentUrl}
-                                download
-                                target="_blank"
-                                className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                            >
-                                <Icon name={'download'} />
-                                Download attachment
-                            </a>
-                        )}
-                    </div>
-                    <div className="flex w-full border-t border-dotted border-black" />
-                </>
-            )}
-
+            <ReferenceAndAttachment
+                reference={requestLinkData?.reference}
+                attachmentUrl={requestLinkData?.attachmentUrl}
+            />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 <label className="text-h4">
                     <AddressLink address={requestLinkData.recipientAddress} /> is requesting
