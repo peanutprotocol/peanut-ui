@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Layout from '@/components/Global/Layout'
-import * as components from '@/components'
+import { CreateRequestLink } from '@/components/Request/Create/Create'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -20,7 +20,7 @@ export const metadata: Metadata = {
 export default function RequestCreate() {
     return (
         <Layout className="!mx-0 w-full !px-0 !pt-0 ">
-            <components.CreateRequestLink />
+            <CreateRequestLink />
         </Layout>
     )
 }
