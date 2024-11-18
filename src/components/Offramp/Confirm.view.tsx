@@ -665,111 +665,124 @@ export const OfframpConfirmView = ({
                         </div>
 
                         {offrampType == OfframpType.CLAIM && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                            <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                                <div className="flex w-1/3 flex-row items-center gap-1">
                                     <Icon name={'forward'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Route</label>
                                 </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {
-                                        consts.supportedPeanutChains.find(
-                                            (chain) => chain.chainId === claimLinkData?.chainId
-                                        )?.name
-                                    }{' '}
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
-                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                    {recipientType?.toUpperCase()}{' '}
-                                    <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                                </span>
+                                <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                    <div className="flex items-center gap-1">
+                                        {
+                                            consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === claimLinkData?.chainId
+                                            )?.name
+                                        }{' '}
+                                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" /> Offramp{' '}
+                                        <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                        {recipientType?.toUpperCase()}{' '}
+                                        <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
+                                    </div>
+                                </div>
                             </div>
                         )}
 
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                        <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                            <div className="flex w-1/3 flex-row items-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Fee</label>
                             </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {user?.accounts.find(
-                                    (account) =>
-                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                )?.account_type === 'iban'
-                                    ? '$1'
-                                    : '$0.50'}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) =>
-                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                    }
-                                />
-                            </span>
+                            <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                <div className="flex items-center gap-1">
+                                    {user?.accounts.find(
+                                        (account) =>
+                                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                    )?.account_type === 'iban'
+                                        ? '$1'
+                                        : '$0.50'}
+                                    <span className="inline-flex items-center">
+                                        <MoreInfo
+                                            text={`For ${
+                                                user?.accounts.find(
+                                                    (account) =>
+                                                        account.account_identifier
+                                                            .replaceAll(/\s/g, '')
+                                                            .toLowerCase() ===
+                                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                                )?.account_type === 'iban'
+                                                    ? 'SEPA'
+                                                    : 'ACH'
+                                            } transactions a fee of ${
+                                                user?.accounts.find(
+                                                    (account) =>
+                                                        account.account_identifier
+                                                            .replaceAll(/\s/g, '')
+                                                            .toLowerCase() ===
+                                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                                )?.account_type === 'iban'
+                                                    ? '$1'
+                                                    : '$0.50'
+                                            } is charged.`}
+                                        />
+                                    </span>
+                                </div>
+                            </div>
                         </div>
 
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            {offrampType == OfframpType.CLAIM && (
-                                <>
-                                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                        <label className="font-bold">Total</label>
-                                    </div>
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        $
-                                        {tokenPrice &&
-                                            claimLinkData &&
-                                            utils.formatTokenAmount(
-                                                tokenPrice * parseFloat(claimLinkData.tokenAmount)
-                                            )}{' '}
-                                        <MoreInfo text={'Woop Woop free offramp!'} />
-                                    </span>
-                                </>
-                            )}
+                        <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                            <div className="flex w-1/3 flex-row items-center gap-1">
+                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Total</label>
+                            </div>
+                            <div className="flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                $
+                                {tokenPrice &&
+                                    claimLinkData &&
+                                    utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
+                                <MoreInfo text={'Woop Woop free offramp!'} />
+                            </div>
+                        </div>
 
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                {offrampType == OfframpType.CLAIM && (
-                                    <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                )}
+                        <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                            <div className="flex w-1/3 flex-row items-center gap-1">
+                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">You will receive</label>
                             </div>
-
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                $
-                                {user?.accounts.find(
-                                    (account) =>
-                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                )?.account_type === 'iban'
-                                    ? offrampType == OfframpType.CASHOUT
-                                        ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
-                                        : tokenPrice &&
-                                          claimLinkData &&
-                                          utils.formatTokenAmount(
-                                              tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                          )
-                                    : offrampType == OfframpType.CASHOUT
-                                      ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                      : tokenPrice &&
-                                        claimLinkData &&
-                                        utils.formatTokenAmount(
-                                            tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                        )}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) =>
-                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
-                                    }
-                                />
-                            </span>
+                            <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                <div className="flex items-center gap-1">
+                                    $
+                                    {user?.accounts.find(
+                                        (account) =>
+                                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                    )?.account_type === 'iban'
+                                        ? offrampType == OfframpType.CASHOUT
+                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
+                                            : tokenPrice &&
+                                              claimLinkData &&
+                                              utils.formatTokenAmount(
+                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                              )
+                                        : offrampType == OfframpType.CASHOUT
+                                          ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                          : tokenPrice &&
+                                            claimLinkData &&
+                                            utils.formatTokenAmount(
+                                                tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
+                                            )}
+                                    <MoreInfo
+                                        text={
+                                            user?.accounts.find(
+                                                (account) =>
+                                                    account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                    offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                            )?.account_type === 'iban'
+                                                ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                                : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                        }
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
