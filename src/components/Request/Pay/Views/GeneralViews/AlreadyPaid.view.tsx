@@ -94,4 +94,3 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
     )
 }
 
-export default AlreadyPaidLinkView

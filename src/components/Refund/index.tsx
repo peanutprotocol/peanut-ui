@@ -212,4 +212,3 @@ export const Refund = () => {
     )
 }
 
-export default Refund

@@ -94,4 +94,3 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
     )
 }
 
-export default AlreadyClaimedLinkView

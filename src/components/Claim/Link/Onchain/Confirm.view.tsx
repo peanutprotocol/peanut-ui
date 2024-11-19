@@ -282,4 +282,3 @@ export const ConfirmClaimLinkView = ({
     )
 }
 
-export default ConfirmClaimLinkView

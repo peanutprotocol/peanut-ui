@@ -1,0 +1,12 @@
+{
+    "$schema": "https://unpkg.com/knip@latest/schema.json",
+    "ignore": ["src/assets/**"],
+    "ignoreDependencies": [
+        // Keep your build-related dependencies
+        "eslint-config-next",
+        "postcss",
+        "autoprefixer",
+        // Add other dependencies you want to keep
+        "sharp"
+    ]
+}

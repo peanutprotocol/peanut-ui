@@ -31,4 +31,3 @@ export const CanceledClaimLink = () => {
     )
 }
 
-export default CanceledClaimLink

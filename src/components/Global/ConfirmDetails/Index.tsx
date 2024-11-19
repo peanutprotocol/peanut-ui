@@ -10,7 +10,7 @@ interface IConfirmDetailsProps {
     data?: any
 }
 
-export const ConfirmDetails = ({
+const ConfirmDetails = ({
     selectedChainID,
     selectedTokenAddress,
     title,

@@ -16,7 +16,7 @@ export const convertPersonaUrl = (url: string) => {
 
     return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
-export const fetchUser = async (accountIdentifier: string): Promise<any> => {
+const fetchUser = async (accountIdentifier: string): Promise<any> => {
     const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
         method: 'GET',
         headers: {
@@ -32,7 +32,7 @@ export const fetchUser = async (accountIdentifier: string): Promise<any> => {
     return data
 }
 
-export const createUser = async (
+const createUser = async (
     bridgeCustomerId: string,
     email: string,
     fullName: string,
@@ -98,7 +98,7 @@ export const createAccount = async (
     return data
 }
 
-export async function fetchApi(url: string, method: string, body?: any): Promise<any> {
+async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     const response = await fetch(url, {
         method,
         headers: {
@@ -135,7 +135,7 @@ export async function getCustomer(customerId: string) {
     })
 }
 
-export async function getExternalAccounts(customerId: string) {
+async function getExternalAccounts(customerId: string) {
     return await fetchApi('/api/bridge/external-account/get-all-for-customerId', 'POST', {
         customerId,
     })
@@ -482,7 +482,7 @@ export async function validateBankAccount(bankAccount: string): Promise<boolean>
     }
 }
 
-export async function validateBic(bic: string): Promise<boolean> {
+async function validateBic(bic: string): Promise<boolean> {
     const response = await fetch(`/api/peanut/iban/validate-bic`, {
         method: 'POST',
         headers: {
@@ -542,7 +542,7 @@ export async function submitCashoutLink(data: {
     }
 }
 
-export type CashoutStatus =
+type CashoutStatus =
     | 'PAYMENT_PROCESSED'
     | 'REFUNDED'
     | 'READY'

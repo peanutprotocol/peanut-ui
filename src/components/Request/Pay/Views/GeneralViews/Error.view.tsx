@@ -32,4 +32,3 @@ export const ErrorView = ({ errorMessage }: { errorMessage: string }) => {
     )
 }
 
-export default ErrorView

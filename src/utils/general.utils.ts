@@ -22,7 +22,7 @@ export const printableAddress = (address: string): string => {
     return shortenAddressLong(address)
 }
 
-export const shortenHash = (address: string) => {
+const shortenHash = (address: string) => {
     if (!address) return
     const firstBit = address.substring(0, 8)
     const endingBit = address.substring(address.length - 6, address.length)
@@ -30,7 +30,7 @@ export const shortenHash = (address: string) => {
     return firstBit + '...' + endingBit
 }
 
-export function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 30000): Promise<T> {
+function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 30000): Promise<T> {
     return new Promise((resolve, reject) => {
         let timeoutId = setTimeout(() => {
             reject('Timeout: 30 seconds have passed without a response from the promise')
@@ -48,7 +48,7 @@ export function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 300
     })
 }
 
-export const saveToLocalStorage = (key: string, data: any) => {
+const saveToLocalStorage = (key: string, data: any) => {
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = JSON.stringify(data)
@@ -60,7 +60,7 @@ export const saveToLocalStorage = (key: string, data: any) => {
     }
 }
 
-export const getFromLocalStorage = (key: string) => {
+const getFromLocalStorage = (key: string) => {
     try {
         if (typeof localStorage === 'undefined') return
         const data = localStorage.getItem(key)
@@ -76,7 +76,7 @@ export const getFromLocalStorage = (key: string) => {
     }
 }
 
-export const delteFromLocalStorage = (key: string) => {
+const delteFromLocalStorage = (key: string) => {
     try {
         if (typeof localStorage === 'undefined') return
         localStorage.removeItem(key)
@@ -197,7 +197,7 @@ export const getAllRaffleLinksFromLocalstorage = ({ address }: { address: string
     }
 }
 
-export const getAllGigalinksFromLocalstorage = ({ address }: { address: string }) => {
+const getAllGigalinksFromLocalstorage = ({ address }: { address: string }) => {
     try {
         if (typeof localStorage === 'undefined') return
 
@@ -272,7 +272,7 @@ export const formatAmountWithoutComma = (input: string) => {
     } else return ''
 }
 
-export function formatMessage(message: string) {
+function formatMessage(message: string) {
     return message
         .split('\n')
         .map((line) => line.trim())
@@ -280,7 +280,7 @@ export function formatMessage(message: string) {
         .join('\n')
 }
 
-export const isMantleInUrl = (): boolean => {
+const isMantleInUrl = (): boolean => {
     if (typeof window !== 'undefined') {
         return window.location.origin.includes('mantle') ? true : false
     } else {
@@ -295,7 +295,7 @@ export async function resolveFromEnsName(ensName: string): Promise<string | unde
     return x ? x : undefined
 }
 
-export function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; chainId: number }) {
+function generateSafeUrl({ currentUrl, chainId }: { currentUrl: string; chainId: number }) {
     return `https://app.safe.global/share/safe-app?appUrl=${encodeURIComponent(currentUrl)}&chain=${chainId}`
 }
 
@@ -867,7 +867,7 @@ export function formatDate(date: Date): string {
     return `${day}-${month}-${year} ${hours}:${minutes}:${seconds}`
 }
 
-export function getIconName(type: string) {
+function getIconName(type: string) {
     switch (type) {
         case 'Link Sent':
             return 'send'

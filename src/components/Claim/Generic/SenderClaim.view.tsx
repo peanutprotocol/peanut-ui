@@ -132,4 +132,3 @@ export const SenderClaimLinkView = ({
     )
 }
 
-export default SenderClaimLinkView
