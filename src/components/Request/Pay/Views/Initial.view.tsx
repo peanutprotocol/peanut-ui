@@ -147,8 +147,6 @@ export const InitialView = ({
                     unsignedTxs: _xChainUnsignedTxs,
                 } = txData
                 setEstimatedFromValue(estimatedFromAmount)
-                console.log('slippage', slippagePercentage)
-                console.dir(txData)
                 setSlippagePercentage(slippagePercentage)
                 setXChainUnsignedTxs(_xChainUnsignedTxs)
                 clearError()
