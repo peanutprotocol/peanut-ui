@@ -44,7 +44,7 @@ export const KYCComponent = () => {
 
     if (user && user?.user?.kycStatus === 'verified') {
         return (
-            <Card className="sm:shadow-primary-4 shadow-none">
+            <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header className="text-center">
                     <Card.Title>Welcome back, {user?.user?.username ?? user?.user?.email}</Card.Title>
                     <Card.Description>You have already completed the KYC process!</Card.Description>
@@ -76,8 +76,8 @@ export const KYCComponent = () => {
                 password: '',
                 recipient: '',
             }}
-            setOfframpForm={() => { }}
-            onCompleted={() => { }}
+            setOfframpForm={() => {}}
+            onCompleted={() => {}}
         />
     )
 }

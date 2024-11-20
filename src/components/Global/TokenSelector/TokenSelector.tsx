@@ -287,7 +287,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                 placeholder="Search by token name"
                                 value={filterValue}
                                 onChange={(e: any) => setFilterValue(e.target.value)}
-                                onSubmit={() => { }}
+                                onSubmit={() => {}}
                                 medium
                                 border
                             />

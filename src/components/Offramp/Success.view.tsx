@@ -33,7 +33,7 @@ export const OfframpSuccessView = ({
     }
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Yay!</Card.Title>
                 <Card.Description>

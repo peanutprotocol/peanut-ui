@@ -79,7 +79,7 @@ export const useClaimLink = () => {
         linkDetails: interfaces.IPeanutLinkDetails
         destinationChainId: string
         destinationToken: string
-    }) => { }
+    }) => {}
 
     const switchNetwork = async (chainId: string) => {
         try {
@@ -96,7 +96,7 @@ export const useClaimLink = () => {
             console.error('Failed to switch network:', error)
         }
     }
-    const checkTxStatus = async (txHash: string) => { }
+    const checkTxStatus = async (txHash: string) => {}
 
     const getAttachmentInfo = async (link: string) => {
         try {

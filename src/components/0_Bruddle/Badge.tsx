@@ -44,11 +44,7 @@ export const Badge: React.FC<BadgeProps> = ({
     variant = 'default',
     ...props
 }) => {
-    const badgeClasses = twMerge(
-        badgeVariants[variant],
-        badgeColors[color][variant],
-        className
-    )
+    const badgeClasses = twMerge(badgeVariants[variant], badgeColors[color][variant], className)
 
     return (
         <div className={badgeClasses} {...props}>
@@ -56,4 +52,3 @@ export const Badge: React.FC<BadgeProps> = ({
         </div>
     )
 }
-

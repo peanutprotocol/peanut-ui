@@ -28,13 +28,8 @@ export const InitialView = ({
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
     const { balances } = useBalance()
-    const {
-        selectedTokenPrice,
-        inputDenomination,
-        selectedChainID,
-        selectedTokenAddress,
-        selectedTokenData,
-    } = useContext(context.tokenSelectorContext)
+    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress, selectedTokenData } =
+        useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -146,7 +141,7 @@ export const InitialView = ({
     const [inputChanging, setInputChanging] = useState(false)
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Request a payment</Card.Title>
                 <Card.Description>

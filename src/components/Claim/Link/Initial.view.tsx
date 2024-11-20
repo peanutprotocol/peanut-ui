@@ -325,8 +325,8 @@ export const InitialClaimLinkView = ({
                         recipientType === 'us' || recipientType === 'iban' || recipientType === undefined
                             ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
                             : recipient.address
-                                ? recipient.address
-                                : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
+                              ? recipient.address
+                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
                 })
                 setRoutes([...routes, route])
                 !toToken && !toChain && setSelectedRoute(route)
@@ -354,7 +354,7 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>
                     <div className="flex w-full flex-col items-center justify-center gap-2">
@@ -407,17 +407,17 @@ export const InitialClaimLinkView = ({
                                 ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name
                                 : mappedData.find((data) => data.chainId === selectedChainID)?.name
                             : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                ?.name
+                                  ?.name
                     }
                     tokenSymbol={
                         hasFetchedRoute
                             ? selectedRoute
                                 ? selectedRoute.route.estimate.toToken.symbol
                                 : mappedData
-                                    .find((data) => data.chainId === selectedChainID)
-                                    ?.tokens?.find((token) =>
-                                        utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                    )?.symbol
+                                      .find((data) => data.chainId === selectedChainID)
+                                      ?.tokens?.find((token) =>
+                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
+                                      )?.symbol
                             : claimLinkData.tokenSymbol
                     }
                     tokenLogoUrl={
@@ -425,36 +425,36 @@ export const InitialClaimLinkView = ({
                             ? selectedRoute
                                 ? selectedRoute.route.estimate.toToken.logoURI
                                 : mappedData
-                                    .find((data) => data.chainId === selectedChainID)
-                                    ?.tokens?.find((token) =>
-                                        utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                    )?.logoURI
+                                      .find((data) => data.chainId === selectedChainID)
+                                      ?.tokens?.find((token) =>
+                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
+                                      )?.logoURI
                             : consts.peanutTokenDetails
-                                .find((chain) => chain.chainId === claimLinkData.chainId)
-                                ?.tokens.find((token) =>
-                                    utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
-                                )?.logoURI
+                                  .find((chain) => chain.chainId === claimLinkData.chainId)
+                                  ?.tokens.find((token) =>
+                                      utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
+                                  )?.logoURI
                     }
                     chainLogoUrl={
                         hasFetchedRoute
                             ? selectedRoute
                                 ? crossChainDetails?.find(
-                                    (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                )?.chainIconURI
+                                      (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                  )?.chainIconURI
                                 : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
                             : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                ?.icon.url
+                                  ?.icon.url
                     }
                     tokenAmount={
                         hasFetchedRoute
                             ? selectedRoute
                                 ? utils.formatTokenAmount(
-                                    utils.formatAmountWithDecimals({
-                                        amount: selectedRoute.route.estimate.toAmountMin,
-                                        decimals: selectedRoute.route.estimate.toToken.decimals,
-                                    }),
-                                    4
-                                )
+                                      utils.formatAmountWithDecimals({
+                                          amount: selectedRoute.route.estimate.toAmountMin,
+                                          decimals: selectedRoute.route.estimate.toToken.decimals,
+                                      }),
+                                      4
+                                  )
                                 : undefined
                             : claimLinkData.tokenAmount
                     }
@@ -509,21 +509,21 @@ export const InitialClaimLinkView = ({
                                                 <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                                 {
                                                     mappedData.find(
-                                                        (chain) =>
-                                                            chain.chainId === selectedRoute.route.params.toChain
+                                                        (chain) => chain.chainId === selectedRoute.route.params.toChain
                                                     )?.name
                                                 }
                                                 <MoreInfo
-                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${consts.supportedPeanutChains.find(
-                                                        (chain) =>
-                                                            chain.chainId ===
-                                                            selectedRoute.route.params.fromChain
-                                                    )?.name
-                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${mappedData.find(
+                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                        consts.supportedPeanutChains.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.fromChain
+                                                        )?.name
+                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                        mappedData.find(
                                                             (chain) =>
                                                                 chain.chainId === selectedRoute.route.params.toChain
                                                         )?.name
-                                                        }.`}
+                                                    }.`}
                                                 />
                                             </>
                                         )
@@ -544,8 +544,7 @@ export const InitialClaimLinkView = ({
                                         <>
                                             {
                                                 consts.supportedPeanutChains.find(
-                                                    (chain) =>
-                                                        chain.chainId === selectedRoute.route.params.fromChain
+                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
                                                 )?.name
                                             }
                                             <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
@@ -555,15 +554,16 @@ export const InitialClaimLinkView = ({
                                                 )?.name
                                             }
                                             <MoreInfo
-                                                text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${consts.supportedPeanutChains.find(
-                                                    (chain) =>
-                                                        chain.chainId === selectedRoute.route.params.fromChain
-                                                )?.name
-                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${mappedData.find(
+                                                text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                    consts.supportedPeanutChains.find(
                                                         (chain) =>
-                                                            chain.chainId === selectedRoute.route.params.toChain
+                                                            chain.chainId === selectedRoute.route.params.fromChain
                                                     )?.name
-                                                    }.`}
+                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                    mappedData.find(
+                                                        (chain) => chain.chainId === selectedRoute.route.params.toChain
+                                                    )?.name
+                                                }.`}
                                             />
                                         </>
                                     )

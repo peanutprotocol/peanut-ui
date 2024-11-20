@@ -214,13 +214,15 @@ export const ConfirmClaimLinkView = ({
                                             )?.name
                                         }
                                         <MoreInfo
-                                            text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${consts.supportedPeanutChains.find(
-                                                (chain) => chain.chainId === selectedRoute.route.params.fromChain
-                                            )?.name
-                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${mappedData.find(
+                                            text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                consts.supportedPeanutChains.find(
+                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                                )?.name
+                                            } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                mappedData.find(
                                                     (chain) => chain.chainId === selectedRoute.route.params.toChain
                                                 )?.name
-                                                }.`}
+                                            }.`}
                                         />
                                     </>
                                 )}

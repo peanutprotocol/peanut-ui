@@ -1,7 +1,6 @@
 import { Address } from 'viem'
 import * as interfaces from '@/interfaces'
 
-
 // based on API AccountType
 // https://github.com/peanutprotocol/peanut-api-ts/blob/b32570b7bd366efed7879f607040c511fa036a57/src/db/interfaces/account.ts
 export enum WalletProviderType {

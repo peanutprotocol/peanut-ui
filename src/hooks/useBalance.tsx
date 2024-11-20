@@ -114,10 +114,10 @@ export const useBalance = () => {
                                 balance.chainId === '8508132'
                                     ? { ...balance, chainId: '534352' }
                                     : balance.chainId === '81032'
-                                        ? { ...balance, chainId: '81457' }
-                                        : balance.chainId === '59160'
-                                            ? { ...balance, chainId: '59144' }
-                                            : balance
+                                      ? { ...balance, chainId: '81457' }
+                                      : balance.chainId === '59160'
+                                        ? { ...balance, chainId: '59144' }
+                                        : balance
                             )
                             .sort((a, b) => {
                                 const valueA = parseFloat(a.value)

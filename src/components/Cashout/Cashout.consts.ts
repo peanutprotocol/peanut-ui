@@ -23,7 +23,6 @@ export const CASHOUT_SCREEN_MAP: { [key in CashoutScreens]: { comp: React.FC<any
     INITIAL: { comp: views.InitialCashoutView },
     CONFIRM: { comp: OfframpConfirmView },
     SUCCESS: { comp: OfframpSuccessView },
-    
 }
 
 export interface ICashoutScreenProps {

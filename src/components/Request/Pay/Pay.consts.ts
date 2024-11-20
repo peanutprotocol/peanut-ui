@@ -14,7 +14,7 @@ export enum IRequestLinkState {
     READY_TO_PAY = 'READY_TO_PAY',
     ALREADY_PAID = 'ALREADY_PAID',
     ERROR = 'ERROR',
-    CANCELED = 'CANCELED'
+    CANCELED = 'CANCELED',
 }
 
 export const INIT_VIEW_STATE: IPayScreenState = {

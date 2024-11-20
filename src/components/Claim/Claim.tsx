@@ -17,7 +17,7 @@ import { ActionType, estimatePoints } from '../utils/utils'
 import PageContainer from '../0_Bruddle/PageContainer'
 import { useWallet } from '@/context/walletContext'
 
-export const Claim = ({ }) => {
+export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
     const [claimLinkData, setClaimLinkData] = useState<interfaces.ILinkDetails | undefined>(undefined)

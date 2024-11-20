@@ -20,7 +20,7 @@ const PushContext = createContext<PushContextType | undefined>(undefined)
 
 export function PushProvider({ children }: { children: React.ReactNode }) {
     const toast = useToast()
-    const {userId} = useAuth()
+    const { userId } = useAuth()
     const [isSupported, setIsSupported] = useState(false)
     const [isSubscribed, setIsSubscribed] = useState(false)
     const [isSubscribing, setIsSubscribing] = useState(false)

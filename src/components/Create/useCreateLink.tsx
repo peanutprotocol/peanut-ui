@@ -36,8 +36,8 @@ export const useCreateLink = () => {
     const config = useConfig()
     const { walletType, environmentInfo } = useWalletType()
 
-    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT;
-    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW;
+    const isActiveWalletPW = selectedWallet?.walletProviderType === WalletProviderType.PEANUT
+    const isActiveWalletBYOW = selectedWallet?.walletProviderType === WalletProviderType.BYOW
 
     const { handleSendUserOpEncoded } = useZeroDev()
 
@@ -267,11 +267,11 @@ export const useCreateLink = () => {
                     amountUsd: amountUSD,
                     transaction: preparedTx
                         ? {
-                            from: preparedTx.from ? preparedTx.from.toString() : address,
-                            to: preparedTx.to ? preparedTx.to.toString() : '',
-                            data: preparedTx.data ? preparedTx.data.toString() : '',
-                            value: preparedTx.value ? preparedTx.value.toString() : '',
-                        }
+                              from: preparedTx.from ? preparedTx.from.toString() : address,
+                              to: preparedTx.to ? preparedTx.to.toString() : '',
+                              data: preparedTx.data ? preparedTx.data.toString() : '',
+                              value: preparedTx.value ? preparedTx.value.toString() : '',
+                          }
                         : undefined,
                     chainId: chainId,
                     userAddress: address,
@@ -615,7 +615,6 @@ export const useCreateLink = () => {
 
     const prepareCreateLinkWrapper = useCallback(
         async ({ tokenValue }: { tokenValue: string }) => {
-
             await checkUserHasEnoughBalance({ tokenValue })
             const linkDetails = generateLinkDetails({ tokenValue, walletType, envInfo: environmentInfo })
             const password = await generatePassword()

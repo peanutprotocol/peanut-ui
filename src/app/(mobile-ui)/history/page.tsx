@@ -121,8 +121,8 @@ const HistoryPage = () => {
                     account.account_type === 'iban'
                         ? 'Bank account (iban)'
                         : account.account_type === 'us'
-                            ? 'Bank account (US account)'
-                            : 'Wallet',
+                          ? 'Bank account (US account)'
+                          : 'Wallet',
                 accountIdentifier: account.account_identifier,
             }))
         setAccountData(accountsData)
@@ -161,11 +161,11 @@ const HistoryPage = () => {
                             ? data.avatar.length > 0
                                 ? data.avatar
                                 : createAvatar(identicon, {
-                                    seed: data.address,
-                                }).toDataUri()
+                                      seed: data.address,
+                                  }).toDataUri()
                             : createAvatar(identicon, {
-                                seed: data.address,
-                            }).toDataUri()
+                                  seed: data.address,
+                              }).toDataUri()
 
                         return {
                             primaryText: data.userName,

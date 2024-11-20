@@ -19,7 +19,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
         tokenSymbolAvailable || tokenAmountAvailable || chainAvailable || recipientAddressAvailable
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header className="text-center">
                 <Card.Title>Sorry, this link has already been paid.</Card.Title>
             </Card.Header>

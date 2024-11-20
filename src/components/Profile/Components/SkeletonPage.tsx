@@ -21,12 +21,7 @@ type ProfileSkeletonProps = {
  * Additionally, it handles user login or registration, with an overlay that prompts users to log in or connect a wallet.
  * It also handles error states, providing feedback when login or registration encounters an issue.
  */
-export const ProfileSkeleton = ({
-    onClick,
-    showOverlay = true,
-    errorState,
-    isLoading,
-}: ProfileSkeletonProps) => {
+export const ProfileSkeleton = ({ onClick, showOverlay = true, errorState, isLoading }: ProfileSkeletonProps) => {
     const { address, signInModal } = useWallet()
     const [userState, setUserState] = useState<'login' | 'register'>('login')
 

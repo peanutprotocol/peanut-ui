@@ -47,32 +47,37 @@ const buttonShadows: Record<ShadowType, Record<ShadowSize, string>> = {
     },
 }
 
-export const Button = forwardRef<HTMLButtonElement, ButtonProps>(({
-    children,
-    className,
-    variant = 'purple',
-    size,
-    shape = 'default',
-    shadowSize,
-    shadowType = 'primary',
-    loading,
-    ...props
-}, ref) => {
-    const buttonClasses = twMerge(
-        'btn w-full',
-        buttonVariants[variant],
-        size && buttonSizes[size],
-        shape === 'square' && 'btn-square',
-        shadowSize && buttonShadows[shadowType][shadowSize],
-        className
-    )
+export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+    (
+        {
+            children,
+            className,
+            variant = 'purple',
+            size,
+            shape = 'default',
+            shadowSize,
+            shadowType = 'primary',
+            loading,
+            ...props
+        },
+        ref
+    ) => {
+        const buttonClasses = twMerge(
+            'btn w-full',
+            buttonVariants[variant],
+            size && buttonSizes[size],
+            shape === 'square' && 'btn-square',
+            shadowSize && buttonShadows[shadowType][shadowSize],
+            className
+        )
 
-    return (
-        <button className={buttonClasses} ref={ref} {...props}>
-            {loading && <Loading />}
-            {children}
-        </button>
-    )
-})
+        return (
+            <button className={buttonClasses} ref={ref} {...props}>
+                {loading && <Loading />}
+                {children}
+            </button>
+        )
+    }
+)
 
 Button.displayName = 'Button'

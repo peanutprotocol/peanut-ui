@@ -595,7 +595,7 @@ export const OfframpConfirmView = ({
     }
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Confirm your details</Card.Title>
                 <Card.Description>
@@ -610,8 +610,8 @@ export const OfframpConfirmView = ({
                     )}
                     {offrampType == OfframpType.CLAIM && (
                         <label className="text-start text-h8 font-light">
-                            Cash out this link's crypto to your bank account. Works best with popular stablecoins and other
-                            commonly traded tokens.
+                            Cash out this link's crypto to your bank account. Works best with popular stablecoins and
+                            other commonly traded tokens.
                         </label>
                     )}
                 </Card.Description>
@@ -747,13 +747,13 @@ export const OfframpConfirmView = ({
                                         ? offrampType == OfframpType.CASHOUT
                                             ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
                                             : tokenPrice &&
-                                            claimLinkData &&
-                                            utils.formatTokenAmount(
-                                                tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
-                                            )
+                                              claimLinkData &&
+                                              utils.formatTokenAmount(
+                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                              )
                                         : offrampType == OfframpType.CASHOUT
-                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                            : tokenPrice &&
+                                          ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                          : tokenPrice &&
                                             claimLinkData &&
                                             utils.formatTokenAmount(
                                                 tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5

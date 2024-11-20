@@ -318,7 +318,7 @@ export const InitialView = ({
     }
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title className="text-center text-h3">
                     <AddressLink address={requestLinkData.recipientAddress} /> is requesting

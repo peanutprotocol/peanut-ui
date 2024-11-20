@@ -24,7 +24,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
         tokenSymbolAvailable || tokenAmountAvailable || chainAvailable || senderAddressAvailable
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Sorry, this link has been claimed already.</Card.Title>
                 <Card.Description></Card.Description>

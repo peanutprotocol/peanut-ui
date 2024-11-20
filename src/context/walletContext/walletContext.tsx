@@ -126,7 +126,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (wagmiAddress && wallets && wallets?.length > 0) {
             // only check if user logged in (wallets will always include PW in this case) and wallets have been set up
-            const foundWallet = wallets?.find((wallet: interfaces.IWallet) => {wallet.address == wagmiAddress})
+            const foundWallet = wallets?.find((wallet: interfaces.IWallet) => {
+                wallet.address == wagmiAddress
+            })
             if (!foundWallet) {
                 // if currConnectedBYOW is not already in wallets
                 // addAccount() and then,
@@ -136,10 +138,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 addAccount({
                     accountIdentifier: wagmiAddress,
                     accountType: interfaces.WalletProviderType.BYOW,
-                    userId: user?.user.userId as string                 // will always be defined, since user logged in
+                    userId: user?.user.userId as string, // will always be defined, since user logged in
                 })
             }
-
         }
     }, [wagmiAddress])
 
@@ -188,7 +189,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     open: () => setPromptWalletSigninOpen(true),
                     close: () => setPromptWalletSigninOpen(false),
                 },
-                walletColor: selectedWallet?.address ? backgroundColorFromAddress(selectedWallet?.address) : 'rgba(0,0,0,0)',
+                walletColor: selectedWallet?.address
+                    ? backgroundColorFromAddress(selectedWallet?.address)
+                    : 'rgba(0,0,0,0)',
             }}
         >
             {children}

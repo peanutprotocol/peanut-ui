@@ -202,7 +202,7 @@ export const CreateLinkInputView = ({
                     preparedTx: _isGaslessDepositPossible
                         ? undefined
                         : prepareDepositTxsResponse &&
-                        prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
+                          prepareDepositTxsResponse?.unsignedTxs[prepareDepositTxsResponse?.unsignedTxs.length - 1],
                     actionType: 'CREATE',
                 })
 
@@ -283,15 +283,15 @@ export const CreateLinkInputView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <Card className="sm:shadow-primary-4 shadow-none">
+        <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
                     {' '}
                     {createType === 'link'
                         ? 'Text Tokens'
                         : createType === 'direct'
-                            ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
-                            : `Send to ${recipient.name}`}
+                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                          : `Send to ${recipient.name}`}
                 </Card.Title>
                 <Card.Description>
                     {createType === 'link' &&
