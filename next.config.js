@@ -152,4 +152,6 @@ if (process.env.NODE_ENV !== 'development') {
         // https://vercel.com/docs/cron-jobs
         automaticVercelMonitors: true,
     })
+} else {
+    module.exports = nextConfig
 }
