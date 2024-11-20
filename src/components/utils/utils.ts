@@ -110,7 +110,7 @@ export async function fetchDestinationChain(
 
 export enum ActionType {
     CLAIM = 'CLAIM',
-    }
+}
 
 export const estimatePoints = async ({
     address,

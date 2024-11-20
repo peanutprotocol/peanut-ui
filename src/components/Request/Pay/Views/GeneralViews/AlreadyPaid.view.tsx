@@ -7,22 +7,22 @@ import * as utils from '@/utils'
 import Link from 'next/link'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
-
-    const chainName = consts.supportedPeanutChains && consts.supportedPeanutChains.find((chain) => chain.chainId == requestLinkData?.chainId)?.name
+    const chainName =
+        consts.supportedPeanutChains &&
+        consts.supportedPeanutChains.find((chain) => chain.chainId == requestLinkData?.chainId)?.name
     const tokenSymbolAvailable: boolean = !!requestLinkData?.tokenSymbol
     const tokenAmountAvailable: boolean = !!requestLinkData?.tokenAmount
     const chainAvailable: boolean = !!requestLinkData?.chainId
     const recipientAddressAvailable: boolean = !!requestLinkData?.recipientAddress
-    const dataAvailable: boolean = tokenSymbolAvailable || tokenAmountAvailable || chainAvailable || recipientAddressAvailable
-    
+    const dataAvailable: boolean =
+        tokenSymbolAvailable || tokenAmountAvailable || chainAvailable || recipientAddressAvailable
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Sorry, this link has already been paid.</label>
             {dataAvailable && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="text-h8 ">
-                        This link previously contained:
-                    </label>
+                    <label className="text-h8 ">This link previously contained:</label>
                     {tokenSymbolAvailable && (
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                             <div className="flex w-max  flex-row items-center justify-center gap-1">
@@ -50,8 +50,10 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 <img
-                                    src={consts.supportedPeanutChains.find((detail) => detail.chainId === requestLinkData?.chainId)?.icon
-                                                .url
+                                    src={
+                                        consts.supportedPeanutChains.find(
+                                            (detail) => detail.chainId === requestLinkData?.chainId
+                                        )?.icon.url
                                     }
                                     className="h-6 w-6"
                                 />
@@ -93,4 +95,3 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
         </div>
     )
 }
-

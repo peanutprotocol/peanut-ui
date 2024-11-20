@@ -673,4 +673,3 @@ export const InitialClaimLinkView = ({
         </>
     )
 }
-
