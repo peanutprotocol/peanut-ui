@@ -1,0 +1,26 @@
+name: Code Formatting
+
+on:
+    pull_request:
+    push:
+        branches: [main, staging, develop]
+
+jobs:
+    prettier:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '21.1.0'
+
+            - uses: pnpm/action-setup@v2
+              with:
+                  version: 8
+
+            - name: Install Dependencies
+              run: pnpm install --frozen-lockfile
+
+            - name: Check Formatting
+              run: pnpm exec prettier --config prettier.config.js --check "**/*.{js,jsx,ts,tsx,md,json,css,scss,yaml,yml}"
