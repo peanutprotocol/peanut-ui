@@ -21,7 +21,6 @@ if (process.env.NODE_ENV !== 'development') {
         },
         
         integrations: [
-            Sentry.httpIntegration(),
             Sentry.captureConsoleIntegration({
                 levels: ['error', 'warn'],
             }),

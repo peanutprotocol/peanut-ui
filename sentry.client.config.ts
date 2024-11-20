@@ -21,11 +21,6 @@ if (process.env.NODE_ENV !== 'development') {
         },
 
         integrations: [
-            Sentry.browserTracingIntegration(),
-            Sentry.replayIntegration({
-                maskAllText: true,
-                blockAllMedia: true,
-            }),
             Sentry.captureConsoleIntegration({
                 levels: ['error', 'warn'],
             }),
