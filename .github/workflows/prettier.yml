@@ -3,7 +3,7 @@ name: Code Formatting
 on:
     pull_request:
     push:
-        branches: [main, staging, develop]
+        branches: ['**']
 
 jobs:
     prettier:
@@ -20,7 +20,7 @@ jobs:
                   version: 8
 
             - name: Install Dependencies
-              run: pnpm install --frozen-lockfile
+              run: pnpm install
 
             - name: Check Formatting
               run: pnpm exec prettier --config prettier.config.js --check "**/*.{js,jsx,ts,tsx,md,json,css,scss,yaml,yml}"
