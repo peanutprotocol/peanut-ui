@@ -5,12 +5,12 @@ import Modal from '../Modal'
 import Search from '../Search'
 import ChainSelector from '../ChainSelector'
 import { useBalance } from '@/hooks/useBalance'
-import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
+import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import { AdvancedTokenSelectorButton } from './Components'
-import { IToken, IUserBalance } from '@/interfaces'
+import { IUserBalance } from '@/interfaces'
 
 import * as _consts from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
@@ -18,107 +18,155 @@ import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
+import Image from 'next/image'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
+    const containerRef = useRef<HTMLDivElement>(null)
+    const [visibleRange, setVisibleRange] = useState({ start: 0, end: 10 })
+    const ITEM_HEIGHT = 56
+
+    const handleScroll = () => {
+        if (!containerRef.current) return
+
+        const element = containerRef.current
+        const scrollTop = element.scrollTop
+        const viewportHeight = element.clientHeight
+
+        const start = Math.floor(scrollTop / ITEM_HEIGHT)
+        const visibleCount = Math.ceil(viewportHeight / ITEM_HEIGHT)
+        const end = Math.min(start + visibleCount + 3, balances.length)
+
+        setVisibleRange({
+            start: Math.max(0, start - 3),
+            end,
+        })
+    }
+
+    useEffect(() => {
+        const element = containerRef.current
+        if (element) {
+            element.addEventListener('scroll', handleScroll)
+            handleScroll()
+            return () => element.removeEventListener('scroll', handleScroll)
+        }
+    }, [balances.length])
+
+    if (balances.length === 0) {
+        return <div className="w-full py-2 text-center">No balances to display!</div>
+    }
+
+    const topSpacerHeight = visibleRange.start * ITEM_HEIGHT
+    const bottomSpacerHeight = (balances.length - visibleRange.end) * ITEM_HEIGHT
+
     return (
-        <table className="w-full divide-y divide-black">
-            <tbody className="divide-y divide-black bg-white">
-                {balances.length === 0 ? (
-                    <tr>
-                        <td colSpan={4} className="py-2 text-center">
-                            No balances to display!
-                        </td>
-                    </tr>
-                ) : (
-                    balances.map((balance, idx) => (
-                        <tr
-                            key={idx}
-                            className={`h-14 cursor-pointer gap-0 transition-colors hover:bg-n-3/10 ${utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID && `bg-n-3/10`}`}
-                            onClick={() => {
-                                setToken(balance)
-                            }}
-                        >
-                            <td className="py-2 pr-2">
-                                <div className="flex flex-row items-center justify-center gap-2 pl-1">
-                                    <div className="relative h-6 w-6">
-                                        {tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
-                                            <Icon
-                                                name="token_placeholder"
-                                                className="absolute left-0 top-0 h-6 w-6"
-                                                fill="#999"
-                                            />
-                                        ) : (
-                                            <img
-                                                src={balance.logoURI}
-                                                className="absolute left-0 top-0 h-6 w-6"
-                                                alt="logo"
-                                                onError={(e) => {
-                                                    e.currentTarget.style.display = 'none'
-                                                    setTokenPlaceholders((prev) => ({
-                                                        ...prev,
-                                                        [`${balance.address}_${balance.chainId}`]: true,
-                                                    }))
-                                                }}
-                                            />
-                                        )}
-                                        {chainPlaceholders[`${balance.address}_${balance.chainId}`] ? (
-                                            <Icon
-                                                name="token_placeholder"
-                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full"
-                                                fill="#999"
-                                            />
-                                        ) : (
-                                            <img
-                                                src={
-                                                    consts.supportedPeanutChains.find(
-                                                        (chain) => chain.chainId === balance.chainId
-                                                    )?.icon.url
-                                                }
-                                                className="absolute -top-1 left-3 h-4 w-4 rounded-full"
-                                                alt="logo"
-                                                onError={(_e) => {
-                                                    setChainPlaceholders((prev) => ({
-                                                        ...prev,
-                                                        [`${balance.address}_${balance.chainId}`]: true,
-                                                    }))
-                                                }}
-                                            />
-                                        )}
-                                    </div>
+        <div
+            ref={containerRef}
+            className="overflow-auto"
+            style={{
+                height: '384px',
+                position: 'relative',
+            }}
+        >
+            {topSpacerHeight > 0 && <div style={{ height: topSpacerHeight }} />}
+
+            <div className="relative">
+                {balances.slice(visibleRange.start, visibleRange.end).map((balance) => (
+                    <div
+                        key={`${balance.address}_${balance.chainId}`}
+                        className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-n-3/10 ${
+                            utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
+                            balance.chainId === selectedChainID &&
+                            'bg-n-3/10'
+                        }`}
+                        onClick={() => setToken(balance)}
+                    >
+                        <div className="w-16 py-2 pr-2">
+                            <div className="flex flex-row items-center justify-center gap-2 pl-1">
+                                <div className="relative h-6 w-6">
+                                    {tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                        <Icon
+                                            name="token_placeholder"
+                                            className="absolute left-0 top-0 h-6 w-6"
+                                            fill="#999"
+                                        />
+                                    ) : (
+                                        <Image
+                                            src={balance.logoURI}
+                                            className="absolute left-0 top-0 h-6 w-6"
+                                            alt="logo"
+                                            width={24}
+                                            height={24}
+                                            unoptimized
+                                            onError={(e) => {
+                                                e.currentTarget.style.display = 'none'
+                                                setTokenPlaceholders((prev) => ({
+                                                    ...prev,
+                                                    [`${balance.address}_${balance.chainId}`]: true,
+                                                }))
+                                            }}
+                                        />
+                                    )}
+                                    {chainPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                        <Icon
+                                            name="token_placeholder"
+                                            className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                            fill="#999"
+                                        />
+                                    ) : (
+                                        <img
+                                            src={
+                                                consts.supportedPeanutChains.find(
+                                                    (chain) => chain.chainId === balance.chainId
+                                                )?.icon.url
+                                            }
+                                            className="absolute -top-1 left-3 h-4 w-4 rounded-full"
+                                            alt="logo"
+                                            onError={(_e) => {
+                                                setChainPlaceholders((prev) => ({
+                                                    ...prev,
+                                                    [`${balance.address}_${balance.chainId}`]: true,
+                                                }))
+                                            }}
+                                        />
+                                    )}
                                 </div>
-                            </td>
-                            <td className="py-2">
-                                <div className="flex flex-col items-start justify-center gap-1">
-                                    <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
-                                        {balance.symbol}
-                                    </div>
-                                    <div className="text-h9 font-normal">
-                                        {balance.amount ? utils.formatTokenAmount(balance.amount) : ''}
-                                    </div>
+                            </div>
+                        </div>
+
+                        <div className="flex-1 py-2">
+                            <div className="flex flex-col items-start justify-center gap-1">
+                                <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
+                                    {balance.symbol}
                                 </div>
-                            </td>
-                            <td className="py-2 text-h8">
-                                {balance.value
-                                    ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}`
-                                    : balance.name}
-                            </td>
-                            <td className="y-2">
-                                <div className="flex flex-row items-center justify-end gap-2 pr-1">
-                                    <div className="text-h8 text-gray-1 ">
-                                        {consts.supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)
-                                            ?.name ?? ''}
-                                    </div>
+                                <div className="text-h9 font-normal">
+                                    {balance.amount ? utils.formatTokenAmount(balance.amount) : ''}
                                 </div>
-                            </td>
-                        </tr>
-                    ))
-                )}
-            </tbody>
-        </table>
+                            </div>
+                        </div>
+
+                        <div className="w-24 py-2 text-h8">
+                            {balance.value ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}` : balance.name}
+                        </div>
+
+                        <div className="w-32 py-2">
+                            <div className="flex flex-row items-center justify-end gap-2 pr-1">
+                                <div className="text-h8 text-gray-1">
+                                    {consts.supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)
+                                        ?.name ?? ''}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            {bottomSpacerHeight > 0 && <div style={{ height: bottomSpacerHeight }} />}
+        </div>
     )
 }
 
@@ -130,26 +178,28 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     const focusButtonRef = useRef<HTMLButtonElement>(null)
 
     const { balances } = useBalance()
-    const { selectedChainID, selectedTokenAddress, setSelectedTokenAddress, setSelectedChainID, isXChain } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        setSelectedChainID,
+        isXChain,
+        supportedSquidChainsAndTokens,
+    } = useContext(context.tokenSelectorContext)
     const { isConnected } = useAccount()
     const { open } = useWeb3Modal()
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
-        return (
-            peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens ||
-            peanutTokenDetails[0].tokens
-        ).map((token: IToken) => ({
+        return (supportedSquidChainsAndTokens[selectedChainID]?.tokens || []).map((token: interfaces.ISquidToken) => ({
             ...token,
-            chainId: selectedChainID || token.chainId,
+            chainId: selectedChainID,
             price: 0,
             amount: 0,
             currency: '',
             value: '',
         }))
-    }, [selectedChainID])
+    }, [selectedChainID, supportedSquidChainsAndTokens])
 
     const _balancesToDisplay = useMemo(() => {
         let balancesToDisplay: IUserBalance[]

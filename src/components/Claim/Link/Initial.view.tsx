@@ -48,7 +48,6 @@ export const InitialClaimLinkView = ({
     attachment,
     setTransactionHash,
     onCustom,
-    crossChainDetails,
     selectedRoute,
     setSelectedRoute,
     hasFetchedRoute,
@@ -79,8 +78,8 @@ export const InitialClaimLinkView = ({
         setRefetchXchainRoute,
         isXChain,
         setIsXChain,
+        supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
-    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -470,10 +469,9 @@ export const InitialClaimLinkView = ({
                                                     }
                                                     <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                                     {
-                                                        mappedData.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.toChain
-                                                        )?.name
+                                                        supportedSquidChainsAndTokens[
+                                                            selectedRoute.route.params.toChain
+                                                        ]?.axelarChainName
                                                     }
                                                     <MoreInfo
                                                         text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
@@ -483,10 +481,9 @@ export const InitialClaimLinkView = ({
                                                                     selectedRoute.route.params.fromChain
                                                             )?.name
                                                         } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                            mappedData.find(
-                                                                (chain) =>
-                                                                    chain.chainId === selectedRoute.route.params.toChain
-                                                            )?.name
+                                                            supportedSquidChainsAndTokens[
+                                                                selectedRoute.route.params.toChain
+                                                            ]?.axelarChainName
                                                         }.`}
                                                     />
                                                 </>

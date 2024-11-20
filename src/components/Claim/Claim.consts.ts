@@ -19,9 +19,9 @@ export const INIT_VIEW_STATE: IClaimScreenState = {
 export const CLAIM_SCREEN_FLOW: ClaimScreens[] = ['INITIAL', 'CONFIRM', 'SUCCESS']
 
 export interface IFlowManagerClaimComponents {
-    INITIAL: ({}: IClaimScreenProps) => {},
-    CONFIRM: (({}: IClaimScreenProps) => {}) | (({}: IOfframpConfirmScreenProps) => {}),
-    SUCCESS: (({}: IClaimScreenProps) => {}) | (({}: IOfframpSuccessScreenProps) => {}),
+    INITIAL: ({}: IClaimScreenProps) => {}
+    CONFIRM: (({}: IClaimScreenProps) => {}) | (({}: IOfframpConfirmScreenProps) => {})
+    SUCCESS: (({}: IClaimScreenProps) => {}) | (({}: IOfframpSuccessScreenProps) => {})
 }
 
 export interface IClaimScreenProps {
@@ -29,7 +29,6 @@ export interface IClaimScreenProps {
     onNext: () => void
     onCustom: (screen: ClaimScreens) => void
     claimLinkData: interfaces.ILinkDetails
-    crossChainDetails: Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
     type: ClaimType
     setClaimType: (type: ClaimType) => void
     recipient: { name: string | undefined; address: string }
@@ -64,5 +63,5 @@ export enum claimLinkStateType {
     CLAIM = 'CLAIM',
     ALREADY_CLAIMED = 'ALREADY_CLAIMED',
     NOT_FOUND = 'NOT_FOUND',
-    CLAIM_SENDER = 'CLAIM_SENDER'
+    CLAIM_SENDER = 'CLAIM_SENDER',
 }
