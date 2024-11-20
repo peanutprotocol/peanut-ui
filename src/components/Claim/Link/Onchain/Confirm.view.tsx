@@ -171,7 +171,7 @@ export const ConfirmClaimLinkView = ({
                             })
                         )}{' '}
                         {selectedRoute.route.estimate.toToken.symbol} on{' '}
-                        {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain].axelarChainName}
+                        {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                     </div>
                 ) : (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
