@@ -425,6 +425,7 @@ export const InitialClaimLinkView = ({
                     {recipientType !== 'iban' && recipientType !== 'us' && (
                         <TokenSelector
                             shouldBeConnected={false}
+                            showOnlySquidSupported
                             onReset={() => {
                                 setSelectedChainID(claimLinkData.chainId)
                                 setSelectedTokenAddress(claimLinkData.tokenAddress)

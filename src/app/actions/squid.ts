@@ -3,6 +3,7 @@
 import { getSquidChains, getSquidTokens } from '@squirrel-labs/peanut-sdk'
 import { unstable_cache } from 'next/cache'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { supportedPeanutChains } from '@/constants'
 
 const getSquidChainsCache = unstable_cache(async () => await getSquidChains({ isTestnet: false }), ['getSquidChains'], {
     revalidate: 3600 * 12,
@@ -17,7 +18,11 @@ export const getSquidChainsAndTokens = unstable_cache(
         const tokens = await getSquidTokensCache()
 
         const chainsById = chains
-            .filter((chain) => 'evm' === chain.chainType)
+            .filter(
+                (chain) =>
+                    'evm' === chain.chainType &&
+                    !!supportedPeanutChains.find((supportedChain) => supportedChain.chainId === chain.chainId)
+            )
             .reduce(
                 (acc, chain) => {
                     acc[chain.chainId] = chain

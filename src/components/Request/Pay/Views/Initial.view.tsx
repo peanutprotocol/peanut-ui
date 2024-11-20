@@ -370,7 +370,7 @@ export const InitialView = ({
                     want to fulfill this request with.
                 </label>
             </div>
-            <TokenSelector classNameButton="w-full" onReset={resetTokenAndChain} shouldBeConnected={true} />
+            <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>

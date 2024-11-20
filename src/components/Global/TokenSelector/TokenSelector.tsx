@@ -5,14 +5,13 @@ import Modal from '../Modal'
 import Search from '../Search'
 import ChainSelector from '../ChainSelector'
 import { useBalance } from '@/hooks/useBalance'
-import { supportedPeanutChains } from '@/constants'
+import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 import * as context from '@/context'
-import * as utils from '@/utils'
-import * as consts from '@/constants'
+import { areTokenAddressesEqual, formatTokenAmount } from '@/utils'
 import { AdvancedTokenSelectorButton } from './Components'
-import { IUserBalance } from '@/interfaces'
+import { IUserBalance, IToken } from '@/interfaces'
 
-import * as _consts from './TokenSelector.consts'
+import { TokenSelectorProps } from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useWalletType } from '@/hooks/useWalletType'
@@ -22,7 +21,9 @@ import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Image from 'next/image'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
+        context.tokenSelectorContext
+    )
     const [tokenPlaceholders, setTokenPlaceholders] = useState<{ [key: string]: boolean }>({})
     const [chainPlaceholders, setChainPlaceholders] = useState<{ [key: string]: boolean }>({})
 
@@ -64,14 +65,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
     const bottomSpacerHeight = (balances.length - visibleRange.end) * ITEM_HEIGHT
 
     return (
-        <div
-            ref={containerRef}
-            className="overflow-auto"
-            style={{
-                height: '384px',
-                position: 'relative',
-            }}
-        >
+        <div ref={containerRef} className="overflow-auto">
             {topSpacerHeight > 0 && <div style={{ height: topSpacerHeight }} />}
 
             <div className="relative">
@@ -79,7 +73,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                     <div
                         key={`${balance.address}_${balance.chainId}`}
                         className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-n-3/10 ${
-                            utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
+                            areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
                             balance.chainId === selectedChainID &&
                             'bg-n-3/10'
                         }`}
@@ -88,7 +82,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                         <div className="w-16 py-2 pr-2">
                             <div className="flex flex-row items-center justify-center gap-2 pl-1">
                                 <div className="relative h-6 w-6">
-                                    {tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
+                                    {!balance.logoURI || tokenPlaceholders[`${balance.address}_${balance.chainId}`] ? (
                                         <Icon
                                             name="token_placeholder"
                                             className="absolute left-0 top-0 h-6 w-6"
@@ -98,7 +92,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                         <Image
                                             src={balance.logoURI}
                                             className="absolute left-0 top-0 h-6 w-6"
-                                            alt="logo"
+                                            alt={`${balance.name} logo`}
                                             width={24}
                                             height={24}
                                             unoptimized
@@ -119,11 +113,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                         />
                                     ) : (
                                         <img
-                                            src={
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === balance.chainId
-                                                )?.icon.url
-                                            }
+                                            src={supportedSquidChainsAndTokens[balance.chainId]?.chainIconURI}
                                             className="absolute -top-1 left-3 h-4 w-4 rounded-full"
                                             alt="logo"
                                             onError={(_e) => {
@@ -144,20 +134,20 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                     {balance.symbol}
                                 </div>
                                 <div className="text-h9 font-normal">
-                                    {balance.amount ? utils.formatTokenAmount(balance.amount) : ''}
+                                    {balance.amount ? formatTokenAmount(balance.amount) : ''}
                                 </div>
                             </div>
                         </div>
 
                         <div className="w-24 py-2 text-h8">
-                            {balance.value ? `$${utils.formatTokenAmount(parseFloat(balance.value), 2)}` : balance.name}
+                            {balance.value ? `$${formatTokenAmount(parseFloat(balance.value), 2)}` : balance.name}
                         </div>
 
                         <div className="w-32 py-2">
                             <div className="flex flex-row items-center justify-end gap-2 pr-1">
                                 <div className="text-h8 text-gray-1">
-                                    {consts.supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)
-                                        ?.name ?? ''}
+                                    {supportedPeanutChains.find((chain) => chain.chainId === balance.chainId)?.name ??
+                                        ''}
                                 </div>
                             </div>
                         </div>
@@ -170,7 +160,12 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
     )
 }
 
-const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _consts.TokenSelectorProps) => {
+const TokenSelector = ({
+    classNameButton,
+    shouldBeConnected = true,
+    showOnlySquidSupported = false,
+    onReset,
+}: TokenSelectorProps) => {
     const [visible, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
     const [selectedBalance, setSelectedBalance] = useState<IUserBalance | undefined>(undefined)
@@ -191,7 +186,17 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
-        return (supportedSquidChainsAndTokens[selectedChainID]?.tokens || []).map((token: interfaces.ISquidToken) => ({
+        let tokens: Array<interfaces.ISquidToken | IToken> =
+            supportedSquidChainsAndTokens[selectedChainID]?.tokens || []
+        if (!showOnlySquidSupported) {
+            tokens = [
+                ...tokens,
+                ...(peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens || []).filter(
+                    (token) => !tokens.find((t) => areTokenAddressesEqual(t.address, token.address))
+                ),
+            ]
+        }
+        return tokens.map((token) => ({
             ...token,
             chainId: selectedChainID,
             price: 0,
@@ -217,8 +222,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                 (token) =>
                     !balancesToDisplay.find(
                         (balance) =>
-                            balance.chainId === token.chainId &&
-                            utils.areTokenAddressesEqual(balance.address, token.address)
+                            balance.chainId === token.chainId && areTokenAddressesEqual(balance.address, token.address)
                     )
             ),
         ]
@@ -263,7 +267,7 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
             setSelectedBalance(
                 _balancesToDisplay.find(
                     (balance) =>
-                        utils.areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
+                        areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
                         balance.chainId === selectedChainID
                 )
             )
@@ -273,8 +277,8 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
     }, [_balancesToDisplay, selectedTokenAddress, selectedChainID])
 
     const displayedChain = useMemo(
-        () => supportedPeanutChains.find((chain) => chain.chainId === selectedChainID),
-        [selectedChainID]
+        () => supportedSquidChainsAndTokens[selectedChainID],
+        [selectedChainID, supportedSquidChainsAndTokens]
     )
 
     return (
@@ -287,8 +291,8 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                 tokenLogoUri={selectedBalance?.logoURI}
                 tokenSymbol={selectedBalance?.symbol ?? ''}
                 tokenBalance={selectedBalance?.amount}
-                chainIconUri={displayedChain?.icon.url}
-                chainName={displayedChain?.name ?? ''}
+                chainIconUri={displayedChain?.chainIconURI ?? ''}
+                chainName={displayedChain?.axelarChainName ?? ''}
                 classNameButton={classNameButton}
                 type={isXChain ? 'xchain' : 'send'}
                 onReset={() => {
@@ -343,6 +347,13 @@ const TokenSelector = ({ classNameButton, shouldBeConnected = true, onReset }: _
                                 border
                             />
                             <ChainSelector
+                                chainsToDisplay={
+                                    showOnlySquidSupported
+                                        ? supportedPeanutChains.filter(
+                                              (chain) => !!supportedSquidChainsAndTokens[chain.chainId]
+                                          )
+                                        : supportedPeanutChains
+                                }
                                 onChange={(_chainId) => {
                                     setUserChangedChain(true)
                                 }}
