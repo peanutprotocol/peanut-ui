@@ -2,7 +2,7 @@ import * as views from './Views'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { type ITokenPriceData } from '@/interfaces'
 
-export type PayScreens = 'INITIAL' | 'SUCCESS'
+type PayScreens = 'INITIAL' | 'SUCCESS'
 
 export interface IPayScreenState {
     screen: PayScreens
@@ -14,7 +14,7 @@ export enum IRequestLinkState {
     READY_TO_PAY = 'READY_TO_PAY',
     ALREADY_PAID = 'ALREADY_PAID',
     ERROR = 'ERROR',
-    CANCELED = 'CANCELED'
+    CANCELED = 'CANCELED',
 }
 
 export const INIT_VIEW_STATE: IPayScreenState = {

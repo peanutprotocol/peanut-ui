@@ -1,6 +1,6 @@
 import Script from 'next/script'
 
-export const openCrispChat = () => {
+const openCrispChat = () => {
     if (window.$crisp) {
         window.$crisp.push(['do', 'chat:open'])
     }

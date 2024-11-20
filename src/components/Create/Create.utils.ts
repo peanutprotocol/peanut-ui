@@ -4,7 +4,7 @@ import { peanutTokenDetails } from '@/constants'
 import { IUserBalance } from '@/interfaces'
 import { areTokenAddressesEqual, isNativeCurrency } from '@/utils'
 
-export const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
+const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
     return tokenValue / tokenPrice
 }
 
@@ -35,7 +35,7 @@ export const isGaslessDepositPossible = ({
     }
 }
 
-export function toLowerCaseKeys(obj: any): any {
+function toLowerCaseKeys(obj: any): any {
     let newObj: any = {}
     if (obj) {
         Object.keys(obj).forEach((key) => {

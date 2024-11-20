@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Metadata } from 'next'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/Layout'
-import { Hero, FAQs, Features, Mike, Story, Intro, BuildOnUs, CashoutSection } from '@/components/Club'
+import { Hero, FAQs, Features, Mike, Story, Intro, BuildOnUs, CashoutSection } from '@/components/LandingPage'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import { useFooterVisibility } from '@/context/footerVisibility'
 

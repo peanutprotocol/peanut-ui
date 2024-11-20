@@ -20,7 +20,7 @@ export async function POST(request: NextRequest) {
         })
 
         const data = await response.json()
-        return new NextResponse(data ? JSON.stringify(data): 'Error in get-user-id', {
+        return new NextResponse(data ? JSON.stringify(data) : 'Error in get-user-id', {
             status: response.status,
             headers: {
                 'Content-Type': 'application/json',

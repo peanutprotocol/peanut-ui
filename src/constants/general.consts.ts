@@ -1,6 +1,6 @@
 import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
-export const ipfsProviderArray = [
+const ipfsProviderArray = [
     'https://ipfs.io/ipfs/',
     'https://cloudflare-ipfs.com/ipfs/',
     'https://dweb.link/ipfs/',
@@ -15,7 +15,7 @@ export const ipfsProviderArray = [
 export const PEANUT_API_URL = (process.env.PEANUT_API_URL || 'https://api.peanut.to').replace(/\/$/, '') // remove any accidental trailing slash
 export const next_proxy_url = '/api/proxy'
 
-export const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[
+const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[
     { chainId: '1', name: 'Ethereum' },
     { chainId: '10', name: 'Optimism' },
     { chainId: '56', name: 'Binance Smart Chain' },
