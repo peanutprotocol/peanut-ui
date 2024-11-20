@@ -1,7 +1,7 @@
 'use client'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useMemo } from 'react'
 import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
@@ -141,6 +141,14 @@ export const InitialClaimLinkView = ({
         }
     }
 
+    const tokenSupportsXChain = useMemo(() => {
+        return (
+            supportedSquidChainsAndTokens[claimLinkData.chainId]?.tokens.some((token) =>
+                areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
+            ) ?? false
+        )
+    }, [claimLinkData.tokenAddress, claimLinkData.chainId, supportedSquidChainsAndTokens])
+
     const handleIbanRecipient = async () => {
         try {
             setErrorState({
@@ -168,7 +176,7 @@ export const InitialClaimLinkView = ({
             }
 
             if (!tokenName || !chainName) {
-                if (!crossChainDetails) {
+                if (!tokenSupportsXChain) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'offramp unavailable',
