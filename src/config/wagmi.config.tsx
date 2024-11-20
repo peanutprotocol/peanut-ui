@@ -40,15 +40,15 @@ const config = createConfig({
             appName: 'Peanut Protocol',
         }),
         injected({ shimDisconnect: true }),
-        // @ts-ignore
-        authConnector({
-            chains: consts.chains,
-            options: {
-                projectId,
-            },
-            email: false,
-            // socials: ['google', 'github', 'apple', 'email', 'discord', 'facebook']
-        }),
+        // // @ts-ignore
+        // authConnector({
+        //     chains: consts.chains,
+        //     options: {
+        //         projectId,
+        //     },
+        //     email: false,
+        //     // socials: ['google', 'github', 'apple', 'email', 'discord', 'facebook']
+        // }),
     ],
     client({ chain }) {
         return createClient({ chain, transport: http() })

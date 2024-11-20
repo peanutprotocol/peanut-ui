@@ -21,7 +21,7 @@ export interface PeanutAccount {
 
 export enum OfframpType {
     CASHOUT = 'CASHOUT',
-    CLAIM = 'CLAIM'
+    CLAIM = 'CLAIM',
 }
 
 export const MIN_CASHOUT_LIMIT = 10 // $10 minimum
@@ -61,7 +61,6 @@ export interface IOfframpConfirmScreenProps {
     estimatedPoints?: number
     attachment?: { message: string | undefined; attachmentUrl: string | undefined }
     recipientType?: interfaces.RecipientType
-
 }
 
 export interface IOfframpSuccessScreenProps {

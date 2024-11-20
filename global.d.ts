@@ -1,3 +1,3 @@
 interface Window {
-    $crisp: any;
+    $crisp: any
 }

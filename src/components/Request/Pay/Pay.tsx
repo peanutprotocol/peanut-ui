@@ -23,9 +23,7 @@ export const PayRequestLink = () => {
     const [transactionHash, setTransactionHash] = useState<string>('')
     const [unsignedTx, setUnsignedTx] = useState<peanutInterfaces.IPeanutUnsignedTransaction | undefined>(undefined)
     const { setLoadingState } = useContext(context.loadingStateContext)
-    const { setSelectedChainID, setSelectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const { setSelectedChainID, setSelectedTokenAddress } = useContext(context.tokenSelectorContext)
     const [errorMessage, setErrorMessage] = useState<string>('')
 
     const fetchPointsEstimation = async (
@@ -196,7 +194,9 @@ export const PayRequestLink = () => {
                 } as _consts.IPayScreenProps)}
             {linkState === _consts.IRequestLinkState.ERROR && <generalViews.ErrorView errorMessage={errorMessage} />}
             {linkState === _consts.IRequestLinkState.CANCELED && <generalViews.CanceledClaimLink />}
-            {linkState === _consts.IRequestLinkState.ALREADY_PAID && <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />}
+            {linkState === _consts.IRequestLinkState.ALREADY_PAID && (
+                <generalViews.AlreadyPaidLinkView requestLinkData={requestLinkData} />
+            )}
         </div>
     )
 }

@@ -31,5 +31,3 @@ export const ErrorView = ({ errorMessage }: { errorMessage: string }) => {
         </div>
     )
 }
-
-export default ErrorView

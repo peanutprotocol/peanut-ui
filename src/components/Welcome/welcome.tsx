@@ -163,7 +163,7 @@ const testimonials = [
     },
 ]
 
-export function Welcome() {
+function Welcome() {
     useEffect(() => {
         // Ensure this code only runs on the client
         if (typeof window !== 'undefined' && window.parent) {
