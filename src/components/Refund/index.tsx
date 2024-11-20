@@ -211,5 +211,3 @@ export const Refund = () => {
         </div>
     )
 }
-
-export default Refund

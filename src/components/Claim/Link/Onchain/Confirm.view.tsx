@@ -277,5 +277,3 @@ export const ConfirmClaimLinkView = ({
         </div>
     )
 }
-
-export default ConfirmClaimLinkView

@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 const STORAGE_KEY = 'recent-recipients'
 const MAX_RECENT_ITEMS = 5
 
-export interface RecentRecipient {
+interface RecentRecipient {
     value: string
     type: 'address' | 'ens' | 'iban' | 'us'
     timestamp: number

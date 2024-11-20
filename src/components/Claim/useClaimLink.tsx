@@ -8,7 +8,7 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import * as context from '@/context'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
-export const useClaimLink = () => {
+const useClaimLink = () => {
     const { chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
 

@@ -31,5 +31,3 @@ export const NotFoundClaimLink = () => {
         </div>
     )
 }
-
-export default NotFoundClaimLink

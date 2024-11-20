@@ -66,6 +66,8 @@ export async function POST(request: NextRequest) {
         })
 
         if (!response.ok) {
+            // log the error response & request body for debugging
+            console.error('Error creating external account', response)
             try {
                 const data = await response.json()
                 if (data.code && data.code == 'duplicate_external_account') {
