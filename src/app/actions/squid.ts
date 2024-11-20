@@ -12,30 +12,23 @@ const getSquidTokensCache = unstable_cache(async () => await getSquidTokens({ is
     revalidate: 3600 * 12,
 })
 
+const supportedByPeanut = (chain: interfaces.ISquidChain): boolean =>
+    'evm' === chain.chainType &&
+    supportedPeanutChains.some((supportedChain) => supportedChain.chainId === chain.chainId)
+
 export const getSquidChainsAndTokens = unstable_cache(
     async (): Promise<Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>> => {
-        const chains = await getSquidChainsCache()
-        const tokens = await getSquidTokensCache()
+        const [chains, tokens] = await Promise.all([getSquidChainsCache(), getSquidTokensCache()])
 
         const chainsById = chains
-            .filter(
-                (chain) =>
-                    'evm' === chain.chainType &&
-                    !!supportedPeanutChains.find((supportedChain) => supportedChain.chainId === chain.chainId)
-            )
-            .reduce(
-                (acc, chain) => {
-                    acc[chain.chainId] = chain
-                    return acc
-                },
-                {} as Record<string, any>
-            )
+            .filter(supportedByPeanut)
+            .reduce<Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>>((acc, chain) => {
+                acc[chain.chainId] = { ...chain, tokens: [] }
+                return acc
+            }, {})
 
         tokens.forEach((token) => {
             if (token.active && token.chainId in chainsById) {
-                if (!chainsById[token.chainId].tokens) {
-                    chainsById[token.chainId].tokens = []
-                }
                 chainsById[token.chainId].tokens.push(token)
             }
         })
@@ -45,27 +38,3 @@ export const getSquidChainsAndTokens = unstable_cache(
     ['getSquidChainsAndTokens'],
     { revalidate: 3600 * 12 }
 )
-/*
-export async function getSquidChainsAndTokens(): Promise<Record<string, interfaces.ISquidChain & {tokens: interfaces.ISquidToken[]}>> {
-  console.log('======= Fetching squid chains and tokens =======')
-  const chains = await getSquidChainsCache()
-  const tokens = await getSquidTokensCache()
-
-  const chainsById = chains.filter(chain => 'evm' === chain.chainType)
-    .reduce((acc, chain) => {
-      acc[chain.chainId] = chain
-      return acc
-    }, {} as Record<string, any>)
-
-  tokens.forEach(token => {
-    if (token.chainId in chainsById) {
-      if (!chainsById[token.chainId].tokens) {
-        chainsById[token.chainId].tokens = []
-      }
-      chainsById[token.chainId].tokens.push(token)
-    }
-  })
-
-  return chainsById
-}
-*/
