@@ -5,6 +5,7 @@ import * as consts from '@/constants'
 import * as _consts from '../../Pay.consts'
 import * as utils from '@/utils'
 import Link from 'next/link'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
     const chainName =
@@ -19,6 +20,10 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
+            <ReferenceAndAttachment
+                reference={requestLinkData?.reference}
+                attachmentUrl={requestLinkData?.attachmentUrl}
+            />
             <label className="text-h2">Sorry, this link has already been paid.</label>
             {dataAvailable && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">

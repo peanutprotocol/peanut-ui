@@ -9,9 +9,16 @@ import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as consts from '@/constants'
-import * as utils from '@/utils'
+import {
+    areTokenAddressesEqual,
+    saveClaimedLinkToLocalStorage,
+    ErrorHandler,
+    getBridgeTokenName,
+    getBridgeChainName,
+    checkifImageType,
+    formatTokenAmount,
+} from '@/utils'
 import MoreInfo from '@/components/Global/MoreInfo'
-import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
@@ -27,6 +34,7 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { TOOLTIPS } from '@/constants/tooltips'
 import AddressLink from '@/components/Global/AddressLink'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -62,9 +70,16 @@ export const InitialClaimLinkView = ({
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        refetchXchainRoute,
+        setRefetchXchainRoute,
+        isXChain,
+        setIsXChain,
+    } = useContext(context.tokenSelectorContext)
     const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
@@ -98,7 +113,7 @@ export const InitialClaimLinkView = ({
             })
 
             if (claimTxHash) {
-                utils.saveClaimedLinkToLocalStorage({
+                saveClaimedLinkToLocalStorage({
                     address: address ?? '',
                     data: {
                         ...claimLinkData,
@@ -117,7 +132,7 @@ export const InitialClaimLinkView = ({
                 throw new Error('Error claiming link')
             }
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -134,8 +149,8 @@ export const InitialClaimLinkView = ({
                 errorMessage: '',
             })
             setLoadingState('Fetching route')
-            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+            let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = getBridgeChainName(claimLinkData.chainId)
 
             if (tokenPrice) {
                 const cashoutUSDAmount = Number(claimLinkData.tokenAmount) * tokenPrice
@@ -153,8 +168,7 @@ export const InitialClaimLinkView = ({
                 }
             }
 
-            if (tokenName && chainName) {
-            } else {
+            if (!tokenName || !chainName) {
                 if (!crossChainDetails) {
                     setErrorState({
                         showError: true,
@@ -278,6 +292,19 @@ export const InitialClaimLinkView = ({
     }, [address])
 
     useEffect(() => {
+        if (
+            selectedChainID === claimLinkData.chainId &&
+            areTokenAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+        ) {
+            setIsXChain(false)
+            setSelectedRoute(null)
+            setHasFetchedRoute(false)
+        } else {
+            setIsXChain(true)
+        }
+    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
+
+    useEffect(() => {
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
@@ -299,10 +326,12 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === selectedChainID &&
-                    utils.areTokenAddressesEqual(route.toToken, selectedTokenAddress)
+                    areTokenAddressesEqual(route.toToken, selectedTokenAddress)
             )
             if (existingRoute) {
                 setSelectedRoute(existingRoute)
+            } else if (!isXChain) {
+                setHasFetchedRoute(false)
             } else {
                 const tokenAmount = Math.floor(
                     Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
@@ -357,7 +386,7 @@ export const InitialClaimLinkView = ({
                 {(attachment.message || attachment.attachmentUrl) && (
                     <>
                         <div
-                            className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                            className={`flex w-full items-center justify-center gap-2 ${checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                         >
                             {attachment.message && (
                                 <label className="max-w-full text-h8">
@@ -385,7 +414,7 @@ export const InitialClaimLinkView = ({
                     </label>
                     {tokenPrice ? (
                         <label className="text-h2">
-                            $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                            $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                         </label>
                     ) : (
                         <label className="text-h2 ">
@@ -394,81 +423,15 @@ export const InitialClaimLinkView = ({
                     )}
                 </div>
                 <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
-                    <TokenSelectorXChain
-                        data={mappedData}
-                        chainName={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
-                                          ?.name
-                                    : mappedData.find((data) => data.chainId === selectedChainID)?.name
-                                : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                      ?.name
-                        }
-                        tokenSymbol={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? selectedRoute.route.estimate.toToken.symbol
-                                    : mappedData
-                                          .find((data) => data.chainId === selectedChainID)
-                                          ?.tokens?.find((token) =>
-                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                          )?.symbol
-                                : claimLinkData.tokenSymbol
-                        }
-                        tokenLogoUrl={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? selectedRoute.route.estimate.toToken.logoURI
-                                    : mappedData
-                                          .find((data) => data.chainId === selectedChainID)
-                                          ?.tokens?.find((token) =>
-                                              utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                          )?.logoURI
-                                : consts.peanutTokenDetails
-                                      .find((chain) => chain.chainId === claimLinkData.chainId)
-                                      ?.tokens.find((token) =>
-                                          utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
-                                      )?.logoURI
-                        }
-                        chainLogoUrl={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? crossChainDetails?.find(
-                                          (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                      )?.chainIconURI
-                                    : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
-                                : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                      ?.icon.url
-                        }
-                        tokenAmount={
-                            hasFetchedRoute
-                                ? selectedRoute
-                                    ? utils.formatTokenAmount(
-                                          utils.formatAmountWithDecimals({
-                                              amount: selectedRoute.route.estimate.toAmountMin,
-                                              decimals: selectedRoute.route.estimate.toToken.decimals,
-                                          }),
-                                          4
-                                      )
-                                    : undefined
-                                : claimLinkData.tokenAmount
-                        }
-                        isLoading={isXchainLoading}
-                        routeError={errorState.errorMessage === 'No route found for the given token pair.'}
-                        routeFound={selectedRoute ? true : false}
-                        onReset={() => {
-                            setSelectedRoute(null)
-                            setHasFetchedRoute(false)
-                            setErrorState({
-                                showError: false,
-                                errorMessage: '',
-                            })
-                        }}
-                        isStatic={
-                            recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false
-                        }
-                    />
+                    {recipientType !== 'iban' && recipientType !== 'us' && (
+                        <TokenSelector
+                            shouldBeConnected={false}
+                            onReset={() => {
+                                setSelectedChainID(claimLinkData.chainId)
+                                setSelectedTokenAddress(claimLinkData.tokenAddress)
+                            }}
+                        />
+                    )}
                     <GeneralRecipientInput
                         className=""
                         placeholder="wallet address / ENS / IBAN / US account number"

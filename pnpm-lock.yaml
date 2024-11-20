@@ -8930,6 +8930,7 @@ snapshots:
       valid-url: 1.0.9
 
   '@squirrel-labs/peanut-sdk@0.5.11(bufferutil@4.0.8)':
+  
     dependencies:
       ethersv5: ethers@5.7.2(bufferutil@4.0.8)
       jest-summary-reporter: 0.0.2

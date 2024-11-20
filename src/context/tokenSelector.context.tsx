@@ -114,6 +114,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         if (selectedTokenAddress && selectedChainID) {
             setIsFetchingTokenData(true)
             setSelectedTokenData(undefined)
+            setRefetchXchainRoute(true)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')

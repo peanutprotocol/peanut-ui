@@ -110,8 +110,6 @@ export const Claim = ({}) => {
                     return chain
                 })
 
-                setSelectedChainID(filteredXchainDetails[0].chainId)
-                setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)
                 return filteredXchainDetails
             } else {
                 return undefined
@@ -133,34 +131,35 @@ export const Claim = ({}) => {
             })
 
             setClaimLinkData(linkDetails)
+            setSelectedChainID(linkDetails.chainId)
+            setSelectedTokenAddress(linkDetails.tokenAddress)
+
             if (linkDetails.claimed) {
                 setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
+                return
+            }
+
+            const crossChainDetails = await getCrossChainDetails(linkDetails)
+            setCrossChainDetails(crossChainDetails)
+            const tokenPrice = await utils.fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId)
+            tokenPrice && setTokenPrice(tokenPrice?.price)
+
+            if (address) {
+                setRecipient({ name: '', address })
+
+                const estimatedPoints = await estimatePoints({
+                    address: address ?? '',
+                    chainId: linkDetails.chainId,
+                    amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+                    actionType: ActionType.CLAIM,
+                })
+                setEstimatedPoints(estimatedPoints)
+            }
+
+            if (address && linkDetails.senderAddress === address) {
+                setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
             } else {
-                const crossChainDetails = await getCrossChainDetails(linkDetails)
-                setCrossChainDetails(crossChainDetails)
-                const tokenPrice = await utils.fetchTokenPrice(
-                    linkDetails.tokenAddress.toLowerCase(),
-                    linkDetails.chainId
-                )
-                tokenPrice && setTokenPrice(tokenPrice?.price)
-
-                if (address) {
-                    setRecipient({ name: '', address })
-
-                    const estimatedPoints = await estimatePoints({
-                        address: address ?? '',
-                        chainId: linkDetails.chainId,
-                        amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
-                        actionType: ActionType.CLAIM,
-                    })
-                    setEstimatedPoints(estimatedPoints)
-                }
-
-                if (address && linkDetails.senderAddress === address) {
-                    setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-                } else {
-                    setLinkState(_consts.claimLinkStateType.CLAIM)
-                }
+                setLinkState(_consts.claimLinkStateType.CLAIM)
             }
         } catch (error) {
             setLinkState(_consts.claimLinkStateType.NOT_FOUND)
