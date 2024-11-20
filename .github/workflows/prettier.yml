@@ -1,7 +1,7 @@
 name: Code Formatting
 
 on:
-    pull_request:
+    # pull_request:
     push:
         branches: ['**']
 
