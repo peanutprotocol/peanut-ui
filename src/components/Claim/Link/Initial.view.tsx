@@ -605,6 +605,8 @@ export const InitialClaimLinkView = ({
                                                         showError: false,
                                                         errorMessage: '',
                                                     })
+                                                    setSelectedChainID(claimLinkData.chainId)
+                                                    setSelectedTokenAddress(claimLinkData.tokenAddress)
                                                 }}
                                             >
                                                 reset
