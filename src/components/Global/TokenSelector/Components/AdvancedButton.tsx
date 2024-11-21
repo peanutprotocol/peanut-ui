@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import Icon from '../../Icon'
 import * as utils from '@/utils'
+import { fetchTokenSymbol } from '@/utils'
 import * as context from '@/context'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
@@ -42,6 +43,7 @@ export const AdvancedTokenSelectorButton = ({
     const { address } = useAccount()
     const { hasFetchedBalances } = useBalance()
     const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
+    const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
 
     const getTokenBalance = async () => {
         const balance = Number(
@@ -65,6 +67,20 @@ export const AdvancedTokenSelectorButton = ({
             getTokenBalance()
         }
     }, [tokenBalance, selectedChainID, selectedTokenAddress, address])
+
+    useEffect(() => {
+        let isMounted = true
+        if (!tokenSymbol) {
+            fetchTokenSymbol(selectedTokenAddress, selectedChainID).then((symbol) => {
+                if (isMounted) {
+                    _setTokenSymbol(symbol)
+                }
+            })
+        }
+        return () => {
+            isMounted = false
+        }
+    }, [tokenSymbol, selectedTokenAddress, selectedChainID])
 
     return (
         <section
@@ -104,7 +120,7 @@ export const AdvancedTokenSelectorButton = ({
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
                         {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
-                        {tokenSymbol} on {chainName}
+                        {_tokenSymbol} on {chainName}
                     </div>
 
                     {type === 'send' &&
