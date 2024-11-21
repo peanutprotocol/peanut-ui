@@ -9,7 +9,7 @@ import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 import * as context from '@/context'
 import { areTokenAddressesEqual, formatTokenAmount } from '@/utils'
 import { AdvancedTokenSelectorButton } from './Components'
-import { IUserBalance, IToken, IPeanutChainDetails } from '@/interfaces'
+import { IUserBalance, IToken } from '@/interfaces'
 
 import { TokenSelectorProps } from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
@@ -318,6 +318,7 @@ const TokenSelector = ({
                 type={isXChain ? 'xchain' : 'send'}
                 onReset={() => {
                     onReset?.()
+                    setSelectedBalance(undefined)
                     setUserChangedChain(false)
                 }}
             />
