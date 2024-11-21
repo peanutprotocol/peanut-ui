@@ -249,6 +249,7 @@ const TokenSelector = ({
     function setToken(balance: IUserBalance): void {
         setSelectedChainID(balance.chainId)
         setSelectedTokenAddress(balance.address)
+        setSelectedBalance(balance)
         setVisible(false)
         setTimeout(() => {
             setFilterValue('')
@@ -263,6 +264,8 @@ const TokenSelector = ({
     }, [visible])
 
     useEffect(() => {
+        if (selectedBalance) return
+
         if (_balancesToDisplay.length > 0) {
             setSelectedBalance(
                 _balancesToDisplay.find(
