@@ -9,7 +9,7 @@ import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 import * as context from '@/context'
 import { areTokenAddressesEqual, formatTokenAmount } from '@/utils'
 import { AdvancedTokenSelectorButton } from './Components'
-import { IUserBalance, IToken } from '@/interfaces'
+import { IUserBalance, IToken, IPeanutChainDetails } from '@/interfaces'
 
 import { TokenSelectorProps } from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
@@ -113,7 +113,11 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                                         />
                                     ) : (
                                         <img
-                                            src={supportedSquidChainsAndTokens[balance.chainId]?.chainIconURI}
+                                            src={
+                                                supportedSquidChainsAndTokens[balance.chainId]?.chainIconURI ??
+                                                supportedPeanutChains.find((c) => c.chainId === balance.chainId)?.icon
+                                                    .url
+                                            }
                                             className="absolute -top-1 left-3 h-4 w-4 rounded-full"
                                             alt="logo"
                                             onError={(_e) => {
@@ -279,10 +283,24 @@ const TokenSelector = ({
         }
     }, [_balancesToDisplay, selectedTokenAddress, selectedChainID])
 
-    const displayedChain = useMemo(
-        () => supportedSquidChainsAndTokens[selectedChainID],
-        [selectedChainID, supportedSquidChainsAndTokens]
-    )
+    const displayedChain = useMemo(() => {
+        if (!selectedChainID) return undefined
+        if (supportedSquidChainsAndTokens[selectedChainID]) {
+            const chain = supportedSquidChainsAndTokens[selectedChainID]
+            return {
+                name: chain.axelarChainName,
+                iconURI: chain.chainIconURI,
+                chainId: chain.chainId,
+            }
+        } else {
+            const chain = supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)
+            return {
+                name: chain?.name,
+                iconURI: chain?.icon.url,
+                chainId: chain?.chainId,
+            }
+        }
+    }, [selectedChainID, supportedSquidChainsAndTokens])
 
     return (
         <>
@@ -294,8 +312,8 @@ const TokenSelector = ({
                 tokenLogoUri={selectedBalance?.logoURI}
                 tokenSymbol={selectedBalance?.symbol ?? ''}
                 tokenBalance={selectedBalance?.amount}
-                chainIconUri={displayedChain?.chainIconURI ?? ''}
-                chainName={displayedChain?.axelarChainName ?? ''}
+                chainIconUri={displayedChain?.iconURI ?? ''}
+                chainName={displayedChain?.name ?? ''}
                 classNameButton={classNameButton}
                 type={isXChain ? 'xchain' : 'send'}
                 onReset={() => {
