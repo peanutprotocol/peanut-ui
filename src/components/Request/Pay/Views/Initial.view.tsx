@@ -280,8 +280,8 @@ export const InitialView = ({
             if (!unsignedTx) return
             if (!isXChain) {
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
-                if (selectedTokenData?.chainId !== String(currentChain?.id)) {
-                    await switchNetwork(selectedTokenData!.chainId)
+                if (requestLinkData.chainId !== String(currentChain?.id)) {
+                    await switchNetwork(requestLinkData.chainId)
                 }
                 setLoadingState('Sign in wallet')
                 const hash = await sendTransactions({
