@@ -208,7 +208,7 @@ const TokenSelector = ({
             currency: '',
             value: '',
         }))
-    }, [selectedChainID, supportedSquidChainsAndTokens])
+    }, [selectedChainID, supportedSquidChainsAndTokens, showOnlySquidSupported])
 
     const _balancesToDisplay = useMemo(() => {
         let balancesToDisplay: IUserBalance[]
@@ -220,7 +220,13 @@ const TokenSelector = ({
         }
 
         balancesToDisplay = [
-            ...balancesToDisplay,
+            ...balancesToDisplay.filter(
+                (balance) =>
+                    !showOnlySquidSupported ||
+                    supportedSquidChainsAndTokens[balance.chainId]?.tokens.some((token) =>
+                        areTokenAddressesEqual(balance.address, token.address)
+                    )
+            ),
             ...selectedChainTokens.filter(
                 //remove tokens that are already in the balances
                 (token) =>
@@ -232,7 +238,7 @@ const TokenSelector = ({
         ]
 
         return balancesToDisplay
-    }, [balances, safeInfo, selectedChainTokens, walletType])
+    }, [balances, safeInfo, selectedChainTokens, walletType, showOnlySquidSupported, supportedSquidChainsAndTokens])
 
     const filteredBalances = useMemo(() => {
         // initially show all balances and the tokens on the current chain

@@ -9,6 +9,7 @@ import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as consts from '@/constants'
+import { supportedPeanutChains } from '@/constants'
 import {
     areTokenAddressesEqual,
     saveClaimedLinkToLocalStorage,
@@ -430,16 +431,27 @@ export const InitialClaimLinkView = ({
                     )}
                 </div>
                 <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
-                    {recipientType !== 'iban' && recipientType !== 'us' && (
-                        <TokenSelector
-                            shouldBeConnected={false}
-                            showOnlySquidSupported
-                            onReset={() => {
-                                setSelectedChainID(claimLinkData.chainId)
-                                setSelectedTokenAddress(claimLinkData.tokenAddress)
-                            }}
-                        />
-                    )}
+                    {recipientType !== 'iban' && recipientType !== 'us' ? (
+                        tokenSupportsXChain ? (
+                            <TokenSelector
+                                shouldBeConnected={false}
+                                showOnlySquidSupported
+                                onReset={() => {
+                                    setSelectedChainID(claimLinkData.chainId)
+                                    setSelectedTokenAddress(claimLinkData.tokenAddress)
+                                }}
+                            />
+                        ) : (
+                            <label className="text-h7 font-light">
+                                This token does not support cross-chain claims. You can claim{' '}
+                                {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} on{' '}
+                                {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName ??
+                                    supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                        ?.name ??
+                                    'the same chain'}
+                            </label>
+                        )
+                    ) : null}
                     <GeneralRecipientInput
                         className=""
                         placeholder="wallet address / ENS / IBAN / US account number"
