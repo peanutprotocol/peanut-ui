@@ -81,6 +81,8 @@ export const AdvancedTokenSelectorButton = ({
                     _setTokenSymbol(symbol)
                 }
             })
+        } else {
+            _setTokenSymbol(tokenSymbol)
         }
         return () => {
             isMounted = false
