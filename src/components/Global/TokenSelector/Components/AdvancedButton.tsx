@@ -40,7 +40,7 @@ export const AdvancedTokenSelectorButton = ({
     onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
-    const { address } = useAccount()
+    const { address, isConnected } = useAccount()
     const { hasFetchedBalances } = useBalance()
     const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
     const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
@@ -62,11 +62,16 @@ export const AdvancedTokenSelectorButton = ({
     }
 
     useEffect(() => {
+        if (!isConnected) {
+            _setTokenBalance(undefined)
+            return
+        }
+
         _setTokenBalance(tokenBalance)
         if ((tokenBalance === 0 || !tokenBalance) && address) {
             getTokenBalance()
         }
-    }, [tokenBalance, selectedChainID, selectedTokenAddress, address])
+    }, [tokenBalance, selectedChainID, selectedTokenAddress, address, isConnected])
 
     useEffect(() => {
         let isMounted = true
@@ -132,11 +137,7 @@ export const AdvancedTokenSelectorButton = ({
                             <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
                                 Balance: <Loading className="h-2 w-2" />
                             </div>
-                        ) : (
-                            <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
-                                Balance: 0
-                            </div>
-                        ))}
+                        ) : null)}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">
                             ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}
