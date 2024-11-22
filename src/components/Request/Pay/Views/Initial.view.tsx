@@ -80,6 +80,7 @@ export const InitialView = ({
         isXChain,
         setIsXChain,
         isFetchingTokenData,
+        supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -124,6 +125,14 @@ export const InitialView = ({
             return `${formatAmountWithSignificantDigits(amount, 3)} ${tokenRequestedSymbol}`
         }
     }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
+
+    const tokenSupportsXChain = useMemo(() => {
+        return (
+            supportedSquidChainsAndTokens[requestLinkData.chainId]?.tokens.some((token) =>
+                areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
+            ) ?? false
+        )
+    }, [requestLinkData.tokenAddress, requestLinkData.chainId, supportedSquidChainsAndTokens])
 
     // Get route
     useEffect(() => {
@@ -271,8 +280,8 @@ export const InitialView = ({
             if (!unsignedTx) return
             if (!isXChain) {
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
-                if (selectedTokenData?.chainId !== String(currentChain?.id)) {
-                    await switchNetwork(selectedTokenData!.chainId)
+                if (requestLinkData.chainId !== String(currentChain?.id)) {
+                    await switchNetwork(requestLinkData.chainId)
                 }
                 setLoadingState('Sign in wallet')
                 const hash = await sendTransactions({
@@ -365,12 +374,19 @@ export const InitialView = ({
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
-                <label className="text-h9 font-light">
-                    You can fulfill this payment request with any token on any chain. Pick the token and chain that you
-                    want to fulfill this request with.
-                </label>
+                {tokenSupportsXChain ? (
+                    <label className="text-h9 font-light">
+                        You can fulfill this payment request with any token on any chain. Pick the token and chain that
+                        you want to fulfill this request with.
+                    </label>
+                ) : (
+                    <label className="text-h9 font-light">
+                        This token does not support cross-chain transfers. You can only fulfill this payment request
+                        with the selected token on the selected chain.
+                    </label>
+                )}
             </div>
-            <TokenSelector classNameButton="w-full" onReset={resetTokenAndChain} shouldBeConnected={true} />
+            {tokenSupportsXChain && <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />}
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>

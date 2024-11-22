@@ -5,13 +5,9 @@ import * as _consts from '../Claim.consts'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 
 export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
-    const router = useRouter()
-
     const chainName =
         consts.supportedPeanutChains &&
         consts.supportedPeanutChains.find((chain) => chain.chainId == claimLinkData?.chainId)?.name

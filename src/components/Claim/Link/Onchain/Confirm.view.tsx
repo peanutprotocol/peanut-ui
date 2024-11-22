@@ -26,18 +26,18 @@ export const ConfirmClaimLinkView = ({
     estimatedPoints,
     attachment,
     selectedRoute,
-    crossChainDetails,
 }: _consts.IClaimScreenProps) => {
     const { address } = useAccount()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
+        context.tokenSelectorContext
+    )
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [fileType] = useState<string>('')
-    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { refetchBalances } = useBalance()
 
     const handleOnClaim = async () => {
@@ -140,30 +140,16 @@ export const ConfirmClaimLinkView = ({
                 </>
             )}
             <div className="flex w-full flex-col items-center justify-center gap-2">
-                <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
-                {tokenPrice ? (
-                    selectedRoute ? (
-                        <label className="text-h2">
-                            ${' '}
-                            {utils.formatTokenAmount(
-                                utils.formatAmountWithDecimals({
-                                    amount: selectedRoute.route.estimate.toAmountMin,
-                                    decimals: selectedRoute.route.estimate.toToken.decimals,
-                                }) * selectedRoute.route.estimate.toToken.usdPrice
-                            )}
-                        </label>
-                    ) : (
-                        <label className="text-h2">
-                            $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
-                        </label>
-                    )
-                ) : (
-                    <label className="text-h2 ">
-                        {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
-                    </label>
-                )}
+                <label className="text-h4">
+                    <AddressLink address={claimLinkData.senderAddress} /> sent you
+                </label>
+                <label className="text-h2 ">
+                    {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} on{' '}
+                    {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
+                </label>
                 {selectedRoute ? (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                        You are claiming{' '}
                         {utils.formatTokenAmount(
                             utils.formatAmountWithDecimals({
                                 amount: selectedRoute.route.estimate.toAmountMin,
@@ -171,7 +157,7 @@ export const ConfirmClaimLinkView = ({
                             })
                         )}{' '}
                         {selectedRoute.route.estimate.toToken.symbol} on{' '}
-                        {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
+                        {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                     </div>
                 ) : (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
@@ -207,19 +193,15 @@ export const ConfirmClaimLinkView = ({
                                         )?.name
                                     }
                                     <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                    {
-                                        mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)
-                                            ?.name
-                                    }
+                                    {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                                     <MoreInfo
                                         text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
                                             consts.supportedPeanutChains.find(
                                                 (chain) => chain.chainId === selectedRoute.route.params.fromChain
                                             )?.name
                                         } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                            mappedData.find(
-                                                (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                            )?.name
+                                            supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                ?.axelarChainName
                                         }.`}
                                     />
                                 </>

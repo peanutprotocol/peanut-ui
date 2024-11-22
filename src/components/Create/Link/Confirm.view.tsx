@@ -1,21 +1,29 @@
 'use client'
-import { useContext, useState } from 'react'
+import { useContext, useState, useMemo } from 'react'
 
-import * as assets from '@/assets'
 import * as context from '@/context'
-import * as consts from '@/constants'
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
-import * as utils from '@/utils'
+import {
+    areTokenAddressesEqual,
+    saveDirectSendToLocalStorage,
+    saveCreatedLinkToLocalStorage,
+    shareToEmail,
+    shareToSms,
+    updatePeanutPreferences,
+    ErrorHandler,
+    printableAddress,
+    formatTokenAmount,
+} from '@/utils'
 import Icon from '@/components/Global/Icon'
 import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
 import { useCreateLink } from '../useCreateLink'
 import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
-import { estimateContractGas } from 'viem/actions'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
+import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -41,9 +49,13 @@ export const CreateLinkConfirmView = ({
     const [showMessage, setShowMessage] = useState(false)
     const { refetchBalances } = useBalance()
 
-    const { selectedChainID, selectedTokenAddress, selectedTokenPrice, selectedTokenDecimals } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedChainID,
+        selectedTokenAddress,
+        selectedTokenPrice,
+        selectedTokenDecimals,
+        supportedSquidChainsAndTokens,
+    } = useContext(context.tokenSelectorContext)
 
     const { walletType } = useWalletType()
 
@@ -63,6 +75,41 @@ export const CreateLinkConfirmView = ({
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
     const { address } = useAccount()
+
+    const selectedChain = useMemo(() => {
+        if (supportedSquidChainsAndTokens[selectedChainID]) {
+            const chain = supportedSquidChainsAndTokens[selectedChainID]
+            return {
+                name: chain.axelarChainName,
+                iconUri: chain.chainIconURI,
+            }
+        } else {
+            const chain = supportedPeanutChains.find((chain) => chain.chainId === selectedChainID)
+            return {
+                name: chain?.name,
+                iconUri: chain?.icon.url,
+            }
+        }
+    }, [supportedSquidChainsAndTokens, selectedChainID])
+
+    const selectedToken = useMemo(() => {
+        if (supportedSquidChainsAndTokens[selectedChainID]) {
+            const chain = supportedSquidChainsAndTokens[selectedChainID]
+            const token = chain.tokens.find((token) => areTokenAddressesEqual(token.address, selectedTokenAddress))
+            return {
+                symbol: token?.symbol,
+                iconUri: token?.logoURI,
+            }
+        } else {
+            const token = peanutTokenDetails
+                .find((tokenDetails) => tokenDetails.chainId === selectedChainID)
+                ?.tokens.find((token) => areTokenAddressesEqual(token.address, selectedTokenAddress))
+            return {
+                symbol: token?.symbol,
+                iconUri: token?.logoURI,
+            }
+        }
+    }, [selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens])
 
     const handleConfirm = async () => {
         setLoadingState('Loading')
@@ -107,7 +154,7 @@ export const CreateLinkConfirmView = ({
             setLoadingState('Creating link')
 
             if (createType === 'direct') {
-                utils.saveDirectSendToLocalStorage({
+                saveDirectSendToLocalStorage({
                     address: address ?? '',
                     data: {
                         chainId: selectedChainID,
@@ -129,7 +176,7 @@ export const CreateLinkConfirmView = ({
             } else {
                 const link = await getLinkFromHash({ hash, linkDetails, password, walletType })
 
-                utils.saveCreatedLinkToLocalStorage({
+                saveCreatedLinkToLocalStorage({
                     address: address ?? '',
                     data: {
                         link: link[0],
@@ -157,11 +204,11 @@ export const CreateLinkConfirmView = ({
                             : undefined,
                 })
 
-                if (createType === 'email_link') utils.shareToEmail(recipient.name ?? '', link[0], usdValue)
-                if (createType === 'sms_link') utils.shareToSms(recipient.name ?? '', link[0], usdValue)
+                if (createType === 'email_link') shareToEmail(recipient.name ?? '', link[0], usdValue)
+                if (createType === 'sms_link') shareToSms(recipient.name ?? '', link[0], usdValue)
             }
 
-            utils.updatePeanutPreferences({
+            updatePeanutPreferences({
                 chainId: selectedChainID,
                 tokenAddress: selectedTokenAddress,
                 decimals: selectedTokenDecimals,
@@ -170,7 +217,7 @@ export const CreateLinkConfirmView = ({
             onNext()
             refetchBalances()
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -186,7 +233,7 @@ export const CreateLinkConfirmView = ({
                 {createType == 'link'
                     ? 'Text Tokens'
                     : createType == 'direct'
-                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : utils.printableAddress(recipient.address ?? '')}`
+                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>
             <label className="max-w-96 text-start text-h8 font-light">
@@ -200,8 +247,10 @@ export const CreateLinkConfirmView = ({
                     `You will send the tokens directly to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
             </label>
             <ConfirmDetails
-                selectedChainID={selectedChainID}
-                selectedTokenAddress={selectedTokenAddress}
+                tokenSymbol={selectedToken?.symbol ?? ''}
+                tokenIconUri={selectedToken?.iconUri ?? ''}
+                chainName={selectedChain?.name ?? ''}
+                chainIconUri={selectedChain?.iconUri ?? ''}
                 tokenAmount={tokenValue ?? '0'}
                 title="You're sending"
             />
@@ -255,11 +304,11 @@ export const CreateLinkConfirmView = ({
                                 ? '$0'
                                 : transactionCostUSD < 0.01
                                   ? '$<0.01'
-                                  : `$${utils.formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
+                                  : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
                             <MoreInfo
                                 text={
                                     transactionCostUSD > 0
-                                        ? `This transaction will cost you $${utils.formatTokenAmount(transactionCostUSD, 3)} in network fees.`
+                                        ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
                                         : 'This transaction is sponsored by peanut! Enjoy!'
                                 }
                             />

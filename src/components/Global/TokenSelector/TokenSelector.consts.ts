@@ -7,6 +7,7 @@ interface CombinedType extends interfaces.IPeanutChainDetails {
 export interface TokenSelectorProps {
     classNameButton?: string
     shouldBeConnected?: boolean
+    showOnlySquidSupported?: boolean
     onReset?: () => void
 }
 
