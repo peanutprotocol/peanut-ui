@@ -28,7 +28,7 @@ const config = createConfig({
     chains: consts.chains,
     connectors: [
         safe({
-            allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
+            allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/, /^(.*\.)?intersend\.io$/],
             shimDisconnect: true,
         }),
         walletConnect({
