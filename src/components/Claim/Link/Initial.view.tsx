@@ -1,7 +1,7 @@
 'use client'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useMemo } from 'react'
 import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
@@ -9,6 +9,7 @@ import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
 import * as consts from '@/constants'
+import { supportedPeanutChains } from '@/constants'
 import {
     areTokenAddressesEqual,
     saveClaimedLinkToLocalStorage,
@@ -48,7 +49,6 @@ export const InitialClaimLinkView = ({
     attachment,
     setTransactionHash,
     onCustom,
-    crossChainDetails,
     selectedRoute,
     setSelectedRoute,
     hasFetchedRoute,
@@ -79,8 +79,8 @@ export const InitialClaimLinkView = ({
         setRefetchXchainRoute,
         isXChain,
         setIsXChain,
+        supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
-    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { claimLink } = useClaimLink()
     const { open } = useWeb3Modal()
     const { isConnected, address } = useAccount()
@@ -142,6 +142,14 @@ export const InitialClaimLinkView = ({
         }
     }
 
+    const tokenSupportsXChain = useMemo(() => {
+        return (
+            supportedSquidChainsAndTokens[claimLinkData.chainId]?.tokens.some((token) =>
+                areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
+            ) ?? false
+        )
+    }, [claimLinkData.tokenAddress, claimLinkData.chainId, supportedSquidChainsAndTokens])
+
     const handleIbanRecipient = async () => {
         try {
             setErrorState({
@@ -169,7 +177,7 @@ export const InitialClaimLinkView = ({
             }
 
             if (!tokenName || !chainName) {
-                if (!crossChainDetails) {
+                if (!tokenSupportsXChain) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'offramp unavailable',
@@ -423,15 +431,27 @@ export const InitialClaimLinkView = ({
                     )}
                 </div>
                 <div className="flex w-full flex-col items-start justify-center gap-3 px-2">
-                    {recipientType !== 'iban' && recipientType !== 'us' && (
-                        <TokenSelector
-                            shouldBeConnected={false}
-                            onReset={() => {
-                                setSelectedChainID(claimLinkData.chainId)
-                                setSelectedTokenAddress(claimLinkData.tokenAddress)
-                            }}
-                        />
-                    )}
+                    {recipientType !== 'iban' && recipientType !== 'us' ? (
+                        tokenSupportsXChain ? (
+                            <TokenSelector
+                                shouldBeConnected={false}
+                                showOnlySquidSupported
+                                onReset={() => {
+                                    setSelectedChainID(claimLinkData.chainId)
+                                    setSelectedTokenAddress(claimLinkData.tokenAddress)
+                                }}
+                            />
+                        ) : (
+                            <label className="text-h7 font-light">
+                                This token does not support cross-chain claims. You can claim{' '}
+                                {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} on{' '}
+                                {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName ??
+                                    supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                        ?.name ??
+                                    'the same chain'}
+                            </label>
+                        )
+                    ) : null}
                     <GeneralRecipientInput
                         className=""
                         placeholder="wallet address / ENS / IBAN / US account number"
@@ -470,10 +490,9 @@ export const InitialClaimLinkView = ({
                                                     }
                                                     <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                                     {
-                                                        mappedData.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.toChain
-                                                        )?.name
+                                                        supportedSquidChainsAndTokens[
+                                                            selectedRoute.route.params.toChain
+                                                        ]?.axelarChainName
                                                     }
                                                     <MoreInfo
                                                         text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
@@ -483,10 +502,9 @@ export const InitialClaimLinkView = ({
                                                                     selectedRoute.route.params.fromChain
                                                             )?.name
                                                         } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                            mappedData.find(
-                                                                (chain) =>
-                                                                    chain.chainId === selectedRoute.route.params.toChain
-                                                            )?.name
+                                                            supportedSquidChainsAndTokens[
+                                                                selectedRoute.route.params.toChain
+                                                            ]?.axelarChainName
                                                         }.`}
                                                     />
                                                 </>
@@ -599,6 +617,8 @@ export const InitialClaimLinkView = ({
                                                         showError: false,
                                                         errorMessage: '',
                                                     })
+                                                    setSelectedChainID(claimLinkData.chainId)
+                                                    setSelectedTokenAddress(claimLinkData.tokenAddress)
                                                 }}
                                             >
                                                 reset

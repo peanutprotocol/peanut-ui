@@ -11,7 +11,7 @@ if (process.env.NODE_ENV !== 'development') {
         enabled: true,
         tracesSampleRate: 1,
         debug: false,
-        
+
         beforeSend(event) {
             if (event.request?.headers) {
                 delete event.request.headers['Authorization']
@@ -19,7 +19,7 @@ if (process.env.NODE_ENV !== 'development') {
             }
             return event
         },
-        
+
         integrations: [
             Sentry.captureConsoleIntegration({
                 levels: ['error', 'warn'],
