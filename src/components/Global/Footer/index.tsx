@@ -12,7 +12,11 @@ const Footer = () => {
                     {_consts.SOCIALS.map((social) => {
                         return (
                             <Link key={social.name} href={social.url} target="_blank">
-                                <img src={social.logoSrc} className="h-6" alt="twitter" />
+                                <img
+                                    src={social.logoSrc}
+                                    className={`h-6 ${social.name === 'github' ? 'brightness-0 invert' : ''}`}
+                                    alt={social.name}
+                                />
                             </Link>
                         )
                     })}

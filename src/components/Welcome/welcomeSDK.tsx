@@ -104,7 +104,7 @@ const faqs = [
     {
         question: 'What are the trust assumptions?',
         answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
-        redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
+        redirectUrl: 'https://docs.peanut.to/how-to-use-peanut-links/trust-assumptions',
         redirectText: 'here.',
     },
     {

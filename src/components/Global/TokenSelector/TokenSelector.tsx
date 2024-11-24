@@ -353,7 +353,7 @@ const TokenSelector = ({
                         <div className="flex w-full flex-col gap-2 text-center text-h8 font-normal">
                             We support 30+ chains and 1000+ tokens.
                             <a
-                                href="https://docs.peanut.to/learn/supported-chains-and-tokens"
+                                href="https://docs.peanut.to/supported-chains-and-tokens"
                                 target="_blank"
                                 className="text-link-decoration font-medium"
                             >

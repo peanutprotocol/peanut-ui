@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { Metadata } from 'next'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/Layout'
-import { Hero, FAQs, Features, Mike, Story, Intro, BuildOnUs, CashoutSection } from '@/components/LandingPage'
+import { Hero, FAQs, Features, Mike, Story, BuildOnUs, CashoutSection } from '@/components/LandingPage'
 import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
 import { useFooterVisibility } from '@/context/footerVisibility'
 
@@ -56,7 +56,7 @@ export default function LandingPage() {
                 ],
             },
             {
-                heading: 'Send tokens, like a pro.',
+                heading: 'What they say',
                 testimonials: [
                     {
                         imageSrc: assets.DEREK_PERSON.src,
@@ -70,14 +70,14 @@ export default function LandingPage() {
                     {
                         imageSrc: assets.SHARUK_PERSON.src,
                         altText: 'eco man',
-                        comment: 'Now I can save my dollars easily',
+                        comment: 'The easiest way to pay people!',
                         name: 'Gianluca',
                         detail: 'Eco',
                         detailRedirectUrl: 'https://eco.org/?ref=com',
                         bgColorClass: 'bg-white',
                     },
                     {
-                        imageSrc: assets.SBF_PERSON.src, // TODO: replace with actual image@
+                        imageSrc: assets.SBF_PERSON.src,
                         altText: 'picture of pixel art SBF',
                         comment: 'I have a peanut allergy Help!',
                         name: 'Banker',
@@ -105,7 +105,7 @@ export default function LandingPage() {
                 id: '1',
                 question: 'What are the trust assumptions?',
                 answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
-                redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
+                redirectUrl: 'https://docs.peanut.to/how-to-use-peanut-links/trust-assumptions',
                 redirectText: 'here.',
             },
             {
@@ -119,7 +119,7 @@ export default function LandingPage() {
                 id: '3',
                 question: 'What are the fees?',
                 answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol for same-chain transactions, see ',
-                redirectUrl: 'https://docs.peanut.to/overview/pricing',
+                redirectUrl: 'https://docs.peanut.to/pricing',
                 redirectText: 'here.',
             },
             {
@@ -133,7 +133,7 @@ export default function LandingPage() {
                 id: '5',
                 question: 'Are you audited?',
                 answer: 'Yes! ',
-                redirectUrl: 'https://docs.peanut.to/other/security-audit',
+                redirectUrl: 'https://docs.peanut.to/security-audit',
                 redirectText: 'See our docs for more',
             },
             {
@@ -151,7 +151,7 @@ export default function LandingPage() {
     }
 
     const mike = {
-        lines: ['Peanut', 'Text money'],
+        lines: ['PEANUT', 'buttery smooth'],
     }
 
     const { isFooterVisible } = useFooterVisibility()
@@ -170,21 +170,11 @@ export default function LandingPage() {
             <Hero heading={hero.heading} marquee={hero.marquee} cta={hero.cta} buttonVisible={buttonVisible} />
             <FAQs heading={faqs.heading} questions={faqs.questions} marquee={faqs.marquee} />
             <BuildOnUs />
-            {/* <MarqueeComp
-                message="PEANUT PROTOCOL • BUILD WITH US • PEANUT PROTOCOL • BUILD WITH US"
-                imageSrc={assets.SmileStars.src}
-                backgroundColor="bg-n-1"
-            />
-            <div className="bg-blue-1">
-                <CashoutSection />
-            </div> */}
-
-            {/* <Features sections={[features.sections[0]]} marquee={features.marquee} />
-            <Intro />
-
             <Story marquee={story.marquee} />
             <Features sections={[features.sections[1]]} marquee={features.marquee} />
-            <Mike lines={mike.lines} /> */}
+            <div className="bg-pink-1">
+                <Mike lines={mike.lines} />
+            </div>
         </Layout>
     )
 }
