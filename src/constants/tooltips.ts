@@ -7,7 +7,7 @@ Example US bank account: 1112223330001234567, with:
 Routing number (9 digits): 111222333
 Account number: 0001234567
 
-<a href="https://docs.peanut.to/app/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Supported regions</a>`,
+<a href="https://docs.peanut.to/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Supported regions</a>`,
 
     CLAIM_RECIPIENT_INFO: `You can claim your funds to: 
 • Any Ethereum wallet address
@@ -15,7 +15,7 @@ Account number: 0001234567
 • EU bank account (IBAN)
 • US bank account (routing + account number)
 
-<a href="https://docs.peanut.to/app/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Learn more about supported regions</a>`,
+<a href="https://docs.peanut.to/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Learn more about supported regions</a>`,
 
     CASHOUT_FAQ: `• What currencies can I cash out?
     Most popular tokens and stablecoins are supported.

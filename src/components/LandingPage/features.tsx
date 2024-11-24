@@ -284,7 +284,9 @@ export function Features({ sections, marquee = { visible: false } }: FeaturesPro
                 ))}
             </Stack>
 
-            {marquee.visible && <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} />}
+            {marquee.visible && (
+                <MarqueeComp message={marquee.message} imageSrc={HandThumbsUp.src} backgroundColor="bg-yellow-1" />
+            )}
         </Flex>
     )
 }
