@@ -13,7 +13,7 @@ export const SOCIALS = [
     },
     {
         name: 'gitbook',
-        url: 'https://docs.peanut.to/overview/what-is-peanut',
+        url: 'https://docs.peanut.to',
         logoSrc: icons.GITBOOK_ICON.src,
     },
     {
@@ -28,11 +28,10 @@ export const LINKS = [
         name: 'Docs',
         url: '/docs',
     },
-
-    {
-        name: 'Blog',
-        url: '/blog',
-    },
+    // {
+    //     name: 'Blog',
+    //     url: '/blog',
+    // },
     {
         name: 'Privacy',
         url: '/privacy',
