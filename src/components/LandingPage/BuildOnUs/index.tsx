@@ -14,7 +14,7 @@ export default function BuildOnUs() {
                 transition={{ type: 'spring', damping: 10 }}
             >
                 <a
-                    href="https://peanutprotocol.notion.site/Integration-Form-12c83811757980869937dcaee9f4b0f0?pvs=4"
+                    href="https://peanutprotocol.notion.site/12c83811757980afb3b6d3e5a4c68f4d?pvs=4"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-6"
