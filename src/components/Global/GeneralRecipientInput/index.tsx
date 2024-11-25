@@ -6,6 +6,7 @@ import * as utils from '@/utils'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
+import { sanitizeBankAccount, formatIBANDisplay, formatUSAccountDisplay } from '@/utils/format.utils'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -40,17 +41,15 @@ const GeneralRecipientInput = ({
             let isValid = false
             let type: interfaces.RecipientType = 'address'
 
-            if (isIBAN(recipient)) {
+            const sanitizedInput = sanitizeBankAccount(recipient)
+
+            if (isIBAN(sanitizedInput)) {
                 type = 'iban'
-                isValid = await utils.validateBankAccount(recipient)
+                isValid = await utils.validateBankAccount(sanitizedInput)
                 if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
-            } else if (/^[0-9]{6,26}$/.test(recipient)) {
+            } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
-                isValid = await utils.validateBankAccount(recipient)
-                if (!isValid) {
-                    errorMessage.current =
-                        'Invalid bank account. For US bank accounts, enter your bank routing number (9 digits) followed by your account number (example: 1112223330001234567 where routing number is: 111222333 and account number: 0001234567)'
-                }
+                isValid = true
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 type = 'ens'
                 const address = await utils.resolveFromEnsName(recipient.toLowerCase())
@@ -105,12 +104,20 @@ const GeneralRecipientInput = ({
         [addRecipient]
     )
 
+    const formatDisplayValue = (value: string) => {
+        if (recipientType.current === 'iban') {
+            return formatIBANDisplay(value)
+        } else if (recipientType.current === 'us') {
+            return formatUSAccountDisplay(value)
+        }
+        return value
+    }
+
     return (
         <ValidatedInput
-            placeholder={placeholder}
             label="To"
             value={recipient.name ?? recipient.address}
-            debounceTime={750}
+            placeholder={placeholder}
             validate={checkAddress}
             onUpdate={onInputUpdate}
             className={className}
@@ -118,6 +125,7 @@ const GeneralRecipientInput = ({
             name="bank-account"
             suggestions={getSuggestions(recipientType.current)}
             infoText={infoText}
+            formatDisplayValue={formatDisplayValue}
         />
     )
 }

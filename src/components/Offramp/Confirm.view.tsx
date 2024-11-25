@@ -17,6 +17,7 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
 import { checkTransactionStatus } from '@/components/utils/utils'
+import { formatIBANDisplay } from '@/utils/format.utils'
 
 import {
     CrossChainDetails,
@@ -653,14 +654,12 @@ export const OfframpConfirmView = ({
                         </div>
 
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'bank'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Bank account</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {offrampType == OfframpType.CASHOUT
-                                    ? offrampForm.recipient.toUpperCase()
-                                    : offrampForm?.recipient}
+                                {formatIBANDisplay(offrampForm.recipient)}
                             </span>
                         </div>
 
@@ -743,12 +742,12 @@ export const OfframpConfirmView = ({
                             </div>
                         </div>
 
-                        <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
-                            <div className="flex w-1/3 flex-row items-center gap-1">
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center gap-1">
                                 <Icon name={'transfer'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">You will receive</label>
                             </div>
-                            <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                            <div className="flex items-center justify-end gap-1 text-sm font-normal">
                                 <div className="flex items-center gap-1">
                                     $
                                     {user?.accounts.find(

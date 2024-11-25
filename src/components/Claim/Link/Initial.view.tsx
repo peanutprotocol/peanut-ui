@@ -458,7 +458,11 @@ export const InitialClaimLinkView = ({
                         recipient={recipient}
                         onUpdate={(update: GeneralRecipientUpdate) => {
                             setRecipient(update.recipient)
-                            setRecipientType(update.type)
+                            if (!update.recipient.address) {
+                                setRecipientType('address')
+                            } else {
+                                setRecipientType(update.type)
+                            }
                             setIsValidRecipient(update.isValid)
                             setErrorState({
                                 showError: !update.isValid,

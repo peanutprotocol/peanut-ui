@@ -12,8 +12,10 @@ import { useAuth } from '@/context/authContext'
 import { Divider } from '@chakra-ui/react'
 import { isIBAN } from 'validator'
 import { IBridgeAccount, IResponse } from '@/interfaces'
+import { USBankAccountInput } from '../USBankAccountInput'
+import { sanitizeBankAccount, formatIBANDisplay } from '@/utils/format.utils'
 
-const steps = [{ label: 'Step 1: Enter bank account' }, { label: 'Step 2: Provide details' }]
+const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
 interface IGlobaLinkAccountComponentProps {
     accountNumber?: string
@@ -40,8 +42,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     } = useSteps({
         initialStep: 0,
     })
-    const [loadingState, setLoadingState] = useState<string>('Idle')
-    const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
+    const [loadingState, setLoadingState] = useState<'idle' | 'validating' | 'creating' | 'linking'>('idle')
+    const isLoading = loadingState !== 'idle'
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -78,7 +80,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     } = useForm({
         mode: 'onChange',
         defaultValues: {
-            accountNumber: accountNumber,
+            accountNumber: accountNumber ? sanitizeBankAccount(accountNumber) : '',
         },
     })
     const { user, fetchUser } = useAuth()
@@ -98,32 +100,46 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         }
     }, [accountNumber, setAccountDetailsValue])
 
+    useEffect(() => {
+        if (getAccountDetailsValue('type') === 'us') {
+            setAccountDetailsValue('country', 'USA')
+        }
+    }, [getAccountDetailsValue('type')])
+
+    const validateUSAccount = (routingNumber: string, accountNumber: string) => {
+        if (!/^[0-9]{9}$/.test(routingNumber)) {
+            return 'Invalid routing number - must be 9 digits'
+        }
+        if (!/^[0-9]{1,17}$/.test(accountNumber)) {
+            return 'Invalid account number'
+        }
+        return null
+    }
+
     const handleCheckIban = async ({ accountNumber }: { accountNumber: string | undefined }) => {
         try {
             setErrorState({
                 showError: false,
                 errorMessage: '',
             })
-            setLoadingState('Loading')
+            setLoadingState('validating')
 
             if (!accountNumber) return
 
-            // strip all whitespaces (tabs, spaces, etc.)
-            const sanitizedAccountNumber = accountNumber.replaceAll(/\s/g, '').toLowerCase()
+            const sanitizedAccountNumber = sanitizeBankAccount(accountNumber)
 
             if (isIBAN(sanitizedAccountNumber)) {
                 setAccountDetailsValue('type', 'iban')
-                // this code is also repeated in GeneralRecipientInput.tsx
-            } else if (/^[0-9]{6,26}$/.test(sanitizedAccountNumber)) {
+                const isValid = await utils.validateBankAccount(sanitizedAccountNumber)
+                if (!isValid) {
+                    setIbanFormError('accountNumber', { message: 'Invalid IBAN' })
+                    return
+                }
+            } else if (/^[0-9]{1,17}$/.test(sanitizedAccountNumber)) {
                 setAccountDetailsValue('type', 'us')
+                setAccountDetailsValue('accountNumber', sanitizedAccountNumber)
+                setAccountDetailsValue('routingNumber', '')
             } else {
-                setIbanFormError('accountNumber', { message: 'Invalid account number' })
-                return
-            }
-            console.log(`Set bank account type to ${getAccountDetailsValue('type')} for ${sanitizedAccountNumber}`)
-
-            const isValidIban = await utils.validateBankAccount(sanitizedAccountNumber)
-            if (!isValidIban) {
                 setIbanFormError('accountNumber', { message: 'Invalid account number' })
                 return
             }
@@ -132,24 +148,63 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         } catch (error) {
             console.error(error)
         } finally {
-            setLoadingState('Idle')
+            setLoadingState('idle')
         }
     }
 
     const handleSubmitLinkIban = async (formData: IRegisterAccountDetails) => {
         try {
-            setLoadingState('Loading')
+            setLoadingState('creating')
             setErrorState({
                 showError: false,
                 errorMessage: '',
             })
 
+            console.log('Submitting form data:', formData)
+
+            // Add validation for US routing number
+            if (formData.type === 'us' && !formData.routingNumber) {
+                console.log('Missing routing number')
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please enter your routing number',
+                })
+                setLoadingState('idle')
+                return
+            }
+
+            // Get address from the user's existing account if available
+            const existingAccount = user?.accounts?.find((account) => account.account_details)
+            const existingAddress = existingAccount?.account_details
+                ? JSON.parse(existingAccount.account_details)
+                : null
+
+            // Rest of validation
             const isFormValid = await utils.validateAccountFormData(
-                { ...formData, accountNumber: getIbanFormValue('accountNumber') },
+                {
+                    ...formData,
+                    accountNumber: getIbanFormValue('accountNumber'),
+                    // If user has KYC'd account, use its address
+                    ...(user?.user?.kycStatus === 'verified' && existingAddress
+                        ? {
+                              street: existingAddress.street,
+                              city: existingAddress.city,
+                              state: existingAddress.state,
+                              postalCode: existingAddress.postalCode,
+                              country: existingAddress.country,
+                          }
+                        : {}),
+                },
                 setAccountDetailsError
             )
 
             if (!isFormValid) {
+                console.log('Form validation failed')
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'Please check all fields and try again',
+                })
+                setLoadingState('idle')
                 return
             }
 
@@ -176,13 +231,18 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                           country: utils.getThreeCharCountryCodeFromIban(getIbanFormValue('accountNumber') ?? ''),
                       }
                     : { accountNumber: getIbanFormValue('accountNumber'), routingNumber: formData.routingNumber }
-            const address = {
-                street: formData.street,
-                city: formData.city,
-                country: formData.country,
-                state: formData.state,
-                postalCode: formData.postalCode,
-            }
+
+            const address =
+                user?.user?.kycStatus === 'verified' && existingAddress
+                    ? existingAddress
+                    : {
+                          street: formData.street,
+                          city: formData.city,
+                          country: formData.country,
+                          state: formData.state,
+                          postalCode: formData.postalCode,
+                      }
+
             let accountOwnerName = user?.user?.full_name
 
             if (!accountOwnerName) {
@@ -203,7 +263,11 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             )
 
             if (!response.success) {
-                throw new Error('Creating Bridge account failed')
+                setErrorState({
+                    showError: true,
+                    errorMessage: response.message || 'Failed to create external account',
+                })
+                return
             }
 
             const data: IBridgeAccount = response.data
@@ -220,11 +284,16 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
-            console.error('Error during the submission process:', error)
-            setErrorState({ showError: true, errorMessage: String(error) })
+            console.error('Error in handleSubmitLinkIban:', error)
+            const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+            setErrorState({ showError: true, errorMessage })
         } finally {
-            setLoadingState('Idle')
+            setLoadingState('idle')
         }
+    }
+
+    const formatDisplayValue = (value: string) => {
+        return formatIBANDisplay(value)
     }
 
     const renderComponent = () => {
@@ -238,11 +307,23 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         <input
                             {...registerIban('accountNumber', {
                                 required: 'This field is required',
+                                setValueAs: (value: string) => value?.toLowerCase(), // Store as lowercase
                             })}
                             className={`custom-input ${ibanErrors.accountNumber ? 'border border-red' : ''}`}
                             placeholder={'Bank account'}
                             autoComplete="on"
                             name="bank-account"
+                            value={formatDisplayValue(getIbanFormValue('accountNumber') || '')} // Display formatted
+                            onChange={(e) => {
+                                // Remove spaces and store lowercase
+                                const rawValue = e.target.value.replace(/\s/g, '')
+                                registerIban('accountNumber').onChange({
+                                    target: {
+                                        value: rawValue.toLowerCase(),
+                                        name: 'accountNumber',
+                                    },
+                                })
+                            }}
                         />
                         {ibanErrors.accountNumber && (
                             <span className="text-h9 font-normal text-red">{ibanErrors.accountNumber.message}</span>
@@ -250,7 +331,10 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         <button type="submit" className="btn btn-purple h-8 w-full" disabled={isLoading}>
                             {isLoading ? (
                                 <div className="flex w-full flex-row items-center justify-center gap-2">
-                                    <Loading /> {loadingState}
+                                    <Loading />
+                                    {loadingState === 'validating' && 'Validating...'}
+                                    {loadingState === 'creating' && 'Creating account...'}
+                                    {loadingState === 'linking' && 'Linking account...'}
                                 </div>
                             ) : (
                                 'Confirm'
@@ -269,7 +353,118 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                         className="flex w-full flex-col items-start justify-center gap-2"
                         onSubmit={handleAccountDetailsSubmit(handleSubmitLinkIban)}
                     >
-                        {getAccountDetailsValue('type') === 'iban' ? (
+                        {getAccountDetailsValue('type') === 'us' ? (
+                            <div className="flex w-full flex-col gap-4">
+                                <div className="flex flex-col gap-2">
+                                    <input
+                                        {...registerAccountDetails('routingNumber', {
+                                            required: 'Routing number is required',
+                                            pattern: {
+                                                value: /^[0-9]{9}$/,
+                                                message: 'Routing number must be 9 digits',
+                                            },
+                                        })}
+                                        className={`custom-input ${accountDetailsErrors.routingNumber ? 'border border-red' : ''}`}
+                                        placeholder="Enter your routing number"
+                                    />
+                                    <span className="text-h9 font-light">
+                                        Your 9-digit routing number can be found at the bottom of your checks or in your
+                                        bank's online portal
+                                    </span>
+                                    {accountDetailsErrors.routingNumber && (
+                                        <span className="text-h9 font-normal text-red">
+                                            {accountDetailsErrors.routingNumber.message}
+                                        </span>
+                                    )}
+                                </div>
+
+                                <div className="flex flex-col gap-2">
+                                    <input
+                                        disabled
+                                        value={formatIBANDisplay(getAccountDetailsValue('accountNumber'))}
+                                        className="custom-input bg-gray-100"
+                                        placeholder="Account number"
+                                    />
+                                    <span className="text-h9 font-light">Your account number</span>
+                                </div>
+
+                                {(!user?.user?.kycStatus || user.user.kycStatus !== 'verified') && (
+                                    <div className="flex w-full flex-col gap-4 border-t border-gray-200 pt-4">
+                                        <span className="text-h8 font-medium">Your US address details</span>
+
+                                        <input
+                                            {...registerAccountDetails('street', {
+                                                required: 'Street address is required',
+                                            })}
+                                            className={`custom-input ${accountDetailsErrors.street ? 'border border-red' : ''}`}
+                                            placeholder="Street address"
+                                        />
+                                        {accountDetailsErrors.street && (
+                                            <span className="text-h9 font-normal text-red">
+                                                {accountDetailsErrors.street.message}
+                                            </span>
+                                        )}
+
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <input
+                                                    {...registerAccountDetails('city', {
+                                                        required: 'City is required',
+                                                    })}
+                                                    className={`custom-input ${accountDetailsErrors.city ? 'border border-red' : ''}`}
+                                                    placeholder="City"
+                                                />
+                                                {accountDetailsErrors.city && (
+                                                    <span className="text-h9 font-normal text-red">
+                                                        {accountDetailsErrors.city.message}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="flex-1">
+                                                <input
+                                                    {...registerAccountDetails('state', {
+                                                        required: 'State is required',
+                                                    })}
+                                                    className={`custom-input ${accountDetailsErrors.state ? 'border border-red' : ''}`}
+                                                    placeholder="State"
+                                                />
+                                                {accountDetailsErrors.state && (
+                                                    <span className="text-h9 font-normal text-red">
+                                                        {accountDetailsErrors.state.message}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className="flex gap-2">
+                                            <div className="flex-1">
+                                                <input
+                                                    {...registerAccountDetails('postalCode', {
+                                                        required: 'ZIP code is required',
+                                                    })}
+                                                    className={`custom-input ${accountDetailsErrors.postalCode ? 'border border-red' : ''}`}
+                                                    placeholder="ZIP code"
+                                                />
+                                                {accountDetailsErrors.postalCode && (
+                                                    <span className="text-h9 font-normal text-red">
+                                                        {accountDetailsErrors.postalCode.message}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="pointer-events-none flex-1 opacity-50">
+                                                <CountryDropdown
+                                                    value="USA"
+                                                    onChange={(value: string) => {
+                                                        setAccountDetailsValue('country', value)
+                                                    }}
+                                                    error={accountDetailsErrors.country?.message}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
                             <>
                                 <input
                                     {...registerAccountDetails('BIC', {
@@ -277,6 +472,10 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                             getAccountDetailsValue('type') === 'iban'
                                                 ? 'This field is required'
                                                 : false,
+                                        pattern: {
+                                            value: /^[A-Z]{6}[A-Z0-9]{2}([A-Z0-9]{3})?$/,
+                                            message: 'Please enter a valid BIC/SWIFT code',
+                                        },
                                     })}
                                     className={`custom-input ${accountDetailsErrors.BIC ? 'border border-red' : ''}`}
                                     placeholder="BIC"
@@ -287,118 +486,14 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                     </span>
                                 )}
                             </>
-                        ) : (
-                            <>
-                                <input
-                                    {...registerAccountDetails('routingNumber', {
-                                        required:
-                                            getAccountDetailsValue('type') === 'us' ? 'This field is required' : false,
-                                    })}
-                                    className={`custom-input ${accountDetailsErrors.routingNumber ? 'border border-red' : ''}`}
-                                    placeholder="Routing number"
-                                />
-                                {accountDetailsErrors.routingNumber && (
-                                    <span className="text-h9 font-normal text-red">
-                                        {accountDetailsErrors.routingNumber.message}
-                                    </span>
-                                )}
-                            </>
-                        )}
-                        {getAccountDetailsValue('type') === 'us' && (
-                            <div className="flex w-full flex-col items-start justify-center gap-2">
-                                <input
-                                    {...registerAccountDetails('street', {
-                                        required:
-                                            getAccountDetailsValue('type') === 'us' ? 'This field is required' : false,
-                                    })}
-                                    className={`custom-input ${accountDetailsErrors.street ? 'border border-red' : ''}`}
-                                    placeholder="Your street and number"
-                                    autoComplete="street-address"
-                                    name="street"
-                                />
-                                {accountDetailsErrors.street && (
-                                    <span className="text-h9 font-normal text-red">
-                                        {accountDetailsErrors.street.message}
-                                    </span>
-                                )}
-
-                                <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <input
-                                            {...registerAccountDetails('city', {
-                                                required:
-                                                    getAccountDetailsValue('type') === 'us'
-                                                        ? 'This field is required'
-                                                        : false,
-                                            })}
-                                            className={`custom-input ${accountDetailsErrors.city ? 'border border-red' : ''}`}
-                                            placeholder="Your city"
-                                            autoComplete="address-level2"
-                                            name="city"
-                                        />
-                                        {accountDetailsErrors.city && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountDetailsErrors.city.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                                        <input
-                                            {...registerAccountDetails('postalCode', {
-                                                required:
-                                                    getAccountDetailsValue('type') === 'us'
-                                                        ? 'This field is required'
-                                                        : false,
-                                            })}
-                                            className={`custom-input ${accountDetailsErrors.postalCode ? 'border border-red' : ''}`}
-                                            placeholder="Your postal code"
-                                            autoComplete="postal-code"
-                                            name="postal-code"
-                                        />
-                                        {accountDetailsErrors.postalCode && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountDetailsErrors.postalCode.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                </div>
-                                <div className="mx-0 flex w-full flex-row items-start justify-between gap-2">
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <input
-                                            {...registerAccountDetails('state', {
-                                                required:
-                                                    getAccountDetailsValue('type') === 'us'
-                                                        ? 'This field is required'
-                                                        : false,
-                                            })}
-                                            className={`custom-input ${accountDetailsErrors.state ? 'border border-red' : ''}`}
-                                            placeholder="Your state "
-                                            autoComplete="address-level1"
-                                            name="state"
-                                        />
-                                        {accountDetailsErrors.state && (
-                                            <span className="text-h9 font-normal text-red">
-                                                {accountDetailsErrors.state.message}
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                                        <CountryDropdown
-                                            value={accountDetailsWatch('country')}
-                                            onChange={(value: any) => {
-                                                setAccountDetailsValue('country', value, { shouldValidate: true })
-                                                clearAccountDetailsErrors('country')
-                                            }}
-                                            error={accountDetailsErrors.country?.message}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
                         )}
                         <button type="submit" className="btn btn-purple h-8 w-full" disabled={isLoading}>
                             {isLoading ? (
                                 <div className="flex w-full flex-row items-center justify-center gap-2">
-                                    <Loading /> {loadingState}
+                                    <Loading />
+                                    {loadingState === 'validating' && 'Validating...'}
+                                    {loadingState === 'creating' && 'Creating account...'}
+                                    {loadingState === 'linking' && 'Linking account...'}
                                 </div>
                             ) : (
                                 'Confirm'
