@@ -7,6 +7,7 @@ import * as utils from '@/utils'
 import Link from 'next/link'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import AddressLink from '@/components/Global/AddressLink'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
     const chainName =
@@ -73,7 +74,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                                 <label className="font-bold">Requester</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {utils.shortenAddress(requestLinkData?.recipientAddress as string)}
+                                <AddressLink address={requestLinkData?.recipientAddress ?? ''} />
                             </span>
                         </div>
                     )}

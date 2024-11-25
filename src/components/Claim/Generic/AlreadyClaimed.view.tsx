@@ -7,6 +7,7 @@ import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Link from 'next/link'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import AddressLink from '@/components/Global/AddressLink'
 
 export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
     const chainName =
@@ -70,7 +71,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                                 <label className="font-bold">Sender</label>
                             </div>
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {utils.shortenAddress(claimLinkData?.senderAddress)}
+                                <AddressLink address={claimLinkData?.senderAddress ?? ''} />
                             </span>
                         </div>
                     )}
