@@ -14,14 +14,11 @@ import {
     WebAuthnMode,
     PasskeyValidatorContractVersion,
 } from '@zerodev/passkey-validator'
-import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import { KERNEL_V3_1, getEntryPoint } from '@zerodev/sdk/constants'
 
 // Viem imports
 import { arbitrum } from 'viem/chains'
 import { createPublicClient, http, parseAbi, encodeFunctionData } from 'viem'
-
-// Permissionless imports
-import { bundlerActions, ENTRYPOINT_ADDRESS_V07 } from 'permissionless'
 
 import React, { useEffect, useState } from 'react'
 
@@ -65,7 +62,7 @@ export const HandleSetupView = ({}) => {
     const PASSKEY_SERVER_URL = process.env.NEXT_PUBLIC_ZERO_DEV_PASSKEY_SERVER_URL
 
     const CHAIN = arbitrum
-    const entryPoint = ENTRYPOINT_ADDRESS_V07
+    const entryPoint = getEntryPoint('0.7')
 
     const contractAddress = '0x34bE7f35132E97915633BC1fc020364EA5134863'
     const contractABI = parseAbi([
@@ -158,17 +155,14 @@ export const HandleSetupView = ({}) => {
             account: kernelAccount,
             chain: CHAIN,
             bundlerTransport: http(BUNDLER_URL),
-            entryPoint,
-            middleware: {
-                sponsorUserOperation: async ({ userOperation }) => {
+            paymaster: {
+                getPaymasterData: async (userOperation) => {
                     const zerodevPaymaster = createZeroDevPaymasterClient({
                         chain: CHAIN,
                         transport: http(PAYMASTER_URL),
-                        entryPoint,
                     })
                     return zerodevPaymaster.sponsorUserOperation({
                         userOperation,
-                        entryPoint,
                     })
                 },
             },
@@ -225,17 +219,14 @@ export const HandleSetupView = ({}) => {
             account: kernelAccountResult,
             chain: CHAIN,
             bundlerTransport: http(BUNDLER_URL),
-            entryPoint,
-            middleware: {
-                sponsorUserOperation: async ({ userOperation }) => {
+            paymaster: {
+                getPaymasterData: async (userOperation) => {
                     const zerodevPaymaster = createZeroDevPaymasterClient({
                         chain: CHAIN,
                         transport: http(PAYMASTER_URL),
-                        entryPoint,
                     })
                     return zerodevPaymaster.sponsorUserOperation({
                         userOperation,
-                        entryPoint,
                     })
                 },
             },
@@ -243,7 +234,7 @@ export const HandleSetupView = ({}) => {
 
         // Send the user operation
         const userOpHash = await kernelClientResult.sendUserOperation({
-            userOperation: signedUserOperation,
+            ...signedUserOperation,
         })
 
         console.log({ userOpHash })
@@ -296,11 +287,7 @@ export const HandleSetupView = ({}) => {
 
         // setUserOpHash(userOpHash)
 
-        //TODO: fix type
-        const bundlerClient = (kernelClientResult as any).extend(bundlerActions(entryPoint))
-
-        console.log({ bundlerClient })
-        await bundlerClient.waitForUserOperationReceipt({
+        await kernelClientResult.waitForUserOperationReceipt({
             hash: userOpHash,
         })
 

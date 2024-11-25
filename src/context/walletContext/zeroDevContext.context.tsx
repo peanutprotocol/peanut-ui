@@ -9,7 +9,6 @@ import {
     createKernelAccountClient,
     createZeroDevPaymasterClient,
     KernelAccountClient,
-    KernelSmartAccount,
 } from '@zerodev/sdk'
 import {
     toPasskeyValidator,
@@ -19,20 +18,13 @@ import {
 } from '@zerodev/passkey-validator'
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 
-// Permissionless imports
-import { bundlerActions, type BundlerClient } from 'permissionless'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { peanutPublicClient } from '@/constants/viem.consts'
 import { infuraRpcUrls } from '@/constants'
 import { useAuth } from '../authContext'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
-type AppSmartAccountClient = KernelAccountClient<
-    typeof consts.USER_OP_ENTRY_POINT,
-    Transport,
-    typeof consts.PEANUT_WALLET_CHAIN,
-    KernelSmartAccount<typeof consts.USER_OP_ENTRY_POINT, Transport, typeof consts.PEANUT_WALLET_CHAIN>
->
+type AppSmartAccountClient = KernelAccountClient<Transport, typeof consts.PEANUT_WALLET_CHAIN>
 type UserOpNotEncodedParams = {
     to: Address // contractAddress to send userop to
     value: number
@@ -113,17 +105,14 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             account: kernelAccount,
             chain: consts.PEANUT_WALLET_CHAIN,
             bundlerTransport: http(consts.BUNDLER_URL),
-            entryPoint: consts.USER_OP_ENTRY_POINT,
-            middleware: {
-                sponsorUserOperation: async ({ userOperation }) => {
+            paymaster: {
+                getPaymasterData: async (userOperation) => {
                     const zerodevPaymaster = createZeroDevPaymasterClient({
                         chain: consts.PEANUT_WALLET_CHAIN,
                         transport: http(consts.PAYMASTER_URL),
-                        entryPoint: consts.USER_OP_ENTRY_POINT,
                     })
                     return zerodevPaymaster.sponsorUserOperation({
                         userOperation,
-                        entryPoint: consts.USER_OP_ENTRY_POINT,
                     })
                 },
             },
@@ -217,21 +206,16 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         setIsSendingUserOp(true)
         const userOpHash = await kernelClient!.sendUserOperation({
             account: kernelClient!.account,
-            userOperation: {
-                callData: await kernelClient!.account!.encodeCallData({
+            callData: await kernelClient!.account!.encodeCalls([
+                {
                     to: (to ? to : '') as `0x${string}`,
                     value: value ? BigInt(value.toString()) : BigInt(0),
                     data,
-                }),
-            },
+                },
+            ]),
         })
 
-        // type: Permisionless.js BundlerClient
-        const bundlerClient = kernelClient!.extend(
-            bundlerActions(consts.USER_OP_ENTRY_POINT)
-        ) as AppSmartAccountClient & BundlerClient<typeof consts.USER_OP_ENTRY_POINT, typeof consts.PEANUT_WALLET_CHAIN>
-
-        const receipt = await bundlerClient.waitForUserOperationReceipt({
+        const receipt = await kernelClient!.waitForUserOperationReceipt({
             hash: userOpHash,
         })
 
@@ -263,8 +247,8 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
         const userOpHash = await kernelClient!.sendUserOperation({
             account: kernelClient!.account,
-            userOperation: {
-                callData: await kernelClient!.account.encodeCallData({
+            callData: await kernelClient!.account!.encodeCalls([
+                {
                     to,
                     value: BigInt(value),
                     data: encodeFunctionData({
@@ -272,15 +256,11 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
                         functionName,
                         args,
                     }),
-                }),
-            },
+                },
+            ]),
         })
 
-        const bundlerClient = kernelClient!.extend(
-            bundlerActions(consts.USER_OP_ENTRY_POINT)
-        ) as AppSmartAccountClient & BundlerClient<typeof consts.USER_OP_ENTRY_POINT, typeof consts.PEANUT_WALLET_CHAIN>
-
-        await bundlerClient!.waitForUserOperationReceipt({
+        await kernelClient!.waitForUserOperationReceipt({
             hash: userOpHash,
         })
 

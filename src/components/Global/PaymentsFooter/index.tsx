@@ -1,10 +1,10 @@
-import Icon from '@/components/Global/Icon'
+import Icon, { type IconNameType } from '@/components/Global/Icon'
 import Link from 'next/link'
 
 interface PaymentsFooterProps {
     href?: string
     text?: string
-    icon?: string
+    icon?: IconNameType
 }
 
 export const PaymentsFooter = ({

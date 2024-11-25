@@ -4,7 +4,6 @@ import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Glob
 import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState, useMemo } from 'react'
 import Icon from '@/components/Global/Icon'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import * as consts from '@/constants'
@@ -412,7 +411,7 @@ export const InitialClaimLinkView = ({
                     {(attachment.message || attachment.attachmentUrl) && (
                         <>
                             <div
-                                className={`flex w-full items-center justify-center gap-2 ${utils.checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                                className={`flex w-full items-center justify-center gap-2 ${checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
                             >
                                 {attachment.message && (
                                     <label className="max-w-full text-h8">
@@ -471,6 +470,7 @@ export const InitialClaimLinkView = ({
                         })
                         setInputChanging(update.isChanging)
                     }}
+                    infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
                 />
                 {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
