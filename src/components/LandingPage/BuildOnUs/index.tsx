@@ -14,7 +14,7 @@ export default function BuildOnUs() {
                 transition={{ type: 'spring', damping: 10 }}
             >
                 <a
-                    href="https://peanutprotocol.notion.site/12c83811757980afb3b6d3e5a4c68f4d?pvs=4"
+                    href="https://peanutprotocol.notion.site/Integration-Form-12c83811757980869937dcaee9f4b0f0?pvs=4"
                     target="_blank"
                     rel="noopener noreferrer"
                     className="flex flex-col items-center gap-6"
@@ -30,11 +30,13 @@ export default function BuildOnUs() {
                         whileHover={{ scale: 1.05 }}
                         whileTap={{ scale: 0.95 }}
                     >
-                        Start Building Now
+                        Integrate
                     </motion.button>
                 </a>
-                <p className="text-center text-lg text-n-1">
-                    Join the ecosystem of apps building the future of payments
+                <p className="max-w-[600px] px-4 text-center text-lg text-n-1 md:max-w-[50%]">
+                    In awe about Peanut? Want to have something similar in your app or wallet? The app is powered by
+                    Peanut Protocol which comes with a powerful set of SDKs and APIs that make any payment as smooth as
+                    butter
                 </p>
             </motion.div>
         </div>
