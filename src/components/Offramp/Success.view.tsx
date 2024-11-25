@@ -42,11 +42,11 @@ export const OfframpSuccessView = ({
                 </Card.Description>
             </Card.Header>
             <Card.Content className="col gap-2">
-            <label className="text-h2">Yay!</label>
-            <label className="text-h8 font-bold ">
-                Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please keep
-                in mind that it may take up to 2 days for the funds to arrive.
-            </label>
+                <label className="text-h2">Yay!</label>
+                <label className="text-h8 font-bold ">
+                    Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please
+                    keep in mind that it may take up to 2 days for the funds to arrive.
+                </label>
                 <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
                     <div className="flex w-1/3 flex-row items-center gap-1">
                         <Icon name={'gas'} className="h-4 fill-gray-1" />
