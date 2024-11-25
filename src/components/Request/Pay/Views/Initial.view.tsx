@@ -350,49 +350,51 @@ export const InitialView = ({
                 </Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">
-            <ReferenceAndAttachment
-                reference={requestLinkData?.reference}
-                attachmentUrl={requestLinkData?.attachmentUrl}
-            />
-            <div className="flex w-full flex-col items-center justify-center gap-2">
-                <label className="text-h4">
-                    <AddressLink address={requestLinkData.recipientAddress} /> is requesting
-                </label>
+                <ReferenceAndAttachment
+                    reference={requestLinkData?.reference}
+                    attachmentUrl={requestLinkData?.attachmentUrl}
+                />
+                <div className="flex w-full flex-col items-center justify-center gap-2">
+                    <label className="text-h4">
+                        <AddressLink address={requestLinkData.recipientAddress} /> is requesting
+                    </label>
 
-                <label className="text-h2">{requestedAmount}</label>
-                <div>
-                    <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
-                        <div className="relative h-6 w-6">
-                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
-                            <img
-                                src={
-                                    consts.supportedPeanutChains.find(
-                                        (chain) => chain.chainId === requestLinkData.chainId
-                                    )?.icon.url
-                                }
-                                className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
-                                alt="logo"
-                            />
+                    <label className="text-h2">{requestedAmount}</label>
+                    <div>
+                        <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
+                            <div className="relative h-6 w-6">
+                                <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
+                                <img
+                                    src={
+                                        consts.supportedPeanutChains.find(
+                                            (chain) => chain.chainId === requestLinkData.chainId
+                                        )?.icon.url
+                                    }
+                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
+                                    alt="logo"
+                                />
+                            </div>
+                            {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
+                            {tokenRequestedSymbol} on{' '}
+                            {
+                                consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)
+                                    ?.name
+                            }
                         </div>
-                        {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
-                        {tokenRequestedSymbol} on{' '}
-                        {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
+                    {tokenSupportsXChain ? (
+                        <label className="text-h9 font-light">
+                            You can fulfill this payment request with any token on any chain. Pick the token and chain
+                            that you want to fulfill this request with.
+                        </label>
+                    ) : (
+                        <label className="text-h9 font-light">
+                            This token does not support cross-chain transfers. You can only fulfill this payment request
+                            with the selected token on the selected chain.
+                        </label>
+                    )}
                 </div>
-                {tokenSupportsXChain ? (
-                    <label className="text-h9 font-light">
-                        You can fulfill this payment request with any token on any chain. Pick the token and chain that
-                        you want to fulfill this request with.
-                    </label>
-                ) : (
-                    <label className="text-h9 font-light">
-                        This token does not support cross-chain transfers. You can only fulfill this payment request
-                        with the selected token on the selected chain.
-                    </label>
-                )}
-            </div>
-            {tokenSupportsXChain && <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />}
-            <div className="flex w-full flex-col items-center justify-center gap-2">
+                {tokenSupportsXChain && <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />}
                 {!isFeeEstimationError && (
                     <>
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">

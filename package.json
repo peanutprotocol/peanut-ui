@@ -13,7 +13,6 @@
         "lint": "next lint",
         "knip": "knip",
         "format": "prettier --write .",
-        "knip": "knip",
         "analyze": "ANALYZE=true next build"
     },
     "dependencies": {
