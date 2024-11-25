@@ -84,7 +84,7 @@ const ValidatedInput = ({
 
     return (
         <div
-            className={`relative w-full max-w-96 border border-n-1 dark:border-white${
+            className={`relative w-full border border-n-1 dark:border-white${
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
             } ${className}`}
         >
