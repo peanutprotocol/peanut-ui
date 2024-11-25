@@ -2,15 +2,23 @@
 
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState } from 'react'
+import { useContext, useEffect, useState, useMemo } from 'react'
 import Icon from '@/components/Global/Icon'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import * as consts from '@/constants'
-import * as utils from '@/utils'
+import { supportedPeanutChains } from '@/constants'
+import {
+    areTokenAddressesEqual,
+    saveClaimedLinkToLocalStorage,
+    ErrorHandler,
+    getBridgeTokenName,
+    getBridgeChainName,
+    checkifImageType,
+    formatTokenAmount,
+} from '@/utils'
 import MoreInfo from '@/components/Global/MoreInfo'
-import TokenSelectorXChain from '@/components/Global/TokenSelector/TokenSelectorXChain'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import * as _interfaces from '../Claim.interfaces'
 import * as _utils from '../Claim.utils'
@@ -26,6 +34,9 @@ import {
 } from '@/components/Offramp/Offramp.consts'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
+import { TOOLTIPS } from '@/constants/tooltips'
+import AddressLink from '@/components/Global/AddressLink'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -39,7 +50,6 @@ export const InitialClaimLinkView = ({
     attachment,
     setTransactionHash,
     onCustom,
-    crossChainDetails,
     selectedRoute,
     setSelectedRoute,
     hasFetchedRoute,
@@ -60,11 +70,18 @@ export const InitialClaimLinkView = ({
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
-    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
-    const { selectedChainID, selectedTokenAddress, refetchXchainRoute, setRefetchXchainRoute } = useContext(
-        context.tokenSelectorContext
-    )
-    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
+    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const {
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        refetchXchainRoute,
+        setRefetchXchainRoute,
+        isXChain,
+        setIsXChain,
+        supportedSquidChainsAndTokens,
+    } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
 
     // TODO: isConnected needs to be moved in useWallet()
@@ -103,7 +120,7 @@ export const InitialClaimLinkView = ({
             // thought: anyway, we need to set address to useWallet here too
 
             if (claimTxHash) {
-                utils.saveClaimedLinkToLocalStorage({
+                saveClaimedLinkToLocalStorage({
                     address: address ?? '',
                     data: {
                         ...claimLinkData,
@@ -122,7 +139,7 @@ export const InitialClaimLinkView = ({
                 throw new Error('Error claiming link')
             }
         } catch (error) {
-            const errorString = utils.ErrorHandler(error)
+            const errorString = ErrorHandler(error)
             setErrorState({
                 showError: true,
                 errorMessage: errorString,
@@ -132,6 +149,14 @@ export const InitialClaimLinkView = ({
         }
     }
 
+    const tokenSupportsXChain = useMemo(() => {
+        return (
+            supportedSquidChainsAndTokens[claimLinkData.chainId]?.tokens.some((token) =>
+                areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
+            ) ?? false
+        )
+    }, [claimLinkData.tokenAddress, claimLinkData.chainId, supportedSquidChainsAndTokens])
+
     const handleIbanRecipient = async () => {
         try {
             setErrorState({
@@ -139,8 +164,8 @@ export const InitialClaimLinkView = ({
                 errorMessage: '',
             })
             setLoadingState('Fetching route')
-            let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = utils.getBridgeChainName(claimLinkData.chainId)
+            let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = getBridgeChainName(claimLinkData.chainId)
 
             if (tokenPrice) {
                 const cashoutUSDAmount = Number(claimLinkData.tokenAmount) * tokenPrice
@@ -158,9 +183,8 @@ export const InitialClaimLinkView = ({
                 }
             }
 
-            if (tokenName && chainName) {
-            } else {
-                if (!crossChainDetails) {
+            if (!tokenName || !chainName) {
+                if (!tokenSupportsXChain) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'offramp unavailable',
@@ -201,28 +225,27 @@ export const InitialClaimLinkView = ({
                 if (response.isNewUser) {
                     setUserType('NEW')
                 } else {
-                    // TODO: if not logged in but existing user, should show this somewhere in the UI.
                     setUserType('EXISTING')
                 }
                 setOfframpForm({
                     name: '',
                     email: '',
                     password: '',
-                    recipient: recipient.name ?? '',
+                    recipient: recipient.name ?? recipient.address,
                 })
-                setInitialKYCStep(0) // even if user exists, need to login
+                setInitialKYCStep(0)
             } else {
                 setOfframpForm({
                     email: user?.user?.email ?? '',
                     name: user?.user?.full_name ?? '',
-                    recipient: recipient.name ?? '',
+                    recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
                 if (user?.user.kycStatus === 'verified') {
                     const account = user.accounts.find(
                         (account: any) =>
                             account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                            recipient.name?.replaceAll(/\s/g, '').toLowerCase()
+                            recipient.address.replaceAll(/\s/g, '').toLowerCase()
                     )
 
                     if (account) {
@@ -281,6 +304,19 @@ export const InitialClaimLinkView = ({
     }, [address])
 
     useEffect(() => {
+        if (
+            selectedChainID === claimLinkData.chainId &&
+            areTokenAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+        ) {
+            setIsXChain(false)
+            setSelectedRoute(null)
+            setHasFetchedRoute(false)
+        } else {
+            setIsXChain(true)
+        }
+    }, [selectedChainID, selectedTokenAddress, claimLinkData.chainId, claimLinkData.tokenAddress])
+
+    useEffect(() => {
         if (refetchXchainRoute) {
             setIsXchainLoading(true)
             setLoadingState('Fetching route')
@@ -302,10 +338,12 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === selectedChainID &&
-                    utils.areTokenAddressesEqual(route.toToken, selectedTokenAddress)
+                    areTokenAddressesEqual(route.toToken, selectedTokenAddress)
             )
             if (existingRoute) {
                 setSelectedRoute(existingRoute)
+            } else if (!isXChain) {
+                setHasFetchedRoute(false)
             } else {
                 const tokenAmount = Math.floor(
                     Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
@@ -358,10 +396,10 @@ export const InitialClaimLinkView = ({
             <Card.Header>
                 <Card.Title>
                     <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <label className="text-h4">{utils.shortenAddress(claimLinkData.senderAddress)} sent you</label>
+                        <AddressLink address={claimLinkData.senderAddress} /> sent you
                         {tokenPrice ? (
                             <label className="text-h2">
-                                $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                                $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
                             </label>
                         ) : (
                             <label className="text-h2 ">
@@ -399,78 +437,27 @@ export const InitialClaimLinkView = ({
                 </Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                <TokenSelectorXChain
-                    data={mappedData}
-                    chainName={
-                        hasFetchedRoute
-                            ? selectedRoute
-                                ? mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name
-                                : mappedData.find((data) => data.chainId === selectedChainID)?.name
-                            : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                  ?.name
-                    }
-                    tokenSymbol={
-                        hasFetchedRoute
-                            ? selectedRoute
-                                ? selectedRoute.route.estimate.toToken.symbol
-                                : mappedData
-                                      .find((data) => data.chainId === selectedChainID)
-                                      ?.tokens?.find((token) =>
-                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                      )?.symbol
-                            : claimLinkData.tokenSymbol
-                    }
-                    tokenLogoUrl={
-                        hasFetchedRoute
-                            ? selectedRoute
-                                ? selectedRoute.route.estimate.toToken.logoURI
-                                : mappedData
-                                      .find((data) => data.chainId === selectedChainID)
-                                      ?.tokens?.find((token) =>
-                                          utils.areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                      )?.logoURI
-                            : consts.peanutTokenDetails
-                                  .find((chain) => chain.chainId === claimLinkData.chainId)
-                                  ?.tokens.find((token) =>
-                                      utils.areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
-                                  )?.logoURI
-                    }
-                    chainLogoUrl={
-                        hasFetchedRoute
-                            ? selectedRoute
-                                ? crossChainDetails?.find(
-                                      (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                  )?.chainIconURI
-                                : mappedData.find((data) => data.chainId === selectedChainID)?.icon.url
-                            : consts.supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
-                                  ?.icon.url
-                    }
-                    tokenAmount={
-                        hasFetchedRoute
-                            ? selectedRoute
-                                ? utils.formatTokenAmount(
-                                      utils.formatAmountWithDecimals({
-                                          amount: selectedRoute.route.estimate.toAmountMin,
-                                          decimals: selectedRoute.route.estimate.toToken.decimals,
-                                      }),
-                                      4
-                                  )
-                                : undefined
-                            : claimLinkData.tokenAmount
-                    }
-                    isLoading={isXchainLoading}
-                    routeError={errorState.errorMessage === 'No route found for the given token pair.'}
-                    routeFound={selectedRoute ? true : false}
-                    onReset={() => {
-                        setSelectedRoute(null)
-                        setHasFetchedRoute(false)
-                        setErrorState({
-                            showError: false,
-                            errorMessage: '',
-                        })
-                    }}
-                    isStatic={recipientType === 'iban' || recipientType === 'us' || !crossChainDetails ? true : false}
-                />
+                {recipientType !== 'iban' && recipientType !== 'us' ? (
+                    tokenSupportsXChain ? (
+                        <TokenSelector
+                            shouldBeConnected={false}
+                            showOnlySquidSupported
+                            onReset={() => {
+                                setSelectedChainID(claimLinkData.chainId)
+                                setSelectedTokenAddress(claimLinkData.tokenAddress)
+                            }}
+                        />
+                    ) : (
+                        <label className="text-h7 font-light">
+                            This token does not support cross-chain claims. You can claim{' '}
+                            {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} on{' '}
+                            {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName ??
+                                supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)
+                                    ?.name ??
+                                'the same chain'}
+                        </label>
+                    )
+                ) : null}
                 <GeneralRecipientInput
                     className="px-1"
                     placeholder="wallet address / ENS / IBAN / US account number"
@@ -489,87 +476,49 @@ export const InitialClaimLinkView = ({
                 {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
-                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Route</label>
-                                </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {isXchainLoading ? (
-                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                    ) : (
-                                        selectedRoute && (
-                                            <>
-                                                {
-                                                    consts.supportedPeanutChains.find(
-                                                        (chain) =>
-                                                            chain.chainId === selectedRoute.route.params.fromChain
-                                                    )?.name
-                                                }
-                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                                {
-                                                    mappedData.find(
-                                                        (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                                    )?.name
-                                                }
-                                                <MoreInfo
-                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <label className="font-bold">Route</label>
+                                    </div>
+                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                        {isXchainLoading ? (
+                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                        ) : (
+                                            selectedRoute && (
+                                                <>
+                                                    {
                                                         consts.supportedPeanutChains.find(
                                                             (chain) =>
                                                                 chain.chainId === selectedRoute.route.params.fromChain
                                                         )?.name
-                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                        mappedData.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.toChain
-                                                        )?.name
-                                                    }.`}
-                                                />
-                                            </>
-                                        )
-                                    )}
-                                </span>
-                            </div>
-                        )}
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Route</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {isXchainLoading ? (
-                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                ) : (
-                                    selectedRoute && (
-                                        <>
-                                            {
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
-                                                )?.name
-                                            }
-                                            <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                            {
-                                                mappedData.find(
-                                                    (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                                )?.name
-                                            }
-                                            <MoreInfo
-                                                text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                    consts.supportedPeanutChains.find(
-                                                        (chain) =>
-                                                            chain.chainId === selectedRoute.route.params.fromChain
-                                                    )?.name
-                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                    mappedData.find(
-                                                        (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                                    )?.name
-                                                }.`}
-                                            />
-                                        </>
-                                    )
-                                )}
-                            </span>
-                        </div>
+                                                    }
+                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                    {
+                                                        supportedSquidChainsAndTokens[
+                                                            selectedRoute.route.params.toChain
+                                                        ]?.axelarChainName
+                                                    }
+                                                    <MoreInfo
+                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                            consts.supportedPeanutChains.find(
+                                                                (chain) =>
+                                                                    chain.chainId ===
+                                                                    selectedRoute.route.params.fromChain
+                                                            )?.name
+                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                            supportedSquidChainsAndTokens[
+                                                                selectedRoute.route.params.toChain
+                                                            ]?.axelarChainName
+                                                        }.`}
+                                                    />
+                                                </>
+                                            )
+                                        )}
+                                    </span>
+                                </div>
+                            )}
+
 
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -644,7 +593,7 @@ export const InitialClaimLinkView = ({
                             {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
                         </div>
                     )}
-                    {errorState.showError ? (
+                    {errorState.showError && (
                         <div className="text-center">
                             {errorState.errorMessage === 'offramp unavailable' ? (
                                 <label className="text-h8 font-normal text-red">
@@ -655,7 +604,7 @@ export const InitialClaimLinkView = ({
                                 <>
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
-                                            <label className=" text-h8 font-normal text-red ">
+                                            <label className="text-h8 font-normal text-red">
                                                 {errorState.errorMessage}
                                             </label>{' '}
                                             <span
@@ -667,6 +616,8 @@ export const InitialClaimLinkView = ({
                                                         showError: false,
                                                         errorMessage: '',
                                                     })
+                                                    setSelectedChainID(claimLinkData.chainId)
+                                                    setSelectedTokenAddress(claimLinkData.tokenAddress)
                                                 }}
                                             >
                                                 reset
@@ -674,32 +625,29 @@ export const InitialClaimLinkView = ({
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (
-                                        <>
-                                            <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
-                                                account.{' '}
-                                            </label>
-                                        </>
+                                        <label className="text-h8 font-normal text-red">
+                                            You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
+                                            account.
+                                        </label>
                                     )}
                                     {errorState.errorMessage === 'offramp_mt_maximum' && (
-                                        <>
-                                            <label className=" text-h8 font-normal text-red ">
-                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
-                                                account.{' '}
-                                            </label>
-                                        </>
+                                        <label className="text-h8 font-normal text-red">
+                                            You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
+                                            account.
+                                        </label>
+                                    )}
+                                    {![
+                                        'offramp_lt_minimum',
+                                        'offramp_mt_maximum',
+                                        'No route found for the given token pair.',
+                                    ].includes(errorState.errorMessage) && (
+                                        <label className="text-h8 font-normal text-red">
+                                            {errorState.errorMessage}
+                                        </label>
                                     )}
                                 </>
                             )}
                         </div>
-                    ) : (
-                        (recipientType === 'iban' || recipientType === 'us') && (
-                            <label className="text-h8 font-normal ">
-                                Only US and EU accounts are supported currently.{' '}
-                                <CrispButton className="mr-1 underline">Reach out</CrispButton>
-                                if you would like more info.
-                            </label>
-                        )
                     )}
                 </div>{' '}
                 <Popover id="HEpPuXFz" />
@@ -707,5 +655,3 @@ export const InitialClaimLinkView = ({
         </Card>
     )
 }
-
-export default InitialClaimLinkView

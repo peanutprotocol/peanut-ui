@@ -42,89 +42,34 @@ export const OfframpSuccessView = ({
                 </Card.Description>
             </Card.Header>
             <Card.Content className="col gap-2">
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'profile'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Name</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {offrampForm.name}
-                    </span>
-                </div>
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'email'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Email</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {offrampForm.email}
-                    </span>
-                </div>
-
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'bank'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Bank account</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal uppercase leading-4">
-                        {offrampForm.recipient}
-                    </span>
-                </div>
-
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                        <Icon name={'forward'} className="h-4 fill-gray-1" />
-                        <label className="font-bold">Route</label>
-                    </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        Cashout <Icon name={'arrow-next'} className="h-4 fill-gray-1" />
-                        {offrampType == _consts.OfframpType.CASHOUT && accountType?.toUpperCase()}{' '}
-                        {offrampType == _consts.OfframpType.CLAIM && recipientType?.toUpperCase()}{' '}
-                        <MoreInfo text={`Wait, crypto can be converted to real money??? How cool!`} />
-                    </span>
-                </div>
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+            <label className="text-h2">Yay!</label>
+            <label className="text-h8 font-bold ">
+                Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please keep
+                in mind that it may take up to 2 days for the funds to arrive.
+            </label>
+                <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                    <div className="flex w-1/3 flex-row items-center gap-1">
                         <Icon name={'gas'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Fee</label>
                     </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                        {offrampType == _consts.OfframpType.CASHOUT && (
-                            <>
-                                {user?.accounts?.find(
-                                    (account) =>
-                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                )?.account_type === 'iban'
-                                    ? '$1'
-                                    : '$0.50'}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) =>
-                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                    }
-                                />
-                            </>
-                        )}
-                        {offrampType == _consts.OfframpType.CLAIM && (
-                            <>
-                                $0
-                                <MoreInfo text={'Fees are on us, enjoy!'} />
-                            </>
-                        )}
-                    </span>
+                    <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                        <div className="flex items-center gap-1">
+                            {accountType === 'iban' ? '$1' : '$0.50'}
+                            <MoreInfo
+                                text={`For ${accountType === 'iban' ? 'SEPA' : 'ACH'} transactions a fee of ${
+                                    accountType === 'iban' ? '$1' : '$0.50'
+                                } is charged.`}
+                            />
+                        </div>
+                    </div>
                 </div>
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                    <div className="flex w-max  flex-row items-center justify-center gap-1">
+
+                <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                    <div className="flex w-1/3 flex-row items-center gap-1">
                         <Icon name={'transfer'} className="h-4 fill-gray-1" />
                         <label className="font-bold">You will receive</label>
                     </div>
-                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                    <div className="flex flex-1 items-center justify-end gap-1 text-sm font-normal">
                         {offrampType == _consts.OfframpType.CASHOUT && (
                             <>
                                 $
@@ -154,7 +99,7 @@ export const OfframpSuccessView = ({
                                 <MoreInfo text={'Woop Woop free offramp!'} />
                             </>
                         )}
-                    </span>
+                    </div>
                 </div>
                 {offrampType == _consts.OfframpType.CASHOUT && (
                     <>

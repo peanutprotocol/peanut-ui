@@ -7,7 +7,7 @@ import * as context from '@/context'
 import Loading from '../Global/Loading'
 import Link from 'next/link'
 import * as assets from '@/assets'
-export const LoginComponent = () => {
+const LoginComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
     const [errorState, setErrorState] = useState<{
         showError: boolean

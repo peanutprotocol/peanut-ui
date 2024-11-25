@@ -1,6 +1,6 @@
 import peanut from '@squirrel-labs/peanut-sdk'
 
-export declare class SDKStatus extends Error {
+declare class SDKStatus extends Error {
     code: any
     extraInfo?: any
     constructor(code: any, message?: string, extraInfo?: string)

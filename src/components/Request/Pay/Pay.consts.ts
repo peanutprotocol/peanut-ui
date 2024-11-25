@@ -2,7 +2,7 @@ import * as views from './Views'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { type ITokenPriceData } from '@/interfaces'
 
-export type PayScreens = 'INITIAL' | 'SUCCESS'
+type PayScreens = 'INITIAL' | 'SUCCESS'
 
 export interface IPayScreenState {
     screen: PayScreens

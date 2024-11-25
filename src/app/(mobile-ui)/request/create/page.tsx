@@ -1,5 +1,5 @@
 import { Metadata } from 'next'
-import * as components from '@/components'
+import { CreateRequestLink } from '@/components/Request/Create/Create'
 
 export const metadata: Metadata = {
     title: 'Peanut Protocol',
@@ -17,5 +17,5 @@ export const metadata: Metadata = {
     },
 }
 export default function RequestCreate() {
-    return <components.CreateRequestLink />
+    return <CreateRequestLink />
 }

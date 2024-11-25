@@ -761,7 +761,9 @@ export const OfframpConfirmView = ({
                                     <MoreInfo
                                         text={
                                             user?.accounts.find(
-                                                (account) => account.account_identifier === offrampForm.recipient
+                                                (account) =>
+                                                    account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                    offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                             )?.account_type === 'iban'
                                                 ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
                                                 : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'

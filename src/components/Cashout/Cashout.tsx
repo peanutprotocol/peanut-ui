@@ -94,6 +94,43 @@ export const Cashout = ({}) => {
         fetchAndSetCrossChainDetails()
     }, [])
 
+    // For testing - check if URL has screen param
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+
+        const params = new URLSearchParams(window.location.search)
+        const screen = params.get('screen')
+
+        if (screen === 'success') {
+            setStep({
+                screen: 'SUCCESS',
+                idx: _consts.CASHOUT_SCREEN_FLOW.indexOf('SUCCESS'),
+            })
+            // Set test data for success view
+            setOfframpForm({
+                name: 'Test User',
+                email: 'test@example.com',
+                password: '',
+                recipient: 'DE89370400440532013000',
+            })
+            setUsdValue('100')
+        } else if (screen === 'confirm') {
+            setStep({
+                screen: 'CONFIRM',
+                idx: _consts.CASHOUT_SCREEN_FLOW.indexOf('CONFIRM'),
+            })
+            // Set test data for confirm view
+            setOfframpForm({
+                name: 'Test User',
+                email: 'test@example.com',
+                password: '',
+                recipient: 'DE89370400440532013000',
+            })
+            setUsdValue('100')
+            setInitialKYCStep(4) // Skip KYC steps
+        }
+    }, [])
+
     return (
         <PageContainer>
             {createElement(_consts.CASHOUT_SCREEN_MAP[step.screen].comp, {

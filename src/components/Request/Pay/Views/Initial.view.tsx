@@ -23,6 +23,7 @@ import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { type ITokenPriceData } from '@/interfaces'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -80,6 +81,7 @@ export const InitialView = ({
         isXChain,
         setIsXChain,
         isFetchingTokenData,
+        supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -91,10 +93,19 @@ export const InitialView = ({
     const [estimatedFromValue, setEstimatedFromValue] = useState<string>('0')
     const [tokenRequestedLogoURI, setTokenRequestedLogoURI] = useState<string | undefined>(undefined)
     const [tokenRequestedSymbol, setTokenRequestedSymbol] = useState<string>('')
+    const [slippagePercentage, setSlippagePercentage] = useState<number | undefined>(undefined)
+    const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<interfaces.IPeanutUnsignedTransaction[] | undefined>(
+        undefined
+    )
 
     const calculatedFee = useMemo(() => {
         return isXChain ? txFee : formatTokenAmount(estimatedGasCost, 3)
     }, [isXChain, estimatedGasCost, txFee])
+
+    const calculatedSlippage = useMemo(() => {
+        if (!selectedTokenData?.price || !slippagePercentage) return null
+        return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
+    }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
     const isButtonDisabled = useMemo(() => {
         return (
@@ -116,6 +127,14 @@ export const InitialView = ({
         }
     }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
 
+    const tokenSupportsXChain = useMemo(() => {
+        return (
+            supportedSquidChainsAndTokens[requestLinkData.chainId]?.tokens.some((token) =>
+                areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
+            ) ?? false
+        )
+    }, [requestLinkData.tokenAddress, requestLinkData.chainId, supportedSquidChainsAndTokens])
+
     // Get route
     useEffect(() => {
         const estimateTxFee = async () => {
@@ -132,14 +151,23 @@ export const InitialView = ({
                     requestLink: requestLinkData,
                     senderAddress: address!,
                 })
-                const { feeEstimation, estimatedFromAmount } = txData
+                const {
+                    feeEstimation,
+                    estimatedFromAmount,
+                    slippagePercentage,
+                    unsignedTxs: _xChainUnsignedTxs,
+                } = txData
                 setEstimatedFromValue(estimatedFromAmount)
+                setSlippagePercentage(slippagePercentage)
+                setXChainUnsignedTxs(_xChainUnsignedTxs)
                 clearError()
                 setTxFee(Number(feeEstimation).toFixed(2))
                 setViewState(ViewState.READY_TO_PAY)
             } catch (error) {
                 setErrorState({ showError: true, errorMessage: ERR_NO_ROUTE })
                 setIsFeeEstimationError(true)
+                setSlippagePercentage(undefined)
+                setXChainUnsignedTxs(undefined)
                 setTxFee('0')
             }
         }
@@ -165,6 +193,8 @@ export const InitialView = ({
     useEffect(() => {
         setLoadingState('Loading')
         clearError()
+        setSlippagePercentage(undefined)
+        setXChainUnsignedTxs(undefined)
         const isXChain =
             selectedChainID !== requestLinkData.chainId ||
             !areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
@@ -249,8 +279,8 @@ export const InitialView = ({
             if (!unsignedTx) return
             if (!isXChain) {
                 await checkUserHasEnoughBalance({ tokenValue: requestLinkData.tokenAmount })
-                if (selectedTokenData?.chainId !== String(currentChain?.id)) {
-                    await switchNetwork(selectedTokenData!.chainId)
+                if (requestLinkData.chainId !== String(currentChain?.id)) {
+                    await switchNetwork(requestLinkData.chainId)
                 }
                 setLoadingState('Sign in wallet')
                 const hash = await sendTransactions({
@@ -282,20 +312,15 @@ export const InitialView = ({
                 setTransactionHash(hash ?? '')
                 onNext()
             } else {
+                if (!xChainUnsignedTxs) return
                 await checkUserHasEnoughBalance({ tokenValue: estimatedFromValue })
                 if (selectedTokenData!.chainId !== String(currentChain?.id)) {
                     await switchNetwork(selectedTokenData!.chainId)
                 }
                 setLoadingState('Sign in wallet')
-                const xchainUnsignedTxs = await createXChainUnsignedTx({
-                    tokenData: selectedTokenData!,
-                    requestLink: requestLinkData,
-                    senderAddress: address ?? '',
-                })
 
-                const { unsignedTxs } = xchainUnsignedTxs
                 const hash = await sendTransactions({
-                    preparedDepositTxs: { unsignedTxs },
+                    preparedDepositTxs: { unsignedTxs: xChainUnsignedTxs },
                     feeOptions: undefined,
                 })
                 setLoadingState('Executing transaction')
@@ -325,25 +350,114 @@ export const InitialView = ({
                 </Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">
-                {(requestLinkData.reference || requestLinkData.attachmentUrl) && (
+            <ReferenceAndAttachment
+                reference={requestLinkData?.reference}
+                attachmentUrl={requestLinkData?.attachmentUrl}
+            />
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                <label className="text-h4">
+                    <AddressLink address={requestLinkData.recipientAddress} /> is requesting
+                </label>
+
+                <label className="text-h2">{requestedAmount}</label>
+                <div>
+                    <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
+                        <div className="relative h-6 w-6">
+                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
+                            <img
+                                src={
+                                    consts.supportedPeanutChains.find(
+                                        (chain) => chain.chainId === requestLinkData.chainId
+                                    )?.icon.url
+                                }
+                                className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
+                                alt="logo"
+                            />
+                        </div>
+                        {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
+                        {tokenRequestedSymbol} on{' '}
+                        {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
+                    </div>
+                </div>
+                {tokenSupportsXChain ? (
+                    <label className="text-h9 font-light">
+                        You can fulfill this payment request with any token on any chain. Pick the token and chain that
+                        you want to fulfill this request with.
+                    </label>
+                ) : (
+                    <label className="text-h9 font-light">
+                        This token does not support cross-chain transfers. You can only fulfill this payment request
+                        with the selected token on the selected chain.
+                    </label>
+                )}
+            </div>
+            {tokenSupportsXChain && <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />}
+            <div className="flex w-full flex-col items-center justify-center gap-2">
+                {!isFeeEstimationError && (
                     <>
-                        <div className={`flex w-full flex-col items-center justify-center  gap-2`}>
-                            {requestLinkData.reference && (
-                                <label className="max-w-full text-h8">
-                                    Ref: <span className="font-normal"> {requestLinkData.reference} </span>
+                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Network cost</label>
+                            </div>
+                            <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {calculatedFee ? (
+                                    `$${calculatedFee}`
+                                ) : (
+                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                )}
+                                {!isXChain ? (
+                                    <MoreInfo
+                                        text={
+                                            estimatedGasCost && estimatedGasCost > 0
+                                                ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                                : 'This transaction is sponsored by peanut! Enjoy!'
+                                        }
+                                    />
+                                ) : (
+                                    <MoreInfo
+                                        text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                    />
+                                )}
+                            </label>
+                        </div>
+
+                        {null !== calculatedSlippage && (
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'money-out'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Slippage cost</label>
+                                </div>
+                                <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    ${calculatedSlippage}
+                                    <MoreInfo
+                                        text={`To ensure the request arrives with at least what was asked, we will charge you ${slippagePercentage!.toFixed(2)}% of the requested amount.`}
+                                    />
                                 </label>
-                            )}
-                            {requestLinkData.attachmentUrl && (
-                                <a
-                                    href={requestLinkData.attachmentUrl}
-                                    download
-                                    target="_blank"
-                                    className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                                >
-                                    <Icon name={'download'} />
-                                    Download attachment
-                                </a>
-                            )}
+                            </div>
+                        )}
+
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Points</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {estimatedPoints ? (
+                                    `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
+                                ) : (
+                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                )}
+                                <MoreInfo
+                                    text={
+                                        estimatedPoints !== undefined
+                                            ? estimatedPoints > 0
+                                                ? `This transaction will add ${estimatedPoints} to your total points balance.`
+                                                : 'This transaction will not add any points to your total points balance'
+                                            : 'This transaction will not add any points to your total points balance'
+                                    }
+                                />
+                            </span>
                         </div>
                         <div className="flex w-full border-t border-dotted border-black" />
                     </>

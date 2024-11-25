@@ -1,6 +1,6 @@
 'use client'
 import { useEffect, useState, useContext } from 'react'
-import peanut, { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import peanut from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import useClaimLink from './useClaimLink'
 
@@ -21,9 +21,6 @@ export const Claim = ({}) => {
     const [step, setStep] = useState<_consts.IClaimScreenState>(_consts.INIT_VIEW_STATE)
     const [linkState, setLinkState] = useState<_consts.claimLinkStateType>(_consts.claimLinkStateType.LOADING)
     const [claimLinkData, setClaimLinkData] = useState<interfaces.ILinkDetails | undefined>(undefined)
-    const [crossChainDetails, setCrossChainDetails] = useState<
-        Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
-    >(undefined)
     const [attachment, setAttachment] = useState<{ message: string | undefined; attachmentUrl: string | undefined }>({
         message: undefined,
         attachmentUrl: undefined,
@@ -78,51 +75,6 @@ export const Claim = ({}) => {
             idx: _consts.CLAIM_SCREEN_FLOW.indexOf(screen),
         }))
     }
-    const getCrossChainDetails = async (linkDetails: interfaces.ILinkDetails) => {
-        // xchain is only available for native and erc20
-        if (linkDetails.tokenType != 0 && linkDetails.tokenType != 1) {
-            return undefined
-        }
-
-        try {
-            const crossChainDetails = await peanut.getXChainOptionsForLink({
-                isTestnet: utils.isTestnetChain(linkDetails.chainId.toString()),
-                sourceChainId: linkDetails.chainId.toString(),
-                tokenType: linkDetails.tokenType,
-            })
-
-            const contractVersionCheck = peanut.compareVersions('v4.2', linkDetails.contractVersion, 'v') // v4.2 is the minimum version required for cross chain
-            if (crossChainDetails.length > 0 && contractVersionCheck) {
-                const xchainDetails = _utils.sortCrossChainDetails(
-                    crossChainDetails.filter((chain: any) => chain.chainId != '1'),
-                    consts.supportedPeanutChains,
-                    linkDetails.chainId
-                )
-                const filteredXchainDetails = xchainDetails.map((chain) => {
-                    if (chain.chainId === claimLinkData?.chainId) {
-                        const filteredTokens = chain.tokens.filter(
-                            (token: any) => token.address.toLowerCase() !== claimLinkData?.tokenAddress.toLowerCase()
-                        )
-
-                        return {
-                            ...chain,
-                            tokens: filteredTokens,
-                        }
-                    }
-                    return chain
-                })
-
-                setSelectedChainID(filteredXchainDetails[0].chainId)
-                setSelectedTokenAddress(filteredXchainDetails[0].tokens[0].address)
-                return filteredXchainDetails
-            } else {
-                return undefined
-            }
-        } catch (error) {
-            console.log('error fetching cross chain details: ' + error)
-            return undefined
-        }
-    }
     const checkLink = async (link: string) => {
         try {
             const linkDetails: interfaces.ILinkDetails = await peanut.getLinkDetails({
@@ -135,34 +87,33 @@ export const Claim = ({}) => {
             })
 
             setClaimLinkData(linkDetails)
+            setSelectedChainID(linkDetails.chainId)
+            setSelectedTokenAddress(linkDetails.tokenAddress)
+
             if (linkDetails.claimed) {
                 setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
+                return
+            }
+
+            const tokenPrice = await utils.fetchTokenPrice(linkDetails.tokenAddress.toLowerCase(), linkDetails.chainId)
+            tokenPrice && setTokenPrice(tokenPrice?.price)
+
+            if (address) {
+                setRecipient({ name: '', address })
+
+                const estimatedPoints = await estimatePoints({
+                    address: address ?? '',
+                    chainId: linkDetails.chainId,
+                    amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
+                    actionType: ActionType.CLAIM,
+                })
+                setEstimatedPoints(estimatedPoints)
+            }
+
+            if (address && linkDetails.senderAddress === address) {
+                setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
             } else {
-                const crossChainDetails = await getCrossChainDetails(linkDetails)
-                setCrossChainDetails(crossChainDetails)
-                const tokenPrice = await utils.fetchTokenPrice(
-                    linkDetails.tokenAddress.toLowerCase(),
-                    linkDetails.chainId
-                )
-                tokenPrice && setTokenPrice(tokenPrice?.price)
-
-                if (address) {
-                    setRecipient({ name: '', address })
-
-                    const estimatedPoints = await estimatePoints({
-                        address: address ?? '',
-                        chainId: linkDetails.chainId,
-                        amountUSD: Number(linkDetails.tokenAmount) * (tokenPrice?.price ?? 0),
-                        actionType: ActionType.CLAIM,
-                    })
-                    setEstimatedPoints(estimatedPoints)
-                }
-
-                if (address && linkDetails.senderAddress === address) {
-                    setLinkState(_consts.claimLinkStateType.CLAIM_SENDER)
-                } else {
-                    setLinkState(_consts.claimLinkStateType.CLAIM)
-                }
+                setLinkState(_consts.claimLinkStateType.CLAIM)
             }
         } catch (error) {
             setLinkState(_consts.claimLinkStateType.NOT_FOUND)
@@ -196,7 +147,6 @@ export const Claim = ({}) => {
                             onNext: handleOnNext,
                             onCustom: handleOnCustom,
                             claimLinkData,
-                            crossChainDetails,
                             type,
                             setClaimType: setType,
                             recipient,

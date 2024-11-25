@@ -35,5 +35,3 @@ export const ErrorView = ({ errorMessage }: { errorMessage: string }) => {
         </Card>
     )
 }
-
-export default ErrorView

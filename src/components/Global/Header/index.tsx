@@ -26,7 +26,7 @@ const defaultLottieStyle = {
     width: 24,
 }
 
-export const Header = () => {
+const Header = () => {
     const { isOpen, onToggle, onClose } = useDisclosure()
     const [isOpenState, setIsOpenState] = useState<boolean>(false)
 

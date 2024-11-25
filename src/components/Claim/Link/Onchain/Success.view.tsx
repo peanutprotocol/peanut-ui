@@ -124,5 +124,3 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
         </Card>
     )
 }
-
-export default SuccessClaimLinkView

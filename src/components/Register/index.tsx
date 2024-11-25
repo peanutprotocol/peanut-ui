@@ -8,7 +8,7 @@ import Loading from '../Global/Loading'
 import Link from 'next/link'
 import * as assets from '@/assets'
 
-export const RegisterComponent = () => {
+const RegisterComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()
     const [errorState, setErrorState] = useState<{
         showError: boolean

@@ -2,7 +2,6 @@
 import '@/styles/globals.css'
 import { useEffect, useState } from 'react'
 import { getCalApi } from '@calcom/embed-react'
-import Lottie from 'react-lottie'
 import Link from 'next/link'
 
 import {
@@ -32,6 +31,7 @@ import {
 
 import * as chain_logos from '@/assets/chains'
 import { MarqueeWrapper, MarqueeComp } from '../Global/MarqueeWrapper'
+import Lottie from 'lottie-react'
 
 const logoCloudLogos = [
     { icon: WALLETCONNECT_LOGO, link: 'https://walletconnect.com/' },
@@ -104,7 +104,7 @@ const faqs = [
     {
         question: 'What are the trust assumptions?',
         answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
-        redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
+        redirectUrl: 'https://docs.peanut.to/how-to-use-peanut-links/trust-assumptions',
         redirectText: 'here.',
     },
     {
@@ -333,7 +333,7 @@ export function WelcomeSDK() {
                             target="_blank"
                         >
                             <div className="mx-2 flex h-full items-center justify-center object-cover">
-                                <Lottie options={defaultLottieOptions} height={600} width={400} />
+                                <Lottie animationData={REDPACKET_LOTTIE} loop={true} autoplay={true} />
                             </div>
                         </a>
                     </div>

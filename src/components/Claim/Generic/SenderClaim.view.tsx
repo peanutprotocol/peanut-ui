@@ -1,16 +1,15 @@
 'use client'
-import Icon from '@/components/Global/Icon'
 
 import * as _consts from '../Claim.consts'
 import * as context from '@/context'
 import * as utils from '@/utils'
-import { useRouter } from 'next/navigation'
 import { useContext, useState } from 'react'
 import useClaimLink from '../useClaimLink'
 import * as interfaces from '@/interfaces'
 import Link from 'next/link'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -28,8 +27,7 @@ export const SenderClaimLinkView = ({
     const { claimLink } = useClaimLink()
     const { address } = useWallet()
 
-    const router = useRouter()
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
@@ -89,14 +87,6 @@ export const SenderClaimLinkView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
-                <Link className="" href={'/profile'}>
-                    <Button variant="stroke" className="text-nowrap">
-                        <div className="border border-n-1 p-0 px-1">
-                            <Icon name="profile" className="-mt-0.5" />
-                        </div>
-                        See your payments.
-                    </Button>
-                </Link>
                 <label className="mt-2 text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
@@ -107,9 +97,8 @@ export const SenderClaimLinkView = ({
                         Discord!
                     </a>
                 </label>
+                <PaymentsFooter />
             </Card.Content>
         </Card>
     )
 }
-
-export default SenderClaimLinkView

@@ -4,6 +4,8 @@ import React, { createContext, useEffect, useState } from 'react'
 import * as utils from '@/utils'
 import * as consts from '@/constants'
 import { type ITokenPriceData } from '@/interfaces'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { getSquidChainsAndTokens } from '@/app/actions/squid'
 
 type inputDenominationType = 'USD' | 'TOKEN'
 
@@ -25,6 +27,7 @@ export const tokenSelectorContext = createContext({
     setIsXChain: (value: boolean) => {},
     selectedTokenData: undefined as ITokenPriceData | undefined,
     isFetchingTokenData: false as boolean,
+    supportedSquidChainsAndTokens: {} as Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>,
 })
 
 /**
@@ -52,6 +55,9 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
     const [isXChain, setIsXChain] = useState<boolean>(false)
     const [isFetchingTokenData, setIsFetchingTokenData] = useState<boolean>(false)
     const [selectedTokenData, setSelectedTokenData] = useState<ITokenPriceData | undefined>(undefined)
+    const [supportedSquidChainsAndTokens, setSupportedSquidChainsAndTokens] = useState<
+        Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
+    >({})
 
     const preferences = utils.getPeanutPreferences()
 
@@ -114,6 +120,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         if (selectedTokenAddress && selectedChainID) {
             setIsFetchingTokenData(true)
             setSelectedTokenData(undefined)
+            setRefetchXchainRoute(true)
             setSelectedTokenPrice(undefined)
             setSelectedTokenDecimals(undefined)
             setInputDenomination('TOKEN')
@@ -123,6 +130,10 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
             }
         }
     }, [selectedTokenAddress, selectedChainID])
+
+    useEffect(() => {
+        getSquidChainsAndTokens().then(setSupportedSquidChainsAndTokens)
+    }, [])
 
     return (
         <tokenSelectorContext.Provider
@@ -144,6 +155,7 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
                 setIsXChain,
                 selectedTokenData,
                 isFetchingTokenData,
+                supportedSquidChainsAndTokens,
             }}
         >
             {children}

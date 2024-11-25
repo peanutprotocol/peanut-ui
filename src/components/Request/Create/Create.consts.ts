@@ -1,7 +1,7 @@
 import { IAttachmentOptions } from '@/components/Create/Create.consts'
 import * as views from './Views'
 
-export type CreateScreens = 'INITIAL' | 'SUCCESS'
+type CreateScreens = 'INITIAL' | 'SUCCESS'
 export interface ICreateScreenState {
     screen: CreateScreens
     idx: number

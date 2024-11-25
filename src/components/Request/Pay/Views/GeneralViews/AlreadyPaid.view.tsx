@@ -3,9 +3,11 @@
 import Icon from '@/components/Global/Icon'
 import * as consts from '@/constants'
 import * as _consts from '../../Pay.consts'
-import * as utils from '@/utils'
 import Link from 'next/link'
 import { Button, Card } from '@/components/0_Bruddle'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import AddressLink from '@/components/Global/AddressLink'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
     const chainName =
@@ -24,6 +26,10 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                 <Card.Title>Sorry, this link has already been paid.</Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">
+                <ReferenceAndAttachment
+                    reference={requestLinkData?.reference}
+                    attachmentUrl={requestLinkData?.attachmentUrl}
+                />
                 {dataAvailable && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         <label className="text-h8 ">This link previously contained:</label>
@@ -71,7 +77,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                                     <label className="font-bold">Requester</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {utils.shortenAddress(requestLinkData?.recipientAddress as string)}
+                                    <AddressLink address={requestLinkData?.recipientAddress ?? ''} />
                                 </span>
                             </div>
                         )}
@@ -95,9 +101,8 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                         Discord!
                     </a>
                 </label>
+                <PaymentsFooter />
             </Card.Content>
         </Card>
     )
 }
-
-export default AlreadyPaidLinkView

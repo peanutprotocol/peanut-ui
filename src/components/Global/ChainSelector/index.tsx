@@ -9,6 +9,7 @@ import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { IPeanutChainDetails } from '@/interfaces'
 import * as utils from '@/utils'
+
 type Chain = {
     name: string
     icon: {
@@ -62,10 +63,10 @@ const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
     }
 
     return (
-        <Menu className="relative " as="div">
+        <Menu className="relative" as="div">
             {({ open }) => (
                 <>
-                    <Menu.Button className=" btn-xl-fixed flex flex-row items-center justify-center gap-2">
+                    <Menu.Button className="btn-xl-fixed flex flex-row items-center justify-center gap-2">
                         <img
                             src={_chainsToDisplay.find((chain) => chain.chainId === selectedChainID)?.icon.url}
                             alt={''}
@@ -73,43 +74,48 @@ const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
                         />
                         <Icon
                             name={'arrow-bottom'}
-                            className={`transition-transform dark:fill-white ${open ? 'rotate-180 ' : ''}`}
+                            className={`transition-transform dark:fill-white ${open ? 'rotate-180' : ''}`}
                         />
                     </Menu.Button>
-                    <Transition
-                        enter="transition duration-100 ease-out"
-                        enterFrom="transform scale-95 opacity-0"
-                        enterTo="transform scale-100 opacity-100"
-                        leave="transition duration-75 ease-out"
-                        leaveFrom="transform scale-100 opacity-100"
-                        leaveTo="transform scale-95 opacity-0"
-                    >
-                        <Menu.Items className=" shadow-primary-4 absolute right-0 top-full z-30 -mt-80 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto bg-white dark:divide-white dark:bg-n-1 sm:mt-2.5">
-                            <div className={'flex w-full items-center justify-center'}>
-                                <Search
-                                    className="px-1"
-                                    placeholder="Search by chain name"
-                                    value={filterValue}
-                                    onChange={(e: any) => setFilterValue(e.target.value)}
-                                    onSubmit={() => {}}
-                                    medium
-                                />
-                            </div>
 
-                            {_chainsToDisplay.map(
-                                (chain) =>
-                                    chain.mainnet &&
-                                    chainItem({
-                                        chain,
-                                        setChain: () => setChain(chain.chainId),
-                                        valuePerChain: !chainsToDisplay
-                                            ? valuePerChain.find((value) => value.chainId === chain.chainId)
-                                                  ?.valuePerChain
-                                            : undefined,
-                                    })
-                            )}
-                        </Menu.Items>
-                    </Transition>
+                    <div className="absolute right-0 top-full z-30">
+                        <Transition
+                            enter="transition duration-100 ease-out"
+                            enterFrom="transform scale-95 opacity-0"
+                            enterTo="transform scale-100 opacity-100"
+                            leave="transition duration-75 ease-out"
+                            leaveFrom="transform scale-100 opacity-100"
+                            leaveTo="transform scale-95 opacity-0"
+                        >
+                            <Menu.Items className="shadow-primary-4 mt-2.5 max-h-64 w-[14.69rem] divide-y divide-black overflow-auto rounded-lg bg-white dark:divide-white dark:bg-n-1">
+                                <div className="sticky top-0 bg-white p-2 dark:bg-n-1">
+                                    <Search
+                                        className="px-1"
+                                        placeholder="Search by chain name"
+                                        value={filterValue}
+                                        onChange={(e: any) => setFilterValue(e.target.value)}
+                                        onSubmit={() => {}}
+                                        medium
+                                    />
+                                </div>
+
+                                <div className="max-h-48 overflow-y-auto">
+                                    {_chainsToDisplay.map(
+                                        (chain) =>
+                                            chain.mainnet &&
+                                            chainItem({
+                                                chain,
+                                                setChain: () => setChain(chain.chainId),
+                                                valuePerChain: !chainsToDisplay
+                                                    ? valuePerChain.find((value) => value.chainId === chain.chainId)
+                                                          ?.valuePerChain
+                                                    : undefined,
+                                            })
+                                    )}
+                                </div>
+                            </Menu.Items>
+                        </Transition>
+                    </div>
                 </>
             )}
         </Menu>
@@ -127,9 +133,9 @@ const chainItem = ({
 }) => {
     return (
         <Menu.Item
-            as={'button'}
+            as="button"
             onClick={setChain}
-            className=" flex h-12 w-full items-center justify-between gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
+            className="flex h-12 w-full items-center justify-between gap-2 px-4 text-sm font-bold transition-colors last:mb-0 hover:bg-n-3/10 dark:hover:bg-white/20"
             key={chain.name}
         >
             <div className="flex w-max flex-row items-center justify-center gap-2">

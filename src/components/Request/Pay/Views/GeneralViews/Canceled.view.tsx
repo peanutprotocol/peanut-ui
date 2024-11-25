@@ -34,5 +34,3 @@ export const CanceledClaimLink = () => {
         </Card>
     )
 }
-
-export default CanceledClaimLink
