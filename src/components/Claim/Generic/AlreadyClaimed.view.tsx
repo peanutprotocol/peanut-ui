@@ -6,6 +6,7 @@ import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
 import Link from 'next/link'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
     const chainName =
@@ -82,12 +83,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                     Discord!
                 </a>
             </label>
-            <Link className="btn-purple btn-xl flex w-full flex-row items-center justify-center gap-1" href={'/send'}>
-                <div className="">
-                    <Icon name="send" className="" />
-                </div>
-                Make a payment yourself!
-            </Link>
+            <PaymentsFooter />
         </div>
     )
 }

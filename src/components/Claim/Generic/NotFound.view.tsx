@@ -4,6 +4,7 @@ import Icon from '@/components/Global/Icon'
 import * as _consts from '../Claim.consts'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 export const NotFoundClaimLink = () => {
     const router = useRouter()
@@ -22,12 +23,7 @@ export const NotFoundClaimLink = () => {
                 </a>
             </label>
 
-            <Link className="btn-purple btn-xl flex w-full flex-row items-center justify-center gap-1" href={'/send'}>
-                <div className="">
-                    <Icon name="send" className="" />
-                </div>
-                Make a payment yourself!
-            </Link>
+            <PaymentsFooter />
         </div>
     )
 }

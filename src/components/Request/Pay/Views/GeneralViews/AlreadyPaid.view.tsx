@@ -6,6 +6,7 @@ import * as _consts from '../../Pay.consts'
 import * as utils from '@/utils'
 import Link from 'next/link'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
     const chainName =
@@ -88,15 +89,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                     Discord!
                 </a>
             </label>
-            <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/request/create'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="send" className="-mt-0.5" />
-                </div>
-                Request a payment yourself!
-            </Link>
+            <PaymentsFooter />
         </div>
     )
 }

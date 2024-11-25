@@ -11,6 +11,7 @@ import { useAccount } from 'wagmi'
 import * as interfaces from '@/interfaces'
 import Loading from '@/components/Global/Loading'
 import Link from 'next/link'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void
@@ -109,25 +110,7 @@ export const SenderClaimLinkView = ({
                 </a>
             </label>
 
-            {/* <Link
-                className="absolute bottom-0 flex h-20 w-[27rem] w-full flex-row items-center justify-start gap-2 border-t-[1px] border-black bg-purple-3  px-4.5 dark:text-black"
-                href={'/profile'}
-            >
-                <div className=" border border-n-1 p-0 px-1">
-                    <Icon name="profile" className="-mt-0.5" />
-                </div>
-                See your payments.
-            </Link> */}
-
-            <Link
-                className="btn-purple btn-xl flex w-full flex-row items-center justify-center gap-1"
-                href={'/profile'}
-            >
-                <div className="">
-                    <Icon name="profile" className="" />
-                </div>
-                See your payments.
-            </Link>
+            <PaymentsFooter />
         </div>
     )
 }
