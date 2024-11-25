@@ -21,7 +21,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
 
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
-            <label className="text-h2">Sorry, this link has been claimed already.</label>
+            <label className="text-h2">Payment Receipt</label>
             {dataAvailable && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     <label className="text-h8 ">This link previously contained:</label>

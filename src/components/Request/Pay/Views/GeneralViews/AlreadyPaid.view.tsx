@@ -24,7 +24,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                 reference={requestLinkData?.reference}
                 attachmentUrl={requestLinkData?.attachmentUrl}
             />
-            <label className="text-h2">Sorry, this link has already been paid.</label>
+            <label className="text-h2">Payment Receipt</label>
             {dataAvailable && (
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     <label className="text-h8 ">This link previously contained:</label>
