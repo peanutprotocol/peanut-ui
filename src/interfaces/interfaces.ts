@@ -351,6 +351,7 @@ interface User {
     bridge_customer_id: string | null
     full_name: string
     telegram: string | null
+    hasPwAccess: boolean
 }
 
 // based on the API's AccountType
