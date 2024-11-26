@@ -18,6 +18,7 @@ import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
 import { checkTransactionStatus } from '@/components/utils/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
+import { SQUID_ETH_ADDRESS, getSquidTokenAddress } from '@/utils/token.utils'
 
 import {
     CrossChainDetails,
@@ -494,23 +495,19 @@ export const OfframpConfirmView = ({
 
                 let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
                 let chainName = utils.getBridgeChainName(claimLinkData.chainId)
-                let xchainNeeded
-                if (tokenName && chainName) {
-                    xchainNeeded = false
-                } else {
+                let xchainNeeded = false
+
+                // If token isn't directly supported by bridge, route through USDC Optimism
+                if (!tokenName || !chainName) {
                     xchainNeeded = true
-                    if (!crossChainDetails) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'offramp unavailable',
-                        })
-                        return
-                    }
+                    console.log('Debug - Routing through USDC Optimism')
+
+                    const fromToken = getSquidTokenAddress(claimLinkData.tokenAddress)
 
                     let route
                     try {
                         route = await utils.fetchRouteRaw(
-                            claimLinkData.tokenAddress,
+                            fromToken,
                             claimLinkData.chainId.toString(),
                             usdcAddressOptimism,
                             optimismChainId,
@@ -519,10 +516,15 @@ export const OfframpConfirmView = ({
                             claimLinkData.senderAddress
                         )
                     } catch (error) {
-                        console.error('error fetching route', error)
+                        console.error('Error fetching route:', error)
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'offramp unavailable',
+                        })
+                        return
                     }
 
-                    if (route === undefined) {
+                    if (!route) {
                         setErrorState({
                             showError: true,
                             errorMessage: 'offramp unavailable',
@@ -884,8 +886,11 @@ export const OfframpConfirmView = ({
                 )}
                 {showRefund && (
                     <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click
-                        here to reclaim the link to your wallet.
+                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click{' '}
+                        <Link href={createdLink ?? ''} className="underline">
+                            here
+                        </Link>{' '}
+                        to reclaim the funds to your wallet.
                     </Link>
                 )}
             </div>
