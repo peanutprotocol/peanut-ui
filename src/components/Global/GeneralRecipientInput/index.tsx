@@ -6,7 +6,7 @@ import * as utils from '@/utils'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
-import { sanitizeBankAccount, formatIBANDisplay, formatUSAccountDisplay } from '@/utils/format.utils'
+import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -105,10 +105,8 @@ const GeneralRecipientInput = ({
     )
 
     const formatDisplayValue = (value: string) => {
-        if (recipientType.current === 'iban') {
-            return formatIBANDisplay(value)
-        } else if (recipientType.current === 'us') {
-            return formatUSAccountDisplay(value)
+        if (recipientType.current === 'iban' || recipientType.current === 'us') {
+            return formatBankAccountDisplay(value, recipientType.current)
         }
         return value
     }

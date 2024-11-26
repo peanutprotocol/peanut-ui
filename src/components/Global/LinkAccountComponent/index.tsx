@@ -13,7 +13,7 @@ import { Divider } from '@chakra-ui/react'
 import { isIBAN } from 'validator'
 import { IBridgeAccount, IResponse } from '@/interfaces'
 import { USBankAccountInput } from '../USBankAccountInput'
-import { sanitizeBankAccount, formatIBANDisplay } from '@/utils/format.utils'
+import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 const steps = [{ label: '1. Bank Account' }, { label: '2. Confirm details' }]
 
@@ -160,107 +160,131 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                 errorMessage: '',
             })
 
-            console.log('Submitting form data:', formData)
+            console.log('Starting form submission with user data:', {
+                user,
+                kycStatus: user?.user?.kycStatus,
+                accounts: user?.accounts,
+            })
 
-            // Add validation for US routing number
-            if (formData.type === 'us' && !formData.routingNumber) {
-                console.log('Missing routing number')
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please enter your routing number',
-                })
-                setLoadingState('idle')
-                return
+            // Only need address for US accounts
+            let address
+            if (formData.type === 'us') {
+                if (user?.user?.kycStatus === 'verified') {
+                    console.log('User accounts:', user.accounts)
+
+                    // Find account with valid address details
+                    const existingAccount = user.accounts.find((account) => {
+                        console.log('Checking account:', account)
+                        if (!account.account_details) {
+                            console.log('No account_details for account:', account.account_identifier)
+                            return false
+                        }
+
+                        // Check if account_details is already an object
+                        const details =
+                            typeof account.account_details === 'string'
+                                ? JSON.parse(account.account_details)
+                                : account.account_details
+
+                        console.log('Account details:', details)
+
+                        const hasRequiredFields = details.street && details.city && details.state && details.postalCode
+
+                        console.log('Has required fields:', hasRequiredFields)
+                        console.log('Field values:', {
+                            street: details.street,
+                            city: details.city,
+                            state: details.state,
+                            postalCode: details.postalCode,
+                        })
+
+                        const allFieldsNonEmpty = Object.values(details).every(
+                            (value): value is string => typeof value === 'string' && value.trim() !== ''
+                        )
+
+                        console.log('All fields non-empty:', allFieldsNonEmpty)
+
+                        return hasRequiredFields && allFieldsNonEmpty
+                    })
+
+                    console.log('Found account with valid address:', existingAccount)
+
+                    if (existingAccount?.account_details) {
+                        try {
+                            // Same here - check if it's already an object
+                            const details =
+                                typeof existingAccount.account_details === 'string'
+                                    ? JSON.parse(existingAccount.account_details)
+                                    : existingAccount.account_details
+
+                            // Use the existing address but ensure country is USA for Bridge API
+                            address = {
+                                ...details,
+                                country: 'USA', // Override country to USA for US bank accounts
+                            }
+                            console.log('Using existing address (modified for US):', address)
+                        } catch (error) {
+                            console.error('Failed to handle address details:', error)
+                        }
+                    }
+                }
+
+                // If no valid address found from existing accounts, require form data
+                if (!address || !address.street || !address.city || !address.state || !address.postalCode) {
+                    console.log('No valid existing address found, using form data:', formData)
+                    if (!formData.street || !formData.city || !formData.state || !formData.postalCode) {
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'Please fill in all US address fields',
+                        })
+                        return
+                    }
+                    address = {
+                        street: formData.street,
+                        city: formData.city,
+                        country: 'USA',
+                        state: formData.state,
+                        postalCode: formData.postalCode,
+                    }
+                }
             }
 
-            // Get address from the user's existing account if available
-            const existingAccount = user?.accounts?.find((account) => account.account_details)
-            const existingAddress = existingAccount?.account_details
-                ? JSON.parse(existingAccount.account_details)
-                : null
-
-            // Rest of validation
-            const isFormValid = await utils.validateAccountFormData(
-                {
-                    ...formData,
-                    accountNumber: getIbanFormValue('accountNumber'),
-                    // If user has KYC'd account, use its address
-                    ...(user?.user?.kycStatus === 'verified' && existingAddress
-                        ? {
-                              street: existingAddress.street,
-                              city: existingAddress.city,
-                              state: existingAddress.state,
-                              postalCode: existingAddress.postalCode,
-                              country: existingAddress.country,
-                          }
-                        : {}),
-                },
-                setAccountDetailsError
-            )
-
-            if (!isFormValid) {
-                console.log('Form validation failed')
-                setErrorState({
-                    showError: true,
-                    errorMessage: 'Please check all fields and try again',
-                })
-                setLoadingState('idle')
-                return
-            }
-
-            // Check if user?.accounts already has an account with this identifier
-            const accountExists = user?.accounts.find(
-                (account) =>
-                    account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                    getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '').toLowerCase()
-            )
-
-            if (accountExists) {
-                setErrorState({ showError: true, errorMessage: 'This account has already been linked' })
-                return
-            }
-
-            const customerId = user?.user?.bridge_customer_id ?? ''
-            const accountType = formData.type
-
+            // Prepare account details based on type
             const accountDetails =
-                accountType === 'iban'
+                formData.type === 'iban'
                     ? {
                           accountNumber: getIbanFormValue('accountNumber'),
                           bic: formData.BIC,
                           country: utils.getThreeCharCountryCodeFromIban(getIbanFormValue('accountNumber') ?? ''),
                       }
-                    : { accountNumber: getIbanFormValue('accountNumber'), routingNumber: formData.routingNumber }
-
-            const address =
-                user?.user?.kycStatus === 'verified' && existingAddress
-                    ? existingAddress
                     : {
-                          street: formData.street,
-                          city: formData.city,
-                          country: formData.country,
-                          state: formData.state,
-                          postalCode: formData.postalCode,
+                          accountNumber: getIbanFormValue('accountNumber'),
+                          routingNumber: formData.routingNumber,
                       }
 
-            let accountOwnerName = user?.user?.full_name
+            // Get customer ID and name
+            const customerId = user?.user?.bridge_customer_id
+            if (!customerId) {
+                throw new Error('Customer ID is missing')
+            }
 
+            let accountOwnerName = user?.user?.full_name
             if (!accountOwnerName) {
                 const bridgeCustomer = await utils.getCustomer(customerId)
                 accountOwnerName = `${bridgeCustomer.first_name} ${bridgeCustomer.last_name}`
             }
 
-            if (!customerId) {
-                throw new Error('Customer ID is missing')
-            }
-
+            // Create the external account
             const response: IResponse = await utils.createExternalAccount(
                 customerId,
-                accountType as 'iban' | 'us',
+                formData.type as 'iban' | 'us',
                 accountDetails,
-                address,
+                // Only include address for US accounts
+                formData.type === 'us' ? address : undefined,
                 accountOwnerName
             )
+
+            console.log('Create external account response:', response)
 
             if (!response.success) {
                 setErrorState({
@@ -272,28 +296,40 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
 
             const data: IBridgeAccount = response.data
 
+            console.log('Creating account in database')
             await utils.createAccount(
                 user?.user?.userId ?? '',
                 customerId,
                 data.id,
-                accountType,
+                formData.type,
                 getIbanFormValue('accountNumber')?.replaceAll(/\s/g, '') ?? '',
                 address
             )
+
+            console.log('Fetching updated user data')
             await fetchUser()
 
             onCompleted ? onCompleted() : setCompletedLinking(true)
         } catch (error) {
             console.error('Error in handleSubmitLinkIban:', error)
-            const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
-            setErrorState({ showError: true, errorMessage })
+            let errorMessage = 'Failed to link bank account'
+
+            if (error instanceof Error) {
+                // Clean up error message by removing redundant "Error:" prefixes
+                errorMessage = error.message.replace(/^Error:\s+/g, '')
+            }
+
+            setErrorState({
+                showError: true,
+                errorMessage,
+            })
         } finally {
             setLoadingState('idle')
         }
     }
 
     const formatDisplayValue = (value: string) => {
-        return formatIBANDisplay(value)
+        return formatBankAccountDisplay(value, getAccountDetailsValue('type') as 'iban' | 'us')
     }
 
     const renderComponent = () => {
@@ -381,7 +417,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                 <div className="flex flex-col gap-2">
                                     <input
                                         disabled
-                                        value={formatIBANDisplay(getAccountDetailsValue('accountNumber'))}
+                                        value={formatBankAccountDisplay(getAccountDetailsValue('accountNumber'), 'us')}
                                         className="custom-input bg-gray-100"
                                         placeholder="Account number"
                                     />
