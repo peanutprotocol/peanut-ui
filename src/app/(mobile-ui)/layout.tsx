@@ -3,7 +3,7 @@
 import '../../styles/globals.bruddle.css'
 import { Button, NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Modal from '@/components/Global/Modal'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
@@ -103,29 +103,30 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
     const { signInModal } = useWallet()
-    const { username } = useAuth()
+    const { username, user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
         setIsReady(true)
     }, [])
 
-    if (!isReady) return null
-
     const isHome = pathName === '/home'
     const pageDefinition = pages.find((page) => page.href === pathName)
+    const showFullPeanutWallet = useMemo(() => {
+        return (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
+    }, [user])
 
+    if (!isReady) return null
     return (
         <div
             className="flex h-screen flex-col"
             style={{
                 backgroundColor: colorMap.lavender,
                 height: '100vh',
-                paddingBottom: '60px',
             }}
         >
             <CloudsBackground />
-            {!(isHome || peanutWalletIsInPreview) && (
+            {showFullPeanutWallet && !isHome && (
                 <div className="flex min-h-[64px] flex-row items-center border-b-2 border-black p-4">
                     <div
                         className="absolute left-2"
@@ -145,10 +146,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     'p-4': !isHome,
                 })}
             >
-                {peanutWalletIsInPreview ? <HomeWaitlist /> : children}
+                {showFullPeanutWallet ? children : <HomeWaitlist />}
             </div>
-            {!peanutWalletIsInPreview && (
-                <div className="grid grid-cols-5 border-t-2 border-black p-2">
+            {showFullPeanutWallet && (
+                <div className="z-1 grid grid-cols-5 border-t-2 border-black p-2">
                     {tabs.map((tab) => {
                         if (tab.icon === 'wallet') {
                             return <WalletToggleButton />
