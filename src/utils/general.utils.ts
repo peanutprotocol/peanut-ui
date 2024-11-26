@@ -1010,7 +1010,3 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     }
     return tokenSymbol
 }
-
-export function isPwa(): boolean {
-    return window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true
-}
