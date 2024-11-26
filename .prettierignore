@@ -2,3 +2,4 @@ node_modules/
 .next/
 .out/
 pnpm-lock.yaml
+**.md
