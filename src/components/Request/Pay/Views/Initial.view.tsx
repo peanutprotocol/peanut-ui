@@ -20,7 +20,7 @@ import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { Card } from '@/components/0_Bruddle'
+import { Card, Button } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
@@ -461,24 +461,16 @@ export const InitialView = ({
                     </>
                 )}
                 <div className="flex w-full flex-col items-center justify-center gap-3">
-                    <button
-                        className="wc-disable-mf btn-purple btn-xl "
+                    <Button
                         disabled={isButtonDisabled}
                         onClick={() => {
                             if (!isConnected) handleConnectWallet()
                             else if (ViewState.READY_TO_PAY === viewState) handleOnNext()
                         }}
+                        loading={viewState === ViewState.LOADING}
                     >
-                        {viewState === ViewState.LOADING ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : !isConnected ? (
-                            'Connect Wallet'
-                        ) : (
-                            'Pay'
-                        )}
-                    </button>
+                        {!isConnected ? 'Connect Wallet' : 'Pay'}
+                    </Button>
                     {errorState.showError && (
                         <div className="text-center">
                             <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
