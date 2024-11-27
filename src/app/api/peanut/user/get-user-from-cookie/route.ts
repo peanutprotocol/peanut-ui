@@ -9,8 +9,7 @@ export async function GET(request: NextRequest) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
     try {
-        const { protocol, hostname, port } = new URL(request.url)
-        const apiUrl = `${protocol}//${hostname}:${port}/api/peanut/user/get-user`
+        const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/peanut/user/get-user`
 
         const response = await fetch(apiUrl, {
             method: 'POST',
