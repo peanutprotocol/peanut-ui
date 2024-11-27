@@ -98,6 +98,8 @@ const tabs: NavTabProps[] = [
     },
 ]
 
+const publicPathRegex = /^\/(request\/pay|claim)/
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
@@ -113,8 +115,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const isHome = pathName === '/home'
     const pageDefinition = pages.find((page) => page.href === pathName)
     const showFullPeanutWallet = useMemo(() => {
-        return (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
-    }, [user])
+        const isPublicPath = publicPathRegex.test(pathName)
+        return isPublicPath || (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
+    }, [user, pathName])
 
     if (!isReady) return null
     return (
