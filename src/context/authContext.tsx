@@ -237,7 +237,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.error('Failed to update user')
             }
         } catch (error) {
-            console.error('Error updating user', error)
+            console.error('Error in addAccount', error)
+            throw error
         }
     }
 
