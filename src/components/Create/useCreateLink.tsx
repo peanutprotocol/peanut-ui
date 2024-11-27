@@ -185,18 +185,20 @@ export const useCreateLink = () => {
             console.error('Failed to switch network:', error)
         }
     }
-    const isSafeConnector = (connector?: string) => {
-        return connector?.toLowerCase() === 'safe'
+    const isSafeConnector = (connector?: { name?: string }): boolean => {
+        const name = connector?.name
+        if (!name) return false
+        return name.toLowerCase().includes('safe')
     }
+    const { connector } = useAccount()
     const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
-        const { connector } = useAccount()
         // Return early with default values for Safe connector
-        if (isSafeConnector(connector?.name)) {
+        if (isSafeConnector({ name: connector?.name })) {
             return {
                 feeOptions: {
-                    gasLimit: BigNumber.from(0),
-                    maxFeePerGas: BigNumber.from(0),
-                    gasPrice: BigNumber.from(0)
+                    gasLimit: BigInt(0),
+                    maxFeePerGas: BigInt(0),
+                    gasPrice: BigInt(0)
                 },
                 transactionCostUSD: 0
             }
