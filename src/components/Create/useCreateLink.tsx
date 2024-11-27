@@ -22,7 +22,7 @@ export const useCreateLink = () => {
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
     const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain, address } = useAccount()
+    const { chain: currentChain, address, connector } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
@@ -190,7 +190,6 @@ export const useCreateLink = () => {
         if (!name) return false
         return name.toLowerCase().includes('safe')
     }
-    const { connector } = useAccount()
     const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
         // Return early with default values for Safe connector
         if (isSafeConnector({ name: connector?.name })) {
