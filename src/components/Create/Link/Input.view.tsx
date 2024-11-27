@@ -265,7 +265,7 @@ export const CreateLinkInputView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
+          <div className="space-y-6 text-center">
             <div className="space-y-2">
                 <h2
                     className="max-h-[92px] w-full overflow-hidden text-h2"
