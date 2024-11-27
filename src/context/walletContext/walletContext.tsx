@@ -6,7 +6,6 @@ import { useAccount } from 'wagmi'
 
 // ZeroDev imports
 import { useZeroDev } from './zeroDevContext.context'
-import { PasskeyStorage } from '@/components/Setup/Setup.helpers'
 import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN } from '@/constants'
 import { Chain } from 'viem'
@@ -26,6 +25,10 @@ interface WalletContextType {
         close: () => void
     }
     walletColor: string
+}
+
+function isPeanut(wallet: interfaces.IWallet | undefined) {
+    return wallet?.walletProviderType === interfaces.WalletProviderType.PEANUT
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
@@ -50,23 +53,21 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     ////// Selected Wallet
     const [selectedWallet, setSelectedWallet] = useState<interfaces.IWallet | undefined>(undefined) // TODO: this is the var that should be exposed for the app to consume, instead of const { address } = useWallet() anywhere
 
-    const legacy_getLocalPWs = () => {
-        const localPasskeys = PasskeyStorage.list()
-        return [
-            ...localPasskeys.map(({ handle, account }) => ({
-                walletProviderType: interfaces.WalletProviderType.PEANUT,
-                protocolType: interfaces.WalletProtocolType.EVM,
-                connected: false,
-                address: account,
-                handle,
-            })),
-        ]
-    }
-
     ////// Wallets
     const { data: wallets } = useQuery<interfaces.IWallet[]>({
-        queryKey: ['wallets', user?.accounts],
+        queryKey: ['wallets', user?.accounts, wagmiAddress],
         queryFn: async () => {
+            // non users can connect BYOW (to pay a request for example)
+            if (!user && wagmiAddress) {
+                return [
+                    {
+                        walletProviderType: interfaces.WalletProviderType.BYOW,
+                        protocolType: interfaces.WalletProtocolType.EVM,
+                        address: wagmiAddress,
+                        connected: false,
+                    },
+                ] as interfaces.IWallet[]
+            }
             const processedWallets = user?.accounts
                 .filter((account) =>
                     Object.values(interfaces.WalletProviderType).includes(
@@ -79,14 +80,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     address: account.account_identifier,
                     connected: false,
                 }))
-            return processedWallets ? processedWallets : []
+            return processedWallets ?? []
         },
     })
 
     const updateSelectedWalletWithConnectionStatus = useCallback(
         (wallet: interfaces.IWallet) => {
-            const isPeanut = wallet.walletProviderType == interfaces.WalletProviderType.PEANUT
-            if (isPeanut) {
+            if (isPeanut(wallet)) {
                 wallet.connected = isKernelClientReady && kernelClientAddress == wallet.address
             } else {
                 wallet.connected = isWagmiConnected && wagmiAddress == wallet.address
@@ -101,11 +101,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
      */
     useEffect(() => {
         if (!selectedWallet && wallets && wallets.length > 0) {
-            const wallet = wallets[0]
-
+            const wallet = wallets.find(isPeanut) ?? wallets[0]
             updateSelectedWalletWithConnectionStatus(wallet)
         }
-    }, [wallets])
+    }, [wallets, selectedWallet])
 
     /**
      * Update selected wallet with connection status when kernel client is ready or wagmi is connected
@@ -114,7 +113,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         if (selectedWallet) {
             updateSelectedWalletWithConnectionStatus(selectedWallet)
         }
-    }, [kernelClientAddress, wagmiAddress])
+    }, [kernelClientAddress, wagmiAddress, selectedWallet])
 
     /**
      * Add a new BYOW to DB and local wallets prop.
@@ -124,9 +123,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
      * - wallets are not undefined and user logged in (PW available, at least)
      */
     useEffect(() => {
-        if (wagmiAddress && wallets && wallets?.length > 0) {
+        if (!user) return
+        if (wagmiAddress && wallets && wallets.length > 0) {
             // only check if user logged in (wallets will always include PW in this case) and wallets have been set up
-            const foundWallet = wallets?.find((wallet: interfaces.IWallet) => {
+            const foundWallet = wallets.find((wallet: interfaces.IWallet) => {
                 wallet.address == wagmiAddress
             })
             if (!foundWallet) {
@@ -138,11 +138,11 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 addAccount({
                     accountIdentifier: wagmiAddress,
                     accountType: interfaces.WalletProviderType.BYOW,
-                    userId: user?.user.userId as string, // will always be defined, since user logged in
+                    userId: user.user.userId as string, // will always be defined, since user logged in
                 })
             }
         }
-    }, [wagmiAddress])
+    }, [wagmiAddress, wallets, user])
 
     const removeBYOW = async () => {
         // TODO: when successful API call, do NOT refetch all wallets (bad UX), but
@@ -160,8 +160,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 wallets:
                     wallets?.map((wallet: interfaces.IWallet) => {
                         let connected = false
-                        const isPeanut = wallet.walletProviderType == interfaces.WalletProviderType.PEANUT
-                        if (isPeanut) {
+                        if (isPeanut(wallet)) {
                             connected = isKernelClientReady && kernelClientAddress == wallet.address
                         } else {
                             connected = isWagmiConnected && wagmiAddress == wallet.address
@@ -173,10 +172,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     }) || [],
                 selectedWallet: selectedWallet && {
                     ...selectedWallet,
-                    connected:
-                        selectedWallet?.walletProviderType == interfaces.WalletProviderType.PEANUT
-                            ? isKernelClientReady && kernelClientAddress == selectedWallet.address
-                            : isWagmiConnected && wagmiAddress == selectedWallet?.address,
+                    connected: isPeanut(selectedWallet)
+                        ? isKernelClientReady && kernelClientAddress == selectedWallet.address
+                        : isWagmiConnected && wagmiAddress == selectedWallet?.address,
                 },
                 setSelectedWallet: (wallet: interfaces.IWallet) => {
                     updateSelectedWalletWithConnectionStatus(wallet)

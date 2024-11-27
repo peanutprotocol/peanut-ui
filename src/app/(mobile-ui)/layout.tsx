@@ -17,6 +17,7 @@ import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { peanutWalletIsInPreview } from '@/constants'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { colorMap } from '@/utils'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 
 type ScreenProps = {
     name: string
@@ -104,8 +105,9 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal } = useWallet()
-    const { username, user } = useAuth()
+    const { signInModal, isConnected } = useWallet()
+    const web3Modal = useWeb3Modal()
+    const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
@@ -179,20 +181,38 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 }}
                 title={'Sign In with your Peanut Wallet'}
             >
-                <div className="flex flex-col gap-2 p-5">
-                    {/* TODO: Explicit by something else than username */}
-                    <p>
-                        Selected Wallet: <span className="font-bold">{username}.peanut.wallet</span>
-                    </p>
+                <div className="flex flex-col items-center gap-2 p-5">
                     <Button
                         loading={isLoggingIn}
                         disabled={isLoggingIn}
                         onClick={() => {
-                            if (!username) return
                             handleLogin()
                         }}
                     >
                         Sign In
+                    </Button>
+                    <Link href={'/setup'} className="text-h8 hover:underline">
+                        Don't have a penanut wallet? Get one now.
+                    </Link>
+                    <div className="my-2 flex w-full items-center gap-4">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-sm text-gray-500">or</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+                    <Button
+                        loading={isLoggingIn}
+                        disabled={isLoggingIn}
+                        variant="dark"
+                        shadowType="secondary"
+                        onClick={() => {
+                            web3Modal.open().finally(() => {
+                                if (isConnected) {
+                                    signInModal.close()
+                                }
+                            })
+                        }}
+                    >
+                        Connect External Wallet
                     </Button>
                 </div>
             </Modal>
