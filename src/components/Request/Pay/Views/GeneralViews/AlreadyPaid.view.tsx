@@ -101,7 +101,6 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                         Discord!
                     </a>
                 </label>
-                <PaymentsFooter />
             </Card.Content>
         </Card>
     )

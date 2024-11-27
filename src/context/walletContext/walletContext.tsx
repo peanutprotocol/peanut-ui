@@ -7,10 +7,11 @@ import { useAccount } from 'wagmi'
 // ZeroDev imports
 import { useZeroDev } from './zeroDevContext.context'
 import { useQuery } from '@tanstack/react-query'
-import { PEANUT_WALLET_CHAIN } from '@/constants'
-import { Chain } from 'viem'
+import { PEANUT_WALLET_CHAIN, USDC_ARBITRUM_ADDRESS } from '@/constants'
+import { Chain, erc20Abi, getAddress } from 'viem'
 import { useAuth } from '../authContext'
 import { backgroundColorFromAddress } from '@/utils'
+import { peanutPublicClient } from '@/constants/viem.consts'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined
@@ -58,29 +59,44 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         queryKey: ['wallets', user?.accounts, wagmiAddress],
         queryFn: async () => {
             // non users can connect BYOW (to pay a request for example)
-            if (!user && wagmiAddress) {
-                return [
-                    {
-                        walletProviderType: interfaces.WalletProviderType.BYOW,
-                        protocolType: interfaces.WalletProtocolType.EVM,
-                        address: wagmiAddress,
-                        connected: false,
-                    },
-                ] as interfaces.IWallet[]
+            if (!user) {
+                if (wagmiAddress) {
+                    return [
+                        {
+                            walletProviderType: interfaces.WalletProviderType.BYOW,
+                            protocolType: interfaces.WalletProtocolType.EVM,
+                            address: wagmiAddress,
+                            connected: false,
+                        },
+                    ] as interfaces.IWallet[]
+                }
+                return []
             }
-            const processedWallets = user?.accounts
+            const processedWallets = user.accounts
                 .filter((account) =>
                     Object.values(interfaces.WalletProviderType).includes(
                         account.account_type as unknown as interfaces.WalletProviderType
                     )
                 )
-                .map((account) => ({
-                    walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
-                    protocolType: interfaces.WalletProtocolType.EVM,
-                    address: account.account_identifier,
-                    connected: false,
-                }))
-            return processedWallets ?? []
+                .map(async (account) => {
+                    const wallet = {
+                        walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
+                        protocolType: interfaces.WalletProtocolType.EVM,
+                        address: account.account_identifier,
+                        connected: false,
+                        balance: BigInt(0),
+                    }
+                    if (isPeanut(wallet)) {
+                        wallet.balance = await peanutPublicClient.readContract({
+                            address: USDC_ARBITRUM_ADDRESS,
+                            abi: erc20Abi,
+                            functionName: 'balanceOf',
+                            args: [getAddress(wallet.address)],
+                        })
+                    }
+                    return wallet
+                })
+            return Promise.all(processedWallets)
         },
     })
 

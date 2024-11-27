@@ -1,38 +1,33 @@
 'use client'
 
-import { Card } from '@/components/0_Bruddle'
 import { ArrowIcon } from '@/components/0_Bruddle'
-import Image from 'next/image'
 import React from 'react'
-import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
-import Icon from '@/components/Global/Icon'
 import { motion, useAnimation } from 'framer-motion'
 import { useRef, useEffect } from 'react'
 import classNames from 'classnames'
 import { HomeLink } from '@/components/Home/HomeLink'
 import { useWallet } from '@/context/walletContext'
-import Link from 'next/link'
-import { shortenAddressLong } from '@/utils'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useAuth } from '@/context/authContext'
 import PointsBanner from '@/components/Home/PointsBanner'
 import { useRouter } from 'next/navigation'
 import HomeHeader from '@/components/Home/HomeHeader'
+import { WalletCard } from '@/components/Home/WalletCard'
 
 const cardWidth = 300
 const cardMargin = 16
 
-const Home = () => {
+export default function Home() {
     const controls = useAnimation()
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
 
     const { addBYOW, username } = useAuth()
-
     const { wallets, selectedWallet, setSelectedWallet } = useWallet()
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
     const hasWallets = wallets.length > 0
+
+    const totalCards = hasWallets ? wallets.length + 1 : 1
 
     useEffect(() => {
         controls.start({
@@ -42,10 +37,12 @@ const Home = () => {
     }, [selectedWalletIndex, controls])
 
     const handleCardClick = (index: number) => {
-        if (selectedWalletIndex === index) {
-            router.push('/wallet')
-        } else {
-            setSelectedWallet(wallets[index])
+        if (index < wallets.length) {
+            if (selectedWalletIndex === index) {
+                router.push('/wallet')
+            } else {
+                setSelectedWallet(wallets[index])
+            }
         }
     }
 
@@ -64,19 +61,24 @@ const Home = () => {
                             marginLeft: -cardMargin,
                         }}
                     >
-                        {wallets.length ? (
+                        {hasWallets ? (
                             <motion.div
                                 ref={carouselRef}
                                 className="absolute flex h-[calc(100%-32px)]"
                                 animate={controls}
                                 drag="x"
-                                dragConstraints={{ left: -((wallets.length - 1) * (cardWidth + cardMargin)), right: 0 }}
+                                dragConstraints={{
+                                    left: -((totalCards - 1) * (cardWidth + cardMargin)),
+                                    right: 0,
+                                }}
                                 dragElastic={0.2}
-                                onDragEnd={(e, { offset, velocity }) => {
+                                onDragEnd={(_e, { offset, velocity }) => {
                                     const swipe = Math.abs(offset.x) * velocity.x
                                     if (swipe < -10000) {
-                                        const nextIndex = Math.min(selectedWalletIndex + 1, wallets.length - 1)
-                                        setSelectedWallet(wallets[nextIndex])
+                                        const nextIndex = Math.min(selectedWalletIndex + 1, totalCards - 1)
+                                        if (nextIndex < wallets.length) {
+                                            setSelectedWallet(wallets[nextIndex])
+                                        }
                                     } else if (swipe > 10000) {
                                         const prevIndex = Math.max(selectedWalletIndex - 1, 0)
                                         setSelectedWallet(wallets[prevIndex])
@@ -88,99 +90,26 @@ const Home = () => {
                                     }
                                 }}
                             >
-                                {wallets.map((wallet, index) => {
-                                    const selected = selectedWalletIndex === index
-                                    const selectedIsConnected = wallet.connected
-                                    return (
-                                        <motion.div
-                                            key={index}
-                                            className={classNames('mr-4 h-full', {
-                                                'opacity-40': !selected,
-                                            })}
-                                            onClick={() => handleCardClick(index)}
-                                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                        >
-                                            <Card
-                                                className={classNames(
-                                                    'flex h-full w-[300px] flex-col gap-4 rounded-md text-white hover:cursor-pointer',
-                                                    {
-                                                        'bg-green-1': selectedIsConnected,
-                                                        'bg-purple-1': !selectedIsConnected,
-                                                    }
-                                                )}
-                                                shadowSize="6"
-                                            >
-                                                <Card.Content className="flex h-full flex-col justify-between gap-2">
-                                                    <div className="flex flex-row items-center gap-4">
-                                                        <Image src={PeanutWalletIcon} alt="" />
-                                                        <p className="text-md">
-                                                            peanut.me/<span className="font-bold">{username}</span>
-                                                        </p>
-                                                    </div>
-                                                    <p className="text-4xl font-black sm:text-5xl">$ 0.00</p>
-                                                    <div>
-                                                        <div className="flex flex-col">
-                                                            <p className="text-xl font-black sm:text-2xl">
-                                                                {shortenAddressLong(wallet.address)}
-                                                            </p>
-                                                        </div>
-                                                    </div>
-                                                </Card.Content>
-                                            </Card>
-                                        </motion.div>
-                                    )
-                                })}
-                                <Card
-                                    className={classNames(
-                                        'flex w-full flex-col gap-4 rounded-md text-black hover:cursor-pointer'
-                                    )}
-                                    shadowSize="6"
-                                    onClick={() => addBYOW()}
-                                >
-                                    <Link href="/setup" className="h-full">
-                                        <Card.Content className="flex h-full flex-col items-center justify-center gap-8">
-                                            <p className="text-2xl font-bold">Add your own ETH wallet</p>
-                                            <div className="flex flex-row items-center justify-start gap-4">
-                                                <Icon name="plus-circle" className="h-8 w-8" />
-                                                <p className="text-lg">Add BYOW wallet</p>
-                                            </div>
-                                        </Card.Content>
-                                    </Link>
-                                </Card>
+                                {wallets.map((wallet, index) => (
+                                    <WalletCard
+                                        key={wallet.address}
+                                        type="wallet"
+                                        wallet={wallet}
+                                        username={username}
+                                        selected={selectedWalletIndex === index}
+                                        onClick={() => handleCardClick(index)}
+                                    />
+                                ))}
+
+                                <WalletCard type="add" onClick={addBYOW} />
                             </motion.div>
                         ) : (
                             <div className="flex h-full w-full flex-grow flex-col justify-center">
-                                <Card
-                                    className={classNames(
-                                        'flex w-full flex-col gap-4 rounded-md text-black hover:cursor-pointer'
-                                    )}
-                                    shadowSize="6"
-                                >
-                                    <Link href="/setup" className="h-full">
-                                        <Card.Content className="flex h-full flex-col items-center justify-center gap-8">
-                                            <p className="text-2xl font-bold">Get Started!</p>
-                                            <div className="flex flex-row items-center justify-start gap-4">
-                                                <Icon name="plus-circle" className="h-8 w-8" />
-                                                <p className="text-lg">Create a peanut wallet</p>
-                                            </div>
-                                        </Card.Content>
-                                    </Link>
-                                </Card>
+                                <WalletCard type="add" onClick={addBYOW} />
                             </div>
                         )}
                     </div>
-                    {hasWallets && (
-                        <div className="">
-                            <Card className="flex w-full flex-col gap-4 rounded-md hover:cursor-pointer" shadowSize="4">
-                                <Link href="/setup" className="h-full">
-                                    <Card.Content className="flex h-full flex-row items-center justify-start gap-2">
-                                        <Icon name="plus-circle" className="h-8 w-8" />
-                                        <p className="text-lg font-bold">Create a peanut wallet</p>
-                                    </Card.Content>
-                                </Link>
-                            </Card>
-                        </div>
-                    )}
+
                     <div className="flex w-full flex-grow flex-row items-center justify-center gap-4 sm:justify-evenly sm:gap-8">
                         <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
                             <HomeLink href={'/send'}>
@@ -200,5 +129,3 @@ const Home = () => {
         </div>
     )
 }
-
-export default Home
