@@ -185,7 +185,22 @@ export const useCreateLink = () => {
             console.error('Failed to switch network:', error)
         }
     }
+    const isSafeConnector = (connector?: string) => {
+        return connector?.toLowerCase() === 'safe'
+    }
     const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
+        const { connector } = useAccount()
+        // Return early with default values for Safe connector
+        if (isSafeConnector(connector?.name)) {
+            return {
+                feeOptions: {
+                    gasLimit: BigNumber.from(0),
+                    maxFeePerGas: BigNumber.from(0),
+                    gasPrice: BigNumber.from(0)
+                },
+                transactionCostUSD: 0
+            }
+        }
         try {
             const feeOptions = await peanut.setFeeOptions({
                 chainId: chainId,
