@@ -355,10 +355,6 @@ export const InitialView = ({
                     attachmentUrl={requestLinkData?.attachmentUrl}
                 />
                 <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="text-h4">
-                        <AddressLink address={requestLinkData.recipientAddress} /> is requesting
-                    </label>
-
                     <label className="text-h2">{requestedAmount}</label>
                     <div>
                         <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
