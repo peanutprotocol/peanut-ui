@@ -1,10 +1,8 @@
 'use client'
 
-import Icon from '@/components/Global/Icon'
 import * as consts from '@/constants'
 import * as _consts from '../../Pay.consts'
-import Link from 'next/link'
-import { Button, Card } from '@/components/0_Bruddle'
+import { Card } from '@/components/0_Bruddle'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import AddressLink from '@/components/Global/AddressLink'
@@ -83,14 +81,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                         )}
                     </div>
                 )}
-                <Link href={'/request/create'}>
-                    <Button variant="stroke" className="flex flex-row justify-between text-nowrap">
-                        <div className=" border border-n-1 p-0 px-1">
-                            <Icon name="send" className="-mt-0.5" />
-                        </div>
-                        Request a payment yourself!
-                    </Button>
-                </Link>
+                <PaymentsFooter href={'/request/create'} text="Request a payment yourself!" icon="send" />
                 <label className="text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
@@ -101,7 +92,6 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                         Discord!
                     </a>
                 </label>
-                <PaymentsFooter />
             </Card.Content>
         </Card>
     )

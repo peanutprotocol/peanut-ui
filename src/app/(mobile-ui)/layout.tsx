@@ -3,7 +3,7 @@
 import '../../styles/globals.bruddle.css'
 import { Button, NavIcons, NavIconsName } from '@/components/0_Bruddle'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Modal from '@/components/Global/Modal'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
@@ -17,6 +17,7 @@ import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { peanutWalletIsInPreview } from '@/constants'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { colorMap } from '@/utils'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 
 type ScreenProps = {
     name: string
@@ -98,34 +99,39 @@ const tabs: NavTabProps[] = [
     },
 ]
 
+const publicPathRegex = /^\/(request\/pay|claim)/
+
 const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal } = useWallet()
-    const { username } = useAuth()
+    const { signInModal, isConnected } = useWallet()
+    const web3Modal = useWeb3Modal()
+    const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
 
     useEffect(() => {
         setIsReady(true)
     }, [])
 
-    if (!isReady) return null
-
     const isHome = pathName === '/home'
     const pageDefinition = pages.find((page) => page.href === pathName)
+    const showFullPeanutWallet = useMemo(() => {
+        const isPublicPath = publicPathRegex.test(pathName)
+        return isPublicPath || (user?.user.hasPwAccess ?? false) || !peanutWalletIsInPreview
+    }, [user, pathName])
 
+    if (!isReady) return null
     return (
         <div
             className="flex h-screen flex-col"
             style={{
                 backgroundColor: colorMap.lavender,
                 height: '100vh',
-                paddingBottom: '60px',
             }}
         >
             <CloudsBackground />
-            {!(isHome || peanutWalletIsInPreview) && (
+            {showFullPeanutWallet && !isHome && (
                 <div className="flex min-h-[64px] flex-row items-center border-b-2 border-black p-4">
                     <div
                         className="absolute left-2"
@@ -145,10 +151,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     'p-4': !isHome,
                 })}
             >
-                {peanutWalletIsInPreview ? <HomeWaitlist /> : children}
+                {showFullPeanutWallet ? children : <HomeWaitlist />}
             </div>
-            {!peanutWalletIsInPreview && (
-                <div className="grid grid-cols-5 border-t-2 border-black p-2">
+            {showFullPeanutWallet && (
+                <div className="z-1 grid grid-cols-5 border-t-2 border-black p-2">
                     {tabs.map((tab) => {
                         if (tab.icon === 'wallet') {
                             return <WalletToggleButton />
@@ -175,20 +181,38 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                 }}
                 title={'Sign In with your Peanut Wallet'}
             >
-                <div className="flex flex-col gap-2 p-5">
-                    {/* TODO: Explicit by something else than username */}
-                    <p>
-                        Selected Wallet: <span className="font-bold">{username}.peanut.wallet</span>
-                    </p>
+                <div className="flex flex-col items-center gap-2 p-5">
                     <Button
                         loading={isLoggingIn}
                         disabled={isLoggingIn}
                         onClick={() => {
-                            if (!username) return
                             handleLogin()
                         }}
                     >
                         Sign In
+                    </Button>
+                    <Link href={'/setup'} className="text-h8 hover:underline">
+                        Don't have a penanut wallet? Get one now.
+                    </Link>
+                    <div className="my-2 flex w-full items-center gap-4">
+                        <div className="h-px flex-1 bg-gray-200" />
+                        <span className="text-sm text-gray-500">or</span>
+                        <div className="h-px flex-1 bg-gray-200" />
+                    </div>
+                    <Button
+                        loading={isLoggingIn}
+                        disabled={isLoggingIn}
+                        variant="dark"
+                        shadowType="secondary"
+                        onClick={() => {
+                            web3Modal.open().finally(() => {
+                                if (isConnected) {
+                                    signInModal.close()
+                                }
+                            })
+                        }}
+                    >
+                        Connect External Wallet
                     </Button>
                 </div>
             </Modal>

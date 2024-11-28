@@ -28,6 +28,7 @@ export interface IWallet extends IDBWallet {
     // and the user is logged in. That is because there is only one PW per user,
     // and the provider will always be connected to that.
     connected: boolean
+    balance: bigint
 }
 
 export enum WalletErrorType {

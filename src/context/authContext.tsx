@@ -5,7 +5,7 @@ import { useToast, ToastId } from '@chakra-ui/react'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { useQuery } from '@tanstack/react-query'
 import { hitUserMetric } from '@/utils/metrics.utils'
-import { isPwa } from '@/utils'
+import { usePWAStatus } from '@/hooks/usePWAStatus'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -37,6 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { open: web3modalOpen } = useWeb3Modal()
+    const isPwa = usePWAStatus()
     const {
         data: user,
         isFetching: isFetchingUser,
@@ -50,7 +51,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 const userData: interfaces.IUserProfile | null = await userResponse.json()
                 if (userData) {
                     // no await, log metric async
-                    hitUserMetric(userData.user.userId, 'login', { isPwa: isPwa() })
+                    hitUserMetric(userData.user.userId, 'login', { isPwa: isPwa })
                 }
 
                 return userData
@@ -236,7 +237,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 console.error('Failed to update user')
             }
         } catch (error) {
-            console.error('Error updating user', error)
+            console.error('Error in addAccount', error)
+            throw error
         }
     }
 
