@@ -443,81 +443,38 @@ export const InitialClaimLinkView = ({
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
                 {recipientType !== 'iban' && recipientType !== 'us' ? (
-                        <TokenSelector
-                            shouldBeConnected={false}
-                            showOnlySquidSupported
-                            onReset={() => {
-                                setSelectedChainID(claimLinkData.chainId)
-                                setSelectedTokenAddress(claimLinkData.tokenAddress)
-                            }}
-                        />
-                    ) : null}
-                    <GeneralRecipientInput
-                        className=""
-                        placeholder="wallet address / ENS / IBAN / US account number"
-                        recipient={recipient}
-                        onUpdate={(update: GeneralRecipientUpdate) => {
-                            setRecipient(update.recipient)
-                            if (!update.recipient.address) {
-                                setRecipientType('address')
-                            } else {
-                                setRecipientType(update.type)
-                            }
-                            setIsValidRecipient(update.isValid)
-                            setErrorState({
-                                showError: !update.isValid,
-                                errorMessage: update.errorMessage,
-                            })
-                            setInputChanging(update.isChanging)
+                    <TokenSelector
+                        shouldBeConnected={false}
+                        showOnlySquidSupported
+                        onReset={() => {
+                            setSelectedChainID(claimLinkData.chainId)
+                            setSelectedTokenAddress(claimLinkData.tokenAddress)
                         }}
-                        infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
                     />
-                    {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
-                            {selectedRoute && (
-                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                                    <div className="flex w-max flex-row items-center justify-center gap-1">
-                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                        <label className="font-bold">Route</label>
-                                    </div>
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        {isXchainLoading ? (
-                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                        ) : (
-                                            selectedRoute && (
-                                                <>
-                                                    {
-                                                        consts.supportedPeanutChains.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.fromChain
-                                                        )?.name
-                                                    }
-                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                                    {
-                                                        supportedSquidChainsAndTokens[
-                                                            selectedRoute.route.params.toChain
-                                                        ]?.axelarChainName
-                                                    }
-                                                    <MoreInfo
-                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                            consts.supportedPeanutChains.find(
-                                                                (chain) =>
-                                                                    chain.chainId ===
-                                                                    selectedRoute.route.params.fromChain
-                                                            )?.name
-                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                            supportedSquidChainsAndTokens[
-                                                                selectedRoute.route.params.toChain
-                                                            ]?.axelarChainName
-                                                        }.`}
-                                                    />
-                                                </>
-                                            )
-                                        )}
-                                    </span>
-                                </div>
-                            )}
-
+                ) : null}
+                <GeneralRecipientInput
+                    className=""
+                    placeholder="wallet address / ENS / IBAN / US account number"
+                    recipient={recipient}
+                    onUpdate={(update: GeneralRecipientUpdate) => {
+                        setRecipient(update.recipient)
+                        if (!update.recipient.address) {
+                            setRecipientType('address')
+                        } else {
+                            setRecipientType(update.type)
+                        }
+                        setIsValidRecipient(update.isValid)
+                        setErrorState({
+                            showError: !update.isValid,
+                            errorMessage: update.errorMessage,
+                        })
+                        setInputChanging(update.isChanging)
+                    }}
+                    infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
+                />
+                {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        {selectedRoute && (
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <Icon name={'forward'} className="h-4 fill-gray-1" />
@@ -557,6 +514,45 @@ export const InitialClaimLinkView = ({
                                     )}
                                 </span>
                             </div>
+                        )}
+
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Route</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {isXchainLoading ? (
+                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                ) : (
+                                    selectedRoute && (
+                                        <>
+                                            {
+                                                consts.supportedPeanutChains.find(
+                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                                )?.name
+                                            }
+                                            <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                            {
+                                                supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                    ?.axelarChainName
+                                            }
+                                            <MoreInfo
+                                                text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) =>
+                                                            chain.chainId === selectedRoute.route.params.fromChain
+                                                    )?.name
+                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                    supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                        ?.axelarChainName
+                                                }.`}
+                                            />
+                                        </>
+                                    )
+                                )}
+                            </span>
+                        </div>
 
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -620,7 +616,11 @@ export const InitialClaimLinkView = ({
                             (isValidRecipient === false && recipient.address.length > 0)
                         }
                     >
-                        {!isConnected && recipient.address.length === 0 ? 'Connect Wallet' : ((hasFetchedRoute && selectedRoute) || recipient.address !== address ? 'Proceed' : 'Claim now')}
+                        {!isConnected && recipient.address.length === 0
+                            ? 'Connect Wallet'
+                            : (hasFetchedRoute && selectedRoute) || recipient.address !== address
+                              ? 'Proceed'
+                              : 'Claim now'}
                     </Button>
                     {address && recipient.address.length < 0 && recipientType === 'address' && (
                         <div
