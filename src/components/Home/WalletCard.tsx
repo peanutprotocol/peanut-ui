@@ -9,15 +9,25 @@ import Icon from '@/components/Global/Icon'
 import { shortenAddressLong } from '@/utils'
 import { IWallet } from '@/interfaces'
 
-interface WalletCardProps {
-    type: 'wallet' | 'add'
-    wallet?: IWallet
-    username?: string
-    selected?: boolean
+type BaseWalletCardProps = {
     onClick?: () => void
+    type: 'add' | 'wallet'
 }
 
-export function WalletCard({ type, wallet, username, selected = false, onClick }: WalletCardProps) {
+type WalletCardAdd = BaseWalletCardProps & {
+    type: 'add'
+}
+
+type WalletCardWallet = BaseWalletCardProps & {
+    type: 'wallet'
+    wallet: IWallet
+    username: string
+    selected?: boolean
+}
+
+type WalletCardProps = WalletCardAdd | WalletCardWallet
+
+export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
     if (type === 'add') {
         return (
             <motion.div className="h-full">
@@ -40,7 +50,7 @@ export function WalletCard({ type, wallet, username, selected = false, onClick }
         )
     }
 
-    if (!wallet) return null
+    const { wallet, username, selected = false } = props as WalletCardWallet
 
     return (
         <motion.div

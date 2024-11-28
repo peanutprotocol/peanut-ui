@@ -95,7 +95,7 @@ export default function Home() {
                                         key={wallet.address}
                                         type="wallet"
                                         wallet={wallet}
-                                        username={username}
+                                        username={username ?? ''}
                                         selected={selectedWalletIndex === index}
                                         onClick={() => handleCardClick(index)}
                                     />
