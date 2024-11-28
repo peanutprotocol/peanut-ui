@@ -17,6 +17,8 @@ import useClaimLink from '@/components/Claim/useClaimLink'
 import Link from 'next/link'
 import { CrispButton } from '@/components/CrispChat'
 import { checkTransactionStatus } from '@/components/utils/utils'
+import { formatBankAccountDisplay } from '@/utils/format.utils'
+import { SQUID_ETH_ADDRESS, getSquidTokenAddress } from '@/utils/token.utils'
 
 import {
     CrossChainDetails,
@@ -248,12 +250,12 @@ export const OfframpConfirmView = ({
         // if we don't have a token and chain name (meaning bridge supports it), we do x-chain transfer to optimism usdc
         if (!tokenName || !chainName) {
             xchainNeeded = true
-            const { tokenName: xchainTokenName, chainName: xchainChainName } = await handleCrossChainScenario(
-                claimLinkData,
-                crossChainDetails
-            )
-            tokenName = xchainTokenName
-            chainName = xchainChainName
+            const result = await handleCrossChainScenario(claimLinkData)
+            if (!result) {
+                throw new Error('Failed to setup cross-chain transfer')
+            }
+            tokenName = result.tokenName
+            chainName = result.chainName
         }
 
         let liquidationAddress = allLiquidationAddresses.find(
@@ -278,31 +280,59 @@ export const OfframpConfirmView = ({
     }
 
     // TODO: fix type
-    const handleCrossChainScenario = async (claimLinkData: any, crossChainDetails: CrossChainDetails[]) => {
-        // default to optimism and usdc (and then bridge to this)
-        // imported from Offramp consts
+    const handleCrossChainScenario = async (
+        linkDetails: any
+    ): Promise<{ tokenName: string | undefined; chainName: string | undefined } | false> => {
+        try {
+            const route = await utils.fetchRouteRaw(
+                linkDetails.tokenAddress,
+                linkDetails.chainId,
+                usdcAddressOptimism,
+                optimismChainId,
+                linkDetails.tokenDecimals,
+                linkDetails.tokenAmount,
+                linkDetails.senderAddress
+            )
 
-        if (!crossChainDetails) {
-            throw new Error('Offramp unavailable')
-        }
+            if (!route) {
+                console.error('No route found for token:', {
+                    fromToken: linkDetails.tokenAddress,
+                    fromChain: linkDetails.chainId,
+                    toToken: usdcAddressOptimism,
+                    toChain: optimismChainId,
+                })
+                setErrorState({
+                    showError: true,
+                    errorMessage: 'This token does not support cross-chain transfers. Please try a different token.',
+                })
+                return false
+            }
 
-        const route = await utils.fetchRouteRaw(
-            claimLinkData.tokenAddress!,
-            claimLinkData.chainId!.toString(),
-            usdcAddressOptimism,
-            optimismChainId,
-            claimLinkData.tokenDecimals!,
-            claimLinkData.tokenAmount!,
-            claimLinkData.senderAddress
-        )
+            return {
+                tokenName: utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism),
+                chainName: utils.getBridgeChainName(optimismChainId),
+            }
+        } catch (error) {
+            console.error('Error in cross-chain scenario:', error)
+            let errorMessage = 'Failed to setup cross-chain transfer'
 
-        if (route === undefined) {
-            throw new Error('Offramp unavailable')
-        }
+            // Check for specific error messages
+            if (error instanceof Error) {
+                const errorBody = error.message.includes('{"message":') ? JSON.parse(error.message) : null
 
-        return {
-            tokenName: utils.getBridgeTokenName(optimismChainId, usdcAddressOptimism),
-            chainName: utils.getBridgeChainName(optimismChainId),
+                if (errorBody?.message === 'Unable to fetch token data') {
+                    errorMessage =
+                        'This token is not supported for cross-chain transfers. Please try a different token.'
+                } else if (errorBody?.message) {
+                    errorMessage = errorBody.message
+                }
+            }
+
+            setErrorState({
+                showError: true,
+                errorMessage,
+            })
+            return false
         }
     }
 
@@ -466,23 +496,19 @@ export const OfframpConfirmView = ({
 
                 let tokenName = utils.getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
                 let chainName = utils.getBridgeChainName(claimLinkData.chainId)
-                let xchainNeeded
-                if (tokenName && chainName) {
-                    xchainNeeded = false
-                } else {
+                let xchainNeeded = false
+
+                // If token isn't directly supported by bridge, route through USDC Optimism
+                if (!tokenName || !chainName) {
                     xchainNeeded = true
-                    if (!crossChainDetails) {
-                        setErrorState({
-                            showError: true,
-                            errorMessage: 'offramp unavailable',
-                        })
-                        return
-                    }
+                    console.log('Debug - Routing through USDC Optimism')
+
+                    const fromToken = getSquidTokenAddress(claimLinkData.tokenAddress)
 
                     let route
                     try {
                         route = await utils.fetchRouteRaw(
-                            claimLinkData.tokenAddress,
+                            fromToken,
                             claimLinkData.chainId.toString(),
                             usdcAddressOptimism,
                             optimismChainId,
@@ -491,10 +517,15 @@ export const OfframpConfirmView = ({
                             claimLinkData.senderAddress
                         )
                     } catch (error) {
-                        console.error('error fetching route', error)
+                        console.error('Error fetching route:', error)
+                        setErrorState({
+                            showError: true,
+                            errorMessage: 'offramp unavailable',
+                        })
+                        return
                     }
 
-                    if (route === undefined) {
+                    if (!route) {
                         setErrorState({
                             showError: true,
                             errorMessage: 'offramp unavailable',
@@ -664,9 +695,7 @@ export const OfframpConfirmView = ({
                                     <label className="font-bold">Bank account</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {offrampType == OfframpType.CASHOUT
-                                        ? offrampForm.recipient.toUpperCase()
-                                        : offrampForm?.recipient}
+                                    {formatBankAccountDisplay(offrampForm.recipient)}
                                 </span>
                             </div>
 
@@ -695,7 +724,6 @@ export const OfframpConfirmView = ({
                                     <Icon name={'gas'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Fee</label>
                                 </div>
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {user?.accounts.find(
                                         (account) => account.account_identifier === offrampForm.recipient
                                     )?.account_type === 'iban'
@@ -710,7 +738,7 @@ export const OfframpConfirmView = ({
                                                 : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
                                         }
                                     />
-                                </span>
+                                </div>
                             </div>
 
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
@@ -739,7 +767,39 @@ export const OfframpConfirmView = ({
                                     <label className="font-bold">You will receive</label>
                                 </div>
 
-                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                        <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                            <div className="flex w-1/3 flex-row items-center gap-1">
+                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Total</label>
+                            </div>
+                            <div className="flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                $
+                                {offrampType === OfframpType.CASHOUT
+                                    ? utils.formatTokenAmount(parseFloat(usdValue ?? '0'))
+                                    : tokenPrice && claimLinkData
+                                      ? utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
+                                      : ''}{' '}
+                                <MoreInfo
+                                    text={`This is the total amount before the ${
+                                        user?.accounts.find(
+                                            (account) =>
+                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                        )?.account_type === 'iban'
+                                            ? '$1 SEPA'
+                                            : '$0.50 ACH'
+                                    } fee is deducted.`}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center gap-1">
+                                <Icon name={'transfer'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">You will receive</label>
+                            </div>
+                            <div className="flex items-center justify-end gap-1 text-sm font-normal">
+                                <div className="flex items-center gap-1">
                                     $
                                     {user?.accounts.find(
                                         (account) => account.account_identifier === offrampForm.recipient
@@ -769,11 +829,10 @@ export const OfframpConfirmView = ({
                                                 : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
                                         }
                                     />
-                                </span>
                             </div>
                         </div>
                     </div>
-                )}
+                </div>
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     {activeStep > 3 && (
                         <Button
@@ -810,30 +869,30 @@ export const OfframpConfirmView = ({
                         Return
                     </Button>
 
-                    {errorState.showError && errorState.errorMessage === 'KYC under review' ? (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal text-red ">
-                                KYC is under review, it might take up to 24hrs. Chat with support to finish the process.
+                {errorState.showError && (
+                    <div className="text-center">
+                        {errorState.errorMessage === 'offramp unavailable' ? (
+                            <label className="text-h8 font-normal text-red">
+                                This token cannot be cashed out directly.{' '}
+                                <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
                             </label>
-                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                        </div>
-                    ) : errorState.errorMessage === 'KYC rejected' ? (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal text-red ">KYC has been rejected.</label>{' '}
-                            <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                        </div>
-                    ) : (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
-                    )}
-                    {showRefund && (
-                        <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
-                            <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout.
-                            Click here to reclaim the link to your wallet.
-                        </Link>
-                    )}
+                        ) : (
+                            <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                        )}
+                    </div>
+                )}
+                {showRefund && (
+                    <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click{' '}
+                        <Link href={createdLink ?? ''} className="underline">
+                            here
+                        </Link>{' '}
+                        to reclaim the funds to your wallet.
+                    </Link>
+                )}
                 </div>
+                </div>
+            )}
             </Card.Content>
         </Card>
     )
