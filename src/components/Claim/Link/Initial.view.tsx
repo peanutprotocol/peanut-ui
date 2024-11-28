@@ -553,7 +553,9 @@ export const InitialClaimLinkView = ({
                     <button
                         className="btn-purple btn-xl"
                         onClick={() => {
-                            if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
+                            if (!isConnected && recipient.address.length === 0) {
+                                handleConnectWallet()
+                            } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {
@@ -565,24 +567,25 @@ export const InitialClaimLinkView = ({
                         }}
                         disabled={
                             isLoading ||
-                            !isValidRecipient ||
                             isXchainLoading ||
                             inputChanging ||
                             (hasFetchedRoute && !selectedRoute) ||
-                            recipient.address.length === 0
+                            (isValidRecipient === false && recipient.address.length > 0)
                         }
                     >
                         {isLoading || isXchainLoading ? (
                             <div className="flex w-full flex-row items-center justify-center gap-2">
                                 <Loading /> {loadingState}
                             </div>
+                        ) : !isConnected && recipient.address.length === 0 ? (
+                            'Connect Wallet'
                         ) : (hasFetchedRoute && selectedRoute) || recipient.address !== address ? (
                             'Proceed'
                         ) : (
                             'Claim now'
                         )}
                     </button>
-                    {address && recipient.address.length < 0 && recipientType === 'address' && (
+                    {address && recipient.address.length <= 0 && recipientType === 'address' && (
                         <div
                             className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
                             onClick={() => {

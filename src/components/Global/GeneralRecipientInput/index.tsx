@@ -75,24 +75,29 @@ const GeneralRecipientInput = ({
 
     const onInputUpdate = useCallback(
         (update: InputUpdate) => {
+            const sanitizedValue =
+                recipientType.current === 'iban' || recipientType.current === 'us'
+                    ? sanitizeBankAccount(update.value)
+                    : update.value
+
             let _update: GeneralRecipientUpdate
             if (update.isValid) {
                 errorMessage.current = ''
                 _update = {
                     recipient:
                         'ens' === recipientType.current
-                            ? { address: resolvedAddress.current, name: update.value }
-                            : { address: update.value, name: undefined },
+                            ? { address: resolvedAddress.current, name: sanitizedValue }
+                            : { address: sanitizedValue, name: undefined },
                     type: recipientType.current,
                     isValid: true,
                     isChanging: update.isChanging,
                     errorMessage: '',
                 }
-                addRecipient(update.value, recipientType.current)
+                addRecipient(sanitizedValue, recipientType.current)
             } else {
                 resolvedAddress.current = ''
                 _update = {
-                    recipient: { address: update.value, name: undefined },
+                    recipient: { address: sanitizedValue, name: undefined },
                     type: recipientType.current,
                     isValid: false,
                     isChanging: update.isChanging,

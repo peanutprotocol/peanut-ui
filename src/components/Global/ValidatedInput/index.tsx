@@ -1,7 +1,6 @@
 import { useState, useEffect, ChangeEvent, useRef } from 'react'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { sanitizeBankAccount } from '@/utils/format.utils'
 type ValidatedInputProps = {
     label: string
     value: string
@@ -79,12 +78,11 @@ const ValidatedInput = ({
     }, [value, debounceTime])
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
-        const rawValue = e.target.value
-        const sanitizedValue = sanitizeBankAccount(rawValue)
+        const newValue = e.target.value
         onUpdate({
-            value: sanitizedValue,
+            value: newValue,
             isValid: false,
-            isChanging: !!sanitizedValue,
+            isChanging: !!newValue,
         })
     }
 
