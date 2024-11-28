@@ -7,9 +7,8 @@ import Icon from '@/components/Global/Icon'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import * as consts from '@/constants'
-import { supportedPeanutChains } from '@/constants'
 import {
-    areTokenAddressesEqual,
+    areAddressesEqual,
     saveClaimedLinkToLocalStorage,
     ErrorHandler,
     getBridgeTokenName,
@@ -300,7 +299,7 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (
             selectedChainID === claimLinkData.chainId &&
-            areTokenAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+            areAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
         ) {
             setIsXChain(false)
             setSelectedRoute(null)
@@ -332,7 +331,7 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === (toChain || selectedChainID) &&
-                    areTokenAddressesEqual(route.toToken, toToken || selectedTokenAddress)
+                    areAddressesEqual(route.toToken, toToken || selectedTokenAddress)
             )
 
             if (existingRoute) {

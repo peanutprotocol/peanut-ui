@@ -53,7 +53,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
 
     useEffect(() => {
         // is swap on same chain
-        if (!isXChain && !utils.areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)) {
+        if (!isXChain && !utils.areAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)) {
             peanut.submitRequestLinkFulfillment({
                 chainId: requestLinkData.chainId,
                 hash: transactionHash,

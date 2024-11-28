@@ -9,7 +9,7 @@ import {
     isAddressZero,
     formatTokenAmount,
     formatAmountWithSignificantDigits,
-    areTokenAddressesEqual,
+    areAddressesEqual,
     saveRequestLinkFulfillmentToLocalStorage,
     ErrorHandler,
 } from '@/utils'
@@ -198,7 +198,7 @@ export const InitialView = ({
         setXChainUnsignedTxs(undefined)
         const isXChain =
             selectedChainID !== requestLinkData.chainId ||
-            !areTokenAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
+            !areAddressesEqual(selectedTokenAddress, requestLinkData.tokenAddress)
         setIsXChain(isXChain)
     }, [selectedChainID, selectedTokenAddress])
 
@@ -207,7 +207,7 @@ export const InitialView = ({
         let isMounted = true
         const chainDetails = consts.peanutTokenDetails.find((chain) => chain.chainId === requestLinkData.chainId)
         const logoURI =
-            chainDetails?.tokens.find((token) => areTokenAddressesEqual(token.address, requestLinkData.tokenAddress))
+            chainDetails?.tokens.find((token) => areAddressesEqual(token.address, requestLinkData.tokenAddress))
                 ?.logoURI ?? tokenPriceData?.logoURI
         setTokenRequestedLogoURI(logoURI)
 

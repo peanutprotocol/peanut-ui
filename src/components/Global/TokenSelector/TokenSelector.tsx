@@ -7,7 +7,7 @@ import ChainSelector from '../ChainSelector'
 import { useBalance } from '@/hooks/useBalance'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 import * as context from '@/context'
-import { areTokenAddressesEqual, formatTokenAmount } from '@/utils'
+import { areAddressesEqual, formatTokenAmount } from '@/utils'
 import { AdvancedTokenSelectorButton } from './Components'
 import { IUserBalance, IToken } from '@/interfaces'
 
@@ -72,7 +72,7 @@ const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken:
                     <div
                         key={`${balance.address}_${balance.chainId}`}
                         className={`flex h-14 cursor-pointer items-center transition-colors hover:bg-n-3/10 ${
-                            areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
+                            areAddressesEqual(balance.address, selectedTokenAddress) &&
                             balance.chainId === selectedChainID &&
                             'bg-n-3/10'
                         }`}
@@ -194,7 +194,7 @@ const TokenSelector = ({
             tokens = [
                 ...tokens,
                 ...(peanutTokenDetails.find((token) => token.chainId === selectedChainID)?.tokens || []).filter(
-                    (token) => !tokens.find((t) => areTokenAddressesEqual(t.address, token.address))
+                    (token) => !tokens.find((t) => areAddressesEqual(t.address, token.address))
                 ),
             ]
         }
@@ -222,7 +222,7 @@ const TokenSelector = ({
                 (balance) =>
                     !showOnlySquidSupported ||
                     supportedSquidChainsAndTokens[balance.chainId]?.tokens.some((token) =>
-                        areTokenAddressesEqual(balance.address, token.address)
+                        areAddressesEqual(balance.address, token.address)
                     )
             ),
             ...selectedChainTokens.filter(
@@ -230,7 +230,7 @@ const TokenSelector = ({
                 (token) =>
                     !balancesToDisplay.find(
                         (balance) =>
-                            balance.chainId === token.chainId && areTokenAddressesEqual(balance.address, token.address)
+                            balance.chainId === token.chainId && areAddressesEqual(balance.address, token.address)
                     )
             ),
         ]
@@ -278,8 +278,7 @@ const TokenSelector = ({
             setSelectedBalance(
                 _balancesToDisplay.find(
                     (balance) =>
-                        areTokenAddressesEqual(balance.address, selectedTokenAddress) &&
-                        balance.chainId === selectedChainID
+                        areAddressesEqual(balance.address, selectedTokenAddress) && balance.chainId === selectedChainID
                 )
             )
         } else {

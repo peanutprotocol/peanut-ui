@@ -368,7 +368,7 @@ export const isTestnetChain = (chainId: string) => {
     return isTestnet
 }
 
-export const areTokenAddressesEqual = (address1: string, address2: string): boolean => {
+export const areAddressesEqual = (address1: string, address2: string): boolean => {
     if (address1.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
         address1 = ethers.constants.AddressZero
     if (address2.toLowerCase() === '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE'.toLocaleLowerCase())
@@ -379,7 +379,7 @@ export const areTokenAddressesEqual = (address1: string, address2: string): bool
 }
 
 export const isAddressZero = (address: string): boolean => {
-    return areTokenAddressesEqual(address, ethers.constants.AddressZero)
+    return areAddressesEqual(address, ethers.constants.AddressZero)
 }
 
 export const isNativeCurrency = (address: string) => {
@@ -978,7 +978,7 @@ export const switchNetwork = async ({
 export function getTokenSymbol(tokenAddress: string, chainId: string): string | undefined {
     return consts.peanutTokenDetails
         .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => areTokenAddressesEqual(token.address, tokenAddress))
+        ?.tokens.find((token) => areAddressesEqual(token.address, tokenAddress))
         ?.symbol?.toUpperCase()
 }
 
