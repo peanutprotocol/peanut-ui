@@ -5,12 +5,15 @@ import ValidatedInput, { InputUpdate } from '@/components/Global/ValidatedInput'
 import * as utils from '@/utils'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
+import { useRecentRecipients } from '@/hooks/useRecentRecipients'
+import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 type GeneralRecipientInputProps = {
     className?: string
     placeholder: string
     recipient: { name: string | undefined; address: string }
     onUpdate: (update: GeneralRecipientUpdate) => void
+    infoText?: string
 }
 
 export type GeneralRecipientUpdate = {
@@ -21,23 +24,32 @@ export type GeneralRecipientUpdate = {
     errorMessage: string
 }
 
-const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: GeneralRecipientInputProps) => {
+const GeneralRecipientInput = ({
+    placeholder,
+    recipient,
+    onUpdate,
+    className,
+    infoText,
+}: GeneralRecipientInputProps) => {
     const recipientType = useRef<interfaces.RecipientType>('address')
     const errorMessage = useRef('')
     const resolvedAddress = useRef('')
+    const { getSuggestions, addRecipient } = useRecentRecipients()
 
     const checkAddress = useCallback(async (recipient: string): Promise<boolean> => {
         try {
             let isValid = false
             let type: interfaces.RecipientType = 'address'
-            if (isIBAN(recipient)) {
+
+            const sanitizedInput = sanitizeBankAccount(recipient)
+
+            if (isIBAN(sanitizedInput)) {
                 type = 'iban'
-                isValid = await utils.validateBankAccount(recipient)
+                isValid = await utils.validateBankAccount(sanitizedInput)
                 if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
-            } else if (/^[0-9]{6,17}$/.test(recipient)) {
+            } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
-                isValid = await utils.validateBankAccount(recipient)
-                if (!isValid) errorMessage.current = 'Invalid US account number'
+                isValid = true
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 type = 'ens'
                 const address = await utils.resolveFromEnsName(recipient.toLowerCase())
@@ -45,13 +57,13 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
                     resolvedAddress.current = address
                     isValid = true
                 } else {
-                    errorMessage.current = 'ENS not found'
+                    errorMessage.current = 'ENS name not found'
                     isValid = false
                 }
             } else {
                 type = 'address'
                 isValid = isAddress(recipient, { strict: false })
-                if (!isValid) errorMessage.current = 'Invalid address'
+                if (!isValid) errorMessage.current = 'Invalid Ethereum address'
             }
             recipientType.current = type
             return isValid
@@ -61,42 +73,62 @@ const GeneralRecipientInput = ({ placeholder, recipient, onUpdate, className }: 
         }
     }, [])
 
-    const onInputUpdate = useCallback((update: InputUpdate) => {
-        let _update: GeneralRecipientUpdate
-        if (update.isValid) {
-            errorMessage.current = ''
-            _update = {
-                recipient:
-                    'ens' === recipientType.current
-                        ? { address: resolvedAddress.current, name: update.value }
-                        : { address: update.value, name: undefined },
-                type: recipientType.current,
-                isValid: true,
-                isChanging: update.isChanging,
-                errorMessage: '',
+    const onInputUpdate = useCallback(
+        (update: InputUpdate) => {
+            const sanitizedValue =
+                recipientType.current === 'iban' || recipientType.current === 'us'
+                    ? sanitizeBankAccount(update.value)
+                    : update.value
+
+            let _update: GeneralRecipientUpdate
+            if (update.isValid) {
+                errorMessage.current = ''
+                _update = {
+                    recipient:
+                        'ens' === recipientType.current
+                            ? { address: resolvedAddress.current, name: sanitizedValue }
+                            : { address: sanitizedValue, name: undefined },
+                    type: recipientType.current,
+                    isValid: true,
+                    isChanging: update.isChanging,
+                    errorMessage: '',
+                }
+                addRecipient(sanitizedValue, recipientType.current)
+            } else {
+                resolvedAddress.current = ''
+                _update = {
+                    recipient: { address: sanitizedValue, name: undefined },
+                    type: recipientType.current,
+                    isValid: false,
+                    isChanging: update.isChanging,
+                    errorMessage: errorMessage.current,
+                }
             }
-        } else {
-            resolvedAddress.current = ''
-            _update = {
-                recipient: { address: update.value, name: undefined },
-                type: recipientType.current,
-                isValid: false,
-                isChanging: update.isChanging,
-                errorMessage: errorMessage.current,
-            }
+            onUpdate(_update)
+        },
+        [addRecipient]
+    )
+
+    const formatDisplayValue = (value: string) => {
+        if (recipientType.current === 'iban' || recipientType.current === 'us') {
+            return formatBankAccountDisplay(value, recipientType.current)
         }
-        onUpdate(_update)
-    }, [])
+        return value
+    }
 
     return (
         <ValidatedInput
-            placeholder={placeholder}
             label="To"
             value={recipient.name ?? recipient.address}
-            debounceTime={750}
+            placeholder={placeholder}
             validate={checkAddress}
             onUpdate={onInputUpdate}
             className={className}
+            autoComplete="on"
+            name="bank-account"
+            suggestions={getSuggestions(recipientType.current)}
+            infoText={infoText}
+            formatDisplayValue={formatDisplayValue}
         />
     )
 }

@@ -1,7 +1,6 @@
 import { Metadata } from 'next'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import { PayRequestLink } from '@/components'
-import { headers } from 'next/headers'
 import { PreviewType } from '@/components/Global/ImageGeneration/LinkPreview'
 import { formatAmount, printableAddress } from '@/utils'
 
@@ -33,8 +32,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     let previewUrl = '/metadata-img.jpg'
     const uuid = searchParams.id ? (Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id) : undefined
     if (uuid) {
-        let host = headers().get('host') || 'peanut.to'
-        host = `${process.env.NODE_ENV === 'development' ? 'http://' : 'https://'}${host}`
+        const host = process.env.NEXT_PUBLIC_BASE_URL!
         try {
             const linkDetails = await peanut.getRequestLinkDetails({
                 uuid,

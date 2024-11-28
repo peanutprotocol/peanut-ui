@@ -215,5 +215,3 @@ export const Refund = () => {
         </PageContainer>
     )
 }
-
-export default Refund

@@ -1,7 +1,7 @@
 import * as interfaces from '@/interfaces'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 
-export interface xchainDetail {
+interface xchainDetail {
     axelarChainName?: string
     chainIconURI?: string
     chainId?: string

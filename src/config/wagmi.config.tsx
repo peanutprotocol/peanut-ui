@@ -28,7 +28,7 @@ const config = createConfig({
     chains: consts.chains,
     connectors: [
         safe({
-            allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/],
+            allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/, /^(.*\.)?intersend\.io$/],
             shimDisconnect: true,
         }),
         walletConnect({
@@ -40,16 +40,6 @@ const config = createConfig({
             appName: 'Peanut Protocol',
         }),
         injected({ shimDisconnect: true }),
-        // @ts-ignore
-        authConnector({
-            // @ts-ignore
-            chains: consts.chains as readonly [Chain, ...Chain[]],
-            options: {
-                projectId,
-            },
-            email: false,
-            // socials: ['google', 'github', 'apple', 'email', 'discord', 'facebook']
-        }),
     ],
     client({ chain }) {
         return createClient({ chain, transport: http() })

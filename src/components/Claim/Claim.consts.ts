@@ -29,7 +29,6 @@ export interface IClaimScreenProps {
     onNext: () => void
     onCustom: (screen: ClaimScreens) => void
     claimLinkData: interfaces.ILinkDetails
-    crossChainDetails: Array<peanutInterfaces.ISquidChain & { tokens: peanutInterfaces.ISquidToken[] }> | undefined
     type: ClaimType
     setClaimType: (type: ClaimType) => void
     recipient: { name: string | undefined; address: string }

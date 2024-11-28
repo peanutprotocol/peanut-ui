@@ -5,13 +5,12 @@ import * as _consts from '../Claim.consts'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button, Card } from '@/components/0_Bruddle'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import AddressLink from '@/components/Global/AddressLink'
 
 export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
-    const router = useRouter()
-
     const chainName =
         consts.supportedPeanutChains &&
         consts.supportedPeanutChains.find((chain) => chain.chainId == claimLinkData?.chainId)?.name
@@ -26,7 +25,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title>Sorry, this link has been claimed already.</Card.Title>
+                <Card.Title>Payment Receipt</Card.Title>
                 <Card.Description></Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
@@ -77,20 +76,12 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                                     <label className="font-bold">Sender</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    {utils.shortenAddress(claimLinkData?.senderAddress)}
+                                    <AddressLink address={claimLinkData?.senderAddress ?? ''} />
                                 </span>
                             </div>
                         )}
                     </div>
                 )}
-                <Link className="" href={'/send'}>
-                    <Button variant="stroke" className="text-nowrap">
-                        <div className="border border-n-1 p-0 px-1">
-                            <Icon name="send" className="-mt-0.5" />
-                        </div>
-                        Make a payment yourself !
-                    </Button>
-                </Link>
                 <label className="text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
@@ -101,9 +92,8 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                         Discord!
                     </a>
                 </label>
+                <PaymentsFooter />
             </Card.Content>
         </Card>
     )
 }
-
-export default AlreadyClaimedLinkView

@@ -25,18 +25,18 @@ export const ConfirmClaimLinkView = ({
     estimatedPoints,
     attachment,
     selectedRoute,
-    crossChainDetails,
 }: _consts.IClaimScreenProps) => {
     const { address } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
-    const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
+    const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
+        context.tokenSelectorContext
+    )
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [fileType] = useState<string>('')
-    const mappedData: _interfaces.CombinedType[] = _utils.mapToIPeanutChainDetailsArray(crossChainDetails)
     const { refetchBalances } = useBalance()
 
     const handleOnClaim = async () => {
@@ -117,28 +117,11 @@ export const ConfirmClaimLinkView = ({
         <Card>
             <Card.Header>
                 <Card.Title>
-                    {utils.shortenAddress(claimLinkData.senderAddress)} sent you{' '}
-                    {tokenPrice ? (
-                        selectedRoute ? (
-                            <label className="text-h2">
-                                ${' '}
-                                {utils.formatTokenAmount(
-                                    utils.formatAmountWithDecimals({
-                                        amount: selectedRoute.route.estimate.toAmountMin,
-                                        decimals: selectedRoute.route.estimate.toToken.decimals,
-                                    }) * selectedRoute.route.estimate.toToken.usdPrice
-                                )}
-                            </label>
-                        ) : (
-                            <label className="text-h2">
-                                $ {utils.formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
-                            </label>
-                        )
-                    ) : (
-                        <label className="text-h2 ">
-                            {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
-                        </label>
-                    )}
+                    <AddressLink address={claimLinkData.senderAddress} /> sent you
+                    <label className="text-h2 ">
+                        {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} on{' '}
+                        {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName}
+                    </label>
                 </Card.Title>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
@@ -167,6 +150,7 @@ export const ConfirmClaimLinkView = ({
                 )}
                 {selectedRoute ? (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
+                        You are claiming{' '}
                         {utils.formatTokenAmount(
                             utils.formatAmountWithDecimals({
                                 amount: selectedRoute.route.estimate.toAmountMin,
@@ -174,7 +158,7 @@ export const ConfirmClaimLinkView = ({
                             })
                         )}{' '}
                         {selectedRoute.route.estimate.toToken.symbol} on{' '}
-                        {mappedData.find((chain) => chain.chainId === selectedRoute.route.params.toChain)?.name}
+                        {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                     </div>
                 ) : (
                     <div className="flex w-full flex-row items-start justify-center gap-1 text-h7">
@@ -209,9 +193,8 @@ export const ConfirmClaimLinkView = ({
                                         }
                                         <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                         {
-                                            mappedData.find(
-                                                (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                            )?.name
+                                            supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                ?.axelarChainName
                                         }
                                         <MoreInfo
                                             text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
@@ -219,9 +202,8 @@ export const ConfirmClaimLinkView = ({
                                                     (chain) => chain.chainId === selectedRoute.route.params.fromChain
                                                 )?.name
                                             } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                mappedData.find(
-                                                    (chain) => chain.chainId === selectedRoute.route.params.toChain
-                                                )?.name
+                                                supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                    ?.axelarChainName
                                             }.`}
                                         />
                                     </>
@@ -229,16 +211,6 @@ export const ConfirmClaimLinkView = ({
                             </span>
                         </div>
                     )}
-
-                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                        <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Fees</label>
-                        </div>
-                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
-                        </span>
-                    </div>
 
                     <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
@@ -278,5 +250,3 @@ export const ConfirmClaimLinkView = ({
         </Card>
     )
 }
-
-export default ConfirmClaimLinkView

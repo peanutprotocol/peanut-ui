@@ -9,7 +9,7 @@ export function Banner() {
 
     return (
         <MarqueeWrapper backgroundColor="bg-purple-1" direction="left">
-            <span className="mx-4 text-sm font-semibold">Beta feature - share your thoughts!</span>
+            <span className="z-10 mx-4 text-sm font-semibold">Beta feature - share your thoughts!</span>
         </MarqueeWrapper>
     )
 }

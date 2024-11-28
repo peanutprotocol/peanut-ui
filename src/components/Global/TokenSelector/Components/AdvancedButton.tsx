@@ -1,6 +1,7 @@
 import { useContext, useEffect, useState } from 'react'
 import Icon from '../../Icon'
 import * as utils from '@/utils'
+import { fetchTokenSymbol } from '@/utils'
 import * as context from '@/context'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
@@ -40,9 +41,10 @@ export const AdvancedTokenSelectorButton = ({
     onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
-    const { address } = useWallet()
+    const { address, isConnected } = useWallet()
     const { hasFetchedBalances } = useBalance()
     const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
+    const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
 
     const getTokenBalance = async () => {
         const balance = Number(
@@ -61,11 +63,32 @@ export const AdvancedTokenSelectorButton = ({
     }
 
     useEffect(() => {
+        if (!isConnected) {
+            _setTokenBalance(undefined)
+            return
+        }
+
         _setTokenBalance(tokenBalance)
         if ((tokenBalance === 0 || !tokenBalance) && address) {
             getTokenBalance()
         }
-    }, [tokenBalance, selectedChainID, selectedTokenAddress, address])
+    }, [tokenBalance, selectedChainID, selectedTokenAddress, address, isConnected])
+
+    useEffect(() => {
+        let isMounted = true
+        if (!tokenSymbol) {
+            fetchTokenSymbol(selectedTokenAddress, selectedChainID).then((symbol) => {
+                if (isMounted) {
+                    _setTokenSymbol(symbol)
+                }
+            })
+        } else {
+            _setTokenSymbol(tokenSymbol)
+        }
+        return () => {
+            isMounted = false
+        }
+    }, [tokenSymbol, selectedTokenAddress, selectedChainID])
 
     return (
         <section
@@ -105,7 +128,7 @@ export const AdvancedTokenSelectorButton = ({
                 <div className="flex flex-col items-start justify-center gap-1">
                     <div className="inline-block w-full overflow-hidden overflow-ellipsis whitespace-nowrap text-start text-h8">
                         {type === 'xchain' && tokenAmount && utils.formatTokenAmount(Number(tokenAmount) ?? 0, 4)}{' '}
-                        {tokenSymbol} on {chainName}
+                        {_tokenSymbol} on {chainName}
                     </div>
 
                     {type === 'send' &&
@@ -117,11 +140,7 @@ export const AdvancedTokenSelectorButton = ({
                             <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
                                 Balance: <Loading className="h-2 w-2" />
                             </div>
-                        ) : (
-                            <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
-                                Balance: 0
-                            </div>
-                        ))}
+                        ) : null)}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">
                             ${utils.formatTokenAmount(Number(tokenAmount) * tokenPrice, 4)}

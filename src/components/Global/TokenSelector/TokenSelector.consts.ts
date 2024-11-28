@@ -1,12 +1,13 @@
 import * as interfaces from '@/interfaces'
 
-export interface CombinedType extends interfaces.IPeanutChainDetails {
+interface CombinedType extends interfaces.IPeanutChainDetails {
     tokens: interfaces.IToken[]
 }
 
 export interface TokenSelectorProps {
     classNameButton?: string
     shouldBeConnected?: boolean
+    showOnlySquidSupported?: boolean
     onReset?: () => void
 }
 

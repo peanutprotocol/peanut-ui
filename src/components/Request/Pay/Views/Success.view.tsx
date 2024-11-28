@@ -10,6 +10,7 @@ import * as context from '@/context'
 import { peanut } from '@squirrel-labs/peanut-sdk'
 import { useAccount } from 'wagmi'
 import { Button, Card } from '@/components/0_Bruddle'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 
 export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }: _consts.IPayScreenProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
@@ -102,6 +103,10 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                 </Card.Description>
             </Card.Header>
             <Card.Content className="col gap-4">
+                <ReferenceAndAttachment
+                    reference={requestLinkData?.reference}
+                    attachmentUrl={requestLinkData?.attachmentUrl}
+                />
                 <div className="flex w-full flex-col items-start justify-center gap-1.5 text-h9 font-normal">
                     <label className="text-h8 font-normal text-gray-1">Transaction details</label>
                     <div className="flex w-full flex-row items-center justify-start gap-1">

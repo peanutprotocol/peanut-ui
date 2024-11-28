@@ -77,7 +77,7 @@ const faqs = [
         id: '1',
         question: 'What are the trust assumptions?',
         answer: 'Peanut Protocol is non-custodial, permissionless and decentralised. Read more ',
-        redirectUrl: 'https://docs.peanut.to/overview/what-are-links/trust-assumptions',
+        redirectUrl: 'https://docs.peanut.to/how-to-use-peanut-links/trust-assumptions',
         redirectText: 'here.',
     },
     {
@@ -91,7 +91,7 @@ const faqs = [
         id: '3',
         question: 'What are the fees?',
         answer: 'On our dapp, we sponsor gasless claiming and sending on L2s. Integrators can choose to sponsor the transactions. We do not have a fee on the protocol for same-chain transactions, see ',
-        redirectUrl: 'https://docs.peanut.to/overview/pricing',
+        redirectUrl: 'https://docs.peanut.to/pricing',
         redirectText: 'here.',
     },
     {
@@ -105,7 +105,7 @@ const faqs = [
         id: '5',
         question: 'Are you audited?',
         answer: 'Yes! ',
-        redirectUrl: 'https://docs.peanut.to/other/security-audit',
+        redirectUrl: 'https://docs.peanut.to/security-audit',
         redirectText: 'See our docs for more',
     },
     {
@@ -156,7 +156,7 @@ const testimonials = [
     },
 ]
 
-export function Welcome() {
+function Welcome() {
     useEffect(() => {
         // Ensure this code only runs on the client
         if (typeof window !== 'undefined' && window.parent) {

@@ -21,6 +21,9 @@ const SetupPasskey = () => {
         try {
             // set register
             const { account } = await handleRegister(handle)
+            if (!account) {
+                throw new Error('Failed to register handle, account is undefined')
+            }
 
             // once register is set, provider is setup,
             // all calls get a response and

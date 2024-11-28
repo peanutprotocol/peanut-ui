@@ -1,53 +1,37 @@
-import * as consts from '@/constants'
-import { getTokenSymbol, formatTokenAmount, areTokenAddressesEqual } from '@/utils'
+import { formatTokenAmount } from '@/utils'
+import Icon from '../Icon'
 
 interface IConfirmDetailsProps {
-    selectedChainID: string
-    selectedTokenAddress: string
+    tokenSymbol: string
+    tokenIconUri: string
+    chainName: string
+    chainIconUri: string
     tokenAmount: string
     tokenPrice?: number
     title?: string
-    data?: any
 }
 
-export const ConfirmDetails = ({
-    selectedChainID,
-    selectedTokenAddress,
+const ConfirmDetails = ({
+    tokenSymbol,
+    tokenIconUri,
+    chainName,
+    chainIconUri,
     title,
     tokenAmount,
     tokenPrice,
-    data,
 }: IConfirmDetailsProps) => {
     return (
         <div className="flex w-full max-w-96 flex-col items-center justify-center gap-3">
             {title && <label className="self-start text-h7 font-normal">{title}</label>}
             <div>
                 <div className="flex flex-row items-center justify-center gap-2">
-                    <img
-                        src={
-                            data
-                                ? data
-                                      .find((chain: any) => chain.chainId === selectedChainID)
-                                      ?.tokens.find((token: any) =>
-                                          areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                      )?.logoURI
-                                : consts.peanutTokenDetails
-                                      .find((detail) => detail.chainId === selectedChainID)
-                                      ?.tokens.find((token) =>
-                                          areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                      )?.logoURI
-                        }
-                        className="h-6 w-6"
-                    />
+                    {tokenIconUri ? (
+                        <img src={tokenIconUri} className="h-6 w-6" />
+                    ) : (
+                        <Icon name="token_placeholder" className="h-6 w-6" fill="#999" />
+                    )}
                     <label className="text-h5 sm:text-h3">
-                        {formatTokenAmount(Number(tokenAmount))}{' '}
-                        {data
-                            ? data
-                                  .find((chain: any) => chain.chainId === selectedChainID)
-                                  ?.tokens.find((token: any) =>
-                                      areTokenAddressesEqual(token.address, selectedTokenAddress)
-                                  )?.symbol
-                            : getTokenSymbol(selectedTokenAddress, selectedChainID)}
+                        {formatTokenAmount(Number(tokenAmount))} {tokenSymbol}
                     </label>
                 </div>
                 {tokenPrice && (
@@ -57,20 +41,12 @@ export const ConfirmDetails = ({
                 )}
             </div>
             <div className="flex flex-row items-center justify-center gap-2">
-                <img
-                    src={
-                        data
-                            ? data.find((chain: any) => chain.chainId === selectedChainID)?.icon.url
-                            : consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.icon
-                                  .url
-                    }
-                    className="h-6 w-6"
-                />
-                <label className="text-sm font-bold text-gray-1">
-                    {data
-                        ? data.find((chain: any) => chain.chainId === selectedChainID)?.name
-                        : consts.supportedPeanutChains.find((detail) => detail.chainId === selectedChainID)?.name}
-                </label>
+                {chainIconUri ? (
+                    <img src={chainIconUri} className="h-6 w-6" />
+                ) : (
+                    <Icon name="chain_placeholder" className="h-6 w-6" fill="#999" />
+                )}
+                <label className="text-sm font-bold text-gray-1">{chainName}</label>
             </div>
         </div>
     )

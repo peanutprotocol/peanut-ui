@@ -5,6 +5,7 @@ export type RecipientType = 'address' | 'ens' | 'iban' | 'us'
 export interface IResponse {
     success: boolean
     data?: any
+    message?: string
 }
 
 export interface IUserBalance {
@@ -101,7 +102,7 @@ export interface ILinkDetails {
     rawOnchainDepositInfo: {}
 }
 
-export interface IChain {
+interface IChain {
     chainId: string
     axelarChainName: string
     chainType: string
@@ -207,7 +208,7 @@ export interface KYCData {
     persona_inquiry_type: string
 }
 
-export interface KYCResponse {
+interface KYCResponse {
     count: number
     data: KYCData[]
 }
@@ -234,20 +235,20 @@ export interface IBridgeAccount {
     account_details: IBridgeIbanDetails | IBridgeUsAccountDetails
 }
 
-export interface IBridgeIbanDetails {
+interface IBridgeIbanDetails {
     type: 'iban'
     last_4: string
     bic: string
     country: string
 }
 
-export interface IBridgeUsAccountDetails {
+interface IBridgeUsAccountDetails {
     type: 'us'
     last_4: string
     routing_number: string
 }
 
-export interface IBridgeDepositInstructions {
+interface IBridgeDepositInstructions {
     payment_rail: string
     amount: string
     currency: string
@@ -255,19 +256,19 @@ export interface IBridgeDepositInstructions {
     to_address: string
 }
 
-export interface IBridgeSource {
+interface IBridgeSource {
     payment_rail: string
     currency: string
     from_address: string
 }
 
-export interface IBridgeDestination {
+interface IBridgeDestination {
     payment_rail: string
     currency: string
     external_account_id: string
 }
 
-export interface IBridgeReceipt {
+interface IBridgeReceipt {
     initial_amount: string
     developer_fee: string
     exchange_fee: string
@@ -276,7 +277,7 @@ export interface IBridgeReceipt {
     final_amount: string
 }
 
-export interface IBridgeTransaction {
+interface IBridgeTransaction {
     id: string
     client_reference_id: string | null
     state: string
@@ -404,19 +405,23 @@ export interface IUserProfile {
     points: number
     transactions: Transaction[]
     referralsPointsTxs: Transaction[]
-    totalReferralPoints: number
     totalReferralConnections: number
-    pointsPerReferral: PointsPerReferral[]
     referredUsers: number
     streak: number
     pwQueue: { totalUsers: number; userPosition: number | null }
-    user: User
     accounts: Account[]
     contacts: Contact[]
     totalPoints: number
+    user: User
+    pointsPerReferral: Array<{
+        address: string
+        points: number
+        totalReferrals: number
+    }>
+    totalReferralPoints: number
 }
 
-export interface Contact {
+interface Contact {
     user_id: string
     contact_id: string
     peanut_account_id: string | null

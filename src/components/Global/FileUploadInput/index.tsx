@@ -15,7 +15,7 @@ interface IFileUploadInputProps {
     }) => void
 }
 
-export const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploadInputProps) => {
+const FileUploadInput = ({ attachmentOptions, setAttachmentOptions }: IFileUploadInputProps) => {
     const [fileType, setFileType] = useState<string>('')
 
     const handleFileChange = (e: any) => {

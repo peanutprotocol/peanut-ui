@@ -5,7 +5,7 @@ import { CashoutNow } from '@/assets'
 
 export function CashoutSection() {
     return (
-        <div className="relative flex min-h-[72vh] flex-col items-center justify-center overflow-x-hidden bg-pink-1">
+        <div className="relative flex min-h-[72vh] flex-col items-center justify-center overflow-x-hidden">
             <motion.img
                 src={CashoutNow.src}
                 className="h-auto max-w-[90%] cursor-pointer"

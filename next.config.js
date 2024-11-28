@@ -180,6 +180,8 @@ if (process.env.NODE_ENV !== 'development' && !Boolean(process.env.LOCAL_BUILD))
         // https://vercel.com/docs/cron-jobs
         automaticVercelMonitors: true,
     })
+} else {
+    module.exports = nextConfig
 }
 
 module.exports = async () => {

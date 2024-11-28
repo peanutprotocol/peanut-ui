@@ -1,66 +1,185 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import Modal from '../Modal'
+import { useToast } from '@chakra-ui/react'
+
+export type IFrameWrapperProps = {
+    src: string
+    visible: boolean
+    onClose: () => void
+    closeConfirmMessage?: string
+    onKycComplete?: () => void
+    customerId?: string
+}
 
 const IframeWrapper = ({
     src,
-    style,
     visible,
     onClose,
-}: {
-    src: string
-    style?: React.CSSProperties
-    visible: boolean
-    onClose: () => void
-}) => {
-    useEffect(() => {
-        const handleMessage = (event: MessageEvent) => {
-            const expectedOrigin = window.location.origin
+    closeConfirmMessage,
+    onKycComplete,
+    customerId,
+}: IFrameWrapperProps) => {
+    const enableConfirmationPrompt = closeConfirmMessage !== undefined
+    const [showCloseConfirmMessage, setShowCloseConfirmMessage] = useState(false)
+    const [isPolling, setIsPolling] = useState(false)
+    const toast = useToast()
 
-            if (event.origin === `${expectedOrigin}` && event.data === 'close-modal') {
-                onClose()
+    // Reset showCloseConfirmMessage when visibility changes or src changes
+    useEffect(() => {
+        if (!visible || src === '') {
+            setShowCloseConfirmMessage(false)
+        }
+    }, [visible, src])
+
+    useEffect(() => {
+        if (!visible || !customerId) return
+
+        const pollKycStatus = async () => {
+            try {
+                console.log('🔍 Polling KYC status for customer:', customerId)
+                const response = await fetch(`/api/bridge/user/new/get-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        userId: customerId,
+                        type: 'kyc',
+                    }),
+                })
+
+                if (!response.ok) return
+
+                const data = await response.json()
+                const kycStatus = data.kyc_status
+                console.log('📊 Current KYC status:', kycStatus)
+
+                if (kycStatus === 'not_started') {
+                    return // Continue polling without changing isPolling state
+                }
+
+                if (kycStatus === 'approved') {
+                    setIsPolling(false)
+                    toast({
+                        title: 'Success',
+                        description: 'KYC completed successfully!',
+                        status: 'success',
+                        duration: 5000,
+                        isClosable: true,
+                    })
+                    onKycComplete?.()
+                    onClose()
+                } else if (kycStatus === 'rejected') {
+                    setIsPolling(false)
+                    toast({
+                        title: 'KYC Rejected',
+                        description: 'Please contact support.',
+                        status: 'error',
+                        duration: 5000,
+                        isClosable: true,
+                    })
+                    onClose()
+                } else if (kycStatus === 'under_review') {
+                    setIsPolling(false)
+                    toast({
+                        title: 'Under Review',
+                        description: 'Your KYC is under review. Our team will process it shortly.',
+                        status: 'info',
+                        duration: 5000,
+                        isClosable: true,
+                    })
+                    onClose()
+                }
+            } catch (error) {
+                console.error('❌ Error polling KYC status:', error)
+                setIsPolling(false)
             }
         }
 
-        window.addEventListener('message', handleMessage)
+        let pollInterval: NodeJS.Timeout
+
+        if (visible && !isPolling) {
+            console.log('🔄 Starting KYC status polling...')
+            setIsPolling(true)
+            // Initial check
+            pollKycStatus()
+            // Then poll every 3 seconds
+            pollInterval = setInterval(pollKycStatus, 3000)
+        }
 
         return () => {
-            window.removeEventListener('message', handleMessage)
+            if (pollInterval) {
+                console.log('🛑 Stopping KYC status polling')
+                clearInterval(pollInterval)
+            }
         }
-    }, [onClose])
+    }, [visible, customerId, onKycComplete, onClose, isPolling, toast])
 
     return (
         <Modal
             visible={visible}
-            onClose={onClose}
-            classWrap="w-full max-w-2xl border-none sm:border"
+            onClose={() => {
+                if (!enableConfirmationPrompt) {
+                    onClose()
+                    return
+                }
+                if (src.includes('tos')) {
+                    onClose()
+                    return
+                }
+                setShowCloseConfirmMessage(true)
+            }}
+            classWrap="h-[85%] sm:h-full w-full !max-w-none sm:!max-w-[600px] border-none sm:m-auto m-0"
             classOverlay="bg-black bg-opacity-50"
             video={false}
-            /**
-             * Making sure the Iframe showing on top of the Crisp Chat widget
-             * which has z-index of 1000000
-             */
-            className="z-[1000001]"
+            className="z-[1000001] !p-0 md:!p-6"
             classButtonClose="hidden"
+            hideOverlay={false}
         >
-            <div className="flex flex-col gap-2 p-0 sm:p-5">
-                <div className="w-full sm:hidden">
-                    <button className="btn-purple w-full rounded-none" onClick={onClose}>
-                        CLOSE
-                    </button>
+            <div className="flex h-full flex-col gap-2 p-0">
+                <div className="w-full flex-shrink-0">
+                    {enableConfirmationPrompt && showCloseConfirmMessage ? (
+                        <div className="flex h-14 w-full flex-row items-center justify-between border-b border-n-1 px-4">
+                            <p className="text-sm">{closeConfirmMessage}</p>
+                            <div className="flex flex-row items-center gap-2">
+                                <button
+                                    className="btn-stroke h-10"
+                                    onClick={() => {
+                                        setShowCloseConfirmMessage(false)
+                                    }}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    className="btn-purple h-10"
+                                    onClick={() => {
+                                        onClose()
+                                        setShowCloseConfirmMessage(false)
+                                    }}
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    ) : (
+                        <button
+                            className="btn-purple h-14 w-full rounded-none border-b border-n-1"
+                            onClick={() => {
+                                setShowCloseConfirmMessage(true)
+                            }}
+                        >
+                            CLOSE
+                        </button>
+                    )}
                 </div>
-                <div className="h-[550px] overflow-hidden rounded-sm sm:h-[500px] sm:border sm:border-black">
+                <div className="h-full w-full flex-grow overflow-hidden">
                     <iframe
                         src={src}
                         allow="camera;"
-                        style={{ ...style, width: '100%', height: '100%', border: 'none' }}
+                        style={{ width: '100%', height: '100%', border: 'none' }}
                         className="rounded-md"
                         sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-modals allow-top-navigation-by-user-activation"
                     />
-                </div>
-                <div className="hidden w-full sm:flex">
-                    <button className="btn-purple w-full" onClick={onClose}>
-                        Close
-                    </button>
                 </div>
             </div>
         </Modal>

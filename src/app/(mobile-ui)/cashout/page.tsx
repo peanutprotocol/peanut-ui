@@ -1,9 +1,9 @@
-import * as components from '@/components'
+import { Cashout } from '@/components'
 
 export const dynamic = 'force-dynamic'
 
 // TODO: add metadata
 
 export default function CashoutPage() {
-    return <components.Cashout />
+    return <Cashout />
 }

@@ -35,9 +35,14 @@ const StorySection = () => {
 
 export function Story({ stories, foot, marquee = { visible: false } }: StoryProps) {
     return (
-        <Box className="my-6 overflow-x-hidden md:my-10">
+        <Box className="overflow-x-hidden">
             {marquee.visible && (
-                <MarqueeComp message={marquee.message} imageSrc={Eyes.src} imageAnimationClass="animation-rock" />
+                <MarqueeComp
+                    message={marquee.message}
+                    imageSrc={Eyes.src}
+                    imageAnimationClass="animation-rock"
+                    backgroundColor="bg-yellow-1"
+                />
             )}
         </Box>
     )

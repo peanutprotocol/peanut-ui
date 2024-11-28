@@ -1,6 +1,5 @@
 import { Claim } from '@/components'
 import { Metadata } from 'next'
-import { headers } from 'next/headers'
 import { getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import * as utils from '@/utils'
 
@@ -31,8 +30,7 @@ function createURL(host: string, searchParams: { [key: string]: string | string[
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
     let title = 'Claim your tokens!'
 
-    let host = headers().get('host') || 'peanut.to'
-    host = `${process.env.NODE_ENV === 'development' ? 'http://' : 'https://'}${host}`
+    const host = process.env.NEXT_PUBLIC_BASE_URL!
     let linkDetails = undefined
     try {
         const url = createURL(host, searchParams)

@@ -11,7 +11,7 @@ export const useBalance = () => {
     const [balances, setBalances] = useState<IUserBalance[]>([])
     const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)
     const [valuePerChain, setValuePerChain] = useState<ChainValue[]>([])
-    const { address: wagmiAddress, address: selectedAddress } = useWallet()
+    const { address: wagmiAddress, address: selectedAddress, isConnected } = useWallet()
     const prevAddressRef = useRef<string | undefined>(undefined)
     const address = selectedAddress || wagmiAddress
 
@@ -21,6 +21,15 @@ export const useBalance = () => {
             refetchBalances()
         }
     }, [address])
+
+    //remove balances on disconnect
+    useEffect(() => {
+        if (!isConnected) {
+            setBalances([])
+        } else {
+            refetchBalances()
+        }
+    }, [isConnected])
 
     // Function to map the mobula response to the IUserBalance interface
     function convertToUserBalances(

@@ -199,7 +199,7 @@ export function Testimonials({ testimonials }: TestimonialsProps) {
     )
 }
 
-export const TestimonialBody = ({ testimonial }: { testimonial: any }) => {
+const TestimonialBody = ({ testimonial }: { testimonial: any }) => {
     return (
         <>
             <div
