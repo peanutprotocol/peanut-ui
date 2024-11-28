@@ -153,43 +153,47 @@ export const Profile = () => {
                                     <label className="w-[28%] text-h9">Referred Users</label>
                                     <label className="w-[30%] text-right text-h9">Points</label>
                                 </div>
-                                {user?.referredUsers &&
-                                    user?.referredUsers > 0 &&
-                                    user?.pointsPerReferral.map((referral, index) => (
-                                        <div key={index} className="flex w-full items-center justify-between">
-                                            <label
-                                                className="w-[40%] cursor-pointer truncate text-h8"
-                                                onClick={() => {
-                                                    window.open(
-                                                        `https://debank.com/profile/${referral.address}/history`,
-                                                        '_blank'
-                                                    )
-                                                }}
-                                            >
-                                                <Icon
-                                                    name={'external'}
-                                                    className="mb-1 cursor-pointer"
+                                {user?.referredUsers > 0 &&
+                                    user?.pointsPerReferral.map(
+                                        (
+                                            referral: { address: string; points: number; totalReferrals: number },
+                                            index: number
+                                        ) => (
+                                            <div key={index} className="flex w-full items-center justify-between">
+                                                <label
+                                                    className="w-[40%] cursor-pointer truncate text-h8"
                                                     onClick={() => {
                                                         window.open(
                                                             `https://debank.com/profile/${referral.address}/history`,
                                                             '_blank'
                                                         )
                                                     }}
-                                                />
-                                                <AddressLink address={referral.address} />
-                                            </label>
-                                            <label className="w-[30%] text-center text-h8">
-                                                {referral?.totalReferrals ?? 0}
-                                            </label>
-                                            <label className="w-[30%] text-right text-h8">
-                                                {Math.floor(
-                                                    user.pointsPerReferral?.find((ref) =>
-                                                        utils.areTokenAddressesEqual(ref.address, referral.address)
-                                                    )?.points ?? 0
-                                                )}
-                                            </label>
-                                        </div>
-                                    ))}
+                                                >
+                                                    <Icon
+                                                        name={'external'}
+                                                        className="mb-1 cursor-pointer"
+                                                        onClick={() => {
+                                                            window.open(
+                                                                `https://debank.com/profile/${referral.address}/history`,
+                                                                '_blank'
+                                                            )
+                                                        }}
+                                                    />
+                                                    <AddressLink address={referral.address} />
+                                                </label>
+                                                <label className="w-[30%] text-center text-h8">
+                                                    {referral?.totalReferrals ?? 0}
+                                                </label>
+                                                <label className="w-[30%] text-right text-h8">
+                                                    {Math.floor(
+                                                        user.pointsPerReferral?.find((ref) =>
+                                                            utils.areTokenAddressesEqual(ref.address, referral.address)
+                                                        )?.points ?? 0
+                                                    )}
+                                                </label>
+                                            </div>
+                                        )
+                                    )}
 
                                 <div className="flex w-full items-center justify-between">
                                     <label className="w-[40%]">Total</label>

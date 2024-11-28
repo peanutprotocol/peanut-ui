@@ -1,8 +1,7 @@
 name: Code Formatting
 
 on:
-    # pull_request:
-    push:
+    pull_request:
         branches: ['**']
 
 jobs:
@@ -22,5 +21,16 @@ jobs:
             - name: Install Dependencies
               run: pnpm install
 
+            - name: List files to be checked
+              run: |
+                  echo "Files to be checked:"
+                  find . -type f \( -name "*.js" -o -name "*.jsx" -o -name "*.ts" -o -name "*.tsx" -o -name "*.md" -o -name "*.json" -o -name "*.css" -o -name "*.scss" -o -name "*.yaml" -o -name "*.yml" \) -not -path "./node_modules/*" -not -path "./.next/*"
+
             - name: Check Formatting
-              run: pnpm exec prettier --config prettier.config.js --check "**/*.{js,jsx,ts,tsx,md,json,css,scss,yaml,yml}"
+              run: |
+                  echo "Running Prettier check..."
+                  pnpm exec prettier --config prettier.config.js --check "**/*.{js,jsx,ts,tsx,md,json,css,scss,yaml,yml}" || (
+                    echo "❌ Prettier found style issues in the above files"
+                    echo "To fix these issues, run: pnpm format"
+                    exit 1
+                  )

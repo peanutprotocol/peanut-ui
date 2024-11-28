@@ -65,40 +65,40 @@ export const OfframpSuccessView = ({
                 </div>
 
                 <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
-                    <div className="flex w-1/3 flex-row items-center gap-1">
+                    <div className="flex w-max flex-row items-center gap-1">
                         <Icon name={'transfer'} className="h-4 fill-gray-1" />
                         <label className="font-bold">You will receive</label>
                     </div>
                     <div className="flex flex-1 items-center justify-end gap-1 text-sm font-normal">
-                        {offrampType == _consts.OfframpType.CASHOUT && (
-                            <>
-                                $
-                                {user?.accounts.find(
-                                    (account) =>
-                                        account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                )?.account_type === 'iban'
+                        <div className="flex items-center gap-1">
+                            $
+                            {user?.accounts.find(
+                                (account) =>
+                                    account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                    offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                            )?.account_type === 'iban'
+                                ? offrampType == _consts.OfframpType.CASHOUT
                                     ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
-                                    : utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) =>
-                                                account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                                offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
-                                    }
-                                />
-                            </>
-                        )}
-                        {offrampType == _consts.OfframpType.CLAIM && tokenPrice && claimLinkData && (
-                            <>
-                                ${utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))}{' '}
-                                <MoreInfo text={'Woop Woop free offramp!'} />
-                            </>
-                        )}
+                                    : tokenPrice &&
+                                      claimLinkData &&
+                                      utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1)
+                                : offrampType == _consts.OfframpType.CASHOUT
+                                  ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                  : tokenPrice &&
+                                    claimLinkData &&
+                                    utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5)}
+                            <MoreInfo
+                                text={
+                                    user?.accounts.find(
+                                        (account) =>
+                                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                    )?.account_type === 'iban'
+                                        ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                        : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                }
+                            />
+                        </div>
                     </div>
                 </div>
                 {offrampType == _consts.OfframpType.CASHOUT && (

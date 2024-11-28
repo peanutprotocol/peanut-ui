@@ -5,6 +5,7 @@ export type RecipientType = 'address' | 'ens' | 'iban' | 'us'
 export interface IResponse {
     success: boolean
     data?: any
+    message?: string
 }
 
 export interface IUserBalance {
@@ -405,16 +406,20 @@ export interface IUserProfile {
     points: number
     transactions: Transaction[]
     referralsPointsTxs: Transaction[]
-    totalReferralPoints: number
     totalReferralConnections: number
-    pointsPerReferral: PointsPerReferral[]
     referredUsers: number
     streak: number
     pwQueue: { totalUsers: number; userPosition: number | null }
-    user: User
     accounts: Account[]
     contacts: Contact[]
     totalPoints: number
+    user: User
+    pointsPerReferral: Array<{
+        address: string
+        points: number
+        totalReferrals: number
+    }>
+    totalReferralPoints: number
 }
 
 interface Contact {

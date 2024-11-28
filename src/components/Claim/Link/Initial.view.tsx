@@ -36,6 +36,8 @@ import { useWallet } from '@/context/walletContext'
 import { TOOLTIPS } from '@/constants/tooltips'
 import AddressLink from '@/components/Global/AddressLink'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { checkTokenSupportsXChain, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { getSquidTokenAddress } from '@/utils/token.utils'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -149,10 +151,10 @@ export const InitialClaimLinkView = ({
     }
 
     const tokenSupportsXChain = useMemo(() => {
-        return (
-            supportedSquidChainsAndTokens[claimLinkData.chainId]?.tokens.some((token) =>
-                areTokenAddressesEqual(token.address, claimLinkData.tokenAddress)
-            ) ?? false
+        return checkTokenSupportsXChain(
+            claimLinkData.tokenAddress,
+            claimLinkData.chainId,
+            supportedSquidChainsAndTokens
         )
     }, [claimLinkData.tokenAddress, claimLinkData.chainId, supportedSquidChainsAndTokens])
 
@@ -163,8 +165,6 @@ export const InitialClaimLinkView = ({
                 errorMessage: '',
             })
             setLoadingState('Fetching route')
-            let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
-            let chainName = getBridgeChainName(claimLinkData.chainId)
 
             if (tokenPrice) {
                 const cashoutUSDAmount = Number(claimLinkData.tokenAmount) * tokenPrice
@@ -182,8 +182,15 @@ export const InitialClaimLinkView = ({
                 }
             }
 
+            let tokenName = getBridgeTokenName(claimLinkData.chainId, claimLinkData.tokenAddress)
+            let chainName = getBridgeChainName(claimLinkData.chainId)
+
             if (!tokenName || !chainName) {
-                if (!tokenSupportsXChain) {
+                console.log('Debug - Routing through USDC Optimism')
+                const fromToken = getSquidTokenAddress(claimLinkData.tokenAddress)
+
+                const route = await fetchRoute(usdcAddressOptimism, optimismChainId)
+                if (!route) {
                     setErrorState({
                         showError: true,
                         errorMessage: 'offramp unavailable',
@@ -191,20 +198,8 @@ export const InitialClaimLinkView = ({
                     return
                 }
 
-                let route
-                try {
-                    route = await fetchRoute(usdcAddressOptimism, optimismChainId)
-                } catch (error) {
-                    console.log('error', error)
-                }
-
-                if (route === undefined) {
-                    setErrorState({
-                        showError: true,
-                        errorMessage: 'offramp unavailable',
-                    })
-                    return
-                }
+                tokenName = getBridgeTokenName(optimismChainId, usdcAddressOptimism)
+                chainName = getBridgeChainName(optimismChainId)
             }
 
             setLoadingState('Getting KYC status')
@@ -336,42 +331,52 @@ export const InitialClaimLinkView = ({
                 (route) =>
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
-                    route.toChain === selectedChainID &&
-                    areTokenAddressesEqual(route.toToken, selectedTokenAddress)
+                    route.toChain === (toChain || selectedChainID) &&
+                    areTokenAddressesEqual(route.toToken, toToken || selectedTokenAddress)
             )
+
             if (existingRoute) {
                 setSelectedRoute(existingRoute)
-            } else if (!isXChain) {
+                return existingRoute
+            } else if (!isXChain && !toToken && !toChain) {
                 setHasFetchedRoute(false)
-            } else {
-                const tokenAmount = Math.floor(
-                    Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
-                ).toString()
-
-                const route = await getSquidRouteRaw({
-                    squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-                    fromChain: claimLinkData.chainId.toString(),
-                    fromToken: claimLinkData.tokenAddress.toLowerCase(),
-                    fromAmount: tokenAmount,
-                    toChain: toChain ? toChain : selectedChainID.toString(),
-                    toToken: toToken ? toToken : selectedTokenAddress,
-                    slippage: 1,
-                    fromAddress: claimLinkData.senderAddress,
-
-                    toAddress:
-                        recipientType === 'us' || recipientType === 'iban' || recipientType === undefined
-                            ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
-                            : recipient.address
-                              ? recipient.address
-                              : (address ?? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'),
-                })
-                setRoutes([...routes, route])
-                !toToken && !toChain && setSelectedRoute(route)
-                return route
+                return undefined
             }
+
+            const tokenAmount = Math.floor(
+                Number(claimLinkData.tokenAmount) * Math.pow(10, claimLinkData.tokenDecimals)
+            ).toString()
+
+            const fromToken =
+                claimLinkData.tokenAddress === '0x0000000000000000000000000000000000000000'
+                    ? SQUID_ETH_ADDRESS
+                    : claimLinkData.tokenAddress.toLowerCase()
+
+            const route = await getSquidRouteRaw({
+                squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
+                fromChain: claimLinkData.chainId.toString(),
+                fromToken: fromToken,
+                fromAmount: tokenAmount,
+                toChain: toChain ? toChain : selectedChainID.toString(),
+                toToken: toToken ? toToken : selectedTokenAddress,
+                slippage: 1,
+                fromAddress: claimLinkData.senderAddress,
+                toAddress:
+                    recipientType === 'us' || recipientType === 'iban'
+                        ? '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C'
+                        : recipient.address || '0x04B5f21facD2ef7c7dbdEe7EbCFBC68616adC45C',
+            })
+
+            setRoutes([...routes, route])
+            if (!toToken && !toChain) {
+                setSelectedRoute(route)
+            }
+            return route
         } catch (error) {
-            !toToken && !toChain && setSelectedRoute(undefined)
             console.error('Error fetching route:', error)
+            if (!toToken && !toChain) {
+                setSelectedRoute(undefined)
+            }
             setErrorState({
                 showError: true,
                 errorMessage: 'No route found for the given token pair.',
@@ -385,9 +390,10 @@ export const InitialClaimLinkView = ({
 
     useEffect(() => {
         if ((recipientType === 'iban' || recipientType === 'us') && selectedRoute) {
-            setSelectedRoute(undefined)
-            setHasFetchedRoute(false)
+            return
         }
+        setSelectedRoute(undefined)
+        setHasFetchedRoute(false)
     }, [recipientType])
 
     return (
@@ -437,32 +443,26 @@ export const InitialClaimLinkView = ({
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
                 {recipientType !== 'iban' && recipientType !== 'us' ? (
-                    tokenSupportsXChain ? (
-                        <TokenSelector
-                            shouldBeConnected={false}
-                            showOnlySquidSupported
-                            onReset={() => {
-                                setSelectedChainID(claimLinkData.chainId)
-                                setSelectedTokenAddress(claimLinkData.tokenAddress)
-                            }}
-                        />
-                    ) : (
-                        <label className="text-h7 font-light">
-                            This token does not support cross-chain claims. You can claim {claimLinkData.tokenAmount}{' '}
-                            {claimLinkData.tokenSymbol} on{' '}
-                            {supportedSquidChainsAndTokens[claimLinkData.chainId]?.axelarChainName ??
-                                supportedPeanutChains.find((chain) => chain.chainId === claimLinkData.chainId)?.name ??
-                                'the same chain'}
-                        </label>
-                    )
+                    <TokenSelector
+                        shouldBeConnected={false}
+                        showOnlySquidSupported
+                        onReset={() => {
+                            setSelectedChainID(claimLinkData.chainId)
+                            setSelectedTokenAddress(claimLinkData.tokenAddress)
+                        }}
+                    />
                 ) : null}
                 <GeneralRecipientInput
-                    className="px-1"
+                    className=""
                     placeholder="wallet address / ENS / IBAN / US account number"
                     recipient={recipient}
                     onUpdate={(update: GeneralRecipientUpdate) => {
                         setRecipient(update.recipient)
-                        setRecipientType(update.type)
+                        if (!update.recipient.address) {
+                            setRecipientType('address')
+                        } else {
+                            setRecipientType(update.type)
+                        }
                         setIsValidRecipient(update.isValid)
                         setErrorState({
                             showError: !update.isValid,
@@ -518,6 +518,44 @@ export const InitialClaimLinkView = ({
 
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
+                                <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                <label className="font-bold">Route</label>
+                            </div>
+                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                {isXchainLoading ? (
+                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                ) : (
+                                    selectedRoute && (
+                                        <>
+                                            {
+                                                consts.supportedPeanutChains.find(
+                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                                )?.name
+                                            }
+                                            <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                            {
+                                                supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                    ?.axelarChainName
+                                            }
+                                            <MoreInfo
+                                                text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                    consts.supportedPeanutChains.find(
+                                                        (chain) =>
+                                                            chain.chainId === selectedRoute.route.params.fromChain
+                                                    )?.name
+                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                    supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                                        ?.axelarChainName
+                                                }.`}
+                                            />
+                                        </>
+                                    )
+                                )}
+                            </span>
+                        </div>
+
+                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                            <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'gas'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Fees</label>
                             </div>
@@ -557,7 +595,9 @@ export const InitialClaimLinkView = ({
                         onClick={() => {
                             // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
                             // imperative to ensure address here is fetched by useWallet
-                            if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
+                            if (!isConnected && recipient.address.length === 0) {
+                                handleConnectWallet()
+                            } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
                                 if (recipientType === 'iban' || recipientType === 'us') {
                                     handleIbanRecipient()
                                 } else {
@@ -570,14 +610,17 @@ export const InitialClaimLinkView = ({
                         loading={isLoading || isXchainLoading}
                         disabled={
                             isLoading ||
-                            !isValidRecipient ||
                             isXchainLoading ||
                             inputChanging ||
                             (hasFetchedRoute && !selectedRoute) ||
-                            recipient.address.length === 0
+                            (isValidRecipient === false && recipient.address.length > 0)
                         }
                     >
-                        {(hasFetchedRoute && selectedRoute) || recipient.address !== address ? 'Proceed' : 'Claim now'}
+                        {!isConnected && recipient.address.length === 0
+                            ? 'Connect Wallet'
+                            : (hasFetchedRoute && selectedRoute) || recipient.address !== address
+                              ? 'Proceed'
+                              : 'Claim now'}
                     </Button>
                     {address && recipient.address.length < 0 && recipientType === 'address' && (
                         <div

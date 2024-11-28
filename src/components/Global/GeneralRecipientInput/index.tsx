@@ -6,6 +6,7 @@ import * as utils from '@/utils'
 import { isAddress } from 'viem'
 import * as interfaces from '@/interfaces'
 import { useRecentRecipients } from '@/hooks/useRecentRecipients'
+import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 type GeneralRecipientInputProps = {
     className?: string
@@ -40,17 +41,15 @@ const GeneralRecipientInput = ({
             let isValid = false
             let type: interfaces.RecipientType = 'address'
 
-            if (isIBAN(recipient)) {
+            const sanitizedInput = sanitizeBankAccount(recipient)
+
+            if (isIBAN(sanitizedInput)) {
                 type = 'iban'
-                isValid = await utils.validateBankAccount(recipient)
+                isValid = await utils.validateBankAccount(sanitizedInput)
                 if (!isValid) errorMessage.current = 'Invalid IBAN, country not supported'
-            } else if (/^[0-9]{6,26}$/.test(recipient)) {
+            } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
-                isValid = await utils.validateBankAccount(recipient)
-                if (!isValid) {
-                    errorMessage.current =
-                        'Invalid bank account. For US bank accounts, enter your bank routing number (9 digits) followed by your account number (example: 1112223330001234567 where routing number is: 111222333 and account number: 0001234567)'
-                }
+                isValid = true
             } else if (recipient.toLowerCase().endsWith('.eth')) {
                 type = 'ens'
                 const address = await utils.resolveFromEnsName(recipient.toLowerCase())
@@ -76,24 +75,29 @@ const GeneralRecipientInput = ({
 
     const onInputUpdate = useCallback(
         (update: InputUpdate) => {
+            const sanitizedValue =
+                recipientType.current === 'iban' || recipientType.current === 'us'
+                    ? sanitizeBankAccount(update.value)
+                    : update.value
+
             let _update: GeneralRecipientUpdate
             if (update.isValid) {
                 errorMessage.current = ''
                 _update = {
                     recipient:
                         'ens' === recipientType.current
-                            ? { address: resolvedAddress.current, name: update.value }
-                            : { address: update.value, name: undefined },
+                            ? { address: resolvedAddress.current, name: sanitizedValue }
+                            : { address: sanitizedValue, name: undefined },
                     type: recipientType.current,
                     isValid: true,
                     isChanging: update.isChanging,
                     errorMessage: '',
                 }
-                addRecipient(update.value, recipientType.current)
+                addRecipient(sanitizedValue, recipientType.current)
             } else {
                 resolvedAddress.current = ''
                 _update = {
-                    recipient: { address: update.value, name: undefined },
+                    recipient: { address: sanitizedValue, name: undefined },
                     type: recipientType.current,
                     isValid: false,
                     isChanging: update.isChanging,
@@ -105,12 +109,18 @@ const GeneralRecipientInput = ({
         [addRecipient]
     )
 
+    const formatDisplayValue = (value: string) => {
+        if (recipientType.current === 'iban' || recipientType.current === 'us') {
+            return formatBankAccountDisplay(value, recipientType.current)
+        }
+        return value
+    }
+
     return (
         <ValidatedInput
-            placeholder={placeholder}
             label="To"
             value={recipient.name ?? recipient.address}
-            debounceTime={750}
+            placeholder={placeholder}
             validate={checkAddress}
             onUpdate={onInputUpdate}
             className={className}
@@ -118,6 +128,7 @@ const GeneralRecipientInput = ({
             name="bank-account"
             suggestions={getSuggestions(recipientType.current)}
             infoText={infoText}
+            formatDisplayValue={formatDisplayValue}
         />
     )
 }
