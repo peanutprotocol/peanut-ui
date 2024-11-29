@@ -11,9 +11,8 @@ export const useBalance = () => {
     const [balances, setBalances] = useState<IUserBalance[]>([])
     const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)
     const [valuePerChain, setValuePerChain] = useState<ChainValue[]>([])
-    const { address: wagmiAddress, address: selectedAddress, isConnected } = useWallet()
+    const { address, isConnected } = useWallet()
     const prevAddressRef = useRef<string | undefined>(undefined)
-    const address = selectedAddress || wagmiAddress
 
     useEffect(() => {
         if (address && prevAddressRef.current !== address) {

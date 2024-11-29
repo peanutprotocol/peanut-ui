@@ -47,13 +47,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
-            console.log('wallet', wallet)
-            console.log('isKernelClientReady', isKernelClientReady)
-            console.log('kernelClientAddress', kernelClientAddress)
-            console.log('isWagmiConnected', isWagmiConnected)
-            console.log('wagmiAddress', wagmiAddress)
             if (isPeanut(wallet) && kernelClientAddress) {
-                console.log('isPeanut')
                 return isKernelClientReady && areAddressesEqual(kernelClientAddress, wallet.address)
             } else if (wagmiAddress) {
                 return isWagmiConnected && areAddressesEqual(wagmiAddress, wallet.address)
