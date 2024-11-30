@@ -10,7 +10,6 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import * as _interfaces from '../../Claim.interfaces'
 import * as _utils from '../../Claim.utils'
 import * as consts from '@/constants'
-import { useBalance } from '@/hooks/useBalance'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 
@@ -26,7 +25,7 @@ export const ConfirmClaimLinkView = ({
     attachment,
     selectedRoute,
 }: _consts.IClaimScreenProps) => {
-    const { address } = useWallet()
+    const { address, refetchBalances } = useWallet()
     const { claimLinkXchain, claimLink } = useClaimLink()
     const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
         context.tokenSelectorContext
@@ -37,7 +36,6 @@ export const ConfirmClaimLinkView = ({
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
     const [fileType] = useState<string>('')
-    const { refetchBalances } = useBalance()
 
     const handleOnClaim = async () => {
         if (!recipient) {
@@ -82,7 +80,7 @@ export const ConfirmClaimLinkView = ({
                 })
                 setTransactionHash(claimTxHash)
                 onNext()
-                refetchBalances()
+                refetchBalances(address ?? '')
             } else {
                 throw new Error('Error claiming link')
             }

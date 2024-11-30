@@ -11,8 +11,6 @@ export const infuraRpcUrls: Record<number, string> = {
     [arbitrumSepolia.id]: `https://arbitrum-sepolia.infura.io/v3/${infuraApiKey}`,
 }
 
-export const USDC_ARBITRUM_ADDRESS = '0xaf88d065e77c8cc2239327c5edb3a432268e5831'
-
 export const ipfsProviderArray = [
     'https://ipfs.io/ipfs/',
     'https://cloudflare-ipfs.com/ipfs/',

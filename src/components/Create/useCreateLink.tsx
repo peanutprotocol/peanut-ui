@@ -4,10 +4,9 @@ import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirr
 import { useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
 import { waitForTransactionReceipt } from 'wagmi/actions'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { useBalance } from '@/hooks/useBalance'
 import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
-import { fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import { fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage, balanceByToken } from '@/utils'
 import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 import { BigNumber, ethers } from 'ethers'
 import { formatEther, parseUnits, parseEther } from 'viem'
@@ -26,9 +25,8 @@ import { WalletProviderType } from '@/interfaces'
 export const useCreateLink = () => {
     const { setLoadingState } = useContext(loadingStateContext)
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
-    const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain, address, selectedWallet } = useWallet()
+    const { chain: currentChain, address, selectedWallet, refetchBalances } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
@@ -49,17 +47,12 @@ export const useCreateLink = () => {
                 throw new Error('Please ensure that the correct token and chain are defined')
             }
             // if the userbalances are know, the user must have a balance of the selected token
-            if (balances.length > 0) {
-                let balanceAmount = balanceByToken(selectedChainID, selectedTokenAddress)?.amount
-                if (!balanceAmount) {
-                    balanceAmount = Number(
-                        await peanut.getTokenBalance({
-                            tokenAddress: selectedTokenAddress,
-                            chainId: selectedChainID,
-                            walletAddress: address ?? '',
-                        })
-                    )
-                }
+            if ((selectedWallet?.balances?.length ?? 0) > 0) {
+                let balanceAmount = balanceByToken(
+                    selectedWallet!.balances!,
+                    selectedChainID,
+                    selectedTokenAddress
+                )?.amount
                 if (!balanceAmount || (balanceAmount && balanceAmount < Number(tokenValue))) {
                     throw new Error(
                         'Please ensure that you have sufficient balance of the token you are trying to send'
@@ -72,7 +65,7 @@ export const useCreateLink = () => {
                 throw new Error('The minimum amount to send is 0.000001')
             }
         },
-        [selectedChainID, selectedTokenAddress, balances, address, balanceByToken]
+        [selectedChainID, selectedTokenAddress, selectedWallet?.balances, address]
     )
 
     const generateLinkDetails = useCallback(
@@ -87,7 +80,11 @@ export const useCreateLink = () => {
         }) => {
             try {
                 // get tokenDetails (type and decimals)
-                const tokenDetails = getTokenDetails(selectedTokenAddress, selectedChainID, balances)
+                const tokenDetails = getTokenDetails(
+                    selectedTokenAddress,
+                    selectedChainID,
+                    selectedWallet?.balances ?? []
+                )
 
                 // baseUrl
                 let baseUrl = ''
@@ -114,7 +111,7 @@ export const useCreateLink = () => {
                 throw new Error('Error getting the linkDetails.')
             }
         },
-        [selectedTokenAddress, selectedChainID, balances]
+        [selectedTokenAddress, selectedChainID, selectedWallet?.balances]
     )
 
     const generatePassword = async () => {
@@ -744,7 +741,7 @@ export const useCreateLink = () => {
                 transaction: type === 'deposit' ? response && response.unsignedTxs[0] : undefined,
             })
 
-            await refetchBalances()
+            await refetchBalances(address ?? '')
 
             return link[0]
         } catch (error) {

@@ -2,7 +2,7 @@
 
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState, useMemo } from 'react'
+import { useContext, useEffect, useState, useMemo, useCallback } from 'react'
 import Icon from '@/components/Global/Icon'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
@@ -35,8 +35,9 @@ import { useWallet } from '@/context/walletContext'
 import { TOOLTIPS } from '@/constants/tooltips'
 import AddressLink from '@/components/Global/AddressLink'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { checkTokenSupportsXChain, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { getSquidTokenAddress } from '@/utils/token.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -84,9 +85,18 @@ export const InitialClaimLinkView = ({
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
 
-    // TODO: isConnected needs to be moved in useWallet()
-    const { isConnected, address, signInModal } = useWallet()
+    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet } = useWallet()
     const { user } = useAuth()
+
+    const resetSelectedToken = useCallback(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        } else {
+            setSelectedChainID(claimLinkData.chainId)
+            setSelectedTokenAddress(claimLinkData.tokenAddress)
+        }
+    }, [claimLinkData, isPeanutWallet])
 
     // TODO: all handleConnectWallet will need to pass through useWallet()
     const handleConnectWallet = async () => {
@@ -149,13 +159,9 @@ export const InitialClaimLinkView = ({
         }
     }
 
-    const tokenSupportsXChain = useMemo(() => {
-        return checkTokenSupportsXChain(
-            claimLinkData.tokenAddress,
-            claimLinkData.chainId,
-            supportedSquidChainsAndTokens
-        )
-    }, [claimLinkData.tokenAddress, claimLinkData.chainId, supportedSquidChainsAndTokens])
+    useEffect(() => {
+        if (isPeanutWallet) resetSelectedToken()
+    }, [resetSelectedToken, isPeanutWallet])
 
     const handleIbanRecipient = async () => {
         try {
@@ -441,16 +447,15 @@ export const InitialClaimLinkView = ({
                 </Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                {recipientType !== 'iban' && recipientType !== 'us' ? (
+                {isExternalWallet && recipientType !== 'iban' && recipientType !== 'us' && (
                     <TokenSelector
                         shouldBeConnected={false}
                         showOnlySquidSupported
                         onReset={() => {
-                            setSelectedChainID(claimLinkData.chainId)
-                            setSelectedTokenAddress(claimLinkData.tokenAddress)
+                            resetSelectedToken()
                         }}
                     />
-                ) : null}
+                )}
                 <GeneralRecipientInput
                     className=""
                     placeholder="wallet address / ENS / IBAN / US account number"
@@ -616,8 +621,7 @@ export const InitialClaimLinkView = ({
                                                         showError: false,
                                                         errorMessage: '',
                                                     })
-                                                    setSelectedChainID(claimLinkData.chainId)
-                                                    setSelectedTokenAddress(claimLinkData.tokenAddress)
+                                                    resetSelectedToken()
                                                 }}
                                             >
                                                 reset

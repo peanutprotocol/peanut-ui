@@ -127,18 +127,9 @@ There are three major contexts provided in the `/context` folder:
 
 ### Hooks
 
-The `/hooks` folder contains two custom hooks to help manage wallet functionality:
+The `/hooks` folder contains a custom hook to help manage wallet functionality:
 
-1. **useBalance**:
-
-    - Fetches and manages user wallet balances across multiple chains.
-    - Converts API responses to a structured format and calculates total value per chain.
-    - Usage:
-        ```js
-        const { balances, fetchBalances, valuePerChain, refetchBalances, hasFetchedBalances } = useBalance()
-        ```
-
-2. **useWalletType**:
+1. **useWalletType**:
     - Detects and manages the user's wallet type (e.g., Blockscout or Safe App environment).
     - Fetches environment and wallet info, then updates state based on the wallet address.
     - Usage:

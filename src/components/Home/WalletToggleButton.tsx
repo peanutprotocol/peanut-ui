@@ -1,10 +1,11 @@
 import { useWallet } from '@/context/walletContext'
 import { NavIcons } from '../0_Bruddle'
+import { useCallback } from 'react'
 
 const WalletToggleButton = () => {
     const { setSelectedWallet, wallets, selectedWallet, walletColor } = useWallet()
 
-    const toggleWallet = () => {
+    const toggleWallet = useCallback(() => {
         if (!wallets.length) return
 
         const currentIndex = wallets.findIndex((w) => w.address === selectedWallet?.address)
@@ -13,7 +14,7 @@ const WalletToggleButton = () => {
         const nextIndex = (currentIndex + 1) % wallets.length
 
         setSelectedWallet(wallets[nextIndex])
-    }
+    }, [wallets, selectedWallet, setSelectedWallet])
 
     return (
         <div

@@ -29,6 +29,7 @@ export interface IWallet extends IDBWallet {
     // and the provider will always be connected to that.
     connected: boolean
     balance: bigint
+    balances?: interfaces.IUserBalance[]
 }
 
 export enum WalletErrorType {

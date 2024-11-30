@@ -8,17 +8,17 @@ import { useCreateLink } from '../useCreateLink'
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
 import * as context from '@/context'
-import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed } from '@/utils'
+import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed, balanceByToken } from '@/utils'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
-import { useBalance } from '@/hooks/useBalance'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { formatEther } from 'viem'
 import { WalletProviderType } from '@/interfaces'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -53,11 +53,15 @@ export const CreateLinkInputView = ({
         estimatePoints,
         prepareDirectSendTx,
     } = useCreateLink()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedTokenPrice,
+        inputDenomination,
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+    } = useContext(context.tokenSelectorContext)
     const { walletType, environmentInfo } = useWalletType()
-    const { balances, hasFetchedBalances, balanceByToken } = useBalance()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -68,7 +72,7 @@ export const CreateLinkInputView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
-    const { selectedWallet, signInModal, isConnected, address } = useWallet()
+    const { selectedWallet, signInModal, isConnected, address, isExternalWallet, isPeanutWallet } = useWallet()
 
     const handleOnNext = async () => {
         try {
@@ -261,11 +265,12 @@ export const CreateLinkInputView = ({
     }
 
     const maxValue = useMemo(() => {
-        const balance = balanceByToken(selectedChainID, selectedTokenAddress)
+        if (!selectedWallet?.balances) return ''
+        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''
         // 6 decimal places, prettier
         return floorFixed(balance.amount, 6)
-    }, [selectedChainID, selectedTokenAddress, balanceByToken])
+    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances])
 
     useEffect(() => {
         if (!_tokenValue) return
@@ -281,6 +286,13 @@ export const CreateLinkInputView = ({
             }
         }
     }, [_tokenValue, inputDenomination])
+
+    useEffect(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        }
+    }, [isPeanutWallet])
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
@@ -316,16 +328,20 @@ export const CreateLinkInputView = ({
                             else handleOnNext()
                         }}
                     />
-                    <TokenSelector classNameButton="w-full" />
-                    {hasFetchedBalances && balances.length === 0 && (
-                        <div
-                            onClick={() => {
-                                open()
-                            }}
-                            className="cursor-pointer text-h9 underline"
-                        >
-                            ( Buy Tokens )
-                        </div>
+                    {isExternalWallet && (
+                        <>
+                            <TokenSelector classNameButton="w-full" />
+                            {selectedWallet!.balances!.length === 0 && (
+                                <div
+                                    onClick={() => {
+                                        open()
+                                    }}
+                                    className="cursor-pointer text-h9 underline"
+                                >
+                                    ( Buy Tokens )
+                                </div>
+                            )}
+                        </>
                     )}
                     {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
                         <FileUploadInput

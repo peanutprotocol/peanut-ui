@@ -6,11 +6,10 @@ import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
 import * as context from '@/context'
-import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import * as assets from '@/assets'
-import { formatIban, validateBankAccount, floorFixed } from '@/utils'
+import { formatIban, validateBankAccount, floorFixed, balanceByToken } from '@/utils'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
 import Icon from '@/components/Global/Icon'
@@ -19,6 +18,7 @@ import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offra
 import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { sanitizeBankAccount } from '@/utils/format.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 export const InitialCashoutView = ({
     onNext,
@@ -31,11 +31,15 @@ export const InitialCashoutView = ({
     setOfframpForm,
     crossChainDetails,
 }: _consts.ICashoutScreenProps) => {
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
-        context.tokenSelectorContext
-    )
+    const {
+        selectedTokenPrice,
+        inputDenomination,
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+    } = useContext(context.tokenSelectorContext)
 
-    const { balances, hasFetchedBalances, balanceByToken } = useBalance()
     const { user, fetchUser, isFetchingUser } = useAuth()
     const [, setUserType] = useState<'NEW' | 'EXISTING' | undefined>(undefined)
 
@@ -68,7 +72,7 @@ export const InitialCashoutView = ({
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
-    const { isConnected, signInModal } = useWallet()
+    const { isConnected, signInModal, selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
 
     const isBelowMinLimit = useMemo(() => {
         if (!usdValue) return false
@@ -190,11 +194,12 @@ export const InitialCashoutView = ({
     }
 
     const maxValue = useMemo(() => {
-        const balance = balanceByToken(selectedChainID, selectedTokenAddress)
+        if (!selectedWallet?.balances) return ''
+        const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''
         // 6 decimal places, prettier
         return floorFixed(balance.amount, 6)
-    }, [selectedChainID, selectedTokenAddress, balanceByToken])
+    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances])
 
     useEffect(() => {
         if (!_tokenValue) return
@@ -210,6 +215,13 @@ export const InitialCashoutView = ({
             }
         }
     }, [_tokenValue, inputDenomination])
+
+    useEffect(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        }
+    }, [isPeanutWallet])
 
     // Update the bank account selection handler
     const handleBankAccountSelect = (accountIdentifier: string) => {
@@ -270,16 +282,20 @@ export const InitialCashoutView = ({
                         Minimum amount is ${MIN_CASHOUT_LIMIT}
                     </div>
                 )}
-                <TokenSelector classNameButton="max-w-[100%]" />
-                {hasFetchedBalances && balances.length === 0 && (
-                    <div
-                        onClick={() => {
-                            open()
-                        }}
-                        className="cursor-pointer text-h9 underline"
-                    >
-                        ( Buy Tokens )
-                    </div>
+                {isExternalWallet && (
+                    <>
+                        <TokenSelector classNameButton="max-w-[100%]" />
+                        {selectedWallet!.balances!.length === 0 && (
+                            <div
+                                onClick={() => {
+                                    open()
+                                }}
+                                className="cursor-pointer text-h9 underline"
+                            >
+                                ( Buy Tokens )
+                            </div>
+                        )}
+                    </>
                 )}
                 <div className="flex w-full flex-col justify-center gap-3">
                     <RecipientInfoComponent />
