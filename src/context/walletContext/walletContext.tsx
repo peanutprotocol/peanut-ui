@@ -145,7 +145,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 userId: user.user.userId as string,
             })
         }
-    }, [wagmiAddress, wallets, user, addAccount])
+    }, [wagmiAddress, wallets, user])
 
     const processedWallets = useMemo(
         () =>
