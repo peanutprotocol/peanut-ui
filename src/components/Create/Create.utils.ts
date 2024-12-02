@@ -51,11 +51,11 @@ function toLowerCaseKeys(obj: any): any {
 export const getTokenDetails = (tokenAddress: string, chainId: string, userBalances: IUserBalance[]) => {
     let tokenDecimals: number = 18
     if (
-        userBalances.some((balance) => areAddressesEqual(balance.address, tokenAddress) && balance.chainId == chainId)
+        userBalances.some((balance) => areAddressesEqual(balance.address, tokenAddress) && balance.chainId === chainId)
     ) {
         tokenDecimals =
             userBalances.find(
-                (balance) => balance.chainId == chainId && areAddressesEqual(balance.address, tokenAddress)
+                (balance) => balance.chainId === chainId && areAddressesEqual(balance.address, tokenAddress)
             )?.decimals ?? 18
     } else {
         tokenDecimals =
