@@ -441,7 +441,7 @@ export function getThreeCharCountryCodeFromIban(iban: string): string {
 export function getBridgeTokenName(chainId: string, tokenAddress: string): string | undefined {
     const token = consts.supportedBridgeTokensDictionary
         .find((chain) => chain.chainId === chainId)
-        ?.tokens.find((token) => utils.areAddressesEqual(token.address, tokenAddress))
+        ?.tokens.find((token) => utils.areEvmAddressesEqual(token.address, tokenAddress))
         ?.token.toLowerCase()
 
     return token ?? undefined

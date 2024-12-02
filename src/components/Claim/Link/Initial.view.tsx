@@ -8,7 +8,7 @@ import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import * as consts from '@/constants'
 import {
-    areAddressesEqual,
+    areEvmAddressesEqual,
     saveClaimedLinkToLocalStorage,
     ErrorHandler,
     getBridgeTokenName,
@@ -305,7 +305,7 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (
             selectedChainID === claimLinkData.chainId &&
-            areAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+            areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
         ) {
             setIsXChain(false)
             setSelectedRoute(null)
@@ -337,7 +337,7 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === (toChain || selectedChainID) &&
-                    areAddressesEqual(route.toToken, toToken || selectedTokenAddress)
+                    areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
             )
 
             if (existingRoute) {

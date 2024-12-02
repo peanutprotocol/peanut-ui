@@ -5,7 +5,7 @@ import * as context from '@/context'
 import * as _consts from '../Create.consts'
 import * as _utils from '../Create.utils'
 import {
-    areAddressesEqual,
+    areEvmAddressesEqual,
     saveDirectSendToLocalStorage,
     saveCreatedLinkToLocalStorage,
     shareToEmail,
@@ -93,7 +93,7 @@ export const CreateLinkConfirmView = ({
     const selectedToken = useMemo(() => {
         if (supportedSquidChainsAndTokens[selectedChainID]) {
             const chain = supportedSquidChainsAndTokens[selectedChainID]
-            const token = chain.tokens.find((token) => areAddressesEqual(token.address, selectedTokenAddress))
+            const token = chain.tokens.find((token) => areEvmAddressesEqual(token.address, selectedTokenAddress))
             return {
                 symbol: token?.symbol,
                 iconUri: token?.logoURI,
@@ -101,7 +101,7 @@ export const CreateLinkConfirmView = ({
         } else {
             const token = peanutTokenDetails
                 .find((tokenDetails) => tokenDetails.chainId === selectedChainID)
-                ?.tokens.find((token) => areAddressesEqual(token.address, selectedTokenAddress))
+                ?.tokens.find((token) => areEvmAddressesEqual(token.address, selectedTokenAddress))
             return {
                 symbol: token?.symbol,
                 iconUri: token?.logoURI,

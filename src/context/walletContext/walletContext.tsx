@@ -8,7 +8,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { Chain, erc20Abi, getAddress } from 'viem'
 import { useAuth } from '../authContext'
-import { backgroundColorFromAddress, areAddressesEqual, fetchWalletBalances } from '@/utils'
+import { backgroundColorFromAddress, areEvmAddressesEqual, fetchWalletBalances } from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
 
 interface WalletContextType {
@@ -56,9 +56,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
             if (isPeanut(wallet) && kernelClientAddress) {
-                return isKernelClientReady && areAddressesEqual(kernelClientAddress, wallet.address)
+                return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             } else if (wagmiAddress) {
-                return isWagmiConnected && areAddressesEqual(wagmiAddress, wallet.address)
+                return isWagmiConnected && areEvmAddressesEqual(wagmiAddress, wallet.address)
             }
             return false
         },
@@ -155,7 +155,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!user || !wagmiAddress || !wallets.length) return
 
-        const walletExists = wallets.some((wallet) => areAddressesEqual(wallet.address, wagmiAddress))
+        const walletExists = wallets.some((wallet) => areEvmAddressesEqual(wallet.address, wagmiAddress))
         if (!walletExists) {
             addAccount({
                 accountIdentifier: wagmiAddress,
@@ -163,7 +163,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 userId: user.user.userId as string,
             }).catch(console.error)
         }
-    }, [wagmiAddress, wallets, user, addAccount])
+    }, [wagmiAddress, wallets, user])
 
     const processedWallets = useMemo(
         () =>

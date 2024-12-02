@@ -1,4 +1,4 @@
-import { isAddressZero, areAddressesEqual } from '@/utils'
+import { isAddressZero, areEvmAddressesEqual } from '@/utils'
 import { IUserBalance, ChainValue } from '@/interfaces'
 
 export async function fetchWalletBalances(
@@ -72,7 +72,9 @@ export function balanceByToken(
     tokenAddress: string
 ): IUserBalance | undefined {
     if (!chainId || !tokenAddress) return undefined
-    return balances.find((balance) => balance.chainId === chainId && areAddressesEqual(balance.address, tokenAddress))
+    return balances.find(
+        (balance) => balance.chainId === chainId && areEvmAddressesEqual(balance.address, tokenAddress)
+    )
 }
 
 export function calculateValuePerChain(balances: IUserBalance[]): ChainValue[] {
