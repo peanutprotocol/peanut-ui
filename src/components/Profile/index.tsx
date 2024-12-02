@@ -187,7 +187,7 @@ export const Profile = () => {
                                                 <label className="w-[30%] text-right text-h8">
                                                     {Math.floor(
                                                         user.pointsPerReferral?.find((ref) =>
-                                                            utils.areAddressesEqual(ref.address, referral.address)
+                                                            utils.areEvmAddressesEqual(ref.address, referral.address)
                                                         )?.points ?? 0
                                                     )}
                                                 </label>

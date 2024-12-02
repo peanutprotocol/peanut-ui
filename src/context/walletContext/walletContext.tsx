@@ -8,7 +8,7 @@ import { useQuery } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, USDC_ARBITRUM_ADDRESS } from '@/constants'
 import { Chain, erc20Abi, getAddress } from 'viem'
 import { useAuth } from '../authContext'
-import { backgroundColorFromAddress, areAddressesEqual } from '@/utils'
+import { backgroundColorFromAddress, areEvmAddressesEqual } from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
 
 interface WalletContextType {
@@ -48,9 +48,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
             if (isPeanut(wallet) && kernelClientAddress) {
-                return isKernelClientReady && areAddressesEqual(kernelClientAddress, wallet.address)
+                return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             } else if (wagmiAddress) {
-                return isWagmiConnected && areAddressesEqual(wagmiAddress, wallet.address)
+                return isWagmiConnected && areEvmAddressesEqual(wagmiAddress, wallet.address)
             }
             return false
         },

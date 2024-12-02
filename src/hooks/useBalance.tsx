@@ -1,6 +1,6 @@
 import { IUserBalance, ChainValue } from '@/interfaces'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { areAddressesEqual, isAddressZero } from '@/utils'
+import { areEvmAddressesEqual, isAddressZero } from '@/utils'
 import { useWallet } from '@/context/walletContext'
 
 /**
@@ -177,7 +177,7 @@ export const useBalance = () => {
         (chainId: string, tokenAddress: string): IUserBalance | undefined => {
             if (!chainId || !tokenAddress) return undefined
             return balances.find(
-                (balance) => balance.chainId === chainId && areAddressesEqual(balance.address, tokenAddress)
+                (balance) => balance.chainId === chainId && areEvmAddressesEqual(balance.address, tokenAddress)
             )
         },
         [balances]
