@@ -6,7 +6,7 @@ import { useAccount } from 'wagmi'
 import { useZeroDev } from './zeroDevContext.context'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import { Chain, erc20Abi, getAddress } from 'viem'
+import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAuth } from '../authContext'
 import { backgroundColorFromAddress, areEvmAddressesEqual, fetchWalletBalances } from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
@@ -84,7 +84,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         ...createDefaultDBWallet(wagmiAddress),
                         connected: isWalletConnected(createDefaultDBWallet(wagmiAddress)),
                         balances,
-                        balance: BigInt(Math.floor(totalBalance * 1e6)),
+                        balance: parseUnits(totalBalance.toString(), 6),
                     },
                 ]
             }
@@ -116,7 +116,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         // For BYOW wallets, fetch all balances
                         const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(dbWallet.address)
                         balances = fetchedBalances
-                        balance = BigInt(Math.floor(totalBalance * 1e6))
+                        balance = parseUnits(totalBalance.toString(), 6)
                     }
 
                     const wallet: interfaces.IWallet = {
@@ -204,7 +204,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                                     ? {
                                           ...w,
                                           balances,
-                                          balance: BigInt(Math.floor(totalBalance * 1e6)),
+                                          balance: parseUnits(totalBalance.toString(), 6),
                                       }
                                     : w
                             )
