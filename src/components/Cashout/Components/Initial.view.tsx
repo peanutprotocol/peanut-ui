@@ -196,12 +196,14 @@ export const InitialCashoutView = ({
     }
 
     const maxValue = useMemo(() => {
-        if (!selectedWallet?.balances) return ''
+        if (!selectedWallet?.balances) {
+            return selectedWallet?.balance.toString() ?? ''
+        }
         const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''
         // 6 decimal places, prettier
         return floorFixed(balance.amount, 6)
-    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances])
+    }, [selectedChainID, selectedTokenAddress, selectedWallet?.balances, selectedWallet?.balance])
 
     useEffect(() => {
         if (!_tokenValue) return
