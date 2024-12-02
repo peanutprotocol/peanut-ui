@@ -2,7 +2,7 @@ import peanut from '@squirrel-labs/peanut-sdk'
 
 import { peanutTokenDetails } from '@/constants'
 import { IUserBalance } from '@/interfaces'
-import { areTokenAddressesEqual, isNativeCurrency } from '@/utils'
+import { areEvmAddressesEqual, isNativeCurrency } from '@/utils'
 
 const convertUSDTokenValue = ({ tokenValue, tokenPrice }: { tokenValue: number; tokenPrice: number }) => {
     return tokenValue / tokenPrice
@@ -52,18 +52,18 @@ export const getTokenDetails = (tokenAddress: string, chainId: string, userBalan
     let tokenDecimals: number = 18
     if (
         userBalances.some(
-            (balance) => areTokenAddressesEqual(balance.address, tokenAddress) && balance.chainId == chainId
+            (balance) => areEvmAddressesEqual(balance.address, tokenAddress) && balance.chainId === chainId
         )
     ) {
         tokenDecimals =
             userBalances.find(
-                (balance) => balance.chainId == chainId && areTokenAddressesEqual(balance.address, tokenAddress)
+                (balance) => balance.chainId === chainId && areEvmAddressesEqual(balance.address, tokenAddress)
             )?.decimals ?? 18
     } else {
         tokenDecimals =
             peanutTokenDetails
                 .find((detail) => detail.chainId.toString() == chainId)
-                ?.tokens.find((token) => areTokenAddressesEqual(token.address, tokenAddress))?.decimals ?? 18
+                ?.tokens.find((token) => areEvmAddressesEqual(token.address, tokenAddress))?.decimals ?? 18
     }
     const tokenType = isNativeCurrency(tokenAddress) ? 0 : 1
 

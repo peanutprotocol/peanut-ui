@@ -1,6 +1,6 @@
 import { IUserBalance, ChainValue } from '@/interfaces'
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { areTokenAddressesEqual, isAddressZero } from '@/utils'
+import { areEvmAddressesEqual, isAddressZero } from '@/utils'
 import { useWallet } from '@/context/walletContext'
 
 /**
@@ -11,9 +11,8 @@ export const useBalance = () => {
     const [balances, setBalances] = useState<IUserBalance[]>([])
     const [hasFetchedBalances, setHasFetchedBalances] = useState<boolean>(false)
     const [valuePerChain, setValuePerChain] = useState<ChainValue[]>([])
-    const { address: wagmiAddress, address: selectedAddress, isConnected } = useWallet()
+    const { address, isConnected } = useWallet()
     const prevAddressRef = useRef<string | undefined>(undefined)
-    const address = selectedAddress || wagmiAddress
 
     useEffect(() => {
         if (address && prevAddressRef.current !== address) {
@@ -178,7 +177,7 @@ export const useBalance = () => {
         (chainId: string, tokenAddress: string): IUserBalance | undefined => {
             if (!chainId || !tokenAddress) return undefined
             return balances.find(
-                (balance) => balance.chainId === chainId && areTokenAddressesEqual(balance.address, tokenAddress)
+                (balance) => balance.chainId === chainId && areEvmAddressesEqual(balance.address, tokenAddress)
             )
         },
         [balances]

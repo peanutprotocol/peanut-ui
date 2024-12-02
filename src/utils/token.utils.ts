@@ -1,4 +1,4 @@
-import { areTokenAddressesEqual } from '@/utils/'
+import { areEvmAddressesEqual } from '@/utils/'
 
 export const checkTokenSupportsXChain = (
     tokenAddress: string,
@@ -9,14 +9,14 @@ export const checkTokenSupportsXChain = (
     if (tokenAddress === '0x0000000000000000000000000000000000000000') {
         return (
             supportedSquidChainsAndTokens[chainId]?.tokens.some((token: any) =>
-                areTokenAddressesEqual(token.address, SQUID_ETH_ADDRESS)
+                areEvmAddressesEqual(token.address, SQUID_ETH_ADDRESS)
             ) ?? false
         )
     }
 
     return (
         supportedSquidChainsAndTokens[chainId]?.tokens.some((token: any) =>
-            areTokenAddressesEqual(token.address, tokenAddress)
+            areEvmAddressesEqual(token.address, tokenAddress)
         ) ?? false
     )
 }

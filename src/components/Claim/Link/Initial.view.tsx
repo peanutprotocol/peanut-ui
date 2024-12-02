@@ -7,9 +7,8 @@ import Icon from '@/components/Global/Icon'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import * as consts from '@/constants'
-import { supportedPeanutChains } from '@/constants'
 import {
-    areTokenAddressesEqual,
+    areEvmAddressesEqual,
     saveClaimedLinkToLocalStorage,
     ErrorHandler,
     getBridgeTokenName,
@@ -300,7 +299,7 @@ export const InitialClaimLinkView = ({
     useEffect(() => {
         if (
             selectedChainID === claimLinkData.chainId &&
-            areTokenAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
+            areEvmAddressesEqual(selectedTokenAddress, claimLinkData.tokenAddress)
         ) {
             setIsXChain(false)
             setSelectedRoute(null)
@@ -332,7 +331,7 @@ export const InitialClaimLinkView = ({
                     route.fromChain === claimLinkData.chainId &&
                     route.fromToken.toLowerCase() === claimLinkData.tokenAddress.toLowerCase() &&
                     route.toChain === (toChain || selectedChainID) &&
-                    areTokenAddressesEqual(route.toToken, toToken || selectedTokenAddress)
+                    areEvmAddressesEqual(route.toToken, toToken || selectedTokenAddress)
             )
 
             if (existingRoute) {
@@ -515,44 +514,6 @@ export const InitialClaimLinkView = ({
                                 </span>
                             </div>
                         )}
-
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Route</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {isXchainLoading ? (
-                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                ) : (
-                                    selectedRoute && (
-                                        <>
-                                            {
-                                                consts.supportedPeanutChains.find(
-                                                    (chain) => chain.chainId === selectedRoute.route.params.fromChain
-                                                )?.name
-                                            }
-                                            <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                            {
-                                                supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
-                                                    ?.axelarChainName
-                                            }
-                                            <MoreInfo
-                                                text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                    consts.supportedPeanutChains.find(
-                                                        (chain) =>
-                                                            chain.chainId === selectedRoute.route.params.fromChain
-                                                    )?.name
-                                                } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                    supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
-                                                        ?.axelarChainName
-                                                }.`}
-                                            />
-                                        </>
-                                    )
-                                )}
-                            </span>
-                        </div>
 
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
