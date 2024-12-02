@@ -19,6 +19,7 @@ import { Button, Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { sanitizeBankAccount } from '@/utils/format.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
 
 export const InitialCashoutView = ({
     onNext,
@@ -73,6 +74,7 @@ export const InitialCashoutView = ({
     const { prepareCreateLinkWrapper } = useCreateLink()
 
     const { isConnected, signInModal, selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
+    const { open: web3modalOpen } = useWeb3Modal()
 
     const isBelowMinLimit = useMemo(() => {
         if (!usdValue) return false
@@ -288,7 +290,7 @@ export const InitialCashoutView = ({
                         {selectedWallet!.balances!.length === 0 && (
                             <div
                                 onClick={() => {
-                                    open()
+                                    web3modalOpen()
                                 }}
                                 className="cursor-pointer text-h9 underline"
                             >
