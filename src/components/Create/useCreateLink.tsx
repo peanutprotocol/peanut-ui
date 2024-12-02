@@ -192,14 +192,16 @@ export const useCreateLink = () => {
     }
     const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
         // Return early with default values for Safe connector
+        // TODO: request / cashout flows abstract this
+        // requirement for internut (injects AA with zero gas fees)
         if (isSafeConnector({ name: connector?.name })) {
             return {
                 feeOptions: {
                     gasLimit: BigInt(0),
                     maxFeePerGas: BigInt(0),
-                    gasPrice: BigInt(0)
+                    gasPrice: BigInt(0),
                 },
-                transactionCostUSD: 0
+                transactionCostUSD: 0,
             }
         }
         try {
