@@ -51,7 +51,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     ////// User props
     const { addAccount, user } = useAuth()
 
-    const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
+    const [selectedAddress, setSelectedAddress] = useState<string | undefined>(
+        localStorage.getItem('selectedAddress') ?? undefined
+    )
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
@@ -150,6 +152,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             setSelectedAddress(initialWallet.address)
         }
     }, [wallets, selectedAddress])
+
+    // Remember selected address
+    useEffect(() => {
+        if (selectedAddress) {
+            localStorage.setItem('selectedAddress', selectedAddress)
+        }
+    }, [selectedAddress])
 
     // Add new BYOW wallet when connected
     useEffect(() => {
