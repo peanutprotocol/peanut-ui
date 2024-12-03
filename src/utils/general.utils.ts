@@ -83,7 +83,7 @@ function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 30000): Pr
     })
 }
 
-const saveToLocalStorage = (key: string, data: any) => {
+export const saveToLocalStorage = (key: string, data: any) => {
     try {
         // Convert the data to a string before storing it in localStorage
         const serializedData = JSON.stringify(data)
@@ -95,7 +95,7 @@ const saveToLocalStorage = (key: string, data: any) => {
     }
 }
 
-const getFromLocalStorage = (key: string) => {
+export const getFromLocalStorage = (key: string) => {
     try {
         if (typeof localStorage === 'undefined') return
         const data = localStorage.getItem(key)

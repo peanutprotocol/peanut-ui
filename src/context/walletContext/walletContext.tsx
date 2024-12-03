@@ -8,7 +8,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAuth } from '../authContext'
-import { backgroundColorFromAddress, areEvmAddressesEqual, fetchWalletBalances } from '@/utils'
+import {
+    backgroundColorFromAddress,
+    areEvmAddressesEqual,
+    fetchWalletBalances,
+    getFromLocalStorage,
+    saveToLocalStorage,
+} from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
 
 interface WalletContextType {
@@ -52,7 +58,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const { addAccount, user } = useAuth()
 
     const [selectedAddress, setSelectedAddress] = useState<string | undefined>(
-        localStorage.getItem('selectedAddress') ?? undefined
+        getFromLocalStorage('selectedAddress') ?? undefined
     )
 
     const isWalletConnected = useCallback(
@@ -156,7 +162,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // Remember selected address
     useEffect(() => {
         if (selectedAddress) {
-            localStorage.setItem('selectedAddress', selectedAddress)
+            saveToLocalStorage('selectedAddress', selectedAddress)
         }
     }, [selectedAddress])
 
