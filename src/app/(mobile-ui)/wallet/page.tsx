@@ -9,6 +9,7 @@ import { motion } from 'framer-motion'
 import { HomeLink } from '@/components/Home/HomeLink'
 import { useAuth } from '@/context/authContext'
 import { WalletProviderType } from '@/interfaces'
+import { formatUnits } from 'viem'
 
 const WalletDetailsPage = () => {
     const { selectedWallet } = useWallet()
@@ -39,7 +40,9 @@ const WalletDetailsPage = () => {
 
                 <Card shadowSize="4" className="w-full rounded-md py-10">
                     <Card.Content className="flex h-full flex-row items-center justify-center">
-                        <div className="text-5xl">{'$ 420.69'}</div>
+                        <div className="text-5xl">
+                            $ {Number(formatUnits(selectedWallet?.balance ?? 0n, 6)).toFixed(2)}
+                        </div>
                     </Card.Content>
                 </Card>
                 <div className="flex flex-row gap-2">

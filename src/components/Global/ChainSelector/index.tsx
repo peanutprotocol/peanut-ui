@@ -4,11 +4,11 @@ import { useContext, useMemo, useState } from 'react'
 import { Menu, Transition } from '@headlessui/react'
 import Icon from '../Icon'
 import Search from '../Search'
-import { useBalance } from '@/hooks/useBalance'
 import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
 import { IPeanutChainDetails } from '@/interfaces'
-import * as utils from '@/utils'
+import { formatTokenAmount, calculateValuePerChain } from '@/utils'
+import { useWallet } from '@/context/walletContext'
 
 type Chain = {
     name: string
@@ -27,9 +27,14 @@ interface IChainSelectorProps {
 const ChainSelector = ({ chainsToDisplay, onChange }: IChainSelectorProps) => {
     const [, setVisible] = useState(false)
     const [filterValue, setFilterValue] = useState('')
+    const { selectedWallet } = useWallet()
 
-    const { valuePerChain } = useBalance()
     const { selectedChainID, setSelectedChainID } = useContext(context.tokenSelectorContext)
+
+    const valuePerChain = useMemo(
+        () => calculateValuePerChain(selectedWallet?.balances ?? []),
+        [selectedWallet?.balances]
+    )
 
     const _chainsToDisplay = useMemo(() => {
         let chains
@@ -142,7 +147,7 @@ const chainItem = ({
                 <img src={chain.icon.url} alt={chain.name} className="h-6 w-6" />
                 <div className="text-h8">{chain.name}</div>
             </div>
-            {valuePerChain && <div className="text-h9 text-gray-1">${utils.formatTokenAmount(valuePerChain, 2)}</div>}
+            {valuePerChain && <div className="text-h9 text-gray-1">${formatTokenAmount(valuePerChain, 2)}</div>}
         </Menu.Item>
     )
 }

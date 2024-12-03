@@ -9,10 +9,11 @@ import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sd
 import AddressInput from '@/components/Global/AddressInput'
 import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
-import { useBalance } from '@/hooks/useBalance'
+import { useWallet } from '@/context/walletContext'
 import { Button, Card } from '@/components/0_Bruddle'
 import { fetchTokenSymbol, saveRequestLinkToLocalStorage, isNativeCurrency } from '@/utils'
 import { IUserBalance, IToken } from '@/interfaces'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 export const InitialView = ({
     onNext,
@@ -27,9 +28,16 @@ export const InitialView = ({
     recipientAddress,
     setRecipientAddress,
 }: _consts.ICreateScreenProps) => {
-    const { balances } = useBalance()
-    const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress, selectedTokenData } =
-        useContext(context.tokenSelectorContext)
+    const { selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
+    const {
+        selectedTokenPrice,
+        inputDenomination,
+        selectedChainID,
+        setSelectedChainID,
+        selectedTokenAddress,
+        setSelectedTokenAddress,
+        selectedTokenData,
+    } = useContext(context.tokenSelectorContext)
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
         showError: boolean
@@ -140,6 +148,13 @@ export const InitialView = ({
     const [isValidRecipient, setIsValidRecipient] = useState(false)
     const [inputChanging, setInputChanging] = useState(false)
 
+    useEffect(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        }
+    }, [isPeanutWallet])
+
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
@@ -162,13 +177,13 @@ export const InitialView = ({
                                 recipientAddress,
                                 tokenAddress: selectedTokenAddress,
                                 chainId: selectedChainID,
-                                userBalances: balances,
+                                userBalances: selectedWallet?.balances ?? [],
                                 tokenValue,
                                 tokenData: selectedTokenData,
                             })
                         }}
                     />
-                    <TokenSelector classNameButton="w-full" shouldBeConnected={false} />
+                    {isExternalWallet && <TokenSelector shouldBeConnected={false} />}
 
                     <FileUploadInput
                         attachmentOptions={attachmentOptions}
@@ -190,7 +205,7 @@ export const InitialView = ({
                                 recipientAddress,
                                 tokenAddress: selectedTokenAddress,
                                 chainId: selectedChainID,
-                                userBalances: balances,
+                                userBalances: selectedWallet?.balances ?? [],
                                 tokenValue,
                                 tokenData: selectedTokenData,
                             })

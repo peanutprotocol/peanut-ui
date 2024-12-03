@@ -4,7 +4,6 @@ import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import Modal from '../Modal'
 import Search from '../Search'
 import ChainSelector from '../ChainSelector'
-import { useBalance } from '@/hooks/useBalance'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 import * as context from '@/context'
 import { areEvmAddressesEqual, formatTokenAmount } from '@/utils'
@@ -175,8 +174,7 @@ const TokenSelector = ({
     const [hasUserChangedChain, setUserChangedChain] = useState(false)
     const focusButtonRef = useRef<HTMLButtonElement>(null)
 
-    const { balances } = useBalance()
-    const { isConnected, signInModal } = useWallet()
+    const { isConnected, signInModal, selectedWallet } = useWallet()
     const {
         selectedChainID,
         selectedTokenAddress,
@@ -210,6 +208,7 @@ const TokenSelector = ({
 
     const _balancesToDisplay = useMemo(() => {
         let balancesToDisplay: IUserBalance[]
+        const balances = selectedWallet?.balances ?? []
 
         if (safeInfo && walletType === 'blockscout') {
             balancesToDisplay = balances.filter((balance) => balance.chainId.toString() === safeInfo.chainId.toString())
@@ -236,7 +235,14 @@ const TokenSelector = ({
         ]
 
         return balancesToDisplay
-    }, [balances, safeInfo, selectedChainTokens, walletType, showOnlySquidSupported, supportedSquidChainsAndTokens])
+    }, [
+        selectedWallet?.balances,
+        safeInfo,
+        selectedChainTokens,
+        walletType,
+        showOnlySquidSupported,
+        supportedSquidChainsAndTokens,
+    ])
 
     const filteredBalances = useMemo(() => {
         // initially show all balances and the tokens on the current chain

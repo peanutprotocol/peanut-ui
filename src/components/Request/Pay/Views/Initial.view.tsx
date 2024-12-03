@@ -1,8 +1,7 @@
 import * as _consts from '../Pay.consts'
 import { useSwitchChain } from 'wagmi'
-import { useContext, useEffect, useState, useMemo } from 'react'
+import { useContext, useEffect, useState, useMemo, useCallback } from 'react'
 import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
 import AddressLink from '@/components/Global/AddressLink'
 import {
     fetchTokenSymbol,
@@ -25,6 +24,7 @@ import { useWallet } from '@/context/walletContext'
 import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -69,7 +69,7 @@ export const InitialView = ({
     estimatedPoints,
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
-    const { address, signInModal, isConnected, chain: currentChain } = useWallet()
+    const { address, signInModal, isConnected, chain: currentChain, isExternalWallet, isPeanutWallet } = useWallet()
 
     const { switchChainAsync } = useSwitchChain()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -338,10 +338,19 @@ export const InitialView = ({
         }
     }
 
-    const resetTokenAndChain = () => {
-        setSelectedChainID(requestLinkData.chainId)
-        setSelectedTokenAddress(requestLinkData.tokenAddress)
-    }
+    const resetTokenAndChain = useCallback(() => {
+        if (isPeanutWallet) {
+            setSelectedChainID(PEANUT_WALLET_CHAIN.id.toString())
+            setSelectedTokenAddress(PEANUT_WALLET_TOKEN)
+        } else {
+            setSelectedChainID(requestLinkData.chainId)
+            setSelectedTokenAddress(requestLinkData.tokenAddress)
+        }
+    }, [requestLinkData, isPeanutWallet])
+
+    useEffect(() => {
+        if (isPeanutWallet) resetTokenAndChain()
+    }, [resetTokenAndChain, isPeanutWallet])
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
@@ -391,7 +400,9 @@ export const InitialView = ({
                         </label>
                     )}
                 </div>
-                {tokenSupportsXChain && <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />}
+                {isExternalWallet && tokenSupportsXChain && (
+                    <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
+                )}
                 {!isFeeEstimationError && (
                     <>
                         <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">

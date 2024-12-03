@@ -4,11 +4,11 @@ import { createContext, useContext, useEffect, useState, ReactNode, useCallback,
 import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from './zeroDevContext.context'
-import { useQuery } from '@tanstack/react-query'
-import { PEANUT_WALLET_CHAIN, USDC_ARBITRUM_ADDRESS } from '@/constants'
-import { Chain, erc20Abi, getAddress } from 'viem'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAuth } from '../authContext'
-import { backgroundColorFromAddress, areEvmAddressesEqual } from '@/utils'
+import { backgroundColorFromAddress, areEvmAddressesEqual, fetchWalletBalances } from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
 
 interface WalletContextType {
@@ -24,15 +24,23 @@ interface WalletContextType {
         close: () => void
     }
     walletColor: string
+    refetchBalances: (address: string) => Promise<void>
+    isPeanutWallet: boolean
+    isExternalWallet: boolean
 }
 
 function isPeanut(wallet: interfaces.IDBWallet | undefined) {
     return wallet?.walletProviderType === interfaces.WalletProviderType.PEANUT
 }
 
+function isExternalWallet(wallet: interfaces.IDBWallet | undefined) {
+    return wallet?.walletProviderType === interfaces.WalletProviderType.BYOW
+}
+
 const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
+    const queryClient = useQueryClient()
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
@@ -68,15 +76,17 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         queryFn: async () => {
             // non users can connect BYOW (to pay a request for example)
             if (!user) {
-                return wagmiAddress
-                    ? [
-                          {
-                              ...createDefaultDBWallet(wagmiAddress),
-                              connected: isWalletConnected(createDefaultDBWallet(wagmiAddress)),
-                              balance: BigInt(0),
-                          },
-                      ]
-                    : []
+                if (!wagmiAddress) return []
+
+                const { balances, totalBalance } = await fetchWalletBalances(wagmiAddress)
+                return [
+                    {
+                        ...createDefaultDBWallet(wagmiAddress),
+                        connected: isWalletConnected(createDefaultDBWallet(wagmiAddress)),
+                        balances,
+                        balance: parseUnits(totalBalance.toString(), 6),
+                    },
+                ]
             }
 
             const processedWallets = user.accounts
@@ -93,18 +103,26 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     }
 
                     let balance = BigInt(0)
+                    let balances: interfaces.IUserBalance[] | undefined
+
                     if (isPeanut(dbWallet)) {
                         balance = await peanutPublicClient.readContract({
-                            address: USDC_ARBITRUM_ADDRESS,
+                            address: PEANUT_WALLET_TOKEN,
                             abi: erc20Abi,
                             functionName: 'balanceOf',
                             args: [getAddress(dbWallet.address)],
                         })
+                    } else {
+                        // For BYOW wallets, fetch all balances
+                        const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(dbWallet.address)
+                        balances = fetchedBalances
+                        balance = parseUnits(totalBalance.toString(), 6)
                     }
 
                     const wallet: interfaces.IWallet = {
                         ...dbWallet,
                         balance,
+                        balances,
                         connected: false, // Will be set in processedWallets memo
                     }
 
@@ -137,13 +155,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     useEffect(() => {
         if (!user || !wagmiAddress || !wallets.length) return
 
-        const walletExists = wallets.some((wallet) => wallet.address === wagmiAddress)
+        const walletExists = wallets.some((wallet) => areEvmAddressesEqual(wallet.address, wagmiAddress))
         if (!walletExists) {
             addAccount({
                 accountIdentifier: wagmiAddress,
                 accountType: interfaces.WalletProviderType.BYOW,
                 userId: user.user.userId as string,
-            })
+            }).catch(console.error)
         }
     }, [wagmiAddress, wallets, user])
 
@@ -154,6 +172,49 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 connected: isWalletConnected(wallet),
             })),
         [wallets, isWalletConnected]
+    )
+
+    const refetchBalances = useCallback(
+        async (address: string) => {
+            const wallet = wallets.find((w) => w.address === address)
+            if (!wallet) return
+
+            try {
+                if (isPeanut(wallet)) {
+                    const balance = await peanutPublicClient.readContract({
+                        address: PEANUT_WALLET_TOKEN,
+                        abi: erc20Abi,
+                        functionName: 'balanceOf',
+                        args: [getAddress(address)],
+                    })
+
+                    await queryClient.setQueryData(
+                        ['wallets', user?.accounts, wagmiAddress],
+                        (oldData: interfaces.IWallet[] | undefined) =>
+                            oldData?.map((w) => (w.address === address ? { ...w, balance } : w))
+                    )
+                } else {
+                    const { balances, totalBalance } = await fetchWalletBalances(address)
+
+                    await queryClient.setQueryData(
+                        ['wallets', user?.accounts, wagmiAddress],
+                        (oldData: interfaces.IWallet[] | undefined) =>
+                            oldData?.map((w) =>
+                                w.address === address
+                                    ? {
+                                          ...w,
+                                          balances,
+                                          balance: parseUnits(totalBalance.toString(), 6),
+                                      }
+                                    : w
+                            )
+                    )
+                }
+            } catch (error) {
+                console.error('Error refetching balance:', error)
+            }
+        },
+        [wallets, user?.accounts, wagmiAddress, queryClient]
     )
 
     const contextValue: WalletContextType = {
@@ -171,6 +232,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             close: () => setPromptWalletSigninOpen(false),
         },
         walletColor: selectedWallet?.address ? backgroundColorFromAddress(selectedWallet.address) : 'rgba(0,0,0,0)',
+        refetchBalances,
+        isPeanutWallet: isPeanut(selectedWallet),
+        isExternalWallet: isExternalWallet(selectedWallet),
     }
 
     return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>

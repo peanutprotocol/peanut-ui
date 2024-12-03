@@ -36,15 +36,13 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                     shadowSize="6"
                     onClick={onClick}
                 >
-                    <Link href="/setup" className="h-full">
-                        <Card.Content className="flex h-full flex-col items-center justify-center gap-6 p-6">
-                            <p className="text-center text-xl font-bold">Add your own ETH wallet</p>
-                            <div className="flex flex-row items-center gap-3">
-                                <Icon name="plus-circle" className="h-6 w-6" />
-                                <span className="text-base">Add BYOW wallet</span>
-                            </div>
-                        </Card.Content>
-                    </Link>
+                    <Card.Content className="flex h-full flex-col items-center justify-center gap-6 p-6">
+                        <p className="text-center text-xl font-bold">Add your own ETH wallet</p>
+                        <div className="flex flex-row items-center gap-3">
+                            <Icon name="plus-circle" className="h-6 w-6" />
+                            <span className="text-base">Add BYOW wallet</span>
+                        </div>
+                    </Card.Content>
                 </Card>
             </motion.div>
         )

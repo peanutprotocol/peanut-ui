@@ -21,9 +21,7 @@ import { useCreateLink } from '../useCreateLink'
 import { Button, Card } from '@/components/0_Bruddle'
 import Divider from '@/components/0_Bruddle/Divider'
 import { useWallet } from '@/context/walletContext'
-import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 
@@ -49,8 +47,6 @@ export const CreateLinkConfirmView = ({
     usdValue,
 }: _consts.ICreateScreenProps) => {
     const [showMessage, setShowMessage] = useState(false)
-    const { refetchBalances } = useBalance()
-
     const {
         selectedChainID,
         selectedTokenAddress,
@@ -76,7 +72,7 @@ export const CreateLinkConfirmView = ({
     } = useCreateLink()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
 
-    const { address } = useWallet()
+    const { address, refetchBalances } = useWallet()
 
     const selectedChain = useMemo(() => {
         if (supportedSquidChainsAndTokens[selectedChainID]) {
@@ -221,7 +217,7 @@ export const CreateLinkConfirmView = ({
             })
 
             onNext()
-            refetchBalances()
+            refetchBalances(address ?? '')
         } catch (error) {
             const errorString = ErrorHandler(error)
             setErrorState({

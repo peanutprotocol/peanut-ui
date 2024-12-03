@@ -3,11 +3,6 @@ import Icon from '../../Icon'
 import * as utils from '@/utils'
 import { fetchTokenSymbol } from '@/utils'
 import * as context from '@/context'
-import peanut from '@squirrel-labs/peanut-sdk'
-import { useAccount } from 'wagmi'
-import { useBalance } from '@/hooks/useBalance'
-import Loading from '../../Loading'
-import { useWallet } from '@/context/walletContext'
 
 interface IAdvancedTokenSelectorButtonProps {
     onClick: () => void
@@ -41,38 +36,7 @@ export const AdvancedTokenSelectorButton = ({
     onReset,
 }: IAdvancedTokenSelectorButtonProps) => {
     const { selectedChainID, selectedTokenAddress } = useContext(context.tokenSelectorContext)
-    const { address, isConnected } = useWallet()
-    const { hasFetchedBalances } = useBalance()
-    const [_tokenBalance, _setTokenBalance] = useState<number | undefined>(tokenBalance)
     const [_tokenSymbol, _setTokenSymbol] = useState<string | undefined>(tokenSymbol)
-
-    const getTokenBalance = async () => {
-        const balance = Number(
-            await peanut.getTokenBalance({
-                chainId: selectedChainID,
-                tokenAddress: selectedTokenAddress,
-                walletAddress: address ?? '',
-            })
-        )
-
-        if (balance) {
-            _setTokenBalance(balance)
-        } else {
-            _setTokenBalance(tokenBalance)
-        }
-    }
-
-    useEffect(() => {
-        if (!isConnected) {
-            _setTokenBalance(undefined)
-            return
-        }
-
-        _setTokenBalance(tokenBalance)
-        if ((tokenBalance === 0 || !tokenBalance) && address) {
-            getTokenBalance()
-        }
-    }, [tokenBalance, selectedChainID, selectedTokenAddress, address, isConnected])
 
     useEffect(() => {
         let isMounted = true
@@ -132,14 +96,10 @@ export const AdvancedTokenSelectorButton = ({
                     </div>
 
                     {type === 'send' &&
-                        (hasFetchedBalances ? (
+                        (tokenBalance ? (
                             <p className="text-xs text-gray-1">
-                                Balance: {utils.formatTokenAmount(_tokenBalance ?? 0, 4)}
+                                Balance: {utils.formatTokenAmount(tokenBalance ?? 0, 4)}
                             </p>
-                        ) : address ? (
-                            <div className="flex flex-row items-center justify-center gap-1 text-xs text-gray-1">
-                                Balance: <Loading className="h-2 w-2" />
-                            </div>
                         ) : null)}
                     {tokenAmount && tokenPrice && (
                         <p className="text-xs text-gray-1">
