@@ -20,7 +20,7 @@ import { RecipientInfoComponent } from './RecipientInfo.comp'
 import Icon from '@/components/Global/Icon'
 import { twMerge } from 'tailwind-merge'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
-import { sanitizeBankAccount } from '@/utils/format.utils'
+import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 export const InitialCashoutView = ({
     onNext,
@@ -227,14 +227,6 @@ export const InitialCashoutView = ({
         setIsValidatingBankAccountNumber(false)
     }
 
-    // Add this helper function near the top of the component
-    const formatBankAccountDisplay = (value: string) => {
-        return value
-            .toUpperCase()
-            .replace(/(.{4})/g, '$1 ')
-            .trim()
-    }
-
     // Update the account comparison in the mapping section
     const matchAccount = (storedAccount: any, inputAccount: string) => {
         const sanitizedInput = sanitizeBankAccount(inputAccount)
@@ -384,7 +376,7 @@ export const InitialCashoutView = ({
                                 }}
                                 autoComplete="on"
                                 name="bank-account"
-                                formatDisplayValue={formatBankAccountDisplay}
+                                formatDisplayValue={(value) => formatBankAccountDisplay(value, 'iban')}
                             />
                         </div>
                     </div>
