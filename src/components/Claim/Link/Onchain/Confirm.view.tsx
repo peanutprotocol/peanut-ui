@@ -225,6 +225,7 @@ export const ConfirmClaimLinkView = ({
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
+                    {/* TODO: correct points estimation
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                         <MoreInfo
@@ -237,6 +238,7 @@ export const ConfirmClaimLinkView = ({
                             }
                         />
                     </span>
+                    */}
                 </div>
             </div>
 
