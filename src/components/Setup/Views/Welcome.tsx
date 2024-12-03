@@ -1,9 +1,11 @@
-import { Button } from '@/components/0_Bruddle'
+import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
 import { useState } from 'react'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { next_proxy_url } from '@/constants'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useRouter } from 'next/navigation'
 
 const WelcomeStep = () => {
     const toast = useToast()
@@ -11,6 +13,9 @@ const WelcomeStep = () => {
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
     const [isChanging, setIsChanging] = useState(false)
+    const { handleLogin, isLoggingIn } = useZeroDev()
+    const [isSignUp, setIsSignUp] = useState(false)
+    const { push } = useRouter()
 
     const checkHandleValidity = async (handle: string): Promise<boolean> => {
         if (handle.length < 4) {
@@ -35,30 +40,56 @@ const WelcomeStep = () => {
         }
         return !isHandleTaken
     }
-
     return (
-        <div className="flex h-full flex-col justify-end gap-4">
-            <ValidatedInput
-                placeholder="Pick your new handle"
-                value={handle}
-                debounceTime={750}
-                validate={checkHandleValidity}
-                onUpdate={({ value, isChanging, isValid }) => {
-                    setHandle(value)
-                    setIsValid(isValid)
-                    setIsChanging(isChanging)
-                }}
-            />
-            <Button
-                loading={isLoading || isChanging}
-                onClick={() => {
-                    handleNext<'passkey'>(async () => true, { handle })
-                }}
-                disabled={!isValid || isChanging || isLoading}
-            >
-                Next
-            </Button>
-        </div>
+        <Card className="mx-auto w-full max-w-md border-2 shadow-lg">
+            <Card.Content className="space-y-4 pt-6">
+                {!isSignUp ? (
+                    <>
+                        <Button shadowSize="4" onClick={() => setIsSignUp(true)}>
+                            Create my wallet!
+                        </Button>
+                        <Button
+                            shadowSize="4"
+                            loading={isLoggingIn}
+                            variant="stroke"
+                            onClick={() => {
+                                handleLogin()
+                                    .then(() => push('/home'))
+                                    .catch((_e) => toast.error('Error logging in'))
+                            }}
+                        >
+                            Login
+                        </Button>
+                    </>
+                ) : (
+                    <>
+                        <div className="space-y-2">
+                            <ValidatedInput
+                                placeholder="Pick your new handle"
+                                value={handle}
+                                debounceTime={750}
+                                validate={checkHandleValidity}
+                                onUpdate={({ value, isChanging, isValid }) => {
+                                    setHandle(value)
+                                    setIsValid(isValid)
+                                    setIsChanging(isChanging)
+                                }}
+                            />
+                        </div>
+                        <Button
+                            loading={isLoading || isChanging}
+                            shadowSize="4"
+                            onClick={() => {
+                                handleNext<'passkey'>(async () => true, { handle })
+                            }}
+                            disabled={!isValid || isChanging || isLoading}
+                        >
+                            Next
+                        </Button>
+                    </>
+                )}
+            </Card.Content>
+        </Card>
     )
 }
 
