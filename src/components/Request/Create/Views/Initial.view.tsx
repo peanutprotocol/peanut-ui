@@ -215,7 +215,7 @@ export const InitialView = ({
                     )}
                 </button>
                 <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
-                    Return
+                    Go Back
                 </button>
                 {errorState.showError && (
                     <div className="text-center">

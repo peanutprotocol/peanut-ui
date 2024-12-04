@@ -251,7 +251,7 @@ export const ConfirmClaimLinkView = ({
                     )}
                 </button>
                 <button className="btn btn-xl dark:border-white dark:text-white" onClick={onPrev} disabled={isLoading}>
-                    Return
+                    Go Back
                 </button>
 
                 {errorState.showError && (
