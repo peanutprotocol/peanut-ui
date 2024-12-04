@@ -71,6 +71,8 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         setSelectedTokenAddress(tokenData.address)
         setSelectedTokenDecimals(tokenData.decimals)
         setSelectedTokenPrice(undefined)
+        setInputDenomination('TOKEN')
+        setSelectedTokenData(undefined)
     }
 
     useEffect(() => {
