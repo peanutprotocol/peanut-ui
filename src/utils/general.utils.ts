@@ -747,53 +747,44 @@ export const getRequestLinkFulfillmentsFromLocalStorage = () => {
     }
 }
 
-export const updatePeanutPreferences = ({
-    chainId,
-    tokenAddress,
-    decimals,
-}: {
-    chainId?: string
-    tokenAddress?: string
-    decimals?: number
-}) => {
-    try {
-        if (typeof localStorage === 'undefined') return
-
-        const key = `peanut-preferences`
-
-        let data = {
-            chainId: chainId,
-            tokenAddress: tokenAddress,
-            decimals: decimals,
-        }
-
-        localStorage.setItem(key, JSON.stringify(data))
-    } catch (error) {
-        console.error('Error adding data to localStorage:', error)
+export type UserPreferences = {
+    lastUsedToken?: {
+        chainId: string
+        address: string
+        decimals: number
+    }
+    lastSelectedWallet?: {
+        address: string
     }
 }
 
-export const getPeanutPreferences = () => {
+export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {
     try {
         if (typeof localStorage === 'undefined') return
 
-        const key = `peanut-preferences`
-
-        const storedData = localStorage.getItem(key)
-
-        let data = {
-            chainId: '',
-            tokenAddress: '',
-            decimals: undefined,
+        const currentPrefs = getUserPreferences() || {}
+        const newPrefs: UserPreferences = {
+            ...currentPrefs,
+            ...partialPrefs,
         }
 
-        if (storedData) {
-            data = JSON.parse(storedData)
-        }
-
-        return data
+        localStorage.setItem('user-preferences', JSON.stringify(newPrefs))
+        return newPrefs
     } catch (error) {
-        console.error('Error getting data from localStorage:', error)
+        console.error('Error updating user preferences:', error)
+    }
+}
+
+export const getUserPreferences = (): UserPreferences | undefined => {
+    try {
+        if (typeof localStorage === 'undefined') return
+
+        const storedData = localStorage.getItem('user-preferences')
+        if (!storedData) return undefined
+
+        return JSON.parse(storedData) as UserPreferences
+    } catch (error) {
+        console.error('Error getting user preferences:', error)
     }
 }
 

@@ -36,17 +36,17 @@ export const tokenSelectorContext = createContext({
  */
 export const TokenContextProvider = ({ children }: { children: React.ReactNode }) => {
     const initialTokenData = {
-        tokenAddress: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
+        address: '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85', // USDC
         chainId: '10', // Optimism
         decimals: 6,
     }
-    const prefs = utils.getPeanutPreferences()
-    if (prefs && prefs.tokenAddress && prefs.chainId && prefs.decimals) {
-        initialTokenData.tokenAddress = prefs.tokenAddress
-        initialTokenData.chainId = prefs.chainId
-        initialTokenData.decimals = prefs.decimals
+    const { lastUsedToken } = utils.getUserPreferences() ?? {}
+    if (lastUsedToken) {
+        initialTokenData.address = lastUsedToken.address
+        initialTokenData.chainId = lastUsedToken.chainId
+        initialTokenData.decimals = lastUsedToken.decimals
     }
-    const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.tokenAddress)
+    const [selectedTokenAddress, setSelectedTokenAddress] = useState(initialTokenData.address)
     const [selectedChainID, setSelectedChainID] = useState(initialTokenData.chainId)
     const [selectedTokenPrice, setSelectedTokenPrice] = useState<number | undefined>(undefined)
     const [inputDenomination, setInputDenomination] = useState<inputDenominationType>('TOKEN')
@@ -59,22 +59,18 @@ export const TokenContextProvider = ({ children }: { children: React.ReactNode }
         Record<string, interfaces.ISquidChain & { tokens: interfaces.ISquidToken[] }>
     >({})
 
-    const preferences = utils.getPeanutPreferences()
-
     const updateSelectedChainID = (chainID: string) => {
         setSelectedTokenAddress('0x0000000000000000000000000000000000000000')
         setSelectedChainID(chainID)
     }
 
     const resetTokenContextProvider = () => {
-        if (preferences && preferences.tokenAddress == selectedTokenAddress && preferences.chainId == selectedChainID)
-            return
-        setSelectedChainID(preferences?.tokenAddress ? preferences.chainId : '10')
-        setSelectedTokenAddress(
-            preferences?.tokenAddress ? preferences.tokenAddress : '0x0b2C639c533813f4Aa9D7837CAf62653d097Ff85'
-        )
+        const { lastUsedToken } = utils.getUserPreferences() ?? {}
+        const tokenData = lastUsedToken ?? initialTokenData
+        setSelectedChainID(tokenData.chainId)
+        setSelectedTokenAddress(tokenData.address)
+        setSelectedTokenDecimals(tokenData.decimals)
         setSelectedTokenPrice(undefined)
-        setSelectedTokenDecimals(undefined)
     }
 
     useEffect(() => {

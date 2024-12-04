@@ -10,7 +10,7 @@ import {
     saveCreatedLinkToLocalStorage,
     shareToEmail,
     shareToSms,
-    updatePeanutPreferences,
+    updateUserPreferences,
     ErrorHandler,
     printableAddress,
     formatTokenAmount,
@@ -210,11 +210,15 @@ export const CreateLinkConfirmView = ({
                 if (createType === 'sms_link') shareToSms(recipient.name ?? '', link[0], usdValue)
             }
 
-            updatePeanutPreferences({
-                chainId: selectedChainID,
-                tokenAddress: selectedTokenAddress,
-                decimals: selectedTokenDecimals,
-            })
+            if (selectedChainID && selectedTokenAddress && selectedTokenDecimals) {
+                updateUserPreferences({
+                    lastUsedToken: {
+                        chainId: selectedChainID,
+                        address: selectedTokenAddress,
+                        decimals: selectedTokenDecimals,
+                    },
+                })
+            }
 
             onNext()
             refetchBalances(address ?? '')

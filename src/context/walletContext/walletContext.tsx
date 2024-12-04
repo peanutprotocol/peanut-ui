@@ -12,8 +12,8 @@ import {
     backgroundColorFromAddress,
     areEvmAddressesEqual,
     fetchWalletBalances,
-    getFromLocalStorage,
-    saveToLocalStorage,
+    getUserPreferences,
+    updateUserPreferences,
 } from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
 
@@ -58,7 +58,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const { addAccount, user } = useAuth()
 
     const [selectedAddress, setSelectedAddress] = useState<string | undefined>(
-        getFromLocalStorage('selectedAddress') ?? undefined
+        getUserPreferences()?.lastSelectedWallet?.address
     )
 
     const isWalletConnected = useCallback(
@@ -162,7 +162,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     // Remember selected address
     useEffect(() => {
         if (selectedAddress) {
-            saveToLocalStorage('selectedAddress', selectedAddress)
+            updateUserPreferences({
+                lastSelectedWallet: { address: selectedAddress },
+            })
         }
     }, [selectedAddress])
 
