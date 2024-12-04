@@ -23,6 +23,7 @@ import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
+import { checkTokenSupportsXChain } from '@/utils/token.utils'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -127,10 +128,10 @@ export const InitialView = ({
     }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
 
     const tokenSupportsXChain = useMemo(() => {
-        return (
-            supportedSquidChainsAndTokens[requestLinkData.chainId]?.tokens.some((token) =>
-                areTokenAddressesEqual(token.address, requestLinkData.tokenAddress)
-            ) ?? false
+        return checkTokenSupportsXChain(
+            requestLinkData.tokenAddress,
+            requestLinkData.chainId,
+            supportedSquidChainsAndTokens
         )
     }, [requestLinkData.tokenAddress, requestLinkData.chainId, supportedSquidChainsAndTokens])
 
@@ -437,6 +438,7 @@ export const InitialView = ({
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
                             </div>
+                            {/* TODO: correct points estimation
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {estimatedPoints ? (
                                     `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
@@ -453,6 +455,7 @@ export const InitialView = ({
                                     }
                                 />
                             </span>
+                            */}
                         </div>
                     </>
                 )}
