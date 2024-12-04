@@ -8,7 +8,13 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAuth } from '../authContext'
-import { backgroundColorFromAddress, areEvmAddressesEqual, fetchWalletBalances } from '@/utils'
+import {
+    backgroundColorFromAddress,
+    areEvmAddressesEqual,
+    fetchWalletBalances,
+    getUserPreferences,
+    updateUserPreferences,
+} from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
 
 interface WalletContextType {
@@ -51,7 +57,9 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     ////// User props
     const { addAccount, user } = useAuth()
 
-    const [selectedAddress, setSelectedAddress] = useState<string | undefined>(undefined)
+    const [selectedAddress, setSelectedAddress] = useState<string | undefined>(
+        getUserPreferences()?.lastSelectedWallet?.address
+    )
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
@@ -150,6 +158,15 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             setSelectedAddress(initialWallet.address)
         }
     }, [wallets, selectedAddress])
+
+    // Remember selected address
+    useEffect(() => {
+        if (selectedAddress) {
+            updateUserPreferences({
+                lastSelectedWallet: { address: selectedAddress },
+            })
+        }
+    }, [selectedAddress])
 
     // Add new BYOW wallet when connected
     useEffect(() => {
