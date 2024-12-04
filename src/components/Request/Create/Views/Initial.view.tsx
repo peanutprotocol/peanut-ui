@@ -1,6 +1,6 @@
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import * as _consts from '../Create.consts'
-import FileUploadInput from '@/components/Global/FileUploadInput'
+import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
 import { useContext, useEffect, useState, useCallback } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
@@ -53,6 +53,7 @@ export const InitialView = ({
             userBalances,
             tokenValue,
             tokenData,
+            attachmentOptions,
         }: {
             recipientAddress: string | undefined
             tokenAddress: string
@@ -60,6 +61,7 @@ export const InitialView = ({
             userBalances: IUserBalance[]
             tokenValue: string | undefined
             tokenData: Pick<IToken, 'chainId' | 'address' | 'decimals' | 'symbol'> | undefined
+            attachmentOptions: IFileUploadInputProps['attachmentOptions']
         }) => {
             if (!recipientAddress) {
                 setErrorState({
@@ -173,6 +175,7 @@ export const InitialView = ({
                             userBalances: balances,
                             tokenValue,
                             tokenData: selectedTokenData,
+                            attachmentOptions,
                         })
                     }}
                 />
@@ -202,6 +205,7 @@ export const InitialView = ({
                             userBalances: balances,
                             tokenValue,
                             tokenData: selectedTokenData,
+                            attachmentOptions,
                         })
                     }}
                     disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
