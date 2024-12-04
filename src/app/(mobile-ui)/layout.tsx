@@ -105,7 +105,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal, isConnected } = useWallet()
+    const { signInModal, isConnected, selectExternalWallet } = useWallet()
     const web3Modal = useWeb3Modal()
     const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
@@ -186,7 +186,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         loading={isLoggingIn}
                         disabled={isLoggingIn}
                         onClick={() => {
-                            handleLogin()
+                            handleLogin().then(signInModal.close)
                         }}
                     >
                         Sign In
@@ -205,11 +205,10 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         variant="dark"
                         shadowType="secondary"
                         onClick={() => {
-                            web3Modal.open().finally(() => {
-                                if (isConnected) {
-                                    signInModal.close()
-                                }
-                            })
+                            web3Modal
+                                .open()
+                                .then(selectExternalWallet)
+                                .finally(signInModal.close)
                         }}
                     >
                         Connect External Wallet
