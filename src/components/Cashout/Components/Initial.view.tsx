@@ -9,7 +9,7 @@ import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import * as assets from '@/assets'
-import { formatIban, validateBankAccount, floorFixed, balanceByToken } from '@/utils'
+import { formatIban, validateBankAccount, floorFixed, balanceByToken, printableUsdc } from '@/utils'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
 import Icon from '@/components/Global/Icon'
@@ -197,7 +197,7 @@ export const InitialCashoutView = ({
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {
-            return selectedWallet?.balance.toString() ?? ''
+            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
         }
         const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''

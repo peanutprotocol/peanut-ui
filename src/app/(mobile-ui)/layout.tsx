@@ -205,10 +205,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         variant="dark"
                         shadowType="secondary"
                         onClick={() => {
-                            web3Modal
-                                .open()
-                                .then(selectExternalWallet)
-                                .finally(signInModal.close)
+                            web3Modal.open().then(selectExternalWallet).finally(signInModal.close)
                         }}
                     >
                         Connect External Wallet

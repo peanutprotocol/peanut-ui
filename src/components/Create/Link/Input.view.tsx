@@ -8,7 +8,7 @@ import { useCreateLink } from '../useCreateLink'
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
 import * as context from '@/context'
-import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed, balanceByToken } from '@/utils'
+import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed, balanceByToken, printableUsdc } from '@/utils'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Icon from '@/components/Global/Icon'
@@ -266,7 +266,7 @@ export const CreateLinkInputView = ({
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {
-            return selectedWallet?.balance.toString() ?? ''
+            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
         }
         const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''
