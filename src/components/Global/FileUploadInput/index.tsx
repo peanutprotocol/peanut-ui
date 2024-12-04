@@ -1,7 +1,7 @@
 import Icon from '../Icon'
 import { useEffect, useState } from 'react'
 import * as utils from '@/utils'
-interface IFileUploadInputProps {
+export interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
         message: string | undefined

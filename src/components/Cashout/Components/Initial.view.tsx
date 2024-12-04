@@ -20,6 +20,7 @@ import { RecipientInfoComponent } from './RecipientInfo.comp'
 import Icon from '@/components/Global/Icon'
 import { twMerge } from 'tailwind-merge'
 import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
+import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 export const InitialCashoutView = ({
     onNext,
@@ -220,9 +221,25 @@ export const InitialCashoutView = ({
     // Update the bank account selection handler
     const handleBankAccountSelect = (accountIdentifier: string) => {
         if (!xchainAllowed) return
-        setBankAccountNumber(accountIdentifier.toLowerCase())
+        const sanitizedIdentifier = sanitizeBankAccount(accountIdentifier)
+        setBankAccountNumber(sanitizedIdentifier)
         setIsValidBankAccountNumber(true)
         setIsValidatingBankAccountNumber(false)
+    }
+
+    // Update the account comparison in the mapping section
+    const matchAccount = (storedAccount: any, inputAccount: string) => {
+        const sanitizedInput = sanitizeBankAccount(inputAccount)
+        const sanitizedStored = sanitizeBankAccount(storedAccount.account_identifier)
+
+        if (storedAccount.account_type === 'iban') {
+            return sanitizedInput === sanitizedStored
+        } else if (storedAccount.account_type === 'us') {
+            // For US accounts, only match against the account number part (after routing number)
+            const storedAccountNumber = sanitizedStored.slice(9)
+            return sanitizedInput === storedAccountNumber
+        }
+        return false
     }
 
     return (
@@ -290,8 +307,7 @@ export const InitialCashoutView = ({
                                                     key={index}
                                                     className={twMerge(
                                                         'flex w-full items-center justify-between border border-black p-2',
-                                                        bankAccountNumber.toLowerCase() ===
-                                                            account.account_identifier.toLowerCase()
+                                                        matchAccount(account, bankAccountNumber)
                                                             ? 'bg-purple-1'
                                                             : 'hover:bg-gray-100',
                                                         xchainAllowed && 'cursor-pointer',
@@ -299,18 +315,21 @@ export const InitialCashoutView = ({
                                                     )}
                                                     onClick={() => handleBankAccountSelect(account.account_identifier)}
                                                 >
-                                                    <div className="flex flex-grow items-center">
-                                                        <Icon name={'bank'} className="mr-2 h-4 fill-gray-1" />
+                                                    <div className="flex flex-grow items-center overflow-hidden">
+                                                        <Icon
+                                                            name={'bank'}
+                                                            className="mr-2 h-4 flex-shrink-0 fill-gray-1"
+                                                        />
                                                         <label
                                                             htmlFor={`bank-${index}`}
-                                                            className="text-right uppercase"
+                                                            className="overflow-hidden text-ellipsis whitespace-nowrap text-right uppercase"
                                                         >
                                                             {formatIban(account.account_identifier)}
                                                         </label>
                                                     </div>
                                                     <div className="flex w-6 justify-center">
-                                                        {bankAccountNumber.toLowerCase() ===
-                                                            account.account_identifier.toLowerCase() && (
+                                                        {sanitizeBankAccount(bankAccountNumber) ===
+                                                            sanitizeBankAccount(account.account_identifier) && (
                                                             <button
                                                                 className="text-lg text-black"
                                                                 onClick={(e) => {
@@ -338,6 +357,7 @@ export const InitialCashoutView = ({
                                 debounceTime={750}
                                 validate={validateBankAccount}
                                 onUpdate={({ value, isValid, isChanging }) => {
+                                    // Store lowercase internally
                                     setBankAccountNumber(value.toLowerCase())
                                     setIsValidBankAccountNumber(isValid)
                                     setIsValidatingBankAccountNumber(isChanging)
@@ -345,8 +365,7 @@ export const InitialCashoutView = ({
                                         setErrorState({
                                             showError: true,
                                             errorMessage:
-                                                'Invalid bank account. For US bank accounts, enter your bank routing number (9 digits) followed by your account number \
-                                                (example: 1112223330001234567 where routing number is: 111222333 and account number: 0001234567)',
+                                                'Invalid bank account. For US bank accounts, enter your routing number and account number separately.',
                                         })
                                     } else {
                                         setErrorState({
@@ -357,6 +376,7 @@ export const InitialCashoutView = ({
                                 }}
                                 autoComplete="on"
                                 name="bank-account"
+                                formatDisplayValue={(value) => formatBankAccountDisplay(value, 'iban')}
                             />
                         </div>
                     </div>

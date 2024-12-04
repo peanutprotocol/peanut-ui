@@ -13,6 +13,7 @@ type ValidatedInputProps = {
     name?: string
     suggestions?: string[]
     infoText?: string
+    formatDisplayValue?: (value: string) => string
 }
 export type InputUpdate = {
     value: string
@@ -31,6 +32,7 @@ const ValidatedInput = ({
     name,
     suggestions,
     infoText,
+    formatDisplayValue,
 }: ValidatedInputProps) => {
     const [isValid, setIsValid] = useState(false)
     const [isValidating, setIsValidating] = useState(false)
@@ -77,7 +79,11 @@ const ValidatedInput = ({
 
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
         const newValue = e.target.value
-        onUpdate({ value: newValue, isValid: false, isChanging: !!newValue })
+        onUpdate({
+            value: newValue,
+            isValid: false,
+            isChanging: !!newValue,
+        })
     }
 
     return (
@@ -96,7 +102,7 @@ const ValidatedInput = ({
             <div className="relative w-full">
                 <input
                     type="text"
-                    value={value}
+                    value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
                     className="h-12 w-full bg-white pl-8 pr-2 text-h8 font-medium 
                         outline-none focus:outline-none active:bg-white

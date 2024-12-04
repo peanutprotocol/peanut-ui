@@ -1,0 +1,31 @@
+name: Tests
+
+on:
+    push:
+        branches: ['**']
+
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: '21.1.0'
+
+            - uses: pnpm/action-setup@v2
+              with:
+                  version: 8
+
+            - name: Install Dependencies
+              run: pnpm install
+
+            - name: Run Tests
+              run: pnpm test
+
+            - name: Upload Coverage
+              uses: actions/upload-artifact@v4
+              with:
+                  name: coverage
+                  path: coverage/
