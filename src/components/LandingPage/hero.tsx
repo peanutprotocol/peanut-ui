@@ -78,6 +78,7 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
                         translateY: buttonVisible ? 0 : -20,
                         translateX: buttonVisible ? 0 : 20,
                         rotate: buttonVisible ? 0 : 1,
+                        pointerEvents: buttonVisible ? 'auto' : 'none',
                     }}
                     whileHover={{
                         translateY: 6,
