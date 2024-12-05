@@ -7,6 +7,7 @@ import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
 import Icon from '@/components/Global/Icon'
 import { shortenAddressLong, printableUsdc } from '@/utils'
 import { IWallet } from '@/interfaces'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 type BaseWalletCardProps = {
     onClick?: () => void
@@ -46,6 +47,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
             </motion.div>
         )
     }
+    const toast = useToast()
 
     const { wallet, username, selected = false } = props as WalletCardWallet
 
@@ -86,6 +88,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                             onClick={(e: MouseEvent<SVGElement>) => {
                                 e.stopPropagation()
                                 navigator.clipboard.writeText(wallet.address)
+                                toast.info('Address copied to clipboard')
                             }}
                         />
                     </div>
