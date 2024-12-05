@@ -33,6 +33,7 @@ interface WalletContextType {
     refetchBalances: (address: string) => Promise<void>
     isPeanutWallet: boolean
     isExternalWallet: boolean
+    selectExternalWallet: () => void
 }
 
 function isPeanut(wallet: interfaces.IDBWallet | undefined) {
@@ -234,6 +235,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         [wallets, user?.accounts, wagmiAddress, queryClient]
     )
 
+    const selectExternalWallet = useCallback(() => {
+        setSelectedAddress(wagmiAddress)
+    }, [wagmiAddress])
+
     const contextValue: WalletContextType = {
         wallets: processedWallets,
         selectedWallet,
@@ -252,6 +257,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         refetchBalances,
         isPeanutWallet: isPeanut(selectedWallet),
         isExternalWallet: isExternalWallet(selectedWallet),
+        selectExternalWallet,
     }
 
     return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>

@@ -6,10 +6,9 @@ import { useAuth } from '@/context/authContext'
 
 const HomeHeader = () => {
     const { username } = useAuth()
-    const { selectedWallet, wallets } = useWallet()
+    const { selectedWallet, wallets, isPeanutWallet, isConnected } = useWallet()
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
-    const isConnectWallet = selectedWallet?.connected
 
     const { uri: avatarURI } = useAvatar(selectedWallet ? selectedWallet.address : 'i am sad bc i dont have peanut')
 
@@ -27,19 +26,19 @@ const HomeHeader = () => {
                     <p>www.peanut.me/</p>
                     <p className="text-h4">{username}</p>
                 </div>
-                {hasWallets && (
+                {hasWallets && (isPeanutWallet || isConnected) && (
                     <div>
                         <Button
                             loading={isLoggingIn}
                             disabled={isLoggingIn}
-                            shadowSize={!isConnectWallet ? '4' : undefined}
-                            variant={isConnectWallet ? 'green' : 'purple'}
+                            shadowSize={!isConnected ? '4' : undefined}
+                            variant={isConnected ? 'green' : 'purple'}
                             size="small"
                             onClick={() => {
                                 handleLogin()
                             }}
                         >
-                            {isConnectWallet ? 'Connected' : 'Sign In'}
+                            {isConnected ? 'Connected' : 'Sign In'}
                         </Button>
                     </div>
                 )}
