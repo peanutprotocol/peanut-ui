@@ -1,5 +1,5 @@
 'use client'
-import React, { useEffect, useState, useCallback } from 'react'
+import React, {useEffect, useState, useCallback, useMemo} from 'react'
 import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
 import { useLottie, LottieOptions } from 'lottie-react'
 import Link from 'next/link'
@@ -11,6 +11,9 @@ import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { breakpoints, emToPx } from '@/styles/theme'
 import { NavItemBox, NavLink } from './components'
+import { useAccountSubnames } from "@justaname.id/react";
+import {peanutEnsDomain} from "@/config/justweb3.config";
+import {useJustWeb3} from "@justweb3/widget";
 
 const defaultLottieOptions: LottieOptions = {
     animationData: HAMBURGER_LOTTIE,
@@ -276,20 +279,57 @@ const MenuLinks = () => {
 const SocialLinks = () => {
     const { open: web3modalOpen } = useWeb3Modal()
     const { address, isConnected } = useAccount()
+    const { accountSubnames, isAccountSubnamesPending } = useAccountSubnames()
+    const router = useRouter()
+    const peanutSubname = useMemo(() => {
+        return accountSubnames.find((subname) => subname.ens.endsWith(peanutEnsDomain))
+    }, [accountSubnames])
+    const { openEnsProfile } = useJustWeb3()
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
             <Link href={'/profile'} className="no-underline">
                 <button className="btn btn-large bg-white px-2 ">Profile</button>
             </Link>
-            <button
-                className="btn btn-large text-nowrap bg-white px-2"
-                onClick={() => {
-                    web3modalOpen()
-                }}
-            >
-                {isConnected ? shortenAddress(address ?? '') : 'Connect'}
-            </button>
+            {
+                !isConnected && (
+                    <button
+                        className="btn btn-large bg-white px-2"
+                        onClick={() => {
+                            web3modalOpen()
+                        }}
+                    >
+                        Connect
+                    </button>
+                )
+            }
+            {
+                isConnected && (
+                        <button
+                            className="btn btn-large bg-white px-2 py-2 gap-2"
+                            onClick={() => {
+                                if (peanutSubname) {
+                                    openEnsProfile(peanutSubname.ens)
+                                    return
+                                }
+                                router.push('/claim-subname')
+                            }}
+                        >
+                            {
+                                isAccountSubnamesPending ? 'Loading...' : peanutSubname?.ens ?? 'Claim ENS'
+                            }
+
+                            <div className={"bg-black h-full flex flex-col justify-center p-2 rounded-full"}
+                                onClick={(event) => {
+                                    web3modalOpen()
+                                    event.stopPropagation()
+                                }}
+                            >
+                                <span className={"text-primary text-xs"}>{shortenAddress(address ?? '')}</span>
+                            </div>
+                        </button>
+                )
+            }
         </Stack>
     )
 }

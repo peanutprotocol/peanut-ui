@@ -32,6 +32,7 @@ export const CreateLinkInitialView = ({
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const { isConnected } = useAccount()
 
+    const ensRegex = /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/;
     const handleInputValidation = async (value: string) => {
         //email check
         if (validator.isEmail(value)) {
@@ -46,7 +47,7 @@ export const CreateLinkInitialView = ({
             return 'direct'
         }
         //ENS check
-        else if (value.endsWith('.eth')) {
+        else if (ensRegex.test(value)) {
             return 'direct'
         } else if (validate(value, 'sol')) {
             setErrorState({
@@ -115,7 +116,7 @@ export const CreateLinkInitialView = ({
                     break
                 case 'direct':
                     setCreateType('direct')
-                    if (inputValue.endsWith('.eth')) {
+                    if (ensRegex.test(inputValue)) {
                         const _address = await utils.resolveFromEnsName(inputValue)
                         if (_address) setRecipient({ name: inputValue, address: _address })
                         else {

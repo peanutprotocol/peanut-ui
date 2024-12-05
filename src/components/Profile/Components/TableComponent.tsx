@@ -73,6 +73,9 @@ export const TableComponent = ({
                             <Sorting title="Address" />
                         </th>
                         <th className="th-custom">
+                            <Sorting title="ENS" />
+                        </th>
+                        <th className="th-custom">
                             <Sorting title="Number of transactions" />
                         </th>
                         <th className="th-custom"></th>
@@ -85,6 +88,9 @@ export const TableComponent = ({
                             </th>
                             <th className="th-custom">
                                 <Sorting title="Identifier" />
+                            </th>
+                            <th className="th-custom">
+                                <Sorting title="ENS" />
                             </th>
                             {/* <th className="th-custom"></th> */}
                         </tr>
@@ -227,6 +233,13 @@ export const TableComponent = ({
                                 </td>
                                 <td className="td-custom font-bold">{data.primaryText}</td>
                                 <td className="td-custom font-bold">{data.tertiaryText}</td>
+                                <td className="td-custom font-bold">
+                                    {
+                                        data.address ?
+                                            <AddressLink address={data.address} />
+                                            : null
+                                    }
+                                </td>
                                 <td className="td-custom font-bold">{data.quaternaryText}</td>
                                 <td className="td-custom text-end ">
                                     <OptionsComponent
@@ -247,6 +260,8 @@ export const TableComponent = ({
                                 <tr className="h-16 text-h8 font-normal" key={data.itemKey + Math.random()}>
                                     <td className="td-custom font-bold">{data.primaryText}</td>
                                     <td className="td-custom font-bold">{data.tertiaryText}</td>
+                                    <td className="td-custom font-bold">
+                                        <AddressLink address={data.tertiaryText} /></td>
                                 </tr>
                             )
                         )

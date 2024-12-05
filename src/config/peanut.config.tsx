@@ -14,6 +14,7 @@ import 'react-tooltip/dist/react-tooltip.css'
 // import LogRocket from 'logrocket'
 import { ChakraProvider } from '@chakra-ui/react'
 import * as styles from '@/styles/theme'
+import {JustWeb3Provider} from "@/config/justweb3.config";
 
 export function PeanutProvider({ children }: { children: React.ReactNode }) {
     useEffect(() => {
@@ -27,8 +28,10 @@ export function PeanutProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <config.ContextProvider>
-            <ChakraProvider theme={styles.theme}> {children}</ChakraProvider>
-            <Analytics />
+            <JustWeb3Provider>
+                <ChakraProvider theme={styles.theme}> {children}</ChakraProvider>
+                <Analytics />
+            </JustWeb3Provider>
         </config.ContextProvider>
     )
 }

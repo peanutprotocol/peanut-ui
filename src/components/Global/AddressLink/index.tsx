@@ -3,13 +3,14 @@ import { useEffect, useState } from 'react'
 import { useEnsName } from 'wagmi'
 import { isAddress } from 'viem'
 import * as utils from '@/utils'
+import {usePrimaryName} from "@justaname.id/react";
 
 const AddressLink = ({ address }: { address: string }) => {
     const [url, setUrl] = useState<string>('')
     const [displayAddress, setDisplayAddress] = useState<string>(utils.printableAddress(address))
 
     // Look up ENS name for any valid Ethereum address
-    const { data: ensName } = useEnsName({
+    const { primaryName } = usePrimaryName({
         address: isAddress(address) ? (address as `0x${string}`) : undefined,
         chainId: 1, // Mainnet for ENS lookups
     })
@@ -19,12 +20,12 @@ const AddressLink = ({ address }: { address: string }) => {
         setUrl(`https://debank.com/profile/${address}`)
 
         // Update display: prefer ENS name, fallback to shortened address
-        if (ensName) {
-            setDisplayAddress(ensName)
+        if (primaryName) {
+            setDisplayAddress(primaryName)
         } else {
             setDisplayAddress(utils.printableAddress(address))
         }
-    }, [address, ensName])
+    }, [address, primaryName])
 
     return url ? (
         <Link className="cursor-pointer underline" href={url} target="_blank">
