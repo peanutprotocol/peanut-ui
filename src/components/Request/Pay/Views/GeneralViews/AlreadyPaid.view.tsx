@@ -21,7 +21,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header className="text-center">
-                <Card.Title>This link previously contained:</Card.Title>
+                <Card.Title>Payment Receipt</Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">
                 <ReferenceAndAttachment
@@ -30,6 +30,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                 />
                 {dataAvailable && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <label className="text-h8 ">This link previously contained:</label>
                         {tokenSymbolAvailable && (
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                 <div className="flex w-max  flex-row items-center justify-center gap-1">
