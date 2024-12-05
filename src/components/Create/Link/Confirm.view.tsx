@@ -320,6 +320,7 @@ export const CreateLinkConfirmView = ({
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
+                    {/* TODO: correct points estimation
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {estimatedPoints && estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                         <MoreInfo
@@ -334,6 +335,7 @@ export const CreateLinkConfirmView = ({
                             }
                         />
                     </span>
+                    */}
                 </div>
             </div>
 
@@ -348,7 +350,7 @@ export const CreateLinkConfirmView = ({
                     )}
                 </button>
                 <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
-                    Return
+                    Go Back
                 </button>
                 {errorState.showError && (
                     <div className="text-center">

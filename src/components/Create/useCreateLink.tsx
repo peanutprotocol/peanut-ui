@@ -22,7 +22,7 @@ export const useCreateLink = () => {
     const { selectedChainID, selectedTokenData, selectedTokenAddress } = useContext(tokenSelectorContext)
     const { balances, refetchBalances, balanceByToken } = useBalance()
 
-    const { chain: currentChain, address } = useAccount()
+    const { chain: currentChain, address, connector } = useAccount()
     const { switchChainAsync } = useSwitchChain()
     const { signTypedDataAsync } = useSignTypedData()
     const { sendTransactionAsync } = useSendTransaction()
@@ -185,7 +185,25 @@ export const useCreateLink = () => {
             console.error('Failed to switch network:', error)
         }
     }
+    const isSafeConnector = (connector?: { name?: string }): boolean => {
+        const name = connector?.name
+        if (!name) return false
+        return name.toLowerCase().includes('safe')
+    }
     const estimateGasFee = useCallback(async ({ chainId, preparedTx }: { chainId: string; preparedTx: any }) => {
+        // Return early with default values for Safe connector
+        // TODO: request / cashout flows abstract this
+        // requirement for internut (injects AA with zero gas fees)
+        if (isSafeConnector({ name: connector?.name })) {
+            return {
+                feeOptions: {
+                    gasLimit: BigInt(0),
+                    maxFeePerGas: BigInt(0),
+                    gasPrice: BigInt(0),
+                },
+                transactionCostUSD: 0,
+            }
+        }
         try {
             const feeOptions = await peanut.setFeeOptions({
                 chainId: chainId,
