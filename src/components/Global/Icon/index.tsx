@@ -1,4 +1,5 @@
 import { twMerge } from 'tailwind-merge'
+import { MouseEvent } from 'react'
 
 const customViewbox = [
     { name: 'gas', viewBox: '0 0 24 24 ' },
@@ -73,6 +74,8 @@ const icons = {
     close: 'M12.662 4.288L8.944 8.006l3.719 3.719-.937.938-3.719-3.719-3.719 3.719-.937-.937 3.719-3.719L3.35 4.288l.937-.937 3.719 3.719 3.719-3.719z',
     comments:
         'M11.35 8.006a.59.59 0 0 1-.219.469c-.125.125-.281.188-.469.188H4.006L1.35 11.35V2.006c0-.187.063-.344.188-.469s.281-.187.469-.187h8.656c.188 0 .344.063.469.188a.59.59 0 0 1 .219.469v6zm2.656-4c.188 0 .344.063.469.188s.187.281.187.469v10l-2.656-2.656H4.663c-.187 0-.344-.062-.469-.187s-.187-.281-.187-.469v-1.344h8.656v-6h1.344z',
+    'content-copy':
+        'M10 2H3c-.6 0-1 .4-1 1v9h1V3h7V2zm3 2H6c-.6 0-1 .4-1 1v9c0 .6.4 1 1 1h7c.6 0 1-.4 1-1V5c0-.6-.4-1-1-1zm0 10H6V5h7v9z',
     facebook:
         'M6.286 16V8.844H3.88V6h2.406V3.75c0-1.187.333-2.109 1-2.766S8.838 0 9.942 0c.896 0 1.625.042 2.188.125v2.531h-1.5c-.562 0-.948.125-1.156.375-.167.208-.25.542-.25 1V6h2.656l-.375 2.844H9.224V16H6.286z',
     dashboard:
@@ -207,7 +210,7 @@ type IconProps = {
     className?: string
     name: IconNameType
     fill?: string
-    onClick?: () => void
+    onClick?: (e: MouseEvent<SVGElement>) => void
 }
 
 const Icon = ({ className, name, fill, onClick }: IconProps) => (

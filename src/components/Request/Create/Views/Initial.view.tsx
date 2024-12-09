@@ -155,6 +155,13 @@ export const InitialView = ({
         }
     }, [isPeanutWallet])
 
+    useEffect(() => {
+        if (isPeanutWallet && selectedWallet) {
+            setRecipientAddress(selectedWallet.address)
+            setIsValidRecipient(true)
+        }
+    }, [isPeanutWallet, selectedWallet?.address])
+
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
@@ -189,16 +196,18 @@ export const InitialView = ({
                         attachmentOptions={attachmentOptions}
                         setAttachmentOptions={setAttachmentOptions}
                     />
-                    <AddressInput
-                        placeholder="Enter recipient address"
-                        value={recipientAddress ?? ''}
-                        onUpdate={(update: InputUpdate) => {
-                            setRecipientAddress(update.value)
-                            setInputChanging(update.isChanging)
-                            setIsValidRecipient(update.isValid)
-                        }}
-                        className="w-full"
-                    />
+                    {isExternalWallet && (
+                        <AddressInput
+                            placeholder="Enter recipient address"
+                            value={recipientAddress ?? ''}
+                            onUpdate={(update: InputUpdate) => {
+                                setRecipientAddress(update.value)
+                                setInputChanging(update.isChanging)
+                                setIsValidRecipient(update.isValid)
+                            }}
+                            className="w-full"
+                        />
+                    )}
                     <Button
                         onClick={() => {
                             handleOnNext({

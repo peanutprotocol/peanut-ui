@@ -18,6 +18,7 @@ import { peanutWalletIsInPreview } from '@/constants'
 import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { colorMap } from '@/utils'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 type ScreenProps = {
     name: string
@@ -105,10 +106,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
-    const { signInModal, isConnected } = useWallet()
+    const { signInModal, selectExternalWallet } = useWallet()
     const web3Modal = useWeb3Modal()
     const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
+    const toast = useToast()
 
     useEffect(() => {
         setIsReady(true)
@@ -187,6 +189,11 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         disabled={isLoggingIn}
                         onClick={() => {
                             handleLogin()
+                                .then(signInModal.close)
+                                .catch((e) => {
+                                    console.error(e)
+                                    toast.error('Error logging in')
+                                })
                         }}
                     >
                         Sign In
@@ -205,11 +212,14 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         variant="dark"
                         shadowType="secondary"
                         onClick={() => {
-                            web3Modal.open().finally(() => {
-                                if (isConnected) {
-                                    signInModal.close()
-                                }
-                            })
+                            web3Modal
+                                .open()
+                                .then(selectExternalWallet)
+                                .catch((e) => {
+                                    console.error(e)
+                                    toast.error('Error connecting wallet')
+                                })
+                                .finally(signInModal.close)
                         }}
                     >
                         Connect External Wallet
