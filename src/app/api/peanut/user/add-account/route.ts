@@ -33,6 +33,14 @@ export async function POST(request: NextRequest) {
         })
 
         if (!response.ok) {
+            if (response.status === 409) {
+                return new NextResponse(JSON.stringify({ error: 'User already exists' }), {
+                    status: 409,
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+            }
             throw new Error(`Failed to create user: ${response.status}`)
         }
 
