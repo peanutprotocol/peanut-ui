@@ -2,7 +2,7 @@
 
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState, useMemo, useCallback } from 'react'
+import { useContext, useEffect, useState, useCallback } from 'react'
 import Icon from '@/components/Global/Icon'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
@@ -71,7 +71,7 @@ export const InitialClaimLinkView = ({
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedChainID,
         setSelectedChainID,
@@ -619,22 +619,26 @@ export const InitialClaimLinkView = ({
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
                                             <label className="text-h8 font-normal text-red">
-                                                {errorState.errorMessage}
+                                                {isPeanutWallet
+                                                    ? 'This token cannot be claimed from peanut wallet. You can use an external wallet'
+                                                    : errorState.errorMessage}
                                             </label>{' '}
-                                            <span
-                                                className="cursor-pointer text-h8 font-normal text-red underline"
-                                                onClick={() => {
-                                                    setSelectedRoute(null)
-                                                    setHasFetchedRoute(false)
-                                                    setErrorState({
-                                                        showError: false,
-                                                        errorMessage: '',
-                                                    })
-                                                    resetSelectedToken()
-                                                }}
-                                            >
-                                                reset
-                                            </span>
+                                            {!isPeanutWallet && (
+                                                <span
+                                                    className="cursor-pointer text-h8 font-normal text-red underline"
+                                                    onClick={() => {
+                                                        setSelectedRoute(null)
+                                                        setHasFetchedRoute(false)
+                                                        setErrorState({
+                                                            showError: false,
+                                                            errorMessage: '',
+                                                        })
+                                                        resetSelectedToken()
+                                                    }}
+                                                >
+                                                    reset
+                                                </span>
+                                            )}
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (
