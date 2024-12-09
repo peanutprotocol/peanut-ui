@@ -1,5 +1,5 @@
 'use client'
-import { ReactNode, createContext, useContext, useState } from 'react'
+import { ReactNode, createContext, useContext, useState, useCallback, useEffect } from 'react'
 
 // ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
@@ -203,32 +203,38 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     // TODO: better docstrings
     // used when data is already encoded from Peanut
     // but remains unsigned
-    const handleSendUserOpEncoded = async ({ to, value, data }: UserOpEncodedParams) => {
-        setIsSendingUserOp(true)
-        const userOpHash = await kernelClient!.sendUserOperation({
-            account: kernelClient!.account,
-            callData: await kernelClient!.account!.encodeCalls([
-                {
-                    to: (to ? to : '') as `0x${string}`,
-                    value: value ? BigInt(value.toString()) : BigInt(0),
-                    data,
-                },
-            ]),
-        })
+    const handleSendUserOpEncoded = useCallback(
+        async ({ to, value, data }: UserOpEncodedParams) => {
+            if (!kernelClient) {
+                throw new Error('Trying to send user operation before client initialization')
+            }
+            setIsSendingUserOp(true)
+            const userOpHash = await kernelClient.sendUserOperation({
+                account: kernelClient.account,
+                callData: await kernelClient.account!.encodeCalls([
+                    {
+                        to: (to ? to : '') as `0x${string}`,
+                        value: value ? BigInt(value.toString()) : BigInt(0),
+                        data,
+                    },
+                ]),
+            })
 
-        const receipt = await kernelClient!.waitForUserOperationReceipt({
-            hash: userOpHash,
-        })
+            const receipt = await kernelClient.waitForUserOperationReceipt({
+                hash: userOpHash,
+            })
 
-        console.log({ receipt })
+            console.log({ receipt })
 
-        // Update the message based on the count of UserOps
-        const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
-        console.log({ userOpMessage })
-        setIsSendingUserOp(false)
+            // Update the message based on the count of UserOps
+            const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
+            console.log({ userOpMessage })
+            setIsSendingUserOp(false)
 
-        return receipt.receipt.transactionHash
-    }
+            return receipt.receipt.transactionHash
+        },
+        [kernelClient]
+    )
 
     // used when data is NOT already encoded from Peanut
     // but remains unsigned

@@ -576,7 +576,7 @@ export const useCreateLink = () => {
                 throw error
             }
         },
-        [selectedChainID, sendTransactionAsync, config, isActiveWalletPW, isActiveWalletBYOW]
+        [selectedChainID, sendTransactionAsync, config, isActiveWalletPW, isActiveWalletBYOW, handleSendUserOpEncoded]
     )
     const getLinkFromHash = async ({
         hash,

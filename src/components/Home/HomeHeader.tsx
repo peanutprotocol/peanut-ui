@@ -3,12 +3,14 @@ import useAvatar from '@/hooks/useAvatar'
 import { Button } from '../0_Bruddle'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useAuth } from '@/context/authContext'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 const HomeHeader = () => {
     const { username } = useAuth()
     const { selectedWallet, wallets, isPeanutWallet, isConnected } = useWallet()
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
+    const toast = useToast()
 
     const { uri: avatarURI } = useAvatar(selectedWallet ? selectedWallet.address : 'i am sad bc i dont have peanut')
 
@@ -35,7 +37,9 @@ const HomeHeader = () => {
                             variant={isConnected ? 'green' : 'purple'}
                             size="small"
                             onClick={() => {
-                                handleLogin()
+                                handleLogin().catch((_error) => {
+                                    toast.error('Error logging in')
+                                })
                             }}
                         >
                             {isConnected ? 'Connected' : 'Sign In'}
