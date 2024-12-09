@@ -401,6 +401,13 @@ export const InitialClaimLinkView = ({
         setHasFetchedRoute(false)
     }, [recipientType])
 
+    useEffect(() => {
+        if (isPeanutWallet && address) {
+            setRecipient({ name: undefined, address: address })
+            setIsValidRecipient(true)
+        }
+    }, [isPeanutWallet, address])
+
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
@@ -456,26 +463,28 @@ export const InitialClaimLinkView = ({
                         }}
                     />
                 )}
-                <GeneralRecipientInput
-                    className=""
-                    placeholder="wallet address / ENS / IBAN / US account number"
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        if (!update.recipient.address) {
-                            setRecipientType('address')
-                        } else {
-                            setRecipientType(update.type)
-                        }
-                        setIsValidRecipient(update.isValid)
-                        setErrorState({
-                            showError: !update.isValid,
-                            errorMessage: update.errorMessage,
-                        })
-                        setInputChanging(update.isChanging)
-                    }}
-                    infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
-                />
+                {isExternalWallet && (
+                    <GeneralRecipientInput
+                        className=""
+                        placeholder="wallet address / ENS / IBAN / US account number"
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            if (!update.recipient.address) {
+                                setRecipientType('address')
+                            } else {
+                                setRecipientType(update.type)
+                            }
+                            setIsValidRecipient(update.isValid)
+                            setErrorState({
+                                showError: !update.isValid,
+                                errorMessage: update.errorMessage,
+                            })
+                            setInputChanging(update.isChanging)
+                        }}
+                        infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
+                    />
+                )}
                 {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
