@@ -868,7 +868,7 @@ export const OfframpConfirmView = ({
                     disabled={isLoading}
                     type="button"
                 >
-                    Return
+                    Go Back
                     {/* Cancel if activeStep <=3 and offramp type cashout*/}
                 </button>
 

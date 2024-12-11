@@ -337,7 +337,7 @@ export const CreateLinkInputView = ({
                     )}
                 </button>
                 <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
-                    Return
+                    Go Back
                 </button>
             </div>
 

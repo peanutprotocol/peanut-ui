@@ -174,7 +174,7 @@ const ToolsDropdown = () => {
                         }}
                         className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center"
                     >
-                        <div className="flex h-full w-full items-center justify-center">tools</div>
+                        <div className="flex h-full w-full items-center justify-center px-8 lg:px-4 xl:px-8">tools</div>
                     </button>
                 </NavItemBox>
                 {showMenu && (
@@ -201,7 +201,7 @@ const ToolsDropdown = () => {
                         }}
                         className="text-bold flex h-full w-full items-center justify-start rounded-md py-2 uppercase transition-colors hover:bg-n-4/50 hover:text-n-1"
                     >
-                        <div className="flex h-full w-full items-center justify-start">
+                        <div className="flex h-full w-full items-center justify-start px-8 lg:px-4 xl:px-8">
                             <Text display="block">tools</Text>
                         </div>
                     </button>
@@ -250,7 +250,7 @@ const MenuLinks = () => {
                 <NavItemBox>
                     <Link
                         href={'/profile'}
-                        className=" flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                        className=" flex h-full w-full items-center justify-start px-8 py-2 uppercase sm:hidden sm:w-max sm:justify-center lg:px-4 xl:px-8"
                     >
                         <Text display="block"> Profile</Text>
                     </Link>
@@ -260,7 +260,7 @@ const MenuLinks = () => {
                         onClick={() => {
                             web3modalOpen()
                         }}
-                        className="flex h-full w-full items-center justify-start py-2 uppercase sm:hidden sm:w-max sm:justify-center"
+                        className="flex h-full w-full items-center justify-start px-8 py-2 uppercase sm:hidden sm:w-max sm:justify-center lg:px-4 xl:px-8"
                     >
                         <Text display="block text-nowrap">
                             {' '}
