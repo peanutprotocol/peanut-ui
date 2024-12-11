@@ -217,29 +217,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         userId: string
         bridgeAccountId?: string
     }) => {
-        try {
-            const response = await fetch('/api/peanut/user/add-account', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    userId,
-                    accountIdentifier,
-                    bridgeAccountId,
-                    accountType,
-                }),
-            })
+        const response = await fetch('/api/peanut/user/add-account', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                userId,
+                accountIdentifier,
+                bridgeAccountId,
+                accountType,
+            }),
+        })
 
-            if (response.ok) {
-                fetchUser()
-            } else {
-                console.error('Failed to update user')
+        if (!response.ok) {
+            if (response.status === 409) {
+                throw new Error('Account already exists')
             }
-        } catch (error) {
-            console.error('Error in addAccount', error)
-            throw error
+            console.error('Unexpected error adding account', response)
+            throw new Error('Unexpected error adding account')
         }
+
+        fetchUser()
     }
 
     const logoutUser = async () => {

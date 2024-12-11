@@ -16,6 +16,7 @@ import {
     updateUserPreferences,
 } from '@/utils'
 import { peanutPublicClient } from '@/constants/viem.consts'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined
@@ -33,6 +34,7 @@ interface WalletContextType {
     refetchBalances: (address: string) => Promise<void>
     isPeanutWallet: boolean
     isExternalWallet: boolean
+    selectExternalWallet: () => void
 }
 
 function isPeanut(wallet: interfaces.IDBWallet | undefined) {
@@ -47,6 +49,7 @@ const WalletContext = createContext<WalletContextType | undefined>(undefined)
 
 export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const queryClient = useQueryClient()
+    const toast = useToast()
     const [promptWalletSigninOpen, setPromptWalletSigninOpen] = useState(false)
     ////// ZeroDev props
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
@@ -178,7 +181,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 accountIdentifier: wagmiAddress,
                 accountType: interfaces.WalletProviderType.BYOW,
                 userId: user.user.userId as string,
-            }).catch(console.error)
+            }).catch((error: Error) => {
+                if (error.message.includes('Account already exists')) {
+                    toast.error('Could not add external wallet, already associated with another account')
+                } else {
+                    toast.error('Unexpected error adding external wallet')
+                }
+            })
         }
     }, [wagmiAddress, wallets, user])
 
@@ -234,6 +243,10 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         [wallets, user?.accounts, wagmiAddress, queryClient]
     )
 
+    const selectExternalWallet = useCallback(() => {
+        setSelectedAddress(wagmiAddress)
+    }, [wagmiAddress])
+
     const contextValue: WalletContextType = {
         wallets: processedWallets,
         selectedWallet,
@@ -252,6 +265,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         refetchBalances,
         isPeanutWallet: isPeanut(selectedWallet),
         isExternalWallet: isExternalWallet(selectedWallet),
+        selectExternalWallet,
     }
 
     return <WalletContext.Provider value={contextValue}>{children}</WalletContext.Provider>

@@ -25,6 +25,8 @@ import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -70,6 +72,8 @@ export const InitialView = ({
 }: _consts.IPayScreenProps) => {
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
     const { address, signInModal, isConnected, chain: currentChain, isExternalWallet, isPeanutWallet } = useWallet()
+    const { handleLogin } = useZeroDev()
+    const toast = useToast()
 
     const { switchChainAsync } = useSwitchChain()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
@@ -251,10 +255,6 @@ export const InitialView = ({
     const clearError = () => {
         setErrorState({ showError: false, errorMessage: '' })
         setIsFeeEstimationError(false)
-    }
-
-    const handleConnectWallet = async () => {
-        signInModal.open()
     }
 
     const switchNetwork = async (chainId: string) => {
@@ -476,8 +476,22 @@ export const InitialView = ({
                     <Button
                         disabled={isButtonDisabled}
                         onClick={() => {
-                            if (!isConnected) handleConnectWallet()
-                            else if (ViewState.READY_TO_PAY === viewState) handleOnNext()
+                            if (!isConnected) {
+                                if (isPeanutWallet) {
+                                    setLoadingState('Logging in')
+                                    handleLogin()
+                                        .catch((_error) => {
+                                            toast.error('Error logging in')
+                                        })
+                                        .finally(() => {
+                                            setLoadingState('Idle')
+                                        })
+                                } else {
+                                    signInModal.open()
+                                }
+                            } else if (ViewState.READY_TO_PAY === viewState) {
+                                handleOnNext()
+                            }
                         }}
                         loading={viewState === ViewState.LOADING}
                     >
