@@ -12,7 +12,7 @@ export async function POST(request: NextRequest) {
         const getUserFromCookieRequest = new NextRequest('/api/peanut/user/get-user-from-cookie', {
             method: 'GET',
             headers: {
-                cookie: request.cookies.toString(),
+                cookie: request.headers.get('cookie') ?? '',
                 ...request.headers,
             },
         })
