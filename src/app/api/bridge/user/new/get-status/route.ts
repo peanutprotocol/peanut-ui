@@ -1,6 +1,6 @@
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import * as interfaces from '@/interfaces'
+import { GET as getUserFromCookie } from '@/app/api/peanut/user/get-user-from-cookie/route'
 
 export async function POST(request: NextRequest) {
     try {
@@ -8,6 +8,24 @@ export async function POST(request: NextRequest) {
         if (!process.env.BRIDGE_API_KEY) {
             throw new Error('BRIDGE_API_KEY is not defined')
         }
+
+        const getUserFromCookieRequest = new NextRequest('/api/peanut/user/get-user-from-cookie', {
+            method: 'GET',
+            headers: {
+                cookie: request.cookies.toString(),
+                ...request.headers,
+            },
+        })
+        const getUserFromCookieResponse = await getUserFromCookie(getUserFromCookieRequest)
+        if (!getUserFromCookieResponse.ok) {
+            return new NextResponse('Unauthorized', { status: 401 })
+        }
+        const { user } = await getUserFromCookieResponse.json()
+
+        if (userId !== user?.id) {
+            return new NextResponse('Forbidden', { status: 403 })
+        }
+
         const response = await fetch(`https://api.bridge.xyz/v0/kyc_links/${userId}`, {
             method: 'GET',
             headers: {

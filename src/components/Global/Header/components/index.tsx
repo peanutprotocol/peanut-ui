@@ -16,7 +16,7 @@ export const NavLink = ({
             <Link
                 {...rest}
                 href={href}
-                className="flex h-full w-full items-center justify-start py-2 uppercase sm:w-max sm:justify-center px-8 lg:px-4 xl:px-8"
+                className="flex h-full w-full items-center justify-start px-8 py-2 uppercase sm:w-max sm:justify-center lg:px-4 xl:px-8"
             >
                 {children}
             </Link>
