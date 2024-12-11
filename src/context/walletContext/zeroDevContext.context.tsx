@@ -66,7 +66,7 @@ const ZeroDevContext = createContext<ZeroDevContextType | undefined>(undefined)
  */
 export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     const toast = useToast()
-    const { fetchUser } = useAuth()
+    const { fetchUser, user } = useAuth()
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
     ////// context props
     //
@@ -172,11 +172,15 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     const handleLogin = async () => {
         setIsLoggingIn(true)
         try {
+            const passkeyServerHeaders: Record<string, string> = {}
+            if (user?.user?.username) {
+                passkeyServerHeaders['x-username'] = user.user.username
+            }
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
                 mode: WebAuthnMode.Login,
-                passkeyServerHeaders: {},
+                passkeyServerHeaders,
                 rpID: window.location.hostname.replace(/^www\./, ''),
             })
 
