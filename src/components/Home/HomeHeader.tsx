@@ -37,6 +37,7 @@ const HomeHeader = () => {
                             variant={isConnected ? 'green' : 'purple'}
                             size="small"
                             onClick={() => {
+                                if (isConnected) return
                                 handleLogin().catch((_error) => {
                                     toast.error('Error logging in')
                                 })
