@@ -1,11 +1,7 @@
 export const TOOLTIPS = {
     RECIPIENT_INFO: `You can claim directly to your IBAN OR US bank account.
 
-For US bank accounts, enter your bank routing number (9 digits) and account number together.
-
-Example US bank account: 1112223330001234567, with:
-Routing number (9 digits): 111222333
-Account number: 0001234567
+For US bank accounts, enter just your bank account number, no routing number.
 
 <a href="https://docs.peanut.to/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Supported regions</a>`,
 
