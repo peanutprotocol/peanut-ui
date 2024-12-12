@@ -1,22 +1,22 @@
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
+import * as consts from '@/constants'
 
 export async function GET(_request: NextRequest) {
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
+    const apiKey = process.env.PEANUT_API_KEY
 
-    if (!token) {
+    if (!token || !apiKey) {
         return new NextResponse('Bad Request: missing required parameters', { status: 400 })
     }
     try {
-        const apiUrl = `${process.env.NEXT_PUBLIC_BASE_URL}/api/peanut/user/get-user`
-
-        const response = await fetch(apiUrl, {
+        const response = await fetch(`${consts.PEANUT_API_URL}/get-user`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token.value}`,
+                'api-key': apiKey,
             },
-            body: JSON.stringify({ authToken: token.value }),
         })
 
         if (response.status !== 200) {
