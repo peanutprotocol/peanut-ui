@@ -9,7 +9,7 @@ For US bank accounts, enter just your bank account number, no routing number.
 • Any Ethereum wallet address
 • ENS domain (.eth)
 • EU bank account (IBAN)
-• US bank account (routing + account number)
+• US bank account
 
 <a href="https://docs.peanut.to/cashout/supported-geographies" target="_blank" class="underline text-blue-600">Learn more about supported regions</a>`,
 
