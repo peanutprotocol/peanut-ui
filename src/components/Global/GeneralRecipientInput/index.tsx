@@ -41,7 +41,8 @@ const GeneralRecipientInput = ({
             let isValid = false
             let type: interfaces.RecipientType = 'address'
 
-            const sanitizedInput = sanitizeBankAccount(recipient)
+            const trimmedInput = recipient.trim()
+            const sanitizedInput = sanitizeBankAccount(trimmedInput)
 
             if (isIBAN(sanitizedInput)) {
                 type = 'iban'
@@ -50,9 +51,9 @@ const GeneralRecipientInput = ({
             } else if (/^[0-9]{1,17}$/.test(sanitizedInput)) {
                 type = 'us'
                 isValid = true
-            } else if (recipient.toLowerCase().endsWith('.eth')) {
+            } else if (trimmedInput.toLowerCase().endsWith('.eth')) {
                 type = 'ens'
-                const address = await utils.resolveFromEnsName(recipient.toLowerCase())
+                const address = await utils.resolveFromEnsName(trimmedInput.toLowerCase())
                 if (address) {
                     resolvedAddress.current = address
                     isValid = true
@@ -62,7 +63,7 @@ const GeneralRecipientInput = ({
                 }
             } else {
                 type = 'address'
-                isValid = isAddress(recipient, { strict: false })
+                isValid = isAddress(trimmedInput, { strict: false })
                 if (!isValid) errorMessage.current = 'Invalid Ethereum address'
             }
             recipientType.current = type

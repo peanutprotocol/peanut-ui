@@ -2,7 +2,7 @@ import Icon from '../Icon'
 import { useEffect, useState } from 'react'
 import * as utils from '@/utils'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-interface IFileUploadInputProps {
+export interface IFileUploadInputProps {
     attachmentOptions: {
         fileUrl: string | undefined
         message: string | undefined

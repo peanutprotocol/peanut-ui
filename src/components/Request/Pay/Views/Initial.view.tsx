@@ -436,12 +436,12 @@ export const InitialView = ({
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <Icon name={'money-out'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Slippage cost</label>
+                                    <label className="font-bold">Max slippage</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     ${calculatedSlippage}
                                     <MoreInfo
-                                        text={`To ensure the request arrives with at least what was asked, we will charge you ${slippagePercentage!.toFixed(2)}% of the requested amount.`}
+                                        text={`${slippagePercentage!.toFixed(2)}% is the maximum slippage set to ensure that the transaction goes through. It is likely to be much lower than the actual slippage`}
                                     />
                                 </label>
                             </div>
@@ -452,6 +452,7 @@ export const InitialView = ({
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
                             </div>
+                            {/* TODO: correct points estimation
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {estimatedPoints ? (
                                     `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
@@ -468,6 +469,7 @@ export const InitialView = ({
                                     }
                                 />
                             </span>
+                            */}
                         </div>
                         <div className="flex w-full border-t border-dotted border-black" />
                     </>

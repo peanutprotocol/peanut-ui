@@ -385,7 +385,7 @@ export const CreateLinkInputView = ({
                         {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
                     </Button>
                     <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
-                        Return
+                        Go Back
                     </Button>
                 </div>
                 {errorState.showError && (

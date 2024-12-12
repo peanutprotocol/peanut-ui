@@ -867,7 +867,7 @@ export const OfframpConfirmView = ({
                                 disabled={isLoading}
                                 type="button"
                             >
-                                Return
+                                Go Back
                             </Button>
 
                             {errorState.showError && (
@@ -898,6 +898,42 @@ export const OfframpConfirmView = ({
                             )}
                         </div>
                     </div>
+                )}
+                <Button
+                    className="btn btn-xl dark:border-white dark:text-white"
+                    onClick={() => {
+                        onPrev()
+                        setActiveStep(0)
+                        setErrorState({ showError: false, errorMessage: '' })
+                        setOfframpForm({ email: '', name: '', recipient: '', password: '' })
+                    }}
+                    disabled={isLoading}
+                    type="button"
+                >
+                    Go Back
+                    {/* Cancel if activeStep <=3 and offramp type cashout*/}
+                </Button>
+
+                {errorState.showError && (
+                    <div className="text-center">
+                        {errorState.errorMessage === 'offramp unavailable' ? (
+                            <label className="text-h8 font-normal text-red">
+                                This token cannot be cashed out directly.{' '}
+                                <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
+                            </label>
+                        ) : (
+                            <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
+                        )}
+                    </div>
+                )}
+                {showRefund && (
+                    <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
+                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click{' '}
+                        <Link href={createdLink ?? ''} className="underline">
+                            here
+                        </Link>{' '}
+                        to reclaim the funds to your wallet.
+                    </Link>
                 )}
             </Card.Content>
         </Card>
