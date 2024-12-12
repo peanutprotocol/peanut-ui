@@ -495,7 +495,7 @@ export const InitialView = ({
                         }}
                         loading={viewState === ViewState.LOADING}
                     >
-                        {!isConnected ? 'Connect Wallet' : 'Pay'}
+                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : 'Pay'}
                     </Button>
                     {errorState.showError && (
                         <div className="text-center">

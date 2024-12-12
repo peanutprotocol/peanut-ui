@@ -382,7 +382,7 @@ export const CreateLinkInputView = ({
                         loading={isLoading}
                         disabled={isLoading || !tokenValue}
                     >
-                        {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
+                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
                     </Button>
                     <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
                         Return

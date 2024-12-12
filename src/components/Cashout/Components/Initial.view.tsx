@@ -20,6 +20,8 @@ import { useWallet } from '@/context/walletContext'
 import { sanitizeBankAccount } from '@/utils/format.utils'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 export const InitialCashoutView = ({
     onNext,
@@ -70,6 +72,8 @@ export const InitialCashoutView = ({
     const [bankAccountNumber, setBankAccountNumber] = useState<string>('')
     const [isValidBankAccountNumber, setIsValidBankAccountNumber] = useState<boolean>(false)
     const [isValidatingBankAccountNumber, setIsValidatingBankAccountNumber] = useState<boolean>(false)
+    const { handleLogin } = useZeroDev()
+    const toast = useToast()
 
     const { prepareCreateLinkWrapper } = useCreateLink()
 
@@ -404,14 +408,31 @@ export const InitialCashoutView = ({
                 </div>
                 <Button
                     onClick={() => {
-                        if (!isConnected) signInModal.open()
-                        else handleOnNext()
+                        if (!isConnected) {
+                            if (isPeanutWallet) {
+                                setLoadingState('Logging in')
+                                handleLogin()
+                                    .then(() => {
+                                        handleOnNext()
+                                    })
+                                    .catch((_error) => {
+                                        toast.error('Error logging in')
+                                    })
+                                    .finally(() => {
+                                        setLoadingState('Idle')
+                                    })
+                            } else {
+                                signInModal.open()
+                            }
+                        } else {
+                            handleOnNext()
+                        }
                     }}
                     loading={isLoading}
                     // Only allow the user to proceed if they are connected and the form is valid
                     disabled={isConnected && isDisabled}
                 >
-                    {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
+                    {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
                 </Button>
                 {errorState.showError && (
                     <div className="text-center">
