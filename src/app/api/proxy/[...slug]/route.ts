@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
         'Api-Key': process.env.PEANUT_API_KEY!,
         Origin: request.headers.get('origin'),
     } as any
+    if (request.headers.get('x-username')) {
+        headersToPass['x-username'] = request.headers.get('x-username')
+    }
 
     const apiResponse = await fetch(fullAPIUrl, {
         method: 'POST',

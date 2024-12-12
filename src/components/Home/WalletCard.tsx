@@ -1,13 +1,13 @@
+import { MouseEvent } from 'react'
 import { Card } from '@/components/0_Bruddle'
 import Image from 'next/image'
 import { motion } from 'framer-motion'
 import classNames from 'classnames'
-import Link from 'next/link'
-import { formatUnits } from 'viem'
 import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
 import Icon from '@/components/Global/Icon'
-import { shortenAddressLong } from '@/utils'
+import { shortenAddressLong, printableUsdc } from '@/utils'
 import { IWallet } from '@/interfaces'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 type BaseWalletCardProps = {
     onClick?: () => void
@@ -47,6 +47,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
             </motion.div>
         )
     }
+    const toast = useToast()
 
     const { wallet, username, selected = false } = props as WalletCardWallet
 
@@ -75,13 +76,21 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
                             peanut.me/<span className="font-bold">{username}</span>
                         </p>
                     </div>
-                    <p className="text-4xl font-black sm:text-5xl">
-                        $ {Number(formatUnits(wallet.balance, 6)).toFixed(2)}
-                    </p>
-                    <div>
+                    <p className="text-4xl font-black sm:text-5xl">$ {printableUsdc(wallet.balance)}</p>
+                    <div className="relative">
                         <div className="flex flex-col">
                             <p className="text-xl font-black sm:text-2xl">{shortenAddressLong(wallet.address)}</p>
                         </div>
+                        <Icon
+                            name="content-copy"
+                            className="absolute bottom-0 right-0 h-5 w-5 hover:opacity-80"
+                            fill="white"
+                            onClick={(e: MouseEvent<SVGElement>) => {
+                                e.stopPropagation()
+                                navigator.clipboard.writeText(wallet.address)
+                                toast.info('Address copied to clipboard')
+                            }}
+                        />
                     </div>
                 </Card.Content>
             </Card>

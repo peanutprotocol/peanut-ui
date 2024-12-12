@@ -1,5 +1,6 @@
 import { isAddressZero, areEvmAddressesEqual } from '@/utils'
 import { IUserBalance, ChainValue } from '@/interfaces'
+import { formatUnits } from 'viem'
 
 export async function fetchWalletBalances(
     address: string
@@ -100,4 +101,8 @@ export function calculateValuePerChain(balances: IUserBalance[]): ChainValue[] {
         console.log('Error calculating value per chain: ', error)
     }
     return result
+}
+
+export function printableUsdc(baseUnitsAmount: bigint): string {
+    return Number(formatUnits(baseUnitsAmount, 6)).toFixed(2)
 }

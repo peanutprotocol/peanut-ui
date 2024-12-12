@@ -2,7 +2,7 @@
 
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState, useMemo, useCallback } from 'react'
+import { useContext, useEffect, useState, useCallback } from 'react'
 import Icon from '@/components/Global/Icon'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
@@ -71,7 +71,7 @@ export const InitialClaimLinkView = ({
     const [routes, setRoutes] = useState<any[]>([])
     const [inputChanging, setInputChanging] = useState<boolean>(false)
 
-    const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
+    const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedChainID,
         setSelectedChainID,
@@ -401,6 +401,13 @@ export const InitialClaimLinkView = ({
         setHasFetchedRoute(false)
     }, [recipientType])
 
+    useEffect(() => {
+        if (isPeanutWallet && address) {
+            setRecipient({ name: undefined, address: address })
+            setIsValidRecipient(true)
+        }
+    }, [isPeanutWallet, address])
+
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
@@ -456,26 +463,28 @@ export const InitialClaimLinkView = ({
                         }}
                     />
                 )}
-                <GeneralRecipientInput
-                    className=""
-                    placeholder="wallet address / ENS / IBAN / US account number"
-                    recipient={recipient}
-                    onUpdate={(update: GeneralRecipientUpdate) => {
-                        setRecipient(update.recipient)
-                        if (!update.recipient.address) {
-                            setRecipientType('address')
-                        } else {
-                            setRecipientType(update.type)
-                        }
-                        setIsValidRecipient(update.isValid)
-                        setErrorState({
-                            showError: !update.isValid,
-                            errorMessage: update.errorMessage,
-                        })
-                        setInputChanging(update.isChanging)
-                    }}
-                    infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
-                />
+                {isExternalWallet && (
+                    <GeneralRecipientInput
+                        className=""
+                        placeholder="wallet address / ENS / IBAN / US account number"
+                        recipient={recipient}
+                        onUpdate={(update: GeneralRecipientUpdate) => {
+                            setRecipient(update.recipient)
+                            if (!update.recipient.address) {
+                                setRecipientType('address')
+                            } else {
+                                setRecipientType(update.type)
+                            }
+                            setIsValidRecipient(update.isValid)
+                            setErrorState({
+                                showError: !update.isValid,
+                                errorMessage: update.errorMessage,
+                            })
+                            setInputChanging(update.isChanging)
+                        }}
+                        infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
+                    />
+                )}
                 {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (
@@ -610,22 +619,26 @@ export const InitialClaimLinkView = ({
                                     {errorState.errorMessage === 'No route found for the given token pair.' && (
                                         <>
                                             <label className="text-h8 font-normal text-red">
-                                                {errorState.errorMessage}
+                                                {isPeanutWallet
+                                                    ? 'This token cannot be claimed from peanut wallet. You can use an external wallet'
+                                                    : errorState.errorMessage}
                                             </label>{' '}
-                                            <span
-                                                className="cursor-pointer text-h8 font-normal text-red underline"
-                                                onClick={() => {
-                                                    setSelectedRoute(null)
-                                                    setHasFetchedRoute(false)
-                                                    setErrorState({
-                                                        showError: false,
-                                                        errorMessage: '',
-                                                    })
-                                                    resetSelectedToken()
-                                                }}
-                                            >
-                                                reset
-                                            </span>
+                                            {!isPeanutWallet && (
+                                                <span
+                                                    className="cursor-pointer text-h8 font-normal text-red underline"
+                                                    onClick={() => {
+                                                        setSelectedRoute(null)
+                                                        setHasFetchedRoute(false)
+                                                        setErrorState({
+                                                            showError: false,
+                                                            errorMessage: '',
+                                                        })
+                                                        resetSelectedToken()
+                                                    }}
+                                                >
+                                                    reset
+                                                </span>
+                                            )}
                                         </>
                                     )}
                                     {errorState.errorMessage === 'offramp_lt_minimum' && (

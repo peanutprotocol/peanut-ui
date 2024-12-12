@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next'
 
 export default function manifest(): MetadataRoute.Manifest {
     return {
-        name: 'Peanut',
-        short_name: 'Peanut',
+        name: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
+        short_name: process.env.NODE_ENV === 'development' ? 'Peanut Dev' : 'Peanut',
         description: 'Butter smooth global money',
         start_url: '/home',
         display: 'standalone',
@@ -28,5 +28,6 @@ export default function manifest(): MetadataRoute.Manifest {
                 url: '/home',
             },
         ],
+        scope: '/',
     }
 }

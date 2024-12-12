@@ -8,7 +8,7 @@ import { useCreateLink } from '../useCreateLink'
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
 import * as context from '@/context'
-import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed, balanceByToken } from '@/utils'
+import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed, balanceByToken, printableUsdc } from '@/utils'
 import FileUploadInput from '@/components/Global/FileUploadInput'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Icon from '@/components/Global/Icon'
@@ -19,6 +19,8 @@ import { useWallet } from '@/context/walletContext'
 import { formatEther } from 'viem'
 import { WalletProviderType } from '@/interfaces'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useToast } from '@/components/0_Bruddle/Toast'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -62,6 +64,8 @@ export const CreateLinkInputView = ({
         setSelectedTokenAddress,
     } = useContext(context.tokenSelectorContext)
     const { walletType, environmentInfo } = useWalletType()
+    const { handleLogin } = useZeroDev()
+    const toast = useToast()
 
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const [errorState, setErrorState] = useState<{
@@ -266,7 +270,7 @@ export const CreateLinkInputView = ({
 
     const maxValue = useMemo(() => {
         if (!selectedWallet?.balances) {
-            return selectedWallet?.balance.toString() ?? ''
+            return selectedWallet?.balance ? printableUsdc(selectedWallet.balance) : ''
         }
         const balance = balanceByToken(selectedWallet.balances, selectedChainID, selectedTokenAddress)
         if (!balance) return ''
@@ -355,13 +359,30 @@ export const CreateLinkInputView = ({
                 <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
                     <Button
                         onClick={() => {
-                            if (!isConnected) signInModal.open()
-                            else handleOnNext()
+                            if (!isConnected) {
+                                if (isPeanutWallet) {
+                                    setLoadingState('Logging in')
+                                    handleLogin()
+                                        .then(() => {
+                                            handleOnNext()
+                                        })
+                                        .catch((_error) => {
+                                            toast.error('Error logging in')
+                                        })
+                                        .finally(() => {
+                                            setLoadingState('Idle')
+                                        })
+                                } else {
+                                    signInModal.open()
+                                }
+                            } else {
+                                handleOnNext()
+                            }
                         }}
                         loading={isLoading}
-                        disabled={isLoading || (isConnected && !tokenValue)}
+                        disabled={isLoading || !tokenValue}
                     >
-                        {!isConnected ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
+                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
                     </Button>
                     <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
                         Return

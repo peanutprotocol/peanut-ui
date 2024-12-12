@@ -21,7 +21,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header className="text-center">
-                <Card.Title>Sorry, this link has already been paid.</Card.Title>
+                <Card.Title>Payment Receipt</Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">
                 <ReferenceAndAttachment
