@@ -47,6 +47,7 @@
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
         "next": "^14.2.18",
+        "pino-pretty": "^13.0.0",
         "react": "^18.3.1",
         "react-csv": "^2.2.2",
         "react-dom": "^18.3.1",
@@ -66,6 +67,10 @@
         "wagmi": "2.8.6"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.6.3",
+        "@testing-library/react": "^16.1.0",
+        "@testing-library/user-event": "^14.5.2",
+        "@types/jest": "^29.5.12",
         "@types/multicoin-address-validator": "^0.5.3",
         "@types/node": "20.4.2",
         "@types/react": "^18.3.12",
@@ -74,22 +79,31 @@
         "@types/react-lottie": "^1.2.10",
         "@types/uuid": "^9.0.8",
         "@types/validator": "^13.12.2",
+        "jest": "^29.7.0",
+        "jest-environment-jsdom": "^29.7.0",
         "knip": "^5.37.1",
         "postcss": "^8.4.49",
         "postcss-import": "^16.1.0",
         "prettier": "^3.3.3",
         "prettier-plugin-tailwindcss": "^0.5.14",
         "tailwindcss": "^3.4.15",
-        "typescript": "^5.6.3",
-        "@testing-library/jest-dom": "^6.4.2",
-        "@types/jest": "^29.5.12",
-        "jest": "^29.7.0",
-        "jest-environment-jsdom": "^29.7.0",
-        "ts-jest": "^29.1.2"
+        "ts-jest": "^29.1.2",
+        "typescript": "^5.6.3"
     },
     "jest": {
         "preset": "ts-jest",
         "testEnvironment": "jsdom",
+        "transform": {
+            "^.+\\.(ts|tsx)$": [
+                "ts-jest",
+                {
+                    "tsconfig": "tsconfig.test.json"
+                }
+            ]
+        },
+        "transformIgnorePatterns": [
+            "node_modules/(?!(wagmi|viem|@wagmi|@viem)/)"
+        ],
         "moduleNameMapper": {
             "^@/(.*)$": "<rootDir>/src/$1"
         },
