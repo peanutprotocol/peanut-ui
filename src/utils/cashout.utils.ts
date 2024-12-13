@@ -114,7 +114,22 @@ async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     return await response.json()
 }
 
-export async function getUserLinks(formData: consts.IOfframpForm) {
+export type GetUserLinksResponse = {
+    id: string
+    full_name: string
+    email: string
+    type: string
+    kyc_link: string
+    tos_link: string
+    kyc_status: 'not_started' | 'under_review' | 'approved' | 'rejected'
+    rejection_reasons: string[]
+    tos_status: string
+    created_at: string
+    customer_id: string
+    persona_inquiry_type: string
+}
+
+export async function getUserLinks(formData: consts.IOfframpForm): Promise<GetUserLinksResponse> {
     return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
         type: 'individual',
         full_name: formData.name,

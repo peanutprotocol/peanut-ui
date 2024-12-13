@@ -47,9 +47,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
     const [loadingState, setLoadingState] = useState<string>('Idle')
     const isLoading = useMemo(() => loadingState !== 'Idle', [loadingState])
-    const { fetchUser, updateBridgeCustomerId } = useAuth()
-
-    const [kycStatus, setKycStatus] = useState<'completed' | 'under_review' | 'rejected' | 'approved'>('completed')
+    const { fetchUser, updateBridgeCustomerData } = useAuth()
 
     const {
         setStep: setActiveStep,
@@ -98,7 +96,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 }
             } else {
                 let data = await utils.getUserLinks(inputFormData)
-                await updateBridgeCustomerId(data.id)
+                await updateBridgeCustomerData(data)
                 setCustomerObject(data)
 
                 let { tos_status: tosStatus, kyc_status: kycStatus } = data
@@ -131,7 +129,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             // @ts-ignore
             if (!customerObject || customerObject.code === 'invalid_parameters') {
                 _customerObject = await utils.getUserLinks(_offrampForm)
-                await updateBridgeCustomerId(_customerObject.id)
+                await updateBridgeCustomerData(_customerObject)
                 setCustomerObject(_customerObject)
             } else {
                 _customerObject = customerObject
@@ -186,7 +184,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             const _offrampForm = watchOfframp()
             if (!customerObject) {
                 _customerObject = await utils.getUserLinks(_offrampForm)
-                await updateBridgeCustomerId(_customerObject.id)
+                await updateBridgeCustomerData(_customerObject)
                 setCustomerObject(_customerObject)
             } else {
                 _customerObject = customerObject
@@ -261,10 +259,10 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
             // Get customer ID
             const customer = await utils.getStatus(_customerObject.id, 'customer_id')
-            setCustomerObject({ ..._customerObject, customer_id: customer.customer_id })
+            setCustomerObject({ ..._customerObject, customer_id: customer.id })
 
             // Update peanut user with bridge customer id
-            await updateBridgeCustomerId(customer.customer_id)
+            await updateBridgeCustomerData(customer)
 
             // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')
@@ -310,7 +308,6 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 })
 
                 // Ensure the state updates happen
-                setKycStatus('completed')
                 if (onCompleted) {
                     onCompleted('KYC completed')
                 }

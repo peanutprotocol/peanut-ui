@@ -232,7 +232,7 @@ export const InitialClaimLinkView = ({
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
-                if (user?.user.kycStatus === 'verified') {
+                if (user?.user.kycStatus === 'approved') {
                     const account = user.accounts.find(
                         (account: any) =>
                             account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===

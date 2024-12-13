@@ -86,7 +86,7 @@ There are three major contexts provided in the `/context` folder:
         const {
             user,
             setUser,
-            updateBridgeCustomerId,
+            updateBridgeCustomerData,
             fetchUser,
             updateUserName,
             submitProfilePhoto,

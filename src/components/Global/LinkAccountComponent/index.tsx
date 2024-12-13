@@ -169,7 +169,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             // Only need address for US accounts
             let address
             if (formData.type === 'us') {
-                if (user?.user?.kycStatus === 'verified') {
+                if (user?.user?.kycStatus === 'approved') {
                     console.log('User accounts:', user.accounts)
 
                     // Find account with valid address details
@@ -424,7 +424,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                     <span className="text-h9 font-light">Your account number</span>
                                 </div>
 
-                                {(!user?.user?.kycStatus || user.user.kycStatus !== 'verified') && (
+                                {(!user?.user?.kycStatus || user.user.kycStatus !== 'approved') && (
                                     <div className="flex w-full flex-col gap-4 border-t border-gray-200 pt-4">
                                         <span className="text-h8 font-medium">Your US address details</span>
 
@@ -545,7 +545,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         }
     }
 
-    return user?.user?.kycStatus === 'verified' ? (
+    return user?.user?.kycStatus === 'approved' ? (
         completedLinking ? (
             <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
                 <p>You have successfully linked your account!</p>

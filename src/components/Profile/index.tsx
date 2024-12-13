@@ -396,9 +396,9 @@ export const Profile = () => {
                                             utils.printableAddress(user.accounts?.[0]?.account_identifier)}
                                         <div className={`flex flex-row items-center justify-center `}>
                                             <div
-                                                className={`kyc-badge select-none ${user?.user?.kycStatus === 'verified' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
+                                                className={`kyc-badge select-none ${user?.user?.kycStatus === 'approved' ? 'bg-kyc-green px-2 py-1 text-black' : 'bg-gray-1 text-white hover:ring-2 hover:ring-gray-2'} w-max`}
                                             >
-                                                {user?.user?.kycStatus === 'verified' ? (
+                                                {user?.user?.kycStatus === 'approved' ? (
                                                     'KYC'
                                                 ) : (
                                                     <Link className="px-2 py-1" href={'/kyc'}>
