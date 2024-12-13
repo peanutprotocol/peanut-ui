@@ -42,17 +42,17 @@ importers:
         specifier: ^0.2.1
         version: 0.2.1(tailwindcss@3.4.15)
       '@justaname.id/react':
-        specifier: ^0.3.158
-        version: 0.3.158(dcub4mqp26fohq2dnm7etwc4ru)
+        specifier: 0.3.162
+        version: 0.3.162(dcub4mqp26fohq2dnm7etwc4ru)
       '@justaname.id/sdk':
-        specifier: ^0.2.155
-        version: 0.2.155(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))
+        specifier: 0.2.159
+        version: 0.2.159(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))
       '@justweb3/ui':
-        specifier: ^0.0.94
-        version: 0.0.94(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+        specifier: 0.0.98
+        version: 0.0.98(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@justweb3/widget':
-        specifier: ^0.0.94
-        version: 0.0.94(grpcwn4nabwcich3hk2gpdr7f4)
+        specifier: 0.0.98
+        version: 0.0.98(grpcwn4nabwcich3hk2gpdr7f4)
       '@safe-global/safe-apps-sdk':
         specifier: ^9.1.0
         version: 9.1.0(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4)
@@ -1685,8 +1685,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.25':
     resolution: {integrity: sha512-vNk6aEwybGtawWmy/PzwnGDOjCkLWSD2wqvjGGAgOAwCGWySYXfYoxt00IJkTF+8Lb57DwOb3Aa0o9CApepiYQ==}
 
-  '@justaname.id/react@0.3.158':
-    resolution: {integrity: sha512-3XuXJQnfD/GH/N9zrbNj5qji8USslMQJZk3R1cPVSCovF0Zj5UQHpx1dNnamJmCwfQG/JBZPIPcZhXx6tNuYSg==}
+  '@justaname.id/react@0.3.162':
+    resolution: {integrity: sha512-yNJ59ozyUj7blFm3LdGuO70wkrG01cMxIFFN99FWXlFQnv2IYmEA+G+StdNb+xpr/htaV5OB5vNBZ5OGGl2NoQ==}
     peerDependencies:
       '@tanstack/react-query': ^5.x
       ethers: ^5.6.8 || ^6.0.8
@@ -1694,26 +1694,26 @@ packages:
       viem: 2.x
       wagmi: 2.x
 
-  '@justaname.id/sdk@0.2.155':
-    resolution: {integrity: sha512-X3mijYTtP5ie02z+rRVl2RAzEXOb16h5iSR+Ulv58TcBuEi/+GPxGVxU8LG2HGhbb3Jq36C5SMgFDmxeP+LsRw==}
+  '@justaname.id/sdk@0.2.159':
+    resolution: {integrity: sha512-ZB3nU8pufIwLxvBUSa0/Q7R42FJrO/YaLKu7iVUMbb7yRwkmEYgyWfcxi1G3g5pRaY/Z0ZCozzw+HQEpsF+0qA==}
     peerDependencies:
       ethers: ^5.6.8 || ^6.0.8
       siwe: '>=2.0.0'
       viem: '>=2.0.0'
 
-  '@justaname.id/siwens@0.0.88':
-    resolution: {integrity: sha512-xg4ZQW6kN/F7VI7hJ+4AIkZYrAkL0q6A93+53oTCWRAqajRADyCD8kfBB5Z07ywoOMnCt3lGFc3/NaPfX7rhkQ==}
+  '@justaname.id/siwens@0.0.92':
+    resolution: {integrity: sha512-q4maaYL2otqEYQ6ajlv1ssdXQ6aCjGhqPlzaY39shCh2bqiDkxA6lFr6nri0dNjkkkFP7aNl0zjEiytTZS/2+w==}
     peerDependencies:
       ethers: ^5.6.8 || ^6.0.8
       siwe: '>=2.0.0'
 
-  '@justweb3/ui@0.0.94':
-    resolution: {integrity: sha512-oTpv3BKiKt9Y3A0V0khU9CTWMU0ldhW7B+LnJWx1epRVxXRulmpBf45NSPajnwMRLDiBsWaR/+FQjhJN40QFdw==}
+  '@justweb3/ui@0.0.98':
+    resolution: {integrity: sha512-7X2I1v9+VkPlIlBpf5/bx5qQ8tUPq/Kic5hQQSnWFFUe4cJbbUPA+kTbUAwrQWJkuWG7m2AjOWgb7g2IvyePcg==}
     peerDependencies:
       react: '>=17'
 
-  '@justweb3/widget@0.0.94':
-    resolution: {integrity: sha512-4DH0qotvJ/vGZY1TxqygguBniiTv25cPSyBKRwGLHzJE+dL0olqxcAWoo/QMADAYbomVvFTO6+GwnfCgoyK8dw==}
+  '@justweb3/widget@0.0.98':
+    resolution: {integrity: sha512-yJ4IuBFqFv1gAg2Bhdb9VA+I3BierKWMKviUQgP/N09xDNr4rfWFhHLCrYALZvXXiindqg6diOo1x+KhTXrHlA==}
     peerDependencies:
       react: '>=17'
       viem: 2.x
@@ -9381,10 +9381,10 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.0
 
-  '@justaname.id/react@0.3.158(dcub4mqp26fohq2dnm7etwc4ru)':
+  '@justaname.id/react@0.3.162(dcub4mqp26fohq2dnm7etwc4ru)':
     dependencies:
       '@ensdomains/ensjs': 4.0.2(encoding@0.1.13)(typescript@5.6.3)(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))(zod@3.22.4)
-      '@justaname.id/sdk': 0.2.155(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))
+      '@justaname.id/sdk': 0.2.159(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))
       '@tanstack/react-query': 5.61.0(react@18.3.1)
       axios: 1.7.7
       ethers: 5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
@@ -9399,9 +9399,9 @@ snapshots:
       - typescript
       - zod
 
-  '@justaname.id/sdk@0.2.155(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))':
+  '@justaname.id/sdk@0.2.159(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))':
     dependencies:
-      '@justaname.id/siwens': 0.0.88(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
+      '@justaname.id/siwens': 0.0.92(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))
       axios: 1.7.7
       ethers: 5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       qs: 6.13.1
@@ -9410,12 +9410,12 @@ snapshots:
     transitivePeerDependencies:
       - debug
 
-  '@justaname.id/siwens@0.0.88(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
+  '@justaname.id/siwens@0.0.92(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))':
     dependencies:
       ethers: 5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)
       siwe: 2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))
 
-  '@justweb3/ui@0.0.94(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
+  '@justweb3/ui@0.0.98(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)':
     dependencies:
       '@radix-ui/react-checkbox': 1.1.2(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       '@radix-ui/react-dialog': 1.1.2(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
@@ -9436,13 +9436,13 @@ snapshots:
       - '@types/react-dom'
       - react-dom
 
-  '@justweb3/widget@0.0.94(grpcwn4nabwcich3hk2gpdr7f4)':
+  '@justweb3/widget@0.0.98(grpcwn4nabwcich3hk2gpdr7f4)':
     dependencies:
       '@ensdomains/address-encoder': 1.1.2
       '@hookform/resolvers': 3.9.1(react-hook-form@7.53.2(react@18.3.1))
-      '@justaname.id/react': 0.3.158(dcub4mqp26fohq2dnm7etwc4ru)
-      '@justaname.id/sdk': 0.2.155(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))
-      '@justweb3/ui': 0.0.94(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
+      '@justaname.id/react': 0.3.162(dcub4mqp26fohq2dnm7etwc4ru)
+      '@justaname.id/sdk': 0.2.159(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10))(siwe@2.3.2(ethers@5.7.2(bufferutil@4.0.8)(utf-8-validate@5.0.10)))(viem@2.21.48(bufferutil@4.0.8)(typescript@5.6.3)(utf-8-validate@5.0.10)(zod@3.22.4))
+      '@justweb3/ui': 0.0.98(@types/react-dom@18.3.1)(@types/react@18.3.12)(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
       clsx: 1.2.1
       cropperjs: 1.6.2
       lodash: 4.17.21
