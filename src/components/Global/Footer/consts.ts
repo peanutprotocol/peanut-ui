@@ -42,6 +42,6 @@ export const LINKS = [
     },
     {
         name: 'Jobs',
-        url: 'https://docs.peanut.to/jobs',
+        url: '/jobs',
     },
 ]
