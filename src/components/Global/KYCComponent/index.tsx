@@ -98,6 +98,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
                 }
             } else {
                 let data = await utils.getUserLinks(inputFormData)
+                await updateBridgeCustomerId(data.id)
                 setCustomerObject(data)
 
                 let { tos_status: tosStatus, kyc_status: kycStatus } = data
@@ -130,6 +131,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             // @ts-ignore
             if (!customerObject || customerObject.code === 'invalid_parameters') {
                 _customerObject = await utils.getUserLinks(_offrampForm)
+                await updateBridgeCustomerId(_customerObject.id)
                 setCustomerObject(_customerObject)
             } else {
                 _customerObject = customerObject
@@ -184,6 +186,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             const _offrampForm = watchOfframp()
             if (!customerObject) {
                 _customerObject = await utils.getUserLinks(_offrampForm)
+                await updateBridgeCustomerId(_customerObject.id)
                 setCustomerObject(_customerObject)
             } else {
                 _customerObject = customerObject
@@ -261,7 +264,7 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
             setCustomerObject({ ..._customerObject, customer_id: customer.customer_id })
 
             // Update peanut user with bridge customer id
-            const updatedUser = await updateBridgeCustomerId(customer.customer_id)
+            await updateBridgeCustomerId(customer.customer_id)
 
             // recipientType === 'us' && setAddressRequired(true)
             setLoadingState('Idle')
