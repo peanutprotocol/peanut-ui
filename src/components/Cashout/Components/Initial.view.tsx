@@ -365,7 +365,7 @@ export const InitialCashoutView = ({
                                         setErrorState({
                                             showError: true,
                                             errorMessage:
-                                                'Invalid bank account. For US bank accounts, enter your routing number and account number separately.',
+                                                'Invalid Bank account. If this is a US bank account, please enter it without the routing number.',
                                         })
                                     } else {
                                         setErrorState({
