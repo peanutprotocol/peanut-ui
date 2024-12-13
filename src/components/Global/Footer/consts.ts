@@ -26,7 +26,7 @@ export const SOCIALS = [
 export const LINKS = [
     {
         name: 'Docs',
-        url: '/docs',
+        url: 'https://docs.peanut.to',
     },
     // {
     //     name: 'Blog',
