@@ -8,6 +8,7 @@ import { ICreateScreenProps } from '../Create.consts'
 import { getExplorerUrl, copyTextToClipboardWithFallback, printableAddress, shareToEmail, shareToSms } from '@/utils'
 import { tokenSelectorContext } from '@/context'
 import { useToast } from '@chakra-ui/react'
+import { validateEnsName } from '@/utils/general.utils'
 
 import { useAccount, useSignMessage } from 'wagmi'
 
@@ -78,7 +79,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
             {link && <QRCodeWrapper url={link} />}
             <label className="text-h8 ">
                 {createType === 'direct'
-                    ? `You have successfully sent the funds to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}.`
+                    ? `You have successfully sent the funds to ${recipient?.name && validateEnsName(recipient?.name) ? recipient.name : printableAddress(recipient.address ?? '')}.`
                     : 'Share this link or QR code with the recipient. They will be able to claim the funds on any chain in any token.'}
             </label>
             {link && (

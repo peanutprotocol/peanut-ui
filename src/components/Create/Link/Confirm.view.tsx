@@ -24,6 +24,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
 import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
+import { validateEnsName } from '@/utils/general.utils'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -233,7 +234,7 @@ export const CreateLinkConfirmView = ({
                 {createType == 'link'
                     ? 'Text Tokens'
                     : createType == 'direct'
-                      ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                      ? `Send to ${recipient?.name && validateEnsName(recipient?.name) ? recipient.name : printableAddress(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>
             <label className="max-w-96 text-start text-h8 font-light">

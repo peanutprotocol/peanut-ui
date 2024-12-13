@@ -11,6 +11,7 @@ import * as context from '@/context'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { ActionType, estimatePoints } from '@/components/utils/utils'
 import { type ITokenPriceData } from '@/interfaces'
+import { validateEnsName } from '@/utils/general.utils'
 
 export const PayRequestLink = () => {
     const [step, setStep] = useState<_consts.IPayScreenState>(_consts.INIT_VIEW_STATE)
@@ -41,7 +42,7 @@ export const PayRequestLink = () => {
     }
 
     const fetchRecipientAddress = async (address: string): Promise<string> => {
-        if (!address.endsWith('eth')) {
+        if (!validateEnsName(address)) {
             return address
         }
         const resolvedAddress = await utils.resolveFromEnsName(address.toLowerCase())

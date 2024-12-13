@@ -19,6 +19,7 @@ import MoreInfo from '@/components/Global/MoreInfo'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useBalance } from '@/hooks/useBalance'
 import { formatEther } from 'viem'
+import { validateEnsName } from '@/utils/general.utils'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -274,7 +275,7 @@ export const CreateLinkInputView = ({
                     {createType === 'link'
                         ? 'Text Tokens'
                         : createType === 'direct'
-                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : shortenAddressLong(recipient.address ?? '')}`
+                          ? `Send to ${recipient?.name && validateEnsName(recipient?.name) ? recipient.name : shortenAddressLong(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </h2>
                 <div className="max-w-96 text-center">

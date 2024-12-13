@@ -15,6 +15,7 @@ import Loading from '@/components/Global/Loading'
 import { validate } from 'multicoin-address-validator'
 import { useAccount } from 'wagmi'
 import { CrispButton } from '@/components/CrispChat'
+import { validateEnsName } from '@/utils/general.utils'
 
 export const CreateLinkInitialView = ({
     onNext,
@@ -32,7 +33,6 @@ export const CreateLinkInitialView = ({
     const { setLoadingState, isLoading } = useContext(context.loadingStateContext)
     const { isConnected } = useAccount()
 
-    const ensRegex = /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/;
     const handleInputValidation = async (value: string) => {
         //email check
         if (validator.isEmail(value)) {
@@ -47,7 +47,7 @@ export const CreateLinkInitialView = ({
             return 'direct'
         }
         //ENS check
-        else if (ensRegex.test(value)) {
+        else if (validateEnsName(value)) {
             return 'direct'
         } else if (validate(value, 'sol')) {
             setErrorState({
@@ -116,7 +116,7 @@ export const CreateLinkInitialView = ({
                     break
                 case 'direct':
                     setCreateType('direct')
-                    if (ensRegex.test(inputValue)) {
+                    if (validateEnsName(inputValue)) {
                         const _address = await utils.resolveFromEnsName(inputValue)
                         if (_address) setRecipient({ name: inputValue, address: _address })
                         else {
