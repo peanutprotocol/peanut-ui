@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
                 },
             })
         } else if (type === 'customer_id') {
-            return new NextResponse(JSON.stringify({ customer_id: data.customer_id }), {
+            return new NextResponse(JSON.stringify({ id: data.customer_id, kyc_status: data.kyc_status }), {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/json',
