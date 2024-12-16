@@ -1,9 +1,10 @@
 import { Cashout } from '@/components'
 import Layout from '@/components/Global/Layout'
+import { generateMetadata } from '@/config'
 
 export const dynamic = 'force-dynamic'
 
-// TODO: add metadata
+export const metadata = generateMetadata('cashout')
 
 export default function CashoutPage() {
     return (
