@@ -2,7 +2,6 @@ import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
-import { validateName } from '@ensdomains/ensjs/utils'
 
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
@@ -24,12 +23,7 @@ export const printableAddress = (address: string): string => {
 }
 
 export const validateEnsName = (ensName: string): boolean => {
-    try {
-        const normalizedName = validateName(ensName)
-        return normalizedName.includes('.')
-    } catch (error) {
-        return false
-    }
+    return /(?:^|[^a-zA-Z0-9-_.])(([^\s.]{1,63}\.)+[^\s.]{2,63})/.test(ensName)
 }
 
 const shortenHash = (address: string) => {
