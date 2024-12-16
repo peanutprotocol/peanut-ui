@@ -80,7 +80,7 @@ const GeneralRecipientInput = ({
             const sanitizedValue =
                 recipientType.current === 'iban' || recipientType.current === 'us'
                     ? sanitizeBankAccount(update.value)
-                    : update.value
+                    : update.value.trim()
 
             let _update: GeneralRecipientUpdate
             if (update.isValid) {
