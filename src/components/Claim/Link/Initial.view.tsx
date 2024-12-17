@@ -528,12 +528,12 @@ export const InitialClaimLinkView = ({
                                 </span>
                             </div>
 
+                            {/* TODO: correct points estimation
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
                                     <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Points</label>
                                 </div>
-                                {/* TODO: correct points estimation
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                                     <MoreInfo
@@ -546,8 +546,8 @@ export const InitialClaimLinkView = ({
                                         }
                                     />
                                 </span>
-                                */}
                             </div>
+                                */}
                         </div>
                     )}
                 </div>{' '}
