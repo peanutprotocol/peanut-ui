@@ -5,24 +5,25 @@ import countries from 'i18n-iso-countries'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
-const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io'];
+// Add this at the top of the file or in a separate constants file
+const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
 // Helper function to check if the app is running within an allowed iframe
 const isInAllowedFrame = (): boolean => {
-    if (window.location === window.parent.location) return false;
-    
+    if (window.location === window.parent.location) return false
+
     // Check ancestor origins (modern browsers)
     if (window.location.ancestorOrigins?.length) {
-      return ALLOWED_PARENT_DOMAINS.some(domain => 
-        window.location.ancestorOrigins[0].includes(domain)
-      );
+        return ALLOWED_PARENT_DOMAINS.some((domain) =>
+            window.location.ancestorOrigins[0].includes(domain)
+        )
     }
-    
+
     // Fallback to referrer check
-    return ALLOWED_PARENT_DOMAINS.some(domain => 
-      document.referrer.includes(domain)
-    );
-  };
+    return ALLOWED_PARENT_DOMAINS.some((domain) =>
+        document.referrer.includes(domain)
+    )
+}
 
 export const convertPersonaUrl = (url: string) => {
     const parsedUrl = new URL(url)
@@ -34,13 +35,14 @@ export const convertPersonaUrl = (url: string) => {
 
     // Use parent frame origin if in allowed iframe, otherwise use current origin
     const origin = encodeURIComponent(
-        isInAllowedFrame() 
-          ? new URL(document.referrer).origin 
-          : window.location.origin
-      );
+        isInAllowedFrame()
+            ? new URL(document.referrer).origin
+            : window.location.origin
+    )
 
-      return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`;
-    };
+    return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
+}
+
 const fetchUser = async (accountIdentifier: string): Promise<any> => {
     const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
         method: 'GET',
