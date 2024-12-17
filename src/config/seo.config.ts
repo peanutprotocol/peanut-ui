@@ -1,5 +1,7 @@
 import { Metadata } from 'next'
 
+type Page = 'landing' | 'cashout' | 'send' | 'requestCreate' | 'terms' | 'privacy' | 'jobs'
+
 interface SEOConfig {
     title: string
     description: string
@@ -7,7 +9,15 @@ interface SEOConfig {
     keywords?: string
 }
 
-export const seoConfigs: Record<string, SEOConfig> = {
+export const seoConfigs: Record<Page, SEOConfig> = {
+    landing: {
+        title: 'Peanut Protocol | Cross-Chain Payment Infrastructure',
+        description:
+            'Seamless cross-chain payment infrastructure for sending and receiving digital assets. Built for both developers and consumers to abstract away blockchain complexities with chain-agnostic transfers, stablecoin conversions, and fiat offramps.',
+        image: '/metadata-img.png',
+        keywords:
+            'blockchain payments, cross-chain transfers, payment infrastructure, crypto payments, stablecoin conversion, fiat offramp, web3 payments, blockchain protocol',
+    },
     cashout: {
         title: 'Cash Out Crypto | Peanut',
         description:
@@ -48,9 +58,9 @@ export const seoConfigs: Record<string, SEOConfig> = {
     },
 }
 
-export function generateMetadata(page: string): Metadata {
+export function generateMetadata(page: Page): Metadata {
     const config = seoConfigs[page]
-    return {
+    const baseMetadata: Metadata = {
         title: config.title,
         description: config.description,
         metadataBase: new URL('https://peanut.to'),
@@ -59,15 +69,35 @@ export function generateMetadata(page: string): Metadata {
         },
         keywords: config.keywords,
         openGraph: {
+            type: 'website',
             title: config.title,
             description: config.description,
-            images: [{ url: config.image }],
-            type: 'website',
+            url: 'https://peanut.to',
+            siteName: 'Peanut Protocol',
+            images: [
+                {
+                    url: config.image,
+                    width: 1200,
+                    height: 630,
+                    alt: config.title,
+                },
+            ],
         },
         twitter: {
             card: 'summary_large_image',
             title: config.title,
             description: config.description,
+            images: [config.image],
+            creator: '@PeanutProtocol',
+            site: '@PeanutProtocol',
+        },
+        viewport: {
+            width: 'device-width',
+            initialScale: 1,
+            maximumScale: 1,
+            userScalable: false,
         },
     }
+
+    return baseMetadata
 }
