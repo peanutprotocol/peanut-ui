@@ -5,7 +5,6 @@ import countries from 'i18n-iso-countries'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
-// Add this at the top of the file or in a separate constants file
 const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
 // Helper function to check if the app is running within an allowed iframe
