@@ -1,28 +1,10 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Metadata } from 'next'
 import * as assets from '@/assets'
 import Layout from '@/components/Global/Layout'
-import { Hero, FAQs, Features, Mike, Story, BuildOnUs, CashoutSection } from '@/components/LandingPage'
-import { MarqueeComp } from '@/components/Global/MarqueeWrapper'
+import { Hero, FAQs, Features, Mike, Story, BuildOnUs } from '@/components/LandingPage'
 import { useFooterVisibility } from '@/context/footerVisibility'
-
-const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Text Tokens',
-    metadataBase: new URL('https://peanut.to'),
-    icons: {
-        icon: '/favicon.ico',
-    },
-    openGraph: {
-        images: [
-            {
-                url: '/metadata-img.png',
-            },
-        ],
-    },
-}
 
 export default function LandingPage() {
     const hero = {

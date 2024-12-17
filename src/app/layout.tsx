@@ -28,6 +28,42 @@ const sniglet = Sniglet({
 })
 
 export const metadata: Metadata = {
+    title: 'Peanut Protocol | Cross-Chain Payment Infrastructure',
+    description:
+        'Seamless cross-chain payment infrastructure for sending and receiving digital assets. Built for both developers and consumers to abstract away blockchain complexities with chain-agnostic transfers, stablecoin conversions, and fiat offramps.',
+    metadataBase: new URL('https://peanut.to'),
+    keywords:
+        'blockchain payments, cross-chain transfers, payment infrastructure, crypto payments, stablecoin conversion, fiat offramp, web3 payments, blockchain protocol',
+
+    openGraph: {
+        type: 'website',
+        title: 'Peanut Protocol | Cross-Chain Payment Infrastructure',
+        description:
+            'Blockchain payment infrastructure enabling seamless cross-chain transfers, stablecoin conversions, and fiat offramps.',
+        url: 'https://peanut.to',
+        siteName: 'Peanut Protocol',
+        images: [
+            {
+                url: '/metadata-img.png',
+                width: 1200,
+                height: 630,
+                alt: 'Peanut Protocol - Cross-Chain Payment Infrastructure',
+            },
+        ],
+    },
+
+    twitter: {
+        card: 'summary_large_image',
+        title: 'Peanut Protocol | Cross-Chain Payment Infrastructure',
+        description:
+            'Blockchain payment infrastructure enabling seamless cross-chain transfers, stablecoin conversions, and fiat offramps.',
+        images: ['/metadata-img.png'],
+        creator: '@PeanutProtocol',
+        site: '@PeanutProtocol',
+    },
+    icons: {
+        icon: '/favicon.ico',
+    },
     viewport: {
         width: 'device-width',
         initialScale: 1,
