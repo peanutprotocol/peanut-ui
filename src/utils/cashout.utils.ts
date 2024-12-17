@@ -13,15 +13,11 @@ const isInAllowedFrame = (): boolean => {
 
     // Check ancestor origins (modern browsers)
     if (window.location.ancestorOrigins?.length) {
-        return ALLOWED_PARENT_DOMAINS.some((domain) =>
-            window.location.ancestorOrigins[0].includes(domain)
-        )
+        return ALLOWED_PARENT_DOMAINS.some((domain) => window.location.ancestorOrigins[0].includes(domain))
     }
 
     // Fallback to referrer check
-    return ALLOWED_PARENT_DOMAINS.some((domain) =>
-        document.referrer.includes(domain)
-    )
+    return ALLOWED_PARENT_DOMAINS.some((domain) => document.referrer.includes(domain))
 }
 
 export const convertPersonaUrl = (url: string) => {
@@ -33,11 +29,7 @@ export const convertPersonaUrl = (url: string) => {
     const referenceId = parsedUrl.searchParams.get('reference-id')
 
     // Use parent frame origin if in allowed iframe, otherwise use current origin
-    const origin = encodeURIComponent(
-        isInAllowedFrame()
-            ? new URL(document.referrer).origin
-            : window.location.origin
-    )
+    const origin = encodeURIComponent(isInAllowedFrame() ? new URL(document.referrer).origin : window.location.origin)
 
     return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
