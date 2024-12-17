@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState, ReactNode, useRef } fro
 import * as interfaces from '@/interfaces'
 import { useToast, ToastId } from '@chakra-ui/react'
 import { useAccount } from 'wagmi'
+import { type GetUserLinksResponse } from '@/utils'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -10,7 +11,7 @@ interface AuthContextType {
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
-    updateBridgeCustomerId: (bridgeCustomerId: string) => Promise<void>
+    updateBridgeCustomerData: (customer: GetUserLinksResponse) => Promise<void>
     addAccount: ({
         accountIdentifier,
         accountType,
@@ -125,7 +126,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchUser()
         }
     }
-    const updateBridgeCustomerId = async (bridgeCustomerId: string) => {
+    const updateBridgeCustomerData = async (customer: GetUserLinksResponse) => {
         if (!user) return
 
         try {
@@ -135,8 +136,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    bridge_customer_id: bridgeCustomerId,
+                    bridge_customer_id: customer.id,
                     userId: user.user.userId,
+                    kycStatus: customer.kyc_status,
                 }),
             })
 
@@ -269,7 +271,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             value={{
                 user,
                 setUser,
-                updateBridgeCustomerId,
+                updateBridgeCustomerData,
                 fetchUser,
                 updateUserName,
                 submitProfilePhoto,

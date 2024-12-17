@@ -39,7 +39,7 @@ export const KYCComponent = () => {
                         <span className="sr-only">Loading...</span>
                     </div>
                 </div>
-            ) : user && user?.user?.kycStatus === 'verified' ? (
+            ) : user && user?.user?.kycStatus === 'approved' ? (
                 <div className="flex flex-col items-center justify-center gap-4">
                     <p className="text-h4">Welcome back, {user?.user?.username ?? user?.user?.email}</p>
                     <p className="text-h8 font-light">You have already completed the KYC process!</p>

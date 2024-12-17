@@ -1,6 +1,6 @@
-import type { NextRequest } from 'next/server'
-import { NextResponse } from 'next/server'
+import { NextResponse, NextRequest } from 'next/server'
 import * as interfaces from '@/interfaces'
+import { GET as getUserFromCookie } from '@/app/api/peanut/user/get-user-from-cookie/route'
 
 export async function POST(request: NextRequest) {
     try {
@@ -8,6 +8,27 @@ export async function POST(request: NextRequest) {
         if (!process.env.BRIDGE_API_KEY) {
             throw new Error('BRIDGE_API_KEY is not defined')
         }
+
+        const getUserFromCookieRequest = new NextRequest(
+            `${process.env.NEXT_PUBLIC_BASE_URL}/api/peanut/user/get-user-from-cookie`,
+            {
+                method: 'GET',
+                headers: {
+                    cookie: request.headers.get('cookie') ?? '',
+                    ...request.headers,
+                },
+            }
+        )
+        const getUserFromCookieResponse = await getUserFromCookie(getUserFromCookieRequest)
+        if (!getUserFromCookieResponse.ok) {
+            return new NextResponse('Unauthorized', { status: 401 })
+        }
+        const { user } = await getUserFromCookieResponse.json()
+
+        if (userId !== user?.bridge_customer_id) {
+            return new NextResponse('Forbidden', { status: 403 })
+        }
+
         const response = await fetch(`https://api.bridge.xyz/v0/kyc_links/${userId}`, {
             method: 'GET',
             headers: {
@@ -37,7 +58,7 @@ export async function POST(request: NextRequest) {
                 },
             })
         } else if (type === 'customer_id') {
-            return new NextResponse(JSON.stringify({ customer_id: data.customer_id }), {
+            return new NextResponse(JSON.stringify({ id: data.customer_id, kyc_status: data.kyc_status }), {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/json',
