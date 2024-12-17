@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import * as consts from '@/constants'
 
 export async function POST(request: NextRequest) {
-    const { userId, username, bridge_customer_id } = await request.json()
+    const { userId, username, bridge_customer_id, kycStatus } = await request.json()
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
@@ -24,6 +24,7 @@ export async function POST(request: NextRequest) {
                 userId,
                 username,
                 bridge_customer_id,
+                kycStatus,
             }),
         })
 
