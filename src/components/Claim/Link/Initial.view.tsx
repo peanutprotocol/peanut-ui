@@ -493,15 +493,17 @@ export const InitialClaimLinkView = ({
                                                         ]?.axelarChainName
                                                     }
                                                     <MoreInfo
-                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${consts.supportedPeanutChains.find(
-                                                            (chain) =>
-                                                                chain.chainId ===
-                                                                selectedRoute.route.params.fromChain
-                                                        )?.name
-                                                            } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${supportedSquidChainsAndTokens[
+                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                            consts.supportedPeanutChains.find(
+                                                                (chain) =>
+                                                                    chain.chainId ===
+                                                                    selectedRoute.route.params.fromChain
+                                                            )?.name
+                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                            supportedSquidChainsAndTokens[
                                                                 selectedRoute.route.params.toChain
                                                             ]?.axelarChainName
-                                                            }.`}
+                                                        }.`}
                                                     />
                                                 </>
                                             )
@@ -643,10 +645,10 @@ export const InitialClaimLinkView = ({
                                         'offramp_mt_maximum',
                                         'No route found for the given token pair.',
                                     ].includes(errorState.errorMessage) && (
-                                            <label className="text-h8 font-normal text-red">
-                                                {errorState.errorMessage}
-                                            </label>
-                                        )}
+                                        <label className="text-h8 font-normal text-red">
+                                            {errorState.errorMessage}
+                                        </label>
+                                    )}
                                 </>
                             )}
                         </div>

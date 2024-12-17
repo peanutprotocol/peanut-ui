@@ -195,12 +195,14 @@ export const ConfirmClaimLinkView = ({
                                     <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
                                     {supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]?.axelarChainName}
                                     <MoreInfo
-                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${consts.supportedPeanutChains.find(
-                                            (chain) => chain.chainId === selectedRoute.route.params.fromChain
-                                        )?.name
-                                            } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
+                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                            consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === selectedRoute.route.params.fromChain
+                                            )?.name
+                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                            supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
                                                 ?.axelarChainName
-                                            }.`}
+                                        }.`}
                                     />
                                 </>
                             )}
