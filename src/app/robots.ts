@@ -8,13 +8,9 @@ export default function robots(): MetadataRoute.Robots {
                 allow: ['/', '/about', '/blog', '/terms', '/privacy', '/send', '/request/create', '/cashout', '/jobs'],
                 disallow: [
                     '/api/',
-                    '/sdk',
-                    '/dashboard',
-                    '/profile',
-                    '/kyc',
-                    '/link-account',
-                    '/cashout',
-                    '/cashout-status',
+                    '/sdk/',
+                    '/*dashboard',
+                    '/*profile',
                 ],
             },
             {
@@ -26,6 +22,6 @@ export default function robots(): MetadataRoute.Robots {
                 crawlDelay: 10,
             },
         ],
-        sitemap: 'https://peanut.to/sitemap.xml',
+        sitemap: `${process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to'}/sitemap.xml`,
     }
 }

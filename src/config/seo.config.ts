@@ -63,7 +63,7 @@ export function generateMetadata(page: Page): Metadata {
     const baseMetadata: Metadata = {
         title: config.title,
         description: config.description,
-        metadataBase: new URL('https://peanut.to'),
+        metadataBase: new URL(process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to'),
         icons: {
             icon: '/favicon.ico',
         },
