@@ -4,7 +4,7 @@ import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import * as _consts from '../Cashout.consts'
 import * as context from '@/context'
@@ -71,7 +71,7 @@ export const InitialCashoutView = ({
     const { prepareCreateLinkWrapper } = useCreateLink()
 
     const { isConnected } = useAccount()
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
 
     const handleConnectWallet = async () => {
         open()

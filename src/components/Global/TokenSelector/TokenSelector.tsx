@@ -13,7 +13,7 @@ import { IUserBalance, IToken } from '@/interfaces'
 
 import { TokenSelectorProps } from './TokenSelector.consts'
 import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import { useWalletType } from '@/hooks/useWalletType'
 import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
@@ -186,7 +186,7 @@ const TokenSelector = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { isConnected } = useAccount()
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {
