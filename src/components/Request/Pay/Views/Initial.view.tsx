@@ -1,6 +1,6 @@
 import * as _consts from '../Pay.consts'
 import { useAccount, useSwitchChain } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import { useContext, useEffect, useState, useMemo } from 'react'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
@@ -70,7 +70,7 @@ export const InitialView = ({
     const { sendTransactions, checkUserHasEnoughBalance } = useCreateLink()
     const { isConnected, address, chain: currentChain } = useAccount()
     const { switchChainAsync } = useSwitchChain()
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedTokenData,

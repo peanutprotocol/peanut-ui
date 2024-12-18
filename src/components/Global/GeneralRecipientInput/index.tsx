@@ -63,7 +63,7 @@ const GeneralRecipientInput = ({
                 }
             } else {
                 type = 'address'
-                isValid = isAddress(trimmedInput, { strict: false })
+                isValid = isAddress(trimmedInput)
                 if (!isValid) errorMessage.current = 'Invalid Ethereum address'
             }
             recipientType.current = type

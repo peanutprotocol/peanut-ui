@@ -10,13 +10,13 @@ import Select from '../Global/Select'
 import { useState, useMemo, useContext } from 'react'
 import { useCreateLink } from '../Create/useCreateLink'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 
 export const Refund = () => {
     const { isConnected, chain: currentChain } = useAccount()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean
