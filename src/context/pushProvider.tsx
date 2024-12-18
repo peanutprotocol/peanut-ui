@@ -93,8 +93,8 @@ export function PushProvider({ children }: { children: React.ReactNode }) {
             const plainSub = {
                 endpoint: sub.endpoint,
                 keys: {
-                    p256dh: Buffer.from((subscription as any).getKey('p256dh')).toString('base64'),
-                    auth: Buffer.from((subscription as any).getKey('auth')).toString('base64'),
+                    p256dh: Buffer.from((sub as any).getKey('p256dh')).toString('base64'),
+                    auth: Buffer.from((sub as any).getKey('auth')).toString('base64'),
                 },
             }
 
