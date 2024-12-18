@@ -1,12 +1,16 @@
 'use server'
 
 import webpush from 'web-push'
+import { PEANUT_API_URL } from '@/constants'
+import { cookies } from 'next/headers'
 
 const updateSubscription = async ({ userId, pushSubscriptionId }: { userId: string; pushSubscriptionId: string }) => {
-    return fetch('/api/peanut/user/update-user', {
+    return await fetch(`${PEANUT_API_URL}/update-user`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
+            Authorization: `Bearer ${cookies().get('jwt-token')?.value}`,
+            'api-key': process.env.PEANUT_API_KEY!,
         },
         body: JSON.stringify({
             userId,
@@ -15,13 +19,8 @@ const updateSubscription = async ({ userId, pushSubscriptionId }: { userId: stri
     })
 }
 
-console.log(process.env.NEXT_PUBLIC_VAPID_SUBJECT_EMAIL)
-console.log(process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY)
-console.log(process.env.VAPID_PRIVATE_KEY)
-
 webpush.setVapidDetails(
-    // Note: What email should be used here?
-    'mailto:hugo@peanut.to',
+    process.env.NEXT_PUBLIC_VAPID_SUBJECT!,
     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!,
     process.env.VAPID_PRIVATE_KEY!
 )

@@ -7,7 +7,6 @@ import ContactInfo from './Views/ContactInfo'
 
 import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import pointingPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_06.gif'
 import { Step } from './Setup.types'
 import InstallPWA from './Views/InstallPWA'
 import { peanutWalletIsInPreview } from '@/constants'
@@ -67,18 +66,17 @@ export const SETUP_STEPS = [
             return placeAsset(chillPeanutAnim.src)
         },
     },
-    // disable
-    // {
-    //     screenId: 'noficiation-permission',
-    //     active: true, // disable for now since not working
-    //     title: 'NOTIFICATIONS',
-    //     description: 'We will only send one notification. You want to be ready :)',
-    //     containerClassname: 'bg-blue-1/100',
-    //     component: () => <NotificationPermission />,
-    //     centerComponent: () => {
-    //         return placeAsset(chillPeanutAnim.src)
-    //     },
-    // },
+    {
+        screenId: 'noficiation-permission',
+        active: true, // disable for now since not working
+        title: 'NOTIFICATIONS',
+        description: 'We will only send one notification. You want to be ready :)',
+        containerClassname: 'bg-blue-1/100',
+        component: () => <NotificationPermission />,
+        centerComponent: () => {
+            return placeAsset(chillPeanutAnim.src)
+        },
+    },
     {
         screenId: 'success',
         active: true,
