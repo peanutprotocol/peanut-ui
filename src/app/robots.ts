@@ -6,12 +6,7 @@ export default function robots(): MetadataRoute.Robots {
             {
                 userAgent: '*',
                 allow: ['/', '/about', '/blog', '/terms', '/privacy', '/send', '/request/create', '/cashout', '/jobs'],
-                disallow: [
-                    '/api/',
-                    '/sdk/',
-                    '/*dashboard',
-                    '/*profile',
-                ],
+                disallow: ['/api/', '/sdk/', '/*dashboard', '/*profile'],
             },
             {
                 userAgent: 'AhrefsBot',
