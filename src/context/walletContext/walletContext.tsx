@@ -5,7 +5,7 @@ import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from './zeroDevContext.context'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAuth } from '../authContext'
 import {
@@ -98,7 +98,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                             ...createDefaultDBWallet(address),
                             connected: isWalletConnected(createDefaultDBWallet(address)),
                             balances,
-                            balance: parseUnits(totalBalance.toString(), 6),
+                            balance: parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS),
                         }
                     })
                 )
