@@ -524,6 +524,7 @@ export async function submitCashoutLink(data: {
     chainId: string
     tokenName: string
     promoCode?: string
+    trackParam?: string
 }) {
     const fragment = data.link.split('#')[1]
     const password = new URLSearchParams(fragment).get('p')!
@@ -544,6 +545,7 @@ export async function submitCashoutLink(data: {
                 tokenName: data.tokenName,
                 pubKey,
                 promoCode: data.promoCode,
+                trackParam: data.trackParam,
             }),
         })
 

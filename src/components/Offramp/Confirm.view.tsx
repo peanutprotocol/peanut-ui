@@ -448,6 +448,7 @@ export const OfframpConfirmView = ({
             chainId: chainId,
             tokenName: tokenName,
             promoCode: appliedPromoCode || '',
+            trackParam: appliedPromoCode || '',
         })
     }
 

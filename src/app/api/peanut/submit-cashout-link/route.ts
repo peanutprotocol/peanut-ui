@@ -15,6 +15,7 @@ export async function POST(request: NextRequest) {
             chainId,
             tokenName,
             promoCode,
+            trackParam,
         } = await request.json()
 
         const apiKey = process.env.PEANUT_API_KEY!
@@ -33,6 +34,7 @@ export async function POST(request: NextRequest) {
                 tokenName,
                 pubKey,
                 promoCode,
+                trackParam,
             }),
         })
 
