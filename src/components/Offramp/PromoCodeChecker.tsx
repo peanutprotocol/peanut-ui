@@ -82,7 +82,9 @@ const PromoCodeChecker = ({ onPromoCodeApplied }: { onPromoCodeApplied: (code: s
             `}
             >
                 {promoCheckerState.isApplied ? (
-                    <p className="text-center text-sm text-green-600">Promo code applied successfully!</p>
+                    <p className="text-center text-sm text-green-600">
+                        Promo code ${promoCheckerState.code} applied successfully!
+                    </p>
                 ) : (
                     <div className="mt-2 flex w-full flex-col gap-2 px-2">
                         <div className="flex gap-2">

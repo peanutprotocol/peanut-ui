@@ -76,6 +76,7 @@ export interface IOfframpSuccessScreenProps {
     tokenPrice?: number
     recipientType?: interfaces.RecipientType
     transactionHash?: string
+    appliedPromoCode?: string | null
 }
 
 export const VALID_PROMO_CODES = [
