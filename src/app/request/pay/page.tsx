@@ -29,7 +29,7 @@ function getPreviewUrl(host: string, data: Awaited<ReturnType<typeof peanut.getR
 }
 
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-    let title = 'Request Payment'
+    let title = 'Request Payment | Peanut'
     let previewUrl = '/metadata-img.jpg'
     const uuid = searchParams.id ? (Array.isArray(searchParams.id) ? searchParams.id[0] : searchParams.id) : undefined
     if (uuid) {
@@ -48,6 +48,7 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
     }
     return {
         title,
+        description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
         icons: {
             icon: '/logo-favicon.png',
         },
@@ -58,6 +59,12 @@ export async function generateMetadata({ searchParams }: Props): Promise<Metadat
                 },
             ],
         },
+        twitter: {
+            card: 'summary_large_image',
+            title,
+            description: 'Request cryptocurrency from friends, family, or anyone else using Peanut on any chain.',
+        },
+        keywords: 'crypto request, crypto payment, crypto invoice, crypto payment link',
     }
 }
 

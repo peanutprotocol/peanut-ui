@@ -1,25 +1,8 @@
-// import * as components from '@/components'
 import { Privacy } from '@/components'
 import Layout from '@/components/Global/Layout'
+import { generateMetadata } from '@/config'
 
-import { Metadata } from 'next'
-
-export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Text Tokens',
-    metadataBase: new URL('https://peanut.to'),
-
-    icons: {
-        icon: '/favicon.ico',
-    },
-    openGraph: {
-        images: [
-            {
-                url: '/metadata-img.png',
-            },
-        ],
-    },
-}
+export const metadata = generateMetadata('privacy')
 
 export default function PrivacyPage() {
     return (

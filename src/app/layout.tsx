@@ -1,10 +1,9 @@
 import '@/styles/globals.css'
 import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
 import CrispChat from '../components/CrispChat'
-import { PeanutProvider } from '@/config'
+import { generateMetadata, PeanutProvider } from '@/config'
 import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
-import { Metadata } from 'next'
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
@@ -27,14 +26,7 @@ const sniglet = Sniglet({
     variable: '--font-sniglet',
 })
 
-export const metadata: Metadata = {
-    viewport: {
-        width: 'device-width',
-        initialScale: 1,
-        maximumScale: 1,
-        userScalable: false,
-    },
-}
+export const metadata = generateMetadata('landing')
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (

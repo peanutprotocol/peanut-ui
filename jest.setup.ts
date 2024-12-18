@@ -1,5 +1,10 @@
 import '@testing-library/jest-dom'
 
+// Add TextEncoder/TextDecoder to global scope for viem
+const { TextEncoder, TextDecoder } = require('util')
+global.TextEncoder = TextEncoder
+global.TextDecoder = TextDecoder
+
 // Add any global test setup here
 global.console = {
     ...console,
