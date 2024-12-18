@@ -4,7 +4,7 @@ import * as _consts from '../Claim.consts'
 import { useContext, useEffect, useState, useMemo } from 'react'
 import Icon from '@/components/Global/Icon'
 import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import useClaimLink from '../useClaimLink'
 import * as context from '@/context'
 import Loading from '@/components/Global/Loading'
@@ -84,7 +84,7 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
     const { isConnected, address } = useAccount()
     const { user } = useAuth()
 

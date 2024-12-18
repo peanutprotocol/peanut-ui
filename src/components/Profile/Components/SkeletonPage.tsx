@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { Divider } from '@chakra-ui/react'
 import * as assets from '@/assets'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import { useAccount } from 'wagmi'
 import { errors } from 'ethers'
 import Loading from '@/components/Global/Loading'
@@ -28,7 +28,7 @@ export const ProfileSkeleton = ({
     }
     isLoading: boolean
 }) => {
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
     const { address } = useAccount()
     const [userState, setUserState] = useState<'login' | 'register'>('login')
 

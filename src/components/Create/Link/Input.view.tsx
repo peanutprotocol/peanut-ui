@@ -3,7 +3,7 @@
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { useAccount } from 'wagmi'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import { useState, useContext, useEffect, useMemo } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
@@ -69,7 +69,7 @@ export const CreateLinkInputView = ({
     )
 
     const { isConnected, address } = useAccount()
-    const { open } = useWeb3Modal()
+    const { open } = useAppKit()
 
     const handleConnectWallet = async () => {
         open()
