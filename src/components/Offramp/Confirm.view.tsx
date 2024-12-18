@@ -99,7 +99,6 @@ export const OfframpConfirmView = ({
 
     const handlePromoCodeApplied = (code: string | null) => {
         setAppliedPromoCode(code)
-        // todo: track promo code usage
     }
 
     //////////////////////
