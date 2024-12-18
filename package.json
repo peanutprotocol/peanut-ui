@@ -48,6 +48,7 @@
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
         "next": "^14.2.18",
+        "pino-pretty": "^13.0.0",
         "react": "^18.3.1",
         "react-csv": "^2.2.2",
         "react-dom": "^18.3.1",
@@ -67,7 +68,9 @@
         "wagmi": "2.8.6"
     },
     "devDependencies": {
-        "@testing-library/jest-dom": "^6.4.2",
+        "@testing-library/jest-dom": "^6.6.3",
+        "@testing-library/react": "^16.1.0",
+        "@testing-library/user-event": "^14.5.2",
         "@types/jest": "^29.5.12",
         "@types/multicoin-address-validator": "^0.5.3",
         "@types/node": "20.4.2",
@@ -91,6 +94,17 @@
     "jest": {
         "preset": "ts-jest",
         "testEnvironment": "jsdom",
+        "transform": {
+            "^.+\\.(ts|tsx)$": [
+                "ts-jest",
+                {
+                    "tsconfig": "tsconfig.test.json"
+                }
+            ]
+        },
+        "transformIgnorePatterns": [
+            "node_modules/(?!(wagmi|viem|@wagmi|@viem)/)"
+        ],
         "moduleNameMapper": {
             "^@/(.*)$": "<rootDir>/src/$1"
         },
