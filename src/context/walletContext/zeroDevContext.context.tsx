@@ -1,5 +1,5 @@
 'use client'
-import { ReactNode, createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { ReactNode, createContext, useContext, useState, useCallback } from 'react'
 
 // ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
@@ -18,7 +18,6 @@ import {
 } from '@zerodev/passkey-validator'
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { peanutPublicClient } from '@/constants/viem.consts'
 import { infuraRpcUrls } from '@/constants'
 import { useAuth } from '../authContext'
@@ -33,9 +32,9 @@ type UserOpNotEncodedParams = {
     args: any[]
 }
 type UserOpEncodedParams = {
-    to: Address
-    value: BigInt | null
-    data: Hex
+    to: Hex
+    value?: bigint | undefined
+    data?: Hex | undefined
 }
 interface ZeroDevContextType {
     isKernelClientReady: boolean
@@ -48,7 +47,7 @@ interface ZeroDevContextType {
     setIsSendingUserOp: (sendingUserOp: boolean) => void
     handleRegister: (handle: string) => Promise<AppSmartAccountClient>
     handleLogin: () => Promise<void>
-    handleSendUserOpEncoded: (args: UserOpEncodedParams) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
+    handleSendUserOpEncoded: (args: UserOpEncodedParams[]) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
     handleSendUserOpNotEncoded: (args: UserOpNotEncodedParams) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
     address: string | undefined
 }
@@ -65,7 +64,6 @@ const ZeroDevContext = createContext<ZeroDevContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
-    const toast = useToast()
     const { fetchUser, user } = useAuth()
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
     ////// context props
@@ -111,9 +109,19 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
                         chain: consts.PEANUT_WALLET_CHAIN,
                         transport: http(consts.PAYMASTER_URL),
                     })
-                    return zerodevPaymaster.sponsorUserOperation({
-                        userOperation,
-                    })
+
+                    // Add logging to debug paymaster response
+                    try {
+                        const paymasterResult = await zerodevPaymaster.sponsorUserOperation({
+                            userOperation,
+                            shouldOverrideFee: true,
+                        })
+
+                        return paymasterResult
+                    } catch (error) {
+                        console.error('Paymaster error:', error)
+                        throw error
+                    }
                 },
             },
         })
@@ -126,10 +134,6 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
         return kernelClient
     }
-
-    // TODO: handle logout
-    // setKernelClient(undefined)
-    // setIsKernelClientReady(false)
 
     ////// Register functions
     //
@@ -203,25 +207,21 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
     ////// UserOp functions
     //
+    //
 
     // TODO: better docstrings
     // used when data is already encoded from Peanut
     // but remains unsigned
     const handleSendUserOpEncoded = useCallback(
-        async ({ to, value, data }: UserOpEncodedParams) => {
+        async (calls: UserOpEncodedParams[]) => {
             if (!kernelClient) {
                 throw new Error('Trying to send user operation before client initialization')
             }
             setIsSendingUserOp(true)
+            console.dir(calls)
             const userOpHash = await kernelClient.sendUserOperation({
                 account: kernelClient.account,
-                callData: await kernelClient.account!.encodeCalls([
-                    {
-                        to: (to ? to : '') as `0x${string}`,
-                        value: value ? BigInt(value.toString()) : BigInt(0),
-                        data,
-                    },
-                ]),
+                callData: await kernelClient.account!.encodeCalls(calls),
             })
 
             const receipt = await kernelClient.waitForUserOperationReceipt({

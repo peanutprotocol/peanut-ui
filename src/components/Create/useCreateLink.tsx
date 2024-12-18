@@ -520,6 +520,19 @@ export const useCreateLink = () => {
                 if (!preparedDepositTxs) return
                 let idx = 0
                 const signedTxsResponse: string[] = []
+
+                if (isActiveWalletPW) {
+                    const params = preparedDepositTxs.unsignedTxs.map((tx) => ({
+                        to: tx.to! as Hex,
+                        value: tx.value?.valueOf(),
+                        data: tx.data as Hex | undefined,
+                    }))
+                    let hash = await handleSendUserOpEncoded(params)
+                    signedTxsResponse.push(hash.toString())
+                    idx++
+                    return signedTxsResponse[signedTxsResponse.length - 1]
+                }
+
                 for (const tx of preparedDepositTxs.unsignedTxs) {
                     setLoadingState('Sign in wallet')
 
@@ -533,18 +546,7 @@ export const useCreateLink = () => {
                             console.log('error setting fee options, fallback to default')
                         }
                     }
-                    if (isActiveWalletPW) {
-                        // TODO: add retry logic in handleSendUserOpEncoded() as below flow
-                        let hash = await handleSendUserOpEncoded({
-                            to: tx.to! as Address,
-                            value: tx.value!,
-                            data: tx.data! as Hex,
-                        })
-
-                        // TODO: same call as below - group w/ flow below as much as possible
-                        signedTxsResponse.push(hash.toString())
-                        idx++
-                    } else if (isActiveWalletBYOW) {
+                    if (isActiveWalletBYOW) {
                         // Send the transaction using wagmi
                         // current stage is encoded but NOT signed
                         let hash = await sendTransactionAsync({
