@@ -69,23 +69,6 @@ createAppKit({
     },
 })
 
-createAppKit({
-    adapters: [wagmiAdapter],
-    networks: consts.chains,
-    metadata,
-    projectId,
-    features: {
-        analytics: true,
-        email: false,
-        socials: false,
-        onramp: true,
-    },
-    themeVariables: {
-        '--w3m-border-radius-master': '0px',
-        '--w3m-color-mix': 'white',
-    },
-})
-
 export function ContextProvider({ children }: { children: React.ReactNode }) {
     return (
         <WagmiProvider config={wagmiAdapter.wagmiConfig}>
