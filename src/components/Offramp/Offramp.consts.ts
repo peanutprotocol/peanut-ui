@@ -76,4 +76,44 @@ export interface IOfframpSuccessScreenProps {
     tokenPrice?: number
     recipientType?: interfaces.RecipientType
     transactionHash?: string
+    appliedPromoCode?: string | null
 }
+
+export const VALID_PROMO_CODES = [
+    'XMAS',
+    'GONUTS',
+    'PEANUTFREN',
+    'CLUBPEANUT',
+    'DISCORD',
+    'W3HUB',
+    'MINDSPACE',
+    'FULLNODE',
+    'HUCKLETREE',
+    'THURSDAO',
+    'STATIONF',
+    'HEDEN',
+    'THEBLOCK',
+    'BASEDINLISBON',
+    'THEFINTECHHOUSE',
+    'KUBECOWORKING',
+    'CVLABS',
+    'ATICOLAB',
+    'UNYTED',
+    'WEB3FAMILY',
+    'ONECOWORK',
+    'LAVACACOWORKING',
+    'CRYPTODAYS',
+    'SECONDCULTURE',
+    'DECENTRALHOUSE',
+    'BONCESPACE',
+    'TRIBESCOWORK',
+    'POWSPACE',
+    'DEHOUSE',
+    'WORKIN',
+    'HOUSEOFBLOCKCHAIN',
+    'SUBWORK',
+    'POOLSIDE',
+    'CAHOOTCOWORK',
+    'NIFTYCLUB',
+    'SPACESHACK',
+]

@@ -14,6 +14,8 @@ export async function POST(request: NextRequest) {
             externalAccountId,
             chainId,
             tokenName,
+            promoCode,
+            trackParam,
         } = await request.json()
 
         const apiKey = process.env.PEANUT_API_KEY!
@@ -24,13 +26,15 @@ export async function POST(request: NextRequest) {
                 'api-key': apiKey,
             },
             body: JSON.stringify({
-                bridgeCustomerId: bridgeCustomerId,
-                liquidationAddressId: liquidationAddressId,
-                cashoutTransactionHash: cashoutTransactionHash,
-                externalAccountId: externalAccountId,
-                chainId: chainId,
-                tokenName: tokenName,
-                pubKey: pubKey,
+                bridgeCustomerId,
+                liquidationAddressId,
+                cashoutTransactionHash,
+                externalAccountId,
+                chainId,
+                tokenName,
+                pubKey,
+                promoCode,
+                trackParam,
             }),
         })
 
