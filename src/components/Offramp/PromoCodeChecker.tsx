@@ -60,17 +60,18 @@ const PromoCodeChecker = ({ onPromoCodeApplied }: { onPromoCodeApplied: (code: s
         <div className="w-full">
             {/* header */}
             {!promoCheckerState.isApplied && (
-                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                <div
+                    onClick={handleExpandToggle}
+                    className="flex w-full cursor-pointer flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1 transition-colors duration-200 hover:bg-gray-50"
+                >
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name="ticket" className="h-4 fill-gray-1" />
                         <label className="font-bold">Apply Promo Code</label>
                     </div>
-                    <button onClick={handleExpandToggle} className="cursor-pointer transition-transform duration-300">
-                        <Icon
-                            name={promoCheckerState.isExpanded ? 'chevron-up' : 'arrow-bottom'}
-                            className={`h-4 fill-gray-1 transition-all duration-300`}
-                        />
-                    </button>
+                    <Icon
+                        name={promoCheckerState.isExpanded ? 'chevron-up' : 'arrow-bottom'}
+                        className={`h-4 fill-gray-1 transition-all duration-300`}
+                    />
                 </div>
             )}
 
