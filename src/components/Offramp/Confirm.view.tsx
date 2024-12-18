@@ -447,6 +447,7 @@ export const OfframpConfirmView = ({
             externalAccountId: bridgeExternalAccountId,
             chainId: chainId,
             tokenName: tokenName,
+            promoCode: appliedPromoCode || '',
         })
     }
 

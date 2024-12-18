@@ -523,6 +523,7 @@ export async function submitCashoutLink(data: {
     externalAccountId: string
     chainId: string
     tokenName: string
+    promoCode?: string
 }) {
     const fragment = data.link.split('#')[1]
     const password = new URLSearchParams(fragment).get('p')!
@@ -542,6 +543,7 @@ export async function submitCashoutLink(data: {
                 chainId: data.chainId,
                 tokenName: data.tokenName,
                 pubKey,
+                promoCode: data.promoCode,
             }),
         })
 
