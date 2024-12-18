@@ -121,7 +121,7 @@ export const Create = () => {
     }, [address])
 
     return (
-        <div className="card">
+        <div className="card max-w-lg">
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onPrev: handleOnPrev,
                 onNext: handleOnNext,
