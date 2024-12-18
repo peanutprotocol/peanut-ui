@@ -5,7 +5,7 @@ import * as interfaces from '@/interfaces'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from './zeroDevContext.context'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAuth } from '../authContext'
 import {
@@ -55,7 +55,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
     ////// BYOW props
-    const { address: wagmiAddress, isConnected: isWagmiConnected } = useAccount()
+    const { isConnected: isWagmiConnected, addresses: wagmiAddresses } = useAccount()
 
     ////// User props
     const { addAccount, user } = useAuth()
@@ -68,12 +68,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         (wallet: interfaces.IDBWallet): boolean => {
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
-            } else if (wagmiAddress) {
-                return isWagmiConnected && areEvmAddressesEqual(wagmiAddress, wallet.address)
+            } else if (wagmiAddresses) {
+                return (
+                    isWagmiConnected && wagmiAddresses.some((address) => areEvmAddressesEqual(address, wallet.address))
+                )
             }
             return false
         },
-        [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddress]
+        [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddresses]
     )
 
     const createDefaultDBWallet = (address: string): interfaces.IDBWallet => ({
@@ -83,21 +85,23 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     })
 
     const { data: wallets = [] } = useQuery<interfaces.IWallet[]>({
-        queryKey: ['wallets', user?.accounts, wagmiAddress],
+        queryKey: ['wallets', user?.accounts, wagmiAddresses],
         queryFn: async () => {
             // non users can connect BYOW (to pay a request for example)
             if (!user) {
-                if (!wagmiAddress) return []
+                if (!wagmiAddresses) return []
 
-                const { balances, totalBalance } = await fetchWalletBalances(wagmiAddress)
-                return [
-                    {
-                        ...createDefaultDBWallet(wagmiAddress),
-                        connected: isWalletConnected(createDefaultDBWallet(wagmiAddress)),
-                        balances,
-                        balance: parseUnits(totalBalance.toString(), 6),
-                    },
-                ]
+                return Promise.all(
+                    wagmiAddresses.map(async (address) => {
+                        const { balances, totalBalance } = await fetchWalletBalances(address)
+                        return {
+                            ...createDefaultDBWallet(address),
+                            connected: isWalletConnected(createDefaultDBWallet(address)),
+                            balances,
+                            balance: parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS),
+                        }
+                    })
+                )
             }
 
             const processedWallets = user.accounts
@@ -173,23 +177,27 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
 
     // Add new BYOW wallet when connected
     useEffect(() => {
-        if (!user || !wagmiAddress || !wallets.length) return
+        if (!user || !wagmiAddresses || !wallets.length) return
 
-        const walletExists = wallets.some((wallet) => areEvmAddressesEqual(wallet.address, wagmiAddress))
-        if (!walletExists) {
-            addAccount({
-                accountIdentifier: wagmiAddress,
-                accountType: interfaces.WalletProviderType.BYOW,
-                userId: user.user.userId as string,
-            }).catch((error: Error) => {
-                if (error.message.includes('Account already exists')) {
-                    toast.error('Could not add external wallet, already associated with another account')
-                } else {
-                    toast.error('Unexpected error adding external wallet')
-                }
+        const newAddresses = wagmiAddresses.filter(
+            (address) => !wallets.some((wallet) => areEvmAddressesEqual(address, wallet.address))
+        )
+        if (newAddresses.length > 0) {
+            newAddresses.forEach((address) => {
+                addAccount({
+                    accountIdentifier: address,
+                    accountType: interfaces.WalletProviderType.BYOW,
+                    userId: user.user.userId as string,
+                }).catch((error: Error) => {
+                    if (error.message.includes('Account already exists')) {
+                        toast.error('Could not add external wallet, already associated with another account')
+                    } else {
+                        toast.error('Unexpected error adding external wallet')
+                    }
+                })
             })
         }
-    }, [wagmiAddress, wallets, user])
+    }, [wagmiAddresses, wallets, user])
 
     const processedWallets = useMemo(
         () =>
@@ -215,7 +223,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     })
 
                     await queryClient.setQueryData(
-                        ['wallets', user?.accounts, wagmiAddress],
+                        ['wallets', user?.accounts, wagmiAddresses],
                         (oldData: interfaces.IWallet[] | undefined) =>
                             oldData?.map((w) => (w.address === address ? { ...w, balance } : w))
                     )
@@ -223,7 +231,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     const { balances, totalBalance } = await fetchWalletBalances(address)
 
                     await queryClient.setQueryData(
-                        ['wallets', user?.accounts, wagmiAddress],
+                        ['wallets', user?.accounts, wagmiAddresses],
                         (oldData: interfaces.IWallet[] | undefined) =>
                             oldData?.map((w) =>
                                 w.address === address
@@ -240,12 +248,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 console.error('Error refetching balance:', error)
             }
         },
-        [wallets, user?.accounts, wagmiAddress, queryClient]
+        [wallets, user?.accounts, wagmiAddresses, queryClient]
     )
 
     const selectExternalWallet = useCallback(() => {
-        setSelectedAddress(wagmiAddress)
-    }, [wagmiAddress])
+        if (wagmiAddresses && wagmiAddresses.length > 0) {
+            setSelectedAddress(wagmiAddresses[0])
+        }
+    }, [wagmiAddresses])
 
     const contextValue: WalletContextType = {
         wallets: processedWallets,
