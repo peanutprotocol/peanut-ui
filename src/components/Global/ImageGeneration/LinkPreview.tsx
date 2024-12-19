@@ -133,7 +133,7 @@ export function LinkPreviewImg({
                             color: 'black',
                         }}
                     >
-                        {utils.formatAmount(parseFloat(amount))} {tokenSymbol}
+                        {utils.formatAmount(amount)} {tokenSymbol}
                     </label>
                 </div>
             </div>
