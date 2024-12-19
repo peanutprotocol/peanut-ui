@@ -355,7 +355,7 @@ export const InitialView = ({
                     <AddressLink address={requestLinkData.recipientAddress} /> is requesting
                 </label>
 
-                <label className="text-h2">{formatAmount(requestedAmount)}</label>
+                <label className="text-h2">{requestedAmount}</label>
                 <div>
                     <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
