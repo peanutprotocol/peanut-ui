@@ -20,7 +20,7 @@ import * as consts from '@/constants'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
@@ -121,9 +121,9 @@ export const InitialView = ({
             : Number(requestLinkData.tokenAmount)
 
         if (tokenPriceData) {
-            return `$ ${formatAmountWithSignificantDigits(amount, 3)}`
+            return `$ ${formatAmount(amount)}`
         } else {
-            return `${formatAmountWithSignificantDigits(amount, 3)} ${tokenRequestedSymbol}`
+            return `${formatAmount(amount)} ${tokenRequestedSymbol}`
         }
     }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
 
@@ -370,8 +370,7 @@ export const InitialView = ({
                                 alt="logo"
                             />
                         </div>
-                        {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
-                        {tokenRequestedSymbol} on{' '}
+                        {formatAmount(requestLinkData.tokenAmount)} {tokenRequestedSymbol} on{' '}
                         {consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)?.name}
                     </div>
                 </div>
