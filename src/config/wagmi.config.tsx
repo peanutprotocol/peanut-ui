@@ -28,7 +28,6 @@ const transports = Object.fromEntries(consts.chains.map((chain) => [chain.id, ht
 const connectors: CreateConnectorFn[] = [
     injected({ shimDisconnect: true }),
     safe({
-        allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/, /^(.*\.)?intersend\.io$/],
         shimDisconnect: true,
     }),
     walletConnect({
