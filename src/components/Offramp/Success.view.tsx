@@ -32,20 +32,13 @@ export const OfframpSuccessView = ({
         blockExplorerUrl = utils.getExplorerUrl(claimLinkData.chainId)
     }
 
-    const calculateAmount = () => {
-        if (offrampType === _consts.OfframpType.CASHOUT) {
-            // add safeguards for usd value
-            if (!usdValue || isNaN(parseFloat(usdValue))) {
-                return '0.00'
-            }
-            return utils.formatTokenAmount(parseFloat(usdValue))
-        } else {
-            // for CLAIM type
-            if (!tokenPrice || !claimLinkData || isNaN(tokenPrice) || isNaN(parseFloat(claimLinkData.tokenAmount))) {
-                return '0.00'
-            }
-            return utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
+    const calculateFee = () => {
+        // if promo code is applied, fee is zero
+        if (appliedPromoCode) {
+            return '0.00'
         }
+        // else return fee based on account type
+        return accountType === 'iban' ? '1.00' : '0.50'
     }
 
     return (
@@ -63,7 +56,7 @@ export const OfframpSuccessView = ({
                     </div>
                     <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
                         <div className="flex items-center gap-1">
-                            ${calculateAmount()}
+                            ${calculateFee()}
                             <MoreInfo
                                 text={
                                     appliedPromoCode
@@ -85,14 +78,15 @@ export const OfframpSuccessView = ({
                     </div>
                     <div className="flex items-center justify-end gap-1 text-sm font-normal">
                         <div className="flex items-center gap-1">
-                            $
+                            ${/* if promo code is applied, show full amount without fee deduction */}
                             {appliedPromoCode
                                 ? offrampType === _consts.OfframpType.CASHOUT
                                     ? utils.formatTokenAmount(parseFloat(usdValue ?? ''))
                                     : tokenPrice &&
                                       claimLinkData &&
                                       utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
-                                : accountType === 'iban'
+                                : // if no promo code, apply fee deduction based on account type
+                                  accountType === 'iban'
                                   ? offrampType == _consts.OfframpType.CASHOUT
                                       ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 1)
                                       : tokenPrice &&
