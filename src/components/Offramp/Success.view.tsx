@@ -68,9 +68,9 @@ export const OfframpSuccessView = ({
                                 text={
                                     appliedPromoCode
                                         ? `Fees waived with promo code ${appliedPromoCode}`
-                                        : accountType === 'iban'
-                                          ? 'For SEPA transactions...'
-                                          : 'For ACH transactions...'
+                                        : `For ${accountType === 'iban' ? 'SEPA' : 'ACH'} transactions a fee of ${
+                                              accountType === 'iban' ? '$1' : '$0.50'
+                                          } is charged.`
                                 }
                             />
                         </div>
