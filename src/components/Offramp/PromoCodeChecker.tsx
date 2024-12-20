@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Icon from '@/components/Global/Icon'
 import { VALID_PROMO_CODES } from './Offramp.consts'
 
@@ -16,8 +16,17 @@ const INITIAL_STATE: PromoState = {
     isApplied: false,
 }
 
-const PromoCodeChecker = ({ onPromoCodeApplied }: { onPromoCodeApplied: (code: string | null) => void }) => {
-    const [promoCheckerState, setPromoCheckerState] = useState<PromoState>(INITIAL_STATE)
+interface PromoCodeCheckerProps {
+    onPromoCodeApplied: (code: string | null) => void
+    appliedPromoCode: string | null
+}
+
+const PromoCodeChecker = ({ onPromoCodeApplied, appliedPromoCode }: PromoCodeCheckerProps) => {
+    const [promoCheckerState, setPromoCheckerState] = useState<PromoState>({
+        ...INITIAL_STATE,
+        code: appliedPromoCode || '',
+        isApplied: !!appliedPromoCode,
+    })
 
     const handlePromoCodeSubmit = () => {
         const normalizedCode = promoCheckerState.code.trim().toUpperCase()
@@ -55,6 +64,17 @@ const PromoCodeChecker = ({ onPromoCodeApplied }: { onPromoCodeApplied: (code: s
             ...(prev.isExpanded && !prev.isApplied ? { code: '', error: '' } : {}),
         }))
     }
+
+    // update state if promo code is applied
+    useEffect(() => {
+        if (appliedPromoCode) {
+            setPromoCheckerState((prev) => ({
+                ...prev,
+                code: appliedPromoCode,
+                isApplied: true,
+            }))
+        }
+    }, [appliedPromoCode])
 
     return (
         <div className="w-full">

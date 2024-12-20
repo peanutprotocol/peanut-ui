@@ -61,6 +61,8 @@ export interface IOfframpConfirmScreenProps {
     estimatedPoints?: number
     attachment?: { message: string | undefined; attachmentUrl: string | undefined }
     recipientType?: interfaces.RecipientType
+    appliedPromoCode?: string | null
+    onPromoCodeApplied: (code: string | null) => void
 }
 
 export interface IOfframpSuccessScreenProps {

@@ -67,4 +67,5 @@ export interface ICashoutScreenProps {
     crossChainDetails: []
     appliedPromoCode?: string | null
     offrampType: OfframpType
+    onPromoCodeApplied: (code: string | null) => void
 }
