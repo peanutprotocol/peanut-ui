@@ -32,6 +32,22 @@ export const OfframpSuccessView = ({
         blockExplorerUrl = utils.getExplorerUrl(claimLinkData.chainId)
     }
 
+    const calculateAmount = () => {
+        if (offrampType === _consts.OfframpType.CASHOUT) {
+            // add safeguards for usd value
+            if (!usdValue || isNaN(parseFloat(usdValue))) {
+                return '0.00'
+            }
+            return utils.formatTokenAmount(parseFloat(usdValue))
+        } else {
+            // for CLAIM type
+            if (!tokenPrice || !claimLinkData || isNaN(tokenPrice) || isNaN(parseFloat(claimLinkData.tokenAmount))) {
+                return '0.00'
+            }
+            return utils.formatTokenAmount(tokenPrice * parseFloat(claimLinkData.tokenAmount))
+        }
+    }
+
     return (
         <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
             <label className="text-h2">Yay!</label>
@@ -47,14 +63,14 @@ export const OfframpSuccessView = ({
                     </div>
                     <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
                         <div className="flex items-center gap-1">
-                            {appliedPromoCode ? '$0' : accountType === 'iban' ? '$1' : '$0.50'}
+                            ${calculateAmount()}
                             <MoreInfo
                                 text={
                                     appliedPromoCode
-                                        ? 'Fees waived with promo code!'
-                                        : `For ${accountType === 'iban' ? 'SEPA' : 'ACH'} transactions a fee of ${
-                                              accountType === 'iban' ? '$1' : '$0.50'
-                                          } is charged.`
+                                        ? `Fees waived with promo code ${appliedPromoCode}`
+                                        : accountType === 'iban'
+                                          ? 'For SEPA transactions...'
+                                          : 'For ACH transactions...'
                                 }
                             />
                         </div>

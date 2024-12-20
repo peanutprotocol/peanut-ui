@@ -51,6 +51,8 @@ export const OfframpConfirmView = ({
     attachment, // available on link claim offramps
     estimatedPoints, // available on link claim offramps
     crossChainDetails, // available on link claim offramps
+    appliedPromoCode,
+    onPromoCodeApplied,
 }: IOfframpConfirmScreenProps) => {
     //////////////////////
     // state and context vars w/ shared functionality across all offramp types
@@ -69,10 +71,6 @@ export const OfframpConfirmView = ({
     const [showRefund, setShowRefund] = useState(false)
     const { createLinkWrapper } = useCreateLink()
     const [createdLink, setCreatedLink] = useState<string | undefined>(undefined)
-
-    //////////////////////
-    // state for checking promo code
-    const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null)
 
     //////////////////////
     // state and context vars for claim link offramp
@@ -98,9 +96,8 @@ export const OfframpConfirmView = ({
     }
 
     const handlePromoCodeApplied = (code: string | null) => {
-        setAppliedPromoCode(code)
+        onPromoCodeApplied(code)
     }
-
     //////////////////////
     // functions for cashout offramps
     // TODO: they need to be refactored to a separate file
@@ -860,7 +857,10 @@ export const OfframpConfirmView = ({
                             </div>
                         </div>
 
-                        <PromoCodeChecker onPromoCodeApplied={handlePromoCodeApplied} />
+                        <PromoCodeChecker
+                            onPromoCodeApplied={handlePromoCodeApplied}
+                            appliedPromoCode={appliedPromoCode!}
+                        />
                     </div>
                 </div>
             )}
