@@ -64,4 +64,5 @@ export enum claimLinkStateType {
     ALREADY_CLAIMED = 'ALREADY_CLAIMED',
     NOT_FOUND = 'NOT_FOUND',
     CLAIM_SENDER = 'CLAIM_SENDER',
+    WRONG_PASSWORD = 'WRONG_PASSWORD',
 }

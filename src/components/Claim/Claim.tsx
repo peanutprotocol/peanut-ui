@@ -95,7 +95,7 @@ export const Claim = ({}) => {
             const depositPubKey = rawInfo.pubKey20
 
             if (generatedPubKey !== depositPubKey) {
-                setLinkState(_consts.claimLinkStateType.NOT_FOUND)
+                setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
                 return
             }
 
@@ -186,7 +186,7 @@ export const Claim = ({}) => {
                     }
                 />
             )}
-
+            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && (
                 <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />
             )}
