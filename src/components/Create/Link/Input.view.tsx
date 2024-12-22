@@ -265,7 +265,7 @@ export const CreateLinkInputView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-        <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
+          <div className="space-y-6 text-center">
             <div className="space-y-2">
                 <h2
                     className="max-h-[92px] w-full overflow-hidden text-h2"
@@ -277,7 +277,7 @@ export const CreateLinkInputView = ({
                           ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : shortenAddressLong(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </h2>
-                <div className="max-w-96 text-center">
+                <div className="max-w-96 mx-auto text-center">
                     {createType === 'link' &&
                         'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                     {createType === 'email_link' &&
