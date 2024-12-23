@@ -127,7 +127,7 @@ export function LinkPreviewImg({
                     </div>
                     <label
                         style={{
-                            fontSize: '49px',
+                            fontSize: '24px',
                             fontWeight: 'bold',
                             textShadow: '1px 1px 1px rgba(0,0,0,0.3)',
                             color: 'black',
