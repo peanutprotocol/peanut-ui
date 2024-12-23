@@ -3,7 +3,7 @@ import { MetadataRoute } from 'next'
 async function generateSitemap(): Promise<MetadataRoute.Sitemap> {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to'
 
-    const staticPages = ['', '/about', '/blog', '/terms', '/privacy', '/jobs']
+    const staticPages = ['', '/about', '/jobs']
 
     // generate entries for static pages
     const staticEntries = staticPages.map((page) => ({
