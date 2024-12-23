@@ -232,9 +232,10 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
 }
 
 /**
- * formats a number by removing unnecessary trailing zeros after decimal point
- * if all decimal places are zeros, returns the whole number
- * preserves small decimal numbers
+ * formats a number by:
+ * - displaying 2 significant digits for small numbers (<0.01)
+ * - removing unnecessary trailing zeros after decimal point
+ * - if all decimal places are zeros, returns the whole number
  * @param amount - number or string to format
  * @returns formatted string representation of the number
  */
@@ -250,15 +251,11 @@ export const formatAmount = (amount: string | number): string => {
 
     // handle small numbers differently
     if (Math.abs(num) < 0.01) {
-        // round to 6 decimal places for small numbers
-        const stringValue = num.toFixed(6)
-        const [integerPart, decimalPart] = stringValue.split('.')
-
-        if (!decimalPart) return integerPart
-
-        // remove trailing zeros from decimal part
-        const trimmedDecimal = decimalPart.replace(/0+$/, '')
-        return `${integerPart}.${trimmedDecimal}`
+        // convert to exponential notation to get significant digits easily
+        const exponential = num.toExponential(1) // 1 decimal place = 2 significant digits
+        // convert back to decimal notation
+        const significantNum = Number(exponential)
+        return significantNum.toString()
     }
 
     // for normal numbers, round to 2 decimals
