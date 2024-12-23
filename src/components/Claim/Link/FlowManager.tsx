@@ -19,7 +19,7 @@ const FlowManager = ({
 }: {
     recipientType: interfaces.RecipientType
     step: _consts.IClaimScreenState
-    props: _consts.IClaimScreenProps
+    props: _consts.IClaimScreenProps & { appliedPromoCode?: string | null }
 }) => {
     const viewComponents: _consts.IFlowManagerClaimComponents = {
         INITIAL: InitialClaimLinkView,
@@ -33,7 +33,8 @@ const FlowManager = ({
     if (recipientType === 'iban' || recipientType === 'us') {
         componentProps = {
             ...props,
-            offrampType: OfframpType.CLAIM, // adds an additional required type on the props
+            offrampType: OfframpType.CLAIM,
+            appliedPromoCode: props.appliedPromoCode,
         }
     }
 

@@ -30,6 +30,7 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
+import PromoCodeChecker from './PromoCodeChecker'
 
 export const OfframpConfirmView = ({
     onNext, // available on all offramps
@@ -50,6 +51,8 @@ export const OfframpConfirmView = ({
     attachment, // available on link claim offramps
     estimatedPoints, // available on link claim offramps
     crossChainDetails, // available on link claim offramps
+    appliedPromoCode,
+    onPromoCodeApplied,
 }: IOfframpConfirmScreenProps) => {
     //////////////////////
     // state and context vars w/ shared functionality across all offramp types
@@ -92,6 +95,9 @@ export const OfframpConfirmView = ({
         }
     }
 
+    const handlePromoCodeApplied = (code: string | null) => {
+        onPromoCodeApplied(code)
+    }
     //////////////////////
     // functions for cashout offramps
     // TODO: they need to be refactored to a separate file
@@ -437,6 +443,8 @@ export const OfframpConfirmView = ({
             externalAccountId: bridgeExternalAccountId,
             chainId: chainId,
             tokenName: tokenName,
+            promoCode: appliedPromoCode || '',
+            trackParam: appliedPromoCode || '',
         })
     }
 
@@ -722,36 +730,46 @@ export const OfframpConfirmView = ({
                             </div>
                             <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
                                 <div className="flex items-center gap-1">
-                                    {user?.accounts.find(
-                                        (account) =>
-                                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                    )?.account_type === 'iban'
-                                        ? '$1'
-                                        : '$0.50'}
+                                    {appliedPromoCode
+                                        ? '$0'
+                                        : user?.accounts.find(
+                                                (account) =>
+                                                    account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
+                                                    offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                            )?.account_type === 'iban'
+                                          ? '$1'
+                                          : '$0.50'}
                                     <span className="inline-flex items-center">
                                         <MoreInfo
-                                            text={`For ${
-                                                user?.accounts.find(
-                                                    (account) =>
-                                                        account.account_identifier
-                                                            .replaceAll(/\s/g, '')
-                                                            .toLowerCase() ===
-                                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                                )?.account_type === 'iban'
-                                                    ? 'SEPA'
-                                                    : 'ACH'
-                                            } transactions a fee of ${
-                                                user?.accounts.find(
-                                                    (account) =>
-                                                        account.account_identifier
-                                                            .replaceAll(/\s/g, '')
-                                                            .toLowerCase() ===
-                                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                                )?.account_type === 'iban'
-                                                    ? '$1'
-                                                    : '$0.50'
-                                            } is charged.`}
+                                            text={
+                                                appliedPromoCode
+                                                    ? 'Fees waived with promo code!'
+                                                    : `For ${
+                                                          user?.accounts.find(
+                                                              (account) =>
+                                                                  account.account_identifier
+                                                                      .replaceAll(/\s/g, '')
+                                                                      .toLowerCase() ===
+                                                                  offrampForm.recipient
+                                                                      .replaceAll(/\s/g, '')
+                                                                      .toLowerCase()
+                                                          )?.account_type === 'iban'
+                                                              ? 'SEPA'
+                                                              : 'ACH'
+                                                      } transactions a fee of ${
+                                                          user?.accounts.find(
+                                                              (account) =>
+                                                                  account.account_identifier
+                                                                      .replaceAll(/\s/g, '')
+                                                                      .toLowerCase() ===
+                                                                  offrampForm.recipient
+                                                                      .replaceAll(/\s/g, '')
+                                                                      .toLowerCase()
+                                                          )?.account_type === 'iban'
+                                                              ? '$1'
+                                                              : '$0.50'
+                                                      } is charged.`
+                                            }
                                         />
                                     </span>
                                 </div>
@@ -791,40 +809,58 @@ export const OfframpConfirmView = ({
                             </div>
                             <div className="flex items-center justify-end gap-1 text-sm font-normal">
                                 <div className="flex items-center gap-1">
-                                    $
-                                    {user?.accounts.find(
-                                        (account) =>
-                                            account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
-                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
-                                    )?.account_type === 'iban'
+                                    ${/* if promo code is applied, show full amount without fee deduction */}
+                                    {appliedPromoCode
                                         ? offrampType == OfframpType.CASHOUT
-                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
+                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? ''))
                                             : tokenPrice &&
                                               claimLinkData &&
                                               utils.formatTokenAmount(
-                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount)
                                               )
-                                        : offrampType == OfframpType.CASHOUT
-                                          ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                          : tokenPrice &&
-                                            claimLinkData &&
-                                            utils.formatTokenAmount(
-                                                tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                            )}
-                                    <MoreInfo
-                                        text={
-                                            user?.accounts.find(
+                                        : // if no promo code, apply fee deduction based on account type
+                                          user?.accounts.find(
                                                 (account) =>
                                                     account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
                                                     offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                             )?.account_type === 'iban'
-                                                ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                                : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                          ? offrampType == OfframpType.CASHOUT
+                                              ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
+                                              : tokenPrice &&
+                                                claimLinkData &&
+                                                utils.formatTokenAmount(
+                                                    tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                                )
+                                          : offrampType == OfframpType.CASHOUT
+                                            ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                            : tokenPrice &&
+                                              claimLinkData &&
+                                              utils.formatTokenAmount(
+                                                  tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
+                                              )}
+                                    <MoreInfo
+                                        text={
+                                            appliedPromoCode
+                                                ? 'Fees waived with promo code!'
+                                                : user?.accounts.find(
+                                                        (account) =>
+                                                            account.account_identifier
+                                                                .replaceAll(/\s/g, '')
+                                                                .toLowerCase() ===
+                                                            offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                                    )?.account_type === 'iban'
+                                                  ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                                  : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
                                         }
                                     />
                                 </div>
                             </div>
                         </div>
+
+                        <PromoCodeChecker
+                            onPromoCodeApplied={handlePromoCodeApplied}
+                            appliedPromoCode={appliedPromoCode!}
+                        />
                     </div>
                 </div>
             )}

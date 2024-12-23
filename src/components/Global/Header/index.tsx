@@ -6,7 +6,8 @@ import Link from 'next/link'
 
 import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
 import { shortenAddress } from '@/utils'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
+
 import { useAccount } from 'wagmi'
 import { useRouter } from 'next/navigation'
 import { breakpoints, emToPx } from '@/styles/theme'
@@ -221,7 +222,7 @@ const ToolsDropdown = () => {
 }
 
 const MenuLinks = () => {
-    const { open: web3modalOpen } = useWeb3Modal()
+    const { open: walletModal } = useAppKit()
     const { address, isConnected } = useAccount()
 
     return (
@@ -258,7 +259,7 @@ const MenuLinks = () => {
                 <NavItemBox>
                     <button
                         onClick={() => {
-                            web3modalOpen()
+                            walletModal()
                         }}
                         className="flex h-full w-full items-center justify-start px-8 py-2 uppercase sm:hidden sm:w-max sm:justify-center lg:px-4 xl:px-8"
                     >
@@ -274,7 +275,7 @@ const MenuLinks = () => {
 }
 
 const SocialLinks = () => {
-    const { open: web3modalOpen } = useWeb3Modal()
+    const { open: walletModal } = useAppKit()
     const { address, isConnected } = useAccount()
 
     return (
@@ -285,7 +286,7 @@ const SocialLinks = () => {
             <button
                 className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
-                    web3modalOpen()
+                    walletModal()
                 }}
             >
                 {isConnected ? shortenAddress(address ?? '') : 'Connect'}
