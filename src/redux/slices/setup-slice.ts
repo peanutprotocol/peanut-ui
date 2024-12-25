@@ -1,17 +1,36 @@
+import { ISetupStep, ScreenId, ScreenProps } from '@/components/Setup/Setup.types'
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 import { SETUP } from '../constants'
-import { ISetupState } from '../types/setup'
+import { ISetupState } from '../types/setup.types'
 
 const initialState: ISetupState = {
-    step: 0,
+    currentStep: 1,
+    direction: 0,
+    isLoading: false,
+    steps: [],
 }
 
 const setupSlice = createSlice({
     name: SETUP,
     initialState,
     reducers: {
-        setStep: (state, action: PayloadAction<number>) => {
-            state.step = action.payload
+        nextStep: (state, action: PayloadAction<ScreenProps[ScreenId] | undefined>) => {
+            state.direction = 1
+            state.currentStep = Math.min(state.steps.length, state.currentStep + 1)
+            state.screenProps = action.payload
+        },
+        previousStep: (state) => {
+            state.direction = -1
+            state.currentStep = Math.max(1, state.currentStep - 1)
+        },
+        setLoading: (state, action: PayloadAction<boolean>) => {
+            state.isLoading = action.payload
+        },
+        setScreenProps: (state, action: PayloadAction<ScreenProps[ScreenId] | undefined>) => {
+            state.screenProps = action.payload
+        },
+        setSteps: (state, action: PayloadAction<ISetupStep[]>) => {
+            state.steps = action.payload
         },
     },
 })

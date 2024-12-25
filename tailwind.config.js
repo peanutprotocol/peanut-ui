@@ -58,6 +58,7 @@ module.exports = {
                 secondary: 'var(--secondary-color)',
                 background: 'var(--background-color)',
                 accent: 'var(--accent-color)',
+                error: '#B3261E',
             },
             zIndex: {
                 1: '1',

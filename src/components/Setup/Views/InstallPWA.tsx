@@ -1,6 +1,6 @@
 import { Button, Card } from '@/components/0_Bruddle'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useEffect, useState } from 'react'
-import { useSetupFlow } from '../context/SetupFlowContext'
 
 const StepTitle = ({ text }: { text: string }) => <h3 className="font-bold">{text}</h3>
 

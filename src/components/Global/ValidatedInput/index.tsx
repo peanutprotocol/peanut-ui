@@ -1,8 +1,7 @@
-import { useState, useEffect, ChangeEvent, useRef } from 'react'
-import Icon from '@/components/Global/Icon'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import classNames from 'classnames'
+import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { ChangeEvent, useEffect, useRef, useState } from 'react'
 type ValidatedInputProps = {
     label?: string
     value: string
@@ -106,7 +105,7 @@ const ValidatedInput = ({
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
-                    className="h-12 w-full bg-white pl-8 pr-2 text-h8 font-medium 
+                    className="h-12 w-full bg-white pl-4 pr-2 text-h8 font-medium 
                         outline-none focus:outline-none active:bg-white
                         dark:bg-n-1 dark:text-white dark:placeholder:text-white/75"
                     placeholder={placeholder}

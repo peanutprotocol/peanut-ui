@@ -1,20 +1,18 @@
 import { Button } from '@/components/0_Bruddle'
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
 
 const SetupSuccess = () => {
     const { handleNext } = useSetupFlow()
 
     return (
-        <div className="flex flex-row items-center justify-center">
-            <Button
-                variant="green"
-                onClick={() => {
-                    handleNext()
-                }}
-            >
-                Complete
-            </Button>
-        </div>
+        <Button
+            shadowSize="4"
+            onClick={() => {
+                handleNext()
+            }}
+        >
+            Complete
+        </Button>
     )
 }
 

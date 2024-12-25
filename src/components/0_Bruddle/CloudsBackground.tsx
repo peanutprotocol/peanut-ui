@@ -49,7 +49,11 @@ const Cloud: React.FC<CloudProps> = ({ left, top, scale = 1, variant }) => {
     )
 }
 
-const CloudsBackground: React.FC = () => {
+interface CloudsBackgroundProps {
+    minimal?: boolean
+}
+
+const CloudsBackground: React.FC<CloudsBackgroundProps> = ({ minimal = false }) => {
     // Separate cloud configurations for desktop and mobile
     const desktopClouds = [
         { left: -5, top: 10, scale: 1.2, variant: 1 as const },
@@ -71,6 +75,17 @@ const CloudsBackground: React.FC = () => {
         { left: 60, top: 70, scale: 0.6, variant: 1 as const },
     ]
 
+    // minimal versions with just 2 clouds
+    const minimalDesktopClouds = [
+        { left: -5, top: 35, scale: 2.2, variant: 1 as const },
+        { left: 85, top: 50, scale: 2.2, variant: 1 as const },
+    ]
+
+    const minimalMobileClouds = [
+        { left: -15, top: 25, scale: 1.2, variant: 1 as const },
+        { left: 70, top: 45, scale: 1.2, variant: 1 as const },
+    ]
+
     const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth <= 768 : false)
 
     useEffect(() => {
@@ -89,7 +104,13 @@ const CloudsBackground: React.FC = () => {
         }
     }, [])
 
-    const clouds = isMobile ? mobileClouds : desktopClouds
+    const clouds = isMobile
+        ? minimal
+            ? minimalMobileClouds
+            : mobileClouds
+        : minimal
+          ? minimalDesktopClouds
+          : desktopClouds
 
     return (
         <div style={{ position: 'absolute', width: '100%', height: '100%', overflow: 'hidden' }}>

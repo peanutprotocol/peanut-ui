@@ -1,5 +1,5 @@
 import { Button } from '@/components/0_Bruddle'
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
 
 const AddWallets = () => {
     const { handleNext } = useSetupFlow()

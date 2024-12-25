@@ -1,30 +1,40 @@
 export type ScreenId =
-    | 'pwa-install'
     | 'welcome'
-    | 'passkey'
-    | 'contact-info'
-    | 'success'
-    | 'noficiation-permission'
+    | 'signup'
+    | 'passkey-permission'
+    | 'passkey-success'
+    | 'notification-permission'
+    | 'pwa-install'
     | 'add-wallets'
+    | 'success'
+
+export type LayoutType = 'welcome' | 'signup' | 'standard'
 
 export type ScreenProps = {
     welcome: undefined
-    passkey: {
+    signup: undefined
+    'passkey-permission': {
         handle: string
     }
-    'noficiation-permission': undefined
+    'passkey-success': undefined
+    'notification-permission': undefined
     'add-wallets': undefined
     success: undefined
     'contact-info': undefined
     'pwa-install': undefined
 }
 
-export type Step = {
+export interface StepComponentProps {
+    handle?: string
+}
+
+export interface ISetupStep {
     screenId: ScreenId
-    active: boolean
+    layoutType: LayoutType
     title: string
     description?: string
-    containerClassname: HTMLDivElement['className']
-    component: () => JSX.Element
-    centerComponent: () => JSX.Element | null
+    image: string
+    component: React.ComponentType<StepComponentProps>
+    showBackButton?: boolean
+    showSkipButton?: boolean
 }
