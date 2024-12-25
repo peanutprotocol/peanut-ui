@@ -1,7 +1,7 @@
-import { useSetupFlow } from '../context/SetupFlowContext'
 import { Button } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { usePush } from '@/context/pushProvider'
+import { useSetupFlow } from '../context/SetupFlowContext'
 
 const NotificationPermission = () => {
     const { step, handleBack, handleNext } = useSetupFlow()

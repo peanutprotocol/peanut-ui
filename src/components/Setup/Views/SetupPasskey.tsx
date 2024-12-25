@@ -2,10 +2,10 @@ import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Icon from '@/components/Global/Icon'
 import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { PasskeyStorage } from '../Setup.helpers'
 import { useAuth } from '@/context/authContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { WalletProviderType } from '@/interfaces'
+import { PasskeyStorage } from '../Setup.helpers'
 
 const SetupPasskey = () => {
     const { handleNext, handleBack, isLoading, screenProps = { handle: '' } } = useSetupFlow()
