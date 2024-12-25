@@ -63,8 +63,8 @@ const Navigation = memo(
                     </Button>
                 )}
                 {showSkipButton && (
-                    <Button onClick={onSkip} variant="transparent-dark">
-                        Skip
+                    <Button onClick={onSkip} variant="transparent-dark" className="w-fit">
+                        <span className="text-gray-1">Skip</span>
                     </Button>
                 )}
             </div>
@@ -83,6 +83,7 @@ const ImageSection = ({ layoutType, image, screenId }: Pick<SetupLayoutProps, 'l
     const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
     const imageClass = 'w-full max-w-[75%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
+    console.log('screenId', screenId)
     // special rendering for welcome/signup screens with animated decorations
     if (isWelcomeOrSignup) {
         return (
@@ -124,7 +125,8 @@ const ImageSection = ({ layoutType, image, screenId }: Pick<SetupLayoutProps, 'l
         <div
             className={classNames(
                 containerClass,
-                'bg-blue-1/100 flex w-full flex-row items-center justify-center px-6 md:h-[100dvh] md:w-7/12'
+                'bg-blue-1/100 flex w-full flex-row items-center justify-center px-6 md:h-[100dvh] md:w-7/12',
+                screenId === 'success' && 'bg-yellow-1/15'
             )}
         >
             <Image

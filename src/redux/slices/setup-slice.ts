@@ -4,6 +4,7 @@ import { SETUP } from '../constants'
 import { ISetupState } from '../types/setup.types'
 
 const initialState: ISetupState = {
+    handle: '',
     currentStep: 1,
     direction: 0,
     isLoading: false,
@@ -14,10 +15,12 @@ const setupSlice = createSlice({
     name: SETUP,
     initialState,
     reducers: {
+        setHandle: (state, action: PayloadAction<string>) => {
+            state.handle = action.payload
+        },
         nextStep: (state, action: PayloadAction<ScreenProps[ScreenId] | undefined>) => {
             state.direction = 1
             state.currentStep = Math.min(state.steps.length, state.currentStep + 1)
-            state.screenProps = action.payload
         },
         previousStep: (state) => {
             state.direction = -1
@@ -26,9 +29,7 @@ const setupSlice = createSlice({
         setLoading: (state, action: PayloadAction<boolean>) => {
             state.isLoading = action.payload
         },
-        setScreenProps: (state, action: PayloadAction<ScreenProps[ScreenId] | undefined>) => {
-            state.screenProps = action.payload
-        },
+
         setSteps: (state, action: PayloadAction<ISetupStep[]>) => {
             state.steps = action.payload
         },

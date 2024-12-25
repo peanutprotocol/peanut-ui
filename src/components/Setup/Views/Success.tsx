@@ -11,7 +11,7 @@ const SetupSuccess = () => {
                 handleNext()
             }}
         >
-            Complete
+            {`Let's go`}
         </Button>
     )
 }

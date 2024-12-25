@@ -2,11 +2,15 @@ import { Button, Card } from '@/components/0_Bruddle'
 import ValidatedInput from '@/components/Global/ValidatedInput'
 import { next_proxy_url } from '@/constants'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useAppDispatch, useSetupStore } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
 import Link from 'next/link'
 import { useState } from 'react'
 
 const SignupStep = () => {
-    const [handle, setHandle] = useState('')
+    const dispatch = useAppDispatch()
+    // const [handle, setHandle] = useState('')
+    const { handle } = useSetupStore()
     const [error, setError] = useState('')
     const { handleNext, isLoading } = useSetupFlow()
     const [isValid, setIsValid] = useState(false)
@@ -44,7 +48,7 @@ const SignupStep = () => {
                             debounceTime={750}
                             validate={checkHandleValidity}
                             onUpdate={({ value, isChanging, isValid }) => {
-                                setHandle(value)
+                                dispatch(setupActions.setHandle(value))
                                 setIsValid(isValid)
                                 setIsChanging(isChanging)
                             }}
@@ -53,7 +57,7 @@ const SignupStep = () => {
                             className="w-4/12"
                             loading={isLoading || isChanging}
                             shadowSize="4"
-                            onClick={() => handleNext(async () => isValid, { handle })}
+                            onClick={() => handleNext(async () => isValid)}
                             disabled={!isValid || isChanging || isLoading}
                         >
                             Create

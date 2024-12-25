@@ -3,16 +3,16 @@ import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { WalletProviderType } from '@/interfaces'
+import { useSetupStore } from '@/redux/hooks'
 import { useState } from 'react'
 import { PasskeyStorage } from '../Setup.helpers'
 
 const SetupPasskey = () => {
-    const { handleNext, handleBack, isLoading, screenProps = { handle: '' } } = useSetupFlow()
+    const { handle } = useSetupStore()
+    const { handleNext, handleBack, isLoading } = useSetupFlow()
     const { handleRegister } = useZeroDev()
     const { fetchUser, addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
-
-    const { handle } = screenProps
 
     console.log('Creating passkey for handle', handle)
 

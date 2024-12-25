@@ -15,15 +15,6 @@ const AddWallets = () => {
             >
                 Connect
             </Button>
-            <Button
-                variant="stroke"
-                size="small"
-                onClick={() => {
-                    handleNext()
-                }}
-            >
-                Skip
-            </Button>
         </div>
     )
 }

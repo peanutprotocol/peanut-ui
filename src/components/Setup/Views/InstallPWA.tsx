@@ -1,4 +1,4 @@
-import { Button, Card } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useEffect, useState } from 'react'
 
@@ -170,13 +170,14 @@ const InstallPWA = () => {
 
     return (
         <div className="flex flex-col gap-4">
-            <Card>
+            {/* todo: move this into modal */}
+            {/* <Card>
                 <Card.Content>
                     {deviceType === 'ios' && <IOSInstructions />}
                     {deviceType === 'android' && <AndroidInstructions />}
                     {deviceType === 'desktop' && <DesktopInstructions />}
                 </Card.Content>
-            </Card>
+            </Card> */}
             <Button
                 onClick={(e) => {
                     e.preventDefault()
