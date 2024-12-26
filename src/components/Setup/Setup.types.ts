@@ -37,4 +37,5 @@ export interface ISetupStep {
     component: React.ComponentType<StepComponentProps>
     showBackButton?: boolean
     showSkipButton?: boolean
+    imageClassName?: string
 }

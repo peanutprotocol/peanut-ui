@@ -2,6 +2,7 @@ import passkeyPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_k
 import successPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_03/PNGS_konradurban_03_46.png'
 import notificationPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_06/PNGS_konradurban_06_11.png'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
+import { PEANUTMAN_MOBILE, PEANUTMAN_WALLET, ThumbsUp } from '@/assets'
 import { ISetupStep } from '@/components/Setup/Setup.types'
 import {
     AddWallets,
@@ -43,17 +44,18 @@ export const setupSteps: ISetupStep[] = [
         component: SetupPasskey,
         showBackButton: true,
         showSkipButton: false,
+        imageClassName: 'w-[55%] md:w-[35%] h-auto mt-14 md:mt-0',
     },
     {
         screenId: 'passkey-success',
         layoutType: 'standard',
         title: `Your Passkey is already setup now`,
         description: `Use your face or fingerprint to verify it's you. There's no need for a password.`,
-        // todo: replace with image from design
-        image: 'https://s3-alpha-sig.figma.com/img/e086/9fce/1967d88a6e8f75c882240879eb14c23e?Expires=1736121600&Key-Pair-Id=APKAQ4GOSFWCVNEHN3O4&Signature=YGygvtcricxKOAZOdua2jxq-oz46RuV~haLYJUTAqRl7eVE6j9kMF6Uhub~HmfpWAbHaE6ek~2WkB-NVyVeAKlq~9qg-YICB8upWECQrNj0MwQ0EKY4~3e~oW-EIEP5OmA~-6xrlzlLpuK8xYz5eMcJAsNdlbxzLTWpfO-En2UOGMlCrrXjwoxqNjQDSyOruOyAFjtxDRh-bd5qVnZUJddjj5LPs7q4HvmemzFFi0i4JP5dyzWG6x7zGzMCHZ-gLqS-ZQTAqFJYqCbHgHgnMswOrgFFoaJeoGXFhHBd6OuBNaies4iI5xUDF5rYC-N0BaP-2jWK0lyHoa-Ry2VXk8A__',
+        image: ThumbsUp,
         component: PasskeySuccess,
         showBackButton: true,
         showSkipButton: false,
+        imageClassName: 'w-[85%] md:w-[60%] h-auto mt-14 md:mt-0',
     },
     {
         screenId: 'notification-permission',
@@ -64,28 +66,29 @@ export const setupSteps: ISetupStep[] = [
         component: NotificationPermission,
         showBackButton: true,
         showSkipButton: true,
+        imageClassName: 'w-[65%] md:w-[40%] h-auto mt-14 md:mt-0',
     },
     {
         screenId: 'pwa-install',
         layoutType: 'standard',
         title: 'Install Peanut wallet App in your phone',
         description: 'You can directly use app from Homescreen on your phone.',
-        // todo: replace with image from design
-        image: passkeyPeanut.src,
+        image: PEANUTMAN_MOBILE,
         component: InstallPWA,
         showBackButton: true,
         showSkipButton: true,
+        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {
         screenId: 'add-wallets',
         layoutType: 'standard',
         title: 'Add extra wallet',
         description: 'Have another wallet? Add it here to keep everything in one place.',
-        // todo: replace with image from design
-        image: passkeyPeanut.src,
+        image: PEANUTMAN_WALLET,
         component: AddWallets,
         showBackButton: true,
         showSkipButton: true,
+        imageClassName: 'w-full md:w-[80%] h-full mt-20 md:mt-0',
     },
     {
         screenId: 'success',
@@ -96,5 +99,6 @@ export const setupSteps: ISetupStep[] = [
         component: SetupSuccess,
         showBackButton: true,
         showSkipButton: false,
+        imageClassName: 'w-[65%] md:w-[40%] h-auto mt-20 md:mt-0',
     },
 ]

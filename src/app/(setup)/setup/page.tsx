@@ -27,6 +27,7 @@ export default function SetupPage() {
             description={step.description}
             showBackButton={step.showBackButton}
             showSkipButton={step.showSkipButton}
+            imageClassName={step.imageClassName}
             onBack={handleBack}
             onSkip={() => handleNext()}
         >

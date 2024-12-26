@@ -17,6 +17,7 @@ interface SetupLayoutProps {
     screenId: ScreenId
     children: ReactNode
     image?: string
+    imageClassName?: string
     title?: string
     description?: string
     contentClassName?: string
@@ -77,12 +78,19 @@ const Navigation = memo(
  * renders differently based on layout type with optional animated decorations
  */
 const ImageSection = memo(
-    ({ layoutType, image, screenId }: Pick<SetupLayoutProps, 'layoutType' | 'image' | 'screenId'>) => {
+    ({
+        layoutType,
+        image,
+        screenId,
+        imageClassName,
+    }: Pick<SetupLayoutProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'>) => {
         if (!image) return null
 
         const isWelcomeOrSignup = layoutType === 'welcome' || layoutType === 'signup'
         const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-        const imageClass = 'w-full max-w-[75%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+        const imageClass = !!imageClassName
+            ? imageClassName
+            : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
         // special rendering for welcome/signup screens with animated decorations
         if (isWelcomeOrSignup) {
@@ -125,7 +133,7 @@ const ImageSection = memo(
             <div
                 className={classNames(
                     containerClass,
-                    'bg-blue-1/100 flex w-full flex-row items-center justify-center px-6 md:h-[100dvh] md:w-7/12',
+                    'bg-blue-1/100 flex w-full flex-row items-center justify-center md:h-[100dvh] md:w-7/12',
                     screenId === 'success' && 'bg-yellow-1/15'
                 )}
             >
@@ -160,6 +168,7 @@ export const SetupLayout = memo(
         onBack,
         onSkip,
         screenId,
+        imageClassName,
     }: SetupLayoutProps) => {
         return (
             <div className="flex min-h-[100dvh] flex-col">
@@ -174,7 +183,12 @@ export const SetupLayout = memo(
                 {/* content container */}
                 <div className="mx-auto flex w-full flex-grow flex-col md:flex-row">
                     {/* illustration section */}
-                    <ImageSection screenId={screenId} layoutType={layoutType} image={image} />
+                    <ImageSection
+                        imageClassName={imageClassName}
+                        screenId={screenId}
+                        layoutType={layoutType}
+                        image={image}
+                    />
 
                     {/* content section */}
                     <div
