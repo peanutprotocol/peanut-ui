@@ -12,7 +12,7 @@ import { LayoutType, ScreenId } from '../Setup.types'
  * props interface for the SetupLayout component
  * defines the structure and configuration options for the setup flow
  */
-interface SetupLayoutProps {
+interface SetupWrapperProps {
     layoutType: LayoutType
     screenId: ScreenId
     children: ReactNode
@@ -25,6 +25,8 @@ interface SetupLayoutProps {
     showSkipButton?: boolean
     onBack?: () => void
     onSkip?: () => void
+    step?: number
+    direction?: number
 }
 
 // define responsive height classes for different layout types
@@ -53,7 +55,7 @@ const Navigation = memo(
         showSkipButton,
         onBack,
         onSkip,
-    }: Pick<SetupLayoutProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'>) => {
+    }: Pick<SetupWrapperProps, 'showBackButton' | 'showSkipButton' | 'onBack' | 'onSkip'>) => {
         if (!showBackButton && !showSkipButton) return null
 
         return (
@@ -77,85 +79,83 @@ const Navigation = memo(
  * ImageSection component handles the illustrations and animations
  * renders differently based on layout type with optional animated decorations
  */
-const ImageSection = memo(
-    ({
-        layoutType,
-        image,
-        screenId,
-        imageClassName,
-    }: Pick<SetupLayoutProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'>) => {
-        if (!image) return null
+const ImageSection = ({
+    layoutType,
+    image,
+    screenId,
+    imageClassName,
+}: Pick<SetupWrapperProps, 'layoutType' | 'image' | 'screenId' | 'imageClassName'>) => {
+    if (!image) return null
 
-        const isWelcomeOrSignup = layoutType === 'welcome' || layoutType === 'signup'
-        const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-        const imageClass = !!imageClassName
-            ? imageClassName
-            : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+    const isWelcomeOrSignup = layoutType === 'welcome' || layoutType === 'signup'
+    const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
+    const imageClass = !!imageClassName
+        ? imageClassName
+        : 'w-full max-w-[80%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
-        // special rendering for welcome/signup screens with animated decorations
-        if (isWelcomeOrSignup) {
-            return (
-                <div
-                    className={twMerge(
-                        containerClass,
-                        'bg-blue-1/100 relative flex w-full flex-row items-center justify-center overflow-hidden px-4 md:h-[100dvh] md:w-7/12 md:px-6'
-                    )}
-                >
-                    {/* render animated star decorations */}
-                    {STAR_POSITIONS.map((positions, index) => (
-                        <Image
-                            key={index}
-                            src={starImage.src}
-                            alt="star"
-                            width={56}
-                            height={56}
-                            className={twMerge(positions, 'absolute z-10')}
-                            priority={index === 0}
-                        />
-                    ))}
-                    {/* animated clouds background */}
-                    <CloudsBackground minimal />
-                    {/* main illustration image */}
-                    <Image
-                        src={image}
-                        alt="Section illustration"
-                        width={500}
-                        height={500}
-                        className={imageClass}
-                        priority
-                    />
-                </div>
-            )
-        }
-
-        // standard layout rendering without decorations
+    // special rendering for welcome/signup screens with animated decorations
+    if (isWelcomeOrSignup) {
         return (
             <div
-                className={classNames(
+                className={twMerge(
                     containerClass,
-                    'bg-blue-1/100 flex w-full flex-row items-center justify-center md:h-[100dvh] md:w-7/12',
-                    screenId === 'success' && 'bg-yellow-1/15'
+                    'bg-blue-1/100 relative flex w-full flex-row items-center justify-center overflow-hidden px-4 md:h-[100dvh] md:w-7/12 md:px-6'
                 )}
             >
+                {/* render animated star decorations */}
+                {STAR_POSITIONS.map((positions, index) => (
+                    <Image
+                        key={index}
+                        src={starImage.src}
+                        alt="star"
+                        width={56}
+                        height={56}
+                        className={twMerge(positions, 'absolute z-10')}
+                        priority={index === 0}
+                    />
+                ))}
+                {/* animated clouds background */}
+                <CloudsBackground minimal />
+                {/* main illustration image */}
                 <Image
                     src={image}
                     alt="Section illustration"
                     width={500}
                     height={500}
-                    className={twMerge(imageClass)}
+                    className={imageClass}
                     priority
                 />
             </div>
         )
     }
-)
+
+    // standard layout rendering without decorations
+    return (
+        <div
+            className={classNames(
+                containerClass,
+                'bg-blue-1/100 flex w-full flex-row items-center justify-center md:h-[100dvh] md:w-7/12',
+                screenId === 'success' && 'bg-yellow-1/15'
+            )}
+        >
+            <Image
+                src={image}
+                alt="Section illustration"
+                width={500}
+                height={500}
+                className={twMerge(imageClass)}
+                priority
+            />
+        </div>
+    )
+}
 
 /**
  * main SetupLayout component
  * provides a responsive layout structure for setup/onboarding screens
  * uses dynamic viewport height (dvh) for better mobile browser compatibility
  */
-export const SetupLayout = memo(
+export const SetupWrapper = memo(
     ({
         layoutType,
         children,
@@ -169,7 +169,9 @@ export const SetupLayout = memo(
         onSkip,
         screenId,
         imageClassName,
-    }: SetupLayoutProps) => {
+        step = 0,
+        direction = 0,
+    }: SetupWrapperProps) => {
         return (
             <div className="flex min-h-[100dvh] flex-col">
                 {/* navigation buttons */}
@@ -193,12 +195,18 @@ export const SetupLayout = memo(
                     {/* content section */}
                     <div
                         className={twMerge(
-                            'flex flex-grow flex-col justify-between bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
+                            'flex flex-grow flex-col justify-between overflow-hidden bg-white px-6 pb-8 pt-6 md:h-[100dvh] md:justify-center md:space-y-4',
                             contentClassName
                         )}
                     >
+                        {/* todo: add transition animation */}
                         {/* title and description container */}
-                        <div className="mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs">
+                        <div
+                            className={twMerge(
+                                'mx-auto h-full w-full space-y-4 md:max-h-48 md:max-w-xs',
+                                screenId === 'signup' && 'md:max-h-12'
+                            )}
+                        >
                             {title && (
                                 <h1 className="w-full text-left text-3xl font-extrabold leading-tight">{title}</h1>
                             )}

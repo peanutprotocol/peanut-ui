@@ -1,7 +1,10 @@
 import { Button } from '@/components/0_Bruddle'
+import Icon from '@/components/Global/Icon'
 import { usePush } from '@/context/pushProvider'
+import { useSetupFlow } from '../context/SetupFlowContext'
 
 const NotificationPermission = () => {
+    const { step, handleBack, handleNext } = useSetupFlow()
     const { isSubscribed, subscribe, isSubscribing, send } = usePush()
 
     return (
@@ -15,8 +18,15 @@ const NotificationPermission = () => {
                         subscribe()
                     }}
                 >
-                    {isSubscribed ? 'Subscribed !' : 'Enable Notification'}
+                    <Icon name={isSubscribed ? 'notification-bell' : 'notification'} className="mr-2" />
+                    {isSubscribed ? 'Subscribed !' : 'Enable Notifications'}
                 </Button>
+            </div>
+            <div className="flex flex-row items-center gap-2">
+                <Button onClick={handleBack} variant="stroke">
+                    <Icon name="arrow-prev" />
+                </Button>
+                <Button onClick={() => handleNext()}>{isSubscribed ? 'Next' : 'Skip'}</Button>
             </div>
         </div>
     )

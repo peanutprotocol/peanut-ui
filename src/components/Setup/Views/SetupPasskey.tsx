@@ -1,24 +1,30 @@
 import { Button } from '@/components/0_Bruddle'
+<<<<<<< Updated upstream
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { WalletProviderType } from '@/interfaces'
 import { useSetupStore } from '@/redux/hooks'
 import { useState } from 'react'
+=======
+import { useToast } from '@/components/0_Bruddle/Toast'
+import Icon from '@/components/Global/Icon'
+import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
+import { useAuth } from '@/context/authContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { WalletProviderType } from '@/interfaces'
+>>>>>>> Stashed changes
 import { PasskeyStorage } from '../Setup.helpers'
 
 const SetupPasskey = () => {
     const { handle } = useSetupStore()
-    const { handleNext, handleBack, isLoading } = useSetupFlow()
+    const { handleNext, isLoading } = useSetupFlow()
     const { handleRegister } = useZeroDev()
     const { fetchUser, addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
 
-    console.log('Creating passkey for handle', handle)
-
     const createKey = async () => {
         try {
-            // set register
             const { account } = await handleRegister(handle)
             if (!account) {
                 throw new Error('Failed to register handle, account is undefined')
@@ -56,14 +62,7 @@ const SetupPasskey = () => {
 
     return (
         <div className="flex h-full flex-col justify-end gap-2 text-center">
-            <Button
-                loading={isLoading}
-                onClick={() => {
-                    handleNext(createKey)
-                }}
-                className="text-nowrap"
-                shadowSize="4"
-            >
+            <Button loading={isLoading} onClick={() => handleNext(createKey)} className="text-nowrap" shadowSize="4">
                 Add a passkey
             </Button>
             {error && <p className="text-sm font-bold text-error">{error}</p>}

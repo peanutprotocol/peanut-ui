@@ -1,6 +1,6 @@
 'use client'
 
-import { SetupLayout } from '@/components/Setup/components/SetupLayout'
+import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
 import { setupSteps } from '@/components/Setup/Setup.consts'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useAppDispatch } from '@/redux/hooks'
@@ -9,7 +9,7 @@ import { useEffect } from 'react'
 
 export default function SetupPage() {
     const dispatch = useAppDispatch()
-    const { step, handleNext, handleBack, screenProps } = useSetupFlow()
+    const { step, handleNext, handleBack } = useSetupFlow()
 
     useEffect(() => {
         dispatch(setupActions.setSteps(setupSteps))
@@ -19,7 +19,7 @@ export default function SetupPage() {
     if (!step) return null
 
     return (
-        <SetupLayout
+        <SetupWrapper
             layoutType={step.layoutType}
             screenId={step.screenId}
             image={step.image}
@@ -31,7 +31,7 @@ export default function SetupPage() {
             onBack={handleBack}
             onSkip={() => handleNext()}
         >
-            {screenProps ? <step.component {...screenProps} /> : <step.component />}
-        </SetupLayout>
+            <step.component />
+        </SetupWrapper>
     )
 }
