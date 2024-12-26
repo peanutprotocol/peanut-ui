@@ -66,7 +66,7 @@ const SetupPasskey = () => {
             >
                 Add a passkey
             </Button>
-            {error && <p className="text-error text-sm font-bold">{error}</p>}
+            {error && <p className="text-sm font-bold text-error">{error}</p>}
         </div>
     )
 }

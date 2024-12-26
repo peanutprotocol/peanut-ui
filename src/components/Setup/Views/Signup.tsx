@@ -63,7 +63,7 @@ const SignupStep = () => {
                             Create
                         </Button>
                     </div>
-                    {error && <p className="text-error text-sm font-bold">{error}</p>}
+                    {error && <p className="text-sm font-bold text-error">{error}</p>}
                 </div>
                 <div>
                     <p className="border-t border-gray-1 pt-2 text-center text-xs text-gray-1">

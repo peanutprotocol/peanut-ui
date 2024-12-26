@@ -1,5 +1,4 @@
 import { Button } from '@/components/0_Bruddle'
-import Icon from '@/components/Global/Icon'
 import { usePush } from '@/context/pushProvider'
 
 const NotificationPermission = () => {
@@ -16,8 +15,7 @@ const NotificationPermission = () => {
                         subscribe()
                     }}
                 >
-                    <Icon name={isSubscribed ? 'notification-bell' : 'notification'} className="mr-2" />
-                    {isSubscribed ? 'Subscribed !' : 'Enable Notifications'}
+                    {isSubscribed ? 'Subscribed !' : 'Enable Notification'}
                 </Button>
             </div>
         </div>

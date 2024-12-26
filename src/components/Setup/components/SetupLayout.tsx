@@ -28,9 +28,9 @@ interface SetupLayoutProps {
 
 // define responsive height classes for different layout types
 const IMAGE_CONTAINER_CLASSES: Record<LayoutType, string> = {
-    welcome: 'min-h-[45vh] md:h-full', // welcome view has smaller container height
-    signup: 'min-h-[55vh] md:h-full', // signup view has larger container height
-    standard: 'min-h-[50vh] md:h-full', // rest all views has medium container height
+    welcome: 'min-h-[45vh] md:min-h-full', // welcome view has smaller container height
+    signup: 'min-h-[55vh] md:min-h-full', // signup view has larger container height
+    standard: 'min-h-[50vh] md:min-h-full', // rest all views has medium container height
 }
 
 // define animated star decorations positions and sizes
@@ -56,14 +56,14 @@ const Navigation = memo(
         if (!showBackButton && !showSkipButton) return null
 
         return (
-            <div className="absolute top-6 z-20 flex w-full justify-between px-6">
+            <div className="absolute top-8 z-20 flex w-full items-center justify-between px-6">
                 {showBackButton && (
-                    <Button variant="stroke" onClick={onBack} className="h-10 w-10 p-0" aria-label="Go back">
-                        <Icon name="arrow-prev" className="h-[30px] w-[30px]" />
+                    <Button variant="stroke" onClick={onBack} className="h-8 w-8 p-0" aria-label="Go back">
+                        <Icon name="arrow-prev" className="h-7 w-7" />
                     </Button>
                 )}
                 {showSkipButton && (
-                    <Button onClick={onSkip} variant="transparent-dark" className="w-fit">
+                    <Button onClick={onSkip} variant="transparent-dark" className="h-auto w-fit p-0">
                         <span className="text-gray-1">Skip</span>
                     </Button>
                 )}
@@ -76,70 +76,71 @@ const Navigation = memo(
  * ImageSection component handles the illustrations and animations
  * renders differently based on layout type with optional animated decorations
  */
-const ImageSection = ({ layoutType, image, screenId }: Pick<SetupLayoutProps, 'layoutType' | 'image' | 'screenId'>) => {
-    if (!image) return null
+const ImageSection = memo(
+    ({ layoutType, image, screenId }: Pick<SetupLayoutProps, 'layoutType' | 'image' | 'screenId'>) => {
+        if (!image) return null
 
-    const isWelcomeOrSignup = layoutType === 'welcome' || layoutType === 'signup'
-    const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
-    const imageClass = 'w-full max-w-[75%] md:max-w-[75%] lg:max-w-xl object-contain relative'
+        const isWelcomeOrSignup = layoutType === 'welcome' || layoutType === 'signup'
+        const containerClass = IMAGE_CONTAINER_CLASSES[layoutType]
+        const imageClass = 'w-full max-w-[75%] md:max-w-[75%] lg:max-w-xl object-contain relative'
 
-    console.log('screenId', screenId)
-    // special rendering for welcome/signup screens with animated decorations
-    if (isWelcomeOrSignup) {
+        // special rendering for welcome/signup screens with animated decorations
+        if (isWelcomeOrSignup) {
+            return (
+                <div
+                    className={twMerge(
+                        containerClass,
+                        'bg-blue-1/100 relative flex w-full flex-row items-center justify-center overflow-hidden px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    )}
+                >
+                    {/* render animated star decorations */}
+                    {STAR_POSITIONS.map((positions, index) => (
+                        <Image
+                            key={index}
+                            src={starImage.src}
+                            alt="star"
+                            width={56}
+                            height={56}
+                            className={twMerge(positions, 'absolute z-10')}
+                            priority={index === 0}
+                        />
+                    ))}
+                    {/* animated clouds background */}
+                    <CloudsBackground minimal />
+                    {/* main illustration image */}
+                    <Image
+                        src={image}
+                        alt="Section illustration"
+                        width={500}
+                        height={500}
+                        className={imageClass}
+                        priority
+                    />
+                </div>
+            )
+        }
+
+        // standard layout rendering without decorations
         return (
             <div
-                className={twMerge(
+                className={classNames(
                     containerClass,
-                    'bg-blue-1/100 relative flex w-full flex-row items-center justify-center overflow-hidden px-4 md:h-[100dvh] md:w-7/12 md:px-6'
+                    'bg-blue-1/100 flex w-full flex-row items-center justify-center px-6 md:h-[100dvh] md:w-7/12',
+                    screenId === 'success' && 'bg-yellow-1/15'
                 )}
             >
-                {/* render animated star decorations */}
-                {STAR_POSITIONS.map((positions, index) => (
-                    <Image
-                        key={index}
-                        src={starImage.src}
-                        alt="star"
-                        width={56}
-                        height={56}
-                        className={twMerge(positions, 'absolute z-10')}
-                        priority={index === 0}
-                    />
-                ))}
-                {/* animated clouds background */}
-                <CloudsBackground minimal />
-                {/* main illustration image */}
                 <Image
                     src={image}
                     alt="Section illustration"
                     width={500}
                     height={500}
-                    className={imageClass}
+                    className={twMerge(imageClass)}
                     priority
                 />
             </div>
         )
     }
-
-    // standard layout rendering without decorations
-    return (
-        <div
-            className={classNames(
-                containerClass,
-                'bg-blue-1/100 flex w-full flex-row items-center justify-center px-6 md:h-[100dvh] md:w-7/12',
-                screenId === 'success' && 'bg-yellow-1/15'
-            )}
-        >
-            <Image
-                src={image}
-                alt="Section illustration"
-                width={500}
-                height={500}
-                className={twMerge(imageClass)}
-                priority
-            />
-        </div>
-    )
-}
+)
 
 /**
  * main SetupLayout component

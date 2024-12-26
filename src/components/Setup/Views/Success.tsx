@@ -1,14 +1,14 @@
 import { Button } from '@/components/0_Bruddle'
-import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useRouter } from 'next/navigation'
 
 const SetupSuccess = () => {
-    const { handleNext } = useSetupFlow()
+    const router = useRouter()
 
     return (
         <Button
             shadowSize="4"
             onClick={() => {
-                handleNext()
+                router.push('/home')
             }}
         >
             {`Let's go`}
