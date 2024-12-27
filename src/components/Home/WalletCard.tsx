@@ -39,7 +39,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         return (
             <motion.div className="h-full">
                 <Card
-                    className="bg-purple-4/20 h-full min-w-[300px] rounded-xl text-black hover:cursor-pointer"
+                    className="h-full min-w-[300px] rounded-xl bg-purple-4/20 text-black hover:cursor-pointer"
                     shadowSize="6"
                     onClick={onClick}
                 >
