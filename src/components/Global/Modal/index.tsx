@@ -1,7 +1,7 @@
-import { Fragment } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { twMerge } from 'tailwind-merge'
 import Icon from '@/components/Global/Icon'
+import { Dialog, Transition } from '@headlessui/react'
+import { Fragment } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 type ModalProps = {
     className?: string
@@ -18,6 +18,7 @@ type ModalProps = {
     classNameWrapperDiv?: string
     showPrev?: boolean
     onPrev?: () => void
+    hideCloseButton?: boolean
 }
 
 const Modal = ({
@@ -35,6 +36,7 @@ const Modal = ({
     classNameWrapperDiv,
     showPrev,
     onPrev,
+    hideCloseButton = false,
 }: ModalProps) => {
     return (
         <Transition show={visible} as={Fragment}>
@@ -99,16 +101,19 @@ const Modal = ({
                                 ) : (
                                     children
                                 )}
-                                <button
-                                    className={twMerge(
-                                        `absolute right-4 top-4 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 ${
-                                            video ? 'absolute right-5 top-5 h-10 w-10 fill-white' : ''
-                                        } ${classButtonClose}`
-                                    )}
-                                    onClick={onClose}
-                                >
-                                    <Icon className="h-6 w-6 fill-inherit transition-colors" name="close" />
-                                </button>
+
+                                {!hideCloseButton && (
+                                    <button
+                                        className={twMerge(
+                                            `absolute right-4 top-4 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 ${
+                                                video ? 'absolute right-5 top-5 h-10 w-10 fill-white' : ''
+                                            } ${classButtonClose}`
+                                        )}
+                                        onClick={onClose}
+                                    >
+                                        <Icon className="h-6 w-6 fill-inherit transition-colors" name="close" />
+                                    </button>
+                                )}
                             </>
                         ) : (
                             <> {children}</>
