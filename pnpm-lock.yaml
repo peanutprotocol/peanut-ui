@@ -200,6 +200,9 @@ importers:
       jest-environment-jsdom:
         specifier: ^29.7.0
         version: 29.7.0(bufferutil@4.0.8)
+      jest-transform-stub:
+        specifier: ^2.0.0
+        version: 2.0.0
       knip:
         specifier: ^5.37.1
         version: 5.41.1(@types/node@20.4.2)(typescript@5.7.2)
@@ -4489,6 +4492,9 @@ packages:
 
   jest-summary-reporter@0.0.2:
     resolution: {integrity: sha512-rZ3ThO57l+ZJCxF74cXIGQU3cV9I7bSBe1ElBp0taE3x2JghgD69bNCKt0LvpVQX5azTRHG7LmcjIpwriVnTng==}
+
+  jest-transform-stub@2.0.0:
+    resolution: {integrity: sha512-lspHaCRx/mBbnm3h4uMMS3R5aZzMwyNpNIJLXj4cEsV0mIUtS4IjYJLSoyjRCtnxb6RIGJ4NL2quZzfIeNhbkg==}
 
   jest-util@29.7.0:
     resolution: {integrity: sha512-z6EbKajIpqGKU56y5KBUgy1dt1ihhQJgWzUlZHArA/+X2ad7Cb5iF+AK1EWVL/Bo7Rz9uurpqw6SiBCefUbCGA==}
@@ -12668,6 +12674,8 @@ snapshots:
   jest-summary-reporter@0.0.2:
     dependencies:
       chalk: 2.4.2
+
+  jest-transform-stub@2.0.0: {}
 
   jest-util@29.7.0:
     dependencies:
