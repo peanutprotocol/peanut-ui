@@ -70,7 +70,7 @@ export default function LandingPage() {
                     {
                         imageSrc: assets.SHARUK_PERSON.src,
                         altText: 'eco man',
-                        comment: 'The easiest way to pay people!',
+                        comment: 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA',
                         name: 'Gianluca',
                         detail: 'Eco',
                         detailRedirectUrl: 'https://eco.org/?ref=com',
