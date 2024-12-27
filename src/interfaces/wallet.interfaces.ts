@@ -1,4 +1,3 @@
-import { Address } from 'viem'
 import * as interfaces from '@/interfaces'
 
 // based on API AccountType
@@ -17,6 +16,7 @@ export interface IDBWallet {
     walletProviderType: WalletProviderType
     protocolType: WalletProtocolType
     address: string
+    walletIcon?: string
 }
 
 export interface IWallet extends IDBWallet {
