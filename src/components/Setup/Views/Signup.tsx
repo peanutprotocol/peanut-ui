@@ -78,12 +78,12 @@ const SignupStep = () => {
 
     return (
         <Card className="border-0">
-            <Card.Content className="flex h-full min-h-42 flex-col justify-between p-0">
+            <Card.Content className="flex h-full min-h-42 flex-col justify-between p-0 md:min-h-32">
                 <div className="w-full space-y-2">
                     <div className="flex items-center gap-2">
                         <ValidatedInput
                             className=""
-                            placeholder="Pick your new handle"
+                            placeholder="Choose your handle"
                             value={handle}
                             debounceTime={750}
                             validate={checkHandleValidity}
@@ -91,8 +91,7 @@ const SignupStep = () => {
                         />
                         <Button
                             className="w-4/12"
-                            // loading={isLoading || isChanging}
-                            loading={true}
+                            loading={isLoading || isChanging}
                             shadowSize="4"
                             onClick={() => handleNext(async () => isValid)}
                             disabled={!isValid || isChanging || isLoading}
@@ -100,7 +99,7 @@ const SignupStep = () => {
                             Create
                         </Button>
                     </div>
-                    {error && <p className="text-error text-sm font-bold">{error}</p>}
+                    {error && <p className="text-sm font-bold text-error">{error}</p>}
                 </div>
                 <div>
                     <p className="border-t border-gray-1 pt-2 text-center text-xs text-gray-1">
@@ -108,6 +107,7 @@ const SignupStep = () => {
                         <Link
                             rel="noopener noreferrer"
                             target="_blank"
+                            className="underline underline-offset-2"
                             href="https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4"
                         >
                             T&C and Privacy Policy

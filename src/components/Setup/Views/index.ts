@@ -1,5 +1,4 @@
 export { default as AddWallets } from './AddWallets'
-export * from './Handle.provider.view'
 export { default as InstallPWA } from './InstallPWA'
 export { default as NotificationPermission } from './NotificationPermission'
 export { default as PasskeySuccess } from './PasskeySuccess'

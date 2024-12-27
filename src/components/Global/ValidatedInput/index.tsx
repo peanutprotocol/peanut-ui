@@ -3,6 +3,7 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
 import Loading from '../Loading'
+
 type ValidatedInputProps = {
     label?: string
     value: string

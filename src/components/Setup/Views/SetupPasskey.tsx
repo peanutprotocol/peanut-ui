@@ -1,19 +1,10 @@
 import { Button } from '@/components/0_Bruddle'
-<<<<<<< Updated upstream
 import { useAuth } from '@/context/authContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { WalletProviderType } from '@/interfaces'
 import { useSetupStore } from '@/redux/hooks'
 import { useState } from 'react'
-=======
-import { useToast } from '@/components/0_Bruddle/Toast'
-import Icon from '@/components/Global/Icon'
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
-import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { WalletProviderType } from '@/interfaces'
->>>>>>> Stashed changes
 import { PasskeyStorage } from '../Setup.helpers'
 
 const SetupPasskey = () => {

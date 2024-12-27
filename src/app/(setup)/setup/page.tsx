@@ -1,19 +1,24 @@
 'use client'
 
 import { SetupWrapper } from '@/components/Setup/components/SetupWrapper'
-import { setupSteps } from '@/components/Setup/Setup.consts'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useAppDispatch } from '@/redux/hooks'
-import { setupActions } from '@/redux/slices/setup-slice'
-import { useEffect } from 'react'
+import { useSetupStore } from '@/redux/hooks'
+import { useEffect, useState } from 'react'
 
 export default function SetupPage() {
-    const dispatch = useAppDispatch()
+    const { steps } = useSetupStore()
     const { step, handleNext, handleBack } = useSetupFlow()
+    const [direction, setDirection] = useState(0)
+    const [currentStepIndex, setCurrentStepIndex] = useState(0)
 
     useEffect(() => {
-        dispatch(setupActions.setSteps(setupSteps))
-    }, [dispatch])
+        if (step) {
+            // determine direction based on new step index
+            const newIndex = steps.findIndex((s) => s.screenId === step.screenId)
+            setDirection(newIndex > currentStepIndex ? 1 : -1)
+            setCurrentStepIndex(newIndex)
+        }
+    }, [step, currentStepIndex])
 
     // todo: add loading state
     if (!step) return null
@@ -30,6 +35,8 @@ export default function SetupPage() {
             imageClassName={step.imageClassName}
             onBack={handleBack}
             onSkip={() => handleNext()}
+            step={currentStepIndex}
+            direction={direction}
         >
             <step.component />
         </SetupWrapper>

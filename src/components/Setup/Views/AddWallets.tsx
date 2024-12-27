@@ -1,10 +1,12 @@
 import { Button } from '@/components/0_Bruddle'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useAppKit } from '@reown/appkit/react'
+import { useWeb3Modal } from '@web3modal/wagmi/react'
+// import { useAppKit } from '@reown/appkit/react'
 import { useAccount } from 'wagmi'
 
 const AddWallets = () => {
-    const { open } = useAppKit()
+    // todo: replace with reown once merged with main
+    const { open } = useWeb3Modal()
     const { isConnected, isConnecting } = useAccount()
     const { handleNext } = useSetupFlow()
 

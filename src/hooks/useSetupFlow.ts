@@ -1,4 +1,4 @@
-import { ScreenId } from '@/components/Setup/Setup.types'
+import { ScreenId, ScreenProps } from '@/components/Setup/Setup.types'
 import { useAppDispatch, useSetupStore } from '@/redux/hooks'
 import { setupActions } from '@/redux/slices/setup-slice'
 import { useCallback } from 'react'
@@ -12,7 +12,7 @@ export const useSetupFlow = () => {
     const isLastStep = currentStep === steps.length
 
     const handleNext = useCallback(
-        async <T extends ScreenId>(callback?: () => Promise<boolean>) => {
+        async <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => {
             dispatch(setupActions.setLoading(true))
 
             try {

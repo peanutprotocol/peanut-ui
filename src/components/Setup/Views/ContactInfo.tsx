@@ -1,12 +1,7 @@
 import { Button, Field } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-<<<<<<< Updated upstream
 import { useAuth } from '@/context/authContext'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-=======
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
-import { useAuth } from '@/context/authContext'
->>>>>>> Stashed changes
 import { yupResolver } from '@hookform/resolvers/yup'
 import { useMutation } from '@tanstack/react-query'
 import { FormProvider, useForm } from 'react-hook-form'
