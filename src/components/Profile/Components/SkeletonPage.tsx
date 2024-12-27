@@ -1,9 +1,9 @@
-import React, { useState } from 'react'
 import * as assets from '@/assets'
 import Loading from '@/components/Global/Loading'
 import { GlobalLoginComponent } from '@/components/Global/LoginComponent'
 import { GlobalRegisterComponent } from '@/components/Global/RegisterComponent'
 import { useWallet } from '@/context/walletContext'
+import { useState } from 'react'
 
 type ProfileSkeletonProps = {
     onClick: () => void

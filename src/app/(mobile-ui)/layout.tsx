@@ -1,24 +1,23 @@
 'use client'
 
-import '../../styles/globals.bruddle.css'
 import { Button, NavIcons, NavIconsName } from '@/components/0_Bruddle'
-import Link from 'next/link'
-import { useEffect, useState, useMemo } from 'react'
+import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import Icon from '@/components/Global/Icon'
 import Modal from '@/components/Global/Modal'
+import HomeWaitlist from '@/components/Home/HomeWaitlist'
+import WalletToggleButton from '@/components/Home/WalletToggleButton'
+import { peanutWalletIsInPreview } from '@/constants'
+import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { usePathname } from 'next/navigation'
-import classNames from 'classnames'
-import Icon from '@/components/Global/Icon'
-import { useRouter } from 'next/navigation'
-import WalletToggleButton from '@/components/Home/WalletToggleButton'
-import { useAuth } from '@/context/authContext'
-import HomeWaitlist from '@/components/Home/HomeWaitlist'
-import { peanutWalletIsInPreview } from '@/constants'
-import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
 import { colorMap } from '@/utils'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { useAppKit } from '@reown/appkit/react'
+import classNames from 'classnames'
+import Link from 'next/link'
+import { usePathname, useRouter } from 'next/navigation'
+import { useEffect, useMemo, useState } from 'react'
+import '../../styles/globals.bruddle.css'
 
 type ScreenProps = {
     name: string
@@ -107,7 +106,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const { back } = useRouter()
     const [isReady, setIsReady] = useState(false)
     const { signInModal, selectExternalWallet } = useWallet()
-    const web3Modal = useWeb3Modal()
+    const web3Modal = useAppKit()
     const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()

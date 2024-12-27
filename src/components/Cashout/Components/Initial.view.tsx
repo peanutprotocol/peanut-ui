@@ -1,27 +1,27 @@
 'use client'
 
+import * as assets from '@/assets'
+import { Button, Card } from '@/components/0_Bruddle'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useState, useContext, useEffect, useMemo } from 'react'
-import * as _consts from '../Cashout.consts'
+import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
+import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
-import { useCreateLink } from '@/components/Create/useCreateLink'
-import * as assets from '@/assets'
-import { formatIban, validateBankAccount, floorFixed, balanceByToken, printableUsdc } from '@/utils'
+import { useWallet } from '@/context/walletContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { balanceByToken, floorFixed, formatIban, printableUsdc, validateBankAccount } from '@/utils'
+import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
+import { useAppKit } from '@reown/appkit/react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
+import * as _consts from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
-import Icon from '@/components/Global/Icon'
-import { twMerge } from 'tailwind-merge'
-import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
-import { Button, Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
-import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
-import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { useToast } from '@/components/0_Bruddle/Toast'
 
 export const InitialCashoutView = ({
     onNext,
@@ -78,7 +78,7 @@ export const InitialCashoutView = ({
     const { prepareCreateLinkWrapper } = useCreateLink()
 
     const { isConnected, signInModal, selectedWallet, isExternalWallet, isPeanutWallet } = useWallet()
-    const { open: web3modalOpen } = useWeb3Modal()
+    const { open: web3modalOpen } = useAppKit()
 
     const isBelowMinLimit = useMemo(() => {
         if (!usdValue) return false
@@ -166,7 +166,7 @@ export const InitialCashoutView = ({
                     recipient: bankAccountNumber,
                     password: '',
                 })
-                if (user?.user.kycStatus == 'verified') {
+                if (user?.user.kycStatus === 'approved') {
                     const account = user.accounts.find(
                         (account: any) =>
                             account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
@@ -382,7 +382,7 @@ export const InitialCashoutView = ({
                                         setErrorState({
                                             showError: true,
                                             errorMessage:
-                                                'Invalid bank account. For US bank accounts, enter your routing number and account number separately.',
+                                                'Invalid Bank account. If this is a US bank account, please enter it without the routing number.',
                                         })
                                     } else {
                                         setErrorState({

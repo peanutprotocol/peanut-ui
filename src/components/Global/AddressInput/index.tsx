@@ -18,14 +18,13 @@ const AddressInput = ({ placeholder = 'Enter a valid address', value, onUpdate, 
                 const resolvedAddress = await resolveFromEnsName(recipient.toLowerCase())
                 return !!resolvedAddress
             } else {
-                return isAddress(recipient, { strict: false })
+                return isAddress(recipient)
             }
         } catch (error) {
             console.error('Error while validating recipient input field:', error)
             return false
         }
     }
-
     return (
         <ValidatedInput
             placeholder={placeholder}

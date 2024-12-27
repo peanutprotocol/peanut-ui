@@ -9,20 +9,23 @@ export async function POST(request: NextRequest) {
             throw new Error('BRIDGE_API_KEY is not defined')
         }
 
-        const getUserFromCookieRequest = new NextRequest('/api/peanut/user/get-user-from-cookie', {
-            method: 'GET',
-            headers: {
-                cookie: request.headers.get('cookie') ?? '',
-                ...request.headers,
-            },
-        })
+        const getUserFromCookieRequest = new NextRequest(
+            `${process.env.NEXT_PUBLIC_BASE_URL}/api/peanut/user/get-user-from-cookie`,
+            {
+                method: 'GET',
+                headers: {
+                    cookie: request.headers.get('cookie') ?? '',
+                    ...request.headers,
+                },
+            }
+        )
         const getUserFromCookieResponse = await getUserFromCookie(getUserFromCookieRequest)
         if (!getUserFromCookieResponse.ok) {
             return new NextResponse('Unauthorized', { status: 401 })
         }
         const { user } = await getUserFromCookieResponse.json()
 
-        if (userId !== user?.id) {
+        if (userId !== user?.bridge_customer_id) {
             return new NextResponse('Forbidden', { status: 403 })
         }
 
@@ -55,7 +58,7 @@ export async function POST(request: NextRequest) {
                 },
             })
         } else if (type === 'customer_id') {
-            return new NextResponse(JSON.stringify({ customer_id: data.customer_id }), {
+            return new NextResponse(JSON.stringify({ id: data.customer_id, kyc_status: data.kyc_status }), {
                 status: 200,
                 headers: {
                     'Content-Type': 'application/json',

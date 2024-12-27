@@ -1,13 +1,13 @@
 'use client'
 
-import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 
-import * as _consts from './Create.consts'
 import * as context from '@/context'
+import { useWallet } from '@/context/walletContext'
 import * as utils from '@/utils'
 import PageContainer from '../0_Bruddle/PageContainer'
-import { useWallet } from '@/context/walletContext'
+import * as _consts from './Create.consts'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -120,45 +120,47 @@ export const Create = () => {
     return (
         <Suspense>
             <PageContainer>
-                {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
-                    onPrev: handleOnPrev,
-                    onNext: handleOnNext,
-                    tokenValue: tokenValue,
-                    setTokenValue: setTokenValue,
-                    linkDetails: linkDetails,
-                    setLinkDetails: setLinkDetails,
-                    password: password,
-                    setPassword: setPassword,
-                    transactionType: transactionType,
-                    setTransactionType: setTransactionType,
-                    gaslessPayload: gaslessPayload,
-                    setGaslessPayload: setGaslessPayload,
-                    gaslessPayloadMessage: gaslessPayloadMessage,
-                    setGaslessPayloadMessage: setGaslessPayloadMessage,
-                    preparedDepositTxs: preparedDepositTxs,
-                    setPreparedDepositTxs: setPreparedDepositTxs,
-                    txHash: txHash,
-                    setTxHash: setTxHash,
-                    link: link,
-                    setLink: setLink,
-                    feeOptions,
-                    setFeeOptions,
-                    transactionCostUSD,
-                    setTransactionCostUSD,
-                    estimatedPoints,
-                    setEstimatedPoints,
-                    attachmentOptions,
-                    setAttachmentOptions,
-                    createType,
-                    setCreateType,
-                    recipient,
-                    setRecipient,
-                    recentRecipients,
+                <div className="card max-w-lg">
+                    {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
+                        onPrev: handleOnPrev,
+                        onNext: handleOnNext,
+                        tokenValue: tokenValue,
+                        setTokenValue: setTokenValue,
+                        linkDetails: linkDetails,
+                        setLinkDetails: setLinkDetails,
+                        password: password,
+                        setPassword: setPassword,
+                        transactionType: transactionType,
+                        setTransactionType: setTransactionType,
+                        gaslessPayload: gaslessPayload,
+                        setGaslessPayload: setGaslessPayload,
+                        gaslessPayloadMessage: gaslessPayloadMessage,
+                        setGaslessPayloadMessage: setGaslessPayloadMessage,
+                        preparedDepositTxs: preparedDepositTxs,
+                        setPreparedDepositTxs: setPreparedDepositTxs,
+                        txHash: txHash,
+                        setTxHash: setTxHash,
+                        link: link,
+                        setLink: setLink,
+                        feeOptions,
+                        setFeeOptions,
+                        transactionCostUSD,
+                        setTransactionCostUSD,
+                        estimatedPoints,
+                        setEstimatedPoints,
+                        attachmentOptions,
+                        setAttachmentOptions,
+                        createType,
+                        setCreateType,
+                        recipient,
+                        setRecipient,
+                        recentRecipients,
 
-                    crossChainDetails,
-                    usdValue,
-                    setUsdValue,
-                } as _consts.ICreateScreenProps)}
+                        crossChainDetails,
+                        usdValue,
+                        setUsdValue,
+                    } as _consts.ICreateScreenProps)}
+                </div>
             </PageContainer>
         </Suspense>
     )

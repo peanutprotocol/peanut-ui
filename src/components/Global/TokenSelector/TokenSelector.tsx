@@ -1,22 +1,23 @@
 'use client'
 
+import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
+import * as context from '@/context'
+import { IToken, IUserBalance } from '@/interfaces'
+import { areEvmAddressesEqual, formatTokenAmount } from '@/utils'
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import ChainSelector from '../ChainSelector'
 import Modal from '../Modal'
 import Search from '../Search'
-import ChainSelector from '../ChainSelector'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
-import * as context from '@/context'
-import { areEvmAddressesEqual, formatTokenAmount } from '@/utils'
 import { AdvancedTokenSelectorButton } from './Components'
-import { IUserBalance, IToken } from '@/interfaces'
 
-import { TokenSelectorProps } from './TokenSelector.consts'
-import { useWalletType } from '@/hooks/useWalletType'
-import Icon from '../Icon'
 import { CrispButton } from '@/components/CrispChat'
 import { useWallet } from '@/context/walletContext'
+import { useWalletType } from '@/hooks/useWalletType'
+import { useAppKit } from '@reown/appkit/react'
 import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Image from 'next/image'
+import Icon from '../Icon'
+import { TokenSelectorProps } from './TokenSelector.consts'
 
 const TokenList = ({ balances, setToken }: { balances: IUserBalance[]; setToken: (address: IUserBalance) => void }) => {
     const { selectedChainID, selectedTokenAddress, supportedSquidChainsAndTokens } = useContext(
@@ -183,6 +184,7 @@ const TokenSelector = ({
         isXChain,
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
+    const { open } = useAppKit()
     const { safeInfo, walletType } = useWalletType()
 
     const selectedChainTokens = useMemo(() => {

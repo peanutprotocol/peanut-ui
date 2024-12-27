@@ -1,14 +1,14 @@
 'use client'
 
-import { GlobaLinkAccountComponent } from '../Global/LinkAccountComponent'
-import { useAuth } from '@/context/authContext'
 import * as assets from '@/assets'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
 import Link from 'next/link'
 import { useContext, useState } from 'react'
-import * as context from '@/context'
-import PageContainer from '../0_Bruddle/PageContainer'
 import { Button, Card } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
+import PageContainer from '../0_Bruddle/PageContainer'
+import { GlobaLinkAccountComponent } from '../Global/LinkAccountComponent'
 
 export const LinkAccountComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()

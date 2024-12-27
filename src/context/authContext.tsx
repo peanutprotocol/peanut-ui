@@ -1,11 +1,12 @@
 'use client'
-import { createContext, useContext, ReactNode, useRef } from 'react'
-import * as interfaces from '@/interfaces'
-import { useToast, ToastId } from '@chakra-ui/react'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useQuery } from '@tanstack/react-query'
-import { hitUserMetric } from '@/utils/metrics.utils'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
+import * as interfaces from '@/interfaces'
+import { type GetUserLinksResponse } from '@/utils'
+import { hitUserMetric } from '@/utils/metrics.utils'
+import { ToastId, useToast } from '@chakra-ui/react'
+import { useAppKit } from '@reown/appkit/react'
+import { useQuery } from '@tanstack/react-query'
+import { createContext, ReactNode, useContext, useRef } from 'react'
 
 interface AuthContextType {
     user: interfaces.IUserProfile | null
@@ -14,7 +15,7 @@ interface AuthContextType {
     fetchUser: () => Promise<interfaces.IUserProfile | null>
     updateUserName: (username: string) => Promise<void>
     submitProfilePhoto: (file: File) => Promise<void>
-    updateBridgeCustomerId: (bridgeCustomerId: string) => Promise<void>
+    updateBridgeCustomerData: (customer: GetUserLinksResponse) => Promise<void>
     addBYOW: () => Promise<void>
     addAccount: ({
         accountIdentifier,
@@ -36,7 +37,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
  * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
  */
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-    const { open: web3modalOpen } = useWeb3Modal()
+    const { open: web3modalOpen } = useAppKit()
     const isPwa = usePWAStatus()
     const {
         data: user,
@@ -128,7 +129,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             fetchUser()
         }
     }
-    const updateBridgeCustomerId = async (bridgeCustomerId: string) => {
+    const updateBridgeCustomerData = async (customer: GetUserLinksResponse) => {
         if (!user) return
 
         try {
@@ -138,8 +139,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    bridge_customer_id: bridgeCustomerId,
+                    bridge_customer_id: customer.id,
                     userId: user.user.userId,
+                    kycStatus: customer.kyc_status,
                 }),
             })
 
@@ -268,7 +270,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 user,
                 userId: user?.user?.userId,
                 username: user?.user?.username ?? undefined,
-                updateBridgeCustomerId,
+                updateBridgeCustomerData,
                 fetchUser: legacy_fetchUser,
                 updateUserName,
                 submitProfilePhoto,

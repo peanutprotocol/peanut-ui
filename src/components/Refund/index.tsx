@@ -1,25 +1,26 @@
 'use client'
+import peanut from '@squirrel-labs/peanut-sdk'
 import { useForm } from 'react-hook-form'
 import { useConfig, useSendTransaction } from 'wagmi'
-import peanut from '@squirrel-labs/peanut-sdk'
 
 import * as consts from '@/constants'
 import * as context from '@/context'
+import { useWallet } from '@/context/walletContext'
 import * as utils from '@/utils'
-import Select from '../Global/Select'
-import { useState, useContext } from 'react'
-import { useCreateLink } from '../Create/useCreateLink'
+import { useAppKit } from '@reown/appkit/react'
+import { useContext, useState } from 'react'
 import { waitForTransactionReceipt } from 'wagmi/actions'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
 import { Button, Card } from '../0_Bruddle'
 import BaseInput from '../0_Bruddle/BaseInput'
 import PageContainer from '../0_Bruddle/PageContainer'
-import { useWallet } from '@/context/walletContext'
+import { useCreateLink } from '../Create/useCreateLink'
+import Select from '../Global/Select'
 
 export const Refund = () => {
     const { isConnected, signInModal } = useWallet()
     const { sendTransactionAsync } = useSendTransaction()
     const config = useConfig()
+    const { open } = useAppKit()
 
     const [errorState, setErrorState] = useState<{
         showError: boolean

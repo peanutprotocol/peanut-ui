@@ -5,6 +5,21 @@ import countries from 'i18n-iso-countries'
 import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 
+const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
+
+// Helper function to check if the app is running within an allowed iframe
+const isInAllowedFrame = (): boolean => {
+    if (window.location === window.parent.location) return false
+
+    // Check ancestor origins (modern browsers)
+    if (window.location.ancestorOrigins?.length) {
+        return ALLOWED_PARENT_DOMAINS.some((domain) => window.location.ancestorOrigins[0].includes(domain))
+    }
+
+    // Fallback to referrer check
+    return ALLOWED_PARENT_DOMAINS.some((domain) => document.referrer.includes(domain))
+}
+
 export const convertPersonaUrl = (url: string) => {
     const parsedUrl = new URL(url)
 
@@ -12,10 +27,13 @@ export const convertPersonaUrl = (url: string) => {
     const iqtToken = parsedUrl.searchParams.get('fields[iqt_token]')
     const developerId = parsedUrl.searchParams.get('fields[developer_id]')
     const referenceId = parsedUrl.searchParams.get('reference-id')
-    const origin = encodeURIComponent(window.location.origin)
+
+    // Use parent frame origin if in allowed iframe, otherwise use current origin
+    const origin = encodeURIComponent(isInAllowedFrame() ? new URL(document.referrer).origin : window.location.origin)
 
     return `https://bridge.withpersona.com/widget?environment=production&inquiry-template-id=${templateId}&fields[iqt_token=${iqtToken}&iframe-origin=${origin}&redirect-uri=${origin}&fields[developer_id]=${developerId}&reference-id=${referenceId}`
 }
+
 const fetchUser = async (accountIdentifier: string): Promise<any> => {
     const response = await fetch(`/api/peanut/user/fetch-user?accountIdentifier=${accountIdentifier}`, {
         method: 'GET',
@@ -114,7 +132,22 @@ async function fetchApi(url: string, method: string, body?: any): Promise<any> {
     return await response.json()
 }
 
-export async function getUserLinks(formData: consts.IOfframpForm) {
+export type GetUserLinksResponse = {
+    id: string
+    full_name: string
+    email: string
+    type: string
+    kyc_link: string
+    tos_link: string
+    kyc_status: 'not_started' | 'under_review' | 'approved' | 'rejected'
+    rejection_reasons: string[]
+    tos_status: string
+    created_at: string
+    customer_id: string
+    persona_inquiry_type: string
+}
+
+export async function getUserLinks(formData: consts.IOfframpForm): Promise<GetUserLinksResponse> {
     return await fetchApi('/api/bridge/user/new/get-links', 'POST', {
         type: 'individual',
         full_name: formData.name,
@@ -509,6 +542,8 @@ export async function submitCashoutLink(data: {
     externalAccountId: string
     chainId: string
     tokenName: string
+    promoCode?: string
+    trackParam?: string
 }) {
     const fragment = data.link.split('#')[1]
     const password = new URLSearchParams(fragment).get('p')!
@@ -528,6 +563,8 @@ export async function submitCashoutLink(data: {
                 chainId: data.chainId,
                 tokenName: data.tokenName,
                 pubKey,
+                promoCode: data.promoCode,
+                trackParam: data.trackParam,
             }),
         })
 

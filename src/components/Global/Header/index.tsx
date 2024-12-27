@@ -1,16 +1,18 @@
 'use client'
-import React, { useEffect, useState, useCallback } from 'react'
-import { Box, Flex, Text, Stack, Collapse, useDisclosure } from '@chakra-ui/react'
-import { useLottie, LottieOptions } from 'lottie-react'
+import { Box, Collapse, Flex, Stack, Text, useDisclosure } from '@chakra-ui/react'
+import { LottieOptions, useLottie } from 'lottie-react'
 import Link from 'next/link'
+import React, { useCallback, useEffect, useState } from 'react'
 
-import { PEANUTMAN_LOGO, HAMBURGER_LOTTIE } from '@/assets'
+import { HAMBURGER_LOTTIE, PEANUTMAN_LOGO } from '@/assets'
 import { shortenAddress } from '@/utils'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
-import { useRouter } from 'next/navigation'
-import { breakpoints, emToPx } from '@/styles/theme'
-import { NavItemBox, NavLink } from './components'
+import { useAppKit } from '@reown/appkit/react'
+
 import { useWallet } from '@/context/walletContext'
+import { breakpoints, emToPx } from '@/styles/theme'
+import { useRouter } from 'next/navigation'
+import { useAccount } from 'wagmi'
+import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
     animationData: HAMBURGER_LOTTIE,
@@ -221,6 +223,7 @@ const ToolsDropdown = () => {
 }
 
 const MenuLinks = () => {
+    const { open: walletModal } = useAppKit()
     const { address, isConnected, signInModal } = useWallet()
 
     return (
@@ -257,7 +260,7 @@ const MenuLinks = () => {
                 <NavItemBox>
                     <button
                         onClick={() => {
-                            signInModal.open()
+                            walletModal()
                         }}
                         className="flex h-full w-full items-center justify-start px-8 py-2 uppercase sm:hidden sm:w-max sm:justify-center lg:px-4 xl:px-8"
                     >
@@ -273,7 +276,8 @@ const MenuLinks = () => {
 }
 
 const SocialLinks = () => {
-    const { address, isConnected, signInModal } = useWallet()
+    const { open: walletModal } = useAppKit()
+    const { address, isConnected } = useAccount()
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>
@@ -283,7 +287,7 @@ const SocialLinks = () => {
             <button
                 className="btn btn-large text-nowrap bg-white px-2"
                 onClick={() => {
-                    signInModal.open()
+                    walletModal()
                 }}
             >
                 {isConnected ? shortenAddress(address ?? '') : 'Connect'}
