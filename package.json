@@ -82,6 +82,7 @@
         "@types/validator": "^13.12.2",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
+        "jest-transform-stub": "^2.0.0",
         "knip": "^5.37.1",
         "postcss": "^8.4.49",
         "postcss-import": "^16.1.0",
@@ -98,15 +99,18 @@
             "^.+\\.(ts|tsx)$": [
                 "ts-jest",
                 {
-                    "tsconfig": "tsconfig.test.json"
+                    "tsconfig": "tsconfig.test.json",
+                    "useESM": true
                 }
             ]
         },
         "transformIgnorePatterns": [
-            "node_modules/(?!(wagmi|viem|@wagmi|@viem)/)"
+            "node_modules/(?!(@wagmi|wagmi|viem|@viem|@squirrel-labs)/)"
         ],
         "moduleNameMapper": {
-            "^@/(.*)$": "<rootDir>/src/$1"
+            "^@/(.*)$": "<rootDir>/src/$1",
+            "^wagmi/chains$": "<rootDir>/src/utils/__mocks__/wagmi.ts",
+            "^@squirrel-labs/peanut-sdk$": "<rootDir>/src/utils/__mocks__/peanut-sdk.ts"
         },
         "setupFilesAfterEnv": [
             "<rootDir>/jest.setup.ts"
@@ -114,6 +118,10 @@
         "testMatch": [
             "**/__tests__/**/*.test.[jt]s?(x)",
             "**/?(*.)+(spec|test).[jt]s?(x)"
+        ],
+        "extensionsToTreatAsEsm": [
+            ".ts",
+            ".tsx"
         ]
     },
     "resolutions": {
