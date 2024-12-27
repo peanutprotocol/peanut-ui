@@ -11,7 +11,7 @@ import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
 
 // convert the color map to an array for easy indexing
-const colorArray = ['#90A8ED', '#E99898', '#FFC900', '#98E9AB']
+const colorArray = ['bg-blue-1', 'bg-yellow-1', 'bg-pink-1']
 
 type BaseWalletCardProps = {
     onClick?: () => void
@@ -81,11 +81,9 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         >
             <Card
                 className={classNames(
-                    'relative flex h-full w-[300px] flex-col gap-4 rounded-xl text-white hover:cursor-pointer'
+                    'relative flex h-full w-[300px] flex-col gap-4 rounded-xl text-white hover:cursor-pointer',
+                    backgroundColor
                 )}
-                style={{
-                    backgroundColor,
-                }}
                 shadowSize="6"
             >
                 <Image src={BG_WALLET_CARD_SVG} alt="" className="absolute z-1 h-full w-full" />

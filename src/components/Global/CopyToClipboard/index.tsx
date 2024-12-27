@@ -1,7 +1,14 @@
 import React, { useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import Icon from '../Icon'
 
-const CopyToClipboard = ({ textToCopy }: { textToCopy: string }) => {
+interface Props {
+    textToCopy: string
+    fill?: string
+    className?: string
+}
+
+const CopyToClipboard = ({ textToCopy, fill, className }: Props) => {
     const [copied, setCopied] = useState(false)
 
     const handleCopy = (e: React.MouseEvent<SVGElement>) => {
@@ -15,8 +22,8 @@ const CopyToClipboard = ({ textToCopy }: { textToCopy: string }) => {
     return (
         <Icon
             name={copied ? 'check' : 'content-copy'}
-            className="h-6 w-6 hover:opacity-80"
-            fill="white"
+            className={twMerge('h-6 w-6 hover:opacity-80', className)}
+            fill={fill ? fill : 'white'}
             onClick={handleCopy}
         />
     )

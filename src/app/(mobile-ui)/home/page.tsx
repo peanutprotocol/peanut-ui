@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowIcon } from '@/components/0_Bruddle'
+import { BALANCE_VISIBILITY_KEY } from '@/components/Home/Home.consts'
 import HomeHeader from '@/components/Home/HomeHeader'
 import { HomeLink } from '@/components/Home/HomeLink'
 import PointsBanner from '@/components/Home/PointsBanner'
@@ -14,8 +15,6 @@ import { useEffect, useRef, useState } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
-
-const BALANCE_VISIBILITY_KEY = 'peanut-balance-visibility'
 
 export default function Home() {
     const controls = useAnimation()
