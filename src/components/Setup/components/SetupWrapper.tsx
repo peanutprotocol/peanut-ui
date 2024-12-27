@@ -9,7 +9,7 @@ import { twMerge } from 'tailwind-merge'
 import { LayoutType, ScreenId } from '../Setup.types'
 
 /**
- * props interface for the SetupLayout component
+ * props interface for the SetupWrapper component
  * defines the structure and configuration options for the setup flow
  */
 interface SetupWrapperProps {
@@ -151,7 +151,7 @@ const ImageSection = ({
 }
 
 /**
- * main SetupLayout component
+ * main SetupWrapper component
  * provides a responsive layout structure for setup/onboarding screens
  * uses dynamic viewport height (dvh) for better mobile browser compatibility
  */
