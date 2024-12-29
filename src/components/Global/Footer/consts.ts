@@ -33,7 +33,7 @@ export const LINKS = [
     //     url: '/blog',
     // },
     {
-        name: 'Privacy & T&Cs',
+        name: 'Terms & Privacy',
         url: 'https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4',
     },
     {

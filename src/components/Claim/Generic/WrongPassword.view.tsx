@@ -9,7 +9,7 @@ export const WrongPasswordClaimLink = () => {
         <div className="flex w-full flex-col items-center justify-center gap-6 text-center">
             <div className="space-y-2">
                 <h2 className="text-h2">Sorryyy</h2>
-                <div className="">Your password is wrong. Are you sure you typed your password correct?</div>
+                <div className="">This link is malformed. Are you sure you copied it correctly?</div>
             </div>
 
             <label className="text-h8 font-normal">
