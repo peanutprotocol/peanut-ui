@@ -1,17 +1,17 @@
 'use client'
 
 import { ArrowIcon } from '@/components/0_Bruddle'
-import React from 'react'
-import { motion, useAnimation } from 'framer-motion'
-import { useRef, useEffect } from 'react'
-import classNames from 'classnames'
-import { HomeLink } from '@/components/Home/HomeLink'
-import { useWallet } from '@/context/walletContext'
-import { useAuth } from '@/context/authContext'
-import PointsBanner from '@/components/Home/PointsBanner'
-import { useRouter } from 'next/navigation'
+import { BALANCE_VISIBILITY_KEY } from '@/components/Home/Home.consts'
 import HomeHeader from '@/components/Home/HomeHeader'
+import { HomeLink } from '@/components/Home/HomeLink'
+import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
+import { useAuth } from '@/context/authContext'
+import { useWallet } from '@/context/walletContext'
+import classNames from 'classnames'
+import { motion, useAnimation } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -21,6 +21,15 @@ export default function Home() {
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
 
+    const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
+        // prevent runtime errors during SSR
+        if (typeof window !== 'undefined') {
+            const stored = localStorage.getItem(BALANCE_VISIBILITY_KEY)
+            return stored ? JSON.parse(stored) : false
+        }
+        return false
+    })
+
     const { addBYOW, username } = useAuth()
     const { wallets, selectedWallet, setSelectedWallet } = useWallet()
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
@@ -28,6 +37,16 @@ export default function Home() {
     const hasWallets = wallets.length > 0
 
     const totalCards = hasWallets ? wallets.length + 1 : 1
+
+    // hide balance
+    const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation()
+        setIsBalanceHidden((prev: boolean) => {
+            const newValue = !prev
+            localStorage.setItem(BALANCE_VISIBILITY_KEY, JSON.stringify(newValue))
+            return newValue
+        })
+    }
 
     useEffect(() => {
         controls.start({
@@ -98,6 +117,9 @@ export default function Home() {
                                         username={username ?? ''}
                                         selected={selectedWalletIndex === index}
                                         onClick={() => handleCardClick(index)}
+                                        index={index}
+                                        isBalanceHidden={isBalanceHidden}
+                                        onToggleBalanceVisibility={handleToggleBalanceVisibility}
                                     />
                                 ))}
 

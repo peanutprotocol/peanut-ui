@@ -12,6 +12,7 @@ module.exports = {
                     1: '#FF90E8',
                     2: '#dc78b5',
                     3: '#fffae8',
+                    4: '#AE7AFF',
                 },
                 yellow: {
                     1: '#ffc900',
@@ -21,6 +22,7 @@ module.exports = {
                 pink: {
                     1: '#FF90E8',
                     2: '#FCD8DB',
+                    3: '#E99898',
                 },
                 teal: {
                     1: '#23A094',

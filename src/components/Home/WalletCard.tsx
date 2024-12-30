@@ -1,13 +1,17 @@
-import { MouseEvent } from 'react'
+import { BG_WALLET_CARD_SVG } from '@/assets'
+import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Card } from '@/components/0_Bruddle'
-import Image from 'next/image'
-import { motion } from 'framer-motion'
-import classNames from 'classnames'
-import PeanutWalletIcon from '@/assets/icons/peanut-wallet.png'
 import Icon from '@/components/Global/Icon'
-import { shortenAddressLong, printableUsdc } from '@/utils'
-import { IWallet } from '@/interfaces'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { IWallet, WalletProviderType } from '@/interfaces'
+import { printableUsdc, shortenAddressLong } from '@/utils'
+import classNames from 'classnames'
+import { motion } from 'framer-motion'
+import Image from 'next/image'
+import { useMemo } from 'react'
+import CopyToClipboard from '../Global/CopyToClipboard'
+
+// convert the color map to an array for easy indexing
+const colorArray = ['bg-blue-1', 'bg-yellow-1', 'bg-pink-1']
 
 type BaseWalletCardProps = {
     onClick?: () => void
@@ -23,6 +27,9 @@ type WalletCardWallet = BaseWalletCardProps & {
     wallet: IWallet
     username: string
     selected?: boolean
+    index: number
+    isBalanceHidden: boolean
+    onToggleBalanceVisibility: (e: React.MouseEvent<HTMLButtonElement>) => void
 }
 
 type WalletCardProps = WalletCardAdd | WalletCardWallet
@@ -32,24 +39,37 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         return (
             <motion.div className="h-full">
                 <Card
-                    className="h-full min-w-[300px] rounded-md text-black hover:cursor-pointer"
+                    className="h-full min-w-[300px] rounded-xl bg-purple-4/20 text-black hover:cursor-pointer"
                     shadowSize="6"
                     onClick={onClick}
                 >
-                    <Card.Content className="flex h-full flex-col items-center justify-center gap-6 p-6">
-                        <p className="text-center text-xl font-bold">Add your own ETH wallet</p>
-                        <div className="flex flex-row items-center gap-3">
-                            <Icon name="plus-circle" className="h-6 w-6" />
-                            <span className="text-base">Add BYOW wallet</span>
-                        </div>
+                    <Card.Content className="flex h-full items-center justify-center gap-3">
+                        <Icon name="plus-circle" className="h-6 w-6" />
+                        <span className="text-base font-bold">Add wallet</span>
                     </Card.Content>
                 </Card>
             </motion.div>
         )
     }
-    const toast = useToast()
 
-    const { wallet, username, selected = false } = props as WalletCardWallet
+    const {
+        wallet,
+        username,
+        selected = false,
+        index,
+        isBalanceHidden,
+        onToggleBalanceVisibility,
+    } = props as WalletCardWallet
+
+    // get color based on the wallet index, cycle through colors
+    const backgroundColor = useMemo(() => colorArray[index % colorArray.length], [index])
+
+    const getWalletImage = useMemo(() => {
+        if (wallet.walletProviderType === WalletProviderType.PEANUT) {
+            return PeanutWalletIcon
+        }
+        return wallet.walletIcon || PeanutWalletIcon
+    }, [wallet])
 
     return (
         <motion.div
@@ -61,36 +81,63 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         >
             <Card
                 className={classNames(
-                    'flex h-full w-[300px] flex-col gap-4 rounded-md text-white hover:cursor-pointer',
-                    {
-                        'bg-green-1': wallet.connected,
-                        'bg-purple-1': !wallet.connected,
-                    }
+                    'relative flex h-full w-[300px] flex-col gap-4 rounded-xl text-white hover:cursor-pointer',
+                    backgroundColor
                 )}
                 shadowSize="6"
             >
-                <Card.Content className="flex h-full flex-col justify-between gap-2">
-                    <div className="flex flex-row items-center gap-4">
-                        <Image src={PeanutWalletIcon} alt="" />
-                        <p className="text-md">
-                            peanut.me/<span className="font-bold">{username}</span>
-                        </p>
-                    </div>
-                    <p className="text-4xl font-black sm:text-5xl">$ {printableUsdc(wallet.balance)}</p>
-                    <div className="relative">
-                        <div className="flex flex-col">
-                            <p className="text-xl font-black sm:text-2xl">{shortenAddressLong(wallet.address)}</p>
+                <Image src={BG_WALLET_CARD_SVG} alt="" className="absolute z-1 h-full w-full" />
+                <Card.Content className="z-10 flex h-full flex-col justify-normal gap-3 px-6 py-4">
+                    <div className="flex items-center justify-between">
+                        <div className="flex size-8 items-center justify-center rounded-full bg-white p-2">
+                            <Image
+                                src={getWalletImage}
+                                alt={wallet.address || 'Wallet avatar'}
+                                className="size-6 object-contain"
+                                width={24}
+                                height={24}
+                            />
                         </div>
-                        <Icon
-                            name="content-copy"
-                            className="absolute bottom-0 right-0 h-5 w-5 hover:opacity-80"
-                            fill="white"
-                            onClick={(e: MouseEvent<SVGElement>) => {
-                                e.stopPropagation()
-                                navigator.clipboard.writeText(wallet.address)
-                                toast.info('Address copied to clipboard')
-                            }}
-                        />
+                        {wallet.walletProviderType !== WalletProviderType.PEANUT && (
+                            <div className="rounded-md bg-white/75 px-2 py-1 text-xs font-bold text-gray-1">
+                                External
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <p className="min-w-28 text-4xl font-black leading-none sm:text-5xl">
+                            {isBalanceHidden ? (
+                                <span className="inline-flex items-center">
+                                    <span className="relative top-1">* * * *</span>
+                                </span>
+                            ) : (
+                                `$ ${printableUsdc(wallet.balance)}`
+                            )}
+                        </p>
+                        <button onClick={onToggleBalanceVisibility}>
+                            <Icon name={isBalanceHidden ? 'eye-slash' : 'eye'} className="h-6 w-6" fill="white" />
+                        </button>
+                    </div>
+
+                    <div className="relative flex items-center justify-between">
+                        {wallet.walletProviderType === WalletProviderType.PEANUT ? (
+                            <p className="text-md">
+                                peanut.me/<span className="font-bold">{username}</span>
+                            </p>
+                        ) : (
+                            <p className="text-xl font-black sm:text-2xl">{shortenAddressLong(wallet.address)}</p>
+                        )}
+
+                        <div onClick={(e) => e.stopPropagation()}>
+                            <CopyToClipboard
+                                textToCopy={
+                                    wallet.walletProviderType === WalletProviderType.PEANUT
+                                        ? `peanut.me/${username}`
+                                        : wallet.address
+                                }
+                            />
+                        </div>
                     </div>
                 </Card.Content>
             </Card>
