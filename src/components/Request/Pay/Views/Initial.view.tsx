@@ -1,29 +1,28 @@
-import * as _consts from '../Pay.consts'
-import { useAccount, useSwitchChain } from 'wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { useContext, useEffect, useState, useMemo } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import AddressLink from '@/components/Global/AddressLink'
-import {
-    fetchTokenSymbol,
-    isAddressZero,
-    formatTokenAmount,
-    formatAmountWithSignificantDigits,
-    areTokenAddressesEqual,
-    saveRequestLinkFulfillmentToLocalStorage,
-    ErrorHandler,
-} from '@/utils'
-import Icon from '@/components/Global/Icon'
-import MoreInfo from '@/components/Global/MoreInfo'
-import * as consts from '@/constants'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
+import AddressLink from '@/components/Global/AddressLink'
+import Icon from '@/components/Global/Icon'
+import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
+import * as consts from '@/constants'
+import * as context from '@/context'
+import { type ITokenPriceData } from '@/interfaces'
+import {
+    areTokenAddressesEqual,
+    ErrorHandler,
+    fetchTokenSymbol,
+    formatTokenAmount,
+    isAddressZero,
+    saveRequestLinkFulfillmentToLocalStorage,
+} from '@/utils'
+import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
+import { useAppKit } from '@reown/appkit/react'
+import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { useAccount, useSwitchChain } from 'wagmi'
+import * as _consts from '../Pay.consts'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -97,15 +96,24 @@ export const InitialView = ({
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<interfaces.IPeanutUnsignedTransaction[] | undefined>(
         undefined
     )
+    const [feeRange, setFeeRange] = useState<{ min: string; max: string }>(() => {
+        const gasEstimate = estimatedGasCost ?? 0
+        return {
+            min: formatTokenAmount(gasEstimate, 3) ?? '0',
+            max: formatTokenAmount(gasEstimate * 1.1, 3) ?? '0',
+        }
+    })
+    const [slippageRange, setSlippageRange] = useState<{ min: string; max: string }>({ min: '0', max: '0' })
+    const [maxTotal, setMaxTotal] = useState<string>(() => {
+        const requestedAmountInUsd = tokenPriceData
+            ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
+            : Number(requestLinkData.tokenAmount)
+        return formatTokenAmount(requestedAmountInUsd, 3) ?? '0'
+    })
 
     const calculatedFee = useMemo(() => {
         return isXChain ? txFee : formatTokenAmount(estimatedGasCost, 3)
     }, [isXChain, estimatedGasCost, txFee])
-
-    const calculatedSlippage = useMemo(() => {
-        if (!selectedTokenData?.price || !slippagePercentage) return null
-        return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
-    }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
     const isButtonDisabled = useMemo(() => {
         return (
@@ -141,6 +149,18 @@ export const InitialView = ({
             if (!isXChain) {
                 clearError()
                 setViewState(ViewState.READY_TO_PAY)
+                // for non-xchain, fee is just the gas cost
+                const gasEstimate = estimatedGasCost ?? 0
+                setFeeRange({
+                    min: formatTokenAmount(gasEstimate, 3) ?? '0',
+                    max: formatTokenAmount(gasEstimate * 1.1, 3) ?? '0', // adding 10% buffer
+                })
+
+                // calculate total with requested amount and gas
+                const requestedAmountInUsd = tokenPriceData
+                    ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
+                    : Number(requestLinkData.tokenAmount)
+                setMaxTotal(formatTokenAmount(requestedAmountInUsd + gasEstimate * 1.1, 3) ?? '0')
                 return
             }
             try {
@@ -157,6 +177,29 @@ export const InitialView = ({
                     slippagePercentage,
                     unsignedTxs: _xChainUnsignedTxs,
                 } = txData
+
+                // calculate fee range (assuming 5% variation)
+                const minFee = Number(feeEstimation)
+                const maxFee = minFee * 1.05
+                setFeeRange({
+                    min: minFee.toFixed(2),
+                    max: maxFee.toFixed(2),
+                })
+
+                // calculate slippage range
+                const minSlippageAmount =
+                    ((slippagePercentage * 0.5) / 100) * selectedTokenData!.price * Number(estimatedFromAmount)
+                const maxSlippageAmount =
+                    (slippagePercentage / 100) * selectedTokenData!.price * Number(estimatedFromAmount)
+                setSlippageRange({
+                    min: minSlippageAmount.toFixed(2),
+                    max: maxSlippageAmount.toFixed(2),
+                })
+
+                // calculate max total (amount + max fee + max slippage)
+                const totalMax = Number(estimatedFromAmount) * selectedTokenData!.price + maxFee + maxSlippageAmount
+                setMaxTotal(totalMax.toFixed(2))
+
                 setEstimatedFromValue(estimatedFromAmount)
                 setSlippagePercentage(slippagePercentage)
                 setXChainUnsignedTxs(_xChainUnsignedTxs)
@@ -174,6 +217,16 @@ export const InitialView = ({
 
         if (!isConnected || !address) {
             setViewState(ViewState.INITIAL)
+            // set initial maxTotal with just the requested amount and gas
+            const requestedAmountInUsd = tokenPriceData
+                ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
+                : Number(requestLinkData.tokenAmount)
+            const gasEstimate = estimatedGasCost ?? 0
+            setMaxTotal(formatTokenAmount(requestedAmountInUsd + gasEstimate * 1.1, 3) ?? '0')
+            setFeeRange({
+                min: formatTokenAmount(gasEstimate, 3) ?? '0',
+                max: formatTokenAmount(gasEstimate * 1.1, 3) ?? '0',
+            })
             return
         }
 
@@ -187,7 +240,7 @@ export const InitialView = ({
         }
 
         estimateTxFee()
-    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain, isFetchingTokenData])
+    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain, isFetchingTokenData, estimatedGasCost])
 
     // Change in pair
     useEffect(() => {
@@ -342,6 +395,12 @@ export const InitialView = ({
     const resetTokenAndChain = () => {
         setSelectedChainID(requestLinkData.chainId)
         setSelectedTokenAddress(requestLinkData.tokenAddress)
+        setSlippageRange({ min: '0', max: '0' }) // reset slippage
+        // recalculate maxTotal with just the requested amount and gas
+        const requestedAmountInUsd = tokenPriceData
+            ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
+            : Number(requestLinkData.tokenAmount)
+        setMaxTotal(formatTokenAmount(requestedAmountInUsd + (estimatedGasCost ?? 0) * 1.1, 3) ?? '0')
     }
 
     return (
@@ -359,7 +418,11 @@ export const InitialView = ({
                 <div>
                     <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
-                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
+                            <img
+                                src={tokenRequestedLogoURI ?? ''}
+                                className="absolute left-0 top-0 h-6 w-6"
+                                alt="logo"
+                            />
                             <img
                                 src={
                                     consts.supportedPeanutChains.find(
@@ -390,49 +453,62 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Network cost</label>
-                            </div>
-                            <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {calculatedFee ? (
-                                    `$${calculatedFee}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                {!isXChain ? (
-                                    <MoreInfo
-                                        text={
-                                            estimatedGasCost && estimatedGasCost > 0
-                                                ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                                : 'This transaction is sponsored by peanut! Enjoy!'
-                                        }
-                                    />
-                                ) : (
-                                    <MoreInfo
-                                        text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
-                                    />
-                                )}
-                            </label>
-                        </div>
-
-                        {null !== calculatedSlippage && (
+                        <div className="flex w-full flex-col gap-2">
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'money-out'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Max slippage</label>
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Fee</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    ${calculatedSlippage}
+                                    {viewState === ViewState.LOADING ? (
+                                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                    ) : feeRange.min === feeRange.max ? (
+                                        `$${feeRange.min}`
+                                    ) : (
+                                        `$${feeRange.min} - $${feeRange.max}`
+                                    )}
                                     <MoreInfo
-                                        text={`${slippagePercentage!.toFixed(2)}% is the maximum slippage set to ensure that the transaction goes through. It is likely to be much lower than the actual slippage`}
+                                        text={
+                                            isXChain
+                                                ? `Estimated network fees including cross-chain bridge fees`
+                                                : `Estimated network fees for this transaction`
+                                        }
                                     />
                                 </label>
                             </div>
-                        )}
-
-                        {/* TODO: correct points estimation
+                            {isXChain && slippageRange.max !== '0' && (
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                                        <Icon name={'money-out'} className="h-4 fill-gray-1" />
+                                        <label className="font-bold">Slippage</label>
+                                    </div>
+                                    <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                        {viewState === ViewState.LOADING ? (
+                                            <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                        ) : (
+                                            `$${slippageRange.min} - $${slippageRange.max}`
+                                        )}
+                                        <MoreInfo text={`Estimated price impact due to cross-chain swap`} />
+                                    </label>
+                                </div>
+                            )}
+                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'puzzle'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Max Total</label>
+                                </div>
+                                <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {viewState === ViewState.LOADING ? (
+                                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                    ) : (
+                                        `$${maxTotal}`
+                                    )}
+                                    <MoreInfo
+                                        text={`Maximum total amount including requested amount, fees, and maximum slippage`}
+                                    />
+                                </label>
+                            </div>
+                            {/* TODO: correct points estimation
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
@@ -455,7 +531,8 @@ export const InitialView = ({
                                 />
                             </span>
                         </div>
-                            */}
+                            */}{' '}
+                        </div>
                     </>
                 )}
             </div>
