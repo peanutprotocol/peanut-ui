@@ -18,6 +18,7 @@ module.exports = {
                     1: '#ffc900',
                     2: '#f5ff7c',
                     3: '#fbfdd8',
+                    4: '#FAE8A4',
                 },
                 pink: {
                     1: '#FF90E8',
@@ -248,6 +249,9 @@ module.exports = {
                 },
                 '.btn-purple-2': {
                     '@apply btn bg-purple-3 text-n-1 fill-n-1 hover:bg-purple-3/90': {},
+                },
+                '.btn-yellow': {
+                    '@apply btn bg-yellow-1 text-n-1 fill-n-1 hover:bg-yellow-1/90': {},
                 },
                 '.btn-dark': {
                     '@apply btn bg-n-1 text-white fill-white hover:bg-n-1/80 dark:bg-white/10 dark:hover:bg-white/20':

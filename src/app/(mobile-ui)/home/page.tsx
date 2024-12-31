@@ -1,6 +1,7 @@
 'use client'
 
 import { ArrowIcon } from '@/components/0_Bruddle'
+import WalletHeader from '@/components/Global/WalletHeader'
 import HomeHeader from '@/components/Home/HomeHeader'
 import { HomeLink } from '@/components/Home/HomeLink'
 import PointsBanner from '@/components/Home/PointsBanner'
@@ -67,6 +68,7 @@ export default function Home() {
             <div className="flex w-full flex-row justify-center overflow-hidden p-4">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[50%]">
                     <HomeHeader />
+                    <WalletHeader />
                     <div
                         className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                             'overflow-hidden': wallets.length > 0,
