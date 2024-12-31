@@ -1,17 +1,17 @@
 'use client'
 
 import { ArrowIcon } from '@/components/0_Bruddle'
-import React from 'react'
-import { motion, useAnimation } from 'framer-motion'
-import { useRef, useEffect } from 'react'
-import classNames from 'classnames'
-import { HomeLink } from '@/components/Home/HomeLink'
-import { useWallet } from '@/context/walletContext'
-import { useAuth } from '@/context/authContext'
-import PointsBanner from '@/components/Home/PointsBanner'
-import { useRouter } from 'next/navigation'
+import WalletHeader from '@/components/Global/WalletHeader'
 import HomeHeader from '@/components/Home/HomeHeader'
+import { HomeLink } from '@/components/Home/HomeLink'
+import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
+import { useAuth } from '@/context/authContext'
+import { useWallet } from '@/context/walletContext'
+import classNames from 'classnames'
+import { motion, useAnimation } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -52,6 +52,7 @@ export default function Home() {
             <div className="flex w-full flex-row justify-center overflow-hidden p-4">
                 <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[50%]">
                     <HomeHeader />
+                    <WalletHeader />
                     <div
                         className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                             'overflow-hidden': wallets.length > 0,
