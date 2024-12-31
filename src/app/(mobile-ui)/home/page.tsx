@@ -1,13 +1,13 @@
 'use client'
 
 import { ArrowIcon } from '@/components/0_Bruddle'
-import { BALANCE_VISIBILITY_KEY } from '@/components/Home/Home.consts'
 import HomeHeader from '@/components/Home/HomeHeader'
 import { HomeLink } from '@/components/Home/HomeLink'
 import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
+import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
 import { useRouter } from 'next/navigation'
@@ -22,12 +22,8 @@ export default function Home() {
     const carouselRef = useRef<HTMLDivElement>(null)
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
-        // prevent runtime errors during SSR
-        if (typeof window !== 'undefined') {
-            const stored = localStorage.getItem(BALANCE_VISIBILITY_KEY)
-            return stored ? JSON.parse(stored) : false
-        }
-        return false
+        const prefs = getUserPreferences()
+        return prefs?.balanceHidden ?? false
     })
 
     const { addBYOW, username } = useAuth()
@@ -43,7 +39,7 @@ export default function Home() {
         e.stopPropagation()
         setIsBalanceHidden((prev: boolean) => {
             const newValue = !prev
-            localStorage.setItem(BALANCE_VISIBILITY_KEY, JSON.stringify(newValue))
+            updateUserPreferences({ balanceHidden: newValue })
             return newValue
         })
     }

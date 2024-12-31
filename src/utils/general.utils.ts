@@ -756,6 +756,7 @@ export type UserPreferences = {
     lastSelectedWallet?: {
         address: string
     }
+    balanceHidden?: boolean
 }
 
 export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {
