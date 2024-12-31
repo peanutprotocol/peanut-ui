@@ -1,8 +1,8 @@
-import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
+import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
-import { ethers } from 'ethers'
 import chroma from 'chroma-js'
+import { ethers } from 'ethers'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -756,6 +756,7 @@ export type UserPreferences = {
     lastSelectedWallet?: {
         address: string
     }
+    balanceHidden?: boolean
 }
 
 export const updateUserPreferences = (partialPrefs: Partial<UserPreferences>): UserPreferences | undefined => {
@@ -908,8 +909,8 @@ function getIconName(type: string) {
     }
 }
 
-import { SiweMessage } from 'siwe'
 import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
+import { SiweMessage } from 'siwe'
 
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
     const message = new SiweMessage({

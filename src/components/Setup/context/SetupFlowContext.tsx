@@ -1,5 +1,5 @@
-import { createContext, useContext, useState, ReactNode } from 'react'
-import { ScreenId, ScreenProps, Step } from '../Setup.types'
+import { createContext, ReactNode, useContext, useState } from 'react'
+import { ISetupStep, ScreenId, ScreenProps } from '../Setup.types'
 
 interface SetupFlowContextType {
     currentStep: number
@@ -9,14 +9,14 @@ interface SetupFlowContextType {
     isLoading: boolean
     handleNext: <T extends ScreenId>(callback?: () => Promise<boolean>, props?: ScreenProps[T]) => Promise<void>
     handleBack: () => void
-    step: Step
+    step: ISetupStep
     screenProps: ScreenProps[ScreenId] | undefined
 }
 
 interface SetupFlowProviderProps {
     children: ReactNode
     onComplete?: () => void
-    steps: Step[]
+    steps: ISetupStep[]
 }
 
 const SetupFlowContext = createContext<SetupFlowContextType | null>(null)

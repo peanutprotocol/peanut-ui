@@ -8,10 +8,11 @@ import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
+import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 const cardWidth = 300
 const cardMargin = 16
@@ -21,6 +22,11 @@ export default function Home() {
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
 
+    const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
+        const prefs = getUserPreferences()
+        return prefs?.balanceHidden ?? false
+    })
+
     const { addBYOW, username } = useAuth()
     const { wallets, selectedWallet, setSelectedWallet } = useWallet()
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
@@ -28,6 +34,16 @@ export default function Home() {
     const hasWallets = wallets.length > 0
 
     const totalCards = hasWallets ? wallets.length + 1 : 1
+
+    // hide balance
+    const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
+        e.stopPropagation()
+        setIsBalanceHidden((prev: boolean) => {
+            const newValue = !prev
+            updateUserPreferences({ balanceHidden: newValue })
+            return newValue
+        })
+    }
 
     useEffect(() => {
         controls.start({
@@ -99,6 +115,9 @@ export default function Home() {
                                         username={username ?? ''}
                                         selected={selectedWalletIndex === index}
                                         onClick={() => handleCardClick(index)}
+                                        index={index}
+                                        isBalanceHidden={isBalanceHidden}
+                                        onToggleBalanceVisibility={handleToggleBalanceVisibility}
                                     />
                                 ))}
 

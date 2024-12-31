@@ -1,8 +1,9 @@
-import { useState, useEffect, ChangeEvent, useRef } from 'react'
-import Icon from '@/components/Global/Icon'
 import BaseInput from '@/components/0_Bruddle/BaseInput'
-import classNames from 'classnames'
+import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
+import { ChangeEvent, useEffect, useRef, useState } from 'react'
+import Loading from '../Loading'
+
 type ValidatedInputProps = {
     label?: string
     value: string
@@ -106,7 +107,7 @@ const ValidatedInput = ({
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
-                    className="h-12 w-full bg-white pl-8 pr-2 text-h8 font-medium 
+                    className="h-12 w-full bg-white pl-4 pr-2 text-h8 font-medium 
                         outline-none focus:outline-none active:bg-white
                         dark:bg-n-1 dark:text-white dark:placeholder:text-white/75"
                     placeholder={placeholder}
@@ -136,11 +137,8 @@ const ValidatedInput = ({
                     }`}
                 >
                     {isValidating ? (
-                        <div className="flex h-full w-12 items-center justify-center bg-white dark:bg-n-1">
-                            <div
-                                className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-r-transparent motion-reduce:animate-none"
-                                role="status"
-                            />
+                        <div className="flex h-full w-12 items-center justify-center dark:bg-n-1">
+                            <Loading />
                         </div>
                     ) : (
                         <button
@@ -148,7 +146,7 @@ const ValidatedInput = ({
                                 e.preventDefault()
                                 onUpdate({ value: '', isValid: false, isChanging: false })
                             }}
-                            className="flex h-full w-12 items-center justify-center bg-white dark:bg-n-1"
+                            className="flex h-full w-12 items-center justify-center dark:bg-n-1"
                         >
                             <Icon className="h-6 w-6 dark:fill-white" name="close" />
                         </button>

@@ -1,20 +1,18 @@
 import { Button } from '@/components/0_Bruddle'
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
+import { useRouter } from 'next/navigation'
 
 const SetupSuccess = () => {
-    const { handleNext } = useSetupFlow()
+    const router = useRouter()
 
     return (
-        <div className="flex flex-row items-center justify-center">
-            <Button
-                variant="green"
-                onClick={() => {
-                    handleNext()
-                }}
-            >
-                Complete
-            </Button>
-        </div>
+        <Button
+            shadowSize="4"
+            onClick={() => {
+                router.push('/home')
+            }}
+        >
+            {`Let's go`}
+        </Button>
     )
 }
 

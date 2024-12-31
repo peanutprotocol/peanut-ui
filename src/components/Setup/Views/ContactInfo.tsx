@@ -1,11 +1,11 @@
 import { Button, Field } from '@/components/0_Bruddle'
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { useAuth } from '@/context/authContext'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { yupResolver } from '@hookform/resolvers/yup'
+import { useMutation } from '@tanstack/react-query'
 import { FormProvider, useForm } from 'react-hook-form'
 import * as yup from 'yup'
-import { yupResolver } from '@hookform/resolvers/yup'
-import { useToast } from '@/components/0_Bruddle/Toast'
-import { useMutation } from '@tanstack/react-query'
-import { useAuth } from '@/context/authContext'
 
 const contactSchema = yup.object({
     contact: yup

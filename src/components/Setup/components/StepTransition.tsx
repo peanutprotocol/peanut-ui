@@ -1,4 +1,4 @@
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 
 interface StepTransitionProps {
     children: React.ReactNode
@@ -23,6 +23,7 @@ export const StepTransition = ({ children, step, direction }: StepTransitionProp
     }
 
     return (
+        // todo: fix such that the browser view doesnt scroll horizontally and vertically leaving gap
         <AnimatePresence initial={false} mode="popLayout" custom={direction}>
             <motion.div
                 key={step}

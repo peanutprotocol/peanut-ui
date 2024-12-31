@@ -23,6 +23,7 @@ module.exports = {
                 pink: {
                     1: '#FF90E8',
                     2: '#FCD8DB',
+                    3: '#E99898',
                 },
                 teal: {
                     1: '#23A094',
@@ -60,6 +61,7 @@ module.exports = {
                 secondary: 'var(--secondary-color)',
                 background: 'var(--background-color)',
                 accent: 'var(--accent-color)',
+                error: '#B3261E',
             },
             zIndex: {
                 1: '1',

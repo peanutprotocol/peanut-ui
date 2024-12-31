@@ -1,6 +1,6 @@
 import React, { forwardRef } from 'react'
-import Loading from '../Global/Loading'
 import { twMerge } from 'tailwind-merge'
+import Loading from '../Global/Loading'
 
 type ButtonVariant = 'purple' | 'dark' | 'stroke' | 'transparent-light' | 'transparent-dark' | 'green' | 'yellow'
 type ButtonSize = 'small' | 'medium' | 'large' | 'xl' | 'xl-fixed'

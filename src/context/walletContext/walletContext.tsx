@@ -1,22 +1,24 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, ReactNode, useCallback, useMemo } from 'react'
-import * as interfaces from '@/interfaces'
-import { useAccount } from 'wagmi'
-import { useZeroDev } from './zeroDevContext.context'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
-import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
-import { useAuth } from '../authContext'
+import { peanutPublicClient } from '@/constants/viem.consts'
+import * as interfaces from '@/interfaces'
 import {
-    backgroundColorFromAddress,
     areEvmAddressesEqual,
+    backgroundColorFromAddress,
     fetchWalletBalances,
     getUserPreferences,
     updateUserPreferences,
 } from '@/utils'
-import { peanutPublicClient } from '@/constants/viem.consts'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { identicon } from '@dicebear/collection'
+import { createAvatar } from '@dicebear/core'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
+import { useAccount } from 'wagmi'
+import { useAuth } from '../authContext'
+import { useZeroDev } from './zeroDevContext.context'
 
 interface WalletContextType {
     selectedWallet: interfaces.IWallet | undefined
@@ -55,13 +57,30 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
 
     ////// BYOW props
-    const { isConnected: isWagmiConnected, addresses: wagmiAddresses } = useAccount()
+    const { isConnected: isWagmiConnected, addresses: wagmiAddresses, connector } = useAccount()
 
     ////// User props
     const { addAccount, user } = useAuth()
 
     const [selectedAddress, setSelectedAddress] = useState<string | undefined>(
         getUserPreferences()?.lastSelectedWallet?.address
+    )
+
+    // generate fallback avatar
+    const getWalletIcon = useCallback(
+        (address: string) => {
+            if (!!connector?.icon) {
+                return connector?.icon
+            }
+
+            const avatar = createAvatar(identicon, {
+                seed: address.toLowerCase(),
+                size: 128,
+            })
+
+            return avatar.toDataUri()
+        },
+        [connector]
     )
 
     const isWalletConnected = useCallback(
@@ -115,6 +134,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
                         protocolType: interfaces.WalletProtocolType.EVM,
                         address: account.account_identifier,
+                        walletIcon: getWalletIcon(account.account_identifier),
                     }
 
                     let balance = BigInt(0)
