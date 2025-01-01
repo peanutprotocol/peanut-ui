@@ -43,7 +43,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
         <div className="flex h-[100dvh] flex-col  bg-background md:flex-row-reverse">
             <div
                 className={classNames('z-1 flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
-                    'p-4': !isHome,
+                    'p-4 md:p-6': !isHome,
                 })}
             >
                 {showFullPeanutWallet ? children : <HomeWaitlist />}

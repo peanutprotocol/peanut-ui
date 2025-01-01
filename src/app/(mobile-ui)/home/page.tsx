@@ -1,9 +1,8 @@
 'use client'
 
-import { ArrowIcon } from '@/components/0_Bruddle'
+import { ArrowIcon, Button } from '@/components/0_Bruddle'
 import WalletHeader from '@/components/Global/WalletHeader'
 import HomeHeader from '@/components/Home/HomeHeader'
-import { HomeLink } from '@/components/Home/HomeLink'
 import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
@@ -11,6 +10,7 @@ import { useWallet } from '@/context/walletContext'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -130,19 +130,34 @@ export default function Home() {
                         )}
                     </div>
 
-                    <div className="flex w-full flex-grow flex-row items-center justify-center gap-4 sm:justify-evenly sm:gap-8">
-                        <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
-                            <HomeLink href={'/send'}>
+                    <div className="flex w-full flex-grow flex-row items-center justify-center gap-5 sm:justify-evenly md:mx-auto md:w-fit">
+                        <Link href={'/send'}>
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="flex w-38 items-center gap-2 rounded-full transition-all ease-in-out active:scale-95"
+                            >
                                 <ArrowIcon />
-                            </HomeLink>
-                            <p className="text-base">Send</p>
-                        </motion.div>
-                        <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
+                                <p className="text-base">Send</p>
+                            </Button>
+                        </Link>
+                        <Link href={'/request/create'}>
+                            <Button
+                                variant="purple"
+                                shadowSize="4"
+                                className="flex w-38 items-center gap-2 rounded-full transition-all ease-in-out active:scale-95"
+                            >
+                                <ArrowIcon className="rotate-180" />
+                                <p className="text-base">Recieve</p>
+                            </Button>
+                        </Link>
+
+                        {/* <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
                             <HomeLink href={'/request/create'}>
                                 <ArrowIcon className="rotate-180" />
                             </HomeLink>
                             <p>Recieve</p>
-                        </motion.div>
+                        </motion.div> */}
                     </div>
                 </div>
             </div>
