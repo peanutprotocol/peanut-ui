@@ -148,16 +148,9 @@ export default function Home() {
                                 className="flex w-38 items-center gap-2 rounded-full transition-all ease-in-out active:scale-95"
                             >
                                 <ArrowIcon className="rotate-180" />
-                                <p className="text-base">Recieve</p>
+                                <p className="text-base">Receive</p>
                             </Button>
                         </Link>
-
-                        {/* <motion.div className="flex flex-col items-center gap-2" whileTap={{ scale: 0.95 }}>
-                            <HomeLink href={'/request/create'}>
-                                <ArrowIcon className="rotate-180" />
-                            </HomeLink>
-                            <p>Recieve</p>
-                        </motion.div> */}
                     </div>
                 </div>
             </div>
