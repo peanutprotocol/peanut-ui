@@ -1,8 +1,8 @@
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import AddressLink from '@/components/Global/AddressLink'
-import Icon from '@/components/Global/Icon'
+import FeeDescription from '@/components/Global/FeeDescription'
+import InfoRow from '@/components/Global/InfoRow'
 import Loading from '@/components/Global/Loading'
-import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import * as consts from '@/constants'
@@ -12,7 +12,6 @@ import {
     areTokenAddressesEqual,
     ErrorHandler,
     fetchTokenSymbol,
-    formatTokenAmount,
     isAddressZero,
     saveRequestLinkFulfillmentToLocalStorage,
 } from '@/utils'
@@ -96,34 +95,61 @@ export const InitialView = ({
     const [xChainUnsignedTxs, setXChainUnsignedTxs] = useState<interfaces.IPeanutUnsignedTransaction[] | undefined>(
         undefined
     )
-    const [feeRange, setFeeRange] = useState<{ min: string; max: string }>(() => {
-        const gasEstimate = estimatedGasCost ?? 0
-        return {
-            min: formatTokenAmount(gasEstimate, 3) ?? '0',
-            max: formatTokenAmount(gasEstimate * 1.1, 3) ?? '0',
+
+    const calculatedSlippage = useMemo(() => {
+        if (!selectedTokenData?.price || !slippagePercentage) return null
+        return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
+    }, [slippagePercentage, selectedTokenData, estimatedFromValue])
+
+    const feeCalculations = useMemo(() => {
+        // gas/network cost calculation (70% of max for expected)
+        const networkFee = {
+            expected: isXChain ? Number(txFee) * 0.7 : Number(estimatedGasCost) * 0.7,
+            max: isXChain ? Number(txFee) : Number(estimatedGasCost),
         }
-    })
-    const [slippageRange, setSlippageRange] = useState<{ min: string; max: string }>({ min: '0', max: '0' })
-    const [totalAmountRange, setTotalAmountRange] = useState<{ min: string; max: string }>(() => {
-        const requestedAmountInUsd = tokenPriceData
+
+        // slippage calculation (10% of max for expected)
+        const slippage = calculatedSlippage
+            ? {
+                  expected: Number(calculatedSlippage) * 0.1,
+                  max: Number(calculatedSlippage),
+              }
+            : undefined
+
+        // calculate total max (requested amount + max network fee + max slippage)
+        const requestedAmountUSD = tokenPriceData
             ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
             : Number(requestLinkData.tokenAmount)
-        return {
-            min: formatAmount(requestedAmountInUsd),
-            max: formatAmount(requestedAmountInUsd),
+
+        const totalMax = requestedAmountUSD + networkFee.max + (slippage?.max || 0)
+
+        // ensure values are at least 0.01 to avoid scientific notation
+        const formatNumberSafely = (num: number) => {
+            return formatAmount(num < 0.01 && num > 0 ? 0.01 : num)
         }
-    })
-    const calculatedFee = useMemo(() => {
-        return isXChain ? txFee : formatTokenAmount(estimatedGasCost, 3)
-    }, [isXChain, estimatedGasCost, txFee])
+
+        return {
+            networkFee: {
+                expected: formatNumberSafely(networkFee.expected || 0),
+            },
+            slippage: slippage
+                ? {
+                      expected: formatNumberSafely(slippage.expected || 0),
+                      max: formatNumberSafely(slippage.max || 0),
+                  }
+                : undefined,
+            expectedTotal: formatNumberSafely(networkFee.expected + (slippage?.expected || 0) || 0),
+            totalMax: formatNumberSafely(totalMax || 0),
+        }
+    }, [isXChain, txFee, estimatedGasCost, calculatedSlippage, tokenPriceData, requestLinkData.tokenAmount])
 
     const isButtonDisabled = useMemo(() => {
         return (
             viewState === ViewState.LOADING ||
             viewState === ViewState.ERROR ||
-            (viewState === ViewState.READY_TO_PAY && !calculatedFee)
+            (viewState === ViewState.READY_TO_PAY && !feeCalculations.expectedTotal)
         )
-    }, [viewState, isLoading, calculatedFee])
+    }, [viewState, isLoading, feeCalculations.expectedTotal])
 
     const requestedAmount = useMemo(() => {
         const amount = tokenPriceData
@@ -151,24 +177,6 @@ export const InitialView = ({
             if (!isXChain) {
                 clearError()
                 setViewState(ViewState.READY_TO_PAY)
-                // for non-xchain, fee is just the gas cost
-                const gasEstimate = estimatedGasCost ?? 0
-                setFeeRange({
-                    min: formatTokenAmount(gasEstimate, 3) ?? '0',
-                    max: formatTokenAmount(gasEstimate * 1.1, 3) ?? '0', // adding 10% buffer
-                })
-
-                // calculate total with requested amount and gas
-                const requestedAmountInUsd = tokenPriceData
-                    ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
-                    : Number(requestLinkData.tokenAmount)
-                const minTotal = requestedAmountInUsd + Number(feeRange.min) + Number(slippageRange.min)
-                const maxTotal = requestedAmountInUsd + Number(feeRange.max) + Number(slippageRange.max)
-                setTotalAmountRange({
-                    min: formatAmount(minTotal),
-                    max: formatAmount(maxTotal),
-                })
-
                 return
             }
             try {
@@ -185,32 +193,6 @@ export const InitialView = ({
                     slippagePercentage,
                     unsignedTxs: _xChainUnsignedTxs,
                 } = txData
-
-                // calculate fee range (assuming 5% variation)
-                const minFee = Number(feeEstimation)
-                const maxFee = minFee * 1.05
-                setFeeRange({
-                    min: minFee.toFixed(2),
-                    max: maxFee.toFixed(2),
-                })
-
-                // calculate slippage range
-                const minSlippageAmount =
-                    ((slippagePercentage * 0.5) / 100) * selectedTokenData!.price * Number(estimatedFromAmount)
-                const maxSlippageAmount =
-                    (slippagePercentage / 100) * selectedTokenData!.price * Number(estimatedFromAmount)
-                setSlippageRange({
-                    min: minSlippageAmount.toFixed(2),
-                    max: maxSlippageAmount.toFixed(2),
-                })
-
-                const minTotal = estimatedFromAmount + Number(feeRange.min) + Number(slippageRange.min)
-                const maxTotal = estimatedFromAmount + Number(feeRange.max) + Number(slippageRange.max)
-                setTotalAmountRange({
-                    min: formatAmount(minTotal),
-                    max: formatAmount(maxTotal),
-                })
-
                 setEstimatedFromValue(estimatedFromAmount)
                 setSlippagePercentage(slippagePercentage)
                 setXChainUnsignedTxs(_xChainUnsignedTxs)
@@ -228,20 +210,6 @@ export const InitialView = ({
 
         if (!isConnected || !address) {
             setViewState(ViewState.INITIAL)
-            const requestedAmountInUsd = tokenPriceData
-                ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
-                : Number(requestLinkData.tokenAmount)
-            const minTotal = requestedAmountInUsd + Number(feeRange.min) + Number(slippageRange.min)
-            const maxTotal = requestedAmountInUsd + Number(feeRange.max) + Number(slippageRange.max)
-            const gasEstimate = estimatedGasCost ?? 0
-            setTotalAmountRange({
-                min: formatAmount(minTotal),
-                max: formatAmount(maxTotal),
-            })
-            setFeeRange({
-                min: formatTokenAmount(gasEstimate, 3) ?? '0',
-                max: formatTokenAmount(gasEstimate * 1.1, 3) ?? '0',
-            })
             return
         }
 
@@ -255,7 +223,7 @@ export const InitialView = ({
         }
 
         estimateTxFee()
-    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain, isFetchingTokenData, estimatedGasCost])
+    }, [isConnected, address, selectedTokenData, requestLinkData, isXChain, isFetchingTokenData])
 
     // Change in pair
     useEffect(() => {
@@ -410,21 +378,6 @@ export const InitialView = ({
     const resetTokenAndChain = () => {
         setSelectedChainID(requestLinkData.chainId)
         setSelectedTokenAddress(requestLinkData.tokenAddress)
-        setSlippageRange({ min: '0', max: '0' }) // reset slippage
-        // recalculate maxTotal with just the requested amount and gas
-        const requestedAmountInUsd = tokenPriceData
-            ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
-            : Number(requestLinkData.tokenAmount)
-        const minTotal = requestedAmountInUsd + Number(feeRange.min) + Number(slippageRange.min)
-        const maxTotal = requestedAmountInUsd + Number(feeRange.max) + Number(slippageRange.max)
-        setTotalAmountRange({
-            min: formatAmount(minTotal),
-            max: formatAmount(maxTotal),
-        })
-    }
-
-    const checkWideField = (): boolean => {
-        return totalAmountRange.min.toString().length > 6
     }
 
     return (
@@ -477,66 +430,29 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
-                        <div className="flex w-full flex-col gap-2">
-                            <InfoRow
-                                iconName="gas"
-                                label="Fee"
-                                loading={viewState === ViewState.LOADING}
-                                valueMin={feeRange.min}
-                                valueMax={feeRange.max}
-                                moreInfoText={
-                                    isXChain
-                                        ? 'Estimated network fees including cross-chain bridge fees'
-                                        : 'Estimated network fees for this transaction'
-                                }
-                                checkWideField={checkWideField()}
-                            />
-                            {isXChain && slippageRange.max !== '0' && (
-                                <InfoRow
-                                    iconName="money-out"
-                                    label="Slippage"
-                                    loading={viewState === ViewState.LOADING}
-                                    // show max value as min and vice versa to show reducing value
-                                    valueMin={slippageRange.max}
-                                    valueMax={slippageRange.min}
-                                    moreInfoText="Estimated price impact due to cross-chain swap"
-                                    checkWideField={checkWideField()}
-                                />
-                            )}
-                            <InfoRow
-                                iconName="puzzle"
-                                label="Max Total"
-                                loading={viewState === ViewState.LOADING}
-                                valueMin={totalAmountRange.min}
-                                valueMax={totalAmountRange.max}
-                                moreInfoText="Maximum total amount including requested amount, fees, and maximum slippage"
-                                checkWideField={checkWideField()}
-                            />
-                            {/* TODO: correct points estimation
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {estimatedPoints ? (
-                                    `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                <MoreInfo
-                                    text={
-                                        estimatedPoints !== undefined
-                                            ? estimatedPoints > 0
-                                                ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                                : 'This transaction will not add any points to your total points balance'
-                                            : 'This transaction will not add any points to your total points balance'
-                                    }
-                                />
-                            </span>
-                        </div>
-                            */}{' '}
-                        </div>
+                        <FeeDescription
+                            estimatedFee={feeCalculations.expectedTotal}
+                            networkFee={feeCalculations.networkFee.expected}
+                            slippageRange={
+                                feeCalculations.slippage
+                                    ? {
+                                          min: feeCalculations.slippage.expected,
+                                          max: feeCalculations.slippage.max,
+                                      }
+                                    : undefined
+                            }
+                        />
+
+                        <InfoRow
+                            iconName="transfer"
+                            label="Total Max"
+                            value={`$ ${feeCalculations.totalMax}`}
+                            moreInfoText={
+                                feeCalculations.slippage
+                                    ? 'Maximum amount you will pay including requested amount, fees, and maximum slippage.'
+                                    : 'Maximum amount you will pay including requested amount and network fees.'
+                            }
+                        />
                     </>
                 )}
             </div>
@@ -565,49 +481,6 @@ export const InitialView = ({
                         <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
                     </div>
                 )}
-            </div>
-        </div>
-    )
-}
-
-const InfoRow = ({
-    iconName,
-    label,
-    loading,
-    valueMin,
-    valueMax,
-    moreInfoText,
-    checkWideField,
-}: {
-    iconName: string
-    label: string
-    loading: boolean
-    valueMin: number | string
-    valueMax: number | string
-    moreInfoText: string
-    checkWideField: boolean
-}) => {
-    const dynamicClass = checkWideField ? 'min-w-20' : 'min-w-16'
-
-    return (
-        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-            <div className="flex w-max flex-row items-center justify-center gap-1">
-                <Icon name={iconName} className="h-4 fill-gray-1" />
-                <label className="font-bold">{label}</label>
-            </div>
-            <div className="flex items-center gap-1">
-                <div className="flex w-32 justify-end">
-                    {loading ? (
-                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700" />
-                    ) : (
-                        <div className="flex items-center text-sm font-normal">
-                            <span className={`${dynamicClass} text-right`}>${valueMin}</span>
-                            <span className="mx-1">-</span>
-                            <span className={`${dynamicClass} text-left`}>${valueMax}</span>
-                        </div>
-                    )}
-                </div>
-                <MoreInfo text={moreInfoText} />
             </div>
         </div>
     )
