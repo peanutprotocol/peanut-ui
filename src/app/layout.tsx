@@ -1,10 +1,10 @@
-import '../styles/globals.css'
-import { Roboto_Flex, Londrina_Solid, Sniglet } from 'next/font/google'
-import localFont from 'next/font/local'
 import { PeanutProvider } from '@/config'
 import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
 import { Metadata } from 'next'
+import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
+import localFont from 'next/font/local'
+import '../styles/globals.css'
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
