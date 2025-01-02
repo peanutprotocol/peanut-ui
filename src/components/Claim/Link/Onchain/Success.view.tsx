@@ -75,14 +75,14 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                             </Link>
                         </div>
                         <div className="flex w-full flex-row items-center justify-start gap-1">
-                            <label className="">Axelar:</label>
+                            <label className="">Cross-chain Routing via Axelar:</label>
 
                             <Link className="cursor-pointer  underline" href={explorerUrlAxelarWithTx}>
                                 {utils.shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
                         <div className="flex w-full flex-row  items-center justify-start gap-1">
-                            <label className="">Destination Chain</label>
+                            <label className="">Destination Address:</label>
                             {!explorerUrlDestChainWithTxHash ? (
                                 <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
                             ) : (

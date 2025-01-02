@@ -3,14 +3,13 @@
 import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
+import WalletNavigation from '@/components/Global/WalletNavigation'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-// import { useAppKit } from '@reown/appkit/react'
-import WalletNavigation from '@/components/Global/WalletNavigation'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import classNames from 'classnames'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -23,7 +22,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
     const pathName = usePathname()
     const [isReady, setIsReady] = useState(false)
     const { signInModal, selectExternalWallet } = useWallet()
-    const web3Modal = useWeb3Modal()
+    const web3Modal = useAppKit()
     const { user } = useAuth()
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()

@@ -1,29 +1,28 @@
 'use client'
-import { useContext, useState, useMemo } from 'react'
+import { useContext, useMemo, useState } from 'react'
 
+import { Button, Card } from '@/components/0_Bruddle'
+import Divider from '@/components/0_Bruddle/Divider'
+import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
+import Icon from '@/components/Global/Icon'
+import MoreInfo from '@/components/Global/MoreInfo'
+import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
-import * as _consts from '../Create.consts'
-import * as _utils from '../Create.utils'
+import { useWallet } from '@/context/walletContext'
+import { useWalletType } from '@/hooks/useWalletType'
 import {
     areEvmAddressesEqual,
-    saveDirectSendToLocalStorage,
+    ErrorHandler,
+    formatTokenAmount,
+    printableAddress,
     saveCreatedLinkToLocalStorage,
+    saveDirectSendToLocalStorage,
     shareToEmail,
     shareToSms,
     updateUserPreferences,
-    ErrorHandler,
-    printableAddress,
-    formatTokenAmount,
 } from '@/utils'
-import Icon from '@/components/Global/Icon'
-import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
+import * as _consts from '../Create.consts'
 import { useCreateLink } from '../useCreateLink'
-import { Button, Card } from '@/components/0_Bruddle'
-import Divider from '@/components/0_Bruddle/Divider'
-import { useWallet } from '@/context/walletContext'
-import MoreInfo from '@/components/Global/MoreInfo'
-import { useWalletType } from '@/hooks/useWalletType'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -325,12 +324,11 @@ export const CreateLinkConfirmView = ({
                         </div>
                     )}
                 </div>
-                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                {/* <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                     <div className="flex w-max flex-row items-center justify-center gap-1">
                         <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                         <label className="font-bold">Points</label>
                     </div>
-                    {/* TODO: correct points estimation
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {estimatedPoints && estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                         <MoreInfo
@@ -345,8 +343,7 @@ export const CreateLinkConfirmView = ({
                             }
                         />
                     </span>
-                    */}
-                </div>
+                </div> */}
                 <Divider className="my-4" />
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row-reverse">
                     <Button loading={isLoading} onClick={handleConfirm} disabled={isLoading}>

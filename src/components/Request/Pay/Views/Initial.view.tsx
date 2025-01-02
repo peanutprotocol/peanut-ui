@@ -1,32 +1,33 @@
-import * as _consts from '../Pay.consts'
-import { useSwitchChain } from 'wagmi'
-import { useContext, useEffect, useState, useMemo, useCallback } from 'react'
-import * as context from '@/context'
+import { Button, Card } from '@/components/0_Bruddle'
+import { useToast } from '@/components/0_Bruddle/Toast'
+import { useCreateLink } from '@/components/Create/useCreateLink'
 import AddressLink from '@/components/Global/AddressLink'
-import {
-    fetchTokenSymbol,
-    isAddressZero,
-    formatTokenAmount,
-    formatAmountWithSignificantDigits,
-    areEvmAddressesEqual,
-    saveRequestLinkFulfillmentToLocalStorage,
-    ErrorHandler,
-} from '@/utils'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
-import * as consts from '@/constants'
-import { useCreateLink } from '@/components/Create/useCreateLink'
-import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { Card, Button } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
-import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
-import { checkTokenSupportsXChain } from '@/utils/token.utils'
+import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import * as context from '@/context'
+import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { type ITokenPriceData } from '@/interfaces'
+import {
+    areEvmAddressesEqual,
+    ErrorHandler,
+    fetchTokenSymbol,
+    formatAmountWithSignificantDigits,
+    formatTokenAmount,
+    isAddressZero,
+    saveRequestLinkFulfillmentToLocalStorage,
+} from '@/utils'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { checkTokenSupportsXChain } from '@/utils/token.utils'
+import { useAppKit } from '@reown/appkit/react'
+import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useSwitchChain } from 'wagmi'
+import * as _consts from '../Pay.consts'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -76,6 +77,7 @@ export const InitialView = ({
     const toast = useToast()
 
     const { switchChainAsync } = useSwitchChain()
+    const { open } = useAppKit()
     const { setLoadingState, loadingState, isLoading } = useContext(context.loadingStateContext)
     const {
         selectedTokenData,
@@ -447,12 +449,12 @@ export const InitialView = ({
                             </div>
                         )}
 
+                        {/* TODO: correct points estimation
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
                             </div>
-                            {/* TODO: correct points estimation
                             <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                 {estimatedPoints ? (
                                     `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
@@ -469,9 +471,8 @@ export const InitialView = ({
                                     }
                                 />
                             </span>
-                            */}
                         </div>
-                        <div className="flex w-full border-t border-dotted border-black" />
+                            */}
                     </>
                 )}
                 <div className="flex w-full flex-col items-center justify-center gap-3">

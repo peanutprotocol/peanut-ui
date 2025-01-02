@@ -1,24 +1,24 @@
 'use client'
-import { useContext, useState, useCallback } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import Icon from '@/components/Global/Icon'
-import { useAuth } from '@/context/authContext'
-import MoreInfo from '@/components/Global/MoreInfo'
-import * as utils from '@/utils'
-import { useCreateLink } from '@/components/Create/useCreateLink'
-import { useSteps } from 'chakra-ui-steps'
-import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import { sortCrossChainDetails } from '@/components/Claim/Claim.utils'
-import * as consts from '@/constants'
+import useClaimLink from '@/components/Claim/useClaimLink'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import { CrispButton } from '@/components/CrispChat'
+import Icon from '@/components/Global/Icon'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
-import useClaimLink from '@/components/Claim/useClaimLink'
-import Link from 'next/link'
-import { CrispButton } from '@/components/CrispChat'
+import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
 import { checkTransactionStatus } from '@/components/utils/utils'
+import * as consts from '@/constants'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import * as utils from '@/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
-import { SQUID_ETH_ADDRESS, getSquidTokenAddress } from '@/utils/token.utils'
+import { getSquidTokenAddress } from '@/utils/token.utils'
+import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import { useSteps } from 'chakra-ui-steps'
+import Link from 'next/link'
+import { useCallback, useContext, useState } from 'react'
 
 import {
     CrossChainDetails,
@@ -29,8 +29,9 @@ import {
     PeanutAccount,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
+import { Card } from '../0_Bruddle'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
-import { Button, Card } from '../0_Bruddle'
+import PromoCodeChecker from './PromoCodeChecker'
 
 export const OfframpConfirmView = ({
     onNext, // available on all offramps
@@ -51,6 +52,8 @@ export const OfframpConfirmView = ({
     attachment, // available on link claim offramps
     estimatedPoints, // available on link claim offramps
     crossChainDetails, // available on link claim offramps
+    appliedPromoCode,
+    onPromoCodeApplied,
 }: IOfframpConfirmScreenProps) => {
     //////////////////////
     // state and context vars w/ shared functionality across all offramp types
@@ -93,6 +96,9 @@ export const OfframpConfirmView = ({
         }
     }
 
+    const handlePromoCodeApplied = (code: string | null) => {
+        onPromoCodeApplied(code)
+    }
     //////////////////////
     // functions for cashout offramps
     // TODO: they need to be refactored to a separate file
@@ -438,6 +444,8 @@ export const OfframpConfirmView = ({
             externalAccountId: bridgeExternalAccountId,
             chainId: chainId,
             tokenName: tokenName,
+            promoCode: appliedPromoCode || '',
+            trackParam: appliedPromoCode || '',
         })
     }
 
@@ -719,51 +727,59 @@ export const OfframpConfirmView = ({
                                 </div>
                             )}
 
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max  flex-row items-center justify-center gap-1">
+                            <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
+                                <div className="flex w-1/3 flex-row items-center gap-1">
                                     <Icon name={'gas'} className="h-4 fill-gray-1" />
                                     <label className="font-bold">Fee</label>
                                 </div>
-                                {user?.accounts.find((account) => account.account_identifier === offrampForm.recipient)
-                                    ?.account_type === 'iban'
-                                    ? '$1'
-                                    : '$0.50'}
-                                <MoreInfo
-                                    text={
-                                        user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
-                                            ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
-                                            : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            {offrampType == OfframpType.CLAIM && (
-                                <>
-                                    <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                        <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                        <label className="font-bold">Total</label>
+                                <div className="relative flex flex-1 items-center justify-end gap-1 text-sm font-normal">
+                                    <div className="flex items-center gap-1">
+                                        {appliedPromoCode
+                                            ? '$0'
+                                            : user?.accounts.find(
+                                                    (account) =>
+                                                        account.account_identifier
+                                                            .replaceAll(/\s/g, '')
+                                                            .toLowerCase() ===
+                                                        offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
+                                                )?.account_type === 'iban'
+                                              ? '$1'
+                                              : '$0.50'}
+                                        <span className="inline-flex items-center">
+                                            <MoreInfo
+                                                text={
+                                                    appliedPromoCode
+                                                        ? 'Fees waived with promo code!'
+                                                        : `For ${
+                                                              user?.accounts.find(
+                                                                  (account) =>
+                                                                      account.account_identifier
+                                                                          .replaceAll(/\s/g, '')
+                                                                          .toLowerCase() ===
+                                                                      offrampForm.recipient
+                                                                          .replaceAll(/\s/g, '')
+                                                                          .toLowerCase()
+                                                              )?.account_type === 'iban'
+                                                                  ? 'SEPA'
+                                                                  : 'ACH'
+                                                          } transactions a fee of ${
+                                                              user?.accounts.find(
+                                                                  (account) =>
+                                                                      account.account_identifier
+                                                                          .replaceAll(/\s/g, '')
+                                                                          .toLowerCase() ===
+                                                                      offrampForm.recipient
+                                                                          .replaceAll(/\s/g, '')
+                                                                          .toLowerCase()
+                                                              )?.account_type === 'iban'
+                                                                  ? '$1'
+                                                                  : '$0.50'
+                                                          } is charged.`
+                                                }
+                                            />
+                                        </span>
                                     </div>
-                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                        $
-                                        {tokenPrice &&
-                                            claimLinkData &&
-                                            utils.formatTokenAmount(
-                                                tokenPrice * parseFloat(claimLinkData.tokenAmount)
-                                            )}{' '}
-                                        <MoreInfo text={'Woop Woop free offramp!'} />
-                                    </span>
-                                </>
-                            )}
-
-                            <div className="flex w-max  flex-row items-center justify-center gap-1">
-                                {offrampType == OfframpType.CLAIM && (
-                                    <Icon name={'transfer'} className="h-4 fill-gray-1" />
-                                )}
-                                <label className="font-bold">You will receive</label>
+                                </div>
                             </div>
 
                             <div className="flex w-full flex-row items-center px-2 text-h8 text-gray-1">
@@ -799,142 +815,134 @@ export const OfframpConfirmView = ({
                                 </div>
                                 <div className="flex items-center justify-end gap-1 text-sm font-normal">
                                     <div className="flex items-center gap-1">
-                                        $
-                                        {user?.accounts.find(
-                                            (account) => account.account_identifier === offrampForm.recipient
-                                        )?.account_type === 'iban'
+                                        ${/* if promo code is applied, show full amount without fee deduction */}
+                                        {appliedPromoCode
                                             ? offrampType == OfframpType.CASHOUT
-                                                ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? '') - 1)
+                                                ? utils.formatTokenAmount(parseFloat(usdValue ?? tokenValue ?? ''))
                                                 : tokenPrice &&
                                                   claimLinkData &&
                                                   utils.formatTokenAmount(
-                                                      tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                                      tokenPrice * parseFloat(claimLinkData.tokenAmount)
                                                   )
-                                            : offrampType == OfframpType.CASHOUT
-                                              ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
-                                              : tokenPrice &&
-                                                claimLinkData &&
-                                                utils.formatTokenAmount(
-                                                    tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
-                                                )}
-                                        <MoreInfo
-                                            text={
-                                                user?.accounts.find(
+                                            : // if no promo code, apply fee deduction based on account type
+                                              user?.accounts.find(
                                                     (account) =>
                                                         account.account_identifier
                                                             .replaceAll(/\s/g, '')
                                                             .toLowerCase() ===
                                                         offrampForm.recipient.replaceAll(/\s/g, '').toLowerCase()
                                                 )?.account_type === 'iban'
-                                                    ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
-                                                    : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
+                                              ? offrampType == OfframpType.CASHOUT
+                                                  ? utils.formatTokenAmount(
+                                                        parseFloat(usdValue ?? tokenValue ?? '') - 1
+                                                    )
+                                                  : tokenPrice &&
+                                                    claimLinkData &&
+                                                    utils.formatTokenAmount(
+                                                        tokenPrice * parseFloat(claimLinkData.tokenAmount) - 1
+                                                    )
+                                              : offrampType == OfframpType.CASHOUT
+                                                ? utils.formatTokenAmount(parseFloat(usdValue ?? '') - 0.5)
+                                                : tokenPrice &&
+                                                  claimLinkData &&
+                                                  utils.formatTokenAmount(
+                                                      tokenPrice * parseFloat(claimLinkData.tokenAmount) - 0.5
+                                                  )}
+                                        <MoreInfo
+                                            text={
+                                                appliedPromoCode
+                                                    ? 'Fees waived with promo code!'
+                                                    : user?.accounts.find(
+                                                            (account) =>
+                                                                account.account_identifier
+                                                                    .replaceAll(/\s/g, '')
+                                                                    .toLowerCase() ===
+                                                                offrampForm.recipient
+                                                                    .replaceAll(/\s/g, '')
+                                                                    .toLowerCase()
+                                                        )?.account_type === 'iban'
+                                                      ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged. This will be deducted of the amount you will receive.'
+                                                      : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged. This will be deducted of the amount you will receive.'
                                             }
                                         />
                                     </div>
                                 </div>
                             </div>
+
+                            <PromoCodeChecker
+                                onPromoCodeApplied={handlePromoCodeApplied}
+                                appliedPromoCode={appliedPromoCode!}
+                            />
                         </div>
-                        <div className="flex w-full flex-col items-center justify-center gap-2">
-                            {activeStep > 3 && (
-                                <Button
-                                    onClick={() => {
-                                        switch (offrampType) {
-                                            case OfframpType.CASHOUT: {
-                                                handleCashoutConfirm()
-                                                break
-                                            }
-                                            case OfframpType.CLAIM: {
-                                                handleSubmitTransfer()
-                                                break
-                                            }
-                                        }
-                                    }}
-                                    disabled={isLoading}
-                                    loading={isLoading}
-                                >
-                                    {isLoading ? loadingState : 'Confirm'}
-                                </Button>
-                            )}
+                    </div>
+                )}
 
-                            <Button
-                                variant="stroke"
-                                onClick={() => {
-                                    onPrev()
-                                    setActiveStep(0)
-                                    setErrorState({ showError: false, errorMessage: '' })
-                                    setOfframpForm({ email: '', name: '', recipient: '', password: '' })
-                                }}
-                                disabled={isLoading}
-                                type="button"
-                            >
-                                Go Back
-                            </Button>
-
-                            {errorState.showError && (
-                                <div className="text-center">
-                                    {errorState.errorMessage === 'offramp unavailable' ? (
-                                        <label className="text-h8 font-normal text-red">
-                                            This token cannot be cashed out directly.{' '}
-                                            <CrispButton className="text-blue-600 underline">
-                                                Chat with support
-                                            </CrispButton>
-                                        </label>
-                                    ) : (
-                                        <label className="text-h8 font-normal text-red">
-                                            {errorState.errorMessage}
-                                        </label>
-                                    )}
+                <div className="flex w-full flex-col items-center justify-center gap-2">
+                    {activeStep > 3 && (
+                        <button
+                            onClick={() => {
+                                switch (offrampType) {
+                                    case OfframpType.CASHOUT: {
+                                        handleCashoutConfirm()
+                                        break
+                                    }
+                                    case OfframpType.CLAIM: {
+                                        handleSubmitTransfer()
+                                        break
+                                    }
+                                }
+                            }}
+                            className="btn-purple btn-xl"
+                            disabled={isLoading}
+                        >
+                            {isLoading ? (
+                                <div className="flex w-full flex-row items-center justify-center gap-2">
+                                    <Loading /> {loadingState}
                                 </div>
+                            ) : (
+                                'Cashout'
                             )}
-                            {showRefund && (
-                                <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
-                                    <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to
-                                    cashout. Click{' '}
-                                    <Link href={createdLink ?? ''} className="underline">
-                                        here
-                                    </Link>{' '}
-                                    to reclaim the funds to your wallet.
-                                </Link>
+                        </button>
+                    )}
+
+                    <button
+                        className="btn btn-xl dark:border-white dark:text-white"
+                        onClick={() => {
+                            onPrev()
+                            setActiveStep(0)
+                            setErrorState({ showError: false, errorMessage: '' })
+                            setOfframpForm({ email: '', name: '', recipient: '', password: '' })
+                        }}
+                        disabled={isLoading}
+                        type="button"
+                    >
+                        Go Back
+                        {/* Cancel if activeStep <=3 and offramp type cashout*/}
+                    </button>
+
+                    {errorState.showError && (
+                        <div className="text-center">
+                            {errorState.errorMessage === 'offramp unavailable' ? (
+                                <label className="text-h8 font-normal text-red">
+                                    This token cannot be cashed out directly.{' '}
+                                    <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
+                                </label>
+                            ) : (
+                                <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
                             )}
                         </div>
-                    </div>
-                )}
-                <Button
-                    className="btn btn-xl dark:border-white dark:text-white"
-                    onClick={() => {
-                        onPrev()
-                        setActiveStep(0)
-                        setErrorState({ showError: false, errorMessage: '' })
-                        setOfframpForm({ email: '', name: '', recipient: '', password: '' })
-                    }}
-                    disabled={isLoading}
-                    type="button"
-                >
-                    Go Back
-                    {/* Cancel if activeStep <=3 and offramp type cashout*/}
-                </Button>
-
-                {errorState.showError && (
-                    <div className="text-center">
-                        {errorState.errorMessage === 'offramp unavailable' ? (
-                            <label className="text-h8 font-normal text-red">
-                                This token cannot be cashed out directly.{' '}
-                                <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                            </label>
-                        ) : (
-                            <label className="text-h8 font-normal text-red">{errorState.errorMessage}</label>
-                        )}
-                    </div>
-                )}
-                {showRefund && (
-                    <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout. Click{' '}
-                        <Link href={createdLink ?? ''} className="underline">
-                            here
-                        </Link>{' '}
-                        to reclaim the funds to your wallet.
-                    </Link>
-                )}
+                    )}
+                    {showRefund && (
+                        <Link href={createdLink ?? ''} className=" text-h8 font-normal ">
+                            <Icon name="warning" className="-mt-0.5" /> Something went wrong while trying to cashout.
+                            Click{' '}
+                            <Link href={createdLink ?? ''} className="underline">
+                                here
+                            </Link>{' '}
+                            to reclaim the funds to your wallet.
+                        </Link>
+                    )}
+                </div>
             </Card.Content>
         </Card>
     )

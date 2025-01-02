@@ -1,15 +1,23 @@
 import { usePathname } from 'next/navigation'
-import { MarqueeWrapper } from '../MarqueeWrapper'
+import { GenericBanner } from './GenericBanner'
+import { MaintenanceBanner } from './MaintenanceBanner'
+import { MAINTAINABLE_ROUTES } from '@/config/routesUnderMaintenance'
 
 export function Banner() {
     const pathname = usePathname()
-    const showBanner = pathname.startsWith('/cashout') || pathname.startsWith('/request')
+    if (!pathname) return null
 
-    if (!showBanner) return null
+    // First check for maintenance
+    const maintenanceBanner = <MaintenanceBanner pathname={pathname} />
+    if (maintenanceBanner) return maintenanceBanner
 
-    return (
-        <MarqueeWrapper backgroundColor="bg-purple-1" direction="left">
-            <span className="z-10 mx-4 text-sm font-semibold">Beta feature - share your thoughts!</span>
-        </MarqueeWrapper>
-    )
+    // Show beta message for all request paths (create and pay) unless under maintenance
+    if (pathname.startsWith(MAINTAINABLE_ROUTES.REQUEST)) {
+        return <GenericBanner message="Beta feature - share your thoughts!" backgroundColor="bg-purple-1" />
+    }
+
+    return null
 }
+
+export { GenericBanner } from './GenericBanner'
+export { MaintenanceBanner } from './MaintenanceBanner'

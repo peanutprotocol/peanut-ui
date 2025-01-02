@@ -1,43 +1,41 @@
 'use client'
 
-import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
-import * as _consts from '../Claim.consts'
-import { useContext, useEffect, useState, useCallback } from 'react'
-import Icon from '@/components/Global/Icon'
-import useClaimLink from '../useClaimLink'
-import * as context from '@/context'
-import * as consts from '@/constants'
-import {
-    areEvmAddressesEqual,
-    saveClaimedLinkToLocalStorage,
-    ErrorHandler,
-    getBridgeTokenName,
-    getBridgeChainName,
-    checkifImageType,
-    formatTokenAmount,
-} from '@/utils'
-import MoreInfo from '@/components/Global/MoreInfo'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-import * as _interfaces from '../Claim.interfaces'
-import * as _utils from '../Claim.utils'
-import { Popover } from '@headlessui/react'
-import { useAuth } from '@/context/authContext'
-import { ActionType, estimatePoints } from '@/components/utils/utils'
+import { Button, Card } from '@/components/0_Bruddle'
 import { CrispButton } from '@/components/CrispChat'
+import AddressLink from '@/components/Global/AddressLink'
+import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
+import Icon from '@/components/Global/Icon'
+import MoreInfo from '@/components/Global/MoreInfo'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import {
     MAX_CASHOUT_LIMIT,
     MIN_CASHOUT_LIMIT,
     optimismChainId,
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
-import { Button, Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
-import { TOOLTIPS } from '@/constants/tooltips'
-import AddressLink from '@/components/Global/AddressLink'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { SQUID_ETH_ADDRESS } from '@/utils/token.utils'
-import { getSquidTokenAddress } from '@/utils/token.utils'
+import { ActionType, estimatePoints } from '@/components/utils/utils'
+import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import { TOOLTIPS } from '@/constants/tooltips'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import { useWallet } from '@/context/walletContext'
+import {
+    areEvmAddressesEqual,
+    checkifImageType,
+    ErrorHandler,
+    formatTokenAmount,
+    getBridgeChainName,
+    getBridgeTokenName,
+    saveClaimedLinkToLocalStorage,
+} from '@/utils'
+import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
+import { Popover } from '@headlessui/react'
+import { useAppKit } from '@reown/appkit/react'
+import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
+import { useCallback, useContext, useEffect, useState } from 'react'
+import * as _consts from '../Claim.consts'
+import useClaimLink from '../useClaimLink'
 
 export const InitialClaimLinkView = ({
     onNext,
@@ -84,7 +82,7 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-
+    const { open } = useAppKit()
     const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet } = useWallet()
     const { user } = useAuth()
 
@@ -240,7 +238,7 @@ export const InitialClaimLinkView = ({
                     recipient: recipient.name ?? recipient.address,
                     password: '',
                 })
-                if (user?.user.kycStatus === 'verified') {
+                if (user?.user.kycStatus === 'approved') {
                     const account = user.accounts.find(
                         (account: any) =>
                             account.account_identifier.replaceAll(/\s/g, '').toLowerCase() ===
@@ -544,12 +542,34 @@ export const InitialClaimLinkView = ({
                                 )}
                             </span>
                         </div>
+                        {/* TODO: correct points estimation
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                                 <label className="font-bold">Points</label>
                             </div>
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Fees</label>
+                                </div>
+                                <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                    {isXchainLoading ? (
+                                        <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                    ) : (
+                                        <>
+                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                        </>
+                                    )}
+                                </span>
+                            </div>
+
                             {/* TODO: correct points estimation
+                            <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                <div className="flex w-max flex-row items-center justify-center gap-1">
+                                    <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Points</label>
+                                </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                                     <MoreInfo
@@ -562,8 +582,9 @@ export const InitialClaimLinkView = ({
                                         }
                                     />
                                 </span>
-                                */}
+                            </div>
                         </div>
+                                */}
                     </div>
                 )}
                 <div className="flex w-full flex-col items-center justify-center gap-4">
