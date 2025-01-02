@@ -1,29 +1,27 @@
-import * as _consts from '../Pay.consts'
-import { useAccount, useSwitchChain } from 'wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { useContext, useEffect, useState, useMemo } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
+import { useCreateLink } from '@/components/Create/useCreateLink'
 import AddressLink from '@/components/Global/AddressLink'
+import FeeDescription from '@/components/Global/FeeDescription'
+import InfoRow from '@/components/Global/InfoRow'
+import Loading from '@/components/Global/Loading'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
+import * as consts from '@/constants'
+import * as context from '@/context'
+import { type ITokenPriceData } from '@/interfaces'
 import {
+    areTokenAddressesEqual,
+    ErrorHandler,
     fetchTokenSymbol,
     isAddressZero,
-    formatTokenAmount,
-    formatAmountWithSignificantDigits,
-    areTokenAddressesEqual,
     saveRequestLinkFulfillmentToLocalStorage,
-    ErrorHandler,
 } from '@/utils'
-import Icon from '@/components/Global/Icon'
-import MoreInfo from '@/components/Global/MoreInfo'
-import * as consts from '@/constants'
-import { useCreateLink } from '@/components/Create/useCreateLink'
-import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { type ITokenPriceData } from '@/interfaces'
-import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
+import { useAppKit } from '@reown/appkit/react'
+import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { useAccount, useSwitchChain } from 'wagmi'
+import * as _consts from '../Pay.consts'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -98,22 +96,68 @@ export const InitialView = ({
         undefined
     )
 
-    const calculatedFee = useMemo(() => {
-        return isXChain ? txFee : formatTokenAmount(estimatedGasCost, 3)
-    }, [isXChain, estimatedGasCost, txFee])
-
     const calculatedSlippage = useMemo(() => {
         if (!selectedTokenData?.price || !slippagePercentage) return null
         return ((slippagePercentage / 100) * selectedTokenData.price * Number(estimatedFromValue)).toFixed(2)
     }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
+    const feeCalculations = useMemo(() => {
+        // percentage of maximum network fee to use as expected fee (70%)
+        const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
+
+        // percentage of maximum slippage to use as expected slippage (10%)
+        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
+
+        // gas/network cost calculation (70% of max for expected)
+        const networkFee = {
+            expected: isXChain
+                ? Number(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER
+                : Number(estimatedGasCost) * EXPECTED_NETWORK_FEE_MULTIPLIER,
+            max: isXChain ? Number(txFee) : Number(estimatedGasCost),
+        }
+
+        // slippage calculation (10% of max for expected)
+        const slippage = calculatedSlippage
+            ? {
+                  expected: Number(calculatedSlippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
+                  max: Number(calculatedSlippage),
+              }
+            : undefined
+
+        // calculate total max (requested amount + max network fee + max slippage)
+        const requestedAmountUSD = tokenPriceData
+            ? Number(requestLinkData.tokenAmount) * tokenPriceData.price
+            : Number(requestLinkData.tokenAmount)
+
+        const totalMax = requestedAmountUSD + networkFee.max + (slippage?.max || 0)
+
+        // ensure values are at least 0.01 to avoid scientific notation
+        const formatNumberSafely = (num: number) => {
+            return formatAmount(num < 0.01 && num > 0 ? 0.01 : num)
+        }
+
+        return {
+            networkFee: {
+                expected: formatNumberSafely(networkFee.expected || 0),
+            },
+            slippage: slippage
+                ? {
+                      expected: formatNumberSafely(slippage.expected || 0),
+                      max: formatNumberSafely(slippage.max || 0),
+                  }
+                : undefined,
+            expectedTotal: formatNumberSafely(networkFee.expected + (slippage?.expected || 0) || 0),
+            totalMax: formatNumberSafely(totalMax || 0),
+        }
+    }, [isXChain, txFee, estimatedGasCost, calculatedSlippage, tokenPriceData, requestLinkData.tokenAmount])
+
     const isButtonDisabled = useMemo(() => {
         return (
             viewState === ViewState.LOADING ||
             viewState === ViewState.ERROR ||
-            (viewState === ViewState.READY_TO_PAY && !calculatedFee)
+            (viewState === ViewState.READY_TO_PAY && !feeCalculations.expectedTotal)
         )
-    }, [viewState, isLoading, calculatedFee])
+    }, [viewState, isLoading, feeCalculations.expectedTotal])
 
     const requestedAmount = useMemo(() => {
         const amount = tokenPriceData
@@ -390,72 +434,35 @@ export const InitialView = ({
             <div className="flex w-full flex-col items-center justify-center gap-2">
                 {!isFeeEstimationError && (
                     <>
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Network cost</label>
-                            </div>
-                            <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {calculatedFee ? (
-                                    `$${calculatedFee}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                {!isXChain ? (
-                                    <MoreInfo
-                                        text={
-                                            estimatedGasCost && estimatedGasCost > 0
-                                                ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                                : 'This transaction is sponsored by peanut! Enjoy!'
-                                        }
-                                    />
-                                ) : (
-                                    <MoreInfo
-                                        text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
-                                    />
-                                )}
-                            </label>
-                        </div>
+                        <FeeDescription
+                            loading={
+                                Number(feeCalculations.expectedTotal) === 0 ||
+                                Number(feeCalculations.networkFee.expected) === 0 ||
+                                isLoading
+                            }
+                            estimatedFee={feeCalculations.expectedTotal}
+                            networkFee={feeCalculations.networkFee.expected}
+                            slippageRange={
+                                feeCalculations.slippage
+                                    ? {
+                                          min: feeCalculations.slippage.expected,
+                                          max: feeCalculations.slippage.max,
+                                      }
+                                    : undefined
+                            }
+                        />
 
-                        {null !== calculatedSlippage && (
-                            <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                                <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'money-out'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Max slippage</label>
-                                </div>
-                                <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    ${calculatedSlippage}
-                                    <MoreInfo
-                                        text={`${slippagePercentage!.toFixed(2)}% is the maximum slippage set to ensure that the transaction goes through. It is likely to be much lower than the actual slippage`}
-                                    />
-                                </label>
-                            </div>
-                        )}
-
-                        {/* TODO: correct points estimation
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Points</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {estimatedPoints ? (
-                                    `${estimatedPoints > 0 ? '+' : ''}${estimatedPoints}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                <MoreInfo
-                                    text={
-                                        estimatedPoints !== undefined
-                                            ? estimatedPoints > 0
-                                                ? `This transaction will add ${estimatedPoints} to your total points balance.`
-                                                : 'This transaction will not add any points to your total points balance'
-                                            : 'This transaction will not add any points to your total points balance'
-                                    }
-                                />
-                            </span>
-                        </div>
-                            */}
+                        <InfoRow
+                            loading={Number(feeCalculations.totalMax) === 0 || isLoading}
+                            iconName="transfer"
+                            label="Total Max"
+                            value={`$ ${feeCalculations.totalMax}`}
+                            moreInfoText={
+                                feeCalculations.slippage
+                                    ? 'Maximum amount you will pay including requested amount, fees, and maximum slippage.'
+                                    : 'Maximum amount you will pay including requested amount and network fees.'
+                            }
+                        />
                     </>
                 )}
             </div>

@@ -1,29 +1,28 @@
 'use client'
-import { useContext, useState, useMemo } from 'react'
+import { useContext, useMemo, useState } from 'react'
 
+import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
+import Icon from '@/components/Global/Icon'
+import InfoRow from '@/components/Global/InfoRow'
+import Loading from '@/components/Global/Loading'
+import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
-import * as _consts from '../Create.consts'
-import * as _utils from '../Create.utils'
+import { useBalance } from '@/hooks/useBalance'
+import { useWalletType } from '@/hooks/useWalletType'
 import {
     areTokenAddressesEqual,
-    saveDirectSendToLocalStorage,
+    ErrorHandler,
+    formatTokenAmount,
+    printableAddress,
     saveCreatedLinkToLocalStorage,
+    saveDirectSendToLocalStorage,
     shareToEmail,
     shareToSms,
     updatePeanutPreferences,
-    ErrorHandler,
-    printableAddress,
-    formatTokenAmount,
 } from '@/utils'
-import Icon from '@/components/Global/Icon'
-import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
-import { useCreateLink } from '../useCreateLink'
-import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
-import MoreInfo from '@/components/Global/MoreInfo'
-import { useBalance } from '@/hooks/useBalance'
-import { useWalletType } from '@/hooks/useWalletType'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
+import * as _consts from '../Create.consts'
+import { useCreateLink } from '../useCreateLink'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -294,26 +293,22 @@ export const CreateLinkConfirmView = ({
                     </div>
                 )}
                 {transactionCostUSD !== undefined && (
-                    <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                        <div className="flex w-max flex-row items-center justify-center gap-1">
-                            <Icon name={'gas'} className="h-4 fill-gray-1" />
-                            <label className="font-bold">Network cost</label>
-                        </div>
-                        <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                            {transactionCostUSD === 0
-                                ? '$0'
+                    <InfoRow
+                        iconName="gas"
+                        label="Estimated Fee"
+                        value={`~ ${
+                            transactionCostUSD === 0
+                                ? ' $0'
                                 : transactionCostUSD < 0.01
-                                  ? '$<0.01'
-                                  : `$${formatTokenAmount(transactionCostUSD, 3) ?? 0}`}
-                            <MoreInfo
-                                text={
-                                    transactionCostUSD > 0
-                                        ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                        : 'This transaction is sponsored by peanut! Enjoy!'
-                                }
-                            />
-                        </label>
-                    </div>
+                                  ? '$ 0.01'
+                                  : `$ ${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                        }`}
+                        moreInfoText={
+                            transactionCostUSD > 0
+                                ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
+                                : 'This transaction is sponsored by peanut! Enjoy!'
+                        }
+                    />
                 )}
                 {/* TODO: correct points estimation
                 <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
