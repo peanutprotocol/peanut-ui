@@ -1,24 +1,23 @@
 'use client'
-import { useContext, useState, useCallback } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import Icon from '@/components/Global/Icon'
-import { useAuth } from '@/context/authContext'
-import MoreInfo from '@/components/Global/MoreInfo'
-import * as utils from '@/utils'
-import { useCreateLink } from '@/components/Create/useCreateLink'
-import { useSteps } from 'chakra-ui-steps'
-import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
 import { sortCrossChainDetails } from '@/components/Claim/Claim.utils'
-import * as consts from '@/constants'
+import useClaimLink from '@/components/Claim/useClaimLink'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import { CrispButton } from '@/components/CrispChat'
+import Icon from '@/components/Global/Icon'
 import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
-import useClaimLink from '@/components/Claim/useClaimLink'
-import Link from 'next/link'
-import { CrispButton } from '@/components/CrispChat'
-import { checkTransactionStatus } from '@/components/utils/utils'
+import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
+import * as consts from '@/constants'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import * as utils from '@/utils'
 import { formatBankAccountDisplay } from '@/utils/format.utils'
-import { SQUID_ETH_ADDRESS, getSquidTokenAddress } from '@/utils/token.utils'
+import { getSquidTokenAddress } from '@/utils/token.utils'
+import peanut, { getLatestContractVersion, getLinkDetails } from '@squirrel-labs/peanut-sdk'
+import { useSteps } from 'chakra-ui-steps'
+import Link from 'next/link'
+import { useCallback, useContext, useState } from 'react'
 
 import {
     CrossChainDetails,
@@ -30,6 +29,7 @@ import {
     usdcAddressOptimism,
 } from '@/components/Offramp/Offramp.consts'
 import { FAQComponent } from '../Cashout/Components/Faq.comp'
+import { checkTransactionStatus } from '../utils/utils'
 import PromoCodeChecker from './PromoCodeChecker'
 
 export const OfframpConfirmView = ({
@@ -359,7 +359,6 @@ export const OfframpConfirmView = ({
                 destinationChainId: chainId,
                 destinationToken: tokenAddress,
             })
-            setLoadingState('Executing transaction') // claimLinkXchain sets loading state to idle after it finishes. pls no.
 
             if (isSameChain) {
                 return {
@@ -368,29 +367,45 @@ export const OfframpConfirmView = ({
                 }
             }
 
-            const maxAttempts = 15
-            let attempts = 0
+            // todo: revist, not a good idea to wait for the tx to be available, look for better soln
+            // const maxAttempts = 15
+            // let attempts = 0
 
-            while (attempts < maxAttempts) {
-                try {
-                    const status = await checkTransactionStatus(sourceTxHash)
-                    if (status.squidTransactionStatus === 'success') {
-                        return {
-                            sourceTxHash,
-                            destinationTxHash: status.toChain.transactionId,
-                        }
+            // while (attempts < maxAttempts) {
+            // try {
+            //     const status = await checkTransactionStatus(sourceTxHash)
+            //     if (status.squidTransactionStatus === 'success') {
+            //         return {
+            //             sourceTxHash,
+            //             destinationTxHash: status.toChain.transactionId,
+            //         }
+            //     }
+            // } catch (error) {
+            //     console.warn('Error checking transaction status:', error)
+            // }
+
+            // attempts++
+            // if (attempts < maxAttempts) {
+            //     await new Promise((resolve) => setTimeout(resolve, 2000))
+            // }
+            // }
+
+            // console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
+
+            // For cross-chain transactions, attempt to get destination hash once
+            try {
+                const status = await checkTransactionStatus(sourceTxHash)
+                if (status.squidTransactionStatus === 'success') {
+                    return {
+                        sourceTxHash,
+                        destinationTxHash: status.toChain.transactionId,
                     }
-                } catch (error) {
-                    console.warn('Error checking transaction status:', error)
                 }
-
-                attempts++
-                if (attempts < maxAttempts) {
-                    await new Promise((resolve) => setTimeout(resolve, 2000))
-                }
+            } catch (error) {
+                console.warn('Error checking transaction status:', error)
             }
 
-            console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
+            // fallback: use source hash if status check fails or transaction not yet successful
             return {
                 sourceTxHash,
                 destinationTxHash: sourceTxHash,
@@ -401,7 +416,6 @@ export const OfframpConfirmView = ({
                 address,
                 link: claimLinkData.link,
             })
-            setLoadingState('Executing transaction') // claimLink
             return { sourceTxHash: txHash, destinationTxHash: txHash }
         }
     }
