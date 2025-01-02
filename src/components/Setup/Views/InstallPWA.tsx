@@ -1,9 +1,9 @@
-import { Button, Card } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle'
+import Modal from '@/components/Global/Modal'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useEffect, useState } from 'react'
-import { useSetupFlow } from '../context/SetupFlowContext'
-import Icon from '@/components/Global/Icon'
 
-const StepTitle = ({ text }: { text: string }) => <h3 className="font-bold">{text}</h3>
+const StepTitle = ({ text }: { text: string }) => <h3 className="text-xl font-extrabold leading-6">{text}</h3>
 
 const InstallPWADesktopIcon = () => {
     return (
@@ -14,7 +14,7 @@ const InstallPWADesktopIcon = () => {
             height="16"
             viewBox="0 0 160.000000 160.000000"
             preserveAspectRatio="xMidYMid meet"
-            style={{ display: 'inline', verticalAlign: 'middle', marginRight: '8px' }}
+            style={{ display: 'inline', verticalAlign: 'middle', marginLeft: '4px', marginRight: '4px' }}
         >
             <g transform="translate(0.000000,160.000000) scale(0.100000,-0.100000)" fill="currentColor" stroke="none">
                 <path d="M271 1382 c-71 -38 -71 -40 -71 -482 0 -364 1 -398 18 -429 30 -55 71 -71 186 -71 l100 0 -32 -33 c-30 -30 -32 -38 -32 -100 l0 -67 360 0 360 0 0 67 c0 62 -2 70 -32 100 l-32 33 100 0 c168 0 204 36 204 202 l0 98 -50 0 -50 0 0 -100 0 -100 -500 0 -500 0 0 400 0 400 200 0 200 0 0 50 0 50 -198 0 c-172 0 -202 -2 -231 -18z" />
@@ -23,8 +23,6 @@ const InstallPWADesktopIcon = () => {
         </svg>
     )
 }
-
-let deferredPrompt: any = null
 
 const ShareIcon = () => (
     <svg
@@ -47,12 +45,14 @@ const ShareIcon = () => (
     </svg>
 )
 
+let deferredPrompt: any = null
+
 const InstallPWA = () => {
     const { handleNext } = useSetupFlow()
     const [canInstall, setCanInstall] = useState(false)
     const [deviceType, setDeviceType] = useState<'ios' | 'android' | 'desktop'>('desktop')
-    const [canSkip, setCanSkip] = useState(false)
-    const [skipTimer, setSkipTimer] = useState(20)
+    const [showModal, setShowModal] = useState(false)
+    const [installComplete, setInstallComplete] = useState(false)
 
     useEffect(() => {
         // Store the install prompt
@@ -66,23 +66,12 @@ const InstallPWA = () => {
         window.addEventListener('appinstalled', () => {
             // Wait a moment to let the install complete
             setTimeout(() => {
-                handleNext()
+                setInstallComplete(true)
+                setShowModal(false)
                 // Try to open the PWA
                 window.location.href = window.location.origin + '/home'
             }, 1000)
         })
-
-        // Start the skip timer
-        const timer = setInterval(() => {
-            setSkipTimer((prev) => {
-                if (prev <= 1) {
-                    clearInterval(timer)
-                    setCanSkip(true)
-                    return 0
-                }
-                return prev - 1
-            })
-        }, 1000)
 
         // Detect device type
         const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent)
@@ -97,9 +86,7 @@ const InstallPWA = () => {
         } else {
             setDeviceType('desktop')
         }
-
-        return () => clearInterval(timer)
-    }, [handleNext])
+    }, [])
 
     const handleInstall = async () => {
         if (!deferredPrompt) return
@@ -116,13 +103,12 @@ const InstallPWA = () => {
     }
 
     const IOSInstructions = () => (
-        <div className="flex flex-col gap-4">
-            <div>
-                <StepTitle text="Step 1: Open the Sharing Options" />
-                <p>
-                    Tap the share icon (<ShareIcon />) at the bottom of your screen and then "Add to Home Screen"
-                </p>
-            </div>
+        <div className="space-y-4">
+            <StepTitle text="Add Peanut wallet in to your home screen" />
+            <p>
+                To add Peanut wallet to your Home screen, tap the (<ShareIcon />) icons and then {`"Add home Screen"`}{' '}
+                in your Safari browser.
+            </p>
         </div>
     )
 
@@ -134,14 +120,10 @@ const InstallPWA = () => {
                 </Button>
             ) : (
                 <>
-                    <div>
-                        <StepTitle text="Step 1: Open the Menu" />
-                        <p>Tap the three dots menu at the top of your screen.</p>
-                    </div>
-
-                    <div>
-                        <StepTitle text="Step 2: Select 'Install App'" />
-                        <p>Tap 'Add to Home Screen' or 'Install app' from the menu options.</p>
+                    <div className="space-y-4">
+                        <StepTitle text="Add Peanut wallet in to your home screen" />
+                        <p className="mt-2">1. Tap the three dots menu at the top of your screen.</p>
+                        <p>2. Tap 'Add to Home Screen' or 'Install app' from the menu options.</p>
                     </div>
                 </>
             )}
@@ -149,7 +131,7 @@ const InstallPWA = () => {
     )
 
     const DesktopInstructions = () => (
-        <div className="flex flex-col gap-4">
+        <div>
             {canInstall ? (
                 <Button onClick={handleInstall} className="w-full">
                     <InstallPWADesktopIcon />
@@ -157,7 +139,7 @@ const InstallPWA = () => {
                 </Button>
             ) : (
                 <>
-                    <div>
+                    <div className="space-y-4">
                         <StepTitle text="Install on Desktop" />
                         <p>
                             Look for the install icon (<InstallPWADesktopIcon />) in your browser's address bar and
@@ -169,26 +151,64 @@ const InstallPWA = () => {
         </div>
     )
 
+    const getInstructions = () => {
+        switch (deviceType) {
+            case 'ios':
+                return <IOSInstructions />
+            case 'android':
+                return <AndroidInstructions />
+            default:
+                return <DesktopInstructions />
+        }
+    }
+
     return (
         <div className="flex flex-col gap-4">
-            <Card>
-                <Card.Content>
-                    {deviceType === 'ios' && <IOSInstructions />}
-                    {deviceType === 'android' && <AndroidInstructions />}
-                    {deviceType === 'desktop' && <DesktopInstructions />}
-                </Card.Content>
-            </Card>
             <Button
-                onClick={(e) => {
-                    e.preventDefault()
-                    handleNext()
+                onClick={() => {
+                    if (installComplete) {
+                        handleNext()
+                    } else {
+                        setShowModal(true)
+                    }
                 }}
-                variant="stroke"
-                disabled={!canSkip}
-                loading={!canSkip}
+                className="w-full"
+                shadowSize="4"
             >
-                {canSkip ? 'Done' : ``}
+                {installComplete ? 'Done' : 'Install App'}
             </Button>
+
+            <Modal
+                visible={showModal}
+                onClose={() => setShowModal(false)}
+                className="items-center"
+                classWrap="sm:m-auto sm:self-center self-center bg-background m-4 rounded-none border-0"
+            >
+                {/* todo: replace with images from design */}
+                <img
+                    className="w-full"
+                    width={300}
+                    height={300}
+                    src={
+                        'https://images.unsplash.com/photo-1494253109108-2e30c049369b?fm=jpg&q=60&w=3000&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTZ8fHJhbmRvbXxlbnwwfHwwfHx8MA%3D%3D'
+                    }
+                    alt=""
+                />
+                <div className="space-y-4 p-6">
+                    {getInstructions()}
+                    <Button
+                        onClick={() => {
+                            setShowModal(false)
+                            setInstallComplete(true)
+                        }}
+                        className="w-full bg-white"
+                        shadowSize="4"
+                        variant="stroke"
+                    >
+                        Got it!
+                    </Button>
+                </div>
+            </Modal>
         </div>
     )
 }

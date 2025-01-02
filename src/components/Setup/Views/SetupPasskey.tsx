@@ -1,25 +1,21 @@
 import { Button } from '@/components/0_Bruddle'
-import { useToast } from '@/components/0_Bruddle/Toast'
-import Icon from '@/components/Global/Icon'
-import { useSetupFlow } from '@/components/Setup/context/SetupFlowContext'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { PasskeyStorage } from '../Setup.helpers'
 import { useAuth } from '@/context/authContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { WalletProviderType } from '@/interfaces'
+import { useSetupStore } from '@/redux/hooks'
+import { useState } from 'react'
+import { PasskeyStorage } from '../Setup.helpers'
 
 const SetupPasskey = () => {
-    const { handleNext, handleBack, isLoading, screenProps = { handle: '' } } = useSetupFlow()
+    const { handle } = useSetupStore()
+    const { handleNext, isLoading } = useSetupFlow()
     const { handleRegister } = useZeroDev()
     const { fetchUser, addAccount } = useAuth()
-    const toast = useToast()
-
-    const { handle } = screenProps
-
-    console.log('Creating passkey for handle', handle)
+    const [error, setError] = useState<string | null>(null)
 
     const createKey = async () => {
         try {
-            // set register
             const { account } = await handleRegister(handle)
             if (!account) {
                 throw new Error('Failed to register handle, account is undefined')
@@ -50,30 +46,17 @@ const SetupPasskey = () => {
             return true
         } catch (error) {
             console.log('Error creating passkey', error)
-            toast.error('Failed to create passkey')
+            setError('Failed to create passkey')
             return false
         }
     }
 
     return (
-        <div className="flex h-full flex-col justify-end gap-4 text-center">
-            <p className="">
-                You're about to register as: <span className="text-lg font-bold">{handle}</span>
-            </p>
-            <div className="flex flex-row items-center gap-2">
-                <Button onClick={handleBack} variant="stroke">
-                    <Icon name="arrow-prev" />
-                </Button>
-                <Button
-                    loading={isLoading}
-                    onClick={() => {
-                        handleNext(createKey)
-                    }}
-                    className="text-nowrap"
-                >
-                    Create
-                </Button>
-            </div>
+        <div className="flex h-full flex-col justify-end gap-2 text-center">
+            <Button loading={isLoading} onClick={() => handleNext(createKey)} className="text-nowrap" shadowSize="4">
+                Add a passkey
+            </Button>
+            {error && <p className="text-sm font-bold text-error">{error}</p>}
         </div>
     )
 }

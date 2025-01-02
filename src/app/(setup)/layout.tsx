@@ -1,30 +1,25 @@
 'use client'
 
-import '../../styles/globals.bruddle.css'
-import { useRouter } from 'next/navigation'
-import { SetupFlowProvider } from '../../components/Setup/context/SetupFlowContext'
-import { SETUP_STEPS } from '@/components/Setup/Setup.consts'
 import { usePWAStatus } from '@/hooks/usePWAStatus'
-import CloudsBackground from '@/components/0_Bruddle/CloudsBackground'
+import { useAppDispatch } from '@/redux/hooks'
+import { setupActions } from '@/redux/slices/setup-slice'
+import { useEffect } from 'react'
+import { setupSteps } from '../../components/Setup/Setup.consts'
+import '../../styles/globals.bruddle.css'
 
 const SetupLayout = ({ children }: { children?: React.ReactNode }) => {
-    const { push } = useRouter()
+    const dispatch = useAppDispatch()
     const isPWA = usePWAStatus()
 
-    return (
-        <SetupFlowProvider
-            steps={SETUP_STEPS.filter((step) => {
-                // Remove pwa-install step if PWA is already installed
-                return step.screenId !== 'pwa-install' || !isPWA
-            })}
-            onComplete={() => {
-                push('/home')
-            }}
-        >
-            <CloudsBackground />
-            {children}
-        </SetupFlowProvider>
-    )
+    useEffect(() => {
+        // filter steps and set them in redux state
+        const filteredSteps = setupSteps.filter((step) => {
+            return step.screenId !== 'pwa-install' || !isPWA
+        })
+        dispatch(setupActions.setSteps(filteredSteps))
+    }, [dispatch, isPWA])
+
+    return <>{children}</>
 }
 
 export default SetupLayout

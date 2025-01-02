@@ -1,7 +1,7 @@
-import { Fragment } from 'react'
-import { Dialog, Transition } from '@headlessui/react'
-import { twMerge } from 'tailwind-merge'
 import Icon from '@/components/Global/Icon'
+import { Dialog, Transition } from '@headlessui/react'
+import { Fragment } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 type ModalProps = {
     className?: string
@@ -99,6 +99,7 @@ const Modal = ({
                                 ) : (
                                     children
                                 )}
+
                                 <button
                                     className={twMerge(
                                         `absolute right-4 top-4 text-0 outline-none hover:fill-purple-1 dark:fill-white dark:hover:fill-purple-1 ${

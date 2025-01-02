@@ -1,91 +1,104 @@
-import WelcomeStep from './Views/Welcome'
-import SetupPasskey from './Views/SetupPasskey'
-import SetupSuccess from './Views/Success'
-import fingerprint from '@/assets/icons/fingerprint.png'
-import eyes from '@/assets/icons/eyes.png'
-import ContactInfo from './Views/ContactInfo'
-
-import happyPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
+import passkeyPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_02/PNGS_konradurban_02_17.png'
+import successPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_03/PNGS_konradurban_03_46.png'
+import notificationPeanut from '@/animations/512x512_PNGS_ALPHA_BACKGROUND/PNGS_512_konradurban_06/PNGS_konradurban_06_11.png'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import { Step } from './Setup.types'
-import InstallPWA from './Views/InstallPWA'
-import { peanutWalletIsInPreview } from '@/constants'
-import NotificationPermission from './Views/NotificationPermission'
+import { PEANUTMAN_MOBILE, PEANUTMAN_WALLET, ThumbsUp } from '@/assets'
+import { ISetupStep } from '@/components/Setup/Setup.types'
+import {
+    AddWallets,
+    InstallPWA,
+    NotificationPermission,
+    PasskeySuccess,
+    SetupPasskey,
+    SetupSuccess,
+    SignupStep,
+    WelcomeStep,
+} from '@/components/Setup/Views'
 
-const placeAsset = (url: string) => {
-    return <img src={url} className="z-10 h-full w-[300px] object-contain" />
-}
-
-export const SETUP_STEPS = [
+export const setupSteps: ISetupStep[] = [
     {
         screenId: 'welcome',
-        active: true,
-        title: 'HENLOOO!',
-        description: "We're cooking. Pre-register now and claim juicy rewards for peanut OGs like you.",
-        containerClassname: 'bg-blue-1/100',
-        component: () => <WelcomeStep />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
+        layoutType: 'welcome',
+        title: 'Access Dollars Easily',
+        description: 'Peanut wallet is the easiest way to receive and spend digital dollars.',
+        image: chillPeanutAnim.src,
+        component: WelcomeStep,
+        showBackButton: false,
+        showSkipButton: false,
     },
     {
-        screenId: 'passkey',
-        active: true,
-        title: 'PASSKEY',
-        description: 'Secure your account with your DNA',
-        containerClassname: 'bg-yellow-1/100',
-        component: () => <SetupPasskey />,
-        centerComponent: () => {
-            return (
-                <div className="flex h-full w-2/3 flex-col items-center justify-center md:max-w-[400px]">
-                    <img src={eyes.src} className="w-full object-contain md:w-[200px]" />
-                    <img src={fingerprint.src} className="mt-[40px] w-full object-contain md:w-[220px]" />
-                </div>
-            )
-        },
+        screenId: 'signup',
+        layoutType: 'signup',
+        title: 'Sign up',
+        image: chillPeanutAnim.src,
+        component: SignupStep,
+        showBackButton: true,
+        showSkipButton: false,
     },
     {
-        screenId: 'contact-info',
-        active: peanutWalletIsInPreview,
-        title: 'CONTACT',
-        description: "We're cooking. Share your contact so we can share rewards for early OGs",
-        containerClassname: 'bg-purple-1/100',
-        component: () => <ContactInfo />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
+        screenId: 'passkey-permission',
+        layoutType: 'standard',
+        title: `Let's setup passkeys`,
+        description: `Use your face or fingerprint to verify it's you. There's no need for a password.`,
+        image: passkeyPeanut.src,
+        component: SetupPasskey,
+        showBackButton: true,
+        showSkipButton: false,
+        imageClassName: 'w-[55%] md:w-[35%] h-auto mt-14 md:mt-0',
+    },
+    {
+        screenId: 'passkey-success',
+        layoutType: 'standard',
+        title: `Your Passkey is already setup now`,
+        description: `Use your face or fingerprint to verify it's you. There's no need for a password.`,
+        image: ThumbsUp,
+        component: PasskeySuccess,
+        showBackButton: true,
+        showSkipButton: false,
+        imageClassName: 'w-[85%] md:w-[60%] h-auto mt-14 md:mt-0',
+    },
+    {
+        screenId: 'notification-permission',
+        layoutType: 'standard',
+        title: 'Enable notification',
+        description: 'Get notified about incoming and outgoing of payments.',
+        image: notificationPeanut.src,
+        component: NotificationPermission,
+        showBackButton: true,
+        showSkipButton: true,
+        imageClassName: 'w-[65%] md:w-[40%] h-auto mt-14 md:mt-0',
     },
     {
         screenId: 'pwa-install',
-        active: peanutWalletIsInPreview,
-        title: 'INSTALL',
-        description: 'Install Peanut on your phone for best UX and a lil bonus',
-        containerClassname: 'bg-blue-1/100 text-black',
-        component: () => <InstallPWA />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
+        layoutType: 'standard',
+        title: 'Install Peanut wallet App in your phone',
+        description: 'You can directly use app from Homescreen on your phone.',
+        image: PEANUTMAN_MOBILE,
+        component: InstallPWA,
+        showBackButton: true,
+        showSkipButton: true,
+        imageClassName: 'w-[50%] md:w-[30%] h-auto mt-16 md:mt-0',
     },
     {
-        screenId: 'noficiation-permission',
-        active: true, // disable for now since not working
-        title: 'NOTIFICATIONS',
-        description: 'We will only send one notification. You want to be ready :)',
-        containerClassname: 'bg-blue-1/100',
-        component: () => <NotificationPermission />,
-        centerComponent: () => {
-            return placeAsset(chillPeanutAnim.src)
-        },
+        screenId: 'add-wallets',
+        layoutType: 'standard',
+        title: 'Add extra wallet',
+        description: 'Have another wallet? Add it here to keep everything in one place.',
+        image: PEANUTMAN_WALLET,
+        component: AddWallets,
+        showBackButton: true,
+        showSkipButton: true,
+        imageClassName: 'w-full md:w-[80%] h-full mt-20 md:mt-0',
     },
     {
         screenId: 'success',
-        active: true,
-        title: 'SUCCESS',
-        description: 'Grab a drink and enjoy payments day',
-        containerClassname: 'bg-purple-1/100',
-        component: () => <SetupSuccess />,
-        centerComponent: () => {
-            return placeAsset(happyPeanutAnim.src)
-        },
+        layoutType: 'standard',
+        title: `You're all set!`,
+        description: 'Start using Peanut for payments.',
+        image: successPeanut.src,
+        component: SetupSuccess,
+        showBackButton: true,
+        showSkipButton: false,
+        imageClassName: 'w-[65%] md:w-[40%] h-auto mt-20 md:mt-0',
     },
-].filter((step) => step.active) as Step[]
+]
