@@ -120,7 +120,7 @@ export const Create = () => {
     return (
         <Suspense>
             <PageContainer>
-                <div className="card max-w-lg">
+                <div className="max-w-xl">
                     {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                         onPrev: handleOnPrev,
                         onNext: handleOnNext,
