@@ -102,16 +102,24 @@ export const InitialView = ({
     }, [slippagePercentage, selectedTokenData, estimatedFromValue])
 
     const feeCalculations = useMemo(() => {
+        // percentage of maximum network fee to use as expected fee (70%)
+        const EXPECTED_NETWORK_FEE_MULTIPLIER = 0.7
+
+        // percentage of maximum slippage to use as expected slippage (10%)
+        const EXPECTED_SLIPPAGE_MULTIPLIER = 0.1
+
         // gas/network cost calculation (70% of max for expected)
         const networkFee = {
-            expected: isXChain ? Number(txFee) * 0.7 : Number(estimatedGasCost) * 0.7,
+            expected: isXChain
+                ? Number(txFee) * EXPECTED_NETWORK_FEE_MULTIPLIER
+                : Number(estimatedGasCost) * EXPECTED_NETWORK_FEE_MULTIPLIER,
             max: isXChain ? Number(txFee) : Number(estimatedGasCost),
         }
 
         // slippage calculation (10% of max for expected)
         const slippage = calculatedSlippage
             ? {
-                  expected: Number(calculatedSlippage) * 0.1,
+                  expected: Number(calculatedSlippage) * EXPECTED_SLIPPAGE_MULTIPLIER,
                   max: Number(calculatedSlippage),
               }
             : undefined
@@ -395,11 +403,7 @@ export const InitialView = ({
                 <div>
                     <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
                         <div className="relative h-6 w-6">
-                            <img
-                                src={tokenRequestedLogoURI ?? ''}
-                                className="absolute left-0 top-0 h-6 w-6"
-                                alt="logo"
-                            />
+                            <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
                             <img
                                 src={
                                     consts.supportedPeanutChains.find(
