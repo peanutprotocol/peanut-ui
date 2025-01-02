@@ -435,7 +435,11 @@ export const InitialView = ({
                 {!isFeeEstimationError && (
                     <>
                         <FeeDescription
-                            loading={isLoading}
+                            loading={
+                                Number(feeCalculations.expectedTotal) === 0 ||
+                                Number(feeCalculations.networkFee.expected) === 0 ||
+                                isLoading
+                            }
                             estimatedFee={feeCalculations.expectedTotal}
                             networkFee={feeCalculations.networkFee.expected}
                             slippageRange={
@@ -449,7 +453,7 @@ export const InitialView = ({
                         />
 
                         <InfoRow
-                            loading={isLoading}
+                            loading={Number(feeCalculations.totalMax) === 0 || isLoading}
                             iconName="transfer"
                             label="Total Max"
                             value={`$ ${feeCalculations.totalMax}`}

@@ -1,6 +1,6 @@
-import Icon from '@/components/Global/Icon'
 import { formatAmount } from '@/utils'
 import { useState } from 'react'
+import Icon from '../Icon'
 import InfoRow from '../InfoRow'
 
 const INITIAL_STATE = {
@@ -24,6 +24,20 @@ const FeeDescription = ({ estimatedFee, networkFee, slippageRange, loading }: Fe
 
     const handleExpandToggle = () => {
         setToggleDetailedView((prev) => ({ isExpanded: !prev.isExpanded }))
+    }
+
+    if (!slippageRange) {
+        return (
+            <div className="w-full py-2">
+                <InfoRow
+                    iconName="gas"
+                    label="Network cost"
+                    value={`~ $ ${networkFee}`}
+                    moreInfoText="This transaction will cost you the displayed amount in network fees."
+                    loading={loading}
+                />
+            </div>
+        )
     }
 
     return (
@@ -65,15 +79,13 @@ const FeeDescription = ({ estimatedFee, networkFee, slippageRange, loading }: Fe
                         loading={loading}
                     />
 
-                    {slippageRange && (
-                        <InfoRow
-                            iconName="money-out"
-                            label="Slippage"
-                            value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
-                            moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
-                            loading={loading}
-                        />
-                    )}
+                    <InfoRow
+                        iconName="money-out"
+                        label="Slippage"
+                        value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
+                        moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
+                        loading={loading}
+                    />
                 </div>
             </div>
         </div>
