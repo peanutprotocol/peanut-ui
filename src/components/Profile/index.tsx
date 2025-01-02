@@ -1,16 +1,16 @@
 'use client'
 
-import Icon from '../Global/Icon'
-import AddressLink from '../Global/AddressLink'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import { useWallet } from '@/context/walletContext'
+import * as utils from '@/utils'
 import { useContext, useState } from 'react'
 import { useSignMessage } from 'wagmi'
-import * as utils from '@/utils'
-import Modal from '../Global/Modal'
-import { useAuth } from '@/context/authContext'
-import * as context from '@/context'
 import { Button, Card } from '../0_Bruddle'
+import AddressLink from '../Global/AddressLink'
+import Icon from '../Global/Icon'
+import Modal from '../Global/Modal'
 import ProfileHeader from './Components/ProfileHeader'
-import { useWallet } from '@/context/walletContext'
 
 export const Profile = () => {
     const { address } = useWallet()

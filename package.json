@@ -29,17 +29,18 @@
         "@dicebear/core": "^9.2.2",
         "@headlessui/react": "^1.7.19",
         "@headlessui/tailwindcss": "^0.2.1",
+        "@reown/appkit": "^1.6.0",
+        "@reown/appkit-adapter-wagmi": "^1.6.0",
         "@hookform/resolvers": "3.9.1",
         "@reduxjs/toolkit": "^2.5.0",
         "@safe-global/safe-apps-sdk": "^9.1.0",
         "@sentry/nextjs": "^8.39.0",
         "@serwist/next": "^9.0.10",
         "@squirrel-labs/peanut-sdk": "^0.5.11",
-        "@tanstack/react-query": "^5.61.0",
+        "@tanstack/react-query": "5.8.4",
         "@typeform/embed-react": "^3.20.0",
         "@vercel/analytics": "^1.4.1",
-        "@wagmi/core": "^2.14.6",
-        "@web3modal/wagmi": "^5.1.11",
+        "@wagmi/core": "2.14.3",
         "@zerodev/passkey-validator": "^5.5.0",
         "@zerodev/sdk": "5.4.0",
         "auto-text-size": "^0.2.3",
@@ -56,6 +57,7 @@
         "lottie-react": "^2.4.0",
         "multicoin-address-validator": "^0.5.22",
         "next": "^14.2.18",
+        "pino-pretty": "^13.0.0",
         "react": "^18.3.1",
         "react-csv": "^2.2.2",
         "react-dom": "^18.3.1",
@@ -79,6 +81,10 @@
         "yup": "^1.4.0"
     },
     "devDependencies": {
+        "@testing-library/jest-dom": "^6.6.3",
+        "@testing-library/react": "^16.1.0",
+        "@testing-library/user-event": "^14.5.2",
+        "@types/jest": "^29.5.12",
         "@serwist/build": "^9.0.10",
         "@testing-library/jest-dom": "^6.4.2",
         "@types/chroma-js": "^2.4.4",
@@ -92,9 +98,9 @@
         "@types/react-lottie": "^1.2.10",
         "@types/uuid": "^9.0.8",
         "@types/validator": "^13.12.2",
-        "@types/web-push": "^3.6.4",
         "jest": "^29.7.0",
         "jest-environment-jsdom": "^29.7.0",
+        "@types/web-push": "^3.6.4",
         "knip": "^5.37.1",
         "ngrok": "^4.0.0",
         "pino-pretty": "^13.0.0",
@@ -111,6 +117,17 @@
     "jest": {
         "preset": "ts-jest",
         "testEnvironment": "jsdom",
+        "transform": {
+            "^.+\\.(ts|tsx)$": [
+                "ts-jest",
+                {
+                    "tsconfig": "tsconfig.test.json"
+                }
+            ]
+        },
+        "transformIgnorePatterns": [
+            "node_modules/(?!(wagmi|viem|@wagmi|@viem)/)"
+        ],
         "moduleNameMapper": {
             "^@/(.*)$": "<rootDir>/src/$1"
         },
@@ -121,5 +138,10 @@
             "**/__tests__/**/*.test.[jt]s?(x)",
             "**/?(*.)+(spec|test).[jt]s?(x)"
         ]
+    },
+    "resolutions": {
+        "@wagmi/core": "2.14.3",
+        "viem": "^2.21.48",
+        "wagmi": "2.8.6"
     }
 }

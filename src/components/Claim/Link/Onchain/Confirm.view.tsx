@@ -1,17 +1,15 @@
 'use client'
-import Icon from '@/components/Global/Icon'
-import AddressLink from '@/components/Global/AddressLink'
-import * as _consts from '../../Claim.consts'
-import * as utils from '@/utils'
-import useClaimLink from '../../useClaimLink'
-import * as context from '@/context'
-import { useContext, useState } from 'react'
-import MoreInfo from '@/components/Global/MoreInfo'
-import * as _interfaces from '../../Claim.interfaces'
-import * as _utils from '../../Claim.utils'
-import * as consts from '@/constants'
 import { Button, Card } from '@/components/0_Bruddle'
+import AddressLink from '@/components/Global/AddressLink'
+import Icon from '@/components/Global/Icon'
+import MoreInfo from '@/components/Global/MoreInfo'
+import * as consts from '@/constants'
+import * as context from '@/context'
 import { useWallet } from '@/context/walletContext'
+import * as utils from '@/utils'
+import { useContext, useState } from 'react'
+import * as _consts from '../../Claim.consts'
+import useClaimLink from '../../useClaimLink'
 
 export const ConfirmClaimLinkView = ({
     onNext,
@@ -212,10 +210,20 @@ export const ConfirmClaimLinkView = ({
 
                     <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                         <div className="flex w-max flex-row items-center justify-center gap-1">
+                            <Icon name={'gas'} className="h-4 fill-gray-1" />
+                            <label className="font-bold">Fees</label>
+                        </div>
+                        <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                        </span>
+                    </div>
+
+                    {/* TODO: correct points estimation
+                    <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                        <div className="flex w-max flex-row items-center justify-center gap-1">
                             <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
                             <label className="font-bold">Points</label>
                         </div>
-                        {/* TODO: correct points estimation
                     <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                         {estimatedPoints < 0 ? estimatedPoints : `+${estimatedPoints}`}
                         <MoreInfo
@@ -228,8 +236,8 @@ export const ConfirmClaimLinkView = ({
                             }
                         />
                     </span>
+                </div>
                     */}
-                    </div>
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         <Button onClick={handleOnClaim} disabled={isLoading} loading={isLoading}>
                             {isLoading ? loadingState : 'Claim'}

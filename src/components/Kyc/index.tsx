@@ -1,13 +1,12 @@
 'use client'
-import { useAuth } from '@/context/authContext'
-import { useContext, useState } from 'react'
-import * as context from '@/context'
-import Loading from '../Global/Loading'
-import Link from 'next/link'
 import * as assets from '@/assets'
-import { GlobalKYCComponent } from '../Global/KYCComponent'
+import * as context from '@/context'
+import { useAuth } from '@/context/authContext'
+import Link from 'next/link'
+import { useContext, useState } from 'react'
 import { Button, Card } from '../0_Bruddle'
 import Divider from '../0_Bruddle/Divider'
+import { GlobalKYCComponent } from '../Global/KYCComponent'
 
 export const KYCComponent = () => {
     const { user, logoutUser, isFetchingUser } = useAuth()

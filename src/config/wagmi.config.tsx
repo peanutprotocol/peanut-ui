@@ -1,70 +1,77 @@
 'use client'
 
 import * as consts from '@/constants'
-
-import { createWeb3Modal } from '@web3modal/wagmi/react'
-
-import { WagmiProvider, createConfig, http } from 'wagmi'
-import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
+import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Chain, createClient } from 'viem'
-import { authConnector } from '@web3modal/wagmi'
+import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
+import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
 
-// 1. Get projectId at https://cloud.walletconnect.com
+// 1. Get projectId at https://cloud.reown.com
 const projectId = process.env.NEXT_PUBLIC_WC_PROJECT_ID ?? ''
 
 // 2. Create wagmiConfig
 const metadata = {
     name: 'Peanut Protocol',
     description: 'Peanut protocol - send crypto with links',
-    url: 'https://peanut.to', // origin must match your domain & subdomain
+    url: process.env.NEXT_PUBLIC_BASE_URL || 'https://peanut.to', // origin must match your domain & subdomain
     icons: [''],
 }
 
-const config = createConfig({
-    chains: consts.chains,
-    connectors: [
-        safe({
-            allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/, /^(.*\.)?intersend\.io$/],
-            shimDisconnect: true,
-        }),
-        walletConnect({
-            projectId,
-            metadata,
-            showQrModal: false,
-        }),
-        coinbaseWallet({
-            appName: 'Peanut Protocol',
-        }),
-        injected({ shimDisconnect: true }),
-    ],
-    client({ chain }) {
-        return createClient({ chain, transport: http() })
-    },
+// 3. Create transports for each chain
+const transports = Object.fromEntries(consts.chains.map((chain) => [chain.id, http(chain.rpcUrls.default.http[0])]))
+
+// 4. Create connectors
+const connectors: CreateConnectorFn[] = [
+    injected({ shimDisconnect: true }),
+    safe({
+        allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/, /^(.*\.)?intersend\.io$/],
+        shimDisconnect: true,
+    }),
+    walletConnect({
+        projectId,
+        metadata,
+        showQrModal: false,
+    }),
+    coinbaseWallet({
+        appName: metadata.name,
+        appLogoUrl: metadata.icons[0],
+    }),
+]
+
+// 5. Create WagmiAdapter with required properties
+const wagmiAdapter = new WagmiAdapter({
+    networks: consts.chains,
+    projectId,
+    transports,
+    connectors,
     ssr: true,
 })
 
-// 3. Create modal (you have to run pnpm build for changes to take effect)
-createWeb3Modal({
-    wagmiConfig: config,
+// 6. Create AppKit
+createAppKit({
+    adapters: [wagmiAdapter],
+    networks: consts.chains,
+    metadata,
     projectId,
-    enableAnalytics: true, // Optional - defaults to your Cloud configuration
+    features: {
+        analytics: true,
+        email: false,
+        socials: false,
+        onramp: true,
+    },
     themeVariables: {
         '--w3m-border-radius-master': '0px',
-        // '--w3m-accent': 'white',
         '--w3m-color-mix': 'white',
     },
-    enableOnramp: true,
 })
-
-console.log('Created Web3modal')
 
 export function ContextProvider({ children }: { children: React.ReactNode }) {
     return (
-        <WagmiProvider config={config}>
+        <WagmiProvider config={wagmiAdapter.wagmiConfig}>
             <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
         </WagmiProvider>
     )

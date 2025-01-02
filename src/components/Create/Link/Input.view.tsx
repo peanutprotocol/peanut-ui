@@ -2,25 +2,26 @@
 
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { useState, useContext, useEffect, useMemo } from 'react'
+import { useAppKit } from '@reown/appkit/react'
+import { useContext, useEffect, useMemo, useState } from 'react'
 import { useCreateLink } from '../useCreateLink'
 
-import * as _consts from '../Create.consts'
-import { isGaslessDepositPossible } from '../Create.utils'
-import * as context from '@/context'
-import { isNativeCurrency, ErrorHandler, printableAddress, floorFixed, balanceByToken, printableUsdc } from '@/utils'
+import { Button, Card } from '@/components/0_Bruddle'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import FileUploadInput from '@/components/Global/FileUploadInput'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { useWalletType } from '@/hooks/useWalletType'
-import { Button, Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
-import { formatEther } from 'viem'
-import { WalletProviderType } from '@/interfaces'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import * as context from '@/context'
+import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { useToast } from '@/components/0_Bruddle/Toast'
+import { useWalletType } from '@/hooks/useWalletType'
+import { WalletProviderType } from '@/interfaces'
+import { balanceByToken, ErrorHandler, floorFixed, isNativeCurrency, printableAddress, printableUsdc } from '@/utils'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { formatEther } from 'viem'
+import * as _consts from '../Create.consts'
+import { isGaslessDepositPossible } from '../Create.utils'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -76,6 +77,11 @@ export const CreateLinkInputView = ({
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )
 
+    const { open } = useAppKit()
+
+    const handleConnectWallet = async () => {
+        open()
+    }
     const { selectedWallet, signInModal, isConnected, address, isExternalWallet, isPeanutWallet } = useWallet()
 
     const handleOnNext = async () => {

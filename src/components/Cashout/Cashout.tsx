@@ -1,15 +1,16 @@
 'use client'
-import { createElement, useEffect, useState } from 'react'
-import * as _consts from './Cashout.consts'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as consts from '@/constants'
-import { OfframpType } from '../Offramp/Offramp.consts'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { createElement, useEffect, useState } from 'react'
 import PageContainer from '../0_Bruddle/PageContainer'
+import { OfframpType } from '../Offramp/Offramp.consts'
+import * as _consts from './Cashout.consts'
 
 export const Cashout = ({}) => {
     const [step, setStep] = useState<_consts.ICashoutScreenState>(_consts.INIT_VIEW_STATE)
     const [tokenValue, setTokenValue] = useState<undefined | string>(undefined)
     const [usdValue, setUsdValue] = useState<undefined | string>(undefined)
+    const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null)
 
     const [linkDetails, setLinkDetails] = useState<peanutInterfaces.IPeanutLinkDetails>()
     const [password, setPassword] = useState<string>('')
@@ -176,6 +177,8 @@ export const Cashout = ({}) => {
                 setTransactionHash,
                 crossChainDetails,
                 offrampType: OfframpType.CASHOUT,
+                appliedPromoCode,
+                onPromoCodeApplied: setAppliedPromoCode,
             } as any)}
         </PageContainer>
     )

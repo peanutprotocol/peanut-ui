@@ -85,6 +85,8 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
     })
     const { user, fetchUser } = useAuth()
 
+    const [needsAddressInput, setNeedsAddressInput] = useState(false)
+
     useEffect(() => {
         if (accountNumber && /^[0-9]{6,26}$/.test(accountNumber)) {
             // Extract routing number (first 9 digits) and account number (rest)
@@ -105,6 +107,31 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             setAccountDetailsValue('country', 'USA')
         }
     }, [getAccountDetailsValue('type')])
+
+    useEffect(() => {
+        // Check if we need to show address input fields
+        if (getAccountDetailsValue('type') === 'us') {
+            if (!user?.user?.kycStatus || user.user.kycStatus !== 'verified') {
+                // Always show address fields for unverified users
+                setNeedsAddressInput(true)
+            } else {
+                // For verified users, check if we have a valid address
+                const hasValidAddress = user.accounts.some((account) => {
+                    if (!account.account_details) return false
+
+                    const details =
+                        typeof account.account_details === 'string'
+                            ? JSON.parse(account.account_details)
+                            : account.account_details
+
+                    return details.street && details.city && details.state && details.postalCode
+                })
+                setNeedsAddressInput(!hasValidAddress)
+            }
+        } else {
+            setNeedsAddressInput(false)
+        }
+    }, [user, getAccountDetailsValue('type')])
 
     const validateUSAccount = (routingNumber: string, accountNumber: string) => {
         if (!/^[0-9]{9}$/.test(routingNumber)) {
@@ -169,7 +196,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
             // Only need address for US accounts
             let address
             if (formData.type === 'us') {
-                if (user?.user?.kycStatus === 'verified') {
+                if (user?.user?.kycStatus === 'approved') {
                     console.log('User accounts:', user.accounts)
 
                     // Find account with valid address details
@@ -424,7 +451,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
                                     <span className="text-h9 font-light">Your account number</span>
                                 </div>
 
-                                {(!user?.user?.kycStatus || user.user.kycStatus !== 'verified') && (
+                                {needsAddressInput && (
                                     <div className="flex w-full flex-col gap-4 border-t border-gray-200 pt-4">
                                         <span className="text-h8 font-medium">Your US address details</span>
 
@@ -545,7 +572,7 @@ export const GlobaLinkAccountComponent = ({ accountNumber, onCompleted }: IGloba
         }
     }
 
-    return user?.user?.kycStatus === 'verified' ? (
+    return user?.user?.kycStatus === 'approved' ? (
         completedLinking ? (
             <div className="flex w-full flex-col items-center justify-center gap-6 py-2 pb-20 text-center">
                 <p>You have successfully linked your account!</p>

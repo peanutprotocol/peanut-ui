@@ -1,18 +1,20 @@
+import * as consts from '@/constants'
 import { cookies } from 'next/headers'
 import { NextRequest, NextResponse } from 'next/server'
-import * as consts from '@/constants'
 
 type UserPayload = {
     userId: string
     username: string
     bridge_customer_id: string
+    kycStatus?: string
     telegramUsername?: string
     email?: string
     pushSubscriptionId?: string
 }
 
 export async function POST(request: NextRequest) {
-    const { userId, username, bridge_customer_id, telegram, email, pushSubscriptionId } = await request.json()
+    const { userId, username, bridge_customer_id, kycStatus, telegram, email, pushSubscriptionId } =
+        await request.json()
     const apiKey = process.env.PEANUT_API_KEY
     const cookieStore = cookies()
     const token = cookieStore.get('jwt-token')
@@ -26,6 +28,7 @@ export async function POST(request: NextRequest) {
             userId,
             username,
             bridge_customer_id,
+            kycStatus,
         }
 
         if (telegram) {

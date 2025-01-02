@@ -7,7 +7,7 @@ import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
-import { useWeb3Modal } from '@web3modal/wagmi/react'
+import { useAppKit } from '@reown/appkit/react'
 import Image from 'next/image'
 import { useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
@@ -25,7 +25,7 @@ interface WalletEntryCardProps {
 const WalletHeader = () => {
     const [showModal, setShowModal] = useState(false)
     const { wallets, selectedWallet, setSelectedWallet, isConnected } = useWallet()
-    const { open: openWeb3Modal } = useWeb3Modal()
+    const { open: openWeb3Modal } = useAppKit()
     const { connector } = useAccount()
 
     // sort wallets to add active wallet at the top
