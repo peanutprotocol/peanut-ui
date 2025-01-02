@@ -16,9 +16,10 @@ interface FeeDescriptionProps {
     estimatedFee: number | string
     networkFee: number | string
     slippageRange?: TRange
+    loading?: boolean
 }
 
-const FeeDescription = ({ estimatedFee, networkFee, slippageRange }: FeeDescriptionProps) => {
+const FeeDescription = ({ estimatedFee, networkFee, slippageRange, loading }: FeeDescriptionProps) => {
     const [toggleDetailedView, setToggleDetailedView] = useState(INITIAL_STATE)
 
     const handleExpandToggle = () => {
@@ -36,13 +37,17 @@ const FeeDescription = ({ estimatedFee, networkFee, slippageRange }: FeeDescript
                     <Icon name="puzzle" className="h-4 fill-gray-1" />
                     <label className="font-bold">Estimated fee</label>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-sm font-normal">{`~ $ ${formatAmount(estimatedFee)}`}</span>
-                    <Icon
-                        name={toggleDetailedView.isExpanded ? 'chevron-up' : 'arrow-bottom'}
-                        className="h-4 fill-gray-1 transition-all duration-300"
-                    />
-                </div>
+                {loading ? (
+                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700" />
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <span className="text-sm font-normal">{`~ $ ${formatAmount(estimatedFee)}`}</span>
+                        <Icon
+                            name={toggleDetailedView.isExpanded ? 'chevron-up' : 'arrow-bottom'}
+                            className="h-4 fill-gray-1 transition-all duration-300"
+                        />
+                    </div>
+                )}
             </div>
 
             {/* Expandable Section */}
@@ -57,6 +62,7 @@ const FeeDescription = ({ estimatedFee, networkFee, slippageRange }: FeeDescript
                         label="Network cost"
                         value={networkFee}
                         moreInfoText="This transaction will cost you the displayed amount in network fees."
+                        loading={loading}
                     />
 
                     {slippageRange && (
@@ -65,6 +71,7 @@ const FeeDescription = ({ estimatedFee, networkFee, slippageRange }: FeeDescript
                             label="Slippage"
                             value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
                             moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
+                            loading={loading}
                         />
                     )}
                 </div>
