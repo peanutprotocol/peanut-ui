@@ -1,11 +1,9 @@
-'use client'
-
-import { useEffect, useState } from 'react'
+import { ButterySmoothGlobalMoney, HandThumbsUp, PeanutGuyGIF, Sparkle } from '@/assets'
 import { Stack } from '@chakra-ui/react'
-import { MarqueeComp } from '../Global/MarqueeWrapper'
-import { HandThumbsUp, Sparkle, PeanutGuy, PeanutGuyGIF, ButterySmoothGlobalMoney } from '@/assets'
-import { HeroImages, CloudImages } from './imageAssets'
 import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { MarqueeComp } from '../Global/MarqueeWrapper'
+import { CloudImages, HeroImages } from './imageAssets'
 
 type HeroProps = {
     heading: string
@@ -17,7 +15,7 @@ type HeroProps = {
         label: string
         href: string
     }
-    buttonVisible?: boolean // New prop
+    buttonVisible?: boolean
 }
 
 export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible }: HeroProps) {
@@ -66,7 +64,7 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
 
             {cta?.href && cta?.label && (
                 <motion.div
-                    className="fixed bottom-4 right-[calc(50%-60px)] z-[99] sm:bottom-8"
+                    className="fixed bottom-4 right-[calc(50%-60px)] z-20 sm:bottom-8"
                     initial={{
                         opacity: 0,
                         translateY: 4,
@@ -75,9 +73,10 @@ export function Hero({ heading, marquee = { visible: false }, cta, buttonVisible
                     }}
                     animate={{
                         opacity: buttonVisible ? 1 : 0,
-                        translateY: buttonVisible ? 0 : -20,
+                        translateY: buttonVisible ? 0 : 20,
                         translateX: buttonVisible ? 0 : 20,
                         rotate: buttonVisible ? 0 : 1,
+                        pointerEvents: buttonVisible ? 'auto' : 'none',
                     }}
                     whileHover={{
                         translateY: 6,
