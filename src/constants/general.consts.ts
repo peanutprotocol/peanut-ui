@@ -1,5 +1,5 @@
-import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
+import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 const ipfsProviderArray = [
     'https://ipfs.io/ipfs/',
     'https://cloudflare-ipfs.com/ipfs/',
@@ -169,3 +169,5 @@ export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
     '0x0000000000000000000000000000000000000000',
 ]
+
+export const ALLOWED_IFRAME_DOMAINS = ['intersend.io', 'app.intersend.io']

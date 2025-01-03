@@ -1,11 +1,8 @@
-import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
+import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
+import { generateKeysFromString, getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import countries from 'i18n-iso-countries'
-import { generateKeysFromString } from '@squirrel-labs/peanut-sdk'
-import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
-
-const ALLOWED_PARENT_DOMAINS = ['intersend.io', 'app.intersend.io']
 
 // Helper function to check if the app is running within an allowed iframe
 const isInAllowedFrame = (): boolean => {
@@ -13,11 +10,11 @@ const isInAllowedFrame = (): boolean => {
 
     // Check ancestor origins (modern browsers)
     if (window.location.ancestorOrigins?.length) {
-        return ALLOWED_PARENT_DOMAINS.some((domain) => window.location.ancestorOrigins[0].includes(domain))
+        return consts.ALLOWED_IFRAME_DOMAINS.some((domain) => window.location.ancestorOrigins[0].includes(domain))
     }
 
     // Fallback to referrer check
-    return ALLOWED_PARENT_DOMAINS.some((domain) => document.referrer.includes(domain))
+    return consts.ALLOWED_IFRAME_DOMAINS.some((domain) => document.referrer.includes(domain))
 }
 
 export const convertPersonaUrl = (url: string) => {
