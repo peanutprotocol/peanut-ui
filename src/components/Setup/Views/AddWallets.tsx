@@ -4,7 +4,6 @@ import { useAppKit } from '@reown/appkit/react'
 import { useAccount } from 'wagmi'
 
 const AddWallets = () => {
-    // todo: replace with reown once merged with main
     const { open } = useAppKit()
     const { isConnected, isConnecting } = useAccount()
     const { handleNext } = useSetupFlow()

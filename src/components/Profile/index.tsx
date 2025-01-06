@@ -6,11 +6,13 @@ import { useWallet } from '@/context/walletContext'
 import * as utils from '@/utils'
 import { useContext, useState } from 'react'
 import { useSignMessage } from 'wagmi'
-import { Button, Card } from '../0_Bruddle'
+import { Button } from '../0_Bruddle'
 import AddressLink from '../Global/AddressLink'
 import Icon from '../Global/Icon'
 import Modal from '../Global/Modal'
 import ProfileHeader from './Components/ProfileHeader'
+import ProfileSection from './Components/ProfileSection'
+import ProfileWalletBalance from './Components/ProfileWalletBalance'
 
 export const Profile = () => {
     const { address } = useWallet()
@@ -108,34 +110,10 @@ export const Profile = () => {
             <div className="col h-full w-full  items-center justify-start gap-4">
                 <div className={`col w-full items-center justify-center gap-2`}>
                     <div className="col w-full items-center justify-center gap-2 sm:flex-row sm:justify-between">
-                        <div className="col w-full gap-2">
+                        <div className="col w-full gap-5">
                             <ProfileHeader />
-                        </div>
-                        <div className="col w-full min-w-[250px] gap-4 sm:w-auto">
-                            <Card shadowSize="4">
-                                <Card.Header className="border-b-0 sm:items-start">
-                                    <Card.Title>{user?.totalPoints} points</Card.Title>
-                                    <Card.Description className="">
-                                        <span className="flex items-center justify-center gap-1">
-                                            <Icon name={'heart'} />
-                                            Invites {user?.referredUsers}
-                                            {user?.referredUsers > 0 && (
-                                                <Icon
-                                                    name={'info'}
-                                                    className={`cursor-pointer transition-transform dark:fill-white`}
-                                                    onClick={() => {
-                                                        setModalVisible(true)
-                                                        setModalType('Invites')
-                                                    }}
-                                                />
-                                            )}
-                                        </span>
-                                    </Card.Description>
-                                </Card.Header>
-                            </Card>
-                            <Button variant="stroke" size="small" loading={isLoading} onClick={handleLogout}>
-                                {isLoading ? loadingState : 'Logout'}
-                            </Button>
+                            <ProfileWalletBalance />
+                            <ProfileSection />
                         </div>
                     </div>
                     <Modal
