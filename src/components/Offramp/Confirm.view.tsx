@@ -367,6 +367,7 @@ export const OfframpConfirmView = ({
                 }
             }
 
+            // @dev this code has been removed, we go straight to success screen. Cross-chain status is checked in backend
             // todo: revist, not a good idea to wait for the tx to be available, look for better soln
             // const maxAttempts = 15
             // let attempts = 0
@@ -392,18 +393,18 @@ export const OfframpConfirmView = ({
 
             // console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
 
-            // For cross-chain transactions, attempt to get destination hash once
-            try {
-                const status = await checkTransactionStatus(sourceTxHash)
-                if (status.squidTransactionStatus === 'success') {
-                    return {
-                        sourceTxHash,
-                        destinationTxHash: status.toChain.transactionId,
-                    }
-                }
-            } catch (error) {
-                console.warn('Error checking transaction status:', error)
-            }
+            //
+            // try {
+            //     const status = await checkTransactionStatus(sourceTxHash)
+            //     if (status.squidTransactionStatus === 'success') {
+            //         return {
+            //             sourceTxHash,
+            //             destinationTxHash: status.toChain.transactionId,
+            //         }
+            //     }
+            // } catch (error) {
+            //     console.warn('Error checking transaction status:', error)
+            // }
 
             // fallback: use source hash if status check fails or transaction not yet successful
             return {
@@ -412,11 +413,11 @@ export const OfframpConfirmView = ({
             }
         } else {
             // same chain and same token scenario
-            const txHash = await claimLink({
+            const sourceTxHash = await claimLink({
                 address,
                 link: claimLinkData.link,
             })
-            return { sourceTxHash: txHash, destinationTxHash: txHash }
+            return { sourceTxHash, destinationTxHash: sourceTxHash }
         }
     }
 
