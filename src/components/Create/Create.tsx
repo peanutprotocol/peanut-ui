@@ -1,14 +1,14 @@
 'use client'
 
-import { createElement, useContext, useEffect, useState } from 'react'
 import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { createElement, useContext, useEffect, useState } from 'react'
 
-import * as _consts from './Create.consts'
 import * as context from '@/context'
-import * as utils from '@/utils'
-import { useAccount } from 'wagmi'
-import SafeAppsSDK from '@safe-global/safe-apps-sdk'
 import { useBalance } from '@/hooks/useBalance'
+import * as utils from '@/utils'
+import SafeAppsSDK from '@safe-global/safe-apps-sdk'
+import { useAccount } from 'wagmi'
+import * as _consts from './Create.consts'
 
 export const Create = () => {
     const [step, setStep] = useState<_consts.ICreateScreenState>(_consts.INIT_VIEW_STATE)
@@ -121,7 +121,7 @@ export const Create = () => {
     }, [address])
 
     return (
-        <div className="card max-w-lg">
+        <div className="card">
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onPrev: handleOnPrev,
                 onNext: handleOnNext,

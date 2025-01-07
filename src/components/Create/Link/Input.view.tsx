@@ -2,23 +2,23 @@
 
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { useAccount } from 'wagmi'
 import { useAppKit } from '@reown/appkit/react'
-import { useState, useContext, useEffect, useMemo } from 'react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { useAccount } from 'wagmi'
 import { useCreateLink } from '../useCreateLink'
 
+import FileUploadInput from '@/components/Global/FileUploadInput'
+import Icon from '@/components/Global/Icon'
+import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
+import * as context from '@/context'
+import { useBalance } from '@/hooks/useBalance'
+import { useWalletType } from '@/hooks/useWalletType'
+import { ErrorHandler, floorFixed, isNativeCurrency, shortenAddressLong } from '@/utils'
+import { interfaces } from '@squirrel-labs/peanut-sdk'
+import { formatEther } from 'viem'
 import * as _consts from '../Create.consts'
 import { isGaslessDepositPossible } from '../Create.utils'
-import * as context from '@/context'
-import { isNativeCurrency, ErrorHandler, shortenAddressLong, floorFixed } from '@/utils'
-import Loading from '@/components/Global/Loading'
-import FileUploadInput from '@/components/Global/FileUploadInput'
-import { interfaces } from '@squirrel-labs/peanut-sdk'
-import Icon from '@/components/Global/Icon'
-import MoreInfo from '@/components/Global/MoreInfo'
-import { useWalletType } from '@/hooks/useWalletType'
-import { useBalance } from '@/hooks/useBalance'
-import { formatEther } from 'viem'
 
 export const CreateLinkInputView = ({
     onNext,
@@ -38,7 +38,7 @@ export const CreateLinkInputView = ({
     setEstimatedPoints,
     attachmentOptions,
     setAttachmentOptions,
-    createType,
+    createType = 'link', // note: default to link view temporarily
     recipient,
     crossChainDetails,
 }: _consts.ICreateScreenProps) => {
@@ -265,7 +265,7 @@ export const CreateLinkInputView = ({
     }, [_tokenValue, inputDenomination])
 
     return (
-          <div className="space-y-6 text-center">
+        <div className="space-y-6 text-center">
             <div className="space-y-2">
                 <h2
                     className="max-h-[92px] w-full overflow-hidden text-h2"
@@ -277,7 +277,7 @@ export const CreateLinkInputView = ({
                           ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : shortenAddressLong(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </h2>
-                <div className="max-w-96 mx-auto text-center">
+                <div className="mx-auto max-w-96 text-center">
                     {createType === 'link' &&
                         'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                     {createType === 'email_link' &&
@@ -336,9 +336,11 @@ export const CreateLinkInputView = ({
                         'Confirm'
                     )}
                 </button>
-                <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
+                {/* note: commenting back button as no longer needed now */}
+                {/* todo: revisit once have more clarity on send flow */}
+                {/* <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
                     Go Back
-                </button>
+                </button> */}
             </div>
 
             <div className="space-y-2">
