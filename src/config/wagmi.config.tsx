@@ -4,6 +4,7 @@ import * as consts from '@/constants'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
 import { createAppKit } from '@reown/appkit/react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { mainnet } from 'viem/chains'
 import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
 
@@ -28,7 +29,6 @@ const transports = Object.fromEntries(consts.chains.map((chain) => [chain.id, ht
 const connectors: CreateConnectorFn[] = [
     injected({ shimDisconnect: true }),
     safe({
-        allowedDomains: [/app.safe.global$/, /.*\.blockscout\.com$/, /^(.*\.)?intersend\.io$/],
         shimDisconnect: true,
     }),
     walletConnect({
@@ -54,6 +54,7 @@ const wagmiAdapter = new WagmiAdapter({
 // 6. Create AppKit
 createAppKit({
     adapters: [wagmiAdapter],
+    defaultNetwork: mainnet,
     networks: consts.chains,
     metadata,
     projectId,
