@@ -1,29 +1,28 @@
 'use client'
-import { useContext, useState, useMemo } from 'react'
+import { useContext, useMemo, useState } from 'react'
 
+import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
+import Icon from '@/components/Global/Icon'
+import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
+import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
-import * as _consts from '../Create.consts'
-import * as _utils from '../Create.utils'
+import { useBalance } from '@/hooks/useBalance'
+import { useWalletType } from '@/hooks/useWalletType'
 import {
     areTokenAddressesEqual,
-    saveDirectSendToLocalStorage,
+    ErrorHandler,
+    formatTokenAmount,
+    printableAddress,
     saveCreatedLinkToLocalStorage,
+    saveDirectSendToLocalStorage,
     shareToEmail,
     shareToSms,
     updatePeanutPreferences,
-    ErrorHandler,
-    printableAddress,
-    formatTokenAmount,
 } from '@/utils'
-import Icon from '@/components/Global/Icon'
-import ConfirmDetails from '@/components/Global/ConfirmDetails/Index'
-import { useCreateLink } from '../useCreateLink'
-import Loading from '@/components/Global/Loading'
 import { useAccount } from 'wagmi'
-import MoreInfo from '@/components/Global/MoreInfo'
-import { useBalance } from '@/hooks/useBalance'
-import { useWalletType } from '@/hooks/useWalletType'
-import { supportedPeanutChains, peanutTokenDetails } from '@/constants'
+import * as _consts from '../Create.consts'
+import { useCreateLink } from '../useCreateLink'
 
 export const CreateLinkConfirmView = ({
     onNext,
@@ -41,7 +40,7 @@ export const CreateLinkConfirmView = ({
     feeOptions,
     estimatedPoints,
     attachmentOptions,
-    createType,
+    createType = 'link', // note: default to link view temporarily
     recipient,
     crossChainDetails,
     usdValue,
@@ -236,7 +235,7 @@ export const CreateLinkConfirmView = ({
                       ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>
-            <label className="max-w-96 text-start text-h8 font-light">
+            <label className="max-w-96 text-center text-h8 font-light">
                 {createType === 'link' &&
                     'Make a payment with the link. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                 {createType === 'email_link' &&
