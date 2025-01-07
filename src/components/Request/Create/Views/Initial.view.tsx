@@ -1,17 +1,17 @@
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import * as _consts from '../Create.consts'
-import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
-import { useContext, useEffect, useState, useCallback } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import AddressInput from '@/components/Global/AddressInput'
-import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { getTokenDetails } from '@/components/Create/Create.utils'
+import AddressInput from '@/components/Global/AddressInput'
+import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
+import Loading from '@/components/Global/Loading'
+import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { InputUpdate } from '@/components/Global/ValidatedInput'
+import * as context from '@/context'
 import { useBalance } from '@/hooks/useBalance'
-import { fetchTokenSymbol, saveRequestLinkToLocalStorage, isNativeCurrency } from '@/utils'
-import { IUserBalance, IToken } from '@/interfaces'
+import { IToken, IUserBalance } from '@/interfaces'
+import { fetchTokenSymbol, isNativeCurrency, saveRequestLinkToLocalStorage } from '@/utils'
+import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useCallback, useContext, useEffect, useState } from 'react'
+import * as _consts from '../Create.consts'
 
 export const InitialView = ({
     onNext,
@@ -129,6 +129,13 @@ export const InitialView = ({
         []
     )
 
+    const handleFileUploadError = (error: string) => {
+        setErrorState({
+            showError: true,
+            errorMessage: error,
+        })
+    }
+
     useEffect(() => {
         if (!_tokenValue) return
         if (inputDenomination === 'TOKEN') {
@@ -181,7 +188,11 @@ export const InitialView = ({
                 />
                 <TokenSelector classNameButton="w-full" shouldBeConnected={false} />
 
-                <FileUploadInput attachmentOptions={attachmentOptions} setAttachmentOptions={setAttachmentOptions} />
+                <FileUploadInput
+                    attachmentOptions={attachmentOptions}
+                    setAttachmentOptions={setAttachmentOptions}
+                    onError={handleFileUploadError}
+                />
                 <AddressInput
                     placeholder="Enter recipient address"
                     value={recipientAddress ?? ''}
