@@ -63,6 +63,7 @@ export interface IOfframpConfirmScreenProps {
     recipientType?: interfaces.RecipientType
     appliedPromoCode?: string | null
     onPromoCodeApplied: (code: string | null) => void
+    estimatedGasCost?: string
 }
 
 export interface IOfframpSuccessScreenProps {

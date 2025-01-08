@@ -1,9 +1,9 @@
 'use client'
-import { createElement, useEffect, useState } from 'react'
-import * as _consts from './Cashout.consts'
-import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import * as consts from '@/constants'
+import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { createElement, useEffect, useState } from 'react'
 import { OfframpType } from '../Offramp/Offramp.consts'
+import * as _consts from './Cashout.consts'
 
 export const Cashout = ({}) => {
     const [step, setStep] = useState<_consts.ICashoutScreenState>(_consts.INIT_VIEW_STATE)
@@ -57,6 +57,8 @@ export const Cashout = ({}) => {
           }
         | undefined
     >(undefined)
+
+    const [estimatedGasCost, setEstimatedGasCost] = useState<string>('0')
 
     const handleOnNext = () => {
         if (step.idx === _consts.CASHOUT_SCREEN_FLOW.length - 1) return
@@ -178,6 +180,8 @@ export const Cashout = ({}) => {
                 offrampType: OfframpType.CASHOUT,
                 appliedPromoCode,
                 onPromoCodeApplied: setAppliedPromoCode,
+                estimatedGasCost,
+                setEstimatedGasCost,
             } as any)}
         </div>
     )

@@ -16,17 +16,32 @@ interface FeeDescriptionProps {
     estimatedFee: number | string
     networkFee: number | string
     slippageRange?: TRange
+    minReceive?: string
+    maxSlippage?: string
+    accountTypeFee?: string
+    accountType?: string
     loading?: boolean
+    isPromoApplied?: boolean
 }
 
-const FeeDescription = ({ estimatedFee, networkFee, slippageRange, loading }: FeeDescriptionProps) => {
+const FeeDescription = ({
+    estimatedFee,
+    networkFee,
+    minReceive,
+    maxSlippage,
+    accountTypeFee,
+    accountType,
+    loading,
+    isPromoApplied,
+    slippageRange,
+}: FeeDescriptionProps) => {
     const [toggleDetailedView, setToggleDetailedView] = useState(INITIAL_STATE)
 
     const handleExpandToggle = () => {
         setToggleDetailedView((prev) => ({ isExpanded: !prev.isExpanded }))
     }
 
-    if (!slippageRange) {
+    if (!slippageRange && !minReceive && !maxSlippage && !accountTypeFee) {
         return (
             <div className="w-full py-2">
                 <InfoRow
@@ -71,21 +86,59 @@ const FeeDescription = ({ estimatedFee, networkFee, slippageRange, loading }: Fe
                 }`}
             >
                 <div className="flex flex-col gap-2">
+                    {minReceive && (
+                        <InfoRow
+                            iconName="money-in"
+                            label="Min receive"
+                            value={minReceive}
+                            moreInfoText="Minimum amount you will receive after paying all fees and slippage"
+                            loading={loading}
+                        />
+                    )}
+
                     <InfoRow
                         iconName="gas"
                         label="Network cost"
-                        value={networkFee}
+                        value={`$ ${networkFee}`}
                         moreInfoText="This transaction will cost you the displayed amount in network fees."
                         loading={loading}
                     />
 
-                    <InfoRow
-                        iconName="money-out"
-                        label="Slippage"
-                        value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
-                        moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
-                        loading={loading}
-                    />
+                    {slippageRange && (
+                        <InfoRow
+                            iconName="money-out"
+                            label="Slippage"
+                            value={`~ $ ${slippageRange.min} (max $ ${slippageRange.max})`}
+                            moreInfoText="Maximum slippage range set to ensure the transaction goes through. Actual slippage is likely to be lower."
+                            loading={loading}
+                        />
+                    )}
+
+                    {maxSlippage && (
+                        <InfoRow
+                            iconName="money-out"
+                            label="Max slippage"
+                            value={maxSlippage}
+                            moreInfoText="Maximum slippage value to ensure the transaction goes through. Actual slippage is likely to be lower."
+                            loading={loading}
+                        />
+                    )}
+
+                    {accountTypeFee && (
+                        <InfoRow
+                            iconName="money-out"
+                            label="Provider Fee"
+                            value={isPromoApplied ? '$ 0' : accountTypeFee}
+                            moreInfoText={
+                                isPromoApplied
+                                    ? 'Fees waived with promo code!'
+                                    : accountType === 'iban'
+                                      ? 'For SEPA transactions a fee of $1 is charged. For ACH transactions a fee of $0.50 is charged.'
+                                      : 'For ACH transactions a fee of $0.50 is charged. For SEPA transactions a fee of $1 is charged.'
+                            }
+                            loading={loading}
+                        />
+                    )}
                 </div>
             </div>
         </div>

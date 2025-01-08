@@ -1,26 +1,26 @@
 'use client'
 
+import * as assets from '@/assets'
+import { useCreateLink } from '@/components/Create/useCreateLink'
+import Icon from '@/components/Global/Icon'
+import Loading from '@/components/Global/Loading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
 import ValidatedInput from '@/components/Global/ValidatedInput'
-import { useAccount } from 'wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { useState, useContext, useEffect, useMemo } from 'react'
-import * as _consts from '../Cashout.consts'
+import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
 import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import { useBalance } from '@/hooks/useBalance'
 import { useAuth } from '@/context/authContext'
-import { useCreateLink } from '@/components/Create/useCreateLink'
+import { useBalance } from '@/hooks/useBalance'
+import { floorFixed, formatIban, validateBankAccount } from '@/utils'
+import { formatBankAccountDisplay, sanitizeBankAccount } from '@/utils/format.utils'
 import { Icon as ChakraIcon } from '@chakra-ui/react'
-import * as assets from '@/assets'
-import { formatIban, validateBankAccount, floorFixed } from '@/utils'
+import { useAppKit } from '@reown/appkit/react'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
+import { useAccount } from 'wagmi'
+import * as _consts from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
-import Icon from '@/components/Global/Icon'
-import { twMerge } from 'tailwind-merge'
-import { MAX_CASHOUT_LIMIT, MIN_CASHOUT_LIMIT } from '@/components/Offramp/Offramp.consts'
-import { sanitizeBankAccount, formatBankAccountDisplay } from '@/utils/format.utils'
 
 export const InitialCashoutView = ({
     onNext,
@@ -32,6 +32,7 @@ export const InitialCashoutView = ({
     setInitialKYCStep,
     setOfframpForm,
     crossChainDetails,
+    setEstimatedGasCost,
 }: _consts.ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
@@ -68,7 +69,7 @@ export const InitialCashoutView = ({
     const [isValidBankAccountNumber, setIsValidBankAccountNumber] = useState<boolean>(false)
     const [isValidatingBankAccountNumber, setIsValidatingBankAccountNumber] = useState<boolean>(false)
 
-    const { prepareCreateLinkWrapper } = useCreateLink()
+    const { prepareCreateLinkWrapper, estimateGasFee } = useCreateLink()
 
     const { isConnected } = useAccount()
     const { open } = useAppKit()
@@ -125,6 +126,25 @@ export const InitialCashoutView = ({
             const preparedCreateLinkWrapperResponse = await prepareCreateLinkWrapper({
                 tokenValue: tokenValue ?? '',
             })
+
+            // calculate and set estimated gas cost using estimateGasFee
+            if (
+                preparedCreateLinkWrapperResponse?.response &&
+                'unsignedTxs' in preparedCreateLinkWrapperResponse.response &&
+                preparedCreateLinkWrapperResponse.response.unsignedTxs[0]
+            ) {
+                try {
+                    const { transactionCostUSD } = await estimateGasFee({
+                        chainId: selectedChainID,
+                        preparedTx: preparedCreateLinkWrapperResponse.response.unsignedTxs[0],
+                    })
+                    setEstimatedGasCost?.(transactionCostUSD.toFixed(2))
+                } catch (error) {
+                    console.error('Failed to estimate gas fee:', error)
+                    setEstimatedGasCost?.('0')
+                }
+            }
+
             setPreparedCreateLinkWrapperResponse(preparedCreateLinkWrapperResponse)
 
             if (!user) {
