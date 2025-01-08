@@ -26,24 +26,44 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
         () => `${getExplorerUrl(selectedChainID)}/tx/${txHash}`,
         [txHash, selectedChainID]
     )
+
     const share = async (url: string) => {
         try {
+            // check if web share api is available
+            if (!navigator.share) {
+                // if not, fallback to clipboard
+                await copyTextToClipboardWithFallback(url)
+                toast({
+                    title: 'Link copied',
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                    variant: 'subtle',
+                })
+                return
+            }
+
+            // try web share api
             await navigator.share({
                 title: 'Peanut Protocol',
                 text: 'Claim your funds here: ',
                 url,
             })
         } catch (error: any) {
-            toast({
-                title: 'Sharing failed',
-                description: 'Sharing does not work within another app. The link has been copied to clipboard.',
-                status: 'warning',
-                duration: 9000,
-                isClosable: true,
-                variant: 'subtle',
-            })
-            copyTextToClipboardWithFallback(url)
-            console.log(error)
+            // only show error toast for actual sharing failures
+            if (error.name !== 'AbortError') {
+                // abortError happens when user cancels sharing
+                console.error('Sharing error:', error)
+                await copyTextToClipboardWithFallback(url)
+                toast({
+                    title: 'Sharing failed',
+                    description: 'The link has been copied to your clipboard.',
+                    status: 'info',
+                    duration: 3000,
+                    isClosable: true,
+                    variant: 'subtle',
+                })
+            }
         }
     }
 
