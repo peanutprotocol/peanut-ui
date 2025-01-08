@@ -2,21 +2,20 @@
 import CopyField from '@/components/Global/CopyField'
 import Icon from '@/components/Global/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { ICreateScreenProps } from '../Create.consts'
-import { getExplorerUrl, copyTextToClipboardWithFallback, printableAddress, shareToEmail, shareToSms } from '@/utils'
 import { tokenSelectorContext } from '@/context'
+import { copyTextToClipboardWithFallback, getExplorerUrl, printableAddress, shareToEmail, shareToSms } from '@/utils'
 import { useToast } from '@chakra-ui/react'
+import Link from 'next/link'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { ICreateScreenProps } from '../Create.consts'
 
-import { useAccount, useSignMessage } from 'wagmi'
+import { useSignMessage } from 'wagmi'
 
 export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tokenValue }: ICreateScreenProps) => {
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } =
         useContext(tokenSelectorContext)
     const toast = useToast()
 
-    const { address } = useAccount({})
     const { signMessageAsync } = useSignMessage()
 
     const [isLoading, setIsLoading] = useState(false)
@@ -27,24 +26,44 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
         () => `${getExplorerUrl(selectedChainID)}/tx/${txHash}`,
         [txHash, selectedChainID]
     )
+
     const share = async (url: string) => {
         try {
+            // check if web share api is available
+            if (!navigator.share) {
+                // if not, fallback to clipboard
+                await copyTextToClipboardWithFallback(url)
+                toast({
+                    title: 'Link copied',
+                    status: 'success',
+                    duration: 3000,
+                    isClosable: true,
+                    variant: 'subtle',
+                })
+                return
+            }
+
+            // try web share api
             await navigator.share({
                 title: 'Peanut Protocol',
                 text: 'Claim your funds here: ',
                 url,
             })
         } catch (error: any) {
-            toast({
-                title: 'Sharing failed',
-                description: 'Sharing does not work within another app. The link has been copied to clipboard.',
-                status: 'warning',
-                duration: 9000,
-                isClosable: true,
-                variant: 'subtle',
-            })
-            copyTextToClipboardWithFallback(url)
-            console.log(error)
+            // only show error toast for actual sharing failures
+            if (error.name !== 'AbortError') {
+                // abortError happens when user cancels sharing
+                console.error('Sharing error:', error)
+                await copyTextToClipboardWithFallback(url)
+                toast({
+                    title: 'Sharing failed',
+                    description: 'The link has been copied to your clipboard.',
+                    status: 'info',
+                    duration: 3000,
+                    isClosable: true,
+                    variant: 'subtle',
+                })
+            }
         }
     }
 
@@ -109,7 +128,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                             or
                         </>
                     )}
-                    <div className="hidden w-full md:block">
+                    <div className="w-full">
                         <CopyField text={link} />
                     </div>
                     <div
