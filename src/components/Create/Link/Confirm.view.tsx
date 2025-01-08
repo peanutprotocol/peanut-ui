@@ -40,7 +40,7 @@ export const CreateLinkConfirmView = ({
     feeOptions,
     estimatedPoints,
     attachmentOptions,
-    createType,
+    createType = 'link', // note: default to link view temporarily
     recipient,
     crossChainDetails,
     usdValue,
@@ -235,7 +235,7 @@ export const CreateLinkConfirmView = ({
                       ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                       : `Send to ${recipient.name}`}
             </label>
-            <label className="max-w-96 text-start text-h8 font-light">
+            <label className="max-w-96 text-center text-h8 font-light">
                 {createType === 'link' &&
                     'Make a payment with the link. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                 {createType === 'email_link' &&
