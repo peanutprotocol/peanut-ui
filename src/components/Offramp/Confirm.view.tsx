@@ -654,13 +654,23 @@ export const OfframpConfirmView = ({
         }
     }
 
+    const calculateTotalFees = (
+        estimatedGasCost: string | undefined,
+        hasPromoCode: boolean,
+        accountType: string | undefined,
+        hasCrossChain: boolean
+    ): number => {
+        const baseGasCost = parseFloat(estimatedGasCost ?? '0')
+        if (hasPromoCode) return baseGasCost
+
+        const accountFee = accountType === 'iban' ? 1 : 0.5
+        const crossChainFee = hasCrossChain ? baseGasCost * 0.1 : 0
+        return baseGasCost + accountFee + crossChainFee
+    }
+
     // check if fee exceeds withdraw amount and update error state
     useEffect(() => {
-        const totalFees = appliedPromoCode
-            ? parseFloat(estimatedGasCost ?? '0')
-            : parseFloat(estimatedGasCost ?? '0') +
-              (accountType === 'iban' ? 1 : 0.5) +
-              (crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0)
+        const totalFees = calculateTotalFees(estimatedGasCost, !!appliedPromoCode, accountType, !!crossChainDetails)
 
         const amount =
             offrampType == OfframpType.CASHOUT
@@ -788,11 +798,12 @@ export const OfframpConfirmView = ({
                                 iconName="money-in"
                                 label="Expected receive"
                                 value={`$ ${(() => {
-                                    const totalFees = appliedPromoCode
-                                        ? parseFloat(estimatedGasCost ?? '0')
-                                        : parseFloat(estimatedGasCost ?? '0') +
-                                          (accountType === 'iban' ? 1 : 0.5) +
-                                          (crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0)
+                                    const totalFees = calculateTotalFees(
+                                        estimatedGasCost,
+                                        !!appliedPromoCode,
+                                        accountType,
+                                        !!crossChainDetails
+                                    )
 
                                     const amount =
                                         offrampType == OfframpType.CASHOUT
