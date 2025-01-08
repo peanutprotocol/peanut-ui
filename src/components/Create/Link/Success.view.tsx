@@ -2,21 +2,20 @@
 import CopyField from '@/components/Global/CopyField'
 import Icon from '@/components/Global/Icon'
 import QRCodeWrapper from '@/components/Global/QRCodeWrapper'
-import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import Link from 'next/link'
-import { ICreateScreenProps } from '../Create.consts'
-import { getExplorerUrl, copyTextToClipboardWithFallback, printableAddress, shareToEmail, shareToSms } from '@/utils'
 import { tokenSelectorContext } from '@/context'
+import { copyTextToClipboardWithFallback, getExplorerUrl, printableAddress, shareToEmail, shareToSms } from '@/utils'
 import { useToast } from '@chakra-ui/react'
+import Link from 'next/link'
+import { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { ICreateScreenProps } from '../Create.consts'
 
-import { useAccount, useSignMessage } from 'wagmi'
+import { useSignMessage } from 'wagmi'
 
 export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tokenValue }: ICreateScreenProps) => {
     const { selectedChainID, selectedTokenAddress, inputDenomination, selectedTokenPrice } =
         useContext(tokenSelectorContext)
     const toast = useToast()
 
-    const { address } = useAccount({})
     const { signMessageAsync } = useSignMessage()
 
     const [isLoading, setIsLoading] = useState(false)
@@ -109,7 +108,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
                             or
                         </>
                     )}
-                    <div className="hidden w-full md:block">
+                    <div className="w-full">
                         <CopyField text={link} />
                     </div>
                     <div
