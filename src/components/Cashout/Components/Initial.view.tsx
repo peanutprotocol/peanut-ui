@@ -60,7 +60,7 @@ export const InitialCashoutView = ({
         showError: boolean
         errorMessage: string
     }>({ showError: false, errorMessage: '' })
-    // TODO: @Hugo0 value is ambigous with price - it should be tokenAmount and tokenPrice. But this means changes across a bunch of files.
+    // TODO: @Hugo0 value is ambiguous with price - it should be tokenAmount and tokenPrice. But this means changes across a bunch of files.
     const [_tokenValue, _setTokenValue] = useState<string | undefined>(
         inputDenomination === 'TOKEN' ? tokenValue : usdValue
     )

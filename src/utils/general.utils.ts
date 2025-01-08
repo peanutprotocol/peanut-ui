@@ -76,7 +76,7 @@ const getFromLocalStorage = (key: string) => {
     }
 }
 
-const delteFromLocalStorage = (key: string) => {
+const deleteFromLocalStorage = (key: string) => {
     try {
         if (typeof localStorage === 'undefined') return
         localStorage.removeItem(key)
