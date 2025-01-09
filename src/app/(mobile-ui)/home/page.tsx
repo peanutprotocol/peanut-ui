@@ -1,12 +1,13 @@
 'use client'
 
 import { ArrowIcon, Button } from '@/components/0_Bruddle'
+import { useToast } from '@/components/0_Bruddle/Toast'
 import WalletHeader from '@/components/Global/WalletHeader'
-import HomeHeader from '@/components/Home/HomeHeader'
-import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
+import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
+import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { WalletProviderType } from '@/interfaces'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
@@ -29,10 +30,13 @@ export default function Home() {
     })
 
     const { addBYOW, username } = useAuth()
-    const { wallets, selectedWallet, setSelectedWallet } = useWallet()
+    const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet } = useWallet()
+    const hasWallets = wallets.length > 0
+    const { handleLogin, isLoggingIn } = useZeroDev()
+    const toast = useToast()
+
     const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
     const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
-    const hasWallets = wallets.length > 0
 
     const totalCards = hasWallets ? wallets.length + 1 : 1
 
@@ -69,11 +73,34 @@ export default function Home() {
 
     return (
         <div className="w-full">
-            <PointsBanner />
-            <div className="flex w-full flex-row justify-center overflow-hidden p-4">
-                <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] sm:gap-2 md:w-[70%] lg:w-[50%]">
-                    <HomeHeader />
-                    <WalletHeader />
+            <div className="flex w-full flex-row justify-center overflow-hidden p-6">
+                <div className="flex w-[100%] flex-col gap-4 sm:w-[90%] md:w-[70%] lg:w-[50%]">
+                    <div className="flex items-center justify-between">
+                        <WalletHeader />
+                        {/* todo: temp sign in button, remove it once auth state is fixed */}
+                        <div>
+                            {hasWallets && (isPeanutWallet || isConnected) && (
+                                <div>
+                                    <Button
+                                        loading={isLoggingIn}
+                                        disabled={isLoggingIn}
+                                        shadowSize={!isConnected ? '4' : undefined}
+                                        variant={isConnected ? 'green' : 'purple'}
+                                        size="small"
+                                        onClick={() => {
+                                            if (isConnected) return
+                                            handleLogin().catch((_error) => {
+                                                toast.error('Error logging in')
+                                            })
+                                        }}
+                                    >
+                                        {isConnected ? 'Connected' : 'Sign In'}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                    <ProfileSection />
                     <div
                         className={classNames('relative h-[200px] p-4 sm:overflow-visible', {
                             'overflow-hidden': wallets.length > 0,
