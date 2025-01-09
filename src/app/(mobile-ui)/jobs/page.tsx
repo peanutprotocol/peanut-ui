@@ -1,23 +1,12 @@
+import { generateMetadata } from '@/app/metadata'
 import { Jobs } from '@/components'
 
-import { Metadata } from 'next'
-
-export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Text Tokens',
-    metadataBase: new URL('https://peanut.to'),
-
-    icons: {
-        icon: '/favicon.ico',
-    },
-    openGraph: {
-        images: [
-            {
-                url: '/metadata-img.png',
-            },
-        ],
-    },
-}
+export const metadata = generateMetadata({
+    title: 'Jobs | Peanut',
+    description: 'Join the Peanut team and help us build the future of crypto payments.',
+    image: '/metadata-img.png',
+    keywords: 'jobs, careers, work, employment, crypto, payments',
+})
 
 export default function JobsPage() {
     return <Jobs />

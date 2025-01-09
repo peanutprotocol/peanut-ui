@@ -41,7 +41,7 @@ export const CreateLinkInputView = ({
     setEstimatedPoints,
     attachmentOptions,
     setAttachmentOptions,
-    createType,
+    createType = 'link', // note: default to link view temporarily
     recipient,
     crossChainDetails,
 }: _consts.ICreateScreenProps) => {
@@ -317,7 +317,7 @@ export const CreateLinkInputView = ({
                           ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </Card.Title>
-                <Card.Description>
+                <Card.Description className="mx-auto max-w-96 text-center">
                     {createType === 'link' &&
                         'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                     {createType === 'email_link' &&

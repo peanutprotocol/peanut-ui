@@ -21,7 +21,7 @@ import {
     isAddressZero,
     saveRequestLinkFulfillmentToLocalStorage,
 } from '@/utils'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
@@ -128,9 +128,9 @@ export const InitialView = ({
             : Number(requestLinkData.tokenAmount)
 
         if (tokenPriceData) {
-            return `$ ${formatAmountWithSignificantDigits(amount, 3)}`
+            return `$ ${formatAmount(amount)}`
         } else {
-            return `${formatAmountWithSignificantDigits(amount, 3)} ${tokenRequestedSymbol}`
+            return `${formatAmount(amount)} ${tokenRequestedSymbol}`
         }
     }, [tokenPriceData, requestLinkData.tokenAmount, tokenRequestedSymbol])
 

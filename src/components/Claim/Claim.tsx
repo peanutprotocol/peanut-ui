@@ -90,6 +90,17 @@ export const Claim = ({}) => {
             setSelectedChainID(linkDetails.chainId)
             setSelectedTokenAddress(linkDetails.tokenAddress)
 
+            const keyPair = peanut.generateKeysFromString(linkDetails.password)
+            const generatedPubKey = keyPair.address
+
+            const rawInfo = linkDetails.rawOnchainDepositInfo as any
+            const depositPubKey = rawInfo.pubKey20
+
+            if (generatedPubKey !== depositPubKey) {
+                setLinkState(_consts.claimLinkStateType.WRONG_PASSWORD)
+                return
+            }
+
             if (linkDetails.claimed) {
                 setLinkState(_consts.claimLinkStateType.ALREADY_CLAIMED)
                 return
@@ -177,7 +188,7 @@ export const Claim = ({}) => {
                     }
                 />
             )}
-
+            {linkState === _consts.claimLinkStateType.WRONG_PASSWORD && <genericViews.WrongPasswordClaimLink />}
             {linkState === _consts.claimLinkStateType.ALREADY_CLAIMED && (
                 <genericViews.AlreadyClaimedLinkView claimLinkData={claimLinkData} />
             )}

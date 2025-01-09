@@ -1,23 +1,13 @@
-import { Metadata } from 'next'
-
+import { generateMetadata } from '@/app/metadata'
 import { Create } from '@/components'
 
-export const metadata: Metadata = {
-    title: 'Peanut Protocol',
-    description: 'Text Tokens',
-    metadataBase: new URL('https://peanut.to'),
-
-    icons: {
-        icon: '/favicon.ico',
-    },
-    openGraph: {
-        images: [
-            {
-                url: '/metadata-img.png',
-            },
-        ],
-    },
-}
+export const metadata = generateMetadata({
+    title: 'Send Crypto | Peanut',
+    description:
+        'Send cryptocurrency securely using shareable links or to an email, phone number, ENS, or wallet address. Transfer tokens across chains easily with Peanut',
+    image: '/metadata-img.png',
+    keywords: 'crypto transfer, send crypto, cross-chain transfer, offramp, digital dollars',
+})
 
 export default function SendPage() {
     return <Create />

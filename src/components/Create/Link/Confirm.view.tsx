@@ -40,7 +40,7 @@ export const CreateLinkConfirmView = ({
     feeOptions,
     estimatedPoints,
     attachmentOptions,
-    createType,
+    createType = 'link', // note: default to link view temporarily
     recipient,
     crossChainDetails,
     usdValue,

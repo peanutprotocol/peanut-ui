@@ -60,8 +60,7 @@ createAppKit({
     projectId,
     features: {
         analytics: true,
-        email: false,
-        socials: false,
+        connectMethodsOrder: ['wallet', 'email', 'social'],
         onramp: true,
     },
     themeVariables: {

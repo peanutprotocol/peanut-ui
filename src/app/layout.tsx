@@ -1,10 +1,10 @@
 import { PeanutProvider } from '@/config'
 import * as context from '@/context'
 import { FooterVisibilityProvider } from '@/context/footerVisibility'
-import { Metadata } from 'next'
 import { Londrina_Solid, Roboto_Flex, Sniglet } from 'next/font/google'
 import localFont from 'next/font/local'
 import '../styles/globals.css'
+import { generateMetadata } from './metadata'
 
 const roboto = Roboto_Flex({
     subsets: ['latin'],
@@ -37,14 +37,14 @@ const knerdFilled = localFont({
     variable: '--font-knerd-filled',
 })
 
-export const metadata: Metadata = {
-    viewport: {
-        width: 'device-width',
-        initialScale: 1,
-        maximumScale: 1,
-        userScalable: false,
-    },
-}
+export const metadata = generateMetadata({
+    title: 'Peanut Protocol | Cross-Chain Payment Infrastructure',
+    description:
+        'Seamless cross-chain payment infrastructure for sending and receiving digital assets. Built for both developers and consumers to abstract away blockchain complexities with chain-agnostic transfers, stablecoin conversions, and fiat offramps.',
+    image: '/metadata-img.png',
+    keywords:
+        'blockchain payments, cross-chain transfers, payment infrastructure, crypto payments, stablecoin conversion, fiat offramp, web3 payments, blockchain protocol',
+})
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
     return (
