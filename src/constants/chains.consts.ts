@@ -1,7 +1,7 @@
 // https://wagmi.sh/core/chains
 
-import * as wagmiChains from 'wagmi/chains'
 import type { Chain } from 'viem'
+import * as wagmiChains from 'wagmi/chains'
 
 const milkomeda = {
     id: 2001,
@@ -95,7 +95,15 @@ const ZKSyncSepolia = {
 
 //@ts-ignore
 export const chains = [
-    ...Object.values(wagmiChains),
+    wagmiChains.mainnet,
+    wagmiChains.optimism,
+    wagmiChains.gnosis,
+    wagmiChains.base,
+    wagmiChains.polygon,
+    wagmiChains.scroll,
+    wagmiChains.mantle,
+    wagmiChains.arbitrum,
+    wagmiChains.bsc,
     milkomeda,
     milkomedaTestnet,
     baseTestnet,
