@@ -1,3 +1,4 @@
+import { ARBITRUM_ICON } from '@/assets'
 import { Card } from '@/components/0_Bruddle'
 import { useWallet } from '@/context/walletContext'
 import { printableUsdc } from '@/utils'
@@ -21,23 +22,37 @@ const ProfileWalletBalance = () => {
             <Card>
                 <Card.Content className="flex items-center justify-between border-b-0 px-5 py-4">
                     <div className="flex items-center gap-3">
-                        {/* todo: figure out a way to get chain image here */}
-                        <Image
-                            src={getMaxBalanceToken?.logoURI as string}
-                            alt="token logo"
-                            width={30}
-                            height={30}
-                            className="rounded-full"
-                        />
-                        <div className="text-lg font-bold">{getMaxBalanceToken?.symbol}</div>
+                        {/* todo: figure out a way to get chain image dynamically here */}
+                        <div className="relative">
+                            <Image
+                                src={
+                                    getMaxBalanceToken?.logoURI ||
+                                    'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'
+                                }
+                                alt="token logo"
+                                width={30}
+                                height={30}
+                                className="rounded-full"
+                            />
+                            <Image
+                                src={ARBITRUM_ICON}
+                                alt="token logo"
+                                width={16}
+                                height={16}
+                                className="absolute -right-2 bottom-0 size-4 rounded-full"
+                            />
+                        </div>
+                        <div className="text-lg font-bold">{getMaxBalanceToken?.symbol || 'USDC'}</div>
                     </div>
                     <div>
                         <div className="text-right text-sm font-bold text-black">
                             $ {printableUsdc(BigInt(Math.floor(Number(getMaxBalanceToken?.value || 0) * 10 ** 6)))}
                         </div>
-                        <div className="text-xs text-gray-1">
-                            {getMaxBalanceToken?.symbol} on {getMaxBalanceToken?.name}
-                        </div>
+                        {getMaxBalanceToken?.symbol && getMaxBalanceToken?.name && (
+                            <div className="text-xs text-gray-1">
+                                {getMaxBalanceToken?.symbol} on {getMaxBalanceToken?.name}
+                            </div>
+                        )}
                     </div>
                 </Card.Content>
             </Card>

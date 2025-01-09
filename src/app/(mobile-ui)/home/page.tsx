@@ -7,6 +7,7 @@ import PointsBanner from '@/components/Home/PointsBanner'
 import { WalletCard } from '@/components/Home/WalletCard'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
+import { WalletProviderType } from '@/interfaces'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
@@ -55,7 +56,11 @@ export default function Home() {
     const handleCardClick = (index: number) => {
         if (index < wallets.length) {
             if (selectedWalletIndex === index) {
-                router.push('/wallet')
+                if (selectedWallet?.walletProviderType === WalletProviderType.PEANUT) {
+                    router.push('/profile')
+                } else {
+                    router.push('/wallet')
+                }
             } else {
                 setSelectedWallet(wallets[index])
             }

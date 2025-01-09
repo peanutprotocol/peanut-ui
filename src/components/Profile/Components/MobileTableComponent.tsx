@@ -1,11 +1,13 @@
 'use client'
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
+import { ARBITRUM_ICON } from '@/assets'
 import Modal from '@/components/Global/Modal'
-import { useCallback, useState } from 'react'
 import * as consts from '@/constants'
-import { useRouter } from 'next/navigation'
+import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
+import Image from 'next/image'
 import Link from 'next/link'
+import { useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 
 /**
  * MobileTableComponent renders a mobile-friendly table for user profile data, such as accounts, contacts, or transaction history.
@@ -27,61 +29,81 @@ export const MobileTableComponent = ({
 
     return (
         <div
-            className="flex w-full flex-row items-center justify-between gap-2 border border-n-1 bg-white px-2 py-4 text-h8 font-normal dark:bg-black"
+            className={twMerge(
+                'flex w-full flex-row items-center justify-between gap-2 border border-b-0 border-n-1 bg-white p-3 text-h8 font-normal dark:bg-black'
+            )}
             key={itemKey}
             onClick={() => {
                 if (type !== 'accounts') setModalVisible(true)
             }}
         >
-            {avatar.avatarUrl ? (
-                <div className="border border-n-1 p-2">
-                    <img alt="" loading="eager" src={avatar.avatarUrl} className="h-8 w-8" />
-                </div>
-            ) : (
-                avatar.iconName && ''
-            )}
+            <div className="relative mr-2 min-w-fit">
+                {dashboardItem?.tokenSymbol === 'USDC' && (
+                    <Image
+                        src={'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'}
+                        alt="token logo"
+                        width={30}
+                        height={30}
+                        className="rounded-full"
+                    />
+                )}
+
+                {dashboardItem?.tokenSymbol === 'USDC' && dashboardItem.chain === 'Arbitrum One' && (
+                    <Image
+                        src={ARBITRUM_ICON}
+                        alt="token logo"
+                        width={16}
+                        height={16}
+                        className="absolute -right-2 bottom-0 size-4 rounded-full"
+                    />
+                )}
+            </div>
 
             <div className="flex w-full flex-col gap-2" key={itemKey}>
                 <div className="flex w-full flex-row items-center justify-between">
-                    <div className="flex w-full max-w-48 flex-col items-start justify-center gap-1">
+                    <div className="flex w-full max-w-48 items-center gap-2">
                         <label className="font-bold">
                             {primaryText?.substring(0, 1).toUpperCase()}
                             {primaryText?.substring(1).toLowerCase()}
                         </label>
+                        <div className="flex flex-col items-end justify-end gap-2 text-end">
+                            <div className="text-xs">
+                                {type === 'history' && dashboardItem ? (
+                                    dashboardItem.status === 'claimed' ? (
+                                        <div className="border border-teal-3 p-0.5 text-center text-teal-3">
+                                            claimed
+                                        </div>
+                                    ) : dashboardItem.status === 'transfer' ? (
+                                        <div className="border border-teal-3 p-0.5 text-center text-teal-3">sent</div>
+                                    ) : dashboardItem.status === 'paid' ? (
+                                        <div className="border border-teal-3 p-0.5 text-center text-teal-3">paid</div>
+                                    ) : dashboardItem.status ? (
+                                        <div className="border border-gray-1 p-0.5 text-center text-gray-1">
+                                            {dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
+                                        </div>
+                                    ) : (
+                                        <div className="border border-gray-1 p-0.5 text-center text-gray-1">
+                                            pending
+                                        </div>
+                                    )
+                                ) : type === 'contacts' ? (
+                                    <label className="font-bold">txs: {quaternaryText}</label>
+                                ) : (
+                                    type === 'accounts' && ''
+                                )}
+                            </div>
+                        </div>
                     </div>
                     <label>{secondaryText}</label>
                 </div>
-                <div className="flex w-full border-t border-dotted border-black" />
                 <div className="flex w-full flex-row items-center justify-between">
                     <div className="flex flex-col items-start justify-end gap-2 text-start">
-                        <label className="font-bold">{tertiaryText}</label>
+                        <label className="text-xs font-normal">{tertiaryText}</label>
                     </div>
-                    <div className="flex flex-col items-end justify-end gap-2 text-end">
-                        <div>
-                            {type === 'history' && dashboardItem ? (
-                                dashboardItem.status === 'claimed' ? (
-                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">
-                                        claimed
-                                    </div>
-                                ) : dashboardItem.status === 'transfer' ? (
-                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">sent</div>
-                                ) : dashboardItem.status === 'paid' ? (
-                                    <div className="border border-teal-3 px-2 py-1 text-center text-teal-3">paid</div>
-                                ) : dashboardItem.status ? (
-                                    <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                        {dashboardItem.status.toLowerCase().replaceAll('_', ' ')}
-                                    </div>
-                                ) : (
-                                    <div className="border border-gray-1 px-2 py-1 text-center text-gray-1">
-                                        pending
-                                    </div>
-                                )
-                            ) : type === 'contacts' ? (
-                                <label className="font-bold">txs: {quaternaryText}</label>
-                            ) : (
-                                type === 'accounts' && ''
-                            )}
-                        </div>
+                    <div>
+                        <label className="text-xs font-normal">
+                            {dashboardItem?.date ? utils.formatDate(new Date(dashboardItem.date)) : ''}
+                        </label>
                     </div>
                 </div>
             </div>
@@ -91,7 +113,6 @@ export const MobileTableComponent = ({
                 title="Options"
                 classWrap="bg-background"
             >
-                {' '}
                 <div className="flex w-full flex-col items-center justify-center p-2 "></div>
                 {type === 'history' ? (
                     <>

@@ -10,6 +10,7 @@ import { Button } from '../0_Bruddle'
 import AddressLink from '../Global/AddressLink'
 import Icon from '../Global/Icon'
 import Modal from '../Global/Modal'
+import PeanutWalletHistory from './Components/PeanutWalletHistory'
 import ProfileHeader from './Components/ProfileHeader'
 import ProfileSection from './Components/ProfileSection'
 import ProfileWalletBalance from './Components/ProfileWalletBalance'
@@ -112,8 +113,9 @@ export const Profile = () => {
                     <div className="col w-full items-center justify-center gap-2 sm:flex-row sm:justify-between">
                         <div className="col w-full gap-5">
                             <ProfileHeader />
-                            <ProfileWalletBalance />
                             <ProfileSection />
+                            <ProfileWalletBalance />
+                            <PeanutWalletHistory />
                         </div>
                     </div>
                     <Modal
