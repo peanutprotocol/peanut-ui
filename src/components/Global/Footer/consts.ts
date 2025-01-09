@@ -28,20 +28,12 @@ export const LINKS = [
         name: 'Docs',
         url: 'https://docs.peanut.to',
     },
-    // {
-    //     name: 'Blog',
-    //     url: '/blog',
-    // },
     {
-        name: 'Privacy',
-        url: '/privacy',
-    },
-    {
-        name: 'Terms',
-        url: '/terms',
+        name: 'Terms & Privacy',
+        url: 'https://peanutprotocol.notion.site/Terms-of-Service-Privacy-Policy-1f245331837f4b7e860261be8374cc3a?pvs=4',
     },
     {
         name: 'Jobs',
-        url: '/jobs',
+        url: 'https://www.notion.so/peanutprotocol/Jobs-b351de56d92e405e962f0027b3a60f52',
     },
 ]

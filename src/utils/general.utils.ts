@@ -266,8 +266,54 @@ export function formatAmountWithDecimals({ amount, decimals }: { amount: number;
     return formattedAmount
 }
 
-export function formatAmount(amount: number) {
-    return amount.toFixed(2)
+/**
+ * formats a number by:
+ * - displaying 2 significant digits for small numbers (<0.01)
+ * - removing unnecessary trailing zeros after decimal point
+ * - if all decimal places are zeros, returns the whole number
+ * @param amount - number or string to format
+ * @returns formatted string representation of the number
+ */
+export const formatAmount = (amount: string | number): string => {
+    // handle undefined, null, or empty string
+    if (!amount && amount !== 0) return '0'
+
+    // convert amount to number if not already
+    const num = typeof amount === 'string' ? Number(amount) : amount
+
+    // check for NaN after conversion
+    if (isNaN(num)) return '0'
+
+    // handle small numbers differently
+    if (Math.abs(num) < 0.01) {
+        // convert to exponential notation to get significant digits easily
+        const exponential = num.toExponential(1) // 1 decimal place = 2 significant digits
+        // convert back to decimal notation
+        const significantNum = Number(exponential)
+        return significantNum.toString()
+    }
+
+    // for normal numbers, round to 2 decimals
+    const rounded = Number(num.toFixed(2))
+    const stringValue = rounded.toString()
+
+    // return as is if no decimal point
+    if (!stringValue.includes('.')) {
+        return stringValue
+    }
+
+    const [integerPart, decimalPart] = stringValue.split('.')
+
+    // return integer if decimal part is all zeros
+    if (!decimalPart || !/[1-9]/.test(decimalPart)) {
+        return integerPart
+    }
+
+    // remove trailing zeros from decimal part
+    const trimmedDecimal = decimalPart.replace(/0+$/, '')
+
+    // combine integer part with trimmed decimal
+    return `${integerPart}.${trimmedDecimal}`
 }
 
 export function floorFixed(value: number, decimals: number) {

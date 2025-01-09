@@ -8,7 +8,6 @@ import { GlobalKYCComponent } from '@/components/Global/KYCComponent'
 import { GlobaLinkAccountComponent } from '@/components/Global/LinkAccountComponent'
 import Loading from '@/components/Global/Loading'
 import MoreInfo from '@/components/Global/MoreInfo'
-import { checkTransactionStatus } from '@/components/utils/utils'
 import * as consts from '@/constants'
 import * as context from '@/context'
 import { useAuth } from '@/context/authContext'
@@ -360,7 +359,6 @@ export const OfframpConfirmView = ({
                 destinationChainId: chainId,
                 destinationToken: tokenAddress,
             })
-            setLoadingState('Executing transaction') // claimLinkXchain sets loading state to idle after it finishes. pls no.
 
             if (isSameChain) {
                 return {
@@ -369,41 +367,57 @@ export const OfframpConfirmView = ({
                 }
             }
 
-            const maxAttempts = 15
-            let attempts = 0
+            // @dev this code has been removed, we go straight to success screen. Cross-chain status is checked in backend
+            // todo: revist, not a good idea to wait for the tx to be available, look for better soln
+            // const maxAttempts = 15
+            // let attempts = 0
 
-            while (attempts < maxAttempts) {
-                try {
-                    const status = await checkTransactionStatus(sourceTxHash)
-                    if (status.squidTransactionStatus === 'success') {
-                        return {
-                            sourceTxHash,
-                            destinationTxHash: status.toChain.transactionId,
-                        }
-                    }
-                } catch (error) {
-                    console.warn('Error checking transaction status:', error)
-                }
+            // while (attempts < maxAttempts) {
+            // try {
+            //     const status = await checkTransactionStatus(sourceTxHash)
+            //     if (status.squidTransactionStatus === 'success') {
+            //         return {
+            //             sourceTxHash,
+            //             destinationTxHash: status.toChain.transactionId,
+            //         }
+            //     }
+            // } catch (error) {
+            //     console.warn('Error checking transaction status:', error)
+            // }
 
-                attempts++
-                if (attempts < maxAttempts) {
-                    await new Promise((resolve) => setTimeout(resolve, 2000))
-                }
-            }
+            // attempts++
+            // if (attempts < maxAttempts) {
+            //     await new Promise((resolve) => setTimeout(resolve, 2000))
+            // }
+            // }
 
-            console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
+            // console.warn('Transaction status check timed out. Using sourceTxHash as destinationTxHash.')
+
+            //
+            // try {
+            //     const status = await checkTransactionStatus(sourceTxHash)
+            //     if (status.squidTransactionStatus === 'success') {
+            //         return {
+            //             sourceTxHash,
+            //             destinationTxHash: status.toChain.transactionId,
+            //         }
+            //     }
+            // } catch (error) {
+            //     console.warn('Error checking transaction status:', error)
+            // }
+
+            // fallback: use source hash if status check fails or transaction not yet successful
             return {
                 sourceTxHash,
                 destinationTxHash: sourceTxHash,
             }
         } else {
             // same chain and same token scenario
-            const txHash = await claimLink({
+            const sourceTxHash = await claimLink({
                 address,
                 link: claimLinkData.link,
             })
-            setLoadingState('Executing transaction') // claimLink
-            return { sourceTxHash: txHash, destinationTxHash: txHash }
+            return { sourceTxHash, destinationTxHash: sourceTxHash }
         }
     }
 
