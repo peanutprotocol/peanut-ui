@@ -679,7 +679,7 @@ export const OfframpConfirmView = ({
                   ? tokenPrice * parseFloat(claimLinkData.tokenAmount)
                   : 0
 
-        if (amount <= totalFees) {
+        if (!isNaN(amount) && !isNaN(totalFees) && amount <= totalFees) {
             setErrorState({
                 showError: true,
                 errorMessage: 'Transaction fees exceed the withdrawal amount. Please try a larger amount.',
@@ -797,7 +797,7 @@ export const OfframpConfirmView = ({
                             <InfoRow
                                 iconName="money-in"
                                 label="Expected receive"
-                                value={`$ ${(() => {
+                                value={(() => {
                                     const totalFees = calculateTotalFees(
                                         estimatedGasCost,
                                         !!appliedPromoCode,
@@ -813,38 +813,40 @@ export const OfframpConfirmView = ({
                                               : 0
 
                                     // return 0 if fees exceed amount
-                                    return amount <= totalFees ? '0' : utils.formatTokenAmount(amount - totalFees)
-                                })()}`}
+                                    return amount <= totalFees
+                                        ? '0'
+                                        : utils.formatTokenAmount(amount - totalFees) || '0'
+                                })()}
                                 moreInfoText="Expected amount you will receive in your bank after all fees are deducted"
                             />
 
                             <FeeDescription
-                                estimatedFee={
-                                    appliedPromoCode
-                                        ? (estimatedGasCost ?? 0)
-                                        : (
-                                              parseFloat(estimatedGasCost ?? '0') +
-                                              (accountType === 'iban' ? 1 : 0.5) +
-                                              (crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0)
-                                          ).toString()
-                                }
+                                estimatedFee={calculateTotalFees(
+                                    estimatedGasCost,
+                                    !!appliedPromoCode,
+                                    accountType,
+                                    !!crossChainDetails
+                                ).toString()}
                                 networkFee={estimatedGasCost ?? '0'}
-                                minReceive={`$ ${(() => {
-                                    const totalFees =
-                                        parseFloat(estimatedGasCost ?? '0') +
-                                        (appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5)
+                                minReceive={(() => {
+                                    const totalFees = calculateTotalFees(
+                                        estimatedGasCost,
+                                        !!appliedPromoCode,
+                                        accountType,
+                                        !!crossChainDetails
+                                    )
                                     const amount = parseFloat(usdValue ?? '0')
 
                                     // return 0 if fees exceed amount
                                     return amount <= totalFees ? '0' : utils.formatTokenAmount(amount - totalFees)
-                                })()}`}
+                                })()}
                                 maxSlippage={
                                     crossChainDetails
-                                        ? `$ ${utils.formatTokenAmount(parseFloat(estimatedGasCost ?? '0') * 0.1)}`
+                                        ? utils.formatTokenAmount(parseFloat(estimatedGasCost ?? '0') * 0.1)
                                         : undefined
                                 }
                                 accountType={accountType}
-                                accountTypeFee={`$ ${accountType === 'iban' ? '1' : '0.50'}`}
+                                accountTypeFee={accountType === 'iban' ? '1' : '0.50'}
                                 isPromoApplied={!!appliedPromoCode}
                                 loading={isLoading}
                             />

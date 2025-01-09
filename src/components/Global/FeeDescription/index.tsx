@@ -70,7 +70,11 @@ const FeeDescription = ({
                     <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700" />
                 ) : (
                     <div className="flex items-center gap-2">
-                        <span className="text-sm font-normal">{`~ $ ${formatAmount(estimatedFee)}`}</span>
+                        <span className="text-sm font-normal">
+                            {parseFloat(estimatedFee.toString()) < 0.01
+                                ? '< $ 0.01'
+                                : `~ $ ${formatAmount(estimatedFee)}`}
+                        </span>
                         <Icon
                             name={toggleDetailedView.isExpanded ? 'chevron-up' : 'arrow-bottom'}
                             className="h-4 fill-gray-1 transition-all duration-300"
@@ -90,7 +94,7 @@ const FeeDescription = ({
                         <InfoRow
                             iconName="money-in"
                             label="Min receive"
-                            value={minReceive}
+                            value={`$ ${minReceive}`}
                             moreInfoText="Minimum amount you will receive after paying all fees and slippage"
                             loading={loading}
                         />
@@ -99,7 +103,7 @@ const FeeDescription = ({
                     <InfoRow
                         iconName="gas"
                         label="Network cost"
-                        value={`$ ${networkFee}`}
+                        value={parseFloat(networkFee.toString()) < 0.01 ? '< $ 0.01' : `$ ${networkFee}`}
                         moreInfoText="This transaction will cost you the displayed amount in network fees."
                         loading={loading}
                     />
@@ -114,11 +118,11 @@ const FeeDescription = ({
                         />
                     )}
 
-                    {maxSlippage && (
+                    {maxSlippage && parseFloat(maxSlippage) > 0 && (
                         <InfoRow
                             iconName="money-out"
                             label="Max slippage"
-                            value={maxSlippage}
+                            value={`$ ${maxSlippage}`}
                             moreInfoText="Maximum slippage value to ensure the transaction goes through. Actual slippage is likely to be lower."
                             loading={loading}
                         />
@@ -126,9 +130,9 @@ const FeeDescription = ({
 
                     {accountTypeFee && (
                         <InfoRow
-                            iconName="money-out"
-                            label="Provider Fee"
-                            value={isPromoApplied ? '$ 0' : accountTypeFee}
+                            iconName="transfer"
+                            label="Banking fee"
+                            value={isPromoApplied ? '$ 0' : `$ ${accountTypeFee}`}
                             moreInfoText={
                                 isPromoApplied
                                     ? 'Fees waived with promo code!'
