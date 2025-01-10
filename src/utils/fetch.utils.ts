@@ -94,31 +94,3 @@ export const fetchTokenPrice = async (
         return undefined
     }
 }
-
-/**
- * Generates an Infura API URL for supported networks
- * @param network - The network name (e.g., 'mainnet', 'optimism-mainnet', 'polygon-mainnet', 'arbitrum-mainnet')
- * @throws {Error} If INFURA_API_KEY is not configured
- * @returns The Infura RPC URL
- */
-export const getInfuraApiUrl = (network: string): string => {
-    if (!process.env.NEXT_PUBLIC_INFURA_API_KEY) {
-        throw new Error('INFURA_API_KEY is not configured')
-    }
-
-    const supportedNetworks = [
-        'mainnet',
-        'optimism-mainnet',
-        'polygon-mainnet',
-        'arbitrum-mainnet',
-        'scroll-mainnet',
-        'mantle-mainnet',
-        'bsc-mainnet',
-    ]
-
-    if (!supportedNetworks.includes(network)) {
-        throw new Error(`Unsupported infura network: ${network}`)
-    }
-
-    return `https://${network}.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
-}
