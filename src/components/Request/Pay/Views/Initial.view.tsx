@@ -12,6 +12,7 @@ import {
     areTokenAddressesEqual,
     ErrorHandler,
     fetchTokenSymbol,
+    getChainProvider,
     isAddressZero,
     saveRequestLinkFulfillmentToLocalStorage,
 } from '@/utils'
@@ -41,12 +42,13 @@ async function createXChainUnsignedTx({
     requestLink: Awaited<ReturnType<typeof peanut.getRequestLinkDetails>>
     senderAddress: string
 }) {
+    const provider = getChainProvider(tokenData.chainId) || (await peanut.getDefaultProvider(tokenData.chainId))
     const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
         fromToken: tokenData.address,
         fromChainId: tokenData.chainId,
         senderAddress,
         squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-        provider: await peanut.getDefaultProvider(tokenData.chainId),
+        provider,
         tokenType: isAddressZero(tokenData.address)
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,

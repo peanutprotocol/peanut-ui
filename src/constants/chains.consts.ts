@@ -1,7 +1,8 @@
 // https://wagmi.sh/core/chains
 
-import * as wagmiChains from 'wagmi/chains'
+import { getInfuraApiUrl } from '@/utils'
 import type { Chain } from 'viem'
+import * as wagmiChains from 'wagmi/chains'
 
 const milkomeda = {
     id: 2001,
@@ -93,9 +94,74 @@ const ZKSyncSepolia = {
     contracts: {},
 } as const satisfies Chain
 
+// infura supported chains
+const mainnet = {
+    ...wagmiChains.mainnet,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('mainnet')] },
+        public: { http: ['https://ethereum-rpc.publicnode.com'] },
+    },
+}
+
+const optimism = {
+    ...wagmiChains.optimism,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('optimism-mainnet')] },
+        public: { http: ['https://mainnet.optimism.io'] },
+    },
+}
+
+const polygon = {
+    ...wagmiChains.polygon,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('polygon-mainnet')] },
+        public: { http: ['https://polygon-rpc.com'] },
+    },
+}
+
+const arbitrum = {
+    ...wagmiChains.arbitrum,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('arbitrum-mainnet')] },
+        public: { http: ['https://arb1.arbitrum.io/rpc'] },
+    },
+}
+
+const scroll = {
+    ...wagmiChains.scroll,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('scroll-mainnet')] },
+        public: { http: ['https://scroll.public-rpc.com'] },
+    },
+}
+
+const mantle = {
+    ...wagmiChains.mantle,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('mantle-mainnet')] },
+        public: { http: ['https://mantle-rpc.publicnode.com'] },
+    },
+}
+
+const bsc = {
+    ...wagmiChains.bsc,
+    rpcUrls: {
+        default: { http: [getInfuraApiUrl('bsc-mainnet')] },
+        public: { http: ['https://bsc-dataseed1.binance.org'] },
+    },
+}
+
 //@ts-ignore
 export const chains = [
-    ...Object.values(wagmiChains),
+    mainnet,
+    optimism,
+    wagmiChains.gnosis,
+    wagmiChains.base,
+    polygon,
+    scroll,
+    mantle,
+    arbitrum,
+    bsc,
     milkomeda,
     milkomedaTestnet,
     baseTestnet,
