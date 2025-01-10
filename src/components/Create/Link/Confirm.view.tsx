@@ -308,7 +308,7 @@ export const CreateLinkConfirmView = ({
                                 ? 'This transaction is sponsored by peanut! Enjoy!'
                                 : transactionCostUSD < 0.01
                                   ? 'This transaction will cost you $ 0.01 in network fees.'
-                                  : `This transaction will cost you ~ $ ${formatTokenAmount(transactionCostUSD, 3) ?? 0} in network fees.`
+                                  : `This transaction will cost you the displayed amount in network fees.`
                         }`}
                     />
                 )}

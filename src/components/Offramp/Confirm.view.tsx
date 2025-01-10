@@ -654,7 +654,7 @@ export const OfframpConfirmView = ({
         }
     }
 
-    const calculateTotalFees = (
+    const calculateEstimatedFee = (
         estimatedGasCost: string | undefined,
         hasPromoCode: boolean,
         accountType: string | undefined,
@@ -670,7 +670,7 @@ export const OfframpConfirmView = ({
 
     // check if fee exceeds withdraw amount and update error state
     useEffect(() => {
-        const totalFees = calculateTotalFees(estimatedGasCost, !!appliedPromoCode, accountType, !!crossChainDetails)
+        const totalFees = calculateEstimatedFee(estimatedGasCost, !!appliedPromoCode, accountType, !!crossChainDetails)
 
         const amount =
             offrampType == OfframpType.CASHOUT
@@ -818,7 +818,7 @@ export const OfframpConfirmView = ({
                             />
 
                             <FeeDescription
-                                estimatedFee={calculateTotalFees(
+                                estimatedFee={calculateEstimatedFee(
                                     estimatedGasCost,
                                     !!appliedPromoCode,
                                     accountType,

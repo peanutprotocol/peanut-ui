@@ -149,7 +149,7 @@ export const InitialView = ({
                       max: formatNumberSafely(slippage.max || 0),
                   }
                 : undefined,
-            expectedTotal: formatNumberSafely(networkFee.max + (slippage?.max || 0) || 0),
+            estimatedFee: formatNumberSafely(networkFee.expected + (slippage?.expected || 0) || 0),
             totalMax: formatNumberSafely(totalMax || 0),
         }
     }, [isXChain, txFee, estimatedGasCost, calculatedSlippage, tokenPriceData, requestLinkData.tokenAmount])
@@ -158,9 +158,9 @@ export const InitialView = ({
         return (
             viewState === ViewState.LOADING ||
             viewState === ViewState.ERROR ||
-            (viewState === ViewState.READY_TO_PAY && !feeCalculations.expectedTotal)
+            (viewState === ViewState.READY_TO_PAY && !feeCalculations.estimatedFee)
         )
-    }, [viewState, isLoading, feeCalculations.expectedTotal])
+    }, [viewState, isLoading, feeCalculations.estimatedFee])
 
     const requestedAmount = useMemo(() => {
         const amount = tokenPriceData
@@ -439,11 +439,11 @@ export const InitialView = ({
                     <>
                         <FeeDescription
                             loading={
-                                Number(feeCalculations.expectedTotal) === 0 ||
+                                Number(feeCalculations.estimatedFee) === 0 ||
                                 Number(feeCalculations.networkFee.expected) === 0 ||
                                 isLoading
                             }
-                            estimatedFee={feeCalculations.expectedTotal}
+                            estimatedFee={feeCalculations.estimatedFee}
                             networkFee={feeCalculations.networkFee.max}
                             slippageRange={
                                 feeCalculations.slippage
