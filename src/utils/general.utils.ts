@@ -1,5 +1,5 @@
-import * as interfaces from '@/interfaces'
 import * as consts from '@/constants'
+import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
 
@@ -928,8 +928,8 @@ function getIconName(type: string) {
     }
 }
 
-import { SiweMessage } from 'siwe'
 import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
+import { SiweMessage } from 'siwe'
 
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
     const message = new SiweMessage({
@@ -1021,3 +1021,7 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     }
     return tokenSymbol
 }
+
+// helper function to create infura url
+export const getInfuraApiUrl = (network: string) =>
+    `https://${network}.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
