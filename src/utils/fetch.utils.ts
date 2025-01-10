@@ -1,5 +1,5 @@
-import * as utils from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
+import * as utils from '@/utils'
 
 type IMobulaMarketData = {
     id: number
@@ -94,3 +94,7 @@ export const fetchTokenPrice = async (
         return undefined
     }
 }
+
+// helper function to create infura url
+export const getInfuraApiUrl = (network: string) =>
+    `https://${network}.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`

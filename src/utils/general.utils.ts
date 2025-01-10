@@ -1021,7 +1021,3 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
     }
     return tokenSymbol
 }
-
-// helper function to create infura url
-export const getInfuraApiUrl = (network: string) =>
-    `https://${network}.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
