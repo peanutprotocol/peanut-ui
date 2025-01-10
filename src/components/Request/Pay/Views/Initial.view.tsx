@@ -141,6 +141,7 @@ export const InitialView = ({
         return {
             networkFee: {
                 expected: formatNumberSafely(networkFee.expected || 0),
+                max: formatNumberSafely(networkFee.max || 0),
             },
             slippage: slippage
                 ? {
@@ -148,7 +149,7 @@ export const InitialView = ({
                       max: formatNumberSafely(slippage.max || 0),
                   }
                 : undefined,
-            expectedTotal: formatNumberSafely(networkFee.expected + (slippage?.expected || 0) || 0),
+            expectedTotal: formatNumberSafely(networkFee.max + (slippage?.max || 0) || 0),
             totalMax: formatNumberSafely(totalMax || 0),
         }
     }, [isXChain, txFee, estimatedGasCost, calculatedSlippage, tokenPriceData, requestLinkData.tokenAmount])
@@ -443,7 +444,7 @@ export const InitialView = ({
                                 isLoading
                             }
                             estimatedFee={feeCalculations.expectedTotal}
-                            networkFee={feeCalculations.networkFee.expected}
+                            networkFee={feeCalculations.networkFee.max}
                             slippageRange={
                                 feeCalculations.slippage
                                     ? {

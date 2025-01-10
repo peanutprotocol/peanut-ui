@@ -296,18 +296,20 @@ export const CreateLinkConfirmView = ({
                     <InfoRow
                         iconName="gas"
                         label="Estimated Fee"
-                        value={`~ ${
+                        value={`${
                             transactionCostUSD === 0
-                                ? ' $0'
+                                ? '$ 0'
                                 : transactionCostUSD < 0.01
-                                  ? '$ 0.01'
-                                  : `$ ${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
+                                  ? '~ $ 0.01'
+                                  : `~ $ ${formatTokenAmount(transactionCostUSD, 3) ?? 0}`
                         }`}
-                        moreInfoText={
-                            transactionCostUSD > 0
-                                ? `This transaction will cost you $${formatTokenAmount(transactionCostUSD, 3)} in network fees.`
-                                : 'This transaction is sponsored by peanut! Enjoy!'
-                        }
+                        moreInfoText={`${
+                            transactionCostUSD === 0
+                                ? 'This transaction is sponsored by peanut! Enjoy!'
+                                : transactionCostUSD < 0.01
+                                  ? 'This transaction will cost you $ 0.01 in network fees.'
+                                  : `This transaction will cost you ~ $ ${formatTokenAmount(transactionCostUSD, 3) ?? 0} in network fees.`
+                        }`}
                     />
                 )}
                 {/* TODO: correct points estimation

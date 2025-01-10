@@ -798,12 +798,9 @@ export const OfframpConfirmView = ({
                                 iconName="money-in"
                                 label="Expected receive"
                                 value={(() => {
-                                    const totalFees = calculateTotalFees(
-                                        estimatedGasCost,
-                                        !!appliedPromoCode,
-                                        accountType,
-                                        !!crossChainDetails
-                                    )
+                                    const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
+                                    const slippage = crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0
+                                    const totalFees = bankingFee + slippage
 
                                     const amount =
                                         offrampType == OfframpType.CASHOUT
@@ -814,8 +811,8 @@ export const OfframpConfirmView = ({
 
                                     // return 0 if fees exceed amount
                                     return amount <= totalFees
-                                        ? '0'
-                                        : utils.formatTokenAmount(amount - totalFees) || '0'
+                                        ? '$ 0'
+                                        : `$ ${utils.formatTokenAmount(amount - totalFees)}` || '$ 0'
                                 })()}
                                 moreInfoText="Expected amount you will receive in your bank after all fees are deducted"
                             />
@@ -829,12 +826,9 @@ export const OfframpConfirmView = ({
                                 ).toString()}
                                 networkFee={estimatedGasCost ?? '0'}
                                 minReceive={(() => {
-                                    const totalFees = calculateTotalFees(
-                                        estimatedGasCost,
-                                        !!appliedPromoCode,
-                                        accountType,
-                                        !!crossChainDetails
-                                    )
+                                    const bankingFee = appliedPromoCode ? 0 : accountType === 'iban' ? 1 : 0.5
+                                    const slippage = crossChainDetails ? parseFloat(estimatedGasCost ?? '0') * 0.1 : 0
+                                    const totalFees = bankingFee + slippage
                                     const amount = parseFloat(usdValue ?? '0')
 
                                     // return 0 if fees exceed amount
@@ -846,7 +840,7 @@ export const OfframpConfirmView = ({
                                         : undefined
                                 }
                                 accountType={accountType}
-                                accountTypeFee={accountType === 'iban' ? '1' : '0.50'}
+                                accountTypeFee={appliedPromoCode ? '0' : accountType === 'iban' ? '1' : '0.50'}
                                 isPromoApplied={!!appliedPromoCode}
                                 loading={isLoading}
                             />

@@ -18,7 +18,7 @@ import { useAppKit } from '@reown/appkit/react'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import { useAccount } from 'wagmi'
-import * as _consts from '../Cashout.consts'
+import { ICashoutScreenProps } from '../Cashout.consts'
 import { FAQComponent } from './Faq.comp'
 import { RecipientInfoComponent } from './RecipientInfo.comp'
 
@@ -33,7 +33,7 @@ export const InitialCashoutView = ({
     setOfframpForm,
     crossChainDetails,
     setEstimatedGasCost,
-}: _consts.ICashoutScreenProps) => {
+}: ICashoutScreenProps) => {
     const { selectedTokenPrice, inputDenomination, selectedChainID, selectedTokenAddress } = useContext(
         context.tokenSelectorContext
     )

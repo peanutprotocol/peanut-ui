@@ -90,7 +90,7 @@ const FeeDescription = ({
                 }`}
             >
                 <div className="flex flex-col gap-2">
-                    {minReceive && (
+                    {!!minReceive && (
                         <InfoRow
                             iconName="money-in"
                             label="Min receive"
@@ -108,7 +108,7 @@ const FeeDescription = ({
                         loading={loading}
                     />
 
-                    {slippageRange && (
+                    {!!slippageRange && (
                         <InfoRow
                             iconName="money-out"
                             label="Slippage"
@@ -118,7 +118,7 @@ const FeeDescription = ({
                         />
                     )}
 
-                    {maxSlippage && parseFloat(maxSlippage) > 0 && (
+                    {!!maxSlippage && parseFloat(maxSlippage) > 0 && (
                         <InfoRow
                             iconName="money-out"
                             label="Max slippage"
@@ -128,11 +128,11 @@ const FeeDescription = ({
                         />
                     )}
 
-                    {accountTypeFee && (
+                    {!!accountTypeFee && (
                         <InfoRow
                             iconName="transfer"
                             label="Banking fee"
-                            value={isPromoApplied ? '$ 0' : `$ ${accountTypeFee}`}
+                            value={`$ ${accountTypeFee}`}
                             moreInfoText={
                                 isPromoApplied
                                     ? 'Fees waived with promo code!'
