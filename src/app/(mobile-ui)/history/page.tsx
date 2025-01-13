@@ -8,7 +8,7 @@ import { PEANUT_API_URL } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
 import { IDashboardItem, IProfileTableData } from '@/interfaces'
-import { formatDate, formatIban, printableAddress } from '@/utils'
+import { formatAmountWithSignificantDigits, formatIban, printableAddress } from '@/utils'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
 import { useEffect, useState } from 'react'
@@ -139,8 +139,8 @@ const HistoryPage = () => {
                 setTableData(
                     dashboardData.map((data) => ({
                         primaryText: data.type,
-                        secondaryText: formatDate(new Date(data.date)) ?? '',
-                        tertiaryText: `${data.amount} ${data.tokenSymbol} - [${data.chain}]`,
+                        secondaryText: `$ ${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
+                        tertiaryText: data.address ? `To ${printableAddress(data.address)}` : '',
                         quaternaryText: data.status ?? '',
                         itemKey: (data.link ?? data.txHash ?? '') + Math.random(),
                         type: 'history',
@@ -259,7 +259,7 @@ const HistoryPage = () => {
                 />
                 <div className="block w-full sm:hidden">
                     {tableData.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage).map((data) => (
-                        <div key={(data.itemKey ?? '') + Math.random()}>
+                        <div key={(data.itemKey ?? '') + Math.random()} className="border-b border-n-1">
                             <MobileTableComponent
                                 itemKey={(data.itemKey ?? '') + Math.random()}
                                 primaryText={data.primaryText}

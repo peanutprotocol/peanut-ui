@@ -10,7 +10,6 @@ import Image from 'next/image'
 import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
 
-// convert the color map to an array for easy indexing
 const colorArray = ['bg-blue-1', 'bg-yellow-1', 'bg-pink-1']
 
 type BaseWalletCardProps = {
