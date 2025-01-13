@@ -38,7 +38,7 @@ export const CreateLinkInputView = ({
     setEstimatedPoints,
     attachmentOptions,
     setAttachmentOptions,
-    createType,
+    createType = 'link', // note: default to link view temporarily
     recipient,
     crossChainDetails,
 }: _consts.ICreateScreenProps) => {
@@ -344,9 +344,11 @@ export const CreateLinkInputView = ({
                         'Confirm'
                     )}
                 </button>
-                <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
+                {/* note: commenting back button as no longer needed now */}
+                {/* todo: revisit once have more clarity on send flow */}
+                {/* <button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
                     Go Back
-                </button>
+                </button> */}
             </div>
 
             <div className="space-y-2">

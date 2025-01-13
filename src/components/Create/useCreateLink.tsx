@@ -1,17 +1,18 @@
 'use client'
-import { useCallback, useContext } from 'react'
-import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useAccount, useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
-import { waitForTransactionReceipt } from 'wagmi/actions'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { useBalance } from '@/hooks/useBalance'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
-import { fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
-import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
-import { BigNumber, ethers } from 'ethers'
-import { formatEther, parseUnits, parseEther } from 'viem'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
+import { useBalance } from '@/hooks/useBalance'
 import { useWalletType } from '@/hooks/useWalletType'
+import { fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import { getChainProvider } from '@/utils/chains.utils'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { BigNumber, ethers } from 'ethers'
+import { useCallback, useContext } from 'react'
+import { formatEther, parseEther, parseUnits } from 'viem'
+import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
+import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
@@ -587,10 +588,12 @@ export const useCreateLink = () => {
         walletType: 'blockscout' | undefined
     }) => {
         try {
+            const provider = getChainProvider(linkDetails.chainId)
             const getLinksFromTxResponse = await peanut.getLinksFromTx({
                 linkDetails,
                 txHash: hash,
                 passwords: [password],
+                provider,
             })
             let links: string[] = getLinksFromTxResponse.links
 

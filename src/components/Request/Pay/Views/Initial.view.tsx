@@ -1,29 +1,29 @@
-import * as _consts from '../Pay.consts'
-import { useAccount, useSwitchChain } from 'wagmi'
-import { useAppKit } from '@reown/appkit/react'
-import { useContext, useEffect, useState, useMemo } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import AddressLink from '@/components/Global/AddressLink'
-import {
-    fetchTokenSymbol,
-    isAddressZero,
-    formatTokenAmount,
-    formatAmountWithSignificantDigits,
-    areTokenAddressesEqual,
-    saveRequestLinkFulfillmentToLocalStorage,
-    ErrorHandler,
-} from '@/utils'
-import Icon from '@/components/Global/Icon'
-import MoreInfo from '@/components/Global/MoreInfo'
-import * as consts from '@/constants'
 import { useCreateLink } from '@/components/Create/useCreateLink'
-import { peanut, interfaces } from '@squirrel-labs/peanut-sdk'
+import AddressLink from '@/components/Global/AddressLink'
+import Icon from '@/components/Global/Icon'
+import Loading from '@/components/Global/Loading'
+import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { type ITokenPriceData } from '@/interfaces'
 import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
+import * as consts from '@/constants'
+import * as context from '@/context'
+import { type ITokenPriceData } from '@/interfaces'
+import {
+    areTokenAddressesEqual,
+    ErrorHandler,
+    fetchTokenSymbol,
+    formatTokenAmount,
+    getChainProvider,
+    isAddressZero,
+    saveRequestLinkFulfillmentToLocalStorage,
+} from '@/utils'
+import { formatAmount, switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 import { checkTokenSupportsXChain } from '@/utils/token.utils'
+import { useAppKit } from '@reown/appkit/react'
+import { interfaces, peanut } from '@squirrel-labs/peanut-sdk'
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { useAccount, useSwitchChain } from 'wagmi'
+import * as _consts from '../Pay.consts'
 
 const ERR_NO_ROUTE = 'No route found to pay in this chain and token'
 
@@ -43,12 +43,13 @@ async function createXChainUnsignedTx({
     requestLink: Awaited<ReturnType<typeof peanut.getRequestLinkDetails>>
     senderAddress: string
 }) {
+    const provider = getChainProvider(tokenData.chainId) || (await peanut.getDefaultProvider(tokenData.chainId))
     const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
         fromToken: tokenData.address,
         fromChainId: tokenData.chainId,
         senderAddress,
         squidRouterUrl: 'https://apiplus.squidrouter.com/v2/route',
-        provider: await peanut.getDefaultProvider(tokenData.chainId),
+        provider,
         tokenType: isAddressZero(tokenData.address)
             ? interfaces.EPeanutLinkType.native
             : interfaces.EPeanutLinkType.erc20,

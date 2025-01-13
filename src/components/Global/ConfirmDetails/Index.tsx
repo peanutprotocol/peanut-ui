@@ -22,7 +22,7 @@ const ConfirmDetails = ({
 }: IConfirmDetailsProps) => {
     return (
         <div className="flex w-full max-w-96 flex-col items-center justify-center gap-3">
-            {title && <label className="self-start text-h7 font-normal">{title}</label>}
+            {title && <label className="self-center text-h7 font-normal">{title}</label>}
             <div>
                 <div className="flex flex-row items-center justify-center gap-2">
                     {tokenIconUri ? (

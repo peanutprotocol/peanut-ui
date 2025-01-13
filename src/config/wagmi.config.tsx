@@ -1,11 +1,12 @@
 'use client'
 
 import * as consts from '@/constants'
-import { createAppKit } from '@reown/appkit/react'
 import { WagmiAdapter } from '@reown/appkit-adapter-wagmi'
+import { createAppKit } from '@reown/appkit/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { mainnet } from 'viem/chains'
 import { CreateConnectorFn, WagmiProvider, http } from 'wagmi'
 import { coinbaseWallet, injected, safe, walletConnect } from 'wagmi/connectors'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 
 // 0. Setup queryClient
 const queryClient = new QueryClient()
@@ -53,13 +54,13 @@ const wagmiAdapter = new WagmiAdapter({
 // 6. Create AppKit
 createAppKit({
     adapters: [wagmiAdapter],
+    defaultNetwork: mainnet,
     networks: consts.chains,
     metadata,
     projectId,
     features: {
         analytics: true,
-        email: false,
-        socials: false,
+        connectMethodsOrder: ['wallet', 'email', 'social'],
         onramp: true,
     },
     themeVariables: {

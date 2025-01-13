@@ -1,5 +1,5 @@
-import * as utils from '@/utils'
 import { type ITokenPriceData } from '@/interfaces'
+import * as utils from '@/utils'
 
 type IMobulaMarketData = {
     id: number

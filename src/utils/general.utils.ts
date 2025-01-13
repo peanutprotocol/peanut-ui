@@ -1,8 +1,9 @@
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import * as consts from '@/constants'
 import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
+
+import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
 import { SiweMessage } from 'siwe'
 
 export const shortenAddress = (address: string) => {
