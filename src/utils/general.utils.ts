@@ -3,6 +3,9 @@ import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
 import { ethers } from 'ethers'
 
+import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
+import { SiweMessage } from 'siwe'
+
 export const shortenAddress = (address: string) => {
     const firstBit = address.substring(0, 6)
 
@@ -928,9 +931,6 @@ function getIconName(type: string) {
     }
 }
 
-import { IRequestLinkData } from '@/components/Request/Pay/Pay.consts'
-import { SiweMessage } from 'siwe'
-
 export const createSiweMessage = ({ address, statement }: { address: string; statement: string }) => {
     const message = new SiweMessage({
         domain: window.location.host,
@@ -1020,4 +1020,21 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
         console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
     }
     return tokenSymbol
+}
+
+/**
+ * checks if the provided file header matches any of the valid file signatures.
+ *
+ * @param header - The file header string to validate.
+ * @returns `true` if the header matches a valid file signature, `false` otherwise.
+ */
+export const isValidFileSignature = (header: string): boolean => {
+    return (
+        // PNG
+        header === consts.VALID_FILE_SIGNATURES.PNG ||
+        // JPEG (any variant)
+        consts.VALID_FILE_SIGNATURES.JPEG.includes(header as 'ffd8ffe0' | 'ffd8ffe1' | 'ffd8ffe2') ||
+        // PDF
+        header === consts.VALID_FILE_SIGNATURES.PDF
+    )
 }
