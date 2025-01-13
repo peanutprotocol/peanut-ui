@@ -8,7 +8,7 @@ import { PEANUT_API_URL } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
 import { IDashboardItem, IProfileTableData } from '@/interfaces'
-import { formatIban, printableAddress } from '@/utils'
+import { formatAmountWithSignificantDigits, formatIban, printableAddress } from '@/utils'
 import { identicon } from '@dicebear/collection'
 import { createAvatar } from '@dicebear/core'
 import { useEffect, useState } from 'react'
@@ -139,7 +139,7 @@ const HistoryPage = () => {
                 setTableData(
                     dashboardData.map((data) => ({
                         primaryText: data.type,
-                        secondaryText: `$ ${data.amount}`,
+                        secondaryText: `$ ${formatAmountWithSignificantDigits(Number(data.amount), 2)}`,
                         tertiaryText: data.address ? `To ${printableAddress(data.address)}` : '',
                         quaternaryText: data.status ?? '',
                         itemKey: (data.link ?? data.txHash ?? '') + Math.random(),

@@ -1,4 +1,5 @@
 import { PeanutGuy } from '@/assets'
+import { Badge } from '@/components/0_Bruddle/Badge'
 import CopyToClipboard from '@/components/Global/CopyToClipboard'
 import { useAuth } from '@/context/authContext'
 import Image from 'next/image'
@@ -26,7 +27,14 @@ const ProfileSection = ({}: ProfileSectionProps) => {
                     />
                     <div className="text-md space-y-1 font-semibold">
                         <div className="text-gray-1">peanut.me/</div>
-                        <div className="">{user?.user.username}</div>
+                        <div className="flex items-center gap-3">
+                            <div className="">{user?.user.username}</div>
+                            {user?.user.kycStatus !== null && (
+                                <Badge color="purple" className="bg-white text-purple-1">
+                                    No KYC
+                                </Badge>
+                            )}
+                        </div>
                     </div>
                 </div>
                 <div className="flex size-8 items-center justify-center rounded-full bg-white p-2">
