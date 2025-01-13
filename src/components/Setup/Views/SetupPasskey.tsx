@@ -15,14 +15,18 @@ const SetupPasskey = () => {
 
     useEffect(() => {
         if (address && user) {
-            handleNext(async () => {
-                await addAccount({
-                    accountIdentifier: address,
-                    accountType: WalletProviderType.PEANUT,
-                    userId: user?.user.userId as string,
-                })
-                return true
+            addAccount({
+                accountIdentifier: address,
+                accountType: WalletProviderType.PEANUT,
+                userId: user?.user.userId as string,
             })
+                .then(() => {
+                    handleNext()
+                })
+                .catch((e) => {
+                    console.error('Error adding account', e)
+                    setError('Error adding account')
+                })
         }
     }, [address, addAccount, user, handleNext])
 
