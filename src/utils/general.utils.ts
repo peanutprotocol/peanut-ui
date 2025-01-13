@@ -84,10 +84,18 @@ function waitForPromise<T>(promise: Promise<T>, timeoutTime: number = 30000): Pr
 }
 
 export const saveToLocalStorage = (key: string, data: any) => {
+    if (typeof localStorage === 'undefined') return
     try {
         // Convert the data to a string before storing it in localStorage
-        const serializedData = JSON.stringify(data)
-        if (typeof localStorage === 'undefined') return
+        const serializedData = JSON.stringify(data, (_key, value) => {
+            if ('bigint' === typeof value) {
+                return {
+                    '@type': 'BigInt',
+                    value: value.toString(),
+                }
+            }
+            return value
+        })
         localStorage.setItem(key, serializedData)
         console.log(`Saved ${key} to localStorage:`, data)
     } catch (error) {
@@ -96,14 +104,19 @@ export const saveToLocalStorage = (key: string, data: any) => {
 }
 
 export const getFromLocalStorage = (key: string) => {
+    if (typeof localStorage === 'undefined') return
     try {
-        if (typeof localStorage === 'undefined') return
         const data = localStorage.getItem(key)
         if (data === null) {
             console.log(`No data found in localStorage for ${key}`)
             return null
         }
-        const parsedData = JSON.parse(data)
+        const parsedData = JSON.parse(data, (_key, value) => {
+            if (value && typeof value === 'object' && value['@type'] === 'BigInt') {
+                return BigInt(value.value)
+            }
+            return value
+        })
         console.log(`Retrieved ${key} from localStorage:`, parsedData)
         return parsedData
     } catch (error) {
