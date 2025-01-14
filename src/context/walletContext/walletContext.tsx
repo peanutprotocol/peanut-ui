@@ -11,8 +11,6 @@ import {
     getUserPreferences,
     updateUserPreferences,
 } from '@/utils'
-import { identicon } from '@dicebear/collection'
-import { createAvatar } from '@dicebear/core'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { createContext, ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { Chain, erc20Abi, getAddress, parseUnits } from 'viem'
@@ -66,23 +64,6 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         getUserPreferences()?.lastSelectedWallet?.address
     )
 
-    // generate fallback avatar
-    const getWalletIcon = useCallback(
-        (address: string) => {
-            if (!!connector?.icon) {
-                return connector?.icon
-            }
-
-            const avatar = createAvatar(identicon, {
-                seed: address.toLowerCase(),
-                size: 128,
-            })
-
-            return avatar.toDataUri()
-        },
-        [connector]
-    )
-
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
             if (isPeanut(wallet) && kernelClientAddress) {
@@ -134,7 +115,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
                         protocolType: interfaces.WalletProtocolType.EVM,
                         address: account.account_identifier,
-                        walletIcon: getWalletIcon(account.account_identifier),
+                        connector: account.connector,
                     }
 
                     let balance = BigInt(0)
@@ -208,6 +189,13 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                     accountIdentifier: address,
                     accountType: interfaces.WalletProviderType.BYOW,
                     userId: user.user.userId as string,
+                    connector:
+                        connector && connector.icon
+                            ? {
+                                  iconUrl: connector.icon,
+                                  name: connector.name,
+                              }
+                            : undefined,
                 }).catch((error: Error) => {
                     if (error.message.includes('Account already exists')) {
                         toast.error('Could not add external wallet, already associated with another account')

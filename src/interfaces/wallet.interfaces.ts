@@ -16,7 +16,10 @@ export interface IDBWallet {
     walletProviderType: WalletProviderType
     protocolType: WalletProtocolType
     address: string
-    walletIcon?: string
+    connector?: {
+        iconUrl: string
+        name: string
+    }
 }
 
 export interface IWallet extends IDBWallet {
