@@ -400,6 +400,10 @@ interface Account {
     referred_users_points: number
     totalReferralPoints: number
     chain_id: ChainIdType
+    connector?: {
+        iconUrl: string
+        name: string
+    }
 }
 
 export interface IUserProfile {
