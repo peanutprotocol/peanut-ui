@@ -108,8 +108,8 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                     attachmentUrl={requestLinkData?.attachmentUrl}
                 />
                 <div className="flex w-full flex-col items-start justify-center gap-1.5 text-h9 font-normal">
-                    <label className="text-h8 font-normal text-gray-1">Transaction details</label>
-                    <div className="flex w-full flex-row items-center justify-start gap-1">
+                    <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
+                    <div className="flex w-full flex-row items-center justify-between gap-1">
                         <label className="">Source chain:</label>
                         <Link className="cursor-pointer underline" href={sourceUrlWithTx}>
                             {utils.shortenAddressLong(transactionHash ?? '')}
@@ -139,7 +139,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                         </>
                     )}
                 </div>
-                <label className="text-h9 font-normal">
+                <label className="text-center text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

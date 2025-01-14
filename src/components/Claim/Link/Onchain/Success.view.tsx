@@ -1,13 +1,13 @@
+import { Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
-import * as _consts from '../../Claim.consts'
-import * as utils from '@/utils'
+import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
+import { useWallet } from '@/context/walletContext'
+import * as utils from '@/utils'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useConnections, useSwitchChain } from 'wagmi'
-import { fetchDestinationChain } from '@/components/utils/utils'
-import { Button, Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
+import * as _consts from '../../Claim.consts'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
@@ -65,7 +65,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                 <Card.Description>You have successfully claimed your funds!</Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                <label className="text-h8 font-normal text-gray-1">Transaction details</label>
+                <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
                 {type === 'claimxchain' && (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
                         <div className="flex w-full flex-row items-center justify-start gap-1">
@@ -110,7 +110,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         See your payments.
                     </Button>
                 </Link>
-                <label className="text-h9 font-normal">
+                <label className="text-center text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

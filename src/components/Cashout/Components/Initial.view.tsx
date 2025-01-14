@@ -259,11 +259,13 @@ export const InitialCashoutView = ({
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Cash Out</Card.Title>
-                <Card.Description>
+                <Card.Description className="text-center">
                     Cash out your crypto to your bank account. Works best with popular stablecoins and other commonly
                     traded tokens.
                 </Card.Description>
-                <FAQComponent />
+                <div className="mx-auto">
+                    <FAQComponent />
+                </div>
             </Card.Header>
             <Card.Content className="col gap-2">
                 <TokenAmountInput
@@ -297,7 +299,7 @@ export const InitialCashoutView = ({
                         )}
                     </>
                 )}
-                <div className="flex w-full flex-col justify-center gap-3">
+                <div className="flex w-full flex-col justify-center gap-4">
                     <RecipientInfoComponent />
                     <div className="space-y-4">
                         {!user && isFetchingUser ? (
@@ -309,8 +311,10 @@ export const InitialCashoutView = ({
                             </div>
                         ) : user ? (
                             <>
-                                {user.accounts.length > 0 && (
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
+                                {!!user.accounts.filter(
+                                    (account) => account.account_type === 'iban' || account.account_type === 'us'
+                                ).length && (
+                                    <div className="flex w-full flex-col items-start justify-center gap-2 text-center">
                                         <label className="text-left text-h8 font-light">
                                             Your linked bank accounts:
                                         </label>

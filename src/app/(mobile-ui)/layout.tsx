@@ -70,8 +70,8 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     >
                         Sign In
                     </Button>
-                    <Link href={'/setup'} className="text-h8 hover:underline">
-                        Don't have a penanut wallet? Get one now.
+                    <Link href={'/setup'} className="text-h8 underline">
+                        Don't have a peanut wallet? Get one now.
                     </Link>
                     <div className="my-2 flex w-full items-center gap-4">
                         <div className="h-px flex-1 bg-gray-200" />
@@ -79,7 +79,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                         <div className="h-px flex-1 bg-gray-200" />
                     </div>
                     <Button
-                        loading={isLoggingIn}
+                        // loading={isLoggingIn}
                         disabled={isLoggingIn}
                         variant="dark"
                         shadowType="secondary"

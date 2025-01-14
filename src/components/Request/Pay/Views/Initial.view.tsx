@@ -391,7 +391,7 @@ export const InitialView = ({
                         </div>
                     </div>
                     {tokenSupportsXChain ? (
-                        <label className="text-h9 font-light">
+                        <label className="text-center text-h9 font-light">
                             You can fulfill this payment request with any token on any chain. Pick the token and chain
                             that you want to fulfill this request with.
                         </label>

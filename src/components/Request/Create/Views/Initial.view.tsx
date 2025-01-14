@@ -1,19 +1,19 @@
-import TokenAmountInput from '@/components/Global/TokenAmountInput'
-import * as _consts from '../Create.consts'
-import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
-import { useContext, useEffect, useState, useCallback } from 'react'
-import * as context from '@/context'
-import Loading from '@/components/Global/Loading'
-import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
-import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import AddressInput from '@/components/Global/AddressInput'
-import { InputUpdate } from '@/components/Global/ValidatedInput'
-import { getTokenDetails } from '@/components/Create/Create.utils'
-import { useWallet } from '@/context/walletContext'
 import { Button, Card } from '@/components/0_Bruddle'
-import { fetchTokenSymbol, saveRequestLinkToLocalStorage, isNativeCurrency } from '@/utils'
-import { IUserBalance, IToken } from '@/interfaces'
+import { getTokenDetails } from '@/components/Create/Create.utils'
+import AddressInput from '@/components/Global/AddressInput'
+import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
+import Loading from '@/components/Global/Loading'
+import TokenAmountInput from '@/components/Global/TokenAmountInput'
+import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
+import { InputUpdate } from '@/components/Global/ValidatedInput'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
+import * as context from '@/context'
+import { useWallet } from '@/context/walletContext'
+import { IToken, IUserBalance } from '@/interfaces'
+import { fetchTokenSymbol, isNativeCurrency, saveRequestLinkToLocalStorage } from '@/utils'
+import { peanut, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { useCallback, useContext, useEffect, useState } from 'react'
+import * as _consts from '../Create.consts'
 
 export const InitialView = ({
     onNext,
@@ -168,7 +168,7 @@ export const InitialView = ({
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Request a payment</Card.Title>
-                <Card.Description>
+                <Card.Description className="text-center">
                     Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if you
                     want to.
                 </Card.Description>
@@ -232,7 +232,7 @@ export const InitialView = ({
                             'Confirm'
                         )}
                     </Button>
-                    <Button className="btn btn-xl" onClick={onPrev} disabled={isLoading}>
+                    <Button className="btn btn-xl min-w-full" onClick={onPrev} disabled={isLoading}>
                         Go Back
                     </Button>
                 </div>

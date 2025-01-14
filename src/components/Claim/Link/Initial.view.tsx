@@ -452,7 +452,7 @@ export const InitialClaimLinkView = ({
                 </Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                {isExternalWallet && recipientType !== 'iban' && recipientType !== 'us' && (
+                {recipientType !== 'iban' && recipientType !== 'us' && (
                     <TokenSelector
                         shouldBeConnected={false}
                         showOnlySquidSupported
@@ -461,28 +461,26 @@ export const InitialClaimLinkView = ({
                         }}
                     />
                 )}
-                {isExternalWallet && (
-                    <GeneralRecipientInput
-                        className=""
-                        placeholder="wallet address / ENS / IBAN / US account number"
-                        recipient={recipient}
-                        onUpdate={(update: GeneralRecipientUpdate) => {
-                            setRecipient(update.recipient)
-                            if (!update.recipient.address) {
-                                setRecipientType('address')
-                            } else {
-                                setRecipientType(update.type)
-                            }
-                            setIsValidRecipient(update.isValid)
-                            setErrorState({
-                                showError: !update.isValid,
-                                errorMessage: update.errorMessage,
-                            })
-                            setInputChanging(update.isChanging)
-                        }}
-                        infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
-                    />
-                )}
+                <GeneralRecipientInput
+                    className="pl-8"
+                    placeholder="wallet address / ENS / IBAN / US account number"
+                    recipient={recipient}
+                    onUpdate={(update: GeneralRecipientUpdate) => {
+                        setRecipient(update.recipient)
+                        if (!update.recipient.address) {
+                            setRecipientType('address')
+                        } else {
+                            setRecipientType(update.type)
+                        }
+                        setIsValidRecipient(update.isValid)
+                        setErrorState({
+                            showError: !update.isValid,
+                            errorMessage: update.errorMessage,
+                        })
+                        setInputChanging(update.isChanging)
+                    }}
+                    infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
+                />
                 {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
                     <div className="flex w-full flex-col items-center justify-center gap-2">
                         {selectedRoute && (

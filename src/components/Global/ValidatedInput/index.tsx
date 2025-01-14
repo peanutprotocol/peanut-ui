@@ -2,6 +2,7 @@ import BaseInput from '@/components/0_Bruddle/BaseInput'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { ChangeEvent, useEffect, useRef, useState } from 'react'
+import { twMerge } from 'tailwind-merge'
 import Loading from '../Loading'
 
 type ValidatedInputProps = {
@@ -91,7 +92,8 @@ const ValidatedInput = ({
 
     return (
         <div
-            className={`relative w-full border border-n-1 dark:border-white${
+            // border border-n-1 dark:border-white
+            className={`relative w-full border border-n-1 focus:border-purple-1 dark:border-white ${
                 value && !isValidating && !isValid && debouncedValue === value ? ' border-red dark:border-red' : ''
             } ${className}`}
         >
@@ -107,9 +109,12 @@ const ValidatedInput = ({
                     type="text"
                     value={formatDisplayValue ? formatDisplayValue(value) : value}
                     onChange={handleChange}
-                    className="h-12 w-full bg-white pl-4 pr-2 text-h8 font-medium 
-                        outline-none focus:outline-none active:bg-white
-                        dark:bg-n-1 dark:text-white dark:placeholder:text-white/75"
+                    className={twMerge(
+                        `h-12 w-full border-0 bg-white pr-2 text-h8 
+                        font-medium outline-none focus:outline-none
+                        active:bg-white dark:bg-n-1 dark:text-white dark:placeholder:text-white/75`,
+                        !!infoText ? 'pl-0' : 'pl-4'
+                    )}
                     placeholder={placeholder}
                     spellCheck="false"
                     autoComplete={autoComplete || 'off'}

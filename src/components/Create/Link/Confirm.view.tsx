@@ -235,14 +235,17 @@ export const CreateLinkConfirmView = ({
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
+                <Card.Title
+                    style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
+                    className="text-center"
+                >
                     {createType == 'link'
                         ? 'Text Tokens'
                         : createType == 'direct'
                           ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                           : `Send to ${recipient.name}`}
                 </Card.Title>
-                <Card.Description>
+                <Card.Description className="text-center">
                     {createType === 'link' &&
                         'Make a payment with the link. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                     {createType === 'email_link' &&
@@ -254,14 +257,16 @@ export const CreateLinkConfirmView = ({
                 </Card.Description>
             </Card.Header>
             <Card.Content>
-                <ConfirmDetails
-                    tokenSymbol={selectedToken?.symbol ?? ''}
-                    tokenIconUri={selectedToken?.iconUri ?? ''}
-                    chainName={selectedChain?.name ?? ''}
-                    chainIconUri={selectedChain?.iconUri ?? ''}
-                    tokenAmount={tokenValue ?? '0'}
-                    title="You're sending"
-                />
+                <div className="flex items-center justify-center">
+                    <ConfirmDetails
+                        tokenSymbol={selectedToken?.symbol ?? ''}
+                        tokenIconUri={selectedToken?.iconUri ?? ''}
+                        chainName={selectedChain?.name ?? ''}
+                        chainIconUri={selectedChain?.iconUri ?? ''}
+                        tokenAmount={tokenValue ?? '0'}
+                        title="You're sending"
+                    />
+                </div>
 
                 <div className="flex w-full flex-col items-center justify-center gap-2">
                     {attachmentOptions.fileUrl && (

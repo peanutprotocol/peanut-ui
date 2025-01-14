@@ -8,7 +8,6 @@ import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/context/walletContext'
 import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { WalletProviderType } from '@/interfaces'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
@@ -60,11 +59,7 @@ export default function Home() {
     const handleCardClick = (index: number) => {
         if (index < wallets.length) {
             if (selectedWalletIndex === index) {
-                if (selectedWallet?.walletProviderType === WalletProviderType.PEANUT) {
-                    router.push('/profile')
-                } else {
-                    router.push('/wallet')
-                }
+                router.push('/wallet')
             } else {
                 setSelectedWallet(wallets[index])
             }

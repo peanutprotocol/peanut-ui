@@ -1,11 +1,11 @@
 'use client'
 
+import PageContainer from '@/components/0_Bruddle/PageContainer'
+import { IAttachmentOptions } from '@/components/Create/Create.consts'
+import { useWallet } from '@/context/walletContext'
+import { useRouter } from 'next/navigation'
 import { createElement, useEffect, useState } from 'react'
 import * as _consts from './Create.consts'
-import { IAttachmentOptions } from '@/components/Create/Create.consts'
-import { useRouter } from 'next/navigation'
-import PageContainer from '@/components/0_Bruddle/PageContainer'
-import { useWallet } from '@/context/walletContext'
 
 export const CreateRequestLink = () => {
     const router = useRouter()
@@ -47,7 +47,7 @@ export const CreateRequestLink = () => {
     }, [address])
 
     return (
-        <PageContainer className="h-full">
+        <PageContainer>
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onNext: handleOnNext,
                 onPrev: handleOnPrev,

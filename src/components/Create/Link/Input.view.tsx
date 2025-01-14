@@ -309,7 +309,10 @@ export const CreateLinkInputView = ({
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
+                <Card.Title
+                    style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
+                    className="text-center"
+                >
                     {' '}
                     {createType === 'link'
                         ? 'Text Tokens'

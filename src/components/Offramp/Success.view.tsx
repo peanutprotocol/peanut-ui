@@ -1,11 +1,11 @@
 'use client'
 import Icon from '@/components/Global/Icon'
-import Link from 'next/link'
-import * as _consts from './Offramp.consts'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { useAuth } from '@/context/authContext'
 import * as utils from '@/utils'
+import Link from 'next/link'
 import { Button, Card } from '../0_Bruddle'
+import * as _consts from './Offramp.consts'
 
 export const OfframpSuccessView = ({
     offrampForm, // available on all offramps
@@ -46,14 +46,14 @@ export const OfframpSuccessView = ({
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
                 <Card.Title>Yay!</Card.Title>
-                <Card.Description>
+                <Card.Description className="text-center">
                     Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please
                     keep in mind that it may take up to 2 days for the funds to arrive.
                 </Card.Description>
             </Card.Header>
             <Card.Content className="col gap-2">
-                <label className="text-h2">Yay!</label>
-                <label className="text-h8 font-bold ">
+                <label className="text-center text-h2">Yay!</label>
+                <label className="text-center text-h8 font-bold">
                     Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please
                     keep in mind that it may take up to 2 days for the funds to arrive.
                 </label>
