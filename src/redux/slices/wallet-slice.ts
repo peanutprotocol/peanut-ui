@@ -1,44 +1,23 @@
-import { IUserBalance } from '@/interfaces'
-import { createSlice, PayloadAction } from '@reduxjs/toolkit'
-import { IWallet, IWalletState } from '../types/wallet.types'
+import { getUserPreferences, updateUserPreferences } from '@/utils'
+import { createSlice } from '@reduxjs/toolkit'
+import { WalletUIState } from '../types/wallet.types'
 
-const initialState: IWalletState = {
-    selectedWallet: undefined,
-    wallets: [],
+const initialState: WalletUIState = {
+    selectedAddress: getUserPreferences()?.lastSelectedWallet?.address,
     signInModalVisible: false,
 }
 
 const walletSlice = createSlice({
-    name: 'wallet',
+    name: 'walletUI',
     initialState,
     reducers: {
-        setSelectedWallet: (state, action: PayloadAction<Omit<IWallet, 'balance'> & { balance: string }>) => {
-            state.selectedWallet = {
-                ...action.payload,
-                balance: action.payload.balance,
-            }
+        setSelectedAddress: (state, action) => {
+            state.selectedAddress = action.payload
+            updateUserPreferences({
+                lastSelectedWallet: { address: action.payload },
+            })
         },
-        setWallets: (state, action: PayloadAction<(Omit<IWallet, 'balance'> & { balance: string })[]>) => {
-            state.wallets = action.payload
-        },
-        updateWalletBalance: (
-            state,
-            action: PayloadAction<{
-                address: string
-                balance: bigint
-                balances?: IUserBalance[]
-            }>
-        ) => {
-            const walletIndex = state.wallets.findIndex((w) => w.address === action.payload.address)
-            if (walletIndex !== -1) {
-                state.wallets[walletIndex] = {
-                    ...state.wallets[walletIndex],
-                    balance: action.payload.balance.toString(), // convert BigInt to string
-                    balances: action.payload.balances || state.wallets[walletIndex].balances,
-                }
-            }
-        },
-        setSignInModalVisible: (state, action: PayloadAction<boolean>) => {
+        setSignInModalVisible: (state, action) => {
             state.signInModalVisible = action.payload
         },
     },

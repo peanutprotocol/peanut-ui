@@ -1,27 +1,24 @@
 'use client'
-import { ReactNode, createContext, useContext, useState, useCallback, useEffect } from 'react'
-
-// ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
-import { http, encodeFunctionData, Abi, Transport, Hex, Address } from 'viem'
+import {
+    PasskeyValidatorContractVersion,
+    toPasskeyValidator,
+    toWebAuthnKey,
+    WebAuthnMode,
+} from '@zerodev/passkey-validator'
 import {
     createKernelAccount,
     createKernelAccountClient,
     createZeroDevPaymasterClient,
     KernelAccountClient,
 } from '@zerodev/sdk'
-import {
-    toPasskeyValidator,
-    toWebAuthnKey,
-    WebAuthnMode,
-    PasskeyValidatorContractVersion,
-} from '@zerodev/passkey-validator'
 import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
+import { useCallback, useEffect, useState } from 'react'
+import { Abi, Address, encodeFunctionData, Hex, http, Transport } from 'viem'
 
 import { peanutPublicClient } from '@/constants/viem.consts'
-import { infuraRpcUrls } from '@/constants'
-import { useAuth } from '../authContext'
-import { saveToLocalStorage, getFromLocalStorage } from '@/utils'
+import { useAuth } from '@/context/authContext'
+import { getFromLocalStorage, saveToLocalStorage } from '@/utils'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
 type AppSmartAccountClient = KernelAccountClient<Transport, typeof consts.PEANUT_WALLET_CHAIN>
@@ -37,7 +34,8 @@ type UserOpEncodedParams = {
     value?: bigint | undefined
     data?: Hex | undefined
 }
-interface ZeroDevContextType {
+
+interface IZeroDevType {
     isKernelClientReady: boolean
     setIsKernelClientReady: (clientReady: boolean) => void
     isRegistering: boolean
@@ -52,29 +50,14 @@ interface ZeroDevContextType {
     handleSendUserOpNotEncoded: (args: UserOpNotEncodedParams) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
     address: string | undefined
 }
+
 type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
-
-// TODO: remove any unused imports
-// TODO: order imports
-
-const ZeroDevContext = createContext<ZeroDevContextType | undefined>(undefined)
 
 const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
-// TODO: change description
-/**
- * Context provider to manage user authentication and profile interactions.
- * It handles fetching the user profile, updating user details (e.g., username, profile photo),
- * adding accounts and logging out. It also provides hooks for child components to access user data and auth-related functions.
- */
-export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
+export const useZeroDev = (): IZeroDevType => {
     const { fetchUser, user } = useAuth()
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
-    ////// context props
-    //
-
-    ////// ZeroDev props
-    //
 
     const [isRegistering, setIsRegistering] = useState<boolean>(false)
     const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false)
@@ -85,8 +68,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     const [address, setAddress] = useState<string | undefined>(undefined)
     const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
 
-    ////// Lifecycle hooks
-    //
+    // lifecycle hooks
     useEffect(() => {
         const storedWebAuthnKey = getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY)
         if (storedWebAuthnKey) {
@@ -126,8 +108,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [webAuthnKey])
 
-    ////// Setup functions
-    //
+    // setup function
     const createKernelClient = async (passkeyValidator: any) => {
         console.log({ passkeyValidator })
         const kernelAccount = await createKernelAccount(peanutPublicClient, {
@@ -174,8 +155,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         return kernelClient
     }
 
-    ////// Register functions
-    //
+    // register function
     const handleRegister = async (handle: string): Promise<void> => {
         setIsRegistering(true)
         try {
@@ -199,8 +179,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    ////// Login functions
-    //
+    // login functions
     const handleLogin = async () => {
         setIsLoggingIn(true)
         try {
@@ -226,9 +205,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         }
     }
 
-    ////// UserOp functions
-    //
-    //
+    // UserOp functions
 
     // TODO: better docstrings
     // used when data is already encoded from Peanut
@@ -304,33 +281,19 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
         return userOpHash
     }
 
-    return (
-        <ZeroDevContext.Provider
-            value={{
-                isKernelClientReady,
-                setIsKernelClientReady,
-                isRegistering,
-                setIsRegistering,
-                isLoggingIn,
-                setIsLoggingIn,
-                isSendingUserOp,
-                setIsSendingUserOp,
-                handleRegister,
-                handleLogin,
-                handleSendUserOpEncoded,
-                handleSendUserOpNotEncoded,
-                address,
-            }}
-        >
-            {children}
-        </ZeroDevContext.Provider>
-    )
-}
-
-export const useZeroDev = (): ZeroDevContextType => {
-    const context = useContext(ZeroDevContext)
-    if (context === undefined) {
-        throw new Error('useWallet must be used within an AuthProvider')
+    return {
+        isKernelClientReady,
+        setIsKernelClientReady,
+        isRegistering,
+        setIsRegistering,
+        isLoggingIn,
+        setIsLoggingIn,
+        isSendingUserOp,
+        setIsSendingUserOp,
+        handleRegister,
+        handleLogin,
+        handleSendUserOpEncoded,
+        handleSendUserOpNotEncoded,
+        address,
     }
-    return context
 }
