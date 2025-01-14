@@ -137,12 +137,12 @@ export const useWallet = () => {
                     accountType: interfaces.WalletProviderType.BYOW,
                     userId: user.user.userId,
                     connector:
-                      connector && connector.icon
-                          ? {
-                                iconUrl: connector.icon,
-                                name: connector.name,
-                            }
-                          : undefined,
+                        connector && connector.icon
+                            ? {
+                                  iconUrl: connector.icon,
+                                  name: connector.name,
+                              }
+                            : undefined,
                 }).catch((error) => {
                     const errorMsg = error.message.includes('Account already exists')
                         ? 'Could not add external wallet, already associated with another account'
