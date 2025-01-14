@@ -5,13 +5,11 @@ import Link from 'next/link'
 import React, { useCallback, useEffect, useState } from 'react'
 
 import { HAMBURGER_LOTTIE, PEANUTMAN_LOGO } from '@/assets'
-import { shortenAddress } from '@/utils'
-import { useAppKit } from '@reown/appkit/react'
-
 import { useWallet } from '@/hooks/useWallet'
 import { breakpoints, emToPx } from '@/styles/theme'
+import { shortenAddress } from '@/utils'
+import { useAppKit } from '@reown/appkit/react'
 import { useRouter } from 'next/navigation'
-import { useAccount } from 'wagmi'
 import { NavItemBox, NavLink } from './components'
 
 const defaultLottieOptions: LottieOptions = {
@@ -277,7 +275,7 @@ const MenuLinks = () => {
 
 const SocialLinks = () => {
     const { open: walletModal } = useAppKit()
-    const { address, isConnected } = useAccount()
+    const { address, isConnected } = useWallet()
 
     return (
         <Stack direction={'row'} spacing={2} mr={2}>

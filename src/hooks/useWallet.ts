@@ -124,7 +124,9 @@ export const useWallet = () => {
     useEffect(() => {
         if (!selectedAddress && wallets.length) {
             const initialWallet = wallets.find(isPeanut) || wallets[0]
-            dispatch(walletActions.setSelectedAddress(initialWallet.address))
+            if (initialWallet) {
+                dispatch(walletActions.setSelectedAddress(initialWallet.address))
+            }
         }
     }, [wallets, selectedAddress, dispatch])
 
@@ -176,7 +178,7 @@ export const useWallet = () => {
                         walletActions.updateWalletBalance({
                             address,
                             balances,
-                            balance: parseUnits(totalBalance.toString(), 6),
+                            balance: parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS),
                         })
                     )
                 }
