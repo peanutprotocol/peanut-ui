@@ -1,6 +1,6 @@
-import { useWallet } from '@/context/walletContext'
-import { NavIcons } from '../0_Bruddle'
+import { useWallet } from '@/hooks/useWallet'
 import { useCallback } from 'react'
+import { NavIcons } from '../0_Bruddle'
 
 const WalletToggleButton = () => {
     const { setSelectedWallet, wallets, selectedWallet, walletColor } = useWallet()

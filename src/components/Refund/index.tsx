@@ -5,7 +5,7 @@ import { useConfig, useSendTransaction } from 'wagmi'
 
 import * as consts from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/context/walletContext'
+import { useWallet } from '@/hooks/useWallet'
 import * as utils from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 import { useContext, useState } from 'react'

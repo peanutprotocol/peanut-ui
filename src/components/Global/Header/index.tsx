@@ -8,7 +8,7 @@ import { HAMBURGER_LOTTIE, PEANUTMAN_LOGO } from '@/assets'
 import { shortenAddress } from '@/utils'
 import { useAppKit } from '@reown/appkit/react'
 
-import { useWallet } from '@/context/walletContext'
+import { useWallet } from '@/hooks/useWallet'
 import { breakpoints, emToPx } from '@/styles/theme'
 import { useRouter } from 'next/navigation'
 import { useAccount } from 'wagmi'

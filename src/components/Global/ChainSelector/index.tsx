@@ -1,14 +1,14 @@
 'use client'
 
-import { useContext, useMemo, useState } from 'react'
-import { Menu, Transition } from '@headlessui/react'
-import Icon from '../Icon'
-import Search from '../Search'
 import { supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
+import { useWallet } from '@/hooks/useWallet'
 import { IPeanutChainDetails } from '@/interfaces'
-import { formatTokenAmount, calculateValuePerChain } from '@/utils'
-import { useWallet } from '@/context/walletContext'
+import { calculateValuePerChain, formatTokenAmount } from '@/utils'
+import { Menu, Transition } from '@headlessui/react'
+import { useContext, useMemo, useState } from 'react'
+import Icon from '../Icon'
+import Search from '../Search'
 
 type Chain = {
     name: string

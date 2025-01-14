@@ -1,22 +1,20 @@
 'use client'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import { CSVLink } from 'react-csv'
+import AddressLink from '../Global/AddressLink'
 import Icon from '../Global/Icon'
+import Loading from '../Global/Loading'
 import Sorting from '../Global/Sorting'
 import TablePagination from '../Global/TablePagination'
-import AddressLink from '../Global/AddressLink'
-import { useAccount } from 'wagmi'
-import Loading from '../Global/Loading'
-import { useRouter } from 'next/navigation'
-import { CSVLink } from 'react-csv'
 
-import * as utils from '@/utils'
 import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
 import * as _consts from './Dashboard.consts'
 import * as components from './components'
-import Modal from '../Global/Modal'
 
+import { useWallet } from '@/hooks/useWallet'
 import { useDashboard } from './useDashboard'
-import { useWallet } from '@/context/walletContext'
 
 export const Dashboard = () => {
     const itemsPerPage = 10
