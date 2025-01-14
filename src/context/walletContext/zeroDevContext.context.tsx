@@ -1,5 +1,5 @@
 'use client'
-import { ReactNode, createContext, useContext, useState, useCallback } from 'react'
+import { ReactNode, createContext, useContext, useState, useCallback, useEffect } from 'react'
 
 // ZeroDev imports
 import * as consts from '@/constants/zerodev.consts'
@@ -21,6 +21,7 @@ import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { peanutPublicClient } from '@/constants/viem.consts'
 import { infuraRpcUrls } from '@/constants'
 import { useAuth } from '../authContext'
+import { saveToLocalStorage, getFromLocalStorage } from '@/utils'
 
 // Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
 type AppSmartAccountClient = KernelAccountClient<Transport, typeof consts.PEANUT_WALLET_CHAIN>
@@ -45,17 +46,20 @@ interface ZeroDevContextType {
     setIsLoggingIn: (loggingIn: boolean) => void
     isSendingUserOp: boolean
     setIsSendingUserOp: (sendingUserOp: boolean) => void
-    handleRegister: (handle: string) => Promise<AppSmartAccountClient>
+    handleRegister: (handle: string) => Promise<void>
     handleLogin: () => Promise<void>
     handleSendUserOpEncoded: (args: UserOpEncodedParams[]) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
     handleSendUserOpNotEncoded: (args: UserOpNotEncodedParams) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
     address: string | undefined
 }
+type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
 
 // TODO: remove any unused imports
 // TODO: order imports
 
 const ZeroDevContext = createContext<ZeroDevContextType | undefined>(undefined)
+
+const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 // TODO: change description
 /**
@@ -79,9 +83,48 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
     const [kernelClient, setKernelClient] = useState<AppSmartAccountClient | undefined>(undefined)
     const [isKernelClientReady, setIsKernelClientReady] = useState<boolean>(false)
     const [address, setAddress] = useState<string | undefined>(undefined)
+    const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
 
     ////// Lifecycle hooks
     //
+    useEffect(() => {
+        const storedWebAuthnKey = getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY)
+        if (storedWebAuthnKey) {
+            setWebAuthnKey(storedWebAuthnKey)
+        }
+    }, [])
+
+    useEffect(() => {
+        let isMounted = true
+
+        if (!webAuthnKey) {
+            return () => {
+                isMounted = false
+            }
+        }
+
+        toPasskeyValidator(peanutPublicClient, {
+            webAuthnKey,
+            entryPoint: consts.USER_OP_ENTRY_POINT,
+            kernelVersion: KERNEL_V3_1,
+            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
+        })
+            .then(createKernelClient)
+            .then((client) => {
+                if (isMounted) {
+                    fetchUser()
+                    setKernelClient(client)
+                    setAddress(client.account!.address)
+                    setIsKernelClientReady(true)
+                    setIsRegistering(false)
+                    setIsLoggingIn(false)
+                }
+            })
+
+        return () => {
+            isMounted = false
+        }
+    }, [webAuthnKey])
 
     ////// Setup functions
     //
@@ -128,47 +171,32 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
 
         console.log({ kernelClient })
 
-        setKernelClient(kernelClient)
-        setAddress(kernelClient.account!.address)
-        setIsKernelClientReady(true)
-
         return kernelClient
     }
 
     ////// Register functions
     //
-    const handleRegister = async (handle: string): Promise<AppSmartAccountClient> => {
+    const handleRegister = async (handle: string): Promise<void> => {
         setIsRegistering(true)
+        try {
+            const webAuthnKey = await toWebAuthnKey({
+                passkeyName: _getPasskeyName(handle),
+                passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
+                mode: WebAuthnMode.Register,
+                passkeyServerHeaders: {},
+                rpID: window.location.hostname.replace(/^www\./, ''),
+            })
 
-        console.log({
-            bundlerURL: consts.BUNDLER_URL,
-            paymasterURL: consts.PAYMASTER_URL,
-            passkeyServerURL: consts.PASSKEY_SERVER_URL,
-            infuraRpcUrl: infuraRpcUrls[consts.PEANUT_WALLET_CHAIN.id],
-        })
-
-        const webAuthnKey = await toWebAuthnKey({
-            passkeyName: _getPasskeyName(handle),
-            passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
-            mode: WebAuthnMode.Register,
-            passkeyServerHeaders: {},
-            rpID: window.location.hostname.replace(/^www\./, ''),
-        })
-
-        console.log({ peanutPublicClient })
-
-        const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
-            webAuthnKey,
-            entryPoint: consts.USER_OP_ENTRY_POINT,
-            kernelVersion: KERNEL_V3_1,
-            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
-        })
-
-        const client = await createKernelClient(passkeyValidator)
-
-        setIsRegistering(false)
-
-        return client
+            setWebAuthnKey(webAuthnKey)
+            saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
+        } catch (e) {
+            if ((e as Error).message.includes('pending')) {
+                return
+            }
+            console.error('Error registering passkey', e)
+            setIsRegistering(false)
+            throw e
+        }
     }
 
     ////// Login functions
@@ -180,6 +208,7 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
             if (user?.user?.username) {
                 passkeyServerHeaders['x-username'] = user.user.username
             }
+
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: '[]',
                 passkeyServerUrl: consts.PASSKEY_SERVER_URL as string,
@@ -188,20 +217,12 @@ export const ZeroDevProvider = ({ children }: { children: ReactNode }) => {
                 rpID: window.location.hostname.replace(/^www\./, ''),
             })
 
-            const passkeyValidator = await toPasskeyValidator(peanutPublicClient, {
-                webAuthnKey,
-                entryPoint: consts.USER_OP_ENTRY_POINT,
-                kernelVersion: KERNEL_V3_1,
-                validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
-            })
-
-            await createKernelClient(passkeyValidator)
+            setWebAuthnKey(webAuthnKey)
+            saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
         } catch (e) {
             console.error('Error logging in', e)
-            throw e
-        } finally {
-            await fetchUser()
             setIsLoggingIn(false)
+            throw e
         }
     }
 
