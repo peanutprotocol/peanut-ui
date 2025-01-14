@@ -30,30 +30,8 @@ export default function Home() {
     })
 
     const { addBYOW, username } = useAuth()
-    const {
-        selectedWallet,
-        wallets,
-        isPeanutWallet,
-        isConnected,
-        setSelectedWallet,
-        address,
-        walletColor,
-        chain,
-        isExternalWallet,
-        signInModal,
-    } = useWallet()
+    const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet } = useWallet()
 
-    console.log({
-        wallets,
-        selectedWallet,
-        address,
-        walletColor,
-        chain,
-        isConnected,
-        isPeanutWallet,
-        isExternalWallet,
-        signInModal,
-    })
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()

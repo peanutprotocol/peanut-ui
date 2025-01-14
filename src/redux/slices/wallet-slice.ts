@@ -1,5 +1,6 @@
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import { createSlice } from '@reduxjs/toolkit'
+import { WALLET_SLICE } from '../constants'
 import { WalletUIState } from '../types/wallet.types'
 
 const initialState: WalletUIState = {
@@ -11,7 +12,7 @@ const initialState: WalletUIState = {
 }
 
 const walletSlice = createSlice({
-    name: 'walletUI',
+    name: WALLET_SLICE,
     initialState,
     reducers: {
         setSelectedAddress: (state, action) => {

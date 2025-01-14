@@ -1,5 +1,11 @@
 'use client'
+
+import { peanutPublicClient } from '@/constants/viem.consts'
 import * as consts from '@/constants/zerodev.consts'
+import { useAuth } from '@/context/authContext'
+import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
+import { zerodevActions } from '@/redux/slices/zerodev-slice'
+import { getFromLocalStorage, saveToLocalStorage } from '@/utils'
 import {
     PasskeyValidatorContractVersion,
     toPasskeyValidator,
@@ -16,16 +22,12 @@ import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
 import { useCallback, useEffect, useState } from 'react'
 import { Abi, Address, encodeFunctionData, Hex, http, Transport } from 'viem'
 
-import { peanutPublicClient } from '@/constants/viem.consts'
-import { useAuth } from '@/context/authContext'
-import { getFromLocalStorage, saveToLocalStorage } from '@/utils'
-
-// Note: Use this type as SmartAccountClient if needed. Typescript will be angry if Client isn't typed very specifically
+// types
 type AppSmartAccountClient = KernelAccountClient<Transport, typeof consts.PEANUT_WALLET_CHAIN>
 type UserOpNotEncodedParams = {
-    to: Address // contractAddress to send userop to
+    to: Address
     value: number
-    abi: Abi // abi already parsed via the parseAbi() viem func
+    abi: Abi
     functionName: string
     args: any[]
 }
@@ -35,38 +37,58 @@ type UserOpEncodedParams = {
     data?: Hex | undefined
 }
 
-interface IZeroDevType {
-    isKernelClientReady: boolean
-    setIsKernelClientReady: (clientReady: boolean) => void
-    isRegistering: boolean
-    setIsRegistering: (registering: boolean) => void
-    isLoggingIn: boolean
-    setIsLoggingIn: (loggingIn: boolean) => void
-    isSendingUserOp: boolean
-    setIsSendingUserOp: (sendingUserOp: boolean) => void
-    handleRegister: (handle: string) => Promise<void>
-    handleLogin: () => Promise<void>
-    handleSendUserOpEncoded: (args: UserOpEncodedParams[]) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
-    handleSendUserOpNotEncoded: (args: UserOpNotEncodedParams) => Promise<string> // TODO: return type may be undefined here (if userop fails for whatever reason)
-    address: string | undefined
-}
-
 type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
 
 const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
-export const useZeroDev = (): IZeroDevType => {
+export const useZeroDev = () => {
+    const dispatch = useAppDispatch()
     const { fetchUser, user } = useAuth()
+    const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
+
+    // local states for non-UI state
+    const [kernelClient, setKernelClient] = useState<AppSmartAccountClient | undefined>(undefined)
+    const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
+
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
 
-    const [isRegistering, setIsRegistering] = useState<boolean>(false)
-    const [isLoggingIn, setIsLoggingIn] = useState<boolean>(false)
-    const [isSendingUserOp, setIsSendingUserOp] = useState<boolean>(false)
+    // setup function
+    const createKernelClient = async (passkeyValidator: any) => {
+        console.log({ passkeyValidator })
+        const kernelAccount = await createKernelAccount(peanutPublicClient, {
+            plugins: {
+                sudo: passkeyValidator,
+            },
+            entryPoint: consts.USER_OP_ENTRY_POINT,
+            kernelVersion: KERNEL_V3_1,
+        })
 
-    const [kernelClient, setKernelClient] = useState<AppSmartAccountClient | undefined>(undefined)
-    const [isKernelClientReady, setIsKernelClientReady] = useState<boolean>(false)
-    const [address, setAddress] = useState<string | undefined>(undefined)
-    const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
+        const kernelClient = createKernelAccountClient({
+            account: kernelAccount,
+            chain: consts.PEANUT_WALLET_CHAIN,
+            bundlerTransport: http(consts.BUNDLER_URL),
+            paymaster: {
+                getPaymasterData: async (userOperation) => {
+                    const zerodevPaymaster = createZeroDevPaymasterClient({
+                        chain: consts.PEANUT_WALLET_CHAIN,
+                        transport: http(consts.PAYMASTER_URL),
+                    })
+
+                    try {
+                        return await zerodevPaymaster.sponsorUserOperation({
+                            userOperation,
+                            shouldOverrideFee: true,
+                        })
+                    } catch (error) {
+                        console.error('Paymaster error:', error)
+                        throw error
+                    }
+                },
+            },
+        })
+
+        return kernelClient
+    }
 
     // lifecycle hooks
     useEffect(() => {
@@ -96,68 +118,21 @@ export const useZeroDev = (): IZeroDevType => {
                 if (isMounted) {
                     fetchUser()
                     setKernelClient(client)
-                    setAddress(client.account!.address)
-                    setIsKernelClientReady(true)
-                    setIsRegistering(false)
-                    setIsLoggingIn(false)
+                    dispatch(zerodevActions.setAddress(client.account!.address))
+                    dispatch(zerodevActions.setIsKernelClientReady(true))
+                    dispatch(zerodevActions.setIsRegistering(false))
+                    dispatch(zerodevActions.setIsLoggingIn(false))
                 }
             })
 
         return () => {
             isMounted = false
         }
-    }, [webAuthnKey])
-
-    // setup function
-    const createKernelClient = async (passkeyValidator: any) => {
-        console.log({ passkeyValidator })
-        const kernelAccount = await createKernelAccount(peanutPublicClient, {
-            plugins: {
-                sudo: passkeyValidator,
-            },
-            entryPoint: consts.USER_OP_ENTRY_POINT,
-            kernelVersion: KERNEL_V3_1,
-        })
-
-        console.log({ kernelAccount })
-
-        console.log('Creating kernel account client with consts')
-        console.dir(consts)
-        const kernelClient = createKernelAccountClient({
-            account: kernelAccount,
-            chain: consts.PEANUT_WALLET_CHAIN,
-            bundlerTransport: http(consts.BUNDLER_URL),
-            paymaster: {
-                getPaymasterData: async (userOperation) => {
-                    const zerodevPaymaster = createZeroDevPaymasterClient({
-                        chain: consts.PEANUT_WALLET_CHAIN,
-                        transport: http(consts.PAYMASTER_URL),
-                    })
-
-                    // Add logging to debug paymaster response
-                    try {
-                        const paymasterResult = await zerodevPaymaster.sponsorUserOperation({
-                            userOperation,
-                            shouldOverrideFee: true,
-                        })
-
-                        return paymasterResult
-                    } catch (error) {
-                        console.error('Paymaster error:', error)
-                        throw error
-                    }
-                },
-            },
-        })
-
-        console.log({ kernelClient })
-
-        return kernelClient
-    }
+    }, [webAuthnKey, dispatch, fetchUser])
 
     // register function
     const handleRegister = async (handle: string): Promise<void> => {
-        setIsRegistering(true)
+        dispatch(zerodevActions.setIsRegistering(true))
         try {
             const webAuthnKey = await toWebAuthnKey({
                 passkeyName: _getPasskeyName(handle),
@@ -174,14 +149,14 @@ export const useZeroDev = (): IZeroDevType => {
                 return
             }
             console.error('Error registering passkey', e)
-            setIsRegistering(false)
+            dispatch(zerodevActions.setIsRegistering(false))
             throw e
         }
     }
 
-    // login functions
+    // login function
     const handleLogin = async () => {
-        setIsLoggingIn(true)
+        dispatch(zerodevActions.setIsLoggingIn(true))
         try {
             const passkeyServerHeaders: Record<string, string> = {}
             if (user?.user?.username) {
@@ -200,96 +175,92 @@ export const useZeroDev = (): IZeroDevType => {
             saveToLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY, webAuthnKey)
         } catch (e) {
             console.error('Error logging in', e)
-            setIsLoggingIn(false)
+            dispatch(zerodevActions.setIsLoggingIn(false))
             throw e
         }
     }
 
     // UserOp functions
-
-    // TODO: better docstrings
-    // used when data is already encoded from Peanut
-    // but remains unsigned
     const handleSendUserOpEncoded = useCallback(
         async (calls: UserOpEncodedParams[]) => {
             if (!kernelClient) {
                 throw new Error('Trying to send user operation before client initialization')
             }
-            setIsSendingUserOp(true)
-            console.dir(calls)
-            const userOpHash = await kernelClient.sendUserOperation({
-                account: kernelClient.account,
-                callData: await kernelClient.account!.encodeCalls(calls),
-            })
+            dispatch(zerodevActions.setIsSendingUserOp(true))
 
-            const receipt = await kernelClient.waitForUserOperationReceipt({
-                hash: userOpHash,
-            })
+            try {
+                const userOpHash = await kernelClient.sendUserOperation({
+                    account: kernelClient.account,
+                    callData: await kernelClient.account!.encodeCalls(calls),
+                })
 
-            console.log({ receipt })
+                const receipt = await kernelClient.waitForUserOperationReceipt({
+                    hash: userOpHash,
+                })
 
-            // Update the message based on the count of UserOps
-            const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
-            console.log({ userOpMessage })
-            setIsSendingUserOp(false)
+                console.log('UserOp completed:', `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`)
+                dispatch(zerodevActions.setIsSendingUserOp(false))
 
-            return receipt.receipt.transactionHash
+                return receipt.receipt.transactionHash
+            } catch (error) {
+                console.error('Error sending encoded UserOp:', error)
+                dispatch(zerodevActions.setIsSendingUserOp(false))
+                throw error
+            }
         },
-        [kernelClient]
+        [kernelClient, dispatch]
     )
 
-    // used when data is NOT already encoded from Peanut
-    // but remains unsigned
-    const handleSendUserOpNotEncoded = async ({ to, value, abi, functionName, args }: UserOpNotEncodedParams) => {
-        setIsSendingUserOp(true)
+    const handleSendUserOpNotEncoded = useCallback(
+        async ({ to, value, abi, functionName, args }: UserOpNotEncodedParams) => {
+            if (!kernelClient?.account) {
+                throw new Error('Kernel client or account not initialized')
+            }
 
-        console.log('userop')
-        console.log({ kernelClient })
-        console.log({ account: kernelClient!.account })
-        console.log({
-            to,
-            value,
-            abi,
-            functionName,
-            args,
-        })
+            dispatch(zerodevActions.setIsSendingUserOp(true))
 
-        const userOpHash = await kernelClient!.sendUserOperation({
-            account: kernelClient!.account,
-            callData: await kernelClient!.account!.encodeCalls([
-                {
-                    to,
-                    value: BigInt(value),
-                    data: encodeFunctionData({
-                        abi,
-                        functionName,
-                        args,
-                    }),
-                },
-            ]),
-        })
+            try {
+                const userOpHash = await kernelClient.sendUserOperation({
+                    account: kernelClient.account,
+                    callData: await kernelClient.account.encodeCalls([
+                        {
+                            to,
+                            value: BigInt(value),
+                            data: encodeFunctionData({
+                                abi,
+                                functionName,
+                                args,
+                            }),
+                        },
+                    ]),
+                })
 
-        await kernelClient!.waitForUserOperationReceipt({
-            hash: userOpHash,
-        })
+                await kernelClient.waitForUserOperationReceipt({
+                    hash: userOpHash,
+                })
 
-        // Update the message based on the count of UserOps
-        const userOpMessage = `UserOp completed. <a href="https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700">Click here to view.</a>`
-        console.log({ userOpMessage })
-        setIsSendingUserOp(false)
+                console.log('UserOp completed:', `https://jiffyscan.xyz/userOpHash/${userOpHash}?network=sepolia`)
+                dispatch(zerodevActions.setIsSendingUserOp(false))
 
-        return userOpHash
-    }
+                return userOpHash
+            } catch (error) {
+                console.error('Error sending not encoded UserOp:', error)
+                dispatch(zerodevActions.setIsSendingUserOp(false))
+                throw error
+            }
+        },
+        [kernelClient, dispatch]
+    )
 
     return {
         isKernelClientReady,
-        setIsKernelClientReady,
+        setIsKernelClientReady: (value: boolean) => dispatch(zerodevActions.setIsKernelClientReady(value)),
         isRegistering,
-        setIsRegistering,
+        setIsRegistering: (value: boolean) => dispatch(zerodevActions.setIsRegistering(value)),
         isLoggingIn,
-        setIsLoggingIn,
+        setIsLoggingIn: (value: boolean) => dispatch(zerodevActions.setIsLoggingIn(value)),
         isSendingUserOp,
-        setIsSendingUserOp,
+        setIsSendingUserOp: (value: boolean) => dispatch(zerodevActions.setIsSendingUserOp(value)),
         handleRegister,
         handleLogin,
         handleSendUserOpEncoded,
