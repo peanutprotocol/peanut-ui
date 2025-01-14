@@ -39,6 +39,7 @@ type UserOpEncodedParams = {
 
 type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
 
+const LOCAL_STORAGE_KERNEL_ADDRESS = 'kernel-address'
 const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
@@ -53,42 +54,53 @@ export const useZeroDev = () => {
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
 
     // setup function
-    const createKernelClient = async (passkeyValidator: any) => {
-        console.log({ passkeyValidator })
-        const kernelAccount = await createKernelAccount(peanutPublicClient, {
-            plugins: {
-                sudo: passkeyValidator,
-            },
-            entryPoint: consts.USER_OP_ENTRY_POINT,
-            kernelVersion: KERNEL_V3_1,
-        })
+    const createKernelClient = useCallback(
+        async (passkeyValidator: any) => {
+            // check if kernel client with the same address already exists
+            const storedAddress = getFromLocalStorage(LOCAL_STORAGE_KERNEL_ADDRESS)
+            if (kernelClient && storedAddress === kernelClient.account?.address) {
+                return kernelClient
+            }
 
-        const kernelClient = createKernelAccountClient({
-            account: kernelAccount,
-            chain: consts.PEANUT_WALLET_CHAIN,
-            bundlerTransport: http(consts.BUNDLER_URL),
-            paymaster: {
-                getPaymasterData: async (userOperation) => {
-                    const zerodevPaymaster = createZeroDevPaymasterClient({
-                        chain: consts.PEANUT_WALLET_CHAIN,
-                        transport: http(consts.PAYMASTER_URL),
-                    })
-
-                    try {
-                        return await zerodevPaymaster.sponsorUserOperation({
-                            userOperation,
-                            shouldOverrideFee: true,
-                        })
-                    } catch (error) {
-                        console.error('Paymaster error:', error)
-                        throw error
-                    }
+            console.log('Creating new kernel client...')
+            const kernelAccount = await createKernelAccount(peanutPublicClient, {
+                plugins: {
+                    sudo: passkeyValidator,
                 },
-            },
-        })
+                entryPoint: consts.USER_OP_ENTRY_POINT,
+                kernelVersion: KERNEL_V3_1,
+            })
 
-        return kernelClient
-    }
+            const newKernelClient = createKernelAccountClient({
+                account: kernelAccount,
+                chain: consts.PEANUT_WALLET_CHAIN,
+                bundlerTransport: http(consts.BUNDLER_URL),
+                paymaster: {
+                    getPaymasterData: async (userOperation) => {
+                        const zerodevPaymaster = createZeroDevPaymasterClient({
+                            chain: consts.PEANUT_WALLET_CHAIN,
+                            transport: http(consts.PAYMASTER_URL),
+                        })
+
+                        try {
+                            return await zerodevPaymaster.sponsorUserOperation({
+                                userOperation,
+                                shouldOverrideFee: true,
+                            })
+                        } catch (error) {
+                            console.error('Paymaster error:', error)
+                            throw error
+                        }
+                    },
+                },
+            })
+
+            // store address for future reference
+            saveToLocalStorage(LOCAL_STORAGE_KERNEL_ADDRESS, newKernelClient.account?.address)
+            return newKernelClient
+        },
+        [kernelClient]
+    )
 
     // lifecycle hooks
     useEffect(() => {
@@ -107,14 +119,25 @@ export const useZeroDev = () => {
             }
         }
 
-        toPasskeyValidator(peanutPublicClient, {
-            webAuthnKey,
-            entryPoint: consts.USER_OP_ENTRY_POINT,
-            kernelVersion: KERNEL_V3_1,
-            validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
-        })
-            .then(createKernelClient)
-            .then((client) => {
+        // check if valid kernel client already exists
+        if (kernelClient && kernelClient.account?.address) {
+            dispatch(zerodevActions.setIsKernelClientReady(true))
+            dispatch(zerodevActions.setIsRegistering(false))
+            dispatch(zerodevActions.setIsLoggingIn(false))
+            return
+        }
+
+        const initializeClient = async () => {
+            try {
+                const validator = await toPasskeyValidator(peanutPublicClient, {
+                    webAuthnKey,
+                    entryPoint: consts.USER_OP_ENTRY_POINT,
+                    kernelVersion: KERNEL_V3_1,
+                    validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
+                })
+
+                const client = await createKernelClient(validator)
+
                 if (isMounted) {
                     fetchUser()
                     setKernelClient(client)
@@ -123,12 +146,18 @@ export const useZeroDev = () => {
                     dispatch(zerodevActions.setIsRegistering(false))
                     dispatch(zerodevActions.setIsLoggingIn(false))
                 }
-            })
+            } catch (error) {
+                console.error('Error initializing kernel client:', error)
+                dispatch(zerodevActions.setIsKernelClientReady(false))
+            }
+        }
+
+        initializeClient()
 
         return () => {
             isMounted = false
         }
-    }, [webAuthnKey, dispatch, fetchUser])
+    }, [webAuthnKey, dispatch, fetchUser, createKernelClient, kernelClient])
 
     // register function
     const handleRegister = async (handle: string): Promise<void> => {
