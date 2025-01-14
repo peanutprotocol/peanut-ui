@@ -8,9 +8,7 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
-import { identicon } from '@dicebear/collection'
-import { createAvatar } from '@dicebear/core'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
@@ -31,21 +29,11 @@ const createDefaultDBWallet = (address: string): interfaces.IDBWallet => ({
 
 export const useWallet = () => {
     const dispatch = useAppDispatch()
-    const queryClient = useQueryClient()
     const toast = useToast()
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
     const { isConnected: isWagmiConnected, addresses: wagmiAddresses, connector } = useAccount()
     const { addAccount, user } = useAuth()
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
-
-    const getWalletIcon = useCallback(
-        (address: string) => {
-            if (connector?.icon) return connector.icon
-
-            return createAvatar(identicon, { seed: address.toLowerCase(), size: 128 }).toDataUri()
-        },
-        [connector]
-    )
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
@@ -72,7 +60,7 @@ export const useWallet = () => {
                               walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
                               protocolType: interfaces.WalletProtocolType.EVM,
                               address: account.account_identifier,
-                              walletIcon: getWalletIcon(account.account_identifier),
+                              connector: account.connector,
                           }
 
                           let balance = BigInt(0)
@@ -148,6 +136,13 @@ export const useWallet = () => {
                     accountIdentifier: address,
                     accountType: interfaces.WalletProviderType.BYOW,
                     userId: user.user.userId,
+                    connector:
+                      connector && connector.icon
+                          ? {
+                                iconUrl: connector.icon,
+                                name: connector.name,
+                            }
+                          : undefined,
                 }).catch((error) => {
                     const errorMsg = error.message.includes('Account already exists')
                         ? 'Could not add external wallet, already associated with another account'

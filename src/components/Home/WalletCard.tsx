@@ -9,6 +9,8 @@ import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
+import { identicon } from '@dicebear/collection'
+import { createAvatar } from '@dicebear/core'
 
 const colorArray = ['bg-blue-1', 'bg-yellow-1', 'bg-pink-1']
 
@@ -67,7 +69,13 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         if (wallet.walletProviderType === WalletProviderType.PEANUT) {
             return PeanutWalletIcon
         }
-        return wallet.walletIcon || PeanutWalletIcon
+        return (
+            wallet.connector?.iconUrl ||
+            createAvatar(identicon, {
+                seed: wallet.address,
+                size: 128,
+            }).toDataUri()
+        )
     }, [wallet])
 
     return (
