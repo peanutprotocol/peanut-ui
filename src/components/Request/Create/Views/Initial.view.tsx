@@ -167,7 +167,7 @@ export const InitialView = ({
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title>Request a payment</Card.Title>
+                <Card.Title className="mx-auto">Request a payment</Card.Title>
                 <Card.Description className="text-center">
                     Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if you
                     want to.
@@ -231,9 +231,6 @@ export const InitialView = ({
                         ) : (
                             'Confirm'
                         )}
-                    </Button>
-                    <Button className="btn btn-xl min-w-full" onClick={onPrev} disabled={isLoading}>
-                        Go Back
                     </Button>
                 </div>
                 {errorState.showError && (

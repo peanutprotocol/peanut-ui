@@ -78,7 +78,7 @@ export const CreateLinkSuccessView = ({ link, txHash, createType, recipient, tok
     return (
         <Card className="shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title>Yay!</Card.Title>
+                <Card.Title className="text-center">Yay!</Card.Title>
             </Card.Header>
             <Card.Content className="flex flex-col gap-4 text-center">
                 {link && <QRCodeWrapper url={link} />}

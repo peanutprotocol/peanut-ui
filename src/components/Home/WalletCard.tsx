@@ -60,6 +60,8 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         onToggleBalanceVisibility,
     } = props as WalletCardWallet
 
+    console.log({ wallet })
+
     // get color based on the wallet index, cycle through colors
     const backgroundColor = useMemo(() => colorArray[index % colorArray.length], [index])
 
