@@ -15,6 +15,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import '../../styles/globals.bruddle.css'
+import { ThemeProvider } from '@/config'
 
 const publicPathRegex = /^\/(request\/pay|claim)/
 
@@ -45,7 +46,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
                     'p-6': !isHome,
                 })}
             >
-                {showFullPeanutWallet ? children : <HomeWaitlist />}
+                <ThemeProvider>{showFullPeanutWallet ? children : <HomeWaitlist />}</ThemeProvider>
             </div>
             {showFullPeanutWallet && <WalletNavigation />}
             <Modal
