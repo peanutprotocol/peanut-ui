@@ -9,7 +9,7 @@ import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
 import { useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
 import { useZeroDev } from './useZeroDev'
@@ -34,6 +34,9 @@ export const useWallet = () => {
     const { isConnected: isWagmiConnected, addresses: wagmiAddresses, connector } = useAccount()
     const { addAccount, user } = useAuth()
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
+
+    // use a ref to persist processed addresses across renders
+    const processedAddressesRef = useRef(new Set<string>())
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
@@ -60,7 +63,10 @@ export const useWallet = () => {
                               walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
                               protocolType: interfaces.WalletProtocolType.EVM,
                               address: account.account_identifier,
-                              connector: account.connector,
+                              connector: {
+                                  iconUrl: connector?.icon || account.connector?.iconUrl!,
+                                  name: connector?.name || account.connector?.name!,
+                              },
                           }
 
                           let balance = BigInt(0)
@@ -93,11 +99,14 @@ export const useWallet = () => {
                                 connected: isWalletConnected(createDefaultDBWallet(address)),
                                 balances,
                                 balance: parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS),
+                                connector: {
+                                    iconUrl: connector?.icon,
+                                    name: connector?.name,
+                                },
                             }
                         })
                     )
                   : []
-
             dispatch(walletActions.setWallets(processedWallets))
             return processedWallets
         },
@@ -127,31 +136,45 @@ export const useWallet = () => {
     useEffect(() => {
         if (!user || !wagmiAddresses || !wallets.length) return
 
-        const newAddresses = wagmiAddresses.filter(
-            (addr) => !wallets.some((wallet) => areEvmAddressesEqual(addr, wallet.address))
-        )
+        // create a Set of existing wallet addresses for faster lookup
+        const existingAddresses = new Set(wallets.map((wallet) => wallet.address.toLowerCase()))
+
+        // filter and process new addresses only once
+        const newAddresses = wagmiAddresses.filter((addr) => {
+            const lowerAddr = addr.toLowerCase()
+            if (!existingAddresses.has(lowerAddr) && !processedAddressesRef.current.has(lowerAddr)) {
+                processedAddressesRef.current.add(lowerAddr)
+                return true
+            }
+            return false
+        })
+
         if (newAddresses.length) {
-            newAddresses.forEach((address) => {
-                addAccount({
-                    accountIdentifier: address,
-                    accountType: interfaces.WalletProviderType.BYOW,
-                    userId: user.user.userId,
-                    connector:
-                        connector && connector.icon
-                            ? {
-                                  iconUrl: connector.icon,
-                                  name: connector.name,
-                              }
-                            : undefined,
-                }).catch((error) => {
-                    const errorMsg = error.message.includes('Account already exists')
-                        ? 'Could not add external wallet, already associated with another account'
-                        : 'Unexpected error adding external wallet'
-                    toast.error(errorMsg)
-                })
+            const connectorInfo =
+                connector && connector.icon
+                    ? {
+                          iconUrl: connector.icon,
+                          name: connector.name,
+                      }
+                    : undefined
+
+            Promise.all(
+                newAddresses.map((address) =>
+                    addAccount({
+                        accountIdentifier: address,
+                        accountType: interfaces.WalletProviderType.BYOW,
+                        userId: user.user.userId,
+                        connector: connectorInfo,
+                    })
+                )
+            ).catch((error) => {
+                const errorMsg = error.message.includes('Account already exists')
+                    ? 'Could not add external wallet, already associated with another account'
+                    : 'Unexpected error adding external wallet'
+                toast.error(errorMsg)
             })
         }
-    }, [wagmiAddresses, wallets, user, addAccount, toast])
+    }, [wagmiAddresses, user, wallets, connector])
 
     const refetchBalances = useCallback(
         async (address: string) => {

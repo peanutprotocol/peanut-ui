@@ -9,6 +9,11 @@ const store = configureStore({
         wallet: walletReducer,
         zeroDev: zeroDevReducer,
     },
+    // disable redux serialization checks
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: false,
+        }),
 })
 
 export default store
