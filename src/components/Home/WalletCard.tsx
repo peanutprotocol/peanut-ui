@@ -4,6 +4,8 @@ import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
+import { identicon } from '@dicebear/collection'
+import { createAvatar } from '@dicebear/core'
 import classNames from 'classnames'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
@@ -60,8 +62,6 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         onToggleBalanceVisibility,
     } = props as WalletCardWallet
 
-    console.log({ wallet })
-
     // get color based on the wallet index, cycle through colors
     const backgroundColor = useMemo(() => colorArray[index % colorArray.length], [index])
 
@@ -69,7 +69,13 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         if (wallet.walletProviderType === WalletProviderType.PEANUT) {
             return PeanutWalletIcon
         }
-        return wallet.walletIcon || PeanutWalletIcon
+        return (
+            wallet.connector?.iconUrl ||
+            createAvatar(identicon, {
+                seed: wallet.address,
+                size: 128,
+            }).toDataUri()
+        )
     }, [wallet])
 
     return (

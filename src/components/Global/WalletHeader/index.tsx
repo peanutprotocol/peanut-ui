@@ -30,7 +30,6 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
     const { wallets, selectedWallet, setSelectedWallet, isConnected } = useWallet()
     const { open: openWeb3Modal } = useAppKit()
-    const { connector } = useAccount()
 
     // sort wallets to add active wallet at the top
     const sortedWallets = useMemo(() => {
@@ -61,14 +60,20 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
             >
                 {/* wallet icon container */}
                 <div className="flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-2">
-                    <Image src={PeanutWalletIcon} alt="" width={24} height={24} className="size-6 object-contain" />
+                    <Image
+                        src={selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
+                        alt=""
+                        width={24}
+                        height={24}
+                        className="size-6 object-contain"
+                    />
                 </div>
 
                 {isConnected ? (
                     <span>
                         {selectedWallet?.walletProviderType === WalletProviderType.PEANUT
                             ? 'Peanut'
-                            : connector?.name || shortenAddressLong(selectedWallet?.address)}
+                            : selectedWallet?.connector?.name || shortenAddressLong(selectedWallet?.address)}
                     </span>
                 ) : (
                     'Connect Wallet'
@@ -120,8 +125,8 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
 
     // get wallet icon to display
     const walletImage = useMemo(() => {
-        return isPeanutWallet ? PeanutWalletIcon : connector?.icon || PeanutWalletIcon
-    }, [isPeanutWallet, connector])
+        return isPeanutWallet ? PeanutWalletIcon : wallet?.connector?.iconUrl || PeanutWalletIcon
+    }, [isPeanutWallet, connector, wallet])
 
     return (
         <Card onClick={onClick}>

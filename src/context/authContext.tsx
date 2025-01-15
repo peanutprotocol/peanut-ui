@@ -21,10 +21,15 @@ interface AuthContextType {
         accountIdentifier,
         accountType,
         userId,
+        connector,
     }: {
         accountIdentifier: string
         accountType: string
         userId: string
+        connector?: {
+            iconUrl: string
+            name: string
+        }
     }) => Promise<void>
     isFetchingUser: boolean
     logoutUser: () => Promise<void>
@@ -213,11 +218,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         accountType,
         userId,
         bridgeAccountId,
+        connector,
     }: {
         accountIdentifier: string
         accountType: string
         userId: string
         bridgeAccountId?: string
+        connector?: {
+            iconUrl: string
+            name: string
+        }
     }) => {
         const response = await fetch('/api/peanut/user/add-account', {
             method: 'POST',
@@ -229,6 +239,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 accountIdentifier,
                 bridgeAccountId,
                 accountType,
+                connector,
             }),
         })
 
