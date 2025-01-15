@@ -32,7 +32,6 @@ import {
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
-import { useAppKit } from '@reown/appkit/react'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Claim.consts'
@@ -83,8 +82,7 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const { open } = useAppKit()
-    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet } = useWallet()
+    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet, selectedWallet } = useWallet()
     const { user } = useAuth()
 
     const resetSelectedToken = useCallback(() => {
@@ -401,11 +399,38 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     useEffect(() => {
-        if (isPeanutWallet && address) {
-            setRecipient({ name: undefined, address: address })
-            setIsValidRecipient(true)
+        if (!isConnected) {
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+            return
         }
-    }, [isPeanutWallet, address])
+
+        // reset recipient when wallet type changes or when selected wallet changes
+        if (selectedWallet) {
+            // reset recipient
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+
+            // set it to the current address after a short delay
+            // to ensure the ui updates properly
+            setTimeout(() => {
+                if (address) {
+                    setRecipient({ name: undefined, address: address })
+                    setIsValidRecipient(true)
+                }
+            }, 100)
+        }
+    }, [selectedWallet, isConnected, address])
+
+    useEffect(() => {
+        if (recipient.address) return
+        if (isConnected && address) {
+            setRecipient({ name: undefined, address })
+        } else {
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+        }
+    }, [address])
 
     return (
         <div>
@@ -455,7 +480,7 @@ export const InitialClaimLinkView = ({
                     </Card.Description>
                 </Card.Header>
                 <Card.Content className="flex flex-col gap-2">
-                    {isExternalWallet && recipientType !== 'iban' && recipientType !== 'us' && (
+                    {(!isConnected || isExternalWallet) && recipientType !== 'iban' && recipientType !== 'us' && (
                         <TokenSelector
                             shouldBeConnected={false}
                             showOnlySquidSupported
@@ -464,7 +489,7 @@ export const InitialClaimLinkView = ({
                             }}
                         />
                     )}
-                    {isExternalWallet && (
+                    {(!isConnected || isExternalWallet) && (
                         <GeneralRecipientInput
                             className="pl-8"
                             placeholder="wallet address / ENS / IBAN / US account number"
