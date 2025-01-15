@@ -14,3 +14,6 @@ global.console = {
     // warn: jest.fn(),
     // error: jest.fn(),
 }
+
+// mock console.warn
+global.console.warn = jest.fn()

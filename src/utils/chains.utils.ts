@@ -1,5 +1,5 @@
 import { chains } from '@/constants/chains.consts'
-import { ethers } from 'ethers'
+import peanut from '@squirrel-labs/peanut-sdk'
 
 /**
  * Generates an Infura API URL for supported networks
@@ -11,20 +11,26 @@ export const getInfuraApiUrl = (network: string): string => {
 }
 
 /**
- * Retrieves the JSON-RPC provider for a given blockchain network.
- *
- * @param chainId - The unique identifier of the blockchain network as a string.
- * @returns An instance of `ethers.providers.JsonRpcProvider` configured with the network's RPC URL and chain ID.
- * @throws Will throw an error if the chain with the specified `chainId` is not found.
- *
- * @remarks
- * This function uses the `ethers` library to create a JSON-RPC provider, which is required by the Peanut SDK.
+ * Retrieves the JSON-RPC provider for a given blockchain network with fallback to public RPC.
  */
-export const getChainProvider = (chainId: string) => {
+export const getChainProvider = async (chainId: string) => {
     const chain = chains.find((chain) => chain.id.toString() === chainId)
-
     if (!chain) throw new Error(`Chain ${chainId} not found`)
 
-    // using ethers cuz peanut sdk accepts provider type to be from ethers atm 🫠
-    return new ethers.providers.JsonRpcProvider(chain.rpcUrls.default.http[0], Number(chainId))
+    // Try default (Infura) provider first
+    try {
+        const defaultProvider = await peanut.getDefaultProvider(chainId)
+        await defaultProvider.getNetwork() // Test the connection
+        return defaultProvider
+    } catch (error) {
+        console.warn(`Default RPC failed for chain ${chainId}, falling back to public RPC`)
+
+        // Fallback to public RPC
+        const publicRpcUrl = chain.rpcUrls.public.http[0]
+        if (!publicRpcUrl) {
+            throw new Error(`No public RPC URL found for chain ${chainId}`)
+        }
+
+        return peanut.getDefaultProvider(publicRpcUrl)
+    }
 }
