@@ -1,7 +1,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
 

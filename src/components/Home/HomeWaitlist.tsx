@@ -1,14 +1,12 @@
 import { useAuth } from '@/context/authContext'
-import { Button, Card } from '../0_Bruddle'
 import { useRouter } from 'next/navigation'
 import { useEffect } from 'react'
+import { Card } from '../0_Bruddle'
 
-import Divider from '../0_Bruddle/Divider'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import happyPeanut from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_03.gif'
 import chillPeanutAnim from '@/animations/GIF_ALPHA_BACKGORUND/512X512_ALPHA_GIF_konradurban_01.gif'
-import Title from '../0_Bruddle/Title'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import RollingNumber from '../0_Bruddle/RollingNumber'
+import Title from '../0_Bruddle/Title'
 
 const HomeWaitlist = () => {
     const { push } = useRouter()

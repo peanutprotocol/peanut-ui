@@ -1,9 +1,9 @@
-import { useWallet } from '@/context/walletContext'
-import useAvatar from '@/hooks/useAvatar'
-import { Button } from '../0_Bruddle'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
-import { useAuth } from '@/context/authContext'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import { useAuth } from '@/context/authContext'
+import useAvatar from '@/hooks/useAvatar'
+import { useWallet } from '@/hooks/useWallet'
+import { useZeroDev } from '@/hooks/useZeroDev'
+import { Button } from '../0_Bruddle'
 
 const HomeHeader = () => {
     const { username } = useAuth()

@@ -1,15 +1,14 @@
 'use client'
 
-import * as _consts from '../Claim.consts'
+import { Button, Card } from '@/components/0_Bruddle'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import * as context from '@/context'
+import { useWallet } from '@/hooks/useWallet'
+import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { useContext, useState } from 'react'
+import * as _consts from '../Claim.consts'
 import useClaimLink from '../useClaimLink'
-import * as interfaces from '@/interfaces'
-import Link from 'next/link'
-import { Button, Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
-import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 
 interface ISenderClaimLinkViewProps {
     changeToRecipientView: () => void

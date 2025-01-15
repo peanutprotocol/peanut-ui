@@ -1,14 +1,14 @@
 'useClient'
 
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
 import { useContext } from 'react'
 import { useSwitchChain } from 'wagmi'
-import { claimLinkGasless, claimLinkXChainGasless, interfaces } from '@squirrel-labs/peanut-sdk'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
 
-import * as context from '@/context'
 import * as consts from '@/constants'
+import * as context from '@/context'
+import { useWallet } from '@/hooks/useWallet'
 import * as utils from '@/utils'
-import { useWallet } from '@/context/walletContext'
 
 export const useClaimLink = () => {
     const { chain: currentChain } = useWallet()

@@ -1,15 +1,15 @@
 'use client'
 
+import smallPeanut from '@/assets/icons/small-peanut.png'
 import { ArrowIcon, Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
-import { useWallet } from '@/context/walletContext'
-import smallPeanut from '@/assets/icons/small-peanut.png'
-import Link from 'next/link'
-import { motion } from 'framer-motion'
 import { HomeLink } from '@/components/Home/HomeLink'
 import { useAuth } from '@/context/authContext'
+import { useWallet } from '@/hooks/useWallet'
 import { WalletProviderType } from '@/interfaces'
 import { printableUsdc } from '@/utils'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
 
 const WalletDetailsPage = () => {
     const { selectedWallet } = useWallet()

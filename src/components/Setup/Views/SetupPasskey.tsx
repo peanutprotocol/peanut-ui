@@ -1,10 +1,10 @@
 import { Button } from '@/components/0_Bruddle'
 import { useAuth } from '@/context/authContext'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { WalletProviderType } from '@/interfaces'
 import { useSetupStore } from '@/redux/hooks'
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
 
 const SetupPasskey = () => {
     const { handle } = useSetupStore()

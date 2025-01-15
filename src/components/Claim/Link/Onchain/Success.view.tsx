@@ -1,13 +1,13 @@
+import { Button, Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
-import * as _consts from '../../Claim.consts'
-import * as utils from '@/utils'
+import { fetchDestinationChain } from '@/components/utils/utils'
 import * as context from '@/context'
+import { useWallet } from '@/hooks/useWallet'
+import * as utils from '@/utils'
 import Link from 'next/link'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import { useConnections, useSwitchChain } from 'wagmi'
-import { fetchDestinationChain } from '@/components/utils/utils'
-import { Button, Card } from '@/components/0_Bruddle'
-import { useWallet } from '@/context/walletContext'
+import * as _consts from '../../Claim.consts'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()

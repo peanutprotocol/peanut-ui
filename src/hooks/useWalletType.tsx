@@ -1,6 +1,6 @@
-import { useWallet } from '@/context/walletContext'
 import SafeAppsSDK from '@safe-global/safe-apps-sdk'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { useWallet } from './useWallet'
 
 type Opts = {
     allowedDomains?: RegExp[]

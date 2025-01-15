@@ -4,13 +4,13 @@ import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
+import { identicon } from '@dicebear/collection'
+import { createAvatar } from '@dicebear/core'
 import classNames from 'classnames'
 import { motion } from 'framer-motion'
 import Image from 'next/image'
 import { useMemo } from 'react'
 import CopyToClipboard from '../Global/CopyToClipboard'
-import { identicon } from '@dicebear/collection'
-import { createAvatar } from '@dicebear/core'
 
 const colorArray = ['bg-blue-1', 'bg-yellow-1', 'bg-pink-1']
 
