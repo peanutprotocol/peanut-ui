@@ -3,12 +3,19 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
 import { useZeroDev } from '@/hooks/useZeroDev'
 import { useRouter } from 'next/navigation'
+import { useEffect } from 'react'
 
 const WelcomeStep = () => {
     const { handleNext } = useSetupFlow()
-    const { handleLogin, isLoggingIn } = useZeroDev()
+    const { handleLogin, isLoggingIn, isKernelClientReady } = useZeroDev()
     const { push } = useRouter()
     const toast = useToast()
+
+    useEffect(() => {
+        if (isKernelClientReady) {
+            push('/home')
+        }
+    }, [isKernelClientReady])
 
     return (
         <Card className="border-0">
@@ -20,9 +27,7 @@ const WelcomeStep = () => {
                     loading={isLoggingIn}
                     variant="transparent-dark"
                     onClick={() => {
-                        handleLogin()
-                            .then(() => push('/home'))
-                            .catch((_e) => toast.error('Error logging in'))
+                        handleLogin().catch((_e) => toast.error('Error logging in'))
                     }}
                 >
                     Login
