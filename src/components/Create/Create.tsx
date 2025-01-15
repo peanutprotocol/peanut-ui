@@ -4,7 +4,7 @@ import { interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
 import { createElement, Suspense, useContext, useEffect, useState } from 'react'
 
 import * as context from '@/context'
-import { useWallet } from '@/context/walletContext'
+import { useWallet } from '@/hooks/useWallet'
 import * as utils from '@/utils'
 import PageContainer from '../0_Bruddle/PageContainer'
 import * as _consts from './Create.consts'

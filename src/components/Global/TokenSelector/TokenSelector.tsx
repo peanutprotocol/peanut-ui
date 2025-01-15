@@ -11,7 +11,7 @@ import Search from '../Search'
 import { AdvancedTokenSelectorButton } from './Components'
 
 import { CrispButton } from '@/components/CrispChat'
-import { useWallet } from '@/context/walletContext'
+import { useWallet } from '@/hooks/useWallet'
 import { useWalletType } from '@/hooks/useWalletType'
 import { useAppKit } from '@reown/appkit/react'
 import { interfaces } from '@squirrel-labs/peanut-sdk'

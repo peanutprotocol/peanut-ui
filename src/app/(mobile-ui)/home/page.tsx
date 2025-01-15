@@ -6,8 +6,8 @@ import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/context/walletContext'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useWallet } from '@/hooks/useWallet'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
@@ -30,6 +30,7 @@ export default function Home() {
 
     const { addBYOW, username } = useAuth()
     const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet } = useWallet()
+
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()

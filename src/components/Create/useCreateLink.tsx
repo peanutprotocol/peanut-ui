@@ -1,26 +1,25 @@
 'use client'
-import { useCallback, useContext } from 'react'
-import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
-import { useSendTransaction, useSignTypedData, useSwitchChain, useConfig } from 'wagmi'
-import { waitForTransactionReceipt } from 'wagmi/actions'
-import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
-import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { PEANUT_API_URL, next_proxy_url } from '@/constants'
-import { fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage, balanceByToken } from '@/utils'
-import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
-import { BigNumber, ethers } from 'ethers'
-import { formatEther, parseUnits, parseEther } from 'viem'
+import { loadingStateContext, tokenSelectorContext } from '@/context'
 import { useWalletType } from '@/hooks/useWalletType'
-import { useAccount } from 'wagmi'
+import { balanceByToken, fetchTokenPrice, isNativeCurrency, saveCreatedLinkToLocalStorage } from '@/utils'
+import { switchNetwork as switchNetworkUtil } from '@/utils/general.utils'
+import peanut, { getRandomString, interfaces as peanutInterfaces } from '@squirrel-labs/peanut-sdk'
+import { BigNumber, ethers } from 'ethers'
+import { useCallback, useContext } from 'react'
+import { formatEther, parseEther, parseUnits } from 'viem'
+import { useAccount, useConfig, useSendTransaction, useSignTypedData, useSwitchChain } from 'wagmi'
+import { waitForTransactionReceipt } from 'wagmi/actions'
+import { getTokenDetails, isGaslessDepositPossible } from './Create.utils'
 
 interface ICheckUserHasEnoughBalanceProps {
     tokenValue: string | undefined
 }
 
-import { Address, Hex } from 'viem'
+import { Hex } from 'viem'
 
-import { useWallet } from '@/context/walletContext'
-import { useZeroDev } from '@/context/walletContext/zeroDevContext.context'
+import { useWallet } from '@/hooks/useWallet'
+import { useZeroDev } from '@/hooks/useZeroDev'
 import { WalletProviderType } from '@/interfaces'
 
 export const useCreateLink = () => {
