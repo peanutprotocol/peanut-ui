@@ -4,6 +4,7 @@ import * as assets from '@/assets'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useCreateLink } from '@/components/Create/useCreateLink'
+import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -256,198 +257,207 @@ export const InitialCashoutView = ({
     }
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Cash Out</Card.Title>
-                <Card.Description>
-                    Cash out your crypto to your bank account. Works best with popular stablecoins and other commonly
-                    traded tokens.
-                </Card.Description>
-                <FAQComponent />
-            </Card.Header>
-            <Card.Content className="col gap-2">
-                <TokenAmountInput
-                    className="w-full max-w-[100%]"
-                    tokenValue={_tokenValue}
-                    setTokenValue={_setTokenValue}
-                    maxValue={maxValue}
-                    onSubmit={() => {
-                        if (!isConnected) signInModal.open()
-                        else handleOnNext()
-                    }}
-                />
-                {isBelowMinLimit && (
-                    <div className="w-full text-left text-red">
-                        <Icon name="warning" className="-mt-0.5 mr-1" />
-                        Minimum amount is ${MIN_CASHOUT_LIMIT}
+        <div>
+            <FlowHeader />
+            <Card className="shadow-none sm:shadow-primary-4">
+                <Card.Header>
+                    <Card.Title>Cash Out</Card.Title>
+                    <Card.Description className="text-center">
+                        Cash out your crypto to your bank account. Works best with popular stablecoins and other
+                        commonly traded tokens.
+                    </Card.Description>
+                    <div className="mx-auto">
+                        <FAQComponent />
                     </div>
-                )}
-                {isExternalWallet && (
-                    <>
-                        <TokenSelector classNameButton="max-w-[100%]" />
-                        {selectedWallet!.balances!.length === 0 && (
-                            <div
-                                onClick={() => {
-                                    web3modalOpen()
-                                }}
-                                className="cursor-pointer text-h9 underline"
-                            >
-                                ( Buy Tokens )
-                            </div>
-                        )}
-                    </>
-                )}
-                <div className="flex w-full flex-col justify-center gap-3">
-                    <RecipientInfoComponent />
-                    <div className="space-y-4">
-                        {!user && isFetchingUser ? (
-                            <div className="relative flex h-16 w-full items-center justify-center">
-                                <div className="animate-spin">
-                                    <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
-                                    <span className="sr-only">Loading...</span>
+                </Card.Header>
+                <Card.Content className="col gap-2">
+                    <TokenAmountInput
+                        className="w-full max-w-[100%]"
+                        tokenValue={_tokenValue}
+                        setTokenValue={_setTokenValue}
+                        maxValue={maxValue}
+                        onSubmit={() => {
+                            if (!isConnected) signInModal.open()
+                            else handleOnNext()
+                        }}
+                    />
+                    {isBelowMinLimit && (
+                        <div className="w-full text-left text-red">
+                            <Icon name="warning" className="-mt-0.5 mr-1" />
+                            Minimum amount is ${MIN_CASHOUT_LIMIT}
+                        </div>
+                    )}
+                    {isExternalWallet && (
+                        <>
+                            <TokenSelector classNameButton="max-w-[100%]" />
+                            {selectedWallet!.balances!.length === 0 && (
+                                <div
+                                    onClick={() => {
+                                        web3modalOpen()
+                                    }}
+                                    className="cursor-pointer text-h9 underline"
+                                >
+                                    ( Buy Tokens )
                                 </div>
-                            </div>
-                        ) : user ? (
-                            <>
-                                {user.accounts.length > 0 && (
-                                    <div className="flex w-full flex-col items-start justify-center gap-2">
-                                        <label className="text-left text-h8 font-light">
-                                            Your linked bank accounts:
-                                        </label>
-                                        {user.accounts
-                                            .filter(
-                                                (account) =>
-                                                    account.account_type === 'iban' || account.account_type === 'us'
-                                            )
-                                            ?.map((account, index) => (
-                                                <div
-                                                    key={index}
-                                                    className={twMerge(
-                                                        'flex w-full items-center  justify-between text-nowrap border border-black p-2',
-                                                        matchAccount(account, bankAccountNumber)
-                                                            ? 'bg-purple-1'
-                                                            : 'hover:bg-gray-100',
-                                                        xchainAllowed && 'cursor-pointer',
-                                                        !xchainAllowed && 'opacity-60'
-                                                    )}
-                                                    onClick={() => handleBankAccountSelect(account.account_identifier)}
-                                                >
-                                                    <div className="flex flex-grow items-center overflow-hidden">
-                                                        <Icon
-                                                            name={'bank'}
-                                                            className="mr-2 h-4 flex-shrink-0 fill-gray-1"
-                                                        />
-                                                        <label
-                                                            htmlFor={`bank-${index}`}
-                                                            className="overflow-hidden text-ellipsis whitespace-nowrap text-right uppercase"
-                                                        >
-                                                            {formatIban(account.account_identifier)}
-                                                        </label>
-                                                    </div>
-                                                    <div className="flex w-6 justify-center">
-                                                        {sanitizeBankAccount(bankAccountNumber) ===
-                                                            sanitizeBankAccount(account.account_identifier) && (
-                                                            <button
-                                                                className="text-lg text-black"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation()
-                                                                    setBankAccountNumber('')
-                                                                }}
-                                                            >
-                                                                ✕
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            ))}
+                            )}
+                        </>
+                    )}
+                    <div className="flex w-full flex-col justify-center gap-4">
+                        <RecipientInfoComponent />
+                        <div className="space-y-4">
+                            {!user && isFetchingUser ? (
+                                <div className="relative flex h-16 w-full items-center justify-center">
+                                    <div className="animate-spin">
+                                        <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
+                                        <span className="sr-only">Loading...</span>
                                     </div>
-                                )}
-                            </>
-                        ) : null}
-                        <div className="flex w-full flex-col items-start justify-center gap-2">
-                            <label className="text-left text-h8 font-light">Cash out to a bank account:</label>
-                            <ValidatedInput
-                                placeholder="IBAN / US account number"
-                                label="To"
-                                value={bankAccountNumber}
-                                className="uppercase"
-                                debounceTime={750}
-                                validate={validateBankAccount}
-                                onUpdate={({ value, isValid, isChanging }) => {
-                                    // Store lowercase internally
-                                    setBankAccountNumber(value.toLowerCase())
-                                    setIsValidBankAccountNumber(isValid)
-                                    setIsValidatingBankAccountNumber(isChanging)
-                                    if (!isChanging && value && !isValid) {
-                                        setErrorState({
-                                            showError: true,
-                                            errorMessage:
-                                                'Invalid Bank account. If this is a US bank account, please enter it without the routing number.',
-                                        })
-                                    } else {
-                                        setErrorState({
-                                            showError: false,
-                                            errorMessage: '',
-                                        })
-                                    }
-                                }}
-                                autoComplete="on"
-                                name="bank-account"
-                                formatDisplayValue={(value) => formatBankAccountDisplay(value, 'iban')}
-                            />
+                                </div>
+                            ) : user ? (
+                                <>
+                                    {!!user.accounts.filter(
+                                        (account) => account.account_type === 'iban' || account.account_type === 'us'
+                                    ).length && (
+                                        <div className="flex w-full flex-col items-start justify-center gap-2 text-center">
+                                            <label className="text-left text-h8 font-light">
+                                                Your linked bank accounts:
+                                            </label>
+                                            {user.accounts
+                                                .filter(
+                                                    (account) =>
+                                                        account.account_type === 'iban' || account.account_type === 'us'
+                                                )
+                                                ?.map((account, index) => (
+                                                    <div
+                                                        key={index}
+                                                        className={twMerge(
+                                                            'flex w-full items-center  justify-between text-nowrap border border-black p-2',
+                                                            matchAccount(account, bankAccountNumber)
+                                                                ? 'bg-purple-1'
+                                                                : 'hover:bg-gray-100',
+                                                            xchainAllowed && 'cursor-pointer',
+                                                            !xchainAllowed && 'opacity-60'
+                                                        )}
+                                                        onClick={() =>
+                                                            handleBankAccountSelect(account.account_identifier)
+                                                        }
+                                                    >
+                                                        <div className="flex flex-grow items-center overflow-hidden">
+                                                            <Icon
+                                                                name={'bank'}
+                                                                className="mr-2 h-4 flex-shrink-0 fill-gray-1"
+                                                            />
+                                                            <label
+                                                                htmlFor={`bank-${index}`}
+                                                                className="overflow-hidden text-ellipsis whitespace-nowrap text-right uppercase"
+                                                            >
+                                                                {formatIban(account.account_identifier)}
+                                                            </label>
+                                                        </div>
+                                                        <div className="flex w-6 justify-center">
+                                                            {sanitizeBankAccount(bankAccountNumber) ===
+                                                                sanitizeBankAccount(account.account_identifier) && (
+                                                                <button
+                                                                    className="text-lg text-black"
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation()
+                                                                        setBankAccountNumber('')
+                                                                    }}
+                                                                >
+                                                                    ✕
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                        </div>
+                                    )}
+                                </>
+                            ) : null}
+                            <div className="flex w-full flex-col items-start justify-center gap-2">
+                                <label className="text-left text-h8 font-light">Cash out to a bank account:</label>
+                                <ValidatedInput
+                                    placeholder="IBAN / US account number"
+                                    label="To"
+                                    value={bankAccountNumber}
+                                    className="uppercase"
+                                    debounceTime={750}
+                                    validate={validateBankAccount}
+                                    onUpdate={({ value, isValid, isChanging }) => {
+                                        // Store lowercase internally
+                                        setBankAccountNumber(value.toLowerCase())
+                                        setIsValidBankAccountNumber(isValid)
+                                        setIsValidatingBankAccountNumber(isChanging)
+                                        if (!isChanging && value && !isValid) {
+                                            setErrorState({
+                                                showError: true,
+                                                errorMessage:
+                                                    'Invalid Bank account. If this is a US bank account, please enter it without the routing number.',
+                                            })
+                                        } else {
+                                            setErrorState({
+                                                showError: false,
+                                                errorMessage: '',
+                                            })
+                                        }
+                                    }}
+                                    autoComplete="on"
+                                    name="bank-account"
+                                    formatDisplayValue={(value) => formatBankAccountDisplay(value, 'iban')}
+                                />
+                            </div>
                         </div>
                     </div>
-                </div>
-                <Button
-                    onClick={() => {
-                        if (!isConnected) {
-                            if (isPeanutWallet) {
-                                setLoadingState('Logging in')
-                                handleLogin()
-                                    .then(() => {
-                                        handleOnNext()
-                                    })
-                                    .catch((_error) => {
-                                        toast.error('Error logging in')
-                                    })
-                                    .finally(() => {
-                                        setLoadingState('Idle')
-                                    })
+                    <Button
+                        onClick={() => {
+                            if (!isConnected) {
+                                if (isPeanutWallet) {
+                                    setLoadingState('Logging in')
+                                    handleLogin()
+                                        .then(() => {
+                                            handleOnNext()
+                                        })
+                                        .catch((_error) => {
+                                            toast.error('Error logging in')
+                                        })
+                                        .finally(() => {
+                                            setLoadingState('Idle')
+                                        })
+                                } else {
+                                    signInModal.open()
+                                }
                             } else {
-                                signInModal.open()
+                                handleOnNext()
                             }
-                        } else {
-                            handleOnNext()
-                        }
-                    }}
-                    loading={isLoading}
-                    // Only allow the user to proceed if they are connected and the form is valid
-                    disabled={isConnected && isDisabled}
-                >
-                    {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
-                </Button>
-                {errorState.showError && (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                    </div>
-                )}
-                {isBelowMinLimit && (
-                    <span className="text-h8 font-normal">
-                        <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
-                    </span>
-                )}
-                {isExceedingMaxLimit && (
-                    <span className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
-                        {MAX_CASHOUT_LIMIT.toLocaleString()}.
-                    </span>
-                )}
-                {!xchainAllowed && (
-                    <span className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
-                    </span>
-                )}
-            </Card.Content>
-        </Card>
+                        }}
+                        loading={isLoading}
+                        // Only allow the user to proceed if they are connected and the form is valid
+                        disabled={isConnected && isDisabled}
+                    >
+                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Proceed'}
+                    </Button>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                    {isBelowMinLimit && (
+                        <span className="text-h8 font-normal">
+                            <Icon name="warning" className="-mt-0.5" /> Minimum cashout amount is ${MIN_CASHOUT_LIMIT}.
+                        </span>
+                    )}
+                    {isExceedingMaxLimit && (
+                        <span className=" text-h8 font-normal ">
+                            <Icon name="warning" className="-mt-0.5" /> Maximum cashout amount is $
+                            {MAX_CASHOUT_LIMIT.toLocaleString()}.
+                        </span>
+                    )}
+                    {!xchainAllowed && (
+                        <span className=" text-h8 font-normal ">
+                            <Icon name="warning" className="-mt-0.5" /> You cannot cashout on this chain.
+                        </span>
+                    )}
+                </Card.Content>
+            </Card>
+        </div>
     )
 }

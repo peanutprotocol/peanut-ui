@@ -2,6 +2,7 @@ import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useCreateLink } from '@/components/Create/useCreateLink'
 import AddressLink from '@/components/Global/AddressLink'
+import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -355,101 +356,108 @@ export const InitialView = ({
     }, [resetTokenAndChain, isPeanutWallet])
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title className="text-center text-h3">
-                    <AddressLink address={requestLinkData.recipientAddress} /> is requesting
-                </Card.Title>
-            </Card.Header>
-            <Card.Content className="col gap-4">
-                <ReferenceAndAttachment
-                    reference={requestLinkData?.reference}
-                    attachmentUrl={requestLinkData?.attachmentUrl}
-                />
-                <div className="flex w-full flex-col items-center justify-center gap-2">
-                    <label className="text-h2">{requestedAmount}</label>
-                    <div>
-                        <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
-                            <div className="relative h-6 w-6">
-                                <img src={tokenRequestedLogoURI} className="absolute left-0 top-0 h-6 w-6" alt="logo" />
-                                <img
-                                    src={
-                                        consts.supportedPeanutChains.find(
-                                            (chain) => chain.chainId === requestLinkData.chainId
-                                        )?.icon.url
-                                    }
-                                    className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
-                                    alt="logo"
-                                />
-                            </div>
-                            {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
-                            {tokenRequestedSymbol} on{' '}
-                            {
-                                consts.supportedPeanutChains.find((chain) => chain.chainId === requestLinkData.chainId)
-                                    ?.name
-                            }
-                        </div>
-                    </div>
-                    {tokenSupportsXChain ? (
-                        <label className="text-h9 font-light">
-                            You can fulfill this payment request with any token on any chain. Pick the token and chain
-                            that you want to fulfill this request with.
-                        </label>
-                    ) : (
-                        <label className="text-h9 font-light">
-                            This token does not support cross-chain transfers. You can only fulfill this payment request
-                            with the selected token on the selected chain.
-                        </label>
-                    )}
-                </div>
-                {isExternalWallet && tokenSupportsXChain && (
-                    <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
-                )}
-                {!isFeeEstimationError && (
-                    <>
-                        <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Network cost</label>
-                            </div>
-                            <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {calculatedFee ? (
-                                    `$${calculatedFee}`
-                                ) : (
-                                    <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
-                                )}
-                                {!isXChain ? (
-                                    <MoreInfo
-                                        text={
-                                            estimatedGasCost && estimatedGasCost > 0
-                                                ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
-                                                : 'This transaction is sponsored by peanut! Enjoy!'
+        <div>
+            <FlowHeader />
+            <Card className="shadow-none sm:shadow-primary-4">
+                <Card.Header>
+                    <Card.Title className="text-center text-h3">
+                        <AddressLink address={requestLinkData.recipientAddress} /> is requesting
+                    </Card.Title>
+                </Card.Header>
+                <Card.Content className="col gap-4">
+                    <ReferenceAndAttachment
+                        reference={requestLinkData?.reference}
+                        attachmentUrl={requestLinkData?.attachmentUrl}
+                    />
+                    <div className="flex w-full flex-col items-center justify-center gap-2">
+                        <label className="text-h2">{requestedAmount}</label>
+                        <div>
+                            <div className="flex flex-row items-center justify-center gap-2 pl-1 text-h7">
+                                <div className="relative h-6 w-6">
+                                    <img
+                                        src={tokenRequestedLogoURI}
+                                        className="absolute left-0 top-0 h-6 w-6"
+                                        alt="logo"
+                                    />
+                                    <img
+                                        src={
+                                            consts.supportedPeanutChains.find(
+                                                (chain) => chain.chainId === requestLinkData.chainId
+                                            )?.icon.url
                                         }
+                                        className="absolute -top-1 left-3 h-4 w-4 rounded-full" // Adjust `left-3` to control the overlap
+                                        alt="logo"
                                     />
-                                ) : (
-                                    <MoreInfo
-                                        text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
-                                    />
-                                )}
-                            </label>
+                                </div>
+                                {formatAmountWithSignificantDigits(Number(requestLinkData.tokenAmount), 3)}{' '}
+                                {tokenRequestedSymbol} on{' '}
+                                {
+                                    consts.supportedPeanutChains.find(
+                                        (chain) => chain.chainId === requestLinkData.chainId
+                                    )?.name
+                                }
+                            </div>
                         </div>
-
-                        {null !== calculatedSlippage && (
+                        {tokenSupportsXChain ? (
+                            <label className="text-center text-h9 font-light">
+                                You can fulfill this payment request with any token on any chain. Pick the token and
+                                chain that you want to fulfill this request with.
+                            </label>
+                        ) : (
+                            <label className="text-h9 font-light">
+                                This token does not support cross-chain transfers. You can only fulfill this payment
+                                request with the selected token on the selected chain.
+                            </label>
+                        )}
+                    </div>
+                    {isExternalWallet && tokenSupportsXChain && (
+                        <TokenSelector onReset={resetTokenAndChain} showOnlySquidSupported />
+                    )}
+                    {!isFeeEstimationError && (
+                        <>
                             <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'money-out'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Max slippage</label>
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Network cost</label>
                                 </div>
                                 <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                    ${calculatedSlippage}
-                                    <MoreInfo
-                                        text={`${slippagePercentage!.toFixed(2)}% is the maximum slippage set to ensure that the transaction goes through. It is likely to be much lower than the actual slippage`}
-                                    />
+                                    {calculatedFee ? (
+                                        `$${calculatedFee}`
+                                    ) : (
+                                        <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
+                                    )}
+                                    {!isXChain ? (
+                                        <MoreInfo
+                                            text={
+                                                estimatedGasCost && estimatedGasCost > 0
+                                                    ? `This transaction will cost you $${formatTokenAmount(estimatedGasCost, 3)} in network fees.`
+                                                    : 'This transaction is sponsored by peanut! Enjoy!'
+                                            }
+                                        />
+                                    ) : (
+                                        <MoreInfo
+                                            text={`This transaction will cost you $${formatTokenAmount(Number(txFee), 3)} in network fees.`}
+                                        />
+                                    )}
                                 </label>
                             </div>
-                        )}
 
-                        {/* TODO: correct points estimation
+                            {null !== calculatedSlippage && (
+                                <div className="flex w-full flex-row items-center justify-between gap-1 px-2 text-h8 text-gray-1">
+                                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                                        <Icon name={'money-out'} className="h-4 fill-gray-1" />
+                                        <label className="font-bold">Max slippage</label>
+                                    </div>
+                                    <label className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                        ${calculatedSlippage}
+                                        <MoreInfo
+                                            text={`${slippagePercentage!.toFixed(2)}% is the maximum slippage set to ensure that the transaction goes through. It is likely to be much lower than the actual slippage`}
+                                        />
+                                    </label>
+                                </div>
+                            )}
+
+                            {/* TODO: correct points estimation
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
@@ -473,40 +481,41 @@ export const InitialView = ({
                             </span>
                         </div>
                             */}
-                    </>
-                )}
-                <div className="flex w-full flex-col items-center justify-center gap-3">
-                    <Button
-                        disabled={isButtonDisabled}
-                        onClick={() => {
-                            if (!isConnected) {
-                                if (isPeanutWallet) {
-                                    setLoadingState('Logging in')
-                                    handleLogin()
-                                        .catch((_error) => {
-                                            toast.error('Error logging in')
-                                        })
-                                        .finally(() => {
-                                            setLoadingState('Idle')
-                                        })
-                                } else {
-                                    signInModal.open()
-                                }
-                            } else if (ViewState.READY_TO_PAY === viewState) {
-                                handleOnNext()
-                            }
-                        }}
-                        loading={viewState === ViewState.LOADING}
-                    >
-                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : 'Pay'}
-                    </Button>
-                    {errorState.showError && (
-                        <div className="text-center">
-                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
-                        </div>
+                        </>
                     )}
-                </div>
-            </Card.Content>
-        </Card>
+                    <div className="flex w-full flex-col items-center justify-center gap-3">
+                        <Button
+                            disabled={isButtonDisabled}
+                            onClick={() => {
+                                if (!isConnected) {
+                                    if (isPeanutWallet) {
+                                        setLoadingState('Logging in')
+                                        handleLogin()
+                                            .catch((_error) => {
+                                                toast.error('Error logging in')
+                                            })
+                                            .finally(() => {
+                                                setLoadingState('Idle')
+                                            })
+                                    } else {
+                                        signInModal.open()
+                                    }
+                                } else if (ViewState.READY_TO_PAY === viewState) {
+                                    handleOnNext()
+                                }
+                            }}
+                            loading={viewState === ViewState.LOADING}
+                        >
+                            {!isConnected && !isPeanutWallet ? 'Connect Wallet' : 'Pay'}
+                        </Button>
+                        {errorState.showError && (
+                            <div className="text-center">
+                                <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                            </div>
+                        )}
+                    </div>
+                </Card.Content>
+            </Card>
+        </div>
     )
 }

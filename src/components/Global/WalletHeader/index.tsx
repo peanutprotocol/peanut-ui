@@ -16,13 +16,17 @@ import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
 import Modal from '../Modal'
 
+interface WalletHeaderProps {
+    className?: HTMLDivElement['className']
+    disabled?: boolean
+}
 interface WalletEntryCardProps {
     wallet: IWallet
     isActive?: boolean
     onClick?: () => void
 }
 
-const WalletHeader = () => {
+const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
     const { wallets, selectedWallet, setSelectedWallet, isConnected } = useWallet()
     const { open: openWeb3Modal } = useAppKit()
@@ -43,15 +47,19 @@ const WalletHeader = () => {
     }
 
     return (
-        <div>
+        <div className={className}>
             {/* wallet selector button with current wallet info */}
             <Button
+                disabled={disabled}
                 variant="yellow"
-                className="h-auto w-fit min-w-32 bg-yellow-4/80 py-2"
+                className={twMerge(
+                    'flex h-auto w-fit min-w-32 items-center justify-between bg-yellow-4/80 py-2',
+                    className
+                )}
                 onClick={() => setShowModal(true)}
             >
                 {/* wallet icon container */}
-                <div className="mr-1.5 flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-2">
+                <div className="flex size-7 items-center justify-center rounded-full border border-n-1 bg-white p-2">
                     <Image
                         src={selectedWallet?.connector?.iconUrl || PeanutWalletIcon}
                         alt=""

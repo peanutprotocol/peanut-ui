@@ -47,7 +47,7 @@ export const CreateRequestLink = () => {
     }, [address])
 
     return (
-        <PageContainer className="h-full">
+        <PageContainer>
             {createElement(_consts.CREATE_SCREEN_MAP[step.screen].comp, {
                 onNext: handleOnNext,
                 onPrev: handleOnPrev,

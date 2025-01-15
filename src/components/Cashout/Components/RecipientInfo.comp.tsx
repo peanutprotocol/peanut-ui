@@ -1,4 +1,3 @@
-import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { TOOLTIPS } from '@/constants/tooltips'
 
