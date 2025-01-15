@@ -110,6 +110,16 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                         account.account_type as unknown as interfaces.WalletProviderType
                     )
                 )
+                .sort((a, b) => {
+                    if (interfaces.AccountType.PEANUT_WALLET === a.account_type) {
+                        return -1
+                    } else if (interfaces.AccountType.PEANUT_WALLET === b.account_type) {
+                        return 1
+                    }
+                    const dateA = new Date(a.created_at)
+                    const dateB = new Date(b.created_at)
+                    return dateA.getTime() - dateB.getTime()
+                })
                 .map(async (account) => {
                     const dbWallet: interfaces.IDBWallet = {
                         walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
