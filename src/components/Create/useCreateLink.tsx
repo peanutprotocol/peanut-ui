@@ -588,7 +588,7 @@ export const useCreateLink = () => {
         walletType: 'blockscout' | undefined
     }) => {
         try {
-            const provider = getChainProvider(linkDetails.chainId)
+            const provider = await getChainProvider(linkDetails.chainId)
             const getLinksFromTxResponse = await peanut.getLinksFromTx({
                 linkDetails,
                 txHash: hash,

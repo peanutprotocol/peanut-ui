@@ -43,7 +43,7 @@ async function createXChainUnsignedTx({
     requestLink: Awaited<ReturnType<typeof peanut.getRequestLinkDetails>>
     senderAddress: string
 }) {
-    const provider = getChainProvider(tokenData.chainId) || (await peanut.getDefaultProvider(tokenData.chainId))
+    const provider = (await getChainProvider(tokenData.chainId)) || (await peanut.getDefaultProvider(tokenData.chainId))
     const xchainUnsignedTxs = await peanut.prepareXchainRequestFulfillmentTransaction({
         fromToken: tokenData.address,
         fromChainId: tokenData.chainId,
