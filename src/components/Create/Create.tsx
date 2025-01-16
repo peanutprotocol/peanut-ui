@@ -53,7 +53,7 @@ export const Create = () => {
         }[]
     >([])
 
-    const { address } = useWallet()
+    const { address, isPeanutWallet } = useWallet()
 
     const { resetTokenContextProvider } = useContext(context.tokenSelectorContext)
 
@@ -105,9 +105,11 @@ export const Create = () => {
     }
 
     useEffect(() => {
-        resetTokenContextProvider()
-        fetchAndSetCrossChainDetails()
-    }, [])
+        if (!isPeanutWallet) {
+            resetTokenContextProvider()
+            fetchAndSetCrossChainDetails()
+        }
+    }, [isPeanutWallet])
 
     useEffect(() => {
         if (address) {
