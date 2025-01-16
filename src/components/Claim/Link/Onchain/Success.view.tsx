@@ -60,9 +60,11 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title className="text-center">Yay!</Card.Title>
-                <Card.Description className="text-center">You have successfully claimed your funds!</Card.Description>
+            <Card.Header className="mx-auto">
+                <Card.Title className="mx-auto text-center">Yay!</Card.Title>
+                <Card.Description className="mx-auto text-center">
+                    You have successfully claimed your funds!
+                </Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
                 <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>

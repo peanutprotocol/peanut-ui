@@ -662,12 +662,12 @@ export const OfframpConfirmView = ({
             />
 
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
-                    <Card.Title>Confirm your details</Card.Title>
-                    <Card.Description>
+                <Card.Header className="mx-auto">
+                    <Card.Title className="mx-auto text-center">Confirm your details</Card.Title>
+                    <Card.Description className="mx-auto text-center">
                         {offrampType == OfframpType.CASHOUT && (
                             <>
-                                <label className="text-start text-h8 font-light">
+                                <label className="text-center text-h8 font-light">
                                     Cash out your crypto to your bank account. From any token, any chain, directly to
                                     your bank account.
                                 </label>
@@ -675,7 +675,7 @@ export const OfframpConfirmView = ({
                             </>
                         )}
                         {offrampType == OfframpType.CLAIM && (
-                            <label className="text-start text-h8 font-light">
+                            <label className="text-center text-h8 font-light">
                                 Cash out this link's crypto to your bank account. Works best with popular stablecoins
                                 and other commonly traded tokens.
                             </label>

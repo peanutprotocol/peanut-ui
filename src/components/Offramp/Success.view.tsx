@@ -44,8 +44,8 @@ export const OfframpSuccessView = ({
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title className="mx-auto">Yay!</Card.Title>
+            <Card.Header className="mx-auto text-center">
+                <Card.Title className="mx-auto text-center">Yay!</Card.Title>
                 <Card.Description className="text-center">
                     Your funds are on the way. A confirmation email will be sent to {offrampForm.email} shortly. Please
                     keep in mind that it may take up to 2 days for the funds to arrive.
