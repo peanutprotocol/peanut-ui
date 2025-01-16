@@ -1,29 +1,16 @@
 'use client'
 
-import { peanutPublicClient } from '@/constants/viem.consts'
 import * as consts from '@/constants/zerodev.consts'
 import { useAuth } from '@/context/authContext'
+import { useKernelClient } from '@/context/kernelClient.context'
 import { useAppDispatch, useZerodevStore } from '@/redux/hooks'
 import { zerodevActions } from '@/redux/slices/zerodev-slice'
-import { getFromLocalStorage, saveToLocalStorage } from '@/utils'
-import {
-    PasskeyValidatorContractVersion,
-    toPasskeyValidator,
-    toWebAuthnKey,
-    WebAuthnMode,
-} from '@zerodev/passkey-validator'
-import {
-    createKernelAccount,
-    createKernelAccountClient,
-    createZeroDevPaymasterClient,
-    KernelAccountClient,
-} from '@zerodev/sdk'
-import { KERNEL_V3_1 } from '@zerodev/sdk/constants'
-import { useCallback, useEffect, useState } from 'react'
-import { Abi, Address, encodeFunctionData, Hex, http, Transport } from 'viem'
+import { saveToLocalStorage } from '@/utils'
+import { toWebAuthnKey, WebAuthnMode } from '@zerodev/passkey-validator'
+import { useCallback } from 'react'
+import { Abi, Address, encodeFunctionData, Hex } from 'viem'
 
 // types
-type AppSmartAccountClient = KernelAccountClient<Transport, typeof consts.PEANUT_WALLET_CHAIN>
 type UserOpNotEncodedParams = {
     to: Address
     value: number
@@ -37,127 +24,15 @@ type UserOpEncodedParams = {
     data?: Hex | undefined
 }
 
-type WebAuthnKey = Awaited<ReturnType<typeof toWebAuthnKey>>
-
-const LOCAL_STORAGE_KERNEL_ADDRESS = 'kernel-address'
 const LOCAL_STORAGE_WEB_AUTHN_KEY = 'web-authn-key'
 
 export const useZeroDev = () => {
     const dispatch = useAppDispatch()
-    const { fetchUser, user } = useAuth()
+    const { user } = useAuth()
     const { isKernelClientReady, isRegistering, isLoggingIn, isSendingUserOp, address } = useZerodevStore()
-
-    // local states for non-UI state
-    const [kernelClient, setKernelClient] = useState<AppSmartAccountClient | undefined>(undefined)
-    const [webAuthnKey, setWebAuthnKey] = useState<WebAuthnKey | undefined>(undefined)
+    const { kernelClient, setWebAuthnKey } = useKernelClient()
 
     const _getPasskeyName = (handle: string) => `${handle}.peanut.wallet`
-
-    // setup function
-    const createKernelClient = useCallback(
-        async (passkeyValidator: any) => {
-            // check if kernel client with the same address already exists
-            const storedAddress = getFromLocalStorage(LOCAL_STORAGE_KERNEL_ADDRESS)
-            if (kernelClient && storedAddress === kernelClient.account?.address) {
-                return kernelClient
-            }
-
-            console.log('Creating new kernel client...')
-            const kernelAccount = await createKernelAccount(peanutPublicClient, {
-                plugins: {
-                    sudo: passkeyValidator,
-                },
-                entryPoint: consts.USER_OP_ENTRY_POINT,
-                kernelVersion: KERNEL_V3_1,
-            })
-
-            const newKernelClient = createKernelAccountClient({
-                account: kernelAccount,
-                chain: consts.PEANUT_WALLET_CHAIN,
-                bundlerTransport: http(consts.BUNDLER_URL),
-                paymaster: {
-                    getPaymasterData: async (userOperation) => {
-                        const zerodevPaymaster = createZeroDevPaymasterClient({
-                            chain: consts.PEANUT_WALLET_CHAIN,
-                            transport: http(consts.PAYMASTER_URL),
-                        })
-
-                        try {
-                            return await zerodevPaymaster.sponsorUserOperation({
-                                userOperation,
-                                shouldOverrideFee: true,
-                            })
-                        } catch (error) {
-                            console.error('Paymaster error:', error)
-                            throw error
-                        }
-                    },
-                },
-            })
-
-            // store address for future reference
-            saveToLocalStorage(LOCAL_STORAGE_KERNEL_ADDRESS, newKernelClient.account?.address)
-            return newKernelClient
-        },
-        [kernelClient]
-    )
-
-    // lifecycle hooks
-    useEffect(() => {
-        const storedWebAuthnKey = getFromLocalStorage(LOCAL_STORAGE_WEB_AUTHN_KEY)
-        if (storedWebAuthnKey) {
-            setWebAuthnKey(storedWebAuthnKey)
-        }
-    }, [])
-
-    useEffect(() => {
-        let isMounted = true
-
-        if (!webAuthnKey) {
-            return () => {
-                isMounted = false
-            }
-        }
-
-        // check if valid kernel client already exists
-        if (kernelClient && kernelClient.account?.address) {
-            dispatch(zerodevActions.setIsKernelClientReady(true))
-            dispatch(zerodevActions.setIsRegistering(false))
-            dispatch(zerodevActions.setIsLoggingIn(false))
-            return
-        }
-
-        const initializeClient = async () => {
-            try {
-                const validator = await toPasskeyValidator(peanutPublicClient, {
-                    webAuthnKey,
-                    entryPoint: consts.USER_OP_ENTRY_POINT,
-                    kernelVersion: KERNEL_V3_1,
-                    validatorContractVersion: PasskeyValidatorContractVersion.V0_0_2,
-                })
-
-                const client = await createKernelClient(validator)
-
-                if (isMounted) {
-                    fetchUser()
-                    setKernelClient(client)
-                    dispatch(zerodevActions.setAddress(client.account!.address))
-                    dispatch(zerodevActions.setIsKernelClientReady(true))
-                    dispatch(zerodevActions.setIsRegistering(false))
-                    dispatch(zerodevActions.setIsLoggingIn(false))
-                }
-            } catch (error) {
-                console.error('Error initializing kernel client:', error)
-                dispatch(zerodevActions.setIsKernelClientReady(false))
-            }
-        }
-
-        initializeClient()
-
-        return () => {
-            isMounted = false
-        }
-    }, [webAuthnKey, dispatch, fetchUser, createKernelClient, kernelClient])
 
     // register function
     const handleRegister = async (handle: string): Promise<void> => {
