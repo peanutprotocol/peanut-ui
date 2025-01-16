@@ -1,11 +1,11 @@
 'use client'
 
+import { Card } from '@/components/0_Bruddle'
+import AddressLink from '@/components/Global/AddressLink'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
 import * as consts from '@/constants'
 import * as _consts from '../../Pay.consts'
-import { Card } from '@/components/0_Bruddle'
-import { ReferenceAndAttachment } from '@/components/Request/Components/ReferenceAndAttachment'
-import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
-import AddressLink from '@/components/Global/AddressLink'
 
 export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _consts.IRequestLinkData | undefined }) => {
     const chainName =
@@ -82,7 +82,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
                     </div>
                 )}
                 <PaymentsFooter href={'/request/create'} text="Request a payment yourself!" icon="send" />
-                <label className="text-h9 font-normal">
+                <label className="text-center text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

@@ -1,14 +1,10 @@
 'use client'
 
-import Icon from '@/components/Global/Icon'
-import * as _consts from '../Claim.consts'
-import * as consts from '@/constants'
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
-import Link from 'next/link'
-import { Button, Card } from '@/components/0_Bruddle'
-import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import { Card } from '@/components/0_Bruddle'
 import AddressLink from '@/components/Global/AddressLink'
+import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
+import * as consts from '@/constants'
+import * as interfaces from '@/interfaces'
 
 export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: interfaces.ILinkDetails | undefined }) => {
     const chainName =
@@ -82,7 +78,7 @@ export const AlreadyClaimedLinkView = ({ claimLinkData }: { claimLinkData: inter
                         )}
                     </div>
                 )}
-                <label className="text-h9 font-normal">
+                <label className="text-center text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

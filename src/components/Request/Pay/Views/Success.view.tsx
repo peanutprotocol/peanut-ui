@@ -81,7 +81,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
     }, [])
     if (isLoading) {
         return (
-            <>
+            <div className="flex flex-col items-center justify-center gap-4">
                 <div className="animate-spin">
                     <img src={assets.PEANUTMAN_LOGO.src} alt="logo" className="h-6 sm:h-10" />
                     <span className="sr-only">{loadingState}</span>
@@ -90,14 +90,14 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                 <label className="text-h8 font-bold ">
                     Funds are on their way to <AddressLink address={requestLinkData.recipientAddress} />!
                 </label>
-            </>
+            </div>
         )
     }
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
+        <Card className="w-full shadow-none sm:shadow-primary-4">
             <Card.Header>
-                <Card.Title>Yay!</Card.Title>
+                <Card.Title className="mx-auto">Yay!</Card.Title>
                 <Card.Description>
                     You have successfully paid <AddressLink address={requestLinkData.recipientAddress} />!
                 </Card.Description>
@@ -108,8 +108,8 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                     attachmentUrl={requestLinkData?.attachmentUrl}
                 />
                 <div className="flex w-full flex-col items-start justify-center gap-1.5 text-h9 font-normal">
-                    <label className="text-h8 font-normal text-gray-1">Transaction details</label>
-                    <div className="flex w-full flex-row items-center justify-start gap-1">
+                    <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
+                    <div className="flex w-full flex-row items-center justify-between gap-1">
                         <label className="">Source chain:</label>
                         <Link className="cursor-pointer underline" href={sourceUrlWithTx}>
                             {utils.shortenAddressLong(transactionHash ?? '')}
@@ -117,13 +117,13 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                     </div>
                     {isXChain && (
                         <>
-                            <div className="flex w-full flex-row items-center justify-start gap-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1">
                                 <label className="">Axelar:</label>
                                 <Link className="cursor-pointer underline" href={explorerUrlAxelarWithTx}>
                                     {utils.shortenAddressLong(transactionHash ?? '')}
                                 </Link>
                             </div>
-                            <div className="flex w-full flex-row items-center justify-start gap-1">
+                            <div className="flex w-full flex-row items-center justify-between gap-1">
                                 <label className="">Destination Chain</label>
                                 {!explorerUrlDestChainWithTxHash ? (
                                     <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
@@ -139,7 +139,7 @@ export const SuccessView = ({ transactionHash, requestLinkData, tokenPriceData }
                         </>
                     )}
                 </div>
-                <label className="text-h9 font-normal">
+                <label className="text-center text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

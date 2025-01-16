@@ -3,6 +3,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { CrispButton } from '@/components/CrispChat'
 import AddressLink from '@/components/Global/AddressLink'
+import FlowHeader from '@/components/Global/FlowHeader'
 import GeneralRecipientInput, { GeneralRecipientUpdate } from '@/components/Global/GeneralRecipientInput'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
@@ -31,7 +32,6 @@ import {
 } from '@/utils'
 import { getSquidTokenAddress, SQUID_ETH_ADDRESS } from '@/utils/token.utils'
 import { Popover } from '@headlessui/react'
-import { useAppKit } from '@reown/appkit/react'
 import { getSquidRouteRaw } from '@squirrel-labs/peanut-sdk'
 import { useCallback, useContext, useEffect, useState } from 'react'
 import * as _consts from '../Claim.consts'
@@ -82,8 +82,7 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const { open } = useAppKit()
-    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet } = useWallet()
+    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet, selectedWallet } = useWallet()
     const { user } = useAuth()
 
     const resetSelectedToken = useCallback(() => {
@@ -400,149 +399,180 @@ export const InitialClaimLinkView = ({
     }, [recipientType])
 
     useEffect(() => {
-        if (isPeanutWallet && address) {
-            setRecipient({ name: undefined, address: address })
-            setIsValidRecipient(true)
+        if (!isConnected) {
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+            return
         }
-    }, [isPeanutWallet, address])
+
+        // reset recipient when wallet type changes or when selected wallet changes
+        if (selectedWallet) {
+            // reset recipient
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+
+            // set it to the current address after a short delay
+            // to ensure the ui updates properly
+            setTimeout(() => {
+                if (address) {
+                    setRecipient({ name: undefined, address: address })
+                    setIsValidRecipient(true)
+                }
+            }, 100)
+        }
+    }, [selectedWallet, isConnected, address])
+
+    useEffect(() => {
+        if (recipient.address) return
+        if (isConnected && address) {
+            setRecipient({ name: undefined, address })
+        } else {
+            setRecipient({ name: undefined, address: '' })
+            setIsValidRecipient(false)
+        }
+    }, [address])
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        <AddressLink address={claimLinkData.senderAddress} /> sent you
-                        {tokenPrice ? (
-                            <label className="text-h2">
-                                $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
-                            </label>
-                        ) : (
-                            <label className="text-h2 ">
-                                {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
-                            </label>
+        <div>
+            <FlowHeader />
+            <Card className="shadow-none sm:shadow-primary-4">
+                <Card.Header>
+                    <Card.Title className="mx-auto">
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                            <AddressLink address={claimLinkData.senderAddress} /> sent you
+                            {tokenPrice ? (
+                                <label className="text-h2">
+                                    $ {formatTokenAmount(Number(claimLinkData.tokenAmount) * tokenPrice)}
+                                </label>
+                            ) : (
+                                <label className="text-h2 ">
+                                    {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol}
+                                </label>
+                            )}
+                        </div>
+                    </Card.Title>
+                    <Card.Description>
+                        {(attachment.message || attachment.attachmentUrl) && (
+                            <>
+                                <div
+                                    className={`flex w-full items-center justify-center gap-2 ${checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
+                                >
+                                    {attachment.message && (
+                                        <label className="max-w-full text-h8">
+                                            Ref: <span className="font-normal"> {attachment.message} </span>
+                                        </label>
+                                    )}
+                                    {attachment.attachmentUrl && (
+                                        <a
+                                            href={attachment.attachmentUrl}
+                                            download
+                                            target="_blank"
+                                            className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
+                                        >
+                                            <Icon name={'download'} />
+                                            Download attachment
+                                        </a>
+                                    )}
+                                </div>
+                                <div className="flex w-full border-t border-dotted border-black" />
+                            </>
                         )}
-                    </div>
-                </Card.Title>
-                <Card.Description>
-                    {(attachment.message || attachment.attachmentUrl) && (
-                        <>
-                            <div
-                                className={`flex w-full items-center justify-center gap-2 ${checkifImageType(fileType) ? ' flex-row' : ' flex-col'}`}
-                            >
-                                {attachment.message && (
-                                    <label className="max-w-full text-h8">
-                                        Ref: <span className="font-normal"> {attachment.message} </span>
-                                    </label>
-                                )}
-                                {attachment.attachmentUrl && (
-                                    <a
-                                        href={attachment.attachmentUrl}
-                                        download
-                                        target="_blank"
-                                        className="flex w-full cursor-pointer flex-row items-center justify-center gap-1 text-h9 font-normal text-gray-1 underline "
-                                    >
-                                        <Icon name={'download'} />
-                                        Download attachment
-                                    </a>
-                                )}
-                            </div>
-                            <div className="flex w-full border-t border-dotted border-black" />
-                        </>
+                    </Card.Description>
+                </Card.Header>
+                <Card.Content className="flex flex-col gap-2">
+                    {(!isConnected || isExternalWallet) && recipientType !== 'iban' && recipientType !== 'us' && (
+                        <TokenSelector
+                            shouldBeConnected={false}
+                            showOnlySquidSupported
+                            onReset={() => {
+                                resetSelectedToken()
+                            }}
+                        />
                     )}
-                </Card.Description>
-            </Card.Header>
-            <Card.Content className="flex flex-col gap-2">
-                {isExternalWallet && recipientType !== 'iban' && recipientType !== 'us' && (
-                    <TokenSelector
-                        shouldBeConnected={false}
-                        showOnlySquidSupported
-                        onReset={() => {
-                            resetSelectedToken()
-                        }}
-                    />
-                )}
-                {isExternalWallet && (
-                    <GeneralRecipientInput
-                        className=""
-                        placeholder="wallet address / ENS / IBAN / US account number"
-                        recipient={recipient}
-                        onUpdate={(update: GeneralRecipientUpdate) => {
-                            setRecipient(update.recipient)
-                            if (!update.recipient.address) {
-                                setRecipientType('address')
-                            } else {
-                                setRecipientType(update.type)
-                            }
-                            setIsValidRecipient(update.isValid)
-                            setErrorState({
-                                showError: !update.isValid,
-                                errorMessage: update.errorMessage,
-                            })
-                            setInputChanging(update.isChanging)
-                        }}
-                        infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
-                    />
-                )}
-                {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
-                    <div className="flex w-full flex-col items-center justify-center gap-2">
-                        {selectedRoute && (
+                    {(!isConnected || isExternalWallet) && (
+                        <GeneralRecipientInput
+                            className="pl-8"
+                            placeholder="wallet address / ENS / IBAN / US account number"
+                            recipient={recipient}
+                            onUpdate={(update: GeneralRecipientUpdate) => {
+                                setRecipient(update.recipient)
+                                if (!update.recipient.address) {
+                                    setRecipientType('address')
+                                } else {
+                                    setRecipientType(update.type)
+                                }
+                                setIsValidRecipient(update.isValid)
+                                setErrorState({
+                                    showError: !update.isValid,
+                                    errorMessage: update.errorMessage,
+                                })
+                                setInputChanging(update.isChanging)
+                            }}
+                            infoText={TOOLTIPS.CLAIM_RECIPIENT_INFO}
+                        />
+                    )}
+                    {recipient && isValidRecipient && recipientType !== 'iban' && recipientType !== 'us' && (
+                        <div className="flex w-full flex-col items-center justify-center gap-2">
+                            {selectedRoute && (
+                                <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
+                                    <div className="flex w-max flex-row items-center justify-center gap-1">
+                                        <Icon name={'forward'} className="h-4 fill-gray-1" />
+                                        <label className="font-bold">Route</label>
+                                    </div>
+                                    <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
+                                        {isXchainLoading ? (
+                                            <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
+                                        ) : (
+                                            selectedRoute && (
+                                                <>
+                                                    {
+                                                        consts.supportedPeanutChains.find(
+                                                            (chain) =>
+                                                                chain.chainId === selectedRoute.route.params.fromChain
+                                                        )?.name
+                                                    }
+                                                    <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
+                                                    {
+                                                        supportedSquidChainsAndTokens[
+                                                            selectedRoute.route.params.toChain
+                                                        ]?.axelarChainName
+                                                    }
+                                                    <MoreInfo
+                                                        text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
+                                                            consts.supportedPeanutChains.find(
+                                                                (chain) =>
+                                                                    chain.chainId ===
+                                                                    selectedRoute.route.params.fromChain
+                                                            )?.name
+                                                        } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
+                                                            supportedSquidChainsAndTokens[
+                                                                selectedRoute.route.params.toChain
+                                                            ]?.axelarChainName
+                                                        }.`}
+                                                    />
+                                                </>
+                                            )
+                                        )}
+                                    </span>
+                                </div>
+                            )}
+
                             <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                                 <div className="flex w-max flex-row items-center justify-center gap-1">
-                                    <Icon name={'forward'} className="h-4 fill-gray-1" />
-                                    <label className="font-bold">Route</label>
+                                    <Icon name={'gas'} className="h-4 fill-gray-1" />
+                                    <label className="font-bold">Fees</label>
                                 </div>
                                 <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
                                     {isXchainLoading ? (
                                         <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
                                     ) : (
-                                        selectedRoute && (
-                                            <>
-                                                {
-                                                    consts.supportedPeanutChains.find(
-                                                        (chain) =>
-                                                            chain.chainId === selectedRoute.route.params.fromChain
-                                                    )?.name
-                                                }
-                                                <Icon name={'arrow-next'} className="h-4 fill-gray-1" />{' '}
-                                                {
-                                                    supportedSquidChainsAndTokens[selectedRoute.route.params.toChain]
-                                                        ?.axelarChainName
-                                                }
-                                                <MoreInfo
-                                                    text={`You are bridging ${claimLinkData.tokenSymbol.toLowerCase()} on ${
-                                                        consts.supportedPeanutChains.find(
-                                                            (chain) =>
-                                                                chain.chainId === selectedRoute.route.params.fromChain
-                                                        )?.name
-                                                    } to ${selectedRoute.route.estimate.toToken.symbol.toLowerCase()} on  ${
-                                                        supportedSquidChainsAndTokens[
-                                                            selectedRoute.route.params.toChain
-                                                        ]?.axelarChainName
-                                                    }.`}
-                                                />
-                                            </>
-                                        )
+                                        <>
+                                            $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
+                                        </>
                                     )}
                                 </span>
                             </div>
-                        )}
-
-                        <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
-                            <div className="flex w-max flex-row items-center justify-center gap-1">
-                                <Icon name={'gas'} className="h-4 fill-gray-1" />
-                                <label className="font-bold">Fees</label>
-                            </div>
-                            <span className="flex flex-row items-center justify-center gap-1 text-center text-sm font-normal leading-4">
-                                {isXchainLoading ? (
-                                    <div className="h-2 w-12 animate-colorPulse rounded bg-slate-700"></div>
-                                ) : (
-                                    <>
-                                        $0.00 <MoreInfo text={'This transaction is sponsored by peanut! Enjoy!'} />
-                                    </>
-                                )}
-                            </span>
-                        </div>
-                        {/* TODO: correct points estimation
+                            {/* TODO: correct points estimation
                         <div className="flex w-full flex-row items-center justify-between px-2 text-h8 text-gray-1">
                             <div className="flex w-max flex-row items-center justify-center gap-1">
                                 <Icon name={'plus-circle'} className="h-4 fill-gray-1" />
@@ -585,112 +615,113 @@ export const InitialClaimLinkView = ({
                             </div>
                         </div>
                                 */}
-                    </div>
-                )}
-                <div className="flex w-full flex-col items-center justify-center gap-4">
-                    <Button
-                        onClick={() => {
-                            // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
-                            // imperative to ensure address here is fetched by useWallet
-                            if (!isConnected && recipient.address.length === 0) {
-                                handleConnectWallet()
-                            } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
-                                if (recipientType === 'iban' || recipientType === 'us') {
-                                    handleIbanRecipient()
-                                } else {
-                                    onNext()
-                                }
-                            } else {
-                                handleClaimLink()
-                            }
-                        }}
-                        loading={isLoading || isXchainLoading}
-                        disabled={
-                            isLoading ||
-                            isXchainLoading ||
-                            inputChanging ||
-                            (hasFetchedRoute && !selectedRoute) ||
-                            (isValidRecipient === false && recipient.address.length > 0)
-                        }
-                    >
-                        {!isConnected && recipient.address.length === 0
-                            ? 'Connect Wallet'
-                            : (hasFetchedRoute && selectedRoute) || recipient.address !== address
-                              ? 'Proceed'
-                              : 'Claim now'}
-                    </Button>
-                    {address && recipient.address.length < 0 && recipientType === 'address' && (
-                        <div
-                            className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
+                        </div>
+                    )}
+                    <div className="flex w-full flex-col items-center justify-center gap-4">
+                        <Button
                             onClick={() => {
-                                handleConnectWallet()
+                                // TODO: claiming to IBAN is decided to proceed based on recipient.address !== address, so
+                                // imperative to ensure address here is fetched by useWallet
+                                if (!isConnected && recipient.address.length === 0) {
+                                    handleConnectWallet()
+                                } else if ((hasFetchedRoute && selectedRoute) || recipient.address !== address) {
+                                    if (recipientType === 'iban' || recipientType === 'us') {
+                                        handleIbanRecipient()
+                                    } else {
+                                        onNext()
+                                    }
+                                } else {
+                                    handleClaimLink()
+                                }
                             }}
+                            loading={isLoading || isXchainLoading}
+                            disabled={
+                                isLoading ||
+                                isXchainLoading ||
+                                inputChanging ||
+                                (hasFetchedRoute && !selectedRoute) ||
+                                (isValidRecipient === false && recipient.address.length > 0)
+                            }
                         >
-                            {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
-                        </div>
-                    )}
-                    {errorState.showError && (
-                        <div className="text-center">
-                            {errorState.errorMessage === 'offramp unavailable' ? (
-                                <label className="text-h8 font-normal text-red">
-                                    You can not claim this token to your bank account.{' '}
-                                    <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
-                                </label>
-                            ) : (
-                                <>
-                                    {errorState.errorMessage === 'No route found for the given token pair.' && (
-                                        <>
+                            {!isConnected && recipient.address.length === 0
+                                ? 'Connect Wallet'
+                                : (hasFetchedRoute && selectedRoute) || recipient.address !== address
+                                  ? 'Proceed'
+                                  : 'Claim now'}
+                        </Button>
+                        {address && recipient.address.length < 0 && recipientType === 'address' && (
+                            <div
+                                className="wc-disable-mf flex cursor-pointer flex-row items-center justify-center  self-center text-h7"
+                                onClick={() => {
+                                    handleConnectWallet()
+                                }}
+                            >
+                                {isConnected ? 'Or claim/swap to your connected wallet' : 'Connect a wallet'}
+                            </div>
+                        )}
+                        {errorState.showError && (
+                            <div className="text-center">
+                                {errorState.errorMessage === 'offramp unavailable' ? (
+                                    <label className="text-h8 font-normal text-red">
+                                        You can not claim this token to your bank account.{' '}
+                                        <CrispButton className="text-blue-600 underline">Chat with support</CrispButton>
+                                    </label>
+                                ) : (
+                                    <>
+                                        {errorState.errorMessage === 'No route found for the given token pair.' && (
+                                            <>
+                                                <label className="text-h8 font-normal text-red">
+                                                    {isPeanutWallet
+                                                        ? 'This token cannot be claimed from peanut wallet. You can use an external wallet'
+                                                        : errorState.errorMessage}
+                                                </label>{' '}
+                                                {!isPeanutWallet && (
+                                                    <span
+                                                        className="cursor-pointer text-h8 font-normal text-red underline"
+                                                        onClick={() => {
+                                                            setSelectedRoute(null)
+                                                            setHasFetchedRoute(false)
+                                                            setErrorState({
+                                                                showError: false,
+                                                                errorMessage: '',
+                                                            })
+                                                            resetSelectedToken()
+                                                        }}
+                                                    >
+                                                        reset
+                                                    </span>
+                                                )}
+                                            </>
+                                        )}
+                                        {errorState.errorMessage === 'offramp_lt_minimum' && (
                                             <label className="text-h8 font-normal text-red">
-                                                {isPeanutWallet
-                                                    ? 'This token cannot be claimed from peanut wallet. You can use an external wallet'
-                                                    : errorState.errorMessage}
-                                            </label>{' '}
-                                            {!isPeanutWallet && (
-                                                <span
-                                                    className="cursor-pointer text-h8 font-normal text-red underline"
-                                                    onClick={() => {
-                                                        setSelectedRoute(null)
-                                                        setHasFetchedRoute(false)
-                                                        setErrorState({
-                                                            showError: false,
-                                                            errorMessage: '',
-                                                        })
-                                                        resetSelectedToken()
-                                                    }}
-                                                >
-                                                    reset
-                                                </span>
-                                            )}
-                                        </>
-                                    )}
-                                    {errorState.errorMessage === 'offramp_lt_minimum' && (
-                                        <label className="text-h8 font-normal text-red">
-                                            You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
-                                            account.
-                                        </label>
-                                    )}
-                                    {errorState.errorMessage === 'offramp_mt_maximum' && (
-                                        <label className="text-h8 font-normal text-red">
-                                            You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
-                                            account.
-                                        </label>
-                                    )}
-                                    {![
-                                        'offramp_lt_minimum',
-                                        'offramp_mt_maximum',
-                                        'No route found for the given token pair.',
-                                    ].includes(errorState.errorMessage) && (
-                                        <label className="text-h8 font-normal text-red">
-                                            {errorState.errorMessage}
-                                        </label>
-                                    )}
-                                </>
-                            )}
-                        </div>
-                    )}
-                </div>{' '}
-                <Popover id="HEpPuXFz" />
-            </Card.Content>
-        </Card>
+                                                You can not claim links with less than ${MIN_CASHOUT_LIMIT} to your bank
+                                                account.
+                                            </label>
+                                        )}
+                                        {errorState.errorMessage === 'offramp_mt_maximum' && (
+                                            <label className="text-h8 font-normal text-red">
+                                                You can not claim links with more than ${MAX_CASHOUT_LIMIT} to your bank
+                                                account.
+                                            </label>
+                                        )}
+                                        {![
+                                            'offramp_lt_minimum',
+                                            'offramp_mt_maximum',
+                                            'No route found for the given token pair.',
+                                        ].includes(errorState.errorMessage) && (
+                                            <label className="text-h8 font-normal text-red">
+                                                {errorState.errorMessage}
+                                            </label>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        )}
+                    </div>{' '}
+                    <Popover id="HEpPuXFz" />
+                </Card.Content>
+            </Card>
+        </div>
     )
 }

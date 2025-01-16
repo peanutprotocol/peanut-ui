@@ -60,28 +60,30 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Yay!</Card.Title>
-                <Card.Description>You have successfully claimed your funds!</Card.Description>
+            <Card.Header className="mx-auto">
+                <Card.Title className="mx-auto text-center">Yay!</Card.Title>
+                <Card.Description className="mx-auto text-center">
+                    You have successfully claimed your funds!
+                </Card.Description>
             </Card.Header>
             <Card.Content className="flex flex-col gap-2">
-                <label className="text-h8 font-normal text-gray-1">Transaction details</label>
+                <label className="text-center text-h8 font-normal text-gray-1">Transaction details</label>
                 {type === 'claimxchain' && (
                     <div className="flex flex-col items-start justify-center gap-1 text-h9  font-normal">
-                        <div className="flex w-full flex-row items-center justify-start gap-1">
+                        <div className="flex w-full flex-row items-center justify-between gap-1">
                             <label className="">Source chain:</label>
                             <Link className="cursor-pointer  underline" href={explorerUrlWithTx}>
                                 {utils.shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
-                        <div className="flex w-full flex-row items-center justify-start gap-1">
+                        <div className="flex w-full flex-row items-center justify-between gap-1">
                             <label className="">Cross-chain Routing via Axelar:</label>
 
                             <Link className="cursor-pointer  underline" href={explorerUrlAxelarWithTx}>
                                 {utils.shortenAddressLong(transactionHash ?? '')}
                             </Link>
                         </div>
-                        <div className="flex w-full flex-row  items-center justify-start gap-1">
+                        <div className="flex w-full flex-row  items-center justify-between gap-1">
                             <label className="">Destination Address:</label>
                             {!explorerUrlDestChainWithTxHash ? (
                                 <div className="h-2 w-16 animate-colorPulse rounded bg-slate-700"></div>
@@ -110,7 +112,7 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
                         See your payments.
                     </Button>
                 </Link>
-                <label className="text-h9 font-normal">
+                <label className="text-center text-h9 font-normal">
                     We would like to hear from your experience. Hit us up on{' '}
                     <a
                         className="cursor-pointer text-black underline dark:text-white"

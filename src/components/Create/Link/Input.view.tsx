@@ -9,6 +9,7 @@ import { useCreateLink } from '../useCreateLink'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import FileUploadInput from '@/components/Global/FileUploadInput'
+import FlowHeader from '@/components/Global/FlowHeader'
 import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
@@ -307,113 +308,122 @@ export const CreateLinkInputView = ({
     }, [isPeanutWallet])
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}>
-                    {' '}
-                    {createType === 'link'
-                        ? 'Text Tokens'
-                        : createType === 'direct'
-                          ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
-                          : `Send to ${recipient.name}`}
-                </Card.Title>
-                <Card.Description className="mx-auto max-w-96 text-center">
-                    {createType === 'link' &&
-                        'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
-                    {createType === 'email_link' &&
-                        `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
-                    {createType === 'sms_link' &&
-                        `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
-                    {createType === 'direct' &&
-                        `You will do a direct blockchain transaction to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
-                </Card.Description>
-            </Card.Header>
-            <Card.Content className="flex flex-col gap-4">
-                <div className="flex flex-col gap-4">
-                    <TokenAmountInput
-                        className="w-full"
-                        tokenValue={_tokenValue}
-                        maxValue={maxValue}
-                        setTokenValue={_setTokenValue}
-                        onSubmit={() => {
-                            if (!isConnected) signInModal.open()
-                            else handleOnNext()
-                        }}
-                    />
-                    {isExternalWallet && (
-                        <>
-                            <TokenSelector classNameButton="w-full" />
-                            {selectedWallet!.balances!.length === 0 && (
-                                <div
-                                    onClick={() => {
-                                        open()
-                                    }}
-                                    className="cursor-pointer text-h9 underline"
-                                >
-                                    ( Buy Tokens )
-                                </div>
-                            )}
-                        </>
-                    )}
-                    {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
-                        <FileUploadInput
-                            attachmentOptions={attachmentOptions}
-                            setAttachmentOptions={setAttachmentOptions}
-                        />
-                    )}
-                </div>
-                <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
-                    <Button
-                        onClick={() => {
-                            if (!isConnected) {
-                                if (isPeanutWallet) {
-                                    setLoadingState('Logging in')
-                                    handleLogin()
-                                        .then(() => {
-                                            handleOnNext()
-                                        })
-                                        .catch((_error) => {
-                                            toast.error('Error logging in')
-                                        })
-                                        .finally(() => {
-                                            setLoadingState('Idle')
-                                        })
-                                } else {
-                                    signInModal.open()
-                                }
-                            } else {
-                                handleOnNext()
-                            }
-                        }}
-                        loading={isLoading}
-                        disabled={isLoading || !tokenValue}
+        <>
+            <FlowHeader />
+            <Card className="shadow-none sm:shadow-primary-4">
+                <Card.Header>
+                    <Card.Title
+                        style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
+                        className="text-center"
                     >
-                        {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
-                    </Button>
-                    <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
-                        Go Back
-                    </Button>
-                </div>
-                {errorState.showError && (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        {' '}
+                        {createType === 'link'
+                            ? 'Text Tokens'
+                            : createType === 'direct'
+                              ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
+                              : `Send to ${recipient.name}`}
+                    </Card.Title>
+                    <Card.Description className="mx-auto max-w-96 text-center">
+                        {createType === 'link' &&
+                            'Deposit some crypto to the link, no need for wallet addresses. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
+                        {createType === 'email_link' &&
+                            `You will send an email to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                        {createType === 'sms_link' &&
+                            `You will send a text message to ${recipient.name ?? recipient.address} containing a link. They will be able to claim the funds in any token on any chain from the link.`}
+                        {createType === 'direct' &&
+                            `You will do a direct blockchain transaction to ${recipient.name ?? recipient.address}. Ensure the recipient address is correct, else the funds might be lost.`}
+                    </Card.Description>
+                </Card.Header>
+                <Card.Content className="flex flex-col gap-4">
+                    <div className="flex flex-col gap-4">
+                        <TokenAmountInput
+                            className="w-full"
+                            tokenValue={_tokenValue}
+                            maxValue={maxValue}
+                            setTokenValue={_setTokenValue}
+                            onSubmit={() => {
+                                if (!isConnected) signInModal.open()
+                                else handleOnNext()
+                            }}
+                        />
+                        {isExternalWallet && (
+                            <>
+                                <TokenSelector classNameButton="w-full" />
+                                {selectedWallet!.balances!.length === 0 && (
+                                    <div
+                                        onClick={() => {
+                                            open()
+                                        }}
+                                        className="cursor-pointer text-h9 underline"
+                                    >
+                                        ( Buy Tokens )
+                                    </div>
+                                )}
+                            </>
+                        )}
+                        {(createType === 'link' || createType === 'email_link' || createType === 'sms_link') && (
+                            <FileUploadInput
+                                attachmentOptions={attachmentOptions}
+                                setAttachmentOptions={setAttachmentOptions}
+                            />
+                        )}
                     </div>
-                )}
-                {!crossChainDetails.find((chain: any) => chain.chainId.toString() === selectedChainID.toString()) && (
-                    <span className=" text-h8 font-normal ">
-                        <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain claiming.
-                    </span>
-                )}
+                    <div className="mb-4 flex flex-col gap-4 sm:flex-row-reverse">
+                        <Button
+                            onClick={() => {
+                                if (!isConnected) {
+                                    if (isPeanutWallet) {
+                                        setLoadingState('Logging in')
+                                        handleLogin()
+                                            .then(() => {
+                                                handleOnNext()
+                                            })
+                                            .catch((_error) => {
+                                                toast.error('Error logging in')
+                                            })
+                                            .finally(() => {
+                                                setLoadingState('Idle')
+                                            })
+                                    } else {
+                                        signInModal.open()
+                                    }
+                                } else {
+                                    handleOnNext()
+                                }
+                            }}
+                            loading={isLoading}
+                            disabled={isLoading || !tokenValue}
+                        >
+                            {!isConnected && !isPeanutWallet ? 'Connect Wallet' : isLoading ? loadingState : 'Confirm'}
+                        </Button>
+                        {/* <Button variant="stroke" onClick={onPrev} disabled={isLoading}>
+                        Go Back
+                    </Button> */}
+                    </div>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                    {!crossChainDetails.find(
+                        (chain: any) => chain.chainId.toString() === selectedChainID.toString()
+                    ) && (
+                        <span className=" text-h8 font-normal ">
+                            <Icon name="warning" className="-mt-0.5" /> This chain does not support cross-chain
+                            claiming.
+                        </span>
+                    )}
 
-                <span className="flex  flex-row items-center justify-center gap-1 text-center text-h8">
-                    Learn about peanut cashout
-                    <MoreInfo
-                        text={
-                            'You can use peanut to cash out your funds directly to your bank account! (US and EU only)'
-                        }
-                    />
-                </span>
-            </Card.Content>
-        </Card>
+                    <span className="flex  flex-row items-center justify-center gap-1 text-center text-h8">
+                        Learn about peanut cashout
+                        <MoreInfo
+                            text={
+                                'You can use peanut to cash out your funds directly to your bank account! (US and EU only)'
+                            }
+                        />
+                    </span>
+                </Card.Content>
+            </Card>
+        </>
     )
 }
