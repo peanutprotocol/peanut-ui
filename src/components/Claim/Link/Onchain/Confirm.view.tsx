@@ -115,7 +115,7 @@ export const ConfirmClaimLinkView = ({
             <FlowHeader onPrev={onPrev} disableBackBtn={isLoading} />
             <Card>
                 <Card.Header>
-                    <Card.Title className="text-center">
+                    <Card.Title className="mx-auto text-center">
                         <AddressLink address={claimLinkData.senderAddress} /> <br /> sent you{' '}
                         <label className="text-h2 ">
                             {claimLinkData.tokenAmount} {claimLinkData.tokenSymbol} <br /> on{' '}
