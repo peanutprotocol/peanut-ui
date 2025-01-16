@@ -138,7 +138,7 @@ export const KernelClientProvider = ({ children }: { children: ReactNode }) => {
 export const useKernelClient = (): KernelClientContextType => {
     const context = useContext(KernelClientContext)
     if (context === undefined) {
-        throw new Error('useAuth must be used within an AuthProvider')
+        throw new Error('useKernelClient must be used within a KernelClientProvider')
     }
     return context
 }
