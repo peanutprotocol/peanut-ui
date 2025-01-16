@@ -437,7 +437,7 @@ export const InitialClaimLinkView = ({
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title>
+                    <Card.Title className="mx-auto">
                         <div className="flex w-full flex-col items-center justify-center gap-2">
                             <AddressLink address={claimLinkData.senderAddress} /> sent you
                             {tokenPrice ? (
