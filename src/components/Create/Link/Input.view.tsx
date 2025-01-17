@@ -80,9 +80,6 @@ export const CreateLinkInputView = ({
 
     const { open } = useAppKit()
 
-    const handleConnectWallet = async () => {
-        open()
-    }
     const { selectedWallet, signInModal, isConnected, address, isExternalWallet, isPeanutWallet } = useWallet()
 
     const handleOnNext = async () => {

@@ -11,7 +11,7 @@ import * as _consts from '../../Claim.consts'
 
 export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _consts.IClaimScreenProps) => {
     const connections = useConnections()
-    const { isConnected, address, chain: currentChain } = useWallet()
+    const { isConnected, address, chain: currentChain, isPeanutWallet } = useWallet()
     const { switchChainAsync } = useSwitchChain()
 
     const { resetTokenContextProvider, selectedChainID } = useContext(context.tokenSelectorContext)
@@ -45,11 +45,11 @@ export const SuccessClaimLinkView = ({ transactionHash, claimLinkData, type }: _
     }
 
     useEffect(() => {
-        resetTokenContextProvider()
+        if (!isPeanutWallet) resetTokenContextProvider()
         if (transactionHash && type === 'claimxchain') {
             fetchDestinationChain(transactionHash, setExplorerUrlDestChainWithTxHash)
         }
-    }, [])
+    }, [isPeanutWallet, transactionHash, type])
 
     useEffect(() => {
         if (isw3mEmailWallet && isConnected) {
