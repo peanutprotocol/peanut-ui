@@ -242,6 +242,13 @@ export const CreateLinkInputView = ({
         }
     }
 
+    const handleFileUploadError = (error: string) => {
+        setErrorState({
+            showError: true,
+            errorMessage: error,
+        })
+    }
+
     const maxValue = useMemo(() => {
         const balance = balanceByToken(selectedChainID, selectedTokenAddress)
         if (!balance) return ''
@@ -314,6 +321,7 @@ export const CreateLinkInputView = ({
                     <FileUploadInput
                         attachmentOptions={attachmentOptions}
                         setAttachmentOptions={setAttachmentOptions}
+                        onError={handleFileUploadError}
                     />
                 )}
             </div>

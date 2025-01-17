@@ -1,5 +1,5 @@
-import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 import * as interfaces from '@/interfaces'
+import { CHAIN_DETAILS, TOKEN_DETAILS } from '@squirrel-labs/peanut-sdk'
 const ipfsProviderArray = [
     'https://ipfs.io/ipfs/',
     'https://cloudflare-ipfs.com/ipfs/',
@@ -32,6 +32,7 @@ const supportedWalletconnectChains = <{ chainId: string; name: string }[]>[
     { chainId: '7777777', name: 'Zora 1' },
     { chainId: '1313161554', name: 'Aurora 1' },
 ]
+
 export const supportedMobulaChains = <{ name: string; chainId: string }[]>[
     {
         name: 'Fantom',
@@ -169,3 +170,30 @@ export const nativeCurrencyAddresses: string[] = [
     '0xeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
     '0x0000000000000000000000000000000000000000',
 ]
+
+export const FILE_UPLOAD_ALLOWED_MIME_TYPES = new Set([
+    // images
+    'image/jpeg',
+    'image/png',
+    'image/gif',
+    'image/webp',
+    // pdfs
+    'application/pdf',
+])
+
+export const FILE_UPLOAD_MAX_FILE_SIZE = 5 * 1024 * 1024
+
+/**
+ * A constant object that holds valid file signatures (magic numbers) for different file types.
+ * These signatures are used to verify the integrity and type of a file based on its binary content.
+ * used https://www.garykessler.net/library/file_sigs.html and https://en.wikipedia.org/wiki/List_of_file_signatures as references
+ */
+export const VALID_FILE_SIGNATURES = {
+    PNG: '89504e47', // ‰PNG
+    JPEG: [
+        'ffd8ffe0', // JPEG/JFIF
+        'ffd8ffe1', // JPEG with EXIF
+        'ffd8ffe2', // JPEG with SPIFF
+    ],
+    PDF: '25504446', // %PDF
+} as const
