@@ -6,8 +6,9 @@ import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet, useWalletConnection } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { WalletProviderType } from '@/interfaces'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
@@ -22,6 +23,7 @@ export default function Home() {
     const controls = useAnimation()
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
+    const { connectWallet: connectNewWallet } = useWalletConnection()
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
@@ -29,18 +31,31 @@ export default function Home() {
     })
 
     const { addBYOW, username } = useAuth()
-    const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet } = useWallet()
+
+    const { selectedWallet, wallets, isPeanutWallet, isConnected, setSelectedWallet, isWalletConnected } = useWallet()
+
+    // Initialize focusedIndex to match selectedWalletIndex
+    const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
+    const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
+    const [focusedIndex, setFocusedIndex] = useState(selectedWalletIndex)
+
+    // Update focusedIndex when selectedWallet changes
+    useEffect(() => {
+        const index = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
+        if (index !== -1) {
+            setFocusedIndex(index)
+        }
+    }, [selectedWallet, wallets])
+
+    const handleAddBYOW = async () => {
+        await connectNewWallet()
+    }
 
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
     const toast = useToast()
-
-    const rawIndex = wallets.findIndex((wallet) => wallet.address === selectedWallet?.address)
-    const selectedWalletIndex = rawIndex === -1 ? 0 : rawIndex
-
     const totalCards = hasWallets ? wallets.length + 1 : 1
 
-    // hide balance
     const handleToggleBalanceVisibility = (e: React.MouseEvent<HTMLButtonElement>) => {
         e.stopPropagation()
         setIsBalanceHidden((prev: boolean) => {
@@ -59,12 +74,50 @@ export default function Home() {
 
     const handleCardClick = (index: number) => {
         if (index < wallets.length) {
-            if (selectedWalletIndex === index) {
+            const wallet = wallets[index]
+
+            if (focusedIndex !== index) {
+                setFocusedIndex(index)
+                controls.start({
+                    x: -(index * (cardWidth + cardMargin)),
+                    transition: { type: 'spring', stiffness: 300, damping: 30 },
+                })
+
+                if (wallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(wallet)) {
+                    setSelectedWallet(wallet)
+                }
+                return
+            }
+
+            if (focusedIndex === index) {
                 router.push('/wallet')
-            } else {
-                setSelectedWallet(wallets[index])
             }
         }
+    }
+
+    const handleDragEnd = (_e: any, { offset, velocity }: any) => {
+        const swipe = Math.abs(offset.x) * velocity.x
+        let targetIndex = focusedIndex
+
+        if (swipe < -10000) {
+            targetIndex = Math.min(focusedIndex + 1, totalCards - 1)
+        } else if (swipe > 10000) {
+            targetIndex = Math.max(focusedIndex - 1, 0)
+        }
+
+        setFocusedIndex(targetIndex)
+
+        if (targetIndex < wallets.length) {
+            const targetWallet = wallets[targetIndex]
+            if (targetWallet.walletProviderType === WalletProviderType.PEANUT || isWalletConnected(targetWallet)) {
+                setSelectedWallet(targetWallet)
+            }
+        }
+
+        controls.start({
+            x: -(targetIndex * (cardWidth + cardMargin)),
+            transition: { type: 'spring', stiffness: 300, damping: 30 },
+        })
     }
 
     return (
@@ -117,43 +170,31 @@ export default function Home() {
                                     right: 0,
                                 }}
                                 dragElastic={0.2}
-                                onDragEnd={(_e, { offset, velocity }) => {
-                                    const swipe = Math.abs(offset.x) * velocity.x
-                                    if (swipe < -10000) {
-                                        const nextIndex = Math.min(selectedWalletIndex + 1, totalCards - 1)
-                                        if (nextIndex < wallets.length) {
-                                            setSelectedWallet(wallets[nextIndex])
-                                        }
-                                    } else if (swipe > 10000) {
-                                        const prevIndex = Math.max(selectedWalletIndex - 1, 0)
-                                        setSelectedWallet(wallets[prevIndex])
-                                    } else {
-                                        controls.start({
-                                            x: -(selectedWalletIndex * (cardWidth + cardMargin)),
-                                            transition: { type: 'spring', stiffness: 300, damping: 30 },
-                                        })
-                                    }
-                                }}
+                                onDragEnd={handleDragEnd}
                             >
-                                {wallets.map((wallet, index) => (
-                                    <WalletCard
-                                        key={wallet.address}
-                                        type="wallet"
-                                        wallet={wallet}
-                                        username={username ?? ''}
-                                        selected={selectedWalletIndex === index}
-                                        onClick={() => handleCardClick(index)}
-                                        index={index}
-                                        isBalanceHidden={isBalanceHidden}
-                                        onToggleBalanceVisibility={handleToggleBalanceVisibility}
-                                    />
-                                ))}
+                                {!!wallets.length &&
+                                    wallets.map((wallet, index) => (
+                                        <WalletCard
+                                            key={wallet.address}
+                                            type="wallet"
+                                            wallet={wallet}
+                                            username={username ?? ''}
+                                            selected={selectedWalletIndex === index}
+                                            // isConnected={isWalletConnected(wallet)}
+                                            // isUsable={isWalletUsable(wallet)}
+                                            onClick={() => handleCardClick(index)}
+                                            index={index}
+                                            isBalanceHidden={isBalanceHidden}
+                                            onToggleBalanceVisibility={handleToggleBalanceVisibility}
+                                            isFocused={focusedIndex === index}
+                                        />
+                                    ))}
 
-                                <WalletCard type="add" onClick={addBYOW} />
+                                <WalletCard type="add" onClick={handleAddBYOW} />
                             </motion.div>
                         ) : (
                             <div className="flex h-full w-full flex-grow flex-col justify-center">
-                                <WalletCard type="add" onClick={addBYOW} />
+                                <WalletCard type="add" onClick={handleAddBYOW} />
                             </div>
                         )}
                     </div>

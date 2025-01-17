@@ -8,7 +8,8 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
-import { useQuery } from '@tanstack/react-query'
+import { useAppKit, useDisconnect } from '@reown/appkit/react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
@@ -27,16 +28,160 @@ const createDefaultDBWallet = (address: string): interfaces.IDBWallet => ({
     address,
 })
 
+const useAddWalletAccount = () => {
+    const { addAccount, user, fetchUser } = useAuth()
+    const toast = useToast()
+
+    // keep track of processed addresses to prevent duplicate calls
+    const processedAddresses = useRef(new Set<string>())
+
+    return useMutation({
+        mutationFn: async ({
+            address,
+            providerType,
+        }: {
+            address: string
+            providerType: interfaces.WalletProviderType
+        }) => {
+            if (!user) {
+                throw new Error('Please log in first')
+            }
+
+            if (!address) {
+                throw new Error('No wallet address provided')
+            }
+
+            const lowerAddress = address.toLowerCase()
+
+            // Check if we've already processed this address in this session
+            if (processedAddresses.current.has(lowerAddress)) {
+                return { address, providerType }
+            }
+
+            // Check if wallet already exists in user accounts
+            const existingAddresses = new Set(user.accounts.map((acc) => acc.account_identifier.toLowerCase()))
+
+            if (existingAddresses.has(lowerAddress)) {
+                throw new Error('This wallet is already associated with your account')
+            }
+
+            // Add to processed set before making the API call
+            processedAddresses.current.add(lowerAddress)
+
+            await addAccount({
+                accountIdentifier: address,
+                accountType: providerType,
+                userId: user.user.userId,
+            })
+
+            return { address, providerType }
+        },
+        onSuccess: async () => {
+            await fetchUser()
+        },
+        onError: (error: Error) => {
+            if (error.message.includes('Account already exists')) {
+                toast.error('This wallet is already associated with another account.')
+            } else {
+                toast.error(error.message)
+            }
+        },
+    })
+}
+
+// First, create a new hook to manage wallet connections
+export const useWalletConnection = () => {
+    const { disconnect } = useDisconnect()
+    const { open: openWeb3Modal } = useAppKit()
+    const { isConnected: isWagmiConnected, address: connectedWalletAddress } = useAccount()
+    const addWalletMutation = useAddWalletAccount()
+    const { user } = useAuth()
+    const toast = useToast()
+
+    // Add a ref to track if we're in the process of adding a new wallet
+    const isAddingNewWallet = useRef(false)
+
+    const connectWallet = useCallback(async () => {
+        try {
+            // Set the flag when we're explicitly trying to add a new wallet
+            isAddingNewWallet.current = true
+
+            // 1. Ensure any existing connection is cleared
+            if (isWagmiConnected) {
+                await disconnect()
+                // Wait for disconnect to complete
+                await new Promise((resolve) => setTimeout(resolve, 500))
+            }
+
+            // 2. Open modal and wait for connection
+            await openWeb3Modal()
+
+            // 3. Wait for connection to be established
+            await new Promise((resolve) => setTimeout(resolve, 2000))
+
+            // 4. Verify and add the new wallet if needed
+            const newAddress = connectedWalletAddress
+            if (!newAddress) {
+                console.log('No wallet address received')
+                return
+            }
+
+            // Only proceed with account addition if we're explicitly adding a new wallet
+            if (isAddingNewWallet.current) {
+                // Check if wallet is already in user's accounts
+                const isExistingAccount = user?.accounts.some(
+                    (acc) => acc.account_identifier.toLowerCase() === newAddress.toLowerCase()
+                )
+
+                // Only add to backend if it's a new account
+                if (isExistingAccount) {
+                    return
+                }
+
+                console.log('Adding new wallet to backend:', newAddress)
+                await addWalletMutation.mutateAsync({
+                    address: newAddress,
+                    providerType: interfaces.WalletProviderType.BYOW,
+                })
+                // } else {
+                //     console.log('Wallet already exists in user accounts:', newAddress)
+                // }
+            }
+        } catch (error) {
+            console.error('Connection error:', error)
+            if (error instanceof Error) {
+                toast.error(error.message)
+            } else {
+                toast.error('Failed to connect wallet')
+            }
+        } finally {
+            // Reset the flag when we're done
+            isAddingNewWallet.current = false
+        }
+    }, [openWeb3Modal, disconnect, connectedWalletAddress, addWalletMutation, user?.accounts])
+
+    const disconnectWallet = useCallback(async () => {
+        // Ensure we're not in adding mode when disconnecting
+        isAddingNewWallet.current = false
+        if (isWagmiConnected) {
+            await disconnect()
+        }
+    }, [disconnect, isWagmiConnected])
+
+    return {
+        connectWallet,
+        disconnectWallet,
+        isConnecting: addWalletMutation.isPending,
+    }
+}
+
 export const useWallet = () => {
     const dispatch = useAppDispatch()
-    const toast = useToast()
+    const { user } = useAuth()
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
     const { isConnected: isWagmiConnected, addresses: wagmiAddresses, connector } = useAccount()
-    const { addAccount, user } = useAuth()
-    const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
 
-    // use a ref to persist processed addresses across renders
-    const processedAddressesRef = useRef(new Set<string>())
+    const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
 
     const isWalletConnected = useCallback(
         (wallet: interfaces.IDBWallet): boolean => {
@@ -51,81 +196,87 @@ export const useWallet = () => {
         [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddresses]
     )
 
+    const fetchWalletDetails = useCallback(
+        async (address: string, walletProviderType: interfaces.WalletProviderType) => {
+            const dbWallet: interfaces.IDBWallet = {
+                walletProviderType,
+                protocolType: interfaces.WalletProtocolType.EVM,
+                address,
+                connector: {
+                    iconUrl: connector?.icon || '',
+                    name: connector?.name || 'External Wallet',
+                },
+            }
+
+            let balance = BigInt(0)
+            let balances: interfaces.IUserBalance[] | undefined
+
+            if (isPeanut(dbWallet)) {
+                balance = await peanutPublicClient.readContract({
+                    address: PEANUT_WALLET_TOKEN,
+                    abi: erc20Abi,
+                    functionName: 'balanceOf',
+                    args: [getAddress(address)],
+                })
+            } else {
+                const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(address)
+                balances = fetchedBalances
+                balance = parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS)
+            }
+
+            return { ...dbWallet, balance, balances, connected: isWalletConnected(dbWallet) }
+        },
+        [connector, isWalletConnected]
+    )
+
+    const mergeAndProcessWallets = useCallback(async () => {
+        const userAccounts = user?.accounts || []
+        const wagmiAddressesList = wagmiAddresses || []
+
+        const processedAccounts = await Promise.all(
+            userAccounts
+                .filter((account) =>
+                    Object.values(interfaces.WalletProviderType).includes(
+                        account.account_type as unknown as interfaces.WalletProviderType
+                    )
+                )
+                .sort((a, b) => {
+                    if (interfaces.AccountType.PEANUT_WALLET === a.account_type) {
+                        return -1
+                    } else if (interfaces.AccountType.PEANUT_WALLET === b.account_type) {
+                        return 1
+                    }
+                    const dateA = new Date(a.created_at)
+                    const dateB = new Date(b.created_at)
+                    return dateA.getTime() - dateB.getTime()
+                })
+                .map((account) =>
+                    fetchWalletDetails(
+                        account.account_identifier,
+                        account.account_type as unknown as interfaces.WalletProviderType
+                    )
+                )
+        )
+
+        const processedExternalWallets = await Promise.all(
+            wagmiAddressesList.map((address) => fetchWalletDetails(address, interfaces.WalletProviderType.BYOW))
+        )
+
+        const mergedWallets = [...processedAccounts, ...processedExternalWallets].reduce((unique, wallet) => {
+            if (!unique.some((w) => areEvmAddressesEqual(w.address, wallet.address))) {
+                unique.push(wallet)
+            }
+            return unique
+        }, [] as interfaces.IDBWallet[])
+
+        dispatch(walletActions.setWallets(mergedWallets))
+        return mergedWallets
+    }, [fetchWalletDetails, wagmiAddresses, user?.accounts, dispatch])
+
     useQuery({
         queryKey: ['wallets', user?.accounts, wagmiAddresses],
-        queryFn: async () => {
-            if (!user && !wagmiAddresses) return []
-
-            const processedWallets = user
-                ? await Promise.all(
-                      user.accounts
-                          .filter((account) =>
-                              Object.values(interfaces.WalletProviderType).includes(
-                                  account.account_type as unknown as interfaces.WalletProviderType
-                              )
-                          )
-                          .sort((a, b) => {
-                              if (interfaces.AccountType.PEANUT_WALLET === a.account_type) {
-                                  return -1
-                              } else if (interfaces.AccountType.PEANUT_WALLET === b.account_type) {
-                                  return 1
-                              }
-                              const dateA = new Date(a.created_at)
-                              const dateB = new Date(b.created_at)
-                              return dateA.getTime() - dateB.getTime()
-                          })
-                          .map(async (account) => {
-                              const dbWallet: interfaces.IDBWallet = {
-                                  walletProviderType: account.account_type as unknown as interfaces.WalletProviderType,
-                                  protocolType: interfaces.WalletProtocolType.EVM,
-                                  address: account.account_identifier,
-                                  connector: {
-                                      iconUrl: connector?.icon || account.connector?.iconUrl!,
-                                      name: connector?.name || account.connector?.name!,
-                                  },
-                              }
-
-                              let balance = BigInt(0)
-                              let balances: interfaces.IUserBalance[] | undefined
-
-                              if (isPeanut(dbWallet)) {
-                                  balance = await peanutPublicClient.readContract({
-                                      address: PEANUT_WALLET_TOKEN,
-                                      abi: erc20Abi,
-                                      functionName: 'balanceOf',
-                                      args: [getAddress(dbWallet.address)],
-                                  })
-                              } else {
-                                  const { balances: fetchedBalances, totalBalance } = await fetchWalletBalances(
-                                      dbWallet.address
-                                  )
-                                  balances = fetchedBalances
-                                  balance = parseUnits(totalBalance.toString(), 6)
-                              }
-
-                              return { ...dbWallet, balance, balances, connected: isWalletConnected(dbWallet) }
-                          })
-                  )
-                : wagmiAddresses
-                  ? await Promise.all(
-                        wagmiAddresses.map(async (address) => {
-                            const { balances, totalBalance } = await fetchWalletBalances(address)
-                            return {
-                                ...createDefaultDBWallet(address),
-                                connected: isWalletConnected(createDefaultDBWallet(address)),
-                                balances,
-                                balance: parseUnits(totalBalance.toString(), PEANUT_WALLET_TOKEN_DECIMALS),
-                                connector: {
-                                    iconUrl: connector?.icon,
-                                    name: connector?.name,
-                                },
-                            }
-                        })
-                    )
-                  : []
-            dispatch(walletActions.setWallets(processedWallets))
-            return processedWallets
-        },
+        queryFn: mergeAndProcessWallets,
+        enabled: !!user || !!wagmiAddresses,
     })
 
     const selectedWallet = useMemo(() => {
@@ -148,53 +299,6 @@ export const useWallet = () => {
             dispatch(walletActions.setWalletColor(backgroundColorFromAddress(selectedWallet.address)))
         }
     }, [selectedWallet, dispatch])
-
-    useEffect(() => {
-        if (!user || !wagmiAddresses || !wallets.length) return
-
-        // create a Set of existing wallet addresses for faster lookup
-        const existingAddresses = new Set(wallets.map((wallet) => wallet.address.toLowerCase()))
-
-        // gilter and process new addresses only once
-        const newAddresses = wagmiAddresses.filter((addr) => {
-            const lowerAddr = addr.toLowerCase()
-            if (!existingAddresses.has(lowerAddr) && !processedAddressesRef.current.has(lowerAddr)) {
-                processedAddressesRef.current.add(lowerAddr)
-                return true
-            }
-            return false
-        })
-
-        if (newAddresses.length) {
-            const connectorInfo =
-                connector && connector.icon
-                    ? {
-                          iconUrl: connector.icon,
-                          name: connector.name,
-                      }
-                    : undefined
-
-            // Promise.allSettled to ensure all API calls are handled correctly
-            ;(async () => {
-                const addAccountPromises = newAddresses.map((address) =>
-                    addAccount({
-                        accountIdentifier: address,
-                        accountType: interfaces.WalletProviderType.BYOW,
-                        userId: user.user.userId,
-                        connector: connectorInfo,
-                    }).catch((error) => {
-                        console.error(`Error adding wallet ${address}:`, error)
-                        const errorMsg = error.message.includes('Account already exists')
-                            ? 'Could not add external wallet, already associated with another account'
-                            : 'Unexpected error adding external wallet'
-                        toast.error(errorMsg)
-                    })
-                )
-
-                await Promise.allSettled(addAccountPromises)
-            })()
-        }
-    }, [wagmiAddresses, user?.user.userId, wallets, connector])
 
     const refetchBalances = useCallback(
         async (address: string) => {
@@ -252,5 +356,6 @@ export const useWallet = () => {
         isPeanutWallet: isPeanut(selectedWallet),
         isExternalWallet: isExternalWallet(selectedWallet),
         selectExternalWallet,
+        isWalletConnected,
     }
 }

@@ -10,7 +10,8 @@ const SetupPasskey = () => {
     const { handle } = useSetupStore()
     const { handleNext, isLoading } = useSetupFlow()
     const { handleRegister, address } = useZeroDev()
-    const { addAccount, user } = useAuth()
+    const { user } = useAuth()
+    const { addAccount } = useAuth()
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -38,14 +39,14 @@ const SetupPasskey = () => {
                     try {
                         await handleRegister(handle)
                     } catch (e) {
-                        console.error('Error registering passkey', e)
-                        setError('Error registering passkey')
+                        console.error('Error registering passkey:', e)
+                        setError('Error registering passkey.')
                     }
                 }}
                 className="text-nowrap"
                 shadowSize="4"
             >
-                Add a passkey
+                Add a Passkey
             </Button>
             {error && <p className="text-sm font-bold text-error">{error}</p>}
         </div>
