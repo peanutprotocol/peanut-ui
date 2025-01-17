@@ -82,7 +82,8 @@ export const InitialClaimLinkView = ({
         supportedSquidChainsAndTokens,
     } = useContext(context.tokenSelectorContext)
     const { claimLink } = useClaimLink()
-    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet, selectedWallet } = useWallet()
+    const { isConnected, address, signInModal, isExternalWallet, isPeanutWallet, selectedWallet, refetchBalances } =
+        useWallet()
     const { user } = useAuth()
 
     const resetSelectedToken = useCallback(() => {
@@ -142,6 +143,7 @@ export const InitialClaimLinkView = ({
                 setClaimType('claim')
                 setTransactionHash(claimTxHash)
                 onCustom('SUCCESS')
+                refetchBalances(address ?? '')
             } else {
                 throw new Error('Error claiming link')
             }
