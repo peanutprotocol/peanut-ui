@@ -126,6 +126,8 @@ export const useWallet = () => {
             dispatch(walletActions.setWallets(processedWallets))
             return processedWallets
         },
+        staleTime: 30 * 1000, // 30 seconds
+        gcTime: 1 * 60 * 1000, // 1 minute
     })
 
     const selectedWallet = useMemo(() => {
@@ -224,7 +226,7 @@ export const useWallet = () => {
                 console.error('Error refetching balance:', error)
             }
         },
-        [wallets, dispatch]
+        [wallets]
     )
 
     const selectExternalWallet = useCallback(() => {
