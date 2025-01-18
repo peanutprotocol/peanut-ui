@@ -9,8 +9,8 @@ import Icon from '@/components/Global/Icon'
 import MoreInfo from '@/components/Global/MoreInfo'
 import { peanutTokenDetails, supportedPeanutChains } from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
 import { useWalletType } from '@/hooks/useWalletType'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import {
     areEvmAddressesEqual,
     ErrorHandler,

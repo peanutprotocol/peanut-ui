@@ -6,8 +6,9 @@ import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
 import { useAuth } from '@/context/authContext'
-import { useWallet, useWalletConnection } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { WalletProviderType } from '@/interfaces'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
@@ -23,7 +24,7 @@ export default function Home() {
     const controls = useAnimation()
     const router = useRouter()
     const carouselRef = useRef<HTMLDivElement>(null)
-    const { connectWallet: connectNewWallet } = useWalletConnection()
+    const { connectWallet } = useWalletConnection()
 
     const [isBalanceHidden, setIsBalanceHidden] = useState(() => {
         const prefs = getUserPreferences()
@@ -46,10 +47,6 @@ export default function Home() {
             setFocusedIndex(index)
         }
     }, [selectedWallet, wallets])
-
-    const handleAddBYOW = async () => {
-        await connectNewWallet()
-    }
 
     const hasWallets = wallets.length > 0
     const { handleLogin, isLoggingIn } = useZeroDev()
@@ -190,11 +187,11 @@ export default function Home() {
                                         />
                                     ))}
 
-                                <WalletCard type="add" onClick={handleAddBYOW} />
+                                <WalletCard type="add" onClick={connectWallet} />
                             </motion.div>
                         ) : (
                             <div className="flex h-full w-full flex-grow flex-col justify-center">
-                                <WalletCard type="add" onClick={handleAddBYOW} />
+                                <WalletCard type="add" onClick={connectWallet} />
                             </div>
                         )}
                     </div>

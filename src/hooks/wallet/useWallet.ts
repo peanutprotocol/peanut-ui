@@ -1,6 +1,5 @@
 'use client'
 
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN, PEANUT_WALLET_TOKEN_DECIMALS } from '@/constants'
 import { peanutPublicClient } from '@/constants/viem.consts'
 import { useAuth } from '@/context/authContext'
@@ -8,12 +7,12 @@ import * as interfaces from '@/interfaces'
 import { useAppDispatch, useWalletStore } from '@/redux/hooks'
 import { walletActions } from '@/redux/slices/wallet-slice'
 import { areEvmAddressesEqual, backgroundColorFromAddress, fetchWalletBalances } from '@/utils'
-import { useAppKit, useDisconnect } from '@reown/appkit/react'
-import { useMutation, useQuery } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { useAppKitAccount } from '@reown/appkit/react'
+import { useQuery } from '@tanstack/react-query'
+import { useCallback, useEffect, useMemo } from 'react'
 import { erc20Abi, getAddress, parseUnits } from 'viem'
 import { useAccount } from 'wagmi'
-import { useZeroDev } from './useZeroDev'
+import { useZeroDev } from '../useZeroDev'
 
 // utility functions
 const isPeanut = (wallet?: interfaces.IDBWallet): boolean =>
@@ -28,158 +27,12 @@ const createDefaultDBWallet = (address: string): interfaces.IDBWallet => ({
     address,
 })
 
-const useAddWalletAccount = () => {
-    const { addAccount, user, fetchUser } = useAuth()
-    const toast = useToast()
-
-    // keep track of processed addresses to prevent duplicate calls
-    const processedAddresses = useRef(new Set<string>())
-
-    return useMutation({
-        mutationFn: async ({
-            address,
-            providerType,
-        }: {
-            address: string
-            providerType: interfaces.WalletProviderType
-        }) => {
-            if (!user) {
-                throw new Error('Please log in first')
-            }
-
-            if (!address) {
-                throw new Error('No wallet address provided')
-            }
-
-            const lowerAddress = address.toLowerCase()
-
-            // Check if we've already processed this address in this session
-            if (processedAddresses.current.has(lowerAddress)) {
-                return { address, providerType }
-            }
-
-            // Check if wallet already exists in user accounts
-            const existingAddresses = new Set(user.accounts.map((acc) => acc.account_identifier.toLowerCase()))
-
-            if (existingAddresses.has(lowerAddress)) {
-                throw new Error('This wallet is already associated with your account')
-            }
-
-            // Add to processed set before making the API call
-            processedAddresses.current.add(lowerAddress)
-
-            await addAccount({
-                accountIdentifier: address,
-                accountType: providerType,
-                userId: user.user.userId,
-            })
-
-            return { address, providerType }
-        },
-        onSuccess: async () => {
-            await fetchUser()
-        },
-        onError: (error: Error) => {
-            if (error.message.includes('Account already exists')) {
-                toast.error('This wallet is already associated with another account.')
-            } else {
-                toast.error(error.message)
-            }
-        },
-    })
-}
-
-// First, create a new hook to manage wallet connections
-export const useWalletConnection = () => {
-    const { disconnect } = useDisconnect()
-    const { open: openWeb3Modal } = useAppKit()
-    const { isConnected: isWagmiConnected, address: connectedWalletAddress } = useAccount()
-    const addWalletMutation = useAddWalletAccount()
-    const { user } = useAuth()
-    const toast = useToast()
-
-    // Add a ref to track if we're in the process of adding a new wallet
-    const isAddingNewWallet = useRef(false)
-
-    const connectWallet = useCallback(async () => {
-        try {
-            // Set the flag when we're explicitly trying to add a new wallet
-            isAddingNewWallet.current = true
-
-            // 1. Ensure any existing connection is cleared
-            if (isWagmiConnected) {
-                await disconnect()
-                // Wait for disconnect to complete
-                await new Promise((resolve) => setTimeout(resolve, 500))
-            }
-
-            // 2. Open modal and wait for connection
-            await openWeb3Modal()
-
-            // 3. Wait for connection to be established
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-
-            // 4. Verify and add the new wallet if needed
-            const newAddress = connectedWalletAddress
-            if (!newAddress) {
-                console.log('No wallet address received')
-                return
-            }
-
-            // Only proceed with account addition if we're explicitly adding a new wallet
-            if (isAddingNewWallet.current) {
-                // Check if wallet is already in user's accounts
-                const isExistingAccount = user?.accounts.some(
-                    (acc) => acc.account_identifier.toLowerCase() === newAddress.toLowerCase()
-                )
-
-                // Only add to backend if it's a new account
-                if (isExistingAccount) {
-                    return
-                }
-
-                console.log('Adding new wallet to backend:', newAddress)
-                await addWalletMutation.mutateAsync({
-                    address: newAddress,
-                    providerType: interfaces.WalletProviderType.BYOW,
-                })
-                // } else {
-                //     console.log('Wallet already exists in user accounts:', newAddress)
-                // }
-            }
-        } catch (error) {
-            console.error('Connection error:', error)
-            if (error instanceof Error) {
-                toast.error(error.message)
-            } else {
-                toast.error('Failed to connect wallet')
-            }
-        } finally {
-            // Reset the flag when we're done
-            isAddingNewWallet.current = false
-        }
-    }, [openWeb3Modal, disconnect, connectedWalletAddress, addWalletMutation, user?.accounts])
-
-    const disconnectWallet = useCallback(async () => {
-        // Ensure we're not in adding mode when disconnecting
-        isAddingNewWallet.current = false
-        if (isWagmiConnected) {
-            await disconnect()
-        }
-    }, [disconnect, isWagmiConnected])
-
-    return {
-        connectWallet,
-        disconnectWallet,
-        isConnecting: addWalletMutation.isPending,
-    }
-}
-
 export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
-    const { isConnected: isWagmiConnected, addresses: wagmiAddresses, connector } = useAccount()
+    const { addresses: wagmiAddresses, connector } = useAccount()
+    const { isConnected: isWagmiConnected } = useAppKitAccount()
 
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
 

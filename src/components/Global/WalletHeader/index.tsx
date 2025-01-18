@@ -4,7 +4,8 @@ import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Button, Card } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
-import { useWallet, useWalletConnection } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import classNames from 'classnames'
@@ -31,15 +32,8 @@ interface WalletEntryCardProps {
 
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
-    const {
-        wallets,
-        setSelectedWallet,
-        // handleWalletConnect: connectNewWallet,
-        selectedWallet,
-        isConnected,
-    } = useWallet()
-
-    const { connectWallet: connectNewWallet } = useWalletConnection()
+    const { wallets, setSelectedWallet, selectedWallet, isConnected } = useWallet()
+    const { connectWallet } = useWalletConnection()
 
     const toast = useToast()
 
@@ -116,7 +110,7 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
                                 onClick={() => handleWalletSelection(wallet)}
                             />
                         ))}
-                        <AddNewWallet onClick={connectNewWallet} />
+                        <AddNewWallet onClick={connectWallet} />
                     </div>
                 </div>
             </Modal>
@@ -128,10 +122,18 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
 const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) => {
     const { username } = useAuth()
     const { isWalletConnected } = useWallet()
-    const { connectWallet: connectNewWallet } = useWalletConnection()
+    const { connectWallet, connectionStatus } = useWalletConnection()
+
     const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
     const isPeanutWallet = wallet.walletProviderType === WalletProviderType.PEANUT
     const isConnected = isWalletConnected(wallet)
+
+    const handleAction = async (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (isExternalWallet && !isConnected) {
+            await connectWallet()
+        }
+    }
 
     // get wallet icon to display
     const walletImage = useMemo(() => {
@@ -146,16 +148,8 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
         if (isExternalWallet && !isConnected) return 'bg-n-4'
     }, [isExternalWallet, isConnected, isActive, isPeanutWallet, wallet.address])
 
-    const handleCardClick = () => {
-        if (isExternalWallet && !isConnected) {
-            connectNewWallet()
-        } else {
-            onClick()
-        }
-    }
-
     return (
-        <Card onClick={handleCardClick}>
+        <Card onClick={onClick}>
             <Card.Content
                 className={twMerge(
                     'flex w-full cursor-pointer items-center gap-3 px-4 py-3 text-black transition-all duration-300',
@@ -210,12 +204,14 @@ const WalletEntryCard = ({ wallet, isActive, onClick }: WalletEntryCardProps) =>
 
                         {isExternalWallet && !isConnected && (
                             <button
-                                onClick={connectNewWallet}
+                                onClick={handleAction}
+                                disabled={connectionStatus === 'connecting'}
                                 className={classNames(
-                                    'minw w-20 rounded-sm bg-purple-1 px-2 py-1 text-xs font-bold text-black'
+                                    'minw w-20 rounded-sm px-2 py-1 text-xs font-bold text-black',
+                                    connectionStatus === 'connecting' ? 'bg-purple-1/50' : 'bg-purple-1'
                                 )}
                             >
-                                Connect
+                                {connectionStatus === 'connecting' ? 'Connecting...' : 'Connect'}
                             </button>
                         )}
                     </div>

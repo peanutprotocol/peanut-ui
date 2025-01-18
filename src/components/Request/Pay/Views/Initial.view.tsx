@@ -10,8 +10,8 @@ import { ReferenceAndAttachment } from '@/components/Request/Components/Referenc
 import * as consts from '@/constants'
 import { PEANUT_WALLET_CHAIN, PEANUT_WALLET_TOKEN } from '@/constants'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
 import { useZeroDev } from '@/hooks/useZeroDev'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { type ITokenPriceData } from '@/interfaces'
 import {
     areEvmAddressesEqual,

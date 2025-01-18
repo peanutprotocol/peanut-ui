@@ -3,7 +3,7 @@
 import { Button, Card } from '@/components/0_Bruddle'
 import { PaymentsFooter } from '@/components/Global/PaymentsFooter'
 import * as context from '@/context'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import * as interfaces from '@/interfaces'
 import * as utils from '@/utils'
 import { useContext, useState } from 'react'

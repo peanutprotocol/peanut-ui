@@ -2,7 +2,7 @@ import { BG_WALLET_CARD_SVG } from '@/assets'
 import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Card } from '@/components/0_Bruddle'
 import Icon from '@/components/Global/Icon'
-import { useWallet } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
 import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import { identicon } from '@dicebear/collection'
@@ -59,8 +59,7 @@ export function WalletCard({ type, onClick, ...props }: WalletCardProps) {
         )
     }
 
-    const { wallet, username, selected, index, isBalanceHidden, onToggleBalanceVisibility, isFocused } =
-        props as WalletCardWallet
+    const { wallet, username, index, isBalanceHidden, onToggleBalanceVisibility, isFocused } = props as WalletCardWallet
 
     const isExternalWallet = wallet.walletProviderType !== WalletProviderType.PEANUT
     const isConnected = isWalletConnected(wallet)

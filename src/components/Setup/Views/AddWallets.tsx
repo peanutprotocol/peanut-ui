@@ -1,6 +1,7 @@
 import { Button } from '@/components/0_Bruddle'
 import { useSetupFlow } from '@/hooks/useSetupFlow'
-import { useWallet, useWalletConnection } from '@/hooks/useWallet'
+import { useWallet } from '@/hooks/wallet/useWallet'
+import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
 
 const AddWallets = () => {
     const { handleNext } = useSetupFlow()
