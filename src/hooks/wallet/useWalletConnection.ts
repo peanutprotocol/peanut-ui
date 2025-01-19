@@ -3,11 +3,12 @@
 import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import * as interfaces from '@/interfaces'
-import { useAppKit, useAppKitAccount } from '@reown/appkit/react'
+import { useAppKit, useAppKitAccount, useDisconnect } from '@reown/appkit/react'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 
 export const useWalletConnection = () => {
-    const { open: openWeb3Modal } = useAppKit()
+    const { open: openWalletModal } = useAppKit()
+    const { disconnect: disconnectWallet } = useDisconnect()
     const { status, address: connectedAddress } = useAppKitAccount()
     const { user, addAccount, fetchUser } = useAuth()
     const toast = useToast()
@@ -70,7 +71,11 @@ export const useWalletConnection = () => {
     // connect wallet and add it to backend
     const connectWallet = useCallback(async () => {
         try {
-            await openWeb3Modal({ view: 'Connect' })
+            if (status === 'connected' && connectedAddress) {
+                await disconnectWallet()
+            }
+
+            await openWalletModal({ view: 'Connect' })
 
             // todo: not a very elegant solution, but it works, need to refine this later
             // wait for connection and attempt to add wallet
@@ -82,10 +87,15 @@ export const useWalletConnection = () => {
                 await new Promise((resolve) => setTimeout(resolve, 500))
             }
         } catch (error) {
+            // todo: add-account throughs 500 error sometimes without proper error handling from backend, need to fix this later
             console.error('Connection error:', error)
-            toast.error('Failed to connect wallet')
+            if ((error as any).response?.status === 500) {
+                console.error('Server error:', error)
+            } else {
+                toast.error('Failed to connect wallet')
+            }
         }
-    }, [openWeb3Modal, status, connectedAddress, addWalletToBackend, toast])
+    }, [openWalletModal, status, connectedAddress, addWalletToBackend, toast])
 
     return {
         connectWallet,

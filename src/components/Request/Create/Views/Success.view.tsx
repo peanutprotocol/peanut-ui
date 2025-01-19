@@ -8,7 +8,7 @@ import * as _consts from '../Create.consts'
 export const SuccessView = ({ link }: _consts.ICreateScreenProps) => {
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="relative">
+            <Card.Header className="relative mx-auto">
                 <Card.Title className="mx-auto">Yay!</Card.Title>
             </Card.Header>
             <Card.Content className="flex flex-col gap-3">

@@ -20,7 +20,7 @@ export const AlreadyPaidLinkView = ({ requestLinkData }: { requestLinkData: _con
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="text-center">
+            <Card.Header className="mx-auto text-center">
                 <Card.Title>Payment Receipt</Card.Title>
             </Card.Header>
             <Card.Content className="col gap-4">

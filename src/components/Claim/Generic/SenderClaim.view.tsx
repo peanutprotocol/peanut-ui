@@ -68,9 +68,9 @@ export const SenderClaimLinkView = ({
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>Hello, {utils.shortenAddress(address ?? '')}</Card.Title>
-                <Card.Description>
+            <Card.Header className="mx-auto text-center">
+                <Card.Title className="text-center">Hello, {utils.shortenAddress(address ?? '')}</Card.Title>
+                <Card.Description className="text-center">
                     This is a link that you have created. You can refund it or go to the recipient view.
                 </Card.Description>
             </Card.Header>

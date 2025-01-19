@@ -2,7 +2,6 @@
 
 import PeanutWalletIcon from '@/assets/icons/small-peanut.png'
 import { Button, Card } from '@/components/0_Bruddle'
-import { useToast } from '@/components/0_Bruddle/Toast'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/wallet/useWallet'
 import { useWalletConnection } from '@/hooks/wallet/useWalletConnection'
@@ -10,7 +9,7 @@ import { IWallet, WalletProviderType } from '@/interfaces'
 import { printableUsdc, shortenAddressLong } from '@/utils'
 import classNames from 'classnames'
 import Image from 'next/image'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { twMerge } from 'tailwind-merge'
 import CopyToClipboard from '../CopyToClipboard'
 import Icon from '../Icon'
@@ -32,10 +31,8 @@ interface WalletEntryCardProps {
 
 const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const [showModal, setShowModal] = useState(false)
-    const { wallets, setSelectedWallet, selectedWallet, isConnected } = useWallet()
+    const { wallets, setSelectedWallet, selectedWallet, isConnected, isWalletConnected } = useWallet()
     const { connectWallet } = useWalletConnection()
-
-    const toast = useToast()
 
     const sortedWallets = useMemo(() => {
         return [...wallets].filter((account) => Object.values(WalletProviderType).includes(account.walletProviderType))
@@ -45,6 +42,22 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
     const handleWalletSelection = (wallet: IWallet) => {
         setSelectedWallet(wallet)
     }
+
+    console.log('selectedWallet', selectedWallet)
+
+    // set selected wallet to peanut wallet if no external wallet is connected
+    useEffect(() => {
+        if (
+            !sortedWallets.some(
+                (wallet) => wallet.walletProviderType !== WalletProviderType.PEANUT && isWalletConnected(wallet)
+            )
+        ) {
+            const peanutWallet = sortedWallets.find((wallet) => wallet.walletProviderType === WalletProviderType.PEANUT)
+            if (peanutWallet) {
+                setSelectedWallet(peanutWallet)
+            }
+        }
+    }, [sortedWallets, isWalletConnected, setSelectedWallet])
 
     return (
         <div className={className}>

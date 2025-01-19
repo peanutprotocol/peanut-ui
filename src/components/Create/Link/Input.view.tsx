@@ -311,10 +311,10 @@ export const CreateLinkInputView = ({
         <>
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
+                <Card.Header className="mx-auto text-center">
                     <Card.Title
                         style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
-                        className="text-center"
+                        className="mx-auto text-center"
                     >
                         {' '}
                         {createType === 'link'

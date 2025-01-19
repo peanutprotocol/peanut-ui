@@ -359,7 +359,7 @@ export const InitialView = ({
         <div>
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
+                <Card.Header className="mx-auto">
                     <Card.Title className="text-center text-h3">
                         <AddressLink address={requestLinkData.recipientAddress} /> is requesting
                     </Card.Title>

@@ -1,21 +1,20 @@
 'use client'
 
-import { useMemo, useState, useEffect } from 'react'
 import { Step, Steps, useSteps } from 'chakra-ui-steps'
+import { useEffect, useMemo, useState } from 'react'
 
-import * as utils from '@/utils'
-import * as interfaces from '@/interfaces'
+import { Card } from '@/components/0_Bruddle'
+import { CrispButton } from '@/components/CrispChat'
 import * as consts from '@/constants'
-import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
-import { useForm } from 'react-hook-form'
 import { useAuth } from '@/context/authContext'
+import * as interfaces from '@/interfaces'
+import * as utils from '@/utils'
+import { Divider, useToast } from '@chakra-ui/react'
+import { useForm } from 'react-hook-form'
+import IframeWrapper, { IFrameWrapperProps } from '../IframeWrapper'
 import Loading from '../Loading'
 import { GlobalLoginComponent } from '../LoginComponent'
 import { GlobalRegisterComponent } from '../RegisterComponent'
-import { Divider } from '@chakra-ui/react'
-import { CrispButton } from '@/components/CrispChat'
-import { Card } from '@/components/0_Bruddle'
-import { useToast } from '@chakra-ui/react'
 
 const steps = [
     { label: 'Step 1: Provide personal details' },
@@ -424,9 +423,11 @@ export const GlobalKYCComponent = ({ intialStep, offrampForm, setOfframpForm, on
 
     return (
         <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header>
-                <Card.Title>KYC Process</Card.Title>
-                <Card.Description>Regulations require us to verify your identity.</Card.Description>
+            <Card.Header className="mx-auto text-center">
+                <Card.Title className="text-center">KYC Process</Card.Title>
+                <Card.Description className="text-center">
+                    Regulations require us to verify your identity.
+                </Card.Description>
             </Card.Header>
             <Card.Content>
                 <Steps

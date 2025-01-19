@@ -120,9 +120,9 @@ export const Refund = () => {
     return (
         <PageContainer>
             <Card className="shadow-none sm:shadow-primary-4">
-                <Card.Header>
-                    <Card.Title>Refund</Card.Title>
-                    <Card.Description>
+                <Card.Header className="mx-auto text-center">
+                    <Card.Title className="text-center">Refund</Card.Title>
+                    <Card.Description className="mx-auto text-center">
                         This is a page specific for refunding links that failed while creating, but the funds did leave
                         your wallet. Please provide the transaction hash and chainId, and you will be able to claim.
                         Please note that you will have to be connected with the same wallet that you tried creating the

@@ -261,8 +261,8 @@ export const InitialCashoutView = ({
             <FlowHeader />
             <Card className="shadow-none sm:shadow-primary-4">
                 <Card.Header>
-                    <Card.Title>Cash Out</Card.Title>
-                    <Card.Description className="text-center">
+                    <Card.Title className="mx-auto text-center">Cash Out</Card.Title>
+                    <Card.Description className="mx-auto text-center">
                         Cash out your crypto to your bank account. Works best with popular stablecoins and other
                         commonly traded tokens.
                     </Card.Description>

@@ -241,7 +241,7 @@ export const CreateLinkConfirmView = ({
                 <Card.Header>
                     <Card.Title
                         style={{ display: '-webkit-box', WebkitLineClamp: '2', WebkitBoxOrient: 'vertical' }}
-                        className="text-center"
+                        className="mx-auto text-center"
                     >
                         {createType == 'link'
                             ? 'Text Tokens'
@@ -249,7 +249,7 @@ export const CreateLinkConfirmView = ({
                               ? `Send to ${recipient.name?.endsWith('.eth') ? recipient.name : printableAddress(recipient.address ?? '')}`
                               : `Send to ${recipient.name}`}
                     </Card.Title>
-                    <Card.Description className="text-center">
+                    <Card.Description className="mx-auto text-center">
                         {createType === 'link' &&
                             'Make a payment with the link. Send the link to the recipient. They will be able to claim the funds in any token on any chain from the link.'}
                         {createType === 'email_link' &&
