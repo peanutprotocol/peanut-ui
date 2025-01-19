@@ -1,3 +1,4 @@
+import { SOCIAL_PREVIEW_BG } from '@/assets/social-previews'
 import * as consts from '@/constants'
 import * as utils from '@/utils'
 
@@ -35,7 +36,6 @@ export function LinkPreviewImg({
         ?.tokens.find((token) => utils.areTokenAddressesEqual(token.address, tokenAddress))?.logoURI
     const chainImage = consts.supportedPeanutChains.find((chain) => chain.chainId === chainId)?.icon.url
 
-    const previewBg = `${process.env.NEXT_PUBLIC_BASE_URL}/preview-bg.png`
     return (
         <div
             style={{
@@ -50,7 +50,7 @@ export function LinkPreviewImg({
             }}
         >
             <img
-                src={previewBg}
+                src={SOCIAL_PREVIEW_BG.src}
                 alt="Background"
                 style={{
                     position: 'absolute',
