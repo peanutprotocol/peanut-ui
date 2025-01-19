@@ -31,7 +31,7 @@ export const useWallet = () => {
     const dispatch = useAppDispatch()
     const { user } = useAuth()
     const { address: kernelClientAddress, isKernelClientReady } = useZeroDev()
-    const { addresses: wagmiAddresses, connector } = useAccount()
+    const { addresses: wagmiAddress, connector } = useAccount()
     const { isConnected: isWagmiConnected } = useAppKitAccount()
 
     const { selectedAddress, wallets, signInModalVisible, walletColor } = useWalletStore()
@@ -41,12 +41,12 @@ export const useWallet = () => {
             if (isPeanut(wallet) && kernelClientAddress) {
                 return isKernelClientReady && areEvmAddressesEqual(kernelClientAddress, wallet.address)
             }
-            if (wagmiAddresses) {
-                return isWagmiConnected && wagmiAddresses.some((addr) => areEvmAddressesEqual(addr, wallet.address))
+            if (wagmiAddress) {
+                return isWagmiConnected && wagmiAddress.some((addr) => areEvmAddressesEqual(addr, wallet.address))
             }
             return false
         },
-        [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddresses]
+        [isKernelClientReady, kernelClientAddress, isWagmiConnected, wagmiAddress]
     )
 
     const fetchWalletDetails = useCallback(
@@ -84,7 +84,7 @@ export const useWallet = () => {
 
     const mergeAndProcessWallets = useCallback(async () => {
         const userAccounts = user?.accounts || []
-        const wagmiAddressesList = wagmiAddresses || []
+        const wagmiAddressesList = wagmiAddress || []
 
         const processedAccounts = await Promise.all(
             userAccounts
@@ -124,12 +124,12 @@ export const useWallet = () => {
 
         dispatch(walletActions.setWallets(mergedWallets))
         return mergedWallets
-    }, [fetchWalletDetails, wagmiAddresses, user?.accounts, dispatch])
+    }, [fetchWalletDetails, wagmiAddress, user?.accounts, dispatch])
 
     useQuery({
-        queryKey: ['wallets', user?.accounts, wagmiAddresses],
+        queryKey: ['wallets', user?.accounts, wagmiAddress],
         queryFn: mergeAndProcessWallets,
-        enabled: !!user || !!wagmiAddresses,
+        enabled: !!user || !!wagmiAddress,
         staleTime: 30 * 1000, // 30 seconds
         gcTime: 1 * 60 * 1000, // 1 minute
     })
@@ -187,10 +187,10 @@ export const useWallet = () => {
     )
 
     const selectExternalWallet = useCallback(() => {
-        if (wagmiAddresses?.length) {
-            dispatch(walletActions.setSelectedAddress(wagmiAddresses[0]))
+        if (wagmiAddress?.length) {
+            dispatch(walletActions.setSelectedAddress(wagmiAddress[0]))
         }
-    }, [wagmiAddresses, dispatch])
+    }, [wagmiAddress, dispatch])
 
     return {
         wallets,

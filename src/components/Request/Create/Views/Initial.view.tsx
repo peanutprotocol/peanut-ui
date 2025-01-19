@@ -2,6 +2,7 @@ import { Button, Card } from '@/components/0_Bruddle'
 import { getTokenDetails } from '@/components/Create/Create.utils'
 import AddressInput from '@/components/Global/AddressInput'
 import FileUploadInput, { IFileUploadInputProps } from '@/components/Global/FileUploadInput'
+import FlowHeader from '@/components/Global/FlowHeader'
 import Loading from '@/components/Global/Loading'
 import TokenAmountInput from '@/components/Global/TokenAmountInput'
 import TokenSelector from '@/components/Global/TokenSelector/TokenSelector'
@@ -165,80 +166,83 @@ export const InitialView = ({
     }, [isPeanutWallet, selectedWallet?.address])
 
     return (
-        <Card className="shadow-none sm:shadow-primary-4">
-            <Card.Header className="mx-auto">
-                <Card.Title className="mx-auto">Request a payment</Card.Title>
-                <Card.Description className="text-center">
-                    Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if you
-                    want to.
-                </Card.Description>
-            </Card.Header>
-            <Card.Content>
-                <div className="flex w-full flex-col items-center justify-center gap-3">
-                    <TokenAmountInput
-                        className="w-full"
-                        setTokenValue={(value) => {
-                            _setTokenValue(value ?? '')
-                        }}
-                        tokenValue={_tokenValue}
-                        onSubmit={() => {
-                            handleOnNext({
-                                recipientAddress,
-                                tokenAddress: selectedTokenAddress,
-                                chainId: selectedChainID,
-                                userBalances: selectedWallet?.balances ?? [],
-                                tokenValue,
-                                tokenData: selectedTokenData,
-                                attachmentOptions,
-                            })
-                        }}
-                    />
-                    {isExternalWallet && <TokenSelector shouldBeConnected={false} />}
-                    <FileUploadInput
-                        attachmentOptions={attachmentOptions}
-                        setAttachmentOptions={setAttachmentOptions}
-                    />
-                    {isExternalWallet && (
-                        <AddressInput
-                            placeholder="Enter recipient address"
-                            value={recipientAddress ?? ''}
-                            onUpdate={(update: InputUpdate) => {
-                                setRecipientAddress(update.value)
-                                setInputChanging(update.isChanging)
-                                setIsValidRecipient(update.isValid)
-                            }}
+        <div>
+            <FlowHeader />
+            <Card className="shadow-none sm:shadow-primary-4">
+                <Card.Header className="mx-auto">
+                    <Card.Title className="mx-auto">Request a payment</Card.Title>
+                    <Card.Description className="text-center">
+                        Choose the amount, token and chain. You will request a payment to your wallet. Add an invoice if
+                        you want to.
+                    </Card.Description>
+                </Card.Header>
+                <Card.Content>
+                    <div className="flex w-full flex-col items-center justify-center gap-3">
+                        <TokenAmountInput
                             className="w-full"
+                            setTokenValue={(value) => {
+                                _setTokenValue(value ?? '')
+                            }}
+                            tokenValue={_tokenValue}
+                            onSubmit={() => {
+                                handleOnNext({
+                                    recipientAddress,
+                                    tokenAddress: selectedTokenAddress,
+                                    chainId: selectedChainID,
+                                    userBalances: selectedWallet?.balances ?? [],
+                                    tokenValue,
+                                    tokenData: selectedTokenData,
+                                    attachmentOptions,
+                                })
+                            }}
                         />
-                    )}
-                    <Button
-                        onClick={() => {
-                            handleOnNext({
-                                recipientAddress,
-                                tokenAddress: selectedTokenAddress,
-                                chainId: selectedChainID,
-                                userBalances: selectedWallet?.balances ?? [],
-                                tokenValue,
-                                tokenData: selectedTokenData,
-                                attachmentOptions,
-                            })
-                        }}
-                        disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
-                    >
-                        {isLoading ? (
-                            <div className="flex w-full flex-row items-center justify-center gap-2">
-                                <Loading /> {loadingState}
-                            </div>
-                        ) : (
-                            'Confirm'
+                        {isExternalWallet && <TokenSelector shouldBeConnected={false} />}
+                        <FileUploadInput
+                            attachmentOptions={attachmentOptions}
+                            setAttachmentOptions={setAttachmentOptions}
+                        />
+                        {isExternalWallet && (
+                            <AddressInput
+                                placeholder="Enter recipient address"
+                                value={recipientAddress ?? ''}
+                                onUpdate={(update: InputUpdate) => {
+                                    setRecipientAddress(update.value)
+                                    setInputChanging(update.isChanging)
+                                    setIsValidRecipient(update.isValid)
+                                }}
+                                className="w-full"
+                            />
                         )}
-                    </Button>
-                </div>
-                {errorState.showError && (
-                    <div className="text-center">
-                        <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        <Button
+                            onClick={() => {
+                                handleOnNext({
+                                    recipientAddress,
+                                    tokenAddress: selectedTokenAddress,
+                                    chainId: selectedChainID,
+                                    userBalances: selectedWallet?.balances ?? [],
+                                    tokenValue,
+                                    tokenData: selectedTokenData,
+                                    attachmentOptions,
+                                })
+                            }}
+                            disabled={!isValidRecipient || inputChanging || isLoading || !_tokenValue}
+                        >
+                            {isLoading ? (
+                                <div className="flex w-full flex-row items-center justify-center gap-2">
+                                    <Loading /> {loadingState}
+                                </div>
+                            ) : (
+                                'Confirm'
+                            )}
+                        </Button>
                     </div>
-                )}
-            </Card.Content>
-        </Card>
+                    {errorState.showError && (
+                        <div className="text-center">
+                            <label className=" text-h8 font-normal text-red ">{errorState.errorMessage}</label>
+                        </div>
+                    )}
+                </Card.Content>
+            </Card>
+        </div>
     )
 }

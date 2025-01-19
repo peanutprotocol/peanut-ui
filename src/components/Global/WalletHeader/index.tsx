@@ -43,8 +43,6 @@ const WalletHeader = ({ className, disabled }: WalletHeaderProps) => {
         setSelectedWallet(wallet)
     }
 
-    console.log('selectedWallet', selectedWallet)
-
     // set selected wallet to peanut wallet if no external wallet is connected
     useEffect(() => {
         if (
