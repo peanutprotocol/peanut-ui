@@ -52,6 +52,9 @@ module.exports = {
                 gold: {
                     3: '#FFD25C',
                 },
+                success: {
+                    1: '#16B413',
+                },
                 white: '#FFFFFF',
                 red: '#FF0000',
                 'kyc-red': '#C80000', // TODO: this is bad and needs to be changed
