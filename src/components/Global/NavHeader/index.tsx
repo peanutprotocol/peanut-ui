@@ -15,7 +15,7 @@ const NavHeader = ({ title, href }: NavHeaderProps) => {
                     <Icon name="arrow-prev" />
                 </Button>
             </Link>
-            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform pb-2 text-2xl font-bold md:relative md:left-auto md:top-auto md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold">
+            <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 transform pb-1 text-2xl font-bold md:relative md:left-auto md:top-auto md:translate-x-0 md:translate-y-0 md:transform-none md:pb-0 md:text-base md:font-semibold">
                 {title}
             </div>
         </div>

@@ -1,7 +1,8 @@
 'use client'
 
-import { ArrowIcon, Button } from '@/components/0_Bruddle'
+import { Button } from '@/components/0_Bruddle'
 import { useToast } from '@/components/0_Bruddle/Toast'
+import DirectionalActionButtons from '@/components/Global/DirectionalActionButtons'
 import WalletHeader from '@/components/Global/WalletHeader'
 import { WalletCard } from '@/components/Home/WalletCard'
 import ProfileSection from '@/components/Profile/Components/ProfileSection'
@@ -11,7 +12,6 @@ import { useZeroDev } from '@/hooks/useZeroDev'
 import { getUserPreferences, updateUserPreferences } from '@/utils'
 import classNames from 'classnames'
 import { motion, useAnimation } from 'framer-motion'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -158,28 +158,16 @@ export default function Home() {
                         )}
                     </div>
 
-                    <div className="flex w-full flex-grow flex-row items-center justify-center gap-5 sm:justify-evenly md:mx-auto md:w-fit">
-                        <Link href={'/send'}>
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="flex w-38 items-center gap-2 rounded-full transition-all ease-in-out active:scale-95"
-                            >
-                                <ArrowIcon />
-                                <p className="text-base">Send</p>
-                            </Button>
-                        </Link>
-                        <Link href={'/request/create'}>
-                            <Button
-                                variant="purple"
-                                shadowSize="4"
-                                className="flex w-38 items-center gap-2 rounded-full transition-all ease-in-out active:scale-95"
-                            >
-                                <ArrowIcon className="rotate-180" />
-                                <p className="text-base">Receive</p>
-                            </Button>
-                        </Link>
-                    </div>
+                    <DirectionalActionButtons
+                        leftButton={{
+                            title: 'Send',
+                            href: '/send',
+                        }}
+                        rightButton={{
+                            title: 'Receive',
+                            href: '/request/create',
+                        }}
+                    />
                 </div>
             </div>
         </div>

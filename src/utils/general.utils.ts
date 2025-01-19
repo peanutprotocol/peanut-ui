@@ -3,6 +3,7 @@ import * as interfaces from '@/interfaces'
 import peanut from '@squirrel-labs/peanut-sdk'
 import chroma from 'chroma-js'
 import { ethers } from 'ethers'
+import * as wagmiChains from 'wagmi/chains'
 
 export function urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - (base64String.length % 4)) % 4)
@@ -1060,4 +1061,9 @@ export async function fetchTokenSymbol(tokenAddress: string, chainId: string): P
         console.error(`Failed to get token symbol for token ${tokenAddress} on chain ${chainId}`)
     }
     return tokenSymbol
+}
+
+export function getChainName(chainId: string): string | undefined {
+    const chain = Object.entries(wagmiChains).find(([, chain]) => chain.id === Number(chainId))?.[1]
+    return chain?.name ?? undefined
 }

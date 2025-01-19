@@ -1,7 +1,10 @@
 'use client'
 
+import { ARBITRUM_ICON } from '@/assets'
 import { useDashboard } from '@/components/Dashboard/useDashboard'
-import { HistoryView } from '@/components/Global/HistoryView'
+import { ListItemView, TransactionType } from '@/components/Global/ListItemView'
+import * as utils from '@/utils'
+
 import NavHeader from '@/components/Global/NavHeader'
 import { PEANUT_API_URL } from '@/constants'
 import { useWallet } from '@/hooks/useWallet'
@@ -107,16 +110,38 @@ const HistoryPage = () => {
             <div className="w-full">
                 {data?.pages.map((page, pageIndex) => (
                     <div key={pageIndex}>
-                        {page.items.map((item) => (
-                            <div key={item.id} className="border-b border-n-1">
-                                <HistoryView
-                                    id={item.id}
-                                    transactionType={item.transactionType}
-                                    amount={item.amount}
-                                    recipientAddress={item.recipientAddress}
-                                    status={item.status}
-                                    transactionDetails={item.transactionDetails}
-                                />
+                        {data?.pages.map((page, pageIndex) => (
+                            <div key={pageIndex}>
+                                {page.items.map((item) => (
+                                    <div key={item.id} className="border-b border-n-1">
+                                        <ListItemView
+                                            id={item.id}
+                                            variant="history"
+                                            primaryInfo={{
+                                                title: item.transactionType,
+                                            }}
+                                            secondaryInfo={{
+                                                mainText: item.amount,
+                                            }}
+                                            metadata={{
+                                                tokenLogo:
+                                                    item.transactionDetails.tokenSymbol === 'USDC'
+                                                        ? 'https://cryptologos.cc/logos/usd-coin-usdc-logo.png?v=040'
+                                                        : undefined,
+                                                chainLogo:
+                                                    item.transactionDetails.chain === 'Arbitrum One'
+                                                        ? ARBITRUM_ICON
+                                                        : undefined,
+                                                subText: item.transactionDetails.date
+                                                    ? utils.formatDate(new Date(item.transactionDetails.date))
+                                                    : '',
+                                                recipientAddress: item.recipientAddress,
+                                                transactionType: item.transactionType as TransactionType,
+                                            }}
+                                            details={item.transactionDetails}
+                                        />
+                                    </div>
+                                ))}
                             </div>
                         ))}
                     </div>

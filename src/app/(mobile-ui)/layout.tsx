@@ -5,6 +5,7 @@ import { useToast } from '@/components/0_Bruddle/Toast'
 import Modal from '@/components/Global/Modal'
 import WalletNavigation from '@/components/Global/WalletNavigation'
 import HomeWaitlist from '@/components/Home/HomeWaitlist'
+import { ThemeProvider } from '@/config'
 import { peanutWalletIsInPreview } from '@/constants'
 import { useAuth } from '@/context/authContext'
 import { useWallet } from '@/hooks/useWallet'
@@ -15,7 +16,6 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import '../../styles/globals.bruddle.css'
-import { ThemeProvider } from '@/config'
 
 const publicPathRegex = /^\/(request\/pay|claim)/
 
@@ -40,7 +40,7 @@ const Layout = ({ children }: { children: React.ReactNode }) => {
 
     if (!isReady) return null
     return (
-        <div className="flex h-[100dvh] flex-col  bg-background md:flex-row-reverse">
+        <div className="flex min-h-[100dvh] flex-col  bg-background md:flex-row-reverse">
             <div
                 className={classNames('z-1 flex w-full flex-1 overflow-x-visible overflow-y-scroll', {
                     'p-6': !isHome,
