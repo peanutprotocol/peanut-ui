@@ -1,8 +1,11 @@
 // https://wagmi.sh/core/chains
 
-import { getInfuraApiUrl } from '@/utils'
 import type { Chain } from 'viem'
 import * as wagmiChains from 'wagmi/chains'
+
+const getInfuraApiUrl = (network: string): string => {
+    return `https://${network}.infura.io/v3/${process.env.NEXT_PUBLIC_INFURA_API_KEY}`
+}
 
 const milkomeda = {
     id: 2001,
