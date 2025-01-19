@@ -130,6 +130,8 @@ export const useWallet = () => {
         queryKey: ['wallets', user?.accounts, wagmiAddresses],
         queryFn: mergeAndProcessWallets,
         enabled: !!user || !!wagmiAddresses,
+        staleTime: 30 * 1000, // 30 seconds
+        gcTime: 1 * 60 * 1000, // 1 minute
     })
 
     const selectedWallet = useMemo(() => {
@@ -181,7 +183,7 @@ export const useWallet = () => {
                 console.error('Error refetching balance:', error)
             }
         },
-        [wallets, dispatch]
+        [wallets]
     )
 
     const selectExternalWallet = useCallback(() => {
